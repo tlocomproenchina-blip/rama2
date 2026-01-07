@@ -18,16 +18,19 @@ import {
   Mail,
   Tag,
   CheckCircle,
-  Clock
+  Clock,
+  Eye
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
+import ClientDetailsModal from '@/components/admin/ClientDetailsModal';
 
 export default function AdminClients({ user }) {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [editClient, setEditClient] = useState(null);
+  const [viewClient, setViewClient] = useState(null);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   const [packagesCount, setPackagesCount] = useState({});
@@ -280,20 +283,38 @@ export default function AdminClients({ user }) {
                   </div>
 
                   {/* Actions */}
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleEdit(client)}
-                  >
-                    <Edit2 className="h-4 w-4 mr-1" />
-                    Editar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setViewClient(client)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Ver Detalles
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEdit(client)}
+                    >
+                      <Edit2 className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Client Details Modal */}
+      <ClientDetailsModal
+        client={viewClient}
+        open={!!viewClient}
+        onClose={() => setViewClient(null)}
+        onClientUpdated={loadClients}
+      />
 
       {/* Edit Modal */}
       <Dialog open={!!editClient} onOpenChange={() => setEditClient(null)}>
