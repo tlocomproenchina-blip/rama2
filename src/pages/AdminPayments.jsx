@@ -1,124 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   CreditCard, 
   Search, 
   CheckCircle,
-  XCircle,
-  Eye,
   Loader2,
   DollarSign,
-  Clock,
-  Wallet
+  Clock
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PaymentValidation from '@/components/admin/PaymentValidation';
 
 export default function AdminPayments({ user }) {
   const [consolidations, setConsolidations] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('pending');
-  const [selectedCon, setSelectedCon] = useState(null);
-  const [viewProof, setViewProof] = useState(null);
-  const [rejectComment, setRejectComment] = useState('');
-  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    loadConsolidations();
+    loadData();
   }, []);
 
-  const loadConsolidations = async () => {
-    const cons = await base44.entities.Consolidation.list('-created_date');
+  const loadData = async () => {
+    const [cons, users] = await Promise.all([
+      base44.entities.Consolidation.list('-created_date'),
+      base44.entities.User.filter({ role: 'user' })
+    ]);
     setConsolidations(cons);
+    setClients(users);
     setLoading(false);
   };
 
-  const handleValidate = async () => {
-    if (!selectedCon) return;
-    setProcessing(true);
 
-    try {
-      await base44.entities.Consolidation.update(selectedCon.id, {
-        payment_validated: true,
-        payment_validated_by: user.email,
-        payment_validation_date: new Date().toISOString(),
-        status: 'en_transito'
-      });
-
-      // Update package statuses
-      for (const pkgId of (selectedCon.package_ids || [])) {
-        await base44.entities.Package.update(pkgId, { status: 'en_transito' });
-      }
-
-      // Notify client (async, don't wait)
-      base44.integrations.Core.SendEmail({
-        to: selectedCon.client_email,
-        subject: '✅ Pago validado - Tu carga está en camino',
-        body: `¡Excelente! Tu pago ha sido validado.\n\nTracking: ${selectedCon.consolidation_tracking}\nMonto: $${selectedCon.payment_amount}\n\nTu carga está ahora en tránsito.`
-      }).catch(err => console.error('Email error:', err));
-
-      base44.entities.Notification.create({
-        user_email: selectedCon.client_email,
-        title: '✅ Pago Validado',
-        message: `Tu pago de $${selectedCon.payment_amount} para ${selectedCon.consolidation_tracking} ha sido validado.`,
-        type: 'payment',
-        icon: 'check',
-        reference_id: selectedCon.id
-      }).catch(err => console.error('Notification error:', err));
-
-      toast.success('Pago validado exitosamente');
-      setSelectedCon(null);
-      loadConsolidations();
-    } catch (error) {
-      toast.error('Error al validar');
-    }
-    setProcessing(false);
-  };
-
-  const handleReject = async () => {
-    if (!selectedCon) return;
-    setProcessing(true);
-
-    try {
-      await base44.entities.Consolidation.update(selectedCon.id, {
-        payment_validated: false,
-        payment_rejection_comment: rejectComment,
-        status: 'pendiente_pago'
-      });
-
-      // Notify client (async, don't wait)
-      base44.integrations.Core.SendEmail({
-        to: selectedCon.client_email,
-        subject: '❌ Pago rechazado',
-        body: `Tu pago no pudo ser validado.\n\nTracking: ${selectedCon.consolidation_tracking}\nMotivo: ${rejectComment || 'Comprobante inválido'}\n\nPor favor intenta nuevamente.`
-      }).catch(err => console.error('Email error:', err));
-
-      base44.entities.Notification.create({
-        user_email: selectedCon.client_email,
-        title: '❌ Pago Rechazado',
-        message: `Tu pago para ${selectedCon.consolidation_tracking} fue rechazado. Motivo: ${rejectComment || 'Comprobante inválido'}`,
-        type: 'payment',
-        icon: 'alert',
-        reference_id: selectedCon.id
-      }).catch(err => console.error('Notification error:', err));
-
-      toast.success('Pago rechazado');
-      setSelectedCon(null);
-      setRejectComment('');
-      loadConsolidations();
-    } catch (error) {
-      toast.error('Error al rechazar');
-    }
-    setProcessing(false);
-  };
 
   const handleStatusChange = async (con, newStatus) => {
     await base44.entities.Consolidation.update(con.id, { status: newStatus });
@@ -262,12 +181,19 @@ export default function AdminPayments({ user }) {
       </Card>
 
       {/* Consolidations List */}
-      {filteredCons.length === 0 ? (
+      {statusFilter === 'pending' ? (
+        <PaymentValidation 
+          consolidations={filteredCons}
+          clients={clients}
+          onRefresh={loadData}
+          currentUser={user}
+        />
+      ) : filteredCons.length === 0 ? (
         <Card className="border-0 shadow-lg">
           <CardContent className="p-12 text-center">
             <CreditCard className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin pagos pendientes</h3>
-            <p className="text-slate-500">No hay pagos que requieran validación</p>
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin consolidaciones</h3>
+            <p className="text-slate-500">No se encontraron consolidaciones</p>
           </CardContent>
         </Card>
       ) : (
@@ -276,7 +202,6 @@ export default function AdminPayments({ user }) {
             <Card key={con.id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
               <CardContent className="p-4 lg:p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                  {/* Info */}
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="p-2 bg-purple-100 rounded-lg">
@@ -287,17 +212,8 @@ export default function AdminPayments({ user }) {
                         <p className="text-sm text-slate-500">{con.client_email}</p>
                       </div>
                     </div>
-                    {con.payment_method && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600 mt-2">
-                        <Wallet className="h-4 w-4" />
-                        {con.payment_method === 'binance' ? 'Binance' : 'USDT TRC20'}
-                        <span className="mx-2">•</span>
-                        ${con.payment_amount?.toFixed(2)} pagado
-                      </div>
-                    )}
                   </div>
 
-                  {/* Status & Actions */}
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <p className="text-sm text-slate-500">Total</p>
@@ -305,27 +221,6 @@ export default function AdminPayments({ user }) {
                     </div>
                     <StatusBadge status={con.status} />
                     
-                    {con.status === 'pago_pendiente_validacion' && (
-                      <div className="flex gap-2">
-                        {con.payment_proof_url && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setViewProof(con.payment_proof_url)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button 
-                          size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700"
-                          onClick={() => setSelectedCon(con)}
-                        >
-                          Revisar
-                        </Button>
-                      </div>
-                    )}
-
                     {con.payment_validated && (
                       <select
                         value={con.status}
@@ -344,88 +239,6 @@ export default function AdminPayments({ user }) {
           ))}
         </div>
       )}
-
-      {/* Validation Modal */}
-      <Dialog open={!!selectedCon} onOpenChange={() => setSelectedCon(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Validar Pago</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-500">Tracking</p>
-                <p className="font-mono font-medium">{selectedCon?.consolidation_tracking}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-500">Cliente</p>
-                <p className="font-medium truncate">{selectedCon?.client_email}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-500">Total a pagar</p>
-                <p className="font-bold text-lg">${selectedCon?.total_cost?.toFixed(2)}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-500">Monto reportado</p>
-                <p className="font-bold text-lg text-emerald-600">${selectedCon?.payment_amount?.toFixed(2)}</p>
-              </div>
-            </div>
-
-            {selectedCon?.payment_proof_url && (
-              <div className="space-y-2">
-                <Label>Comprobante de Pago</Label>
-                <img 
-                  src={selectedCon.payment_proof_url} 
-                  alt="Comprobante" 
-                  className="w-full rounded-lg border cursor-pointer hover:opacity-90"
-                  onClick={() => setViewProof(selectedCon.payment_proof_url)}
-                />
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label>Comentario de rechazo (opcional)</Label>
-              <Textarea
-                value={rejectComment}
-                onChange={(e) => setRejectComment(e.target.value)}
-                placeholder="Motivo del rechazo si aplica..."
-                rows={2}
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={handleReject}
-              disabled={processing}
-              className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Rechazar
-            </Button>
-            <Button 
-              onClick={handleValidate}
-              disabled={processing}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-            >
-              {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-              Validar Pago
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Proof Modal */}
-      <Dialog open={!!viewProof} onOpenChange={() => setViewProof(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Comprobante de Pago</DialogTitle>
-          </DialogHeader>
-          <img src={viewProof} alt="Comprobante" className="w-full rounded-lg" />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
