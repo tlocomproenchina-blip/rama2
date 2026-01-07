@@ -32,9 +32,8 @@ export default function ProfileSetupModal({ open, onComplete }) {
     setSaving(true);
     try {
       await onComplete(formData);
-      toast.success('Perfil completado exitosamente');
     } catch (error) {
-      toast.error('Error al guardar el perfil');
+      console.error('Error saving profile:', error);
     }
     setSaving(false);
   };
