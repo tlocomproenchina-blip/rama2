@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
 import ContractModal from '@/components/ContractModal';
 import ProfileSetupModal from '@/components/ProfileSetupModal';
@@ -14,6 +16,7 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showContract, setShowContract] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadUser();
@@ -23,6 +26,13 @@ export default function Layout({ children, currentPageName }) {
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
+
+      // Redirect admin to dashboard if on home page
+      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Home')) {
+        navigate(createPageUrl('AdminDashboard'));
+        setLoading(false);
+        return;
+      }
 
       // Check contract and profile for regular users
       if (currentUser.role === 'user') {
