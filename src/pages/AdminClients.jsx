@@ -74,10 +74,10 @@ export default function AdminClients({ user }) {
         editData.shipping_mark = `TLEC-${editData.shipping_mark.replace('TLEC-', '')}`;
       }
 
-      // Validate shipping mark suffix (max 6 chars, alphanumeric)
+      // Validate shipping mark suffix (max 10 chars, alphanumeric)
       const suffix = editData.shipping_mark.replace('TLEC-', '');
-      if (suffix && (suffix.length > 6 || !/^[A-Za-z0-9]*$/.test(suffix))) {
-        toast.error('El Shipping Mark debe tener máximo 6 caracteres alfanuméricos');
+      if (suffix && (suffix.length > 10 || !/^[A-Za-z0-9]*$/.test(suffix))) {
+        toast.error('El Shipping Mark debe tener máximo 10 caracteres alfanuméricos');
         setSaving(false);
         return;
       }
@@ -355,15 +355,15 @@ export default function AdminClients({ user }) {
                 <Input
                   value={editData.shipping_mark?.replace('TLEC-', '') || ''}
                   onChange={(e) => {
-                    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+                    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
                     setEditData({ ...editData, shipping_mark: `TLEC-${value}` });
                   }}
-                  placeholder="XXXXXX"
-                  maxLength={6}
+                  placeholder="XXXXXXXXXX"
+                  maxLength={10}
                   className="rounded-l-none font-mono"
                 />
               </div>
-              <p className="text-xs text-slate-500">Máximo 6 caracteres alfanuméricos</p>
+              <p className="text-xs text-slate-500">Máximo 10 caracteres alfanuméricos</p>
             </div>
           </div>
 
