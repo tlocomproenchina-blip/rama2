@@ -12,7 +12,8 @@ import {
   FileText,
   ShieldCheck,
   LogOut,
-  X
+  X,
+  Archive
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -27,6 +28,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
     { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
     { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
+    { name: 'Historial', page: 'ShippingHistory', icon: Archive },
   ];
 
   const adminMenuItems = [
