@@ -89,12 +89,21 @@ export default function PreAlert({ user }) {
 
     try {
       let invoiceUrl = null;
+      
+      // Upload file first if exists
       if (invoiceFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: invoiceFile });
-        invoiceUrl = file_url;
+        try {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file: invoiceFile });
+          invoiceUrl = file_url;
+        } catch (uploadError) {
+          toast.error('Error al subir el archivo. Por favor intenta nuevamente.');
+          setSaving(false);
+          return;
+        }
       }
 
-      await base44.entities.Package.create({
+      // Create package
+      const newPackage = await base44.entities.Package.create({
         tracking_number: formData.tracking_number,
         client_email: user.email,
         shipping_mark: user.shipping_mark,
@@ -106,32 +115,33 @@ export default function PreAlert({ user }) {
         status: 'pre_alerta'
       });
 
-      // Notify admins (async)
-      const admins = await base44.entities.User.filter({ role: 'admin' });
-      for (const admin of admins) {
-        base44.entities.Notification.create({
-          user_email: admin.email,
-          title: '📦 Nueva Pre-alerta',
-          message: `${user.first_name || user.email} ha creado una pre-alerta: ${formData.tracking_number}`,
-          type: 'package',
-          icon: 'package',
-          reference_id: formData.tracking_number
-        }).catch(err => console.error('Notification error:', err));
+      // Notify admins (async, don't block navigation)
+      base44.entities.User.filter({ role: 'admin' }).then(admins => {
+        admins.forEach(admin => {
+          base44.entities.Notification.create({
+            user_email: admin.email,
+            title: '📦 Nueva Pre-alerta',
+            message: `${user.first_name || user.email} ha creado una pre-alerta: ${formData.tracking_number}`,
+            type: 'package',
+            icon: 'package',
+            reference_id: newPackage.id
+          }).catch(err => console.error('Notification error:', err));
 
-        if (formData.has_insurance) {
-          base44.integrations.Core.SendEmail({
-            to: admin.email,
-            subject: '🛡️ Nuevo envío asegurado',
-            body: `Envío asegurado registrado:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''}\nEmail: ${user.email}\nValor FOB: $${formData.fob_value}`
-          }).catch(err => console.error('Email error:', err));
-        }
-      }
+          if (formData.has_insurance) {
+            base44.integrations.Core.SendEmail({
+              to: admin.email,
+              subject: '🛡️ Nuevo envío asegurado',
+              body: `Envío asegurado registrado:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''}\nEmail: ${user.email}\nValor FOB: $${formData.fob_value}`
+            }).catch(err => console.error('Email error:', err));
+          }
+        });
+      }).catch(err => console.error('Admin notification error:', err));
 
       toast.success('Pre-alerta creada exitosamente');
       navigate(createPageUrl('MyPackages'));
     } catch (error) {
-      toast.error('Error al crear la pre-alerta');
-    } finally {
+      console.error('Error creating pre-alert:', error);
+      toast.error('Error al crear la pre-alerta. Por favor intenta nuevamente.');
       setSaving(false);
     }
   };

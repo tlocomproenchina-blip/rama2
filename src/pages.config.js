@@ -3,6 +3,7 @@ import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminInsured from './pages/AdminInsured';
 import AdminPackages from './pages/AdminPackages';
+import AdminPayments from './pages/AdminPayments';
 import AdminPermissions from './pages/AdminPermissions';
 import AdminSettings from './pages/AdminSettings';
 import Dashboard from './pages/Dashboard';
@@ -10,7 +11,6 @@ import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
 import MyPackages from './pages/MyPackages';
 import PreAlert from './pages/PreAlert';
-import AdminPayments from './pages/AdminPayments';
 import __Layout from './Layout.jsx';
 
 
@@ -20,6 +20,7 @@ export const PAGES = {
     "AdminDashboard": AdminDashboard,
     "AdminInsured": AdminInsured,
     "AdminPackages": AdminPackages,
+    "AdminPayments": AdminPayments,
     "AdminPermissions": AdminPermissions,
     "AdminSettings": AdminSettings,
     "Dashboard": Dashboard,
@@ -27,7 +28,6 @@ export const PAGES = {
     "MyConsolidations": MyConsolidations,
     "MyPackages": MyPackages,
     "PreAlert": PreAlert,
-    "AdminPayments": AdminPayments,
 }
 
 export const pagesConfig = {
