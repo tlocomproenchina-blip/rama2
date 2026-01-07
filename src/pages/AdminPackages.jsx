@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { sendTemplateEmail } from '@/components/utils/emailTemplates';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,15 +66,9 @@ export default function AdminPackages({ user }) {
       toast.success('Paquete marcado como recibido');
 
       // Notify client (async)
-      base44.entities.User.filter({ email: receiveModal.client_email }).then(users => {
-        if (users[0]?.email_notifications_enabled !== false) {
-          base44.integrations.Core.SendEmail({
-            to: receiveModal.client_email,
-            subject: '📦 Tu paquete ha sido recibido - TLEC Logistics',
-            body: `¡Buenas noticias!\n\nTu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.\n\nPronto será procesado para consolidación.\n\nPuedes verificar el estado en tu panel de cliente.`
-          }).catch(err => console.error('Email error:', err));
-        }
-      }).catch(err => console.error('User fetch error:', err));
+      sendTemplateEmail('package_received', receiveModal.client_email, {
+        tracking_number: receiveModal.tracking_number
+      }).catch(err => console.error('Email error:', err));
 
       setReceiveModal(null);
       setImageFile(null);
@@ -89,31 +84,16 @@ export default function AdminPackages({ user }) {
     toast.success('Estado actualizado');
 
     // Notify client (async)
-    const statusMessages = {
-      en_transito: {
-        subject: '✈️ Tu paquete está en tránsito - TLEC Logistics',
-        body: `Tu paquete ${pkg.tracking_number} está en camino.\n\nEstá siendo transportado y pronto llegará a destino.\n\nPuedes seguir el estado en tu panel de cliente.`
-      },
-      disponible: {
-        subject: '📍 Tu paquete está disponible para retiro - TLEC Logistics',
-        body: `¡Tu paquete ${pkg.tracking_number} ya está disponible para retiro!\n\nPuedes coordinarlo contactándonos.\n\nRevisa los detalles en tu panel de cliente.`
-      },
-      entregado: {
-        subject: '✅ Tu paquete ha sido entregado - TLEC Logistics',
-        body: `Tu paquete ${pkg.tracking_number} ha sido entregado exitosamente.\n\n¡Gracias por confiar en TLEC Logistics!\n\nEsperamos verte pronto.`
-      }
+    const statusTemplates = {
+      en_transito: 'package_in_transit',
+      disponible: 'package_available',
+      entregado: 'package_delivered'
     };
 
-    if (statusMessages[newStatus]) {
-      base44.entities.User.filter({ email: pkg.client_email }).then(users => {
-        if (users[0]?.email_notifications_enabled !== false) {
-          base44.integrations.Core.SendEmail({
-            to: pkg.client_email,
-            subject: statusMessages[newStatus].subject,
-            body: statusMessages[newStatus].body
-          }).catch(err => console.error('Email error:', err));
-        }
-      }).catch(err => console.error('User fetch error:', err));
+    if (statusTemplates[newStatus]) {
+      sendTemplateEmail(statusTemplates[newStatus], pkg.client_email, {
+        tracking_number: pkg.tracking_number
+      }).catch(err => console.error('Email error:', err));
     }
 
     loadPackages();

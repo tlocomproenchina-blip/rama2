@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { sendTemplateEmailToAdmins } from '@/components/utils/emailTemplates';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -105,15 +106,12 @@ export default function PreAlert({ user }) {
 
       // Notify admin if insured (async, don't wait)
       if (formData.has_insurance) {
-        base44.entities.User.filter({ role: 'admin' }).then(admins => {
-          admins.forEach(admin => {
-            base44.integrations.Core.SendEmail({
-              to: admin.email,
-              subject: '🛡️ Nuevo envío asegurado',
-              body: `Un cliente ha registrado un envío asegurado:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''}\nEmail: ${user.email}\nValor FOB: $${formData.fob_value}\n\nPor favor revisa la factura adjunta.`
-            }).catch(err => console.error('Email error:', err));
-          });
-        }).catch(err => console.error('Admin fetch error:', err));
+        sendTemplateEmailToAdmins('admin_insured_shipment', {
+          tracking_number: formData.tracking_number,
+          client_name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+          client_email: user.email,
+          fob_value: formData.fob_value
+        }).catch(err => console.error('Email error:', err));
       }
 
       navigate(createPageUrl('MyPackages'));

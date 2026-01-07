@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { sendTemplateEmail } from '@/components/utils/emailTemplates';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,15 +62,11 @@ export default function AdminPayments({ user }) {
       toast.success('Pago validado exitosamente');
 
       // Notify client (async)
-      base44.entities.User.filter({ email: selectedCon.client_email }).then(users => {
-        if (users[0]?.email_notifications_enabled !== false) {
-          base44.integrations.Core.SendEmail({
-            to: selectedCon.client_email,
-            subject: '✅ Pago validado - Tu carga está en camino - TLEC Logistics',
-            body: `¡Excelente! Tu pago ha sido validado exitosamente.\n\nNúmero de Consolidación: ${selectedCon.consolidation_tracking}\nMonto pagado: $${selectedCon.payment_amount}\nTotal: $${selectedCon.total_cost}\n\nTu carga está ahora en tránsito y pronto llegará a destino.\n\nPuedes seguir el estado de tu envío en tu panel de cliente.`
-          }).catch(err => console.error('Email error:', err));
-        }
-      }).catch(err => console.error('User fetch error:', err));
+      sendTemplateEmail('payment_validated', selectedCon.client_email, {
+        consolidation_tracking: selectedCon.consolidation_tracking,
+        payment_amount: selectedCon.payment_amount?.toFixed(2),
+        total_cost: selectedCon.total_cost?.toFixed(2)
+      }).catch(err => console.error('Email error:', err));
 
       setSelectedCon(null);
       loadConsolidations();
@@ -93,15 +90,11 @@ export default function AdminPayments({ user }) {
       toast.success('Pago rechazado');
 
       // Notify client (async)
-      base44.entities.User.filter({ email: selectedCon.client_email }).then(users => {
-        if (users[0]?.email_notifications_enabled !== false) {
-          base44.integrations.Core.SendEmail({
-            to: selectedCon.client_email,
-            subject: '❌ Pago rechazado - Acción requerida - TLEC Logistics',
-            body: `Tu pago no pudo ser validado.\n\nNúmero de Consolidación: ${selectedCon.consolidation_tracking}\nMonto total: $${selectedCon.total_cost}\n\nMotivo del rechazo: ${rejectComment || 'El comprobante de pago proporcionado no es válido o no coincide con el monto.'}\n\nPor favor verifica la información y vuelve a enviar el comprobante de pago correcto desde tu panel de cliente.`
-          }).catch(err => console.error('Email error:', err));
-        }
-      }).catch(err => console.error('User fetch error:', err));
+      sendTemplateEmail('payment_rejected', selectedCon.client_email, {
+        consolidation_tracking: selectedCon.consolidation_tracking,
+        total_cost: selectedCon.total_cost?.toFixed(2),
+        rejection_reason: rejectComment || 'El comprobante de pago proporcionado no es válido o no coincide con el monto.'
+      }).catch(err => console.error('Email error:', err));
 
       setSelectedCon(null);
       setRejectComment('');
@@ -123,34 +116,16 @@ export default function AdminPayments({ user }) {
     toast.success('Estado actualizado');
 
     // Notify client based on status (async)
-    const statusMessages = {
-      'en_transito': { 
-        emoji: '✈️', 
-        title: 'En tránsito', 
-        body: `Tu consolidación está en camino.\n\nNúmero de Consolidación: ${con.consolidation_tracking}\n\nPuedes seguir el estado en tu panel de cliente.`
-      },
-      'disponible': { 
-        emoji: '📍', 
-        title: 'Disponible para retiro', 
-        body: `¡Tu consolidación está lista para ser retirada!\n\nNúmero de Consolidación: ${con.consolidation_tracking}\n\nContacta con nosotros para coordinar la entrega.`
-      },
-      'entregado': { 
-        emoji: '✅', 
-        title: 'Entregado', 
-        body: `¡Tu consolidación ha sido entregada exitosamente!\n\nNúmero de Consolidación: ${con.consolidation_tracking}\n\n¡Gracias por confiar en TLEC Logistics! Esperamos verte pronto.`
-      }
+    const statusTemplates = {
+      'en_transito': 'consolidation_in_transit',
+      'disponible': 'consolidation_available',
+      'entregado': 'consolidation_delivered'
     };
 
-    if (statusMessages[newStatus]) {
-      base44.entities.User.filter({ email: con.client_email }).then(users => {
-        if (users[0]?.email_notifications_enabled !== false) {
-          base44.integrations.Core.SendEmail({
-            to: con.client_email,
-            subject: `${statusMessages[newStatus].emoji} ${statusMessages[newStatus].title} - TLEC Logistics`,
-            body: statusMessages[newStatus].body
-          }).catch(err => console.error('Email error:', err));
-        }
-      }).catch(err => console.error('User fetch error:', err));
+    if (statusTemplates[newStatus]) {
+      sendTemplateEmail(statusTemplates[newStatus], con.client_email, {
+        consolidation_tracking: con.consolidation_tracking
+      }).catch(err => console.error('Email error:', err));
     }
 
     loadConsolidations();
