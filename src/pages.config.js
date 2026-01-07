@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
 import MyPackages from './pages/MyPackages';
 import PreAlert from './pages/PreAlert';
+import ShippingHistory from './pages/ShippingHistory';
 import __Layout from './Layout.jsx';
 
 
@@ -28,6 +29,7 @@ export const PAGES = {
     "MyConsolidations": MyConsolidations,
     "MyPackages": MyPackages,
     "PreAlert": PreAlert,
+    "ShippingHistory": ShippingHistory,
 }
 
 export const pagesConfig = {
