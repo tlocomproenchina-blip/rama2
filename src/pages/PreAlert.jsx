@@ -94,31 +94,35 @@ export default function PreAlert({ user }) {
         client_email: user.email,
         shipping_mark: user.shipping_mark,
         shipping_type: formData.shipping_type,
-        description: formData.description,
+        description: formData.description || '',
         has_insurance: formData.has_insurance,
         fob_value: formData.has_insurance ? parseFloat(formData.fob_value) : null,
         invoice_url: invoiceUrl,
         status: 'pre_alerta'
       });
 
-      // Notify admin if insured
+      toast.success('Pre-alerta creada exitosamente');
+
+      // Notify admin if insured (async, don't wait)
       if (formData.has_insurance) {
-        const admins = await base44.entities.User.filter({ role: 'admin' });
-        for (const admin of admins) {
-          await base44.integrations.Core.SendEmail({
-            to: admin.email,
-            subject: '🛡️ Nuevo envío asegurado',
-            body: `Un cliente ha registrado un envío asegurado:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name} ${user.last_name}\nEmail: ${user.email}\nValor FOB: $${formData.fob_value}\n\nPor favor revisa la factura adjunta.`
+        base44.entities.User.filter({ role: 'admin' }).then(admins => {
+          admins.forEach(admin => {
+            base44.integrations.Core.SendEmail({
+              to: admin.email,
+              subject: '🛡️ Nuevo envío asegurado',
+              body: `Un cliente ha registrado un envío asegurado:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''}\nEmail: ${user.email}\nValor FOB: $${formData.fob_value}\n\nPor favor revisa la factura adjunta.`
+            }).catch(err => console.error('Email error:', err));
           });
-        }
+        }).catch(err => console.error('Admin fetch error:', err));
       }
 
-      toast.success('Pre-alerta creada exitosamente');
       navigate(createPageUrl('MyPackages'));
     } catch (error) {
+      console.error('Error creating pre-alert:', error);
       toast.error('Error al crear la pre-alerta');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) {
