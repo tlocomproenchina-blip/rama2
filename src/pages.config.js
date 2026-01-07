@@ -1,7 +1,6 @@
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
-import AdminEmailTemplates from './pages/AdminEmailTemplates';
 import AdminInsured from './pages/AdminInsured';
 import AdminPackages from './pages/AdminPackages';
 import AdminPayments from './pages/AdminPayments';
@@ -19,7 +18,6 @@ export const PAGES = {
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
-    "AdminEmailTemplates": AdminEmailTemplates,
     "AdminInsured": AdminInsured,
     "AdminPackages": AdminPackages,
     "AdminPayments": AdminPayments,

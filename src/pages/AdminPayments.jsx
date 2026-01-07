@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { sendTemplateEmail } from '@/components/utils/emailTemplates';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,20 +58,14 @@ export default function AdminPayments({ user }) {
         await base44.entities.Package.update(pkgId, { status: 'en_transito' });
       }
 
+      // Notify client
+      await base44.integrations.Core.SendEmail({
+        to: selectedCon.client_email,
+        subject: '✅ Pago validado - Tu carga está en camino',
+        body: `¡Excelente! Tu pago ha sido validado.\n\nTracking: ${selectedCon.consolidation_tracking}\nMonto: $${selectedCon.payment_amount}\n\nTu carga está ahora en tránsito.`
+      });
+
       toast.success('Pago validado exitosamente');
-
-      // Get client info
-      const clientUsers = await base44.entities.User.filter({ email: selectedCon.client_email });
-      const clientName = clientUsers[0] ? (clientUsers[0].first_name || clientUsers[0].email.split('@')[0]) : selectedCon.client_email.split('@')[0];
-
-      // Notify client (async)
-      sendTemplateEmail('payment_validated', selectedCon.client_email, {
-        client_name: clientName,
-        consolidation_tracking: selectedCon.consolidation_tracking,
-        payment_amount: selectedCon.payment_amount?.toFixed(2),
-        total_cost: selectedCon.total_cost?.toFixed(2)
-      }).catch(err => console.error('Email error:', err));
-
       setSelectedCon(null);
       loadConsolidations();
     } catch (error) {
@@ -92,20 +85,14 @@ export default function AdminPayments({ user }) {
         status: 'pendiente_pago'
       });
 
+      // Notify client
+      await base44.integrations.Core.SendEmail({
+        to: selectedCon.client_email,
+        subject: '❌ Pago rechazado',
+        body: `Tu pago no pudo ser validado.\n\nTracking: ${selectedCon.consolidation_tracking}\nMotivo: ${rejectComment || 'Comprobante inválido'}\n\nPor favor intenta nuevamente.`
+      });
+
       toast.success('Pago rechazado');
-
-      // Get client info
-      const clientUsers = await base44.entities.User.filter({ email: selectedCon.client_email });
-      const clientName = clientUsers[0] ? (clientUsers[0].first_name || clientUsers[0].email.split('@')[0]) : selectedCon.client_email.split('@')[0];
-
-      // Notify client (async)
-      sendTemplateEmail('payment_rejected', selectedCon.client_email, {
-        client_name: clientName,
-        consolidation_tracking: selectedCon.consolidation_tracking,
-        total_cost: selectedCon.total_cost?.toFixed(2),
-        rejection_reason: rejectComment || 'El comprobante de pago proporcionado no es válido o no coincide con el monto.'
-      }).catch(err => console.error('Email error:', err));
-
       setSelectedCon(null);
       setRejectComment('');
       loadConsolidations();
@@ -123,27 +110,22 @@ export default function AdminPayments({ user }) {
       await base44.entities.Package.update(pkgId, { status: newStatus });
     }
 
-    toast.success('Estado actualizado');
-
-    // Notify client based on status (async)
-    const statusTemplates = {
-      'en_transito': 'consolidation_in_transit',
-      'disponible': 'consolidation_available',
-      'entregado': 'consolidation_delivered'
+    // Notify client based on status
+    const statusMessages = {
+      'en_transito': { emoji: '🚚', title: 'En tránsito', body: 'Tu carga está en camino.' },
+      'disponible': { emoji: '📍', title: 'Disponible para retiro', body: 'Tu carga está lista para ser retirada.' },
+      'entregado': { emoji: '✅', title: 'Entregado', body: '¡Tu carga ha sido entregada!' }
     };
 
-    if (statusTemplates[newStatus]) {
-      // Get client info
-      base44.entities.User.filter({ email: con.client_email }).then(clientUsers => {
-        const clientName = clientUsers[0] ? (clientUsers[0].first_name || clientUsers[0].email.split('@')[0]) : con.client_email.split('@')[0];
-        sendTemplateEmail(statusTemplates[newStatus], con.client_email, {
-          client_name: clientName,
-          consolidation_tracking: con.consolidation_tracking,
-          estimated_delivery: con.estimated_delivery || ''
-        }).catch(err => console.error('Email error:', err));
+    if (statusMessages[newStatus]) {
+      await base44.integrations.Core.SendEmail({
+        to: con.client_email,
+        subject: `${statusMessages[newStatus].emoji} ${statusMessages[newStatus].title}`,
+        body: `${statusMessages[newStatus].body}\n\nTracking: ${con.consolidation_tracking}`
       });
     }
 
+    toast.success('Estado actualizado');
     loadConsolidations();
   };
 

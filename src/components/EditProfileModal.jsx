@@ -4,15 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { base44 } from '@/api/base44Client';
-import { MapPin, Phone, Loader2, AlertCircle, CheckCircle, Bell } from 'lucide-react';
-import { Checkbox } from "@/components/ui/checkbox";
+import { MapPin, Phone, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function EditProfileModal({ open, onClose, user, onUpdate }) {
   const [formData, setFormData] = useState({
     city: '',
-    whatsapp: '',
-    email_notifications_enabled: true
+    whatsapp: ''
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -21,8 +19,7 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
     if (user && open) {
       setFormData({
         city: user.city || '',
-        whatsapp: user.whatsapp || '',
-        email_notifications_enabled: user.email_notifications_enabled !== false
+        whatsapp: user.whatsapp || ''
       });
       setErrors({});
     }
@@ -104,33 +101,6 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
                 <AlertCircle className="h-3 w-3" /> {errors.whatsapp}
               </p>
             )}
-          </div>
-
-          <div className="space-y-3 pt-4 border-t border-slate-100">
-            <Label className="flex items-center gap-2 text-base font-medium">
-              <Bell className="h-4 w-4" />
-              Notificaciones
-            </Label>
-            <div className="flex items-start space-x-3">
-              <Checkbox
-                id="notifications"
-                checked={formData.email_notifications_enabled}
-                onCheckedChange={(checked) => 
-                  setFormData({ ...formData, email_notifications_enabled: checked })
-                }
-              />
-              <div className="space-y-1">
-                <Label 
-                  htmlFor="notifications" 
-                  className="cursor-pointer font-normal text-slate-700"
-                >
-                  Recibir notificaciones por email
-                </Label>
-                <p className="text-xs text-slate-500">
-                  Te notificaremos sobre cambios de estado de tus paquetes y consolidaciones
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 

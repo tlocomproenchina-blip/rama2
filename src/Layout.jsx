@@ -3,7 +3,6 @@ import { base44 } from '@/api/base44Client';
 import Sidebar from '@/components/Sidebar';
 import ContractModal from '@/components/ContractModal';
 import ProfileSetupModal from '@/components/ProfileSetupModal';
-import { sendTemplateEmailToAdmins } from '@/components/utils/emailTemplates';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
@@ -66,14 +65,15 @@ export default function Layout({ children, currentPageName }) {
       const updatedUser = { ...user, ...profileData, profile_completed: true };
       setUser(updatedUser);
 
-      // Notify admin about new user (async)
-      sendTemplateEmailToAdmins('admin_new_user', {
-        first_name: profileData.first_name,
-        last_name: profileData.last_name,
-        city: profileData.city,
-        whatsapp: profileData.whatsapp,
-        email: user.email
-      }).catch(err => console.error('Email error:', err));
+      // Notify admin about new user
+      const admins = await base44.entities.User.filter({ role: 'admin' });
+      for (const admin of admins) {
+        await base44.integrations.Core.SendEmail({
+          to: admin.email,
+          subject: '👤 Nuevo usuario registrado',
+          body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario.`
+        });
+      }
     } catch (error) {
       console.error('Error completing profile:', error);
       throw error;

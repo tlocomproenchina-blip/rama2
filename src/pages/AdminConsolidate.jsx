@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { sendTemplateEmail, sendTemplateEmailToAdmins } from '@/components/utils/emailTemplates';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -177,37 +176,14 @@ export default function AdminConsolidate({ user }) {
         });
       }
 
+      // Notify client
+      await base44.integrations.Core.SendEmail({
+        to: selectedClient.email,
+        subject: '📦 Tu carga ha sido consolidada',
+        body: `¡Tu carga ha sido consolidada!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nPor favor ingresa al sistema para realizar el pago.`
+      });
+
       toast.success('Consolidación creada exitosamente');
-
-      // Get client info
-      const clientUsers = await base44.entities.User.filter({ email: selectedClient.email });
-      const clientName = clientUsers[0] ? (clientUsers[0].first_name || clientUsers[0].email.split('@')[0]) : selectedClient.email.split('@')[0];
-
-      // Notify client (async)
-      sendTemplateEmail('consolidation_created', selectedClient.email, {
-        client_name: clientName,
-        consolidation_tracking: consolidationTracking,
-        tracking_numbers: trackingNumbers.join(', '),
-        package_count: trackingNumbers.length,
-        shipping_type: consolidationData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo',
-        weight: consolidationData.real_weight_kg,
-        shipping_cost: calcs.shippingCost.toFixed(2),
-        insurance_cost: calcs.insuranceCost.toFixed(2),
-        total_cost: calcs.totalCost.toFixed(2),
-        estimated_delivery: consolidationData.estimated_delivery || ''
-      }).catch(err => console.error('Email error:', err));
-
-      // Notify admin
-      sendTemplateEmailToAdmins('admin_consolidation_created', {
-        consolidation_tracking: consolidationTracking,
-        client_name: clientUsers[0] ? `${clientUsers[0].first_name || ''} ${clientUsers[0].last_name || ''}`.trim() : selectedClient.email.split('@')[0],
-        client_email: selectedClient.email,
-        package_count: trackingNumbers.length,
-        shipping_type: consolidationData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo',
-        weight: consolidationData.real_weight_kg,
-        total_cost: calcs.totalCost.toFixed(2)
-      }).catch(err => console.error('Email error:', err));
-
       navigate(createPageUrl('AdminDashboard'));
     } catch (error) {
       toast.error('Error al crear consolidación');
