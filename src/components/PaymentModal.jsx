@@ -61,7 +61,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file: proofFile });
-      
+
       await base44.entities.Consolidation.update(consolidation.id, {
         payment_proof_url: file_url,
         payment_amount: parseFloat(amount),
@@ -70,23 +70,27 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
         status: 'pago_pendiente_validacion'
       });
 
-      // Notify admin
-      const admins = await base44.entities.User.filter({ role: 'admin' });
-      for (const admin of admins) {
-        await base44.integrations.Core.SendEmail({
-          to: admin.email,
-          subject: '💳 Nuevo pago reportado',
-          body: `Un cliente ha reportado un pago para la consolidación ${consolidation.consolidation_tracking}.\n\nMonto: $${amount}\nMétodo: ${paymentMethod === 'binance' ? 'Binance' : 'USDT TRC20'}\n\nPor favor revisa y valida el pago.`
-        });
-      }
-
       toast.success('¡Gracias! Tu comprobante fue enviado y será verificado en breve.');
+
+      // Notify admin (async, don't wait)
+      base44.entities.User.filter({ role: 'admin' }).then(admins => {
+        admins.forEach(admin => {
+          base44.integrations.Core.SendEmail({
+            to: admin.email,
+            subject: '💳 Nuevo pago reportado',
+            body: `Un cliente ha reportado un pago para la consolidación ${consolidation.consolidation_tracking}.\n\nMonto: $${amount}\nMétodo: ${paymentMethod === 'binance' ? 'Binance' : 'USDT TRC20'}\n\nPor favor revisa y valida el pago.`
+          }).catch(err => console.error('Email error:', err));
+        });
+      }).catch(err => console.error('Admin fetch error:', err));
+
       onPaymentSubmitted();
       onClose();
     } catch (error) {
+      console.error('Error submitting payment:', error);
       toast.error('Error al enviar el pago');
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   if (loading) {
