@@ -12,7 +12,8 @@ import {
   FileText,
   ShieldCheck,
   LogOut,
-  X
+  X,
+  Mail
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -37,6 +38,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
     { name: 'Clientes', page: 'AdminClients', icon: Users, permission: 'view_packages' },
     { name: 'Administradores', page: 'AdminPermissions', icon: Shield, permission: 'invite_users' },
+    { name: 'Plantillas Email', page: 'AdminEmailTemplates', icon: Mail, permission: 'general_config' },
     { name: 'Configuración', page: 'AdminSettings', icon: Settings, permission: 'general_config' },
   ];
 
