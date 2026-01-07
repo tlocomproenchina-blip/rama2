@@ -1,0 +1,384 @@
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Users, 
+  Search, 
+  Edit2,
+  Save,
+  X,
+  Loader2,
+  Package,
+  MapPin,
+  Phone,
+  Mail,
+  Tag,
+  CheckCircle,
+  Clock
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from 'sonner';
+
+export default function AdminClients({ user }) {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editClient, setEditClient] = useState(null);
+  const [editData, setEditData] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [packagesCount, setPackagesCount] = useState({});
+
+  useEffect(() => {
+    loadClients();
+  }, []);
+
+  const loadClients = async () => {
+    const [users, packages] = await Promise.all([
+      base44.entities.User.filter({ role: 'user' }),
+      base44.entities.Package.list()
+    ]);
+
+    // Count packages per client
+    const counts = {};
+    packages.forEach(pkg => {
+      counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1;
+    });
+    setPackagesCount(counts);
+
+    setClients(users);
+    setLoading(false);
+  };
+
+  const handleEdit = (client) => {
+    setEditClient(client);
+    setEditData({
+      first_name: client.first_name || '',
+      last_name: client.last_name || '',
+      city: client.city || '',
+      whatsapp: client.whatsapp || '',
+      shipping_mark: client.shipping_mark || ''
+    });
+  };
+
+  const handleSave = async () => {
+    if (!editClient) return;
+    setSaving(true);
+
+    try {
+      // Validate shipping mark format
+      if (editData.shipping_mark && !editData.shipping_mark.startsWith('TLEC-')) {
+        editData.shipping_mark = `TLEC-${editData.shipping_mark.replace('TLEC-', '')}`;
+      }
+
+      // Validate shipping mark suffix (max 6 chars, alphanumeric)
+      const suffix = editData.shipping_mark.replace('TLEC-', '');
+      if (suffix && (suffix.length > 6 || !/^[A-Za-z0-9]*$/.test(suffix))) {
+        toast.error('El Shipping Mark debe tener máximo 6 caracteres alfanuméricos');
+        setSaving(false);
+        return;
+      }
+
+      await base44.entities.User.update(editClient.id, editData);
+
+      // If shipping mark was assigned, update existing packages
+      if (editData.shipping_mark && !editClient.shipping_mark) {
+        const clientPackages = await base44.entities.Package.filter({ client_email: editClient.email });
+        for (const pkg of clientPackages) {
+          await base44.entities.Package.update(pkg.id, { shipping_mark: editData.shipping_mark });
+        }
+      }
+
+      toast.success('Cliente actualizado');
+      setEditClient(null);
+      loadClients();
+    } catch (error) {
+      toast.error('Error al guardar');
+    }
+    setSaving(false);
+  };
+
+  const filteredClients = clients.filter(client => {
+    const searchLower = search.toLowerCase();
+    return (
+      (client.email || '').toLowerCase().includes(searchLower) ||
+      (client.first_name || '').toLowerCase().includes(searchLower) ||
+      (client.last_name || '').toLowerCase().includes(searchLower) ||
+      (client.city || '').toLowerCase().includes(searchLower) ||
+      (client.whatsapp || '').toLowerCase().includes(searchLower) ||
+      (client.shipping_mark || '').toLowerCase().includes(searchLower)
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Gestión de Clientes</h1>
+        <p className="text-slate-500">Administra los usuarios y asigna Shipping Marks</p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Total Clientes</p>
+                <p className="text-3xl font-bold text-slate-800">{clients.length}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Con Shipping Mark</p>
+                <p className="text-3xl font-bold text-slate-800">
+                  {clients.filter(c => c.shipping_mark).length}
+                </p>
+              </div>
+              <div className="p-3 bg-emerald-100 rounded-xl">
+                <CheckCircle className="h-6 w-6 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Pendientes</p>
+                <p className="text-3xl font-bold text-slate-800">
+                  {clients.filter(c => !c.shipping_mark && c.profile_completed).length}
+                </p>
+              </div>
+              <div className="p-3 bg-amber-100 rounded-xl">
+                <Clock className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Total Paquetes</p>
+                <p className="text-3xl font-bold text-slate-800">
+                  {Object.values(packagesCount).reduce((a, b) => a + b, 0)}
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-xl">
+                <Package className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search */}
+      <Card className="border-0 shadow-md">
+        <CardContent className="p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Buscar por nombre, email, ciudad, WhatsApp o Shipping Mark..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Clients List */}
+      {filteredClients.length === 0 ? (
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-12 text-center">
+            <Users className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin clientes</h3>
+            <p className="text-slate-500">No se encontraron clientes</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {filteredClients.map((client) => (
+            <Card 
+              key={client.id} 
+              className={`border-0 shadow-md hover:shadow-lg transition-shadow ${
+                !client.shipping_mark && client.profile_completed ? 'border-l-4 border-l-amber-400' : ''
+              }`}
+            >
+              <CardContent className="p-4 lg:p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                  {/* Avatar & Name */}
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                      {(client.first_name?.[0] || client.email[0]).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-800">
+                        {client.first_name && client.last_name 
+                          ? `${client.first_name} ${client.last_name}`
+                          : client.email
+                        }
+                      </h3>
+                      <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+                        <Mail className="h-3 w-3" />
+                        {client.email}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    {client.city && (
+                      <Badge variant="outline" className="bg-slate-50">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {client.city}
+                      </Badge>
+                    )}
+                    {client.whatsapp && (
+                      <Badge variant="outline" className="bg-slate-50">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {client.whatsapp}
+                      </Badge>
+                    )}
+                    {client.shipping_mark ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                        <Tag className="h-3 w-3 mr-1" />
+                        {client.shipping_mark}
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Sin Shipping Mark
+                      </Badge>
+                    )}
+                    <Badge variant="outline">
+                      <Package className="h-3 w-3 mr-1" />
+                      {packagesCount[client.email] || 0} paquetes
+                    </Badge>
+                  </div>
+
+                  {/* Actions */}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleEdit(client)}
+                  >
+                    <Edit2 className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      <Dialog open={!!editClient} onOpenChange={() => setEditClient(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Cliente</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nombre</Label>
+                <Input
+                  value={editData.first_name}
+                  onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
+                  placeholder="Nombre"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Apellido</Label>
+                <Input
+                  value={editData.last_name}
+                  onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
+                  placeholder="Apellido"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Ciudad
+              </Label>
+              <Input
+                value={editData.city}
+                onChange={(e) => setEditData({ ...editData, city: e.target.value })}
+                placeholder="Ciudad de entrega"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Phone className="h-4 w-4" /> WhatsApp
+              </Label>
+              <Input
+                value={editData.whatsapp}
+                onChange={(e) => setEditData({ ...editData, whatsapp: e.target.value })}
+                placeholder="+58 412 1234567"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Tag className="h-4 w-4" /> Shipping Mark
+              </Label>
+              <div className="flex gap-2">
+                <div className="flex items-center px-3 bg-slate-100 rounded-l-lg border border-r-0 border-slate-200 text-slate-600 font-medium">
+                  TLEC-
+                </div>
+                <Input
+                  value={editData.shipping_mark?.replace('TLEC-', '') || ''}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+                    setEditData({ ...editData, shipping_mark: `TLEC-${value}` });
+                  }}
+                  placeholder="XXXXXX"
+                  maxLength={6}
+                  className="rounded-l-none font-mono"
+                />
+              </div>
+              <p className="text-xs text-slate-500">Máximo 6 caracteres alfanuméricos</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditClient(null)}>
+              <X className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

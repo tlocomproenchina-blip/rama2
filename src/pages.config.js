@@ -5,6 +5,9 @@ import MyConsolidations from './pages/MyConsolidations';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminPackages from './pages/AdminPackages';
 import AdminConsolidate from './pages/AdminConsolidate';
+import AdminPayments from './pages/AdminPayments';
+import AdminClients from './pages/AdminClients';
+import AdminInsured from './pages/AdminInsured';
 import __Layout from './Layout.jsx';
 
 
@@ -16,6 +19,9 @@ export const PAGES = {
     "AdminDashboard": AdminDashboard,
     "AdminPackages": AdminPackages,
     "AdminConsolidate": AdminConsolidate,
+    "AdminPayments": AdminPayments,
+    "AdminClients": AdminClients,
+    "AdminInsured": AdminInsured,
 }
 
 export const pagesConfig = {
