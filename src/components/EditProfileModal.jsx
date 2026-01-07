@@ -10,7 +10,8 @@ import { toast } from 'sonner';
 export default function EditProfileModal({ open, onClose, user, onUpdate }) {
   const [formData, setFormData] = useState({
     city: '',
-    whatsapp: ''
+    whatsapp: '',
+    email_notifications_enabled: true
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
