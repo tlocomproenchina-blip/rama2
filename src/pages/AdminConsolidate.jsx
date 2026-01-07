@@ -176,22 +176,21 @@ export default function AdminConsolidate({ user }) {
         });
       }
 
-      // Notify client
-      await base44.integrations.Core.SendEmail({
+      // Notify client (async, don't wait)
+      base44.integrations.Core.SendEmail({
         to: selectedClient.email,
         subject: '📦 Tu carga ha sido consolidada',
         body: `¡Tu carga ha sido consolidada!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nPor favor ingresa al sistema para realizar el pago.`
-      });
+      }).catch(err => console.error('Email error:', err));
 
-      // Create notification
-      await base44.entities.Notification.create({
+      base44.entities.Notification.create({
         user_email: selectedClient.email,
         title: '📦 Carga Consolidada',
         message: `Tu consolidación ${consolidationTracking} está lista. Total: $${calcs.totalCost.toFixed(2)}`,
         type: 'consolidation',
         icon: 'package',
         reference_id: consolidation.id
-      });
+      }).catch(err => console.error('Notification error:', err));
 
       toast.success('Consolidación creada exitosamente');
       navigate(createPageUrl('AdminDashboard'));

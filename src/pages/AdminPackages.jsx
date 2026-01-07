@@ -62,22 +62,21 @@ export default function AdminPackages({ user }) {
         received_by: user.email
       });
 
-      // Notify client
-      await base44.integrations.Core.SendEmail({
+      // Notify client (async, don't wait)
+      base44.integrations.Core.SendEmail({
         to: receiveModal.client_email,
         subject: '📦 Tu paquete ha sido recibido',
         body: `¡Buenas noticias! Tu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.\n\nPronto será procesado para consolidación.`
-      });
+      }).catch(err => console.error('Email error:', err));
 
-      // Create notification
-      await base44.entities.Notification.create({
+      base44.entities.Notification.create({
         user_email: receiveModal.client_email,
         title: '📦 Paquete Recibido',
         message: `Tu paquete ${receiveModal.tracking_number} ha sido recibido en el warehouse.`,
         type: 'package',
         icon: 'check',
         reference_id: receiveModal.id
-      });
+      }).catch(err => console.error('Notification error:', err));
 
       toast.success('Paquete marcado como recibido');
       setReceiveModal(null);
