@@ -12,7 +12,8 @@ import {
   FileText,
   ShieldCheck,
   LogOut,
-  X
+  X,
+  Truck
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -27,6 +28,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
     { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
     { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
+    { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   ];
 
   const adminMenuItems = [
@@ -34,6 +36,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { name: 'Paquetes', page: 'AdminPackages', icon: Package, permission: 'view_packages' },
     { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers, permission: 'consolidate' },
     { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
+    { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck, permission: 'view_packages' },
     { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
     { name: 'Clientes', page: 'AdminClients', icon: Users, permission: 'view_packages' },
     { name: 'Administradores', page: 'AdminPermissions', icon: Shield, permission: 'invite_users' },
@@ -44,6 +47,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { name: 'Dashboard', page: 'AdminDashboard', icon: LayoutDashboard },
     { name: 'Paquetes', page: 'AdminPackages', icon: Package },
     { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers },
+    { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
     { name: 'Clientes', page: 'AdminClients', icon: Users },
   ];
 
