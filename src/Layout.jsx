@@ -56,21 +56,27 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const handleProfileComplete = async (profileData) => {
-    await base44.auth.updateMe({
-      ...profileData,
-      profile_completed: true
-    });
-    setShowProfile(false);
-    setUser({ ...user, ...profileData, profile_completed: true });
-
-    // Notify admin about new user
-    const admins = await base44.entities.User.filter({ role: 'admin' });
-    for (const admin of admins) {
-      await base44.integrations.Core.SendEmail({
-        to: admin.email,
-        subject: '👤 Nuevo usuario registrado',
-        body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario.`
+    try {
+      await base44.auth.updateMe({
+        ...profileData,
+        profile_completed: true
       });
+      setShowProfile(false);
+      const updatedUser = { ...user, ...profileData, profile_completed: true };
+      setUser(updatedUser);
+
+      // Notify admin about new user
+      const admins = await base44.entities.User.filter({ role: 'admin' });
+      for (const admin of admins) {
+        await base44.integrations.Core.SendEmail({
+          to: admin.email,
+          subject: '👤 Nuevo usuario registrado',
+          body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario.`
+        });
+      }
+    } catch (error) {
+      console.error('Error completing profile:', error);
+      throw error;
     }
   };
 

@@ -14,16 +14,20 @@ import {
   Plus,
   Copy,
   Loader2,
-  Building2
+  Building2,
+  Edit2,
+  Phone
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
+import EditProfileModal from '@/components/EditProfileModal';
 import { toast } from 'sonner';
 
-export default function Dashboard({ user }) {
+export default function Dashboard({ user, refreshUser }) {
   const [packages, setPackages] = useState([]);
   const [consolidations, setConsolidations] = useState([]);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -54,6 +58,11 @@ export default function Dashboard({ user }) {
     toast.success('Dirección copiada');
   };
 
+  const handleProfileUpdate = async () => {
+    await refreshUser();
+    loadData();
+  };
+
   const stats = {
     preAlerta: packages.filter(p => p.status === 'pre_alerta').length,
     recibidos: packages.filter(p => p.status === 'recibido').length,
@@ -76,15 +85,40 @@ export default function Dashboard({ user }) {
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 lg:p-8 text-white shadow-xl">
-        <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-          ¡Bienvenido, {user?.first_name || 'Usuario'}!
-        </h1>
-        <p className="text-blue-100">
-          {hasShippingMark 
-            ? 'Gestiona tus envíos y consulta el estado de tus paquetes' 
-            : 'Tu perfil está siendo procesado. Pronto recibirás tu Shipping Mark.'
-          }
-        </p>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="text-2xl lg:text-3xl font-bold mb-2">
+              ¡Bienvenido, {user?.first_name || 'Usuario'}!
+            </h1>
+            <p className="text-blue-100 mb-3">
+              {hasShippingMark 
+                ? 'Gestiona tus envíos y consulta el estado de tus paquetes' 
+                : 'Tu perfil está siendo procesado. Pronto recibirás tu Shipping Mark.'
+              }
+            </p>
+            {user?.city && user?.whatsapp && (
+              <div className="flex flex-wrap gap-4 text-sm text-blue-100">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  {user.city}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  {user.whatsapp}
+                </div>
+              </div>
+            )}
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowEditProfile(true)}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <Edit2 className="h-4 w-4 mr-2" />
+            Editar Contacto
+          </Button>
+        </div>
       </div>
 
       {/* Shipping Mark Card */}
@@ -289,6 +323,14 @@ export default function Dashboard({ user }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        open={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        user={user}
+        onUpdate={handleProfileUpdate}
+      />
     </div>
   );
 }

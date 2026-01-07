@@ -1,33 +1,33 @@
-import Dashboard from './pages/Dashboard';
-import PreAlert from './pages/PreAlert';
-import MyPackages from './pages/MyPackages';
-import MyConsolidations from './pages/MyConsolidations';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminPackages from './pages/AdminPackages';
-import AdminConsolidate from './pages/AdminConsolidate';
-import AdminPayments from './pages/AdminPayments';
 import AdminClients from './pages/AdminClients';
+import AdminConsolidate from './pages/AdminConsolidate';
+import AdminDashboard from './pages/AdminDashboard';
 import AdminInsured from './pages/AdminInsured';
+import AdminPackages from './pages/AdminPackages';
+import AdminPayments from './pages/AdminPayments';
 import AdminPermissions from './pages/AdminPermissions';
 import AdminSettings from './pages/AdminSettings';
+import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
+import MyConsolidations from './pages/MyConsolidations';
+import MyPackages from './pages/MyPackages';
+import PreAlert from './pages/PreAlert';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Dashboard": Dashboard,
-    "PreAlert": PreAlert,
-    "MyPackages": MyPackages,
-    "MyConsolidations": MyConsolidations,
-    "AdminDashboard": AdminDashboard,
-    "AdminPackages": AdminPackages,
-    "AdminConsolidate": AdminConsolidate,
-    "AdminPayments": AdminPayments,
     "AdminClients": AdminClients,
+    "AdminConsolidate": AdminConsolidate,
+    "AdminDashboard": AdminDashboard,
     "AdminInsured": AdminInsured,
+    "AdminPackages": AdminPackages,
+    "AdminPayments": AdminPayments,
     "AdminPermissions": AdminPermissions,
     "AdminSettings": AdminSettings,
+    "Dashboard": Dashboard,
     "Home": Home,
+    "MyConsolidations": MyConsolidations,
+    "MyPackages": MyPackages,
+    "PreAlert": PreAlert,
 }
 
 export const pagesConfig = {
