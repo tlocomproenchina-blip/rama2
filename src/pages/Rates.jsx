@@ -192,11 +192,86 @@ export default function Rates({ user }) {
         </CardContent>
       </Card>
 
+      {/* Sensitive Cargo Info */}
+      <Card className="border-0 shadow-lg border-l-4 border-l-amber-500">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-amber-600" />
+            ¿Qué se considera carga sensible?
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm text-slate-700">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+              <span>Baterías de litio</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+              <span>Alimentos</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+              <span>Cosméticos</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+              <span>Agentes acuosos</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+              <span>Réplicas o imitaciones</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+              <span>Polvos</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+              <span>Marcas chinas</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+              <span>Mercancía de alto valor</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Prohibited Items */}
+      <Card className="border-0 shadow-lg border-l-4 border-l-red-500 bg-red-50/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-700">
+            🚫 No enviamos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-700">
+            Medicamentos, armas, pólvora, gas, motos, chalecos, fundas tácticas, botellas presurizadas, entre otros
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Payment Info */}
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-l-emerald-500">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-emerald-100 rounded-full">
+              <DollarSign className="h-6 w-6 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-800 text-lg">Pago contra entrega</h3>
+              <p className="text-sm text-slate-600">Pagas tu envío al momento de recibir tu mercancía</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Additional Info */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-blue-600" />
+            <Package className="h-5 w-5 text-blue-600" />
             Información Adicional
           </CardTitle>
         </CardHeader>
