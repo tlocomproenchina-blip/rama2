@@ -49,30 +49,59 @@ export default function AdminPayments({ user }) {
 
     // Notify client based on status
     const statusMessages = {
-      'en_transito': { emoji: '🚚', title: 'En tránsito', body: 'Tu carga está en camino.' },
-      'disponible': { emoji: '📍', title: 'Disponible para retiro', body: 'Tu carga está lista para ser retirada.' },
-      'entregado': { emoji: '✅', title: 'Entregado', body: '¡Tu carga ha sido entregada!' }
+      'en_transito': { 
+        emoji: '🚚', 
+        title: 'En Tránsito', 
+        body: 'Tu carga está en camino hacia su destino.',
+        shortMsg: 'Tu carga está en camino.'
+      },
+      'disponible': { 
+        emoji: '📍', 
+        title: 'Disponible para Retiro', 
+        body: 'Tu carga ha llegado y está lista para ser retirada. Por favor contáctanos para coordinar la entrega.',
+        shortMsg: 'Tu carga está lista para retiro.'
+      },
+      'entregado': { 
+        emoji: '✅', 
+        title: 'Entregado', 
+        body: '¡Tu carga ha sido entregada exitosamente! Nos encantaría conocer tu opinión sobre nuestro servicio.',
+        shortMsg: '¡Tu carga ha sido entregada!',
+        feedbackLink: true
+      }
     };
 
     if (statusMessages[newStatus]) {
+      const msg = statusMessages[newStatus];
+      
+      // Build email body
+      let emailBody = `${msg.body}\n\nTracking: ${con.consolidation_tracking}\nShipping Mark: ${con.shipping_mark || 'N/A'}`;
+      
+      // Add feedback link for delivered status
+      if (msg.feedbackLink) {
+        const feedbackUrl = `${window.location.origin}/feedback?tracking=${con.consolidation_tracking}`;
+        emailBody += `\n\n📝 Déjanos tu opinión:\n${feedbackUrl}`;
+      }
+
+      // Send email
       base44.integrations.Core.SendEmail({
         to: con.client_email,
-        subject: `${statusMessages[newStatus].emoji} ${statusMessages[newStatus].title}`,
-        body: `${statusMessages[newStatus].body}\n\nTracking: ${con.consolidation_tracking}`
+        subject: `${msg.emoji} ${msg.title} - ${con.consolidation_tracking}`,
+        body: emailBody
       }).catch(err => console.error('Email error:', err));
 
+      // Create in-app notification
       base44.entities.Notification.create({
         user_email: con.client_email,
-        title: `${statusMessages[newStatus].emoji} ${statusMessages[newStatus].title}`,
-        message: `${con.consolidation_tracking}: ${statusMessages[newStatus].body}`,
+        title: `${msg.emoji} ${msg.title}`,
+        message: `${con.consolidation_tracking}: ${msg.shortMsg}`,
         type: 'consolidation',
         icon: newStatus === 'entregado' ? 'check' : 'truck',
         reference_id: con.id
       }).catch(err => console.error('Notification error:', err));
     }
 
-    toast.success('Estado actualizado');
-    loadConsolidations();
+    toast.success('Estado actualizado y cliente notificado');
+    loadData();
   };
 
   const filteredCons = consolidations.filter(con => {
