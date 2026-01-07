@@ -80,6 +80,15 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
             subject: '💳 Nuevo pago reportado',
             body: `Un cliente ha reportado un pago para la consolidación ${consolidation.consolidation_tracking}.\n\nMonto: $${amount}\nMétodo: ${paymentMethod === 'binance' ? 'Binance' : 'USDT TRC20'}\n\nPor favor revisa y valida el pago.`
           }).catch(err => console.error('Email error:', err));
+
+          base44.entities.Notification.create({
+            user_email: admin.email,
+            title: '💳 Nuevo Pago Reportado',
+            message: `Pago de $${amount} para ${consolidation.consolidation_tracking} pendiente de validación`,
+            type: 'payment',
+            icon: 'dollar',
+            reference_id: consolidation.id
+          }).catch(err => console.error('Notification error:', err));
         });
       }).catch(err => console.error('Admin fetch error:', err));
 

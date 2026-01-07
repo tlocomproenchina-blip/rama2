@@ -81,6 +81,25 @@ export default function AdminPackages({ user }) {
 
   const handleStatusChange = async (pkg, newStatus) => {
     await base44.entities.Package.update(pkg.id, { status: newStatus });
+    
+    // Notify client on important status changes
+    if (newStatus === 'en_transito' || newStatus === 'disponible' || newStatus === 'entregado') {
+      const statusMessages = {
+        en_transito: '🚚 Tu paquete está en tránsito hacia su destino.',
+        disponible: '📍 Tu paquete está disponible para retiro.',
+        entregado: '✅ Tu paquete ha sido entregado exitosamente.'
+      };
+      
+      base44.entities.Notification.create({
+        user_email: pkg.client_email,
+        title: `Paquete ${pkg.tracking_number}`,
+        message: statusMessages[newStatus],
+        type: 'package',
+        icon: newStatus === 'entregado' ? 'check' : 'truck',
+        reference_id: pkg.id
+      }).catch(err => console.error('Notification error:', err));
+    }
+    
     toast.success('Estado actualizado');
     loadPackages();
   };

@@ -101,6 +101,20 @@ export default function PreAlert({ user }) {
         status: 'pre_alerta'
       });
 
+      // Notify admins
+      base44.entities.User.filter({ role: 'admin' }).then(admins => {
+        admins.forEach(admin => {
+          base44.entities.Notification.create({
+            user_email: admin.email,
+            title: '📦 Nueva Pre-alerta',
+            message: `${user.first_name || user.email} ha creado una pre-alerta: ${formData.tracking_number}`,
+            type: 'package',
+            icon: 'package',
+            reference_id: formData.tracking_number
+          }).catch(err => console.error('Notification error:', err));
+        });
+      }).catch(err => console.error('Admin fetch error:', err));
+
       toast.success('Pre-alerta creada exitosamente');
 
       // Notify admin if insured (async, don't wait)

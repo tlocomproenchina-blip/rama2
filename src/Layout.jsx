@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import Sidebar from '@/components/Sidebar';
 import ContractModal from '@/components/ContractModal';
 import ProfileSetupModal from '@/components/ProfileSetupModal';
+import NotificationBell from '@/components/NotificationBell';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
@@ -114,9 +115,14 @@ export default function Layout({ children, currentPageName }) {
               <Menu className="h-6 w-6" />
             </Button>
             <h1 className="font-semibold text-slate-800">TLEC Logistics</h1>
-            <div className="w-10" />
+            <NotificationBell user={user} />
           </div>
         </header>
+
+        {/* Desktop Notification Bell */}
+        <div className="hidden lg:block fixed top-4 right-4 z-40">
+          <NotificationBell user={user} />
+        </div>
 
         <div className="p-4 lg:p-8">
           {React.cloneElement(children, { user, refreshUser: loadUser })}
