@@ -19,9 +19,12 @@ import {
   Tag,
   CheckCircle,
   Clock,
-  Eye
+  Eye,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal';
 
@@ -31,8 +34,10 @@ export default function AdminClients({ user }) {
   const [search, setSearch] = useState('');
   const [editClient, setEditClient] = useState(null);
   const [viewClient, setViewClient] = useState(null);
+  const [deleteClient, setDeleteClient] = useState(null);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [packagesCount, setPackagesCount] = useState({});
 
   useEffect(() => {
@@ -102,6 +107,34 @@ export default function AdminClients({ user }) {
       toast.error('Error al guardar');
     }
     setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteClient) return;
+    setDeleting(true);
+
+    try {
+      // Check if client has packages
+      const clientPackages = await base44.entities.Package.filter({ client_email: deleteClient.email });
+      const clientConsolidations = await base44.entities.Consolidation.filter({ client_email: deleteClient.email });
+
+      if (clientPackages.length > 0 || clientConsolidations.length > 0) {
+        toast.error('No se puede eliminar: el cliente tiene paquetes o consolidaciones asociadas');
+        setDeleting(false);
+        setDeleteClient(null);
+        return;
+      }
+
+      // Delete user
+      await base44.entities.User.delete(deleteClient.id);
+
+      toast.success('Cliente eliminado exitosamente');
+      setDeleteClient(null);
+      loadClients();
+    } catch (error) {
+      toast.error('Error al eliminar el cliente');
+    }
+    setDeleting(false);
   };
 
   const filteredClients = clients.filter(client => {
@@ -290,7 +323,7 @@ export default function AdminClients({ user }) {
                       onClick={() => setViewClient(client)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
-                      Ver Detalles
+                      Ver
                     </Button>
                     <Button 
                       variant="outline" 
@@ -299,6 +332,14 @@ export default function AdminClients({ user }) {
                     >
                       <Edit2 className="h-4 w-4 mr-1" />
                       Editar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setDeleteClient(client)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -316,11 +357,60 @@ export default function AdminClients({ user }) {
         onClientUpdated={loadClients}
       />
 
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteClient} onOpenChange={() => setDeleteClient(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              ¿Eliminar Cliente?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás a punto de eliminar a{' '}
+              <span className="font-semibold text-slate-800">
+                {deleteClient?.first_name && deleteClient?.last_name
+                  ? `${deleteClient.first_name} ${deleteClient.last_name}`
+                  : deleteClient?.email}
+              </span>
+              . Esta acción no se puede deshacer.
+              {packagesCount[deleteClient?.email] > 0 && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800 text-sm font-medium">
+                    ⚠️ Este cliente tiene {packagesCount[deleteClient?.email]} paquetes asociados.
+                    No se puede eliminar hasta que se eliminen todos sus paquetes.
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={deleting || packagesCount[deleteClient?.email] > 0}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Eliminando...</>
+              ) : (
+                <><Trash2 className="h-4 w-4 mr-2" /> Eliminar</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Edit Modal */}
       <Dialog open={!!editClient} onOpenChange={() => setEditClient(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Cliente</DialogTitle>
+            <DialogDescription>
+              Actualiza la información del cliente y asigna o modifica su Shipping Mark
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
