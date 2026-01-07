@@ -55,16 +55,20 @@ const defaultTemplates = {
   }
 };
 
-// Simple template replacement
+// Template replacement with conditional support
 function replaceVariables(template, variables) {
   let result = template;
+  
+  // Handle conditional blocks {{#if variable}}content{{/if}}
+  result = result.replace(/{{#if\s+(\w+)}}([\s\S]*?){{\/if}}/g, (match, varName, content) => {
+    return variables[varName] && variables[varName] !== '' ? content : '';
+  });
+  
+  // Replace all variables
   Object.keys(variables).forEach(key => {
     const regex = new RegExp(`{{${key}}}`, 'g');
     result = result.replace(regex, variables[key] ?? '');
   });
-  
-  // Remove conditional blocks for now
-  result = result.replace(/{{#if .*?}}[\s\S]*?{{\/if}}/g, '');
   
   return result;
 }
