@@ -183,6 +183,16 @@ export default function AdminConsolidate({ user }) {
         body: `¡Tu carga ha sido consolidada!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nPor favor ingresa al sistema para realizar el pago.`
       });
 
+      // Create notification
+      await base44.entities.Notification.create({
+        user_email: selectedClient.email,
+        title: '📦 Carga Consolidada',
+        message: `Tu consolidación ${consolidationTracking} está lista. Total: $${calcs.totalCost.toFixed(2)}`,
+        type: 'consolidation',
+        icon: 'package',
+        reference_id: consolidation.id
+      });
+
       toast.success('Consolidación creada exitosamente');
       navigate(createPageUrl('AdminDashboard'));
     } catch (error) {

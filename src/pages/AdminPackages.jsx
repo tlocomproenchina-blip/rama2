@@ -69,6 +69,16 @@ export default function AdminPackages({ user }) {
         body: `¡Buenas noticias! Tu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.\n\nPronto será procesado para consolidación.`
       });
 
+      // Create notification
+      await base44.entities.Notification.create({
+        user_email: receiveModal.client_email,
+        title: '📦 Paquete Recibido',
+        message: `Tu paquete ${receiveModal.tracking_number} ha sido recibido en el warehouse.`,
+        type: 'package',
+        icon: 'check',
+        reference_id: receiveModal.id
+      });
+
       toast.success('Paquete marcado como recibido');
       setReceiveModal(null);
       setImageFile(null);

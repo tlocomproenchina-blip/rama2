@@ -65,6 +65,16 @@ export default function AdminPayments({ user }) {
         body: `¡Excelente! Tu pago ha sido validado.\n\nTracking: ${selectedCon.consolidation_tracking}\nMonto: $${selectedCon.payment_amount}\n\nTu carga está ahora en tránsito.`
       });
 
+      // Create notification
+      await base44.entities.Notification.create({
+        user_email: selectedCon.client_email,
+        title: '✅ Pago Validado',
+        message: `Tu pago de $${selectedCon.payment_amount} para ${selectedCon.consolidation_tracking} ha sido validado.`,
+        type: 'payment',
+        icon: 'check',
+        reference_id: selectedCon.id
+      });
+
       toast.success('Pago validado exitosamente');
       setSelectedCon(null);
       loadConsolidations();
@@ -90,6 +100,16 @@ export default function AdminPayments({ user }) {
         to: selectedCon.client_email,
         subject: '❌ Pago rechazado',
         body: `Tu pago no pudo ser validado.\n\nTracking: ${selectedCon.consolidation_tracking}\nMotivo: ${rejectComment || 'Comprobante inválido'}\n\nPor favor intenta nuevamente.`
+      });
+
+      // Create notification
+      await base44.entities.Notification.create({
+        user_email: selectedCon.client_email,
+        title: '❌ Pago Rechazado',
+        message: `Tu pago para ${selectedCon.consolidation_tracking} fue rechazado. Motivo: ${rejectComment || 'Comprobante inválido'}`,
+        type: 'payment',
+        icon: 'alert',
+        reference_id: selectedCon.id
       });
 
       toast.success('Pago rechazado');
@@ -122,6 +142,16 @@ export default function AdminPayments({ user }) {
         to: con.client_email,
         subject: `${statusMessages[newStatus].emoji} ${statusMessages[newStatus].title}`,
         body: `${statusMessages[newStatus].body}\n\nTracking: ${con.consolidation_tracking}`
+      });
+
+      // Create notification
+      await base44.entities.Notification.create({
+        user_email: con.client_email,
+        title: `${statusMessages[newStatus].emoji} ${statusMessages[newStatus].title}`,
+        message: `${con.consolidation_tracking}: ${statusMessages[newStatus].body}`,
+        type: 'consolidation',
+        icon: newStatus === 'entregado' ? 'check' : 'truck',
+        reference_id: con.id
       });
     }
 
