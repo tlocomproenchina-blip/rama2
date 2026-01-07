@@ -8,6 +8,8 @@ import AdminConsolidate from './pages/AdminConsolidate';
 import AdminPayments from './pages/AdminPayments';
 import AdminClients from './pages/AdminClients';
 import AdminInsured from './pages/AdminInsured';
+import AdminPermissions from './pages/AdminPermissions';
+import AdminSettings from './pages/AdminSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -22,6 +24,8 @@ export const PAGES = {
     "AdminPayments": AdminPayments,
     "AdminClients": AdminClients,
     "AdminInsured": AdminInsured,
+    "AdminPermissions": AdminPermissions,
+    "AdminSettings": AdminSettings,
 }
 
 export const pagesConfig = {
