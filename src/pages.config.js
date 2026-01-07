@@ -10,6 +10,7 @@ import AdminClients from './pages/AdminClients';
 import AdminInsured from './pages/AdminInsured';
 import AdminPermissions from './pages/AdminPermissions';
 import AdminSettings from './pages/AdminSettings';
+import Home from './pages/Home';
 import __Layout from './Layout.jsx';
 
 
@@ -26,6 +27,7 @@ export const PAGES = {
     "AdminInsured": AdminInsured,
     "AdminPermissions": AdminPermissions,
     "AdminSettings": AdminSettings,
+    "Home": Home,
 }
 
 export const pagesConfig = {
