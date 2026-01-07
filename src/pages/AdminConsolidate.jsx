@@ -176,14 +176,19 @@ export default function AdminConsolidate({ user }) {
         });
       }
 
-      // Notify client
-      await base44.integrations.Core.SendEmail({
-        to: selectedClient.email,
-        subject: '📦 Tu carga ha sido consolidada',
-        body: `¡Tu carga ha sido consolidada!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nPor favor ingresa al sistema para realizar el pago.`
-      });
-
       toast.success('Consolidación creada exitosamente');
+
+      // Notify client (async)
+      base44.entities.User.filter({ email: selectedClient.email }).then(users => {
+        if (users[0]?.email_notifications_enabled !== false) {
+          base44.integrations.Core.SendEmail({
+            to: selectedClient.email,
+            subject: '📦 Tu carga ha sido consolidada - TLEC Logistics',
+            body: `¡Tu carga ha sido consolidada!\n\nNúmero de Consolidación: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.join(', ')}\nCantidad de paquetes: ${trackingNumbers.length}\n\nDetalles del envío:\n- Tipo: ${consolidationData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\n- Peso: ${consolidationData.real_weight_kg} kg\n- Costo de envío: $${calcs.shippingCost.toFixed(2)}\n- Costo de seguro: $${calcs.insuranceCost.toFixed(2)}\n- Total a pagar: $${calcs.totalCost.toFixed(2)}\n\n${consolidationData.estimated_delivery ? `Fecha estimada de entrega: ${consolidationData.estimated_delivery}\n\n` : ''}Por favor ingresa al sistema para realizar el pago y continuar con el proceso de envío.`
+          }).catch(err => console.error('Email error:', err));
+        }
+      }).catch(err => console.error('User fetch error:', err));
+
       navigate(createPageUrl('AdminDashboard'));
     } catch (error) {
       toast.error('Error al crear consolidación');
