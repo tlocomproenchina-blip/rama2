@@ -26,8 +26,10 @@ export default function AdminSettings({ user }) {
     config_key: 'main',
     warehouse_address: '',
     contract_text: '',
-    rate_per_kg: 0,
-    rate_per_cbm: 0,
+    rate_air_general: 0,
+    rate_air_sensitive: 0,
+    rate_sea_general: 0,
+    rate_sea_sensitive: 0,
     insurance_percentage: 5,
     wallet_binance: '',
     wallet_usdt_trc20: '',
@@ -193,46 +195,70 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Plane className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-800">Envío Aéreo</h3>
-                      <p className="text-sm text-slate-500">Tarifa por kilogramo</p>
-                    </div>
+              {/* Aéreo */}
+              <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Plane className="h-5 w-5 text-blue-600" />
                   </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-800">Envío Aéreo</h3>
+                    <p className="text-sm text-slate-500">Tarifas por kilogramo</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Tarifa por Kg (USD)</Label>
+                    <Label>Carga General (USD/Kg)</Label>
                     <Input
                       type="number"
                       step="0.01"
-                      value={config.rate_per_kg}
-                      onChange={(e) => setConfig({ ...config, rate_per_kg: parseFloat(e.target.value) || 0 })}
+                      value={config.rate_air_general}
+                      onChange={(e) => setConfig({ ...config, rate_air_general: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Carga Sensible (USD/Kg)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={config.rate_air_sensitive}
+                      onChange={(e) => setConfig({ ...config, rate_air_sensitive: parseFloat(e.target.value) || 0 })}
                       placeholder="0.00"
                     />
                   </div>
                 </div>
+              </div>
 
-                <div className="p-6 bg-indigo-50 rounded-xl border border-indigo-100">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-indigo-100 rounded-lg">
-                      <Ship className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-800">Envío Marítimo</h3>
-                      <p className="text-sm text-slate-500">Tarifa por CBM</p>
-                    </div>
+              {/* Marítimo */}
+              <div className="p-6 bg-indigo-50 rounded-xl border border-indigo-100">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <Ship className="h-5 w-5 text-indigo-600" />
                   </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-800">Envío Marítimo</h3>
+                    <p className="text-sm text-slate-500">Tarifas por CBM</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Tarifa por CBM (USD)</Label>
+                    <Label>Carga General (USD/CBM)</Label>
                     <Input
                       type="number"
                       step="0.01"
-                      value={config.rate_per_cbm}
-                      onChange={(e) => setConfig({ ...config, rate_per_cbm: parseFloat(e.target.value) || 0 })}
+                      value={config.rate_sea_general}
+                      onChange={(e) => setConfig({ ...config, rate_sea_general: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Carga Sensible (USD/CBM)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={config.rate_sea_sensitive}
+                      onChange={(e) => setConfig({ ...config, rate_sea_sensitive: parseFloat(e.target.value) || 0 })}
                       placeholder="0.00"
                     />
                   </div>
