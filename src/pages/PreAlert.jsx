@@ -59,8 +59,13 @@ export default function PreAlert({ user }) {
     e.preventDefault();
     
     const newErrors = {};
+    
     if (!formData.tracking_number.trim()) {
       newErrors.tracking_number = 'Tracking requerido';
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'Descripción requerida';
     }
 
     if (formData.has_insurance && !formData.fob_value) {
@@ -77,7 +82,7 @@ export default function PreAlert({ user }) {
     // Validate tracking duplicates
     const isUnique = await validateTracking(formData.tracking_number);
     if (!isUnique) {
-      setErrors({ tracking_number: 'Este número de tracking ya ha sido registrado. Por favor verifica e intenta con otro.' });
+      setErrors({ tracking_number: 'Este número de tracking ya ha sido registrado' });
       setSaving(false);
       return;
     }
@@ -94,45 +99,37 @@ export default function PreAlert({ user }) {
         client_email: user.email,
         shipping_mark: user.shipping_mark,
         shipping_type: formData.shipping_type,
-        description: formData.description || '',
+        description: formData.description,
         has_insurance: formData.has_insurance,
         fob_value: formData.has_insurance ? parseFloat(formData.fob_value) : null,
         invoice_url: invoiceUrl,
         status: 'pre_alerta'
       });
 
-      // Notify admins
-      base44.entities.User.filter({ role: 'admin' }).then(admins => {
-        admins.forEach(admin => {
-          base44.entities.Notification.create({
-            user_email: admin.email,
-            title: '📦 Nueva Pre-alerta',
-            message: `${user.first_name || user.email} ha creado una pre-alerta: ${formData.tracking_number}`,
-            type: 'package',
-            icon: 'package',
-            reference_id: formData.tracking_number
-          }).catch(err => console.error('Notification error:', err));
-        });
-      }).catch(err => console.error('Admin fetch error:', err));
+      // Notify admins (async)
+      const admins = await base44.entities.User.filter({ role: 'admin' });
+      for (const admin of admins) {
+        base44.entities.Notification.create({
+          user_email: admin.email,
+          title: '📦 Nueva Pre-alerta',
+          message: `${user.first_name || user.email} ha creado una pre-alerta: ${formData.tracking_number}`,
+          type: 'package',
+          icon: 'package',
+          reference_id: formData.tracking_number
+        }).catch(err => console.error('Notification error:', err));
 
-      toast.success('Pre-alerta creada exitosamente');
-
-      // Notify admin if insured (async, don't wait)
-      if (formData.has_insurance) {
-        base44.entities.User.filter({ role: 'admin' }).then(admins => {
-          admins.forEach(admin => {
-            base44.integrations.Core.SendEmail({
-              to: admin.email,
-              subject: '🛡️ Nuevo envío asegurado',
-              body: `Un cliente ha registrado un envío asegurado:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''}\nEmail: ${user.email}\nValor FOB: $${formData.fob_value}\n\nPor favor revisa la factura adjunta.`
-            }).catch(err => console.error('Email error:', err));
-          });
-        }).catch(err => console.error('Admin fetch error:', err));
+        if (formData.has_insurance) {
+          base44.integrations.Core.SendEmail({
+            to: admin.email,
+            subject: '🛡️ Nuevo envío asegurado',
+            body: `Envío asegurado registrado:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''}\nEmail: ${user.email}\nValor FOB: $${formData.fob_value}`
+          }).catch(err => console.error('Email error:', err));
+        }
       }
 
+      toast.success('Pre-alerta creada exitosamente');
       navigate(createPageUrl('MyPackages'));
     } catch (error) {
-      console.error('Error creating pre-alert:', error);
       toast.error('Error al crear la pre-alerta');
     } finally {
       setSaving(false);
@@ -253,15 +250,25 @@ export default function PreAlert({ user }) {
             {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description" className="text-slate-700 font-medium">
-                Descripción (opcional)
+                Descripción *
               </Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, description: e.target.value });
+                  setErrors({ ...errors, description: null });
+                }}
                 placeholder="Describe el contenido de tu paquete"
                 rows={3}
+                className={errors.description ? 'border-red-300' : ''}
               />
+              {errors.description && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.description}
+                </p>
+              )}
             </div>
 
             {/* Insurance Section */}
