@@ -83,16 +83,14 @@ const templateCategories = [
     label: 'Cliente',
     icon: Users,
     templates: [
+      { key: 'prealert_created', label: 'Pre-alerta Creada', icon: Package },
       { key: 'package_received', label: 'Paquete Recibido', icon: Package },
-      { key: 'package_in_transit', label: 'Paquete en Tránsito', icon: Package },
-      { key: 'package_available', label: 'Paquete Disponible', icon: Package },
-      { key: 'package_delivered', label: 'Paquete Entregado', icon: Package },
-      { key: 'consolidation_created', label: 'Consolidación Creada', icon: Package },
+      { key: 'consolidation_created', label: 'Consolidación Lista', icon: Package },
+      { key: 'payment_validated', label: 'Pago Validado', icon: CreditCard },
+      { key: 'payment_rejected', label: 'Pago Rechazado', icon: CreditCard },
       { key: 'consolidation_in_transit', label: 'Consolidación en Tránsito', icon: Package },
       { key: 'consolidation_available', label: 'Consolidación Disponible', icon: Package },
-      { key: 'consolidation_delivered', label: 'Consolidación Entregada', icon: Package },
-      { key: 'payment_validated', label: 'Pago Validado', icon: CreditCard },
-      { key: 'payment_rejected', label: 'Pago Rechazado', icon: CreditCard }
+      { key: 'consolidation_delivered', label: 'Consolidación Entregada', icon: Package }
     ]
   },
   {
@@ -101,6 +99,9 @@ const templateCategories = [
     icon: Shield,
     templates: [
       { key: 'admin_new_user', label: 'Nuevo Usuario', icon: Users },
+      { key: 'admin_prealert_created', label: 'Nueva Pre-alerta', icon: Package },
+      { key: 'admin_package_received', label: 'Paquete Recibido', icon: Package },
+      { key: 'admin_consolidation_created', label: 'Consolidación Creada', icon: Package },
       { key: 'admin_payment_reported', label: 'Pago Reportado', icon: CreditCard },
       { key: 'admin_insured_shipment', label: 'Envío Asegurado', icon: Shield }
     ]
@@ -108,18 +109,19 @@ const templateCategories = [
 ];
 
 const variablesHelp = {
-  package_received: ['{{tracking_number}}'],
-  package_in_transit: ['{{tracking_number}}'],
-  package_available: ['{{tracking_number}}'],
-  package_delivered: ['{{tracking_number}}'],
-  consolidation_created: ['{{consolidation_tracking}}', '{{tracking_numbers}}', '{{package_count}}', '{{shipping_type}}', '{{weight}}', '{{shipping_cost}}', '{{insurance_cost}}', '{{total_cost}}', '{{estimated_delivery}}'],
-  consolidation_in_transit: ['{{consolidation_tracking}}'],
-  consolidation_available: ['{{consolidation_tracking}}'],
-  consolidation_delivered: ['{{consolidation_tracking}}'],
-  payment_validated: ['{{consolidation_tracking}}', '{{payment_amount}}', '{{total_cost}}'],
-  payment_rejected: ['{{consolidation_tracking}}', '{{total_cost}}', '{{rejection_reason}}'],
+  prealert_created: ['{{client_name}}', '{{tracking_number}}', '{{shipping_type}}', '{{description}}', '{{has_insurance}}', '{{fob_value}}'],
+  package_received: ['{{client_name}}', '{{tracking_number}}', '{{received_date}}'],
+  consolidation_created: ['{{client_name}}', '{{consolidation_tracking}}', '{{tracking_numbers}}', '{{package_count}}', '{{shipping_type}}', '{{weight}}', '{{shipping_cost}}', '{{insurance_cost}}', '{{total_cost}}', '{{estimated_delivery}}'],
+  payment_validated: ['{{client_name}}', '{{consolidation_tracking}}', '{{total_cost}}'],
+  payment_rejected: ['{{client_name}}', '{{consolidation_tracking}}', '{{total_cost}}', '{{rejection_reason}}'],
+  consolidation_in_transit: ['{{client_name}}', '{{consolidation_tracking}}', '{{estimated_delivery}}'],
+  consolidation_available: ['{{client_name}}', '{{consolidation_tracking}}'],
+  consolidation_delivered: ['{{client_name}}', '{{consolidation_tracking}}'],
   admin_new_user: ['{{first_name}}', '{{last_name}}', '{{city}}', '{{whatsapp}}', '{{email}}'],
-  admin_payment_reported: ['{{consolidation_tracking}}', '{{amount}}', '{{payment_method}}'],
+  admin_prealert_created: ['{{client_name}}', '{{client_email}}', '{{tracking_number}}', '{{shipping_type}}', '{{description}}', '{{has_insurance}}', '{{fob_value}}'],
+  admin_package_received: ['{{tracking_number}}', '{{client_name}}', '{{client_email}}', '{{received_by}}', '{{received_date}}'],
+  admin_consolidation_created: ['{{consolidation_tracking}}', '{{client_name}}', '{{client_email}}', '{{package_count}}', '{{shipping_type}}', '{{weight}}', '{{total_cost}}'],
+  admin_payment_reported: ['{{client_name}}', '{{client_email}}', '{{consolidation_tracking}}', '{{amount}}', '{{payment_method}}'],
   admin_insured_shipment: ['{{tracking_number}}', '{{client_name}}', '{{client_email}}', '{{fob_value}}']
 };
 

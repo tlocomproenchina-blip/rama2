@@ -1,56 +1,87 @@
 import { base44 } from '@/api/base44Client';
 
 const defaultTemplates = {
+  // Cliente - Pre-alerta creada
+  prealert_created: {
+    subject: 'Confirmación de Pre-Alerta de Paquete #{{tracking_number}} - TLEC Logistics',
+    body: 'Hola {{client_name}},\n\nTu pre-alerta para el tracking {{tracking_number}} ha sido recibida exitosamente.\n\nDetalles:\n- Tipo de envío: {{shipping_type}}\n{{#if description}}- Descripción: {{description}}\n{{/if}}{{#if has_insurance}}- Envío asegurado: Sí (Valor FOB: ${{fob_value}})\n{{/if}}\nPuedes seguir su estado en tu dashboard.'
+  },
+  
+  // Cliente - Paquete recibido
   package_received: {
-    subject: '📦 Tu paquete ha sido recibido - TLEC Logistics',
-    body: '¡Buenas noticias!\n\nTu paquete con tracking {{tracking_number}} ha sido recibido en nuestro almacén.\n\nPronto será procesado para consolidación.\n\nPuedes verificar el estado en tu panel de cliente.'
+    subject: 'Tu Paquete {{tracking_number}} ha sido Recibido - TLEC Logistics',
+    body: 'Hola {{client_name}},\n\nTu paquete con tracking {{tracking_number}} ha sido recibido en nuestro warehouse el {{received_date}}.\n\nAhora está listo para ser consolidado.\n\nPuedes verificar el estado en tu panel de cliente.'
   },
-  package_in_transit: {
-    subject: '✈️ Tu paquete está en tránsito - TLEC Logistics',
-    body: 'Tu paquete {{tracking_number}} está en camino.\n\nEstá siendo transportado y pronto llegará a destino.\n\nPuedes seguir el estado en tu panel de cliente.'
-  },
-  package_available: {
-    subject: '📍 Tu paquete está disponible para retiro - TLEC Logistics',
-    body: '¡Tu paquete {{tracking_number}} ya está disponible para retiro!\n\nPuedes coordinarlo contactándonos.\n\nRevisa los detalles en tu panel de cliente.'
-  },
-  package_delivered: {
-    subject: '✅ Tu paquete ha sido entregado - TLEC Logistics',
-    body: 'Tu paquete {{tracking_number}} ha sido entregado exitosamente.\n\n¡Gracias por confiar en TLEC Logistics!\n\nEsperamos verte pronto.'
-  },
+  
+  // Cliente - Consolidación lista
   consolidation_created: {
-    subject: '📦 Tu carga ha sido consolidada - TLEC Logistics',
-    body: '¡Tu carga ha sido consolidada!\n\nNúmero de Consolidación: {{consolidation_tracking}}\nPaquetes incluidos: {{tracking_numbers}}\nCantidad de paquetes: {{package_count}}\n\nDetalles del envío:\n- Tipo: {{shipping_type}}\n- Peso: {{weight}} kg\n- Costo de envío: ${{shipping_cost}}\n- Costo de seguro: ${{insurance_cost}}\n- Total a pagar: ${{total_cost}}\n\n{{#if estimated_delivery}}Fecha estimada de entrega: {{estimated_delivery}}\n\n{{/if}}Por favor ingresa al sistema para realizar el pago y continuar con el proceso de envío.'
+    subject: 'Tu Consolidación #{{consolidation_tracking}} está Lista para Pago - TLEC Logistics',
+    body: 'Hola {{client_name}},\n\nTu consolidación #{{consolidation_tracking}} con {{package_count}} paquete(s) está lista.\n\nPaquetes incluidos: {{tracking_numbers}}\n\nDetalles del envío:\n- Tipo: {{shipping_type}}\n- Peso: {{weight}} kg\n- Costo de envío: ${{shipping_cost}}\n- Costo de seguro: ${{insurance_cost}}\n- Total a pagar: ${{total_cost}}\n{{#if estimated_delivery}}\nFecha estimada de entrega: {{estimated_delivery}}\n{{/if}}\nPuedes ver más detalles y realizar el pago en tu dashboard.'
   },
-  consolidation_in_transit: {
-    subject: '✈️ Tu consolidación está en tránsito - TLEC Logistics',
-    body: 'Tu consolidación está en camino.\n\nNúmero de Consolidación: {{consolidation_tracking}}\n\nPuedes seguir el estado en tu panel de cliente.'
-  },
-  consolidation_available: {
-    subject: '📍 Tu consolidación está disponible - TLEC Logistics',
-    body: '¡Tu consolidación está lista para ser retirada!\n\nNúmero de Consolidación: {{consolidation_tracking}}\n\nContacta con nosotros para coordinar la entrega.'
-  },
-  consolidation_delivered: {
-    subject: '✅ Tu consolidación ha sido entregada - TLEC Logistics',
-    body: '¡Tu consolidación ha sido entregada exitosamente!\n\nNúmero de Consolidación: {{consolidation_tracking}}\n\n¡Gracias por confiar en TLEC Logistics! Esperamos verte pronto.'
-  },
+  
+  // Cliente - Pago validado
   payment_validated: {
-    subject: '✅ Pago validado - Tu carga está en camino - TLEC Logistics',
-    body: '¡Excelente! Tu pago ha sido validado exitosamente.\n\nNúmero de Consolidación: {{consolidation_tracking}}\nMonto pagado: ${{payment_amount}}\nTotal: ${{total_cost}}\n\nTu carga está ahora en tránsito y pronto llegará a destino.\n\nPuedes seguir el estado de tu envío en tu panel de cliente.'
+    subject: 'Tu Pago para Consolidación #{{consolidation_tracking}} ha sido Validado - TLEC Logistics',
+    body: 'Hola {{client_name}},\n\nTu pago de ${{total_cost}} para la consolidación #{{consolidation_tracking}} ha sido validado.\n\nTu envío ahora está en proceso y pronto estará en camino.\n\nPuedes seguir el estado de tu envío en tu panel de cliente.'
   },
+  
+  // Cliente - Pago rechazado
   payment_rejected: {
-    subject: '❌ Pago rechazado - Acción requerida - TLEC Logistics',
-    body: 'Tu pago no pudo ser validado.\n\nNúmero de Consolidación: {{consolidation_tracking}}\nMonto total: ${{total_cost}}\n\nMotivo del rechazo: {{rejection_reason}}\n\nPor favor verifica la información y vuelve a enviar el comprobante de pago correcto desde tu panel de cliente.'
+    subject: 'Tu Pago para Consolidación #{{consolidation_tracking}} ha sido Rechazado - TLEC Logistics',
+    body: 'Hola {{client_name}},\n\nTu pago para la consolidación #{{consolidation_tracking}} ha sido rechazado.\n\nMotivo: {{rejection_reason}}\n\nPor favor, revisa los detalles en tu dashboard y realiza un nuevo pago si es necesario.'
   },
+  
+  // Cliente - En tránsito
+  consolidation_in_transit: {
+    subject: 'Tu Consolidación #{{consolidation_tracking}} está En Tránsito - TLEC Logistics',
+    body: 'Hola {{client_name}},\n\nTu consolidación #{{consolidation_tracking}} ha salido de nuestro warehouse y está en camino.\n{{#if estimated_delivery}}\nFecha estimada de entrega: {{estimated_delivery}}\n{{/if}}\nPuedes seguir el estado en tu panel de cliente.'
+  },
+  
+  // Cliente - Disponible
+  consolidation_available: {
+    subject: 'Tu Consolidación #{{consolidation_tracking}} está Disponible - TLEC Logistics',
+    body: 'Hola {{client_name}},\n\nTu consolidación #{{consolidation_tracking}} ya está disponible para retiro/entrega.\n\nContacta con nosotros para coordinar la entrega.'
+  },
+  
+  // Cliente - Entregada
+  consolidation_delivered: {
+    subject: 'Confirmación de Entrega - Consolidación #{{consolidation_tracking}} - TLEC Logistics',
+    body: 'Hola {{client_name}},\n\nTu consolidación #{{consolidation_tracking}} ha sido entregada exitosamente.\n\n¡Gracias por confiar en TLEC Logistics! Esperamos verte pronto.'
+  },
+  
+  // Admin - Nuevo cliente
   admin_new_user: {
-    subject: '👤 Nuevo usuario registrado - TLEC Logistics',
-    body: 'Un nuevo usuario ha completado su registro:\n\nNombre: {{first_name}} {{last_name}}\nCiudad: {{city}}\nWhatsApp: {{whatsapp}}\nEmail: {{email}}\n\nPor favor asigna un Shipping Mark al usuario.'
+    subject: 'Nuevo Cliente Registrado: {{first_name}} {{last_name}} - TLEC Logistics',
+    body: 'Se ha registrado un nuevo cliente:\n\nNombre: {{first_name}} {{last_name}}\nEmail: {{email}}\nCiudad: {{city}}\nWhatsApp: {{whatsapp}}\n\nPor favor, asigna un Shipping Mark al usuario en el Panel de Administración.'
   },
+  
+  // Admin - Nueva pre-alerta
+  admin_prealert_created: {
+    subject: 'Nueva Pre-Alerta de Paquete de {{client_name}} ({{tracking_number}}) - TLEC Logistics',
+    body: 'El cliente {{client_name}} ({{client_email}}) ha creado una nueva pre-alerta:\n\nTracking: {{tracking_number}}\nTipo de envío: {{shipping_type}}\n{{#if description}}Descripción: {{description}}\n{{/if}}{{#if has_insurance}}Envío asegurado: Sí (Valor FOB: ${{fob_value}})\n{{/if}}\nRevisa los detalles en el Panel de Administración.'
+  },
+  
+  // Admin - Paquete recibido
+  admin_package_received: {
+    subject: 'Paquete Recibido en Warehouse: {{tracking_number}} - TLEC Logistics',
+    body: 'El paquete {{tracking_number}} del cliente {{client_name}} ({{client_email}}) ha sido recibido en el warehouse.\n\nRecibido por: {{received_by}}\nFecha: {{received_date}}\n\nRevisa los detalles en el Panel de Administración.'
+  },
+  
+  // Admin - Consolidación creada
+  admin_consolidation_created: {
+    subject: 'Nueva Consolidación Creada: #{{consolidation_tracking}} - TLEC Logistics',
+    body: 'Se ha creado una nueva consolidación #{{consolidation_tracking}} para el cliente {{client_name}} ({{client_email}}).\n\nDetalles:\n- Paquetes: {{package_count}}\n- Tipo de envío: {{shipping_type}}\n- Peso: {{weight}} kg\n- Total: ${{total_cost}}\n\nRevisa los detalles en el Panel de Administración.'
+  },
+  
+  // Admin - Pago reportado
   admin_payment_reported: {
-    subject: '💳 Nuevo pago reportado - TLEC Logistics',
-    body: 'Un cliente ha reportado un pago para la consolidación {{consolidation_tracking}}.\n\nMonto: ${{amount}}\nMétodo: {{payment_method}}\n\nPor favor revisa y valida el pago.'
+    subject: 'Nuevo Pago Pendiente de Validación para Consolidación #{{consolidation_tracking}} - TLEC Logistics',
+    body: 'El cliente {{client_name}} ({{client_email}}) ha reportado un pago:\n\nConsolidación: #{{consolidation_tracking}}\nMonto reportado: ${{amount}}\nMétodo de pago: {{payment_method}}\n\nPor favor, valida el pago en el Panel de Administración.'
   },
+  
+  // Admin - Envío asegurado (ya existente, lo mantengo)
   admin_insured_shipment: {
-    subject: '🛡️ Nuevo envío asegurado - TLEC Logistics',
+    subject: '🛡️ Nuevo Envío Asegurado - TLEC Logistics',
     body: 'Un cliente ha registrado un envío asegurado:\n\nTracking: {{tracking_number}}\nCliente: {{client_name}}\nEmail: {{client_email}}\nValor FOB: ${{fob_value}}\n\nPor favor revisa la factura adjunta.'
   }
 };

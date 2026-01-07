@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { sendTemplateEmail } from '@/components/utils/emailTemplates';
+import { sendTemplateEmail, sendTemplateEmailToAdmins } from '@/components/utils/emailTemplates';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,9 +65,24 @@ export default function AdminPackages({ user }) {
 
       toast.success('Paquete marcado como recibido');
 
+      // Get client info for personalized emails
+      const clientUsers = await base44.entities.User.filter({ email: receiveModal.client_email });
+      const clientName = clientUsers[0] ? (clientUsers[0].first_name || clientUsers[0].email.split('@')[0]) : receiveModal.client_email.split('@')[0];
+
       // Notify client (async)
       sendTemplateEmail('package_received', receiveModal.client_email, {
-        tracking_number: receiveModal.tracking_number
+        client_name: clientName,
+        tracking_number: receiveModal.tracking_number,
+        received_date: new Date().toLocaleDateString('es-ES')
+      }).catch(err => console.error('Email error:', err));
+
+      // Notify admin
+      sendTemplateEmailToAdmins('admin_package_received', {
+        tracking_number: receiveModal.tracking_number,
+        client_name: clientUsers[0] ? `${clientUsers[0].first_name || ''} ${clientUsers[0].last_name || ''}`.trim() : receiveModal.client_email.split('@')[0],
+        client_email: receiveModal.client_email,
+        received_by: user.email,
+        received_date: new Date().toLocaleDateString('es-ES')
       }).catch(err => console.error('Email error:', err));
 
       setReceiveModal(null);

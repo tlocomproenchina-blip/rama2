@@ -61,8 +61,13 @@ export default function AdminPayments({ user }) {
 
       toast.success('Pago validado exitosamente');
 
+      // Get client info
+      const clientUsers = await base44.entities.User.filter({ email: selectedCon.client_email });
+      const clientName = clientUsers[0] ? (clientUsers[0].first_name || clientUsers[0].email.split('@')[0]) : selectedCon.client_email.split('@')[0];
+
       // Notify client (async)
       sendTemplateEmail('payment_validated', selectedCon.client_email, {
+        client_name: clientName,
         consolidation_tracking: selectedCon.consolidation_tracking,
         payment_amount: selectedCon.payment_amount?.toFixed(2),
         total_cost: selectedCon.total_cost?.toFixed(2)
@@ -89,8 +94,13 @@ export default function AdminPayments({ user }) {
 
       toast.success('Pago rechazado');
 
+      // Get client info
+      const clientUsers = await base44.entities.User.filter({ email: selectedCon.client_email });
+      const clientName = clientUsers[0] ? (clientUsers[0].first_name || clientUsers[0].email.split('@')[0]) : selectedCon.client_email.split('@')[0];
+
       // Notify client (async)
       sendTemplateEmail('payment_rejected', selectedCon.client_email, {
+        client_name: clientName,
         consolidation_tracking: selectedCon.consolidation_tracking,
         total_cost: selectedCon.total_cost?.toFixed(2),
         rejection_reason: rejectComment || 'El comprobante de pago proporcionado no es válido o no coincide con el monto.'
@@ -123,9 +133,15 @@ export default function AdminPayments({ user }) {
     };
 
     if (statusTemplates[newStatus]) {
-      sendTemplateEmail(statusTemplates[newStatus], con.client_email, {
-        consolidation_tracking: con.consolidation_tracking
-      }).catch(err => console.error('Email error:', err));
+      // Get client info
+      base44.entities.User.filter({ email: con.client_email }).then(clientUsers => {
+        const clientName = clientUsers[0] ? (clientUsers[0].first_name || clientUsers[0].email.split('@')[0]) : con.client_email.split('@')[0];
+        sendTemplateEmail(statusTemplates[newStatus], con.client_email, {
+          client_name: clientName,
+          consolidation_tracking: con.consolidation_tracking,
+          estimated_delivery: con.estimated_delivery || ''
+        }).catch(err => console.error('Email error:', err));
+      });
     }
 
     loadConsolidations();

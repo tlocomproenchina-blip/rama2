@@ -73,8 +73,14 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
 
       toast.success('¡Gracias! Tu comprobante fue enviado y será verificado en breve.');
 
+      // Get client info for admin notification
+      const clientUsers = await base44.entities.User.filter({ email: consolidation.client_email });
+      const clientName = clientUsers[0] ? `${clientUsers[0].first_name || ''} ${clientUsers[0].last_name || ''}`.trim() : consolidation.client_email.split('@')[0];
+
       // Notify admin (async, don't wait)
       sendTemplateEmailToAdmins('admin_payment_reported', {
+        client_name: clientName,
+        client_email: consolidation.client_email,
         consolidation_tracking: consolidation.consolidation_tracking,
         amount: amount,
         payment_method: paymentMethod === 'binance' ? 'Binance' : 'USDT TRC20'

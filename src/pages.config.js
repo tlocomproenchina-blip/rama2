@@ -1,6 +1,7 @@
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminEmailTemplates from './pages/AdminEmailTemplates';
 import AdminInsured from './pages/AdminInsured';
 import AdminPackages from './pages/AdminPackages';
 import AdminPayments from './pages/AdminPayments';
@@ -11,7 +12,6 @@ import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
 import MyPackages from './pages/MyPackages';
 import PreAlert from './pages/PreAlert';
-import AdminEmailTemplates from './pages/AdminEmailTemplates';
 import __Layout from './Layout.jsx';
 
 
@@ -19,6 +19,7 @@ export const PAGES = {
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
+    "AdminEmailTemplates": AdminEmailTemplates,
     "AdminInsured": AdminInsured,
     "AdminPackages": AdminPackages,
     "AdminPayments": AdminPayments,
@@ -29,7 +30,6 @@ export const PAGES = {
     "MyConsolidations": MyConsolidations,
     "MyPackages": MyPackages,
     "PreAlert": PreAlert,
-    "AdminEmailTemplates": AdminEmailTemplates,
 }
 
 export const pagesConfig = {
