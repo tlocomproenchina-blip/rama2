@@ -62,14 +62,19 @@ export default function AdminPackages({ user }) {
         received_by: user.email
       });
 
-      // Notify client
-      await base44.integrations.Core.SendEmail({
-        to: receiveModal.client_email,
-        subject: '📦 Tu paquete ha sido recibido',
-        body: `¡Buenas noticias! Tu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.\n\nPronto será procesado para consolidación.`
-      });
-
       toast.success('Paquete marcado como recibido');
+
+      // Notify client (async)
+      base44.entities.User.filter({ email: receiveModal.client_email }).then(users => {
+        if (users[0]?.email_notifications_enabled !== false) {
+          base44.integrations.Core.SendEmail({
+            to: receiveModal.client_email,
+            subject: '📦 Tu paquete ha sido recibido - TLEC Logistics',
+            body: `¡Buenas noticias!\n\nTu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.\n\nPronto será procesado para consolidación.\n\nPuedes verificar el estado en tu panel de cliente.`
+          }).catch(err => console.error('Email error:', err));
+        }
+      }).catch(err => console.error('User fetch error:', err));
+
       setReceiveModal(null);
       setImageFile(null);
       loadPackages();
@@ -82,6 +87,35 @@ export default function AdminPackages({ user }) {
   const handleStatusChange = async (pkg, newStatus) => {
     await base44.entities.Package.update(pkg.id, { status: newStatus });
     toast.success('Estado actualizado');
+
+    // Notify client (async)
+    const statusMessages = {
+      en_transito: {
+        subject: '✈️ Tu paquete está en tránsito - TLEC Logistics',
+        body: `Tu paquete ${pkg.tracking_number} está en camino.\n\nEstá siendo transportado y pronto llegará a destino.\n\nPuedes seguir el estado en tu panel de cliente.`
+      },
+      disponible: {
+        subject: '📍 Tu paquete está disponible para retiro - TLEC Logistics',
+        body: `¡Tu paquete ${pkg.tracking_number} ya está disponible para retiro!\n\nPuedes coordinarlo contactándonos.\n\nRevisa los detalles en tu panel de cliente.`
+      },
+      entregado: {
+        subject: '✅ Tu paquete ha sido entregado - TLEC Logistics',
+        body: `Tu paquete ${pkg.tracking_number} ha sido entregado exitosamente.\n\n¡Gracias por confiar en TLEC Logistics!\n\nEsperamos verte pronto.`
+      }
+    };
+
+    if (statusMessages[newStatus]) {
+      base44.entities.User.filter({ email: pkg.client_email }).then(users => {
+        if (users[0]?.email_notifications_enabled !== false) {
+          base44.integrations.Core.SendEmail({
+            to: pkg.client_email,
+            subject: statusMessages[newStatus].subject,
+            body: statusMessages[newStatus].body
+          }).catch(err => console.error('Email error:', err));
+        }
+      }).catch(err => console.error('User fetch error:', err));
+    }
+
     loadPackages();
   };
 
