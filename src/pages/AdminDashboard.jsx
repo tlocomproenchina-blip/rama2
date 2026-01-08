@@ -19,7 +19,7 @@ import {
   MapPin,
   Shield
 } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import StatusBadge from '@/components/StatusBadge';
 import { format, subDays, startOfDay } from 'date-fns';
 
@@ -38,9 +38,15 @@ export default function AdminDashboard({ user }) {
     asegurados: 0,
     valorSeguro: 0
   });
+  const [analyticsKPIs, setAnalyticsKPIs] = useState({
+    activeClients: 0,
+    packagesInTransit: 0,
+    validatedRevenue: 0,
+    avgValidationTime: 0
+  });
   const [recentPackages, setRecentPackages] = useState([]);
   const [pendingPayments, setPendingPayments] = useState([]);
-  const [chartData, setChartData] = useState({ daily: [], statusDist: [], shippingType: [] });
+  const [chartData, setChartData] = useState({ daily: [], statusDist: [], shippingType: [], revenue: [], validationTimes: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -105,7 +111,61 @@ export default function AdminDashboard({ user }) {
       { name: 'Marítimo', value: packages.filter(p => p.shipping_type === 'maritimo').length }
     ];
 
-    setChartData({ daily: last7Days, statusDist, shippingType });
+    // Analytics KPIs
+    const activeClients = users.filter(u => u.profile_completed).length;
+    const packagesInTransit = packages.filter(p => p.status === 'en_transito').length;
+    const validatedRevenue = consolidations
+      .filter(c => c.payment_validated)
+      .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
+
+    // Calculate average payment validation time
+    const validatedConsolidations = consolidations.filter(c => 
+      c.payment_validated && c.payment_date && c.payment_validation_date
+    );
+    const avgValidationTime = validatedConsolidations.length > 0
+      ? validatedConsolidations.reduce((sum, c) => {
+          const paymentTime = new Date(c.payment_date).getTime();
+          const validationTime = new Date(c.payment_validation_date).getTime();
+          const hours = (validationTime - paymentTime) / (1000 * 60 * 60);
+          return sum + Math.max(0, hours);
+        }, 0) / validatedConsolidations.length
+      : 0;
+
+    setAnalyticsKPIs({
+      activeClients,
+      packagesInTransit,
+      validatedRevenue,
+      avgValidationTime
+    });
+
+    // Revenue over time (last 7 days)
+    const revenueByDay = last7Days.map((dayData) => {
+      const date = dayData.date.split('/').reverse().join('-');
+      const dayRevenue = consolidations
+        .filter(c => {
+          if (!c.payment_validated || !c.payment_validation_date) return false;
+          const validationDate = format(new Date(c.payment_validation_date), 'dd/MM');
+          return validationDate === dayData.date;
+        })
+        .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
+      return {
+        date: dayData.date,
+        revenue: dayRevenue
+      };
+    });
+
+    // Validation times distribution (last 10)
+    const validationTimesData = validatedConsolidations.slice(0, 10).map((c, idx) => {
+      const paymentTime = new Date(c.payment_date).getTime();
+      const validationTime = new Date(c.payment_validation_date).getTime();
+      const hours = Math.max(0, (validationTime - paymentTime) / (1000 * 60 * 60));
+      return {
+        name: `#${idx + 1}`,
+        hours: parseFloat(hours.toFixed(1))
+      };
+    });
+
+    setChartData({ daily: last7Days, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData });
     setRecentPackages(packages.slice(0, 5));
     setPendingPayments(pendingPays.slice(0, 3));
     setLoading(false);
@@ -125,6 +185,51 @@ export default function AdminDashboard({ user }) {
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Panel de Administración</h1>
         <p className="text-slate-500">Bienvenido, {user?.full_name || user?.email}</p>
+      </div>
+
+      {/* Analytics KPIs Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <TrendingUp className="h-6 w-6" />
+          📊 Key Performance Indicators
+        </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 hover:bg-white/20 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <Users className="h-6 w-6 text-blue-200" />
+              <span className="text-xs text-blue-200 font-medium">Clientes</span>
+            </div>
+            <p className="text-4xl font-bold">{analyticsKPIs.activeClients}</p>
+            <p className="text-xs text-blue-200 mt-1">Activos</p>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 hover:bg-white/20 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <Truck className="h-6 w-6 text-indigo-200" />
+              <span className="text-xs text-indigo-200 font-medium">En Tránsito</span>
+            </div>
+            <p className="text-4xl font-bold">{analyticsKPIs.packagesInTransit}</p>
+            <p className="text-xs text-indigo-200 mt-1">Paquetes</p>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 hover:bg-white/20 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <DollarSign className="h-6 w-6 text-emerald-200" />
+              <span className="text-xs text-emerald-200 font-medium">Ingresos</span>
+            </div>
+            <p className="text-4xl font-bold">${analyticsKPIs.validatedRevenue.toFixed(0)}</p>
+            <p className="text-xs text-emerald-200 mt-1">Validados</p>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 hover:bg-white/20 transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="h-6 w-6 text-purple-200" />
+              <span className="text-xs text-purple-200 font-medium">Tiempo Prom.</span>
+            </div>
+            <p className="text-4xl font-bold">{analyticsKPIs.avgValidationTime.toFixed(1)}</p>
+            <p className="text-xs text-purple-200 mt-1">Horas validación</p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -278,6 +383,61 @@ export default function AdminDashboard({ user }) {
                 <Layers className="h-10 w-10" />
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Analytics Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-emerald-600" />
+              Ingresos Validados (Últimos 7 días)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={chartData.revenue}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="date" stroke="#64748b" />
+                <YAxis stroke="#64748b" />
+                <Tooltip 
+                  formatter={(value) => [`$${value.toFixed(2)}`, 'Ingresos']}
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                />
+                <Area type="monotone" dataKey="revenue" stroke="#10b981" fillOpacity={1} fill="url(#colorRevenue)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Clock className="h-5 w-5 text-purple-600" />
+              Tiempo de Validación (Últimos 10)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={chartData.validationTimes}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="name" stroke="#64748b" />
+                <YAxis stroke="#64748b" />
+                <Tooltip 
+                  formatter={(value) => [`${value} hrs`, 'Tiempo']}
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                />
+                <Bar dataKey="hours" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
