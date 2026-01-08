@@ -15,6 +15,7 @@ import PreAlert from './pages/PreAlert';
 import Rates from './pages/Rates';
 import ShipmentTracking from './pages/ShipmentTracking';
 import Support from './pages/Support';
+import AdminSupportTickets from './pages/AdminSupportTickets';
 import __Layout from './Layout.jsx';
 
 
@@ -36,6 +37,7 @@ export const PAGES = {
     "Rates": Rates,
     "ShipmentTracking": ShipmentTracking,
     "Support": Support,
+    "AdminSupportTickets": AdminSupportTickets,
 }
 
 export const pagesConfig = {
