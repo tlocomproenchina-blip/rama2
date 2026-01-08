@@ -295,9 +295,9 @@ export default function Support({ user }) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewTicket(false)}>Cancelar</Button>
-            <Button onClick={handleCreateTicket} className="bg-blue-600 hover:bg-blue-700">
-              Crear Ticket
+            <Button variant="outline" onClick={() => setShowNewTicket(false)} disabled={creating}>Cancelar</Button>
+            <Button onClick={handleCreateTicket} className="bg-blue-600 hover:bg-blue-700" disabled={creating}>
+              {creating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> : 'Crear Ticket'}
             </Button>
           </DialogFooter>
         </DialogContent>
