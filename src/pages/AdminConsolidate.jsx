@@ -111,11 +111,16 @@ export default function AdminConsolidate({ user }) {
     const totalFOB = selectedPkgs.reduce((sum, p) => sum + (p.has_insurance ? (p.fob_value || 0) : 0), 0);
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
 
+    // Determine if it's sensitive cargo
+    const hasSensitive = selectedPkgs.some(p => p.has_insurance);
+
     let shippingCost = 0;
     if (consolidationData.shipping_type === 'aereo') {
-      shippingCost = billableWeight * (config?.rate_per_kg || 0);
+      const rate = hasSensitive ? (config?.rate_air_sensitive || 0) : (config?.rate_air_general || 0);
+      shippingCost = billableWeight * rate;
     } else {
-      shippingCost = cbm * (config?.rate_per_cbm || 0);
+      const rate = hasSensitive ? (config?.rate_sea_sensitive || 0) : (config?.rate_sea_general || 0);
+      shippingCost = cbm * rate;
     }
 
     return {

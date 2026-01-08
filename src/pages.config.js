@@ -7,6 +7,7 @@ import AdminPayments from './pages/AdminPayments';
 import AdminPermissions from './pages/AdminPermissions';
 import AdminSettings from './pages/AdminSettings';
 import AdminSupport from './pages/AdminSupport';
+import AdminSupportTickets from './pages/AdminSupportTickets';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
@@ -15,7 +16,6 @@ import PreAlert from './pages/PreAlert';
 import Rates from './pages/Rates';
 import ShipmentTracking from './pages/ShipmentTracking';
 import Support from './pages/Support';
-import AdminSupportTickets from './pages/AdminSupportTickets';
 import __Layout from './Layout.jsx';
 
 
@@ -29,6 +29,7 @@ export const PAGES = {
     "AdminPermissions": AdminPermissions,
     "AdminSettings": AdminSettings,
     "AdminSupport": AdminSupport,
+    "AdminSupportTickets": AdminSupportTickets,
     "Dashboard": Dashboard,
     "Home": Home,
     "MyConsolidations": MyConsolidations,
@@ -37,7 +38,6 @@ export const PAGES = {
     "Rates": Rates,
     "ShipmentTracking": ShipmentTracking,
     "Support": Support,
-    "AdminSupportTickets": AdminSupportTickets,
 }
 
 export const pagesConfig = {
