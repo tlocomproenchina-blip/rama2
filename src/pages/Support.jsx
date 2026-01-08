@@ -50,6 +50,8 @@ export default function Support({ user }) {
       return;
     }
 
+    setCreating(true);
+    
     const ticketNumber = `TKT-${Date.now()}`;
     const firstMessage = {
       sender_email: user.email,
@@ -83,7 +85,18 @@ export default function Support({ user }) {
       }).catch(err => console.error(err));
     }
 
-    toast.success('Ticket creado exitosamente');
+    // Create notification for client
+    await base44.entities.Notification.create({
+      user_email: user.email,
+      title: '✅ Ticket Creado',
+      message: `Tu ticket "${newTicket.subject}" ha sido creado con el número ${ticketNumber}. Te responderemos pronto.`,
+      type: 'general',
+      icon: 'check',
+      reference_id: ticketNumber
+    });
+
+    setCreating(false);
+    toast.success(`Ticket ${ticketNumber} creado exitosamente. Te responderemos pronto.`);
     setShowNewTicket(false);
     setNewTicket({ subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '' });
     loadTickets();
