@@ -32,6 +32,7 @@ export default function Support({ user }) {
     message: '',
     related_tracking: ''
   });
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     loadTickets();
