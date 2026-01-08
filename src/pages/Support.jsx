@@ -62,47 +62,54 @@ export default function Support({ user }) {
         is_admin: false
       };
 
-      await base44.entities.SupportTicket.create({
+      const ticketData = {
         ticket_number: ticketNumber,
         client_email: user.email,
         subject: newTicket.subject,
         category: newTicket.category,
         priority: newTicket.priority,
-        related_tracking: newTicket.related_tracking || null,
         status: 'abierto',
         messages: [firstMessage]
-      });
+      };
 
-      // Notify admins
-      const admins = await base44.entities.User.filter({ role: 'admin' });
-      for (const admin of admins) {
-        base44.entities.Notification.create({
-          user_email: admin.email,
-          title: '🎫 Nuevo Ticket de Soporte',
-          message: `${user.full_name || user.email} creó un ticket: ${newTicket.subject}`,
-          type: 'general',
-          icon: 'alert',
-          reference_id: ticketNumber
-        }).catch(err => console.error(err));
+      // Only add related_tracking if it has a value
+      if (newTicket.related_tracking && newTicket.related_tracking.trim()) {
+        ticketData.related_tracking = newTicket.related_tracking.trim();
       }
 
-      // Create notification for client
-      await base44.entities.Notification.create({
+      await base44.entities.SupportTicket.create(ticketData);
+
+      // Notify admins (non-blocking)
+      base44.entities.User.filter({ role: 'admin' }).then(admins => {
+        admins.forEach(admin => {
+          base44.entities.Notification.create({
+            user_email: admin.email,
+            title: '🎫 Nuevo Ticket de Soporte',
+            message: `${user.full_name || user.email} creó un ticket: ${newTicket.subject}`,
+            type: 'general',
+            icon: 'alert',
+            reference_id: ticketNumber
+          }).catch(err => console.error('Error notificando admin:', err));
+        });
+      }).catch(err => console.error('Error cargando admins:', err));
+
+      // Notify client (non-blocking)
+      base44.entities.Notification.create({
         user_email: user.email,
         title: '✅ Ticket Creado',
-        message: `Tu ticket "${newTicket.subject}" ha sido creado con el número ${ticketNumber}. Te responderemos pronto.`,
+        message: `Tu ticket "${newTicket.subject}" ha sido creado exitosamente.`,
         type: 'general',
         icon: 'check',
         reference_id: ticketNumber
-      });
+      }).catch(err => console.error('Error notificando cliente:', err));
 
-      toast.success(`Ticket ${ticketNumber} creado exitosamente. Te responderemos pronto.`);
+      toast.success('Ticket creado exitosamente. Te responderemos pronto.');
       setShowNewTicket(false);
       setNewTicket({ subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '' });
-      await loadTickets();
+      loadTickets();
     } catch (error) {
       console.error('Error al crear ticket:', error);
-      toast.error('Error al crear el ticket. Por favor intenta de nuevo.');
+      toast.error(`Error: ${error.message || 'No se pudo crear el ticket'}`);
     } finally {
       setCreating(false);
     }
