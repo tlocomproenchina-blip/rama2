@@ -1,20 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { 
-  LayoutDashboard, 
-  Package, 
-  Layers, 
-  Users, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Package,
+  Layers,
+  Users,
+  Settings,
   CreditCard,
   Shield,
   FileText,
   ShieldCheck,
   LogOut,
   X,
-  Truck
-} from 'lucide-react';
+  Truck } from
+'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
 
@@ -24,37 +24,37 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const permissions = user?.admin_permissions || {};
 
   const clientMenuItems = [
-    { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
-    { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
-    { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
-    { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
-    { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
-    { name: 'Tarifas', page: 'Rates', icon: CreditCard },
-  ];
+  { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
+  { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
+  { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
+  { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
+  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
+  { name: 'Tarifas', page: 'Rates', icon: CreditCard }];
+
 
   const adminMenuItems = [
-    { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard, permission: 'view_packages' },
-    { name: 'Paquetes', page: 'AdminPackages', icon: Package, permission: 'view_packages' },
-    { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers, permission: 'consolidate' },
-    { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
-    { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck, permission: 'view_packages' },
-    { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
-    { name: 'Clientes', page: 'AdminClients', icon: Users, permission: 'view_packages' },
-    { name: 'Administradores', page: 'AdminPermissions', icon: Shield, permission: 'invite_users' },
-    { name: 'Configuración', page: 'AdminSettings', icon: Settings, permission: 'general_config' },
-  ];
+  { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard, permission: 'view_packages' },
+  { name: 'Paquetes', page: 'AdminPackages', icon: Package, permission: 'view_packages' },
+  { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers, permission: 'consolidate' },
+  { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
+  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck, permission: 'view_packages' },
+  { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
+  { name: 'Clientes', page: 'AdminClients', icon: Users, permission: 'view_packages' },
+  { name: 'Administradores', page: 'AdminPermissions', icon: Shield, permission: 'invite_users' },
+  { name: 'Configuración', page: 'AdminSettings', icon: Settings, permission: 'general_config' }];
+
 
   const employeeMenuItems = [
-    { name: 'Dashboard', page: 'AdminDashboard', icon: LayoutDashboard },
-    { name: 'Paquetes', page: 'AdminPackages', icon: Package },
-    { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers },
-    { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
-    { name: 'Clientes', page: 'AdminClients', icon: Users },
-  ];
+  { name: 'Dashboard', page: 'AdminDashboard', icon: LayoutDashboard },
+  { name: 'Paquetes', page: 'AdminPackages', icon: Package },
+  { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers },
+  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
+  { name: 'Clientes', page: 'AdminClients', icon: Users }];
+
 
   const getMenuItems = () => {
     if (isAdmin) {
-      return adminMenuItems.filter(item => !item.permission || permissions[item.permission] !== false);
+      return adminMenuItems.filter((item) => !item.permission || permissions[item.permission] !== false);
     }
     if (isEmployee) {
       return employeeMenuItems;
@@ -69,12 +69,12 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   return (
     <>
       {/* Mobile overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      {isOpen &&
+      <div
+        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+        onClick={onClose} />
+
+      }
       
       {/* Sidebar */}
       <aside className={`
@@ -85,7 +85,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         flex flex-col
       `}>
         {/* Header */}
-        <div className="p-6 border-b border-slate-700/50">
+        <div className="bg-[#1c3f82] p-6 border-b border-slate-700/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -96,28 +96,28 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                 <p className="text-xs text-slate-400">Sistema de Envíos</p>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="lg:hidden text-slate-400 hover:text-white"
-              onClick={onClose}
-            >
+              onClick={onClose}>
+
               <X className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
         {/* User Info */}
-        <div className="px-4 py-4 border-b border-slate-700/50">
+        <div className="bg-[#1c3f82] px-4 py-4 border-b border-slate-700/50">
           <div className="bg-slate-800/50 rounded-xl p-3">
             <p className="text-sm font-medium text-white truncate">{user?.full_name || user?.email}</p>
             <p className="text-xs text-slate-400 truncate">{user?.email}</p>
             <div className="mt-2 flex items-center gap-2">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                isAdmin ? 'bg-amber-500/20 text-amber-400' : 
-                isEmployee ? 'bg-blue-500/20 text-blue-400' : 
-                'bg-emerald-500/20 text-emerald-400'
-              }`}>
+              isAdmin ? 'bg-amber-500/20 text-amber-400' :
+              isEmployee ? 'bg-blue-500/20 text-blue-400' :
+              'bg-emerald-500/20 text-emerald-400'}`
+              }>
                 {isAdmin ? 'Administrador' : isEmployee ? 'Empleado' : 'Cliente'}
               </span>
             </div>
@@ -125,11 +125,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1">
           {getMenuItems().map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.page;
-            
+
             return (
               <Link
                 key={item.page}
@@ -137,31 +137,31 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                 onClick={onClose}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-                  ${isActive 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
-                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
-                  }
-                `}
-              >
+                  ${isActive ?
+                'bg-blue-600 text-white shadow-lg shadow-blue-600/30' :
+                'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
+                `
+                }>
+
                 <Icon className="h-5 w-5 flex-shrink-0" />
                 <span className="font-medium">{item.name}</span>
-              </Link>
-            );
+              </Link>);
+
           })}
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-slate-700/50">
-          <Button 
-            variant="ghost" 
+        <div className="bg-[#1c3f82] p-4 border-t border-slate-700/50">
+          <Button
+            variant="ghost"
             className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700/50"
-            onClick={handleLogout}
-          >
+            onClick={handleLogout}>
+
             <LogOut className="h-5 w-5 mr-3" />
             Cerrar Sesión
           </Button>
         </div>
       </aside>
-    </>
-  );
+    </>);
+
 }
