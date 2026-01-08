@@ -13,6 +13,8 @@ import MyPackages from './pages/MyPackages';
 import PreAlert from './pages/PreAlert';
 import Rates from './pages/Rates';
 import ShipmentTracking from './pages/ShipmentTracking';
+import Support from './pages/Support';
+import AdminSupport from './pages/AdminSupport';
 import __Layout from './Layout.jsx';
 
 
@@ -32,6 +34,8 @@ export const PAGES = {
     "PreAlert": PreAlert,
     "Rates": Rates,
     "ShipmentTracking": ShipmentTracking,
+    "Support": Support,
+    "AdminSupport": AdminSupport,
 }
 
 export const pagesConfig = {

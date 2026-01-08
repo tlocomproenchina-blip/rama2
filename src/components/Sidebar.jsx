@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   LogOut,
   X,
-  Truck } from
+  Truck,
+  MessageCircle } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -29,7 +30,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
   { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
-  { name: 'Tarifas', page: 'Rates', icon: CreditCard }];
+  { name: 'Tarifas', page: 'Rates', icon: CreditCard },
+  { name: 'Soporte', page: 'Support', icon: MessageCircle }];
 
 
   const adminMenuItems = [
@@ -40,6 +42,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck, permission: 'view_packages' },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
   { name: 'Clientes', page: 'AdminClients', icon: Users, permission: 'view_packages' },
+  { name: 'Soporte', page: 'AdminSupport', icon: MessageCircle, permission: 'view_packages' },
   { name: 'Administradores', page: 'AdminPermissions', icon: Shield, permission: 'invite_users' },
   { name: 'Configuración', page: 'AdminSettings', icon: Settings, permission: 'general_config' }];
 
