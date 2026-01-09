@@ -21,7 +21,8 @@ import {
   Clock,
   Eye,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Copy
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -107,6 +108,16 @@ export default function AdminClients({ user }) {
       toast.error('Error al guardar');
     }
     setSaving(false);
+  };
+
+  const handleCopyClientInfo = (client) => {
+    const info = `Nombre: ${client.first_name || ''} ${client.last_name || ''}
+Ciudad: ${client.city || 'N/A'}
+WhatsApp: ${client.whatsapp || 'N/A'}
+Email: ${client.email}`;
+    
+    navigator.clipboard.writeText(info);
+    toast.success('Información copiada al portapapeles');
   };
 
   const handleDelete = async () => {
@@ -317,6 +328,17 @@ export default function AdminClients({ user }) {
 
                   {/* Actions */}
                   <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyClientInfo(client);
+                      }}
+                      title="Copiar información"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
