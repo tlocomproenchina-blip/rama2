@@ -94,22 +94,32 @@ export default function AdminPackages({ user }) {
     // Notify client on important status changes
     if (newStatus === 'en_transito' || newStatus === 'disponible' || newStatus === 'entregado') {
       const statusMessages = {
-        en_transito: '🚚 Tu paquete está en tránsito hacia su destino.',
-        disponible: '📍 Tu paquete está disponible para retiro.',
-        entregado: '✅ Tu paquete ha sido entregado exitosamente.'
+        en_transito: { emoji: '🚚', title: 'En Tránsito', msg: 'Tu paquete está en tránsito hacia su destino.' },
+        disponible: { emoji: '📍', title: 'Disponible', msg: 'Tu paquete está disponible para retiro.' },
+        entregado: { emoji: '✅', title: 'Entregado', msg: 'Tu paquete ha sido entregado exitosamente.' }
       };
       
+      const status = statusMessages[newStatus];
+      
+      // Send email
+      base44.integrations.Core.SendEmail({
+        to: pkg.client_email,
+        subject: `${status.emoji} ${status.title} - ${pkg.tracking_number}`,
+        body: `${status.msg}\n\nTracking: ${pkg.tracking_number}\nShipping Mark: ${pkg.shipping_mark || 'N/A'}`
+      }).catch(err => console.error('Email error:', err));
+      
+      // In-app notification
       base44.entities.Notification.create({
         user_email: pkg.client_email,
-        title: `Paquete ${pkg.tracking_number}`,
-        message: statusMessages[newStatus],
+        title: `${status.emoji} ${status.title}`,
+        message: `${pkg.tracking_number}: ${status.msg}`,
         type: 'package',
         icon: newStatus === 'entregado' ? 'check' : 'truck',
         reference_id: pkg.id
       }).catch(err => console.error('Notification error:', err));
     }
     
-    toast.success('Estado actualizado');
+    toast.success('Estado actualizado y cliente notificado');
     loadPackages();
   };
 

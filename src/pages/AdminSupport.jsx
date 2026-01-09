@@ -155,17 +155,32 @@ export default function AdminSupport({ user }) {
     // Notify client
     const ticket = tickets.find(t => t.id === ticketId);
     if (ticket) {
+      const statusLabels = {
+        abierto: 'Abierto',
+        en_proceso: 'En Proceso',
+        resuelto: 'Resuelto',
+        cerrado: 'Cerrado'
+      };
+
+      // Send email
+      base44.integrations.Core.SendEmail({
+        to: ticket.client_email,
+        subject: `Estado de Ticket Actualizado - ${ticket.ticket_number}`,
+        body: `Hola,\n\nEl estado de tu ticket de soporte ha sido actualizado:\n\nAsunto: ${ticket.subject}\nNuevo estado: ${statusLabels[newStatus]}\n\nPuedes ver los detalles en tu panel de soporte.`
+      }).catch(err => console.error('Email error:', err));
+
+      // In-app notification
       base44.entities.Notification.create({
         user_email: ticket.client_email,
         title: '🎫 Estado de Ticket Actualizado',
-        message: `Tu ticket ${ticket.ticket_number} cambió a: ${newStatus}`,
+        message: `Tu ticket ${ticket.ticket_number} cambió a: ${statusLabels[newStatus]}`,
         type: 'general',
         icon: newStatus === 'resuelto' ? 'check' : 'alert',
         reference_id: ticketId
       }).catch(err => console.error(err));
     }
 
-    toast.success('Estado actualizado');
+    toast.success('Estado actualizado y cliente notificado');
     if (selectedTicket?.id === ticketId) {
       setSelectedTicket({ ...selectedTicket, status: newStatus });
     }
