@@ -72,6 +72,10 @@ export default function AdminSettings({ user }) {
   const recalculatePendingConsolidations = async () => {
     setRecalculating(true);
     try {
+      // Get CURRENT config to ensure we're using latest rates
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      const currentConfig = configs[0] || config;
+
       const pendingConsolidations = await base44.entities.Consolidation.filter({ 
         status: 'pendiente_pago' 
       });
@@ -90,14 +94,14 @@ export default function AdminSettings({ user }) {
 
         let shippingCost = 0;
         if (cons.shipping_type === 'aereo') {
-          const rate = hasSensitive ? config.rate_air_sensitive : config.rate_air_general;
+          const rate = hasSensitive ? currentConfig.rate_air_sensitive : currentConfig.rate_air_general;
           shippingCost = billableWeight * rate;
         } else {
-          const rate = hasSensitive ? config.rate_sea_sensitive : config.rate_sea_general;
+          const rate = hasSensitive ? currentConfig.rate_sea_sensitive : currentConfig.rate_sea_general;
           shippingCost = cbm * rate;
         }
 
-        const insuranceCost = totalFOB * (config.insurance_percentage / 100);
+        const insuranceCost = totalFOB * (currentConfig.insurance_percentage / 100);
         const totalCost = shippingCost + insuranceCost;
 
         await base44.entities.Consolidation.update(cons.id, {
@@ -112,9 +116,22 @@ export default function AdminSettings({ user }) {
         updated++;
       }
 
-      toast.success(`${updated} consolidaciones actualizadas`);
+      // Notify all affected clients
+      const uniqueEmails = [...new Set(pendingConsolidations.map(c => c.client_email))];
+      for (const email of uniqueEmails) {
+        base44.entities.Notification.create({
+          user_email: email,
+          title: '💰 Montos Actualizados',
+          message: 'Los montos de tus consolidaciones pendientes han sido actualizados. Por favor revisa tus consolidaciones.',
+          type: 'general',
+          icon: 'dollar'
+        }).catch(err => console.error('Notification error:', err));
+      }
+
+      toast.success(`${updated} consolidaciones actualizadas y clientes notificados`);
     } catch (error) {
-      toast.error('Error al recalcular');
+      console.error('Recalculation error:', error);
+      toast.error('Error al recalcular: ' + (error.message || 'Error desconocido'));
     }
     setRecalculating(false);
   };
