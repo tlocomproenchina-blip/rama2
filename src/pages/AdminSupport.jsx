@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   MessageSquare, 
@@ -16,7 +18,8 @@ import {
   XCircle,
   Search,
   User,
-  Filter
+  Filter,
+  Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
@@ -28,6 +31,15 @@ export default function AdminSupport({ user }) {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [showNewTicket, setShowNewTicket] = useState(false);
+  const [newTicket, setNewTicket] = useState({
+    client_email: '',
+    subject: '',
+    category: 'otro',
+    priority: 'media',
+    message: '',
+    related_tracking: ''
+  });
 
   useEffect(() => {
     loadData();
@@ -80,6 +92,55 @@ export default function AdminSupport({ user }) {
     }).catch(err => console.error(err));
 
     setSelectedTicket({ ...selectedTicket, messages: updatedMessages });
+    loadData();
+  };
+
+  const handleCreateTicket = async () => {
+    if (!newTicket.client_email || !newTicket.subject.trim() || !newTicket.message.trim()) {
+      toast.error('Por favor completa todos los campos obligatorios');
+      return;
+    }
+
+    const ticketNumber = `TKT-${Date.now()}`;
+    const firstMessage = {
+      sender_email: user.email,
+      sender_name: user.full_name || 'Administrador',
+      message: newTicket.message,
+      timestamp: new Date().toISOString(),
+      is_admin: true
+    };
+
+    await base44.entities.SupportTicket.create({
+      ticket_number: ticketNumber,
+      client_email: newTicket.client_email,
+      subject: newTicket.subject,
+      category: newTicket.category,
+      priority: newTicket.priority,
+      related_tracking: newTicket.related_tracking || null,
+      status: 'abierto',
+      assigned_to: user.email,
+      messages: [firstMessage]
+    });
+
+    // Notify client
+    base44.entities.Notification.create({
+      user_email: newTicket.client_email,
+      title: '🎫 Nuevo Ticket de Soporte',
+      message: `Se ha creado un ticket de soporte para ti: ${newTicket.subject}`,
+      type: 'general',
+      icon: 'alert',
+      reference_id: ticketNumber
+    }).catch(err => console.error(err));
+
+    base44.integrations.Core.SendEmail({
+      to: newTicket.client_email,
+      subject: `Nuevo Ticket de Soporte - ${ticketNumber}`,
+      body: `Hola,\n\nSe ha creado un ticket de soporte para ti:\n\nAsunto: ${newTicket.subject}\nMensaje: ${newTicket.message}\n\nPuedes responder en tu panel de soporte.`
+    }).catch(err => console.error(err));
+
+    toast.success('Ticket creado exitosamente');
+    setShowNewTicket(false);
+    setNewTicket({ client_email: '', subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '' });
     loadData();
   };
 
@@ -154,9 +215,15 @@ export default function AdminSupport({ user }) {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Gestión de Soporte</h1>
-        <p className="text-slate-500">Administra los tickets de soporte de clientes</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Gestión de Soporte</h1>
+          <p className="text-slate-500">Administra los tickets de soporte de clientes</p>
+        </div>
+        <Button onClick={() => setShowNewTicket(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Crear Ticket
+        </Button>
       </div>
 
       {/* Stats */}
@@ -306,6 +373,99 @@ export default function AdminSupport({ user }) {
           })}
         </div>
       )}
+
+      {/* New Ticket Dialog */}
+      <Dialog open={showNewTicket} onOpenChange={setShowNewTicket}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Crear Ticket para Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Cliente *</Label>
+              <Select value={newTicket.client_email} onValueChange={(value) => setNewTicket({ ...newTicket, client_email: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(clients).map((client) => (
+                    <SelectItem key={client.email} value={client.email}>
+                      {client.first_name} {client.last_name} - {client.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Asunto *</Label>
+              <Input
+                value={newTicket.subject}
+                onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
+                placeholder="Describe brevemente el problema"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Categoría</Label>
+                <Select value={newTicket.category} onValueChange={(value) => setNewTicket({ ...newTicket, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pago">Pago</SelectItem>
+                    <SelectItem value="envio">Envío</SelectItem>
+                    <SelectItem value="tracking">Tracking</SelectItem>
+                    <SelectItem value="consolidacion">Consolidación</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Prioridad</Label>
+                <Select value={newTicket.priority} onValueChange={(value) => setNewTicket({ ...newTicket, priority: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="baja">Baja</SelectItem>
+                    <SelectItem value="media">Media</SelectItem>
+                    <SelectItem value="alta">Alta</SelectItem>
+                    <SelectItem value="urgente">Urgente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tracking Relacionado (opcional)</Label>
+              <Input
+                value={newTicket.related_tracking}
+                onChange={(e) => setNewTicket({ ...newTicket, related_tracking: e.target.value })}
+                placeholder="Ej: TLEC-123456"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Mensaje Inicial *</Label>
+              <Textarea
+                value={newTicket.message}
+                onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
+                placeholder="Mensaje inicial del ticket..."
+                rows={5}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewTicket(false)}>Cancelar</Button>
+            <Button onClick={handleCreateTicket} className="bg-blue-600 hover:bg-blue-700">
+              Crear Ticket
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Ticket Detail Dialog */}
       <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
