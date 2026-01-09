@@ -27,6 +27,7 @@ export default function MyConsolidations({ user }) {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [paymentModal, setPaymentModal] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadConsolidations();
