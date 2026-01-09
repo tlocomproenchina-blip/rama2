@@ -93,15 +93,31 @@ export default function AdminClients({ user }) {
 
       await base44.entities.User.update(editClient.id, editData);
 
-      // If shipping mark was assigned, update existing packages
+      // If shipping mark was assigned, update existing packages and notify client
       if (editData.shipping_mark && !editClient.shipping_mark) {
         const clientPackages = await base44.entities.Package.filter({ client_email: editClient.email });
         for (const pkg of clientPackages) {
           await base44.entities.Package.update(pkg.id, { shipping_mark: editData.shipping_mark });
         }
+
+        // Send email notification to client
+        base44.integrations.Core.SendEmail({
+          to: editClient.email,
+          subject: '🎉 Shipping Mark Asignado',
+          body: `¡Hola ${editData.first_name || 'Usuario'}!\n\nTu Shipping Mark ha sido asignado:\n\n${editData.shipping_mark}\n\nYa puedes comenzar a enviar tus paquetes. Usa este código en todas tus compras online.\n\nDirección del warehouse: Disponible en tu panel de control.`
+        }).catch(err => console.error('Email error:', err));
+
+        // In-app notification
+        base44.entities.Notification.create({
+          user_email: editClient.email,
+          title: '🎉 Shipping Mark Asignado',
+          message: `Tu Shipping Mark es: ${editData.shipping_mark}. Ya puedes realizar envíos.`,
+          type: 'general',
+          icon: 'check'
+        }).catch(err => console.error('Notification error:', err));
       }
 
-      toast.success('Cliente actualizado');
+      toast.success('Cliente actualizado y notificado');
       setEditClient(null);
       loadClients();
     } catch (error) {
