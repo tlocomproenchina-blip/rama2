@@ -39,6 +39,7 @@ export default function AdminSettings({ user }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
 
   useEffect(() => {
     loadConfig();
