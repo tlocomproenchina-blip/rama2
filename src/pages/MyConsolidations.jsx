@@ -65,9 +65,23 @@ export default function MyConsolidations({ user }) {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Mis Consolidaciones</h1>
-        <p className="text-slate-500">Revisa tus paquetes consolidados y realiza pagos</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Mis Consolidaciones</h1>
+          <p className="text-slate-500">Revisa tus paquetes consolidados y realiza pagos</p>
+        </div>
+        <Button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          variant="outline"
+          size="sm"
+        >
+          {refreshing ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Actualizando...</>
+          ) : (
+            <><RefreshCw className="h-4 w-4 mr-2" /> Actualizar</>
+          )}
+        </Button>
       </div>
 
       {/* Consolidations List */}
