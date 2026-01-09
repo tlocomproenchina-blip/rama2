@@ -39,6 +39,7 @@ export default function AdminSupportTickets({ user }) {
   const [selectedAdmin, setSelectedAdmin] = useState('');
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [clients, setClients] = useState([]);
+  const [clientSearch, setClientSearch] = useState('');
   const [newTicket, setNewTicket] = useState({
     client_email: '',
     subject: '',
@@ -109,6 +110,7 @@ export default function AdminSupportTickets({ user }) {
 
     toast.success('Ticket creado exitosamente');
     setShowNewTicket(false);
+    setClientSearch('');
     setNewTicket({ client_email: '', subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '' });
     loadData();
   };
@@ -568,18 +570,39 @@ export default function AdminSupportTickets({ user }) {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Cliente *</Label>
-              <Select value={newTicket.client_email} onValueChange={(value) => setNewTicket({ ...newTicket, client_email: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.email} value={client.email}>
-                      {client.first_name} {client.last_name} - {client.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Buscar cliente por nombre o email..."
+                    value={clientSearch}
+                    onChange={(e) => setClientSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={newTicket.client_email} onValueChange={(value) => setNewTicket({ ...newTicket, client_email: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients
+                      .filter(client => {
+                        const searchLower = clientSearch.toLowerCase();
+                        return (
+                          !clientSearch ||
+                          (client.first_name || '').toLowerCase().includes(searchLower) ||
+                          (client.last_name || '').toLowerCase().includes(searchLower) ||
+                          client.email.toLowerCase().includes(searchLower)
+                        );
+                      })
+                      .map((client) => (
+                        <SelectItem key={client.email} value={client.email}>
+                          {client.first_name} {client.last_name} - {client.email}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
