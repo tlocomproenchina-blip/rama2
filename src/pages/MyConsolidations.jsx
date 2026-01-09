@@ -48,6 +48,12 @@ export default function MyConsolidations({ user }) {
     return con.status === 'pago_pendiente_validacion';
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadConsolidations();
+    setRefreshing(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
