@@ -69,6 +69,56 @@ export default function AdminSettings({ user }) {
     setSaving(false);
   };
 
+  const recalculatePendingConsolidations = async () => {
+    setRecalculating(true);
+    try {
+      const pendingConsolidations = await base44.entities.Consolidation.filter({ 
+        status: 'pendiente_pago' 
+      });
+
+      let updated = 0;
+      for (const cons of pendingConsolidations) {
+        // Get packages for insurance check
+        const packages = await base44.entities.Package.filter({ consolidation_id: cons.id });
+        const hasSensitive = packages.some(p => p.has_insurance);
+        const totalFOB = packages.reduce((sum, p) => sum + (p.has_insurance ? (p.fob_value || 0) : 0), 0);
+
+        // Recalculate
+        const cbm = (cons.length_cm * cons.width_cm * cons.height_cm) / 1000000;
+        const volumetricWeight = (cons.length_cm * cons.width_cm * cons.height_cm) / 5000;
+        const billableWeight = Math.max(cons.real_weight_kg, volumetricWeight);
+
+        let shippingCost = 0;
+        if (cons.shipping_type === 'aereo') {
+          const rate = hasSensitive ? config.rate_air_sensitive : config.rate_air_general;
+          shippingCost = billableWeight * rate;
+        } else {
+          const rate = hasSensitive ? config.rate_sea_sensitive : config.rate_sea_general;
+          shippingCost = cbm * rate;
+        }
+
+        const insuranceCost = totalFOB * (config.insurance_percentage / 100);
+        const totalCost = shippingCost + insuranceCost;
+
+        await base44.entities.Consolidation.update(cons.id, {
+          cbm,
+          volumetric_weight: volumetricWeight,
+          billable_weight: billableWeight,
+          shipping_cost: shippingCost,
+          insurance_cost: insuranceCost,
+          total_cost: totalCost
+        });
+
+        updated++;
+      }
+
+      toast.success(`${updated} consolidaciones actualizadas`);
+    } catch (error) {
+      toast.error('Error al recalcular');
+    }
+    setRecalculating(false);
+  };
+
   const handleExportCSV = async () => {
     setExporting(true);
     try {
