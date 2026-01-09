@@ -118,6 +118,14 @@ export default function PreAlert({ user }) {
       // Notify admins (async, don't block navigation)
       base44.entities.User.filter({ role: 'admin' }).then(admins => {
         admins.forEach(admin => {
+          // Always send email for new pre-alert
+          base44.integrations.Core.SendEmail({
+            to: admin.email,
+            subject: `📦 Nueva Pre-alerta${formData.has_insurance ? ' (Asegurada)' : ''}`,
+            body: `Nueva pre-alerta registrada:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''} (${user.email})\nShipping Mark: ${user.shipping_mark}\nTipo: ${formData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\nDescripción: ${formData.description}${formData.has_insurance ? `\n\n🛡️ ASEGURADO\nValor FOB: $${formData.fob_value}` : ''}`
+          }).catch(err => console.error('Email error:', err));
+
+          // In-app notification
           base44.entities.Notification.create({
             user_email: admin.email,
             title: '📦 Nueva Pre-alerta',
@@ -126,14 +134,6 @@ export default function PreAlert({ user }) {
             icon: 'package',
             reference_id: newPackage.id
           }).catch(err => console.error('Notification error:', err));
-
-          if (formData.has_insurance) {
-            base44.integrations.Core.SendEmail({
-              to: admin.email,
-              subject: '🛡️ Nuevo envío asegurado',
-              body: `Envío asegurado registrado:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''}\nEmail: ${user.email}\nValor FOB: $${formData.fob_value}`
-            }).catch(err => console.error('Email error:', err));
-          }
         });
       }).catch(err => console.error('Admin notification error:', err));
 
