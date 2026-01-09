@@ -245,6 +245,30 @@ export default function AdminSettings({ user }) {
                 Configura las tarifas para envíos aéreos y marítimos
               </CardDescription>
             </CardHeader>
+            <CardContent className="border-b pb-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-800 mb-1">
+                    ⚠️ Actualización de Tarifas
+                  </p>
+                  <p className="text-sm text-amber-700">
+                    Si cambias las tarifas, puedes recalcular automáticamente todas las consolidaciones pendientes de pago con las nuevas tarifas.
+                  </p>
+                </div>
+                <Button
+                  onClick={recalculatePendingConsolidations}
+                  disabled={recalculating}
+                  variant="outline"
+                  className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                >
+                  {recalculating ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Recalculando...</>
+                  ) : (
+                    <>Recalcular Pendientes</>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
             <CardContent className="space-y-6">
               {/* Aéreo */}
               <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
