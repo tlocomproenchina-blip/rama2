@@ -76,14 +76,24 @@ export default function Layout({ children, currentPageName }) {
       const updatedUser = { ...user, ...profileData, profile_completed: true };
       setUser(updatedUser);
 
-      // Notify admin about new user
+      // Notify admins about new user
       const admins = await base44.entities.User.filter({ role: 'admin' });
       for (const admin of admins) {
-        await base44.integrations.Core.SendEmail({
+        // Send email
+        base44.integrations.Core.SendEmail({
           to: admin.email,
           subject: '👤 Nuevo usuario registrado',
-          body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario.`
-        });
+          body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario desde el panel de Clientes.`
+        }).catch(err => console.error('Email error:', err));
+
+        // In-app notification
+        base44.entities.Notification.create({
+          user_email: admin.email,
+          title: '👤 Nuevo Usuario Registrado',
+          message: `${profileData.first_name} ${profileData.last_name} (${user.email}) completó su registro`,
+          type: 'general',
+          icon: 'alert'
+        }).catch(err => console.error('Notification error:', err));
       }
     } catch (error) {
       console.error('Error completing profile:', error);
