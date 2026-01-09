@@ -279,7 +279,7 @@ export default function Rates({ user }) {
           <div className="space-y-3 text-sm text-slate-600">
             <div className="flex gap-2">
               <span className="font-semibold min-w-[140px]">Peso Volumétrico:</span>
-              <span>Para envíos aéreos se calcula como (Largo × Ancho × Alto) / 6000</span>
+              <span>Para envíos aéreos se calcula como (Largo × Ancho × Alto) / 5000</span>
             </div>
             <div className="flex gap-2">
               <span className="font-semibold min-w-[140px]">CBM:</span>
