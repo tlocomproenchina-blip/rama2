@@ -16,7 +16,8 @@ import {
   Loader2,
   Building2,
   Edit2,
-  Phone
+  Phone,
+  Mail
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import EditProfileModal from '@/components/EditProfileModal';
@@ -28,6 +29,7 @@ export default function Dashboard({ user, refreshUser }) {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -61,6 +63,21 @@ export default function Dashboard({ user, refreshUser }) {
   const handleProfileUpdate = async () => {
     await refreshUser();
     loadData();
+  };
+
+  const sendTestEmail = async () => {
+    setSendingEmail(true);
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: 'anthuan100@gmail.com',
+        subject: '✅ Email de prueba - TLEC Logistics',
+        body: `Hola,\n\nEste es un email de prueba del sistema TLEC Logistics.\n\nFecha: ${new Date().toLocaleString()}\n\nSaludos,\nEquipo TLEC`
+      });
+      toast.success('Email enviado exitosamente a anthuan100@gmail.com');
+    } catch (error) {
+      toast.error('Error al enviar email: ' + error.message);
+    }
+    setSendingEmail(false);
   };
 
   const stats = {
@@ -109,15 +126,27 @@ export default function Dashboard({ user, refreshUser }) {
               </div>
             )}
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowEditProfile(true)}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-          >
-            <Edit2 className="h-4 w-4 mr-2" />
-            Editar Contacto
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={sendTestEmail}
+              disabled={sendingEmail}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              {sendingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+              Test Email
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowEditProfile(true)}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <Edit2 className="h-4 w-4 mr-2" />
+              Editar Contacto
+            </Button>
+          </div>
         </div>
       </div>
 
