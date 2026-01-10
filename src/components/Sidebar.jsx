@@ -42,6 +42,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers, permission: 'consolidate' },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck, permission: 'view_packages' },
+  { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator, permission: 'view_packages' },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle, permission: 'view_packages' },
   { name: 'Clientes', page: 'AdminClients', icon: Users, permission: 'view_packages' },
