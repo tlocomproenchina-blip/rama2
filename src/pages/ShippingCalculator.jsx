@@ -14,8 +14,9 @@ export default function ShippingCalculator({ user }) {
   const [shippingType, setShippingType] = useState('aereo');
   const [cargoCategory, setCargoCategory] = useState('general');
   const [includeConsolidation, setIncludeConsolidation] = useState(false);
+  const [includeInsurance, setIncludeInsurance] = useState(false);
+  const [fobValue, setFobValue] = useState('');
   const [weight, setWeight] = useState('');
-  const [calculationMode, setCalculationMode] = useState('weight'); // 'weight' or 'dimensions'
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [result, setResult] = useState(null);
 
@@ -34,52 +35,51 @@ export default function ShippingCalculator({ user }) {
   const calculateShipping = () => {
     if (!config) return;
 
-    let realWeight = parseFloat(weight) || 0;
-    let volumetricWeight = 0;
-    let cbm = 0;
+    const realWeight = parseFloat(weight) || 0;
+    const l = parseFloat(dimensions.length) || 0;
+    const w = parseFloat(dimensions.width) || 0;
+    const h = parseFloat(dimensions.height) || 0;
 
-    // Calculate from dimensions if mode is dimensions
-    if (calculationMode === 'dimensions') {
-      const l = parseFloat(dimensions.length) || 0;
-      const w = parseFloat(dimensions.width) || 0;
-      const h = parseFloat(dimensions.height) || 0;
-
-      if (l && w && h) {
-        cbm = (l * w * h) / 1000000;
-        volumetricWeight = (l * w * h) / 5000;
-      }
-    }
+    // Calculate CBM and volumetric weight
+    const cbm = l && w && h ? (l * w * h) / 1000000 : 0;
+    const volumetricWeight = l && w && h ? (l * w * h) / 5000 : 0;
 
     // Determine rate
     const isSensitive = cargoCategory === 'sensitive';
     let rate = 0;
     let billableWeight = 0;
     let baseCost = 0;
+    let chargedBy = '';
 
     if (shippingType === 'aereo') {
       rate = isSensitive ? config.rate_air_sensitive : config.rate_air_general;
       // For air: charge by the greater of real or volumetric weight, minimum 1 kg
       billableWeight = Math.max(realWeight, volumetricWeight, 1);
       baseCost = billableWeight * rate;
+      chargedBy = `${billableWeight.toFixed(2)} kg (mayor entre real, volumétrico y mín 1 kg) — ${realWeight.toFixed(2)} kg usado: peso real`;
     } else {
       rate = isSensitive ? config.rate_sea_sensitive : config.rate_sea_general;
       // For sea: charge by CBM
       baseCost = cbm * rate;
-      billableWeight = cbm; // For display purposes
+      billableWeight = cbm;
+      chargedBy = `${cbm.toFixed(4)} CBM`;
     }
 
+    // Calculate insurance
+    const fob = parseFloat(fobValue) || 0;
+    const insuranceCost = includeInsurance && fob > 0 ? fob * (config.insurance_percentage / 100) : 0;
+
     const consolidationFee = includeConsolidation ? 10 : 0;
-    const totalCost = baseCost + consolidationFee;
+    const totalCost = baseCost + insuranceCost + consolidationFee;
 
     setResult({
       rate,
       volumetricWeight,
       cbm,
       billableWeight,
-      chargedBy: shippingType === 'aereo' 
-        ? `${billableWeight.toFixed(2)} kg (mayor entre real, volumétrico y mín 1 kg) — 1 kg usado: peso real`
-        : `${cbm.toFixed(4)} CBM`,
+      chargedBy,
       baseCost,
+      insuranceCost,
       consolidationFee,
       totalCost
     });
@@ -155,6 +155,95 @@ export default function ShippingCalculator({ user }) {
             </Select>
           </div>
 
+          {/* Weight */}
+          <div className="space-y-2">
+            <Label>Peso (kg)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="1.0"
+            />
+          </div>
+
+          {/* Info Box */}
+          {shippingType === 'aereo' ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-blue-800 mb-1">📦 Envío Aéreo</p>
+              <p className="text-sm text-blue-700">
+                Se calcula por <strong>peso real</strong> y por <strong>volumen</strong>, y se factura el <strong>que sea mayor</strong>. Mínimo 1 kg.
+              </p>
+              <p className="text-xs text-blue-600 mt-2">
+                Fórmula de <strong>peso volumétrico</strong>: (L × A × H) / 5000 — equivalente a CBM × 200.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-indigo-800 mb-1">🚢 Envío Marítimo</p>
+              <p className="text-sm text-indigo-700">
+                Se calcula por <strong>volumen en CBM</strong> (metros cúbicos).
+              </p>
+              <p className="text-xs text-indigo-600 mt-2">
+                Fórmula de <strong>CBM</strong>: (L × A × H) / 1,000,000
+              </p>
+            </div>
+          )}
+
+          {/* Dimensions */}
+          <div className="space-y-2">
+            <Label>Dimensiones (cm)</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <Input
+                type="number"
+                placeholder="Largo"
+                value={dimensions.length}
+                onChange={(e) => setDimensions({ ...dimensions, length: e.target.value })}
+              />
+              <Input
+                type="number"
+                placeholder="Ancho"
+                value={dimensions.width}
+                onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
+              />
+              <Input
+                type="number"
+                placeholder="Alto"
+                value={dimensions.height}
+                onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* Insurance */}
+          <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+            <Checkbox
+              id="insurance"
+              checked={includeInsurance}
+              onCheckedChange={setIncludeInsurance}
+            />
+            <div className="flex-1 space-y-3">
+              <div>
+                <label htmlFor="insurance" className="font-medium text-slate-800 cursor-pointer">
+                  Asegurar Carga ({config?.insurance_percentage || 5}% del valor FOB)
+                </label>
+                <p className="text-sm text-slate-500">Protege tu envío contra daños o pérdidas</p>
+              </div>
+              {includeInsurance && (
+                <div className="space-y-2">
+                  <Label>Valor FOB (USD)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={fobValue}
+                    onChange={(e) => setFobValue(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Include Consolidation */}
           <div className="flex items-start space-x-3 p-4 bg-slate-50 rounded-lg">
             <Checkbox
@@ -169,70 +258,6 @@ export default function ShippingCalculator({ user }) {
               <p className="text-sm text-slate-500">Servicio de empaque y preparación de tu envío</p>
             </div>
           </div>
-
-          {/* Weight */}
-          <div className="space-y-2">
-            <Label>Peso (kg)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              placeholder="1.0"
-            />
-          </div>
-
-          {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-800 mb-1">📦 Envío Aéreo</p>
-            <p className="text-sm text-blue-700">
-              Se calcula por <strong>peso real</strong> y por <strong>volumen</strong>, y se factura el <strong>que sea mayor</strong>. Mínimo 1 kg.
-            </p>
-            <p className="text-xs text-blue-600 mt-2">
-              Fórmula de <strong>peso volumétrico</strong>: (L × A × H) / 5000 — equivalente a CBM × 200.
-            </p>
-          </div>
-
-          {/* Calculation Mode */}
-          <div className="space-y-2">
-            <Label>Opción de Cálculo</Label>
-            <Select value={calculationMode} onValueChange={setCalculationMode}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weight">Solo Peso</SelectItem>
-                <SelectItem value="dimensions">Por Dimensiones</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Dimensions */}
-          {calculationMode === 'dimensions' && (
-            <div className="space-y-2">
-              <Label>Dimensiones (cm)</Label>
-              <div className="grid grid-cols-3 gap-3">
-                <Input
-                  type="number"
-                  placeholder="Largo"
-                  value={dimensions.length}
-                  onChange={(e) => setDimensions({ ...dimensions, length: e.target.value })}
-                />
-                <Input
-                  type="number"
-                  placeholder="Ancho"
-                  value={dimensions.width}
-                  onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
-                />
-                <Input
-                  type="number"
-                  placeholder="Alto"
-                  value={dimensions.height}
-                  onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
 
           {/* Calculate Button */}
           <Button
@@ -279,6 +304,13 @@ export default function ShippingCalculator({ user }) {
               <span className="text-slate-600">Costo base:</span>
               <span className="font-semibold">${result.baseCost.toFixed(2)}</span>
             </div>
+
+            {result.insuranceCost > 0 && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-slate-600">Seguro:</span>
+                <span className="font-semibold">${result.insuranceCost.toFixed(2)}</span>
+              </div>
+            )}
 
             {includeConsolidation && (
               <div className="flex justify-between py-2 border-b">
