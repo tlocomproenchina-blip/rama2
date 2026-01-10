@@ -13,7 +13,6 @@ export default function ShippingCalculator({ user }) {
   const [loading, setLoading] = useState(true);
   const [shippingType, setShippingType] = useState('aereo');
   const [cargoCategory, setCargoCategory] = useState('general');
-  const [includeConsolidation, setIncludeConsolidation] = useState(false);
   const [includeInsurance, setIncludeInsurance] = useState(false);
   const [fobValue, setFobValue] = useState('');
   const [weight, setWeight] = useState('');
@@ -69,8 +68,7 @@ export default function ShippingCalculator({ user }) {
     const fob = parseFloat(fobValue) || 0;
     const insuranceCost = includeInsurance && fob > 0 ? fob * (config.insurance_percentage / 100) : 0;
 
-    const consolidationFee = includeConsolidation ? 10 : 0;
-    const totalCost = baseCost + insuranceCost + consolidationFee;
+    const totalCost = baseCost + insuranceCost;
 
     setResult({
       rate,
@@ -80,7 +78,6 @@ export default function ShippingCalculator({ user }) {
       chargedBy,
       baseCost,
       insuranceCost,
-      consolidationFee,
       totalCost
     });
   };
@@ -244,21 +241,6 @@ export default function ShippingCalculator({ user }) {
             </div>
           </div>
 
-          {/* Include Consolidation */}
-          <div className="flex items-start space-x-3 p-4 bg-slate-50 rounded-lg">
-            <Checkbox
-              id="consolidation"
-              checked={includeConsolidation}
-              onCheckedChange={setIncludeConsolidation}
-            />
-            <div className="flex-1">
-              <label htmlFor="consolidation" className="font-medium text-slate-800 cursor-pointer">
-                Incluir Consolidación (+$10)
-              </label>
-              <p className="text-sm text-slate-500">Servicio de empaque y preparación de tu envío</p>
-            </div>
-          </div>
-
           {/* Calculate Button */}
           <Button
             onClick={calculateShipping}
@@ -281,19 +263,15 @@ export default function ShippingCalculator({ user }) {
               <span className="font-semibold">${result.rate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
             </div>
 
-            {calculationMode === 'dimensions' && (
-              <>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-600">Peso volumétrico:</span>
-                  <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
-                </div>
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-slate-600">Peso volumétrico:</span>
+              <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
+            </div>
 
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-slate-600">CBM calculado:</span>
-                  <span className="font-semibold">{result.cbm.toFixed(4)}</span>
-                </div>
-              </>
-            )}
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-slate-600">CBM calculado:</span>
+              <span className="font-semibold">{result.cbm.toFixed(4)}</span>
+            </div>
 
             <div className="flex justify-between py-2 border-b">
               <span className="text-slate-600">Se cobra por:</span>
@@ -309,13 +287,6 @@ export default function ShippingCalculator({ user }) {
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-600">Seguro:</span>
                 <span className="font-semibold">${result.insuranceCost.toFixed(2)}</span>
-              </div>
-            )}
-
-            {includeConsolidation && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">Consolidación:</span>
-                <span className="font-semibold">${result.consolidationFee.toFixed(2)}</span>
               </div>
             )}
 
