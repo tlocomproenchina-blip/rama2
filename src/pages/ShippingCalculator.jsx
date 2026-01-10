@@ -49,15 +49,18 @@ export default function ShippingCalculator({ user }) {
     let billableWeight = 0;
     let baseCost = 0;
     let chargedBy = '';
+    let rateType = '';
 
     if (shippingType === 'aereo') {
-      rate = isSensitive ? config.rate_air_sensitive : config.rate_air_general;
+      rate = isSensitive ? (config.rate_air_sensitive || 0) : (config.rate_air_general || 0);
+      rateType = isSensitive ? 'Aéreo Sensible' : 'Aéreo General';
       // For air: charge by the greater of real or volumetric weight, minimum 1 kg
       billableWeight = Math.max(realWeight, volumetricWeight, 1);
       baseCost = billableWeight * rate;
       chargedBy = `${billableWeight.toFixed(2)} kg (mayor entre real, volumétrico y mín 1 kg) — ${realWeight.toFixed(2)} kg usado: peso real`;
     } else {
-      rate = isSensitive ? config.rate_sea_sensitive : config.rate_sea_general;
+      rate = isSensitive ? (config.rate_sea_sensitive || 0) : (config.rate_sea_general || 0);
+      rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
       // For sea: charge by CBM
       baseCost = cbm * rate;
       billableWeight = cbm;
@@ -72,6 +75,7 @@ export default function ShippingCalculator({ user }) {
 
     setResult({
       rate,
+      rateType,
       volumetricWeight,
       cbm,
       billableWeight,
@@ -260,7 +264,10 @@ export default function ShippingCalculator({ user }) {
           <CardContent className="space-y-3">
             <div className="flex justify-between py-2 border-b">
               <span className="text-slate-600">Tarifa por {shippingType === 'aereo' ? 'kg' : 'CBM'}:</span>
-              <span className="font-semibold">${result.rate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
+              <div className="text-right">
+                <span className="font-semibold">${result.rate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
+                <p className="text-xs text-slate-500">{result.rateType}</p>
+              </div>
             </div>
 
             <div className="flex justify-between py-2 border-b">
