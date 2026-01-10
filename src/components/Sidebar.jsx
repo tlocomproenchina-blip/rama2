@@ -14,7 +14,8 @@ import {
   LogOut,
   X,
   Truck,
-  MessageCircle } from
+  MessageCircle,
+  Calculator } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -30,7 +31,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
   { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
-  { name: 'Tarifas', page: 'Rates', icon: CreditCard },
+  { name: 'Calculadora', page: 'ShippingCalculator', icon: CreditCard },
+  { name: 'Tarifas', page: 'Rates', icon: FileText },
   { name: 'Soporte', page: 'Support', icon: MessageCircle }];
 
 
