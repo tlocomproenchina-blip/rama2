@@ -141,9 +141,29 @@ export default function AdminSettings({ user }) {
     try {
       const packages = await base44.entities.Package.filter({ status: 'pre_alerta' });
 
-      const csvData = packages.map(pkg => pkg.tracking_number);
+      // Agrupar por cliente
+      const byClient = {};
+      packages.forEach(pkg => {
+        if (!byClient[pkg.client_email]) {
+          byClient[pkg.client_email] = {
+            shipping_mark: pkg.shipping_mark || 'Sin Shipping Mark',
+            trackings: []
+          };
+        }
+        byClient[pkg.client_email].trackings.push(pkg.tracking_number);
+      });
 
-      const csvContent = ['Tracking', ...csvData].join('\n');
+      // Construir CSV: shipping mark, luego trackings
+      const rows = [];
+      Object.keys(byClient).forEach(email => {
+        const client = byClient[email];
+        rows.push(client.shipping_mark);
+        client.trackings.forEach(tracking => {
+          rows.push(tracking);
+        });
+      });
+
+      const csvContent = rows.join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -152,7 +172,7 @@ export default function AdminSettings({ user }) {
       link.download = `pre-alertas-${new Date().toISOString().split('T')[0]}.csv`;
       link.click();
 
-      toast.success(`${csvData.length} trackings exportados`);
+      toast.success(`${packages.length} trackings exportados`);
     } catch (error) {
       toast.error('Error al exportar');
     }
