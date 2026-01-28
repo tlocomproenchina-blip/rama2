@@ -139,34 +139,11 @@ export default function AdminSettings({ user }) {
   const handleExportCSV = async () => {
     setExporting(true);
     try {
-      const [packages, users] = await Promise.all([
-        base44.entities.Package.list('-created_date'),
-        base44.entities.User.filter({ role: 'user' })
-      ]);
+      const packages = await base44.entities.Package.filter({ status: 'pre_alerta' });
 
-      const userMap = {};
-      users.forEach(u => { userMap[u.email] = u; });
+      const csvData = packages.map(pkg => pkg.tracking_number);
 
-      const csvData = packages.map(pkg => {
-        const client = userMap[pkg.client_email] || {};
-        return {
-          Tracking: pkg.tracking_number,
-          Tipo: pkg.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo',
-          Fecha: new Date(pkg.created_date).toLocaleDateString(),
-          Nombre: client.first_name || '',
-          Apellido: client.last_name || '',
-          Ciudad: client.city || '',
-          WhatsApp: client.whatsapp || '',
-          Email: pkg.client_email,
-          ShippingMark: pkg.shipping_mark || ''
-        };
-      });
-
-      const headers = Object.keys(csvData[0] || {});
-      const csvContent = [
-        headers.join(','),
-        ...csvData.map(row => headers.map(h => `"${row[h] || ''}"`).join(','))
-      ].join('\n');
+      const csvContent = ['Tracking', ...csvData].join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -175,7 +152,7 @@ export default function AdminSettings({ user }) {
       link.download = `pre-alertas-${new Date().toISOString().split('T')[0]}.csv`;
       link.click();
 
-      toast.success('CSV exportado exitosamente');
+      toast.success(`${csvData.length} trackings exportados`);
     } catch (error) {
       toast.error('Error al exportar');
     }
