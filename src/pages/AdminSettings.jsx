@@ -17,7 +17,9 @@ import {
   Download,
   Plane,
   Ship,
-  ShieldCheck
+  ShieldCheck,
+  Upload,
+  Receipt
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,6 +33,9 @@ export default function AdminSettings({ user }) {
     rate_sea_general: 0,
     rate_sea_sensitive: 0,
     insurance_percentage: 5,
+    invoice_company_name: 'TLEC CARGO LTD',
+    invoice_company_tagline: 'Sistema de Envios Internacionales',
+    invoice_logo_url: '',
     wallet_binance: '',
     wallet_usdt_trc20: '',
     binance_instructions: '',
@@ -54,6 +59,7 @@ export default function AdminSettings({ user }) {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -150,6 +156,19 @@ export default function AdminSettings({ user }) {
     setRecalculating(false);
   };
 
+  const handleLogoUpload = async (file) => {
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setConfig({ ...config, invoice_logo_url: file_url });
+      toast.success('Logo subido exitosamente');
+    } catch (error) {
+      toast.error('Error al subir logo');
+    }
+    setUploadingLogo(false);
+  };
+
   const handleExportCSV = async () => {
     setExporting(true);
     try {
@@ -222,12 +241,80 @@ export default function AdminSettings({ user }) {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="invoice">Factura</TabsTrigger>
           <TabsTrigger value="rates">Tarifas</TabsTrigger>
           <TabsTrigger value="wallets">Wallets</TabsTrigger>
           <TabsTrigger value="contract">Contrato</TabsTrigger>
         </TabsList>
+
+        {/* Invoice Tab */}
+        <TabsContent value="invoice">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5 text-indigo-600" />
+                Configuración de Factura
+              </CardTitle>
+              <CardDescription>
+                Personaliza la información que aparece en las facturas PDF
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Nombre de la Empresa</Label>
+                <Input
+                  value={config.invoice_company_name}
+                  onChange={(e) => setConfig({ ...config, invoice_company_name: e.target.value })}
+                  placeholder="TLEC CARGO LTD"
+                />
+                <p className="text-xs text-slate-500">
+                  Nombre que aparecerá en el encabezado de la factura
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Eslogan/Descripción</Label>
+                <Input
+                  value={config.invoice_company_tagline}
+                  onChange={(e) => setConfig({ ...config, invoice_company_tagline: e.target.value })}
+                  placeholder="Sistema de Envios Internacionales"
+                />
+                <p className="text-xs text-slate-500">
+                  Texto que aparece debajo del nombre de la empresa
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Logo de la Empresa</Label>
+                <div className="space-y-3">
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleLogoUpload(e.target.files[0])}
+                      disabled={uploadingLogo}
+                    />
+                    {uploadingLogo && <Loader2 className="h-5 w-5 animate-spin text-blue-600" />}
+                  </div>
+                  {config.invoice_logo_url && (
+                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                      <img 
+                        src={config.invoice_logo_url} 
+                        alt="Logo preview" 
+                        className="h-16 object-contain"
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    El logo aparecerá en el encabezado de las facturas. Recomendado: fondo transparente, formato PNG
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* General Tab */}
         <TabsContent value="general">

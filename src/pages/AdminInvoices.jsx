@@ -119,31 +119,58 @@ export default function AdminInvoices({ user }) {
   const handleDownloadPDF = async (invoice) => {
     const doc = new jsPDF();
     
-    // Header
+    // Get invoice config
+    const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+    const appConfig = configs[0] || {};
+    
+    const companyName = appConfig.invoice_company_name || 'TLEC CARGO LTD';
+    const companyTagline = appConfig.invoice_company_tagline || 'Sistema de Envios Internacionales';
+    const logoUrl = appConfig.invoice_logo_url;
+    
+    let yPos = 20;
+    
+    // Header with logo if available
+    if (logoUrl) {
+      try {
+        const imgData = await fetch(logoUrl).then(res => res.blob()).then(blob => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        });
+        doc.addImage(imgData, 'PNG', 20, 10, 40, 15);
+        yPos = 30;
+      } catch (error) {
+        console.error('Error loading logo:', error);
+      }
+    }
+    
+    // Company name and tagline
     doc.setFontSize(20);
-    doc.text('TLEC Logistics', 20, 20);
+    doc.text(companyName, logoUrl ? 65 : 20, logoUrl ? 17 : 20);
     doc.setFontSize(10);
-    doc.text('Sistema de Envios Internacionales', 20, 27);
+    doc.text(companyTagline, logoUrl ? 65 : 20, logoUrl ? 24 : 27);
     
     doc.setFontSize(16);
-    doc.text('FACTURA', 150, 20);
+    doc.text('FACTURA', 150, logoUrl ? 17 : 20);
     doc.setFontSize(10);
-    doc.text(`No: ${invoice.invoice_number}`, 150, 27);
-    doc.text(`Fecha: ${new Date(invoice.invoice_date).toLocaleDateString()}`, 150, 33);
+    doc.text(`No: ${invoice.invoice_number}`, 150, logoUrl ? 24 : 27);
+    doc.text(`Fecha: ${new Date(invoice.invoice_date).toLocaleDateString()}`, 150, logoUrl ? 31 : 33);
+    
+    yPos = logoUrl ? 45 : 50;
     
     // Client Info
     doc.setFontSize(12);
-    doc.text('Cliente:', 20, 50);
+    doc.text('Cliente:', 20, yPos);
     doc.setFontSize(10);
     
     // Get client details for whatsapp
     const clientUsers = await base44.entities.User.filter({ email: invoice.client_email });
     const clientUser = clientUsers[0];
     
-    doc.text(invoice.client_email, 20, 57);
-    
-    // Parse notes for client details (without Paquetes/Trackings lines)
-    let yPos = 63;
+    doc.text(invoice.client_email, 20, yPos + 7);
+    yPos += 13;
     if (invoice.notes) {
       const notesLines = invoice.notes.split('\n').filter(line => 
         !line.startsWith('Paquetes:') && !line.startsWith('Trackings:')
