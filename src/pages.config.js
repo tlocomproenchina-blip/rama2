@@ -51,6 +51,7 @@ import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDelete from './pages/AdminDelete';
+import AdminFAQ from './pages/AdminFAQ';
 import AdminInsured from './pages/AdminInsured';
 import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
@@ -60,6 +61,7 @@ import AdminSettings from './pages/AdminSettings';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
 import Dashboard from './pages/Dashboard';
+import FAQ from './pages/FAQ';
 import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
 import MyPackages from './pages/MyPackages';
@@ -68,8 +70,8 @@ import Rates from './pages/Rates';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminFAQ from './pages/AdminFAQ';
-import FAQ from './pages/FAQ';
+import MyInvoices from './pages/MyInvoices';
+import AdminInvoices from './pages/AdminInvoices';
 import __Layout from './Layout.jsx';
 
 
@@ -78,6 +80,7 @@ export const PAGES = {
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
     "AdminDelete": AdminDelete,
+    "AdminFAQ": AdminFAQ,
     "AdminInsured": AdminInsured,
     "AdminPackages": AdminPackages,
     "AdminPaymentAlerts": AdminPaymentAlerts,
@@ -87,6 +90,7 @@ export const PAGES = {
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
     "Dashboard": Dashboard,
+    "FAQ": FAQ,
     "Home": Home,
     "MyConsolidations": MyConsolidations,
     "MyPackages": MyPackages,
@@ -95,8 +99,8 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminFAQ": AdminFAQ,
-    "FAQ": FAQ,
+    "MyInvoices": MyInvoices,
+    "AdminInvoices": AdminInvoices,
 }
 
 export const pagesConfig = {
