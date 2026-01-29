@@ -135,6 +135,11 @@ export default function AdminInvoices({ user }) {
     doc.setFontSize(12);
     doc.text('Cliente:', 20, 50);
     doc.setFontSize(10);
+    
+    // Get client details for whatsapp
+    const clientUsers = await base44.entities.User.filter({ email: invoice.client_email });
+    const clientUser = clientUsers[0];
+    
     doc.text(invoice.client_email, 20, 57);
     
     // Parse notes for client details (without Paquetes/Trackings lines)
@@ -147,6 +152,12 @@ export default function AdminInvoices({ user }) {
         doc.text(line, 20, yPos);
         yPos += 5;
       });
+    }
+    
+    // Add WhatsApp if available
+    if (clientUser?.whatsapp) {
+      doc.text(`WhatsApp: ${clientUser.whatsapp}`, 20, yPos);
+      yPos += 5;
     }
     
     // Get packages for this consolidation
