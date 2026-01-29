@@ -82,6 +82,14 @@ export default function Support({ user }) {
       // Notify admins (non-blocking)
       base44.entities.User.filter({ role: 'admin' }).then(admins => {
         admins.forEach(admin => {
+          // Email notification
+          base44.integrations.Core.SendEmail({
+            to: admin.email,
+            subject: '🎫 Nuevo Ticket de Soporte',
+            body: `Un nuevo ticket de soporte ha sido creado:\n\nTicket: ${ticketNumber}\nAsunto: ${newTicket.subject}\nCategoría: ${newTicket.category}\nPrioridad: ${newTicket.priority}\nCliente: ${user.full_name || user.email}\n${newTicket.related_tracking ? `Tracking: ${newTicket.related_tracking}\n` : ''}\nMensaje:\n${newTicket.message}`
+          }).catch(err => console.error('Email error:', err));
+
+          // In-app notification
           base44.entities.Notification.create({
             user_email: admin.email,
             title: '🎫 Nuevo Ticket de Soporte',
