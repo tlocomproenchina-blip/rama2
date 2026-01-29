@@ -15,7 +15,8 @@ import {
   X,
   Truck,
   MessageCircle,
-  Calculator } from
+  Calculator,
+  Trash2 } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -46,6 +47,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle, permission: 'view_packages' },
   { name: 'Clientes', page: 'AdminClients', icon: Users, permission: 'view_packages' },
+  { name: 'Eliminar', page: 'AdminDelete', icon: Trash2, permission: 'view_packages' },
   { name: 'Administradores', page: 'AdminPermissions', icon: Shield, permission: 'invite_users' },
   { name: 'Configuración', page: 'AdminSettings', icon: Settings, permission: 'general_config' }];
 
