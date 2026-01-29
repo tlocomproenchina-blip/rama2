@@ -149,13 +149,44 @@ export default function AdminInvoices({ user }) {
     
     // Get packages for this consolidation
     let packages = [];
+    let totalFOB = 0;
     if (invoice.consolidation_id) {
       packages = await base44.entities.Package.filter({ 
         consolidation_id: invoice.consolidation_id 
       });
+      totalFOB = packages.reduce((sum, pkg) => sum + (pkg.fob_value || 0), 0);
     }
     
     yPos += 5;
+    
+    // Show tracking list before items
+    if (packages.length > 0) {
+      doc.setFontSize(10);
+      doc.text(`Paquetes: ${packages.length}`, 20, yPos);
+      yPos += 5;
+      doc.setFontSize(9);
+      doc.text('Trackings:', 20, yPos);
+      yPos += 5;
+      
+      packages.forEach((pkg) => {
+        // Check if we need a new page
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        const fobText = pkg.fob_value ? ` - FOB: $${pkg.fob_value.toFixed(2)}` : ' - Sin seguro';
+        const trackingLine = `${pkg.tracking_number} - ${pkg.description || 'N/A'}${fobText}`;
+        const lines = doc.splitTextToSize(trackingLine, 170);
+        
+        lines.forEach(line => {
+          doc.text(line, 20, yPos);
+          yPos += 4;
+        });
+      });
+      
+      yPos += 5;
+    }
     
     // Items Section
     doc.setFontSize(12);
@@ -167,71 +198,25 @@ export default function AdminInvoices({ user }) {
     
     doc.setFontSize(10);
     invoice.items?.forEach(item => {
+      // Check if we need a new page
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
       doc.text(item.description, 20, yPos);
       doc.text(`$${item.total.toFixed(2)}`, 170, yPos);
       yPos += 6;
       
-      if (item.details) {
+      // Add insurance details if it's insurance item
+      if (item.description.toLowerCase().includes('seguro')) {
         doc.setFontSize(8);
-        
-        // Show main consolidation details
-        if (item.details.tracking) {
-          doc.text(`  Tracking Consolidacion: ${item.details.tracking}`, 20, yPos);
-          yPos += 4;
-        }
-        if (item.details.dimensions) {
-          doc.text(`  Dimensiones: ${item.details.dimensions}`, 20, yPos);
-          yPos += 4;
-        }
-        if (item.details.weight) {
-          doc.text(`  Peso Real: ${item.details.weight}`, 20, yPos);
-          yPos += 4;
-        }
-        if (item.details.billable_weight) {
-          doc.text(`  Peso Facturable: ${item.details.billable_weight}`, 20, yPos);
-          yPos += 4;
-        }
-        
-        yPos += 3;
-        
-        // Show each package tracking with description
-        if (packages.length > 0) {
-          doc.setFontSize(9);
-          doc.text(`  Paquetes Incluidos (${packages.length}):`, 20, yPos);
-          yPos += 5;
-          doc.setFontSize(8);
-          
-          packages.forEach((pkg, index) => {
-            // Check if we need a new page
-            if (yPos > 270) {
-              doc.addPage();
-              yPos = 20;
-            }
-            
-            doc.text(`    ${index + 1}. ${pkg.tracking_number}`, 20, yPos);
-            yPos += 4;
-            doc.text(`       Descripcion: ${pkg.description || 'N/A'}`, 20, yPos);
-            yPos += 4;
-            if (pkg.has_insurance && pkg.fob_value) {
-              doc.text(`       Monto Asegurado (FOB): $${pkg.fob_value.toFixed(2)}`, 20, yPos);
-              yPos += 4;
-            }
-            yPos += 2;
-          });
-        }
-        
-        // Insurance total if applicable
-        if (item.details.fob_value) {
-          yPos += 2;
-          doc.setFontSize(9);
-          doc.text(`  Total Valor Asegurado: $${item.details.fob_value.toFixed(2)}`, 20, yPos);
-          yPos += 4;
-        }
-        
+        doc.text(`  Total FOB Declarado: $${totalFOB.toFixed(2)}`, 20, yPos);
+        yPos += 4;
+        doc.text(`  Tasa de Seguro: 5%`, 20, yPos);
+        yPos += 4;
         doc.setFontSize(10);
         yPos += 3;
-      } else {
-        yPos += 5;
       }
     });
     
