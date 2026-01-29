@@ -50,8 +50,10 @@
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminDelete from './pages/AdminDelete';
 import AdminInsured from './pages/AdminInsured';
 import AdminPackages from './pages/AdminPackages';
+import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
 import AdminPermissions from './pages/AdminPermissions';
 import AdminSettings from './pages/AdminSettings';
@@ -66,8 +68,8 @@ import Rates from './pages/Rates';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminDelete from './pages/AdminDelete';
-import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
+import AdminFAQ from './pages/AdminFAQ';
+import FAQ from './pages/FAQ';
 import __Layout from './Layout.jsx';
 
 
@@ -75,8 +77,10 @@ export const PAGES = {
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
+    "AdminDelete": AdminDelete,
     "AdminInsured": AdminInsured,
     "AdminPackages": AdminPackages,
+    "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPayments": AdminPayments,
     "AdminPermissions": AdminPermissions,
     "AdminSettings": AdminSettings,
@@ -91,8 +95,8 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminDelete": AdminDelete,
-    "AdminPaymentAlerts": AdminPaymentAlerts,
+    "AdminFAQ": AdminFAQ,
+    "FAQ": FAQ,
 }
 
 export const pagesConfig = {
