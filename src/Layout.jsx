@@ -77,7 +77,8 @@ export default function Layout({ children, currentPageName }) {
       setUser(updatedUser);
 
       // Notify admins about new user
-      const admins = await base44.entities.User.filter({ role: 'admin' });
+      const allUsers = await base44.entities.User.list();
+      const admins = allUsers.filter(u => u.role === 'admin');
       for (const admin of admins) {
         // Send email
         base44.integrations.Core.SendEmail({

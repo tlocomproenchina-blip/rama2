@@ -80,7 +80,8 @@ export default function Support({ user }) {
       await base44.entities.SupportTicket.create(ticketData);
 
       // Notify admins (non-blocking)
-      base44.entities.User.filter({ role: 'admin' }).then(admins => {
+      base44.entities.User.list().then(allUsers => {
+        const admins = allUsers.filter(u => u.role === 'admin');
         admins.forEach(admin => {
           // Email notification
           base44.integrations.Core.SendEmail({

@@ -116,7 +116,8 @@ export default function PreAlert({ user }) {
       });
 
       // Notify admins (async, don't block navigation)
-      base44.entities.User.filter({ role: 'admin' }).then(admins => {
+      base44.entities.User.list().then(allUsers => {
+        const admins = allUsers.filter(u => u.role === 'admin');
         admins.forEach(admin => {
           // Always send email for new pre-alert
           base44.integrations.Core.SendEmail({
