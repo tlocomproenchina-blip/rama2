@@ -67,6 +67,7 @@ import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import AdminDelete from './pages/AdminDelete';
+import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import __Layout from './Layout.jsx';
 
 
@@ -91,6 +92,7 @@ export const PAGES = {
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
     "AdminDelete": AdminDelete,
+    "AdminPaymentAlerts": AdminPaymentAlerts,
 }
 
 export const pagesConfig = {

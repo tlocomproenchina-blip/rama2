@@ -110,6 +110,29 @@ export default function AdminClients({ user }) {
 
       await base44.entities.User.update(editClient.id, editData);
 
+      // Notify client about profile changes
+      const changedFields = [];
+      if (editData.first_name !== editClient.first_name) changedFields.push('Nombre');
+      if (editData.last_name !== editClient.last_name) changedFields.push('Apellido');
+      if (editData.city !== editClient.city) changedFields.push('Ciudad');
+      if (editData.whatsapp !== editClient.whatsapp) changedFields.push('WhatsApp');
+      
+      if (changedFields.length > 0) {
+        base44.integrations.Core.SendEmail({
+          to: editClient.email,
+          subject: '✏️ Actualización de Datos',
+          body: `Se han actualizado los siguientes datos de tu cuenta:\n\n${changedFields.join(', ')}\n\nNombre: ${editData.first_name || ''} ${editData.last_name || ''}\nCiudad: ${editData.city || ''}\nWhatsApp: ${editData.whatsapp || ''}\n\nSi no solicitaste estos cambios, contacta con soporte.`
+        }).catch(err => console.error('Email error:', err));
+
+        base44.entities.Notification.create({
+          user_email: editClient.email,
+          title: '✏️ Datos Actualizados',
+          message: `Se actualizaron: ${changedFields.join(', ')}`,
+          type: 'general',
+          icon: 'alert'
+        }).catch(err => console.error('Notification error:', err));
+      }
+
       // If shipping mark was assigned, update existing packages and notify client
       if (editData.shipping_mark && !editClient.shipping_mark) {
         const clientPackages = await base44.entities.Package.filter({ client_email: editClient.email });
@@ -131,6 +154,21 @@ export default function AdminClients({ user }) {
           message: `Tu Shipping Mark es: ${editData.shipping_mark}. Ya puedes realizar envíos.`,
           type: 'general',
           icon: 'check'
+        }).catch(err => console.error('Notification error:', err));
+      } else if (editData.shipping_mark && editData.shipping_mark !== editClient.shipping_mark) {
+        // Shipping Mark was modified
+        base44.integrations.Core.SendEmail({
+          to: editClient.email,
+          subject: '🔄 Shipping Mark Modificado',
+          body: `Tu Shipping Mark ha sido modificado:\n\nAnterior: ${editClient.shipping_mark}\nNuevo: ${editData.shipping_mark}\n\nPor favor usa el nuevo Shipping Mark para tus próximos envíos.`
+        }).catch(err => console.error('Email error:', err));
+
+        base44.entities.Notification.create({
+          user_email: editClient.email,
+          title: '🔄 Shipping Mark Modificado',
+          message: `Nuevo Shipping Mark: ${editData.shipping_mark}`,
+          type: 'general',
+          icon: 'alert'
         }).catch(err => console.error('Notification error:', err));
       }
 
