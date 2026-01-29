@@ -181,19 +181,24 @@ export default function AdminConsolidate({ user }) {
         });
       }
 
+      // Generate invoice
+      import('@/components/invoice/InvoiceGenerator').then(({ generateInvoice }) => {
+        generateInvoice(consolidation).catch(err => console.error('Invoice error:', err));
+      });
+
       // Notify client
       import('@/components/NotificationUtils').then(({ sendNotification }) => {
         sendNotification({
           to: selectedClient.email,
           subject: '📦 Tu carga ha sido consolidada',
-          body: `¡Tu carga ha sido consolidada!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nPor favor ingresa al sistema para realizar el pago.`,
+          body: `¡Tu carga ha sido consolidada!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nSe ha generado tu factura. Ingresa al sistema para realizar el pago.`,
           type: 'consolidation',
           icon: 'package',
           referenceId: consolidation.id
         });
       });
 
-      toast.success('Consolidación creada exitosamente');
+      toast.success('Consolidación e factura creadas exitosamente');
       navigate(createPageUrl('AdminDashboard'));
     } catch (error) {
       toast.error('Error al crear consolidación');
