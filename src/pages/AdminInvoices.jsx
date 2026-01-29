@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp } from 'lucide-react';
+import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -20,9 +23,16 @@ export default function AdminInvoices({ user }) {
     pending: 0,
     revenue: 0
   });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState(null);
+  const [consolidations, setConsolidations] = useState([]);
+  const [selectedConsolidation, setSelectedConsolidation] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     loadInvoices();
+    loadConsolidations();
   }, []);
 
   const loadInvoices = async () => {
@@ -41,13 +51,60 @@ export default function AdminInvoices({ user }) {
     setLoading(false);
   };
 
+  const loadConsolidations = async () => {
+    const data = await base44.entities.Consolidation.list('-created_date');
+    setConsolidations(data);
+  };
+
+  const handleCreateInvoice = async () => {
+    if (!selectedConsolidation) {
+      toast.error('Selecciona una consolidación');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const consolidation = consolidations.find(c => c.id === selectedConsolidation);
+      const { generateInvoice } = await import('@/components/invoice/InvoiceGenerator');
+      await generateInvoice(consolidation);
+      
+      toast.success('Factura creada exitosamente');
+      setShowCreateModal(false);
+      setSelectedConsolidation('');
+      loadInvoices();
+    } catch (error) {
+      toast.error('Error al crear factura');
+    }
+    setProcessing(false);
+  };
+
+  const handleEditInvoice = async () => {
+    if (!editingInvoice) return;
+
+    setProcessing(true);
+    try {
+      await base44.entities.Invoice.update(editingInvoice.id, {
+        status: editingInvoice.status,
+        notes: editingInvoice.notes
+      });
+      
+      toast.success('Factura actualizada');
+      setShowEditModal(false);
+      setEditingInvoice(null);
+      loadInvoices();
+    } catch (error) {
+      toast.error('Error al actualizar factura');
+    }
+    setProcessing(false);
+  };
+
   const handleDownloadPDF = (invoice) => {
     const doc = new jsPDF();
     
     doc.setFontSize(20);
     doc.text('TLEC Logistics', 20, 20);
     doc.setFontSize(10);
-    doc.text('Sistema de Envíos Internacionales', 20, 27);
+    doc.text('Sistema de Envios Internacionales', 20, 27);
     
     doc.setFontSize(16);
     doc.text('FACTURA', 150, 20);
@@ -60,7 +117,16 @@ export default function AdminInvoices({ user }) {
     doc.setFontSize(10);
     doc.text(invoice.client_email, 20, 57);
     
-    let yPos = 80;
+    if (invoice.notes) {
+      const notesLines = doc.splitTextToSize(invoice.notes, 170);
+      let noteY = 63;
+      notesLines.forEach(line => {
+        doc.text(line, 20, noteY);
+        noteY += 5;
+      });
+    }
+    
+    let yPos = 90;
     doc.setFontSize(12);
     doc.text('Concepto', 20, yPos);
     doc.text('Total', 170, yPos);
@@ -72,7 +138,35 @@ export default function AdminInvoices({ user }) {
     invoice.items?.forEach(item => {
       doc.text(item.description, 20, yPos);
       doc.text(`$${item.total.toFixed(2)}`, 170, yPos);
-      yPos += 7;
+      yPos += 5;
+      
+      if (item.details) {
+        doc.setFontSize(8);
+        if (item.details.tracking) {
+          doc.text(`  Tracking: ${item.details.tracking}`, 20, yPos);
+          yPos += 4;
+        }
+        if (item.details.dimensions) {
+          doc.text(`  Dimensiones: ${item.details.dimensions}`, 20, yPos);
+          yPos += 4;
+        }
+        if (item.details.weight) {
+          doc.text(`  Peso: ${item.details.weight}`, 20, yPos);
+          yPos += 4;
+        }
+        if (item.details.tracking_numbers && item.details.tracking_numbers.length > 0) {
+          doc.text(`  Trackings: ${item.details.tracking_numbers.join(', ')}`, 20, yPos);
+          yPos += 4;
+        }
+        if (item.details.fob_value) {
+          doc.text(`  Valor Asegurado: $${item.details.fob_value.toFixed(2)}`, 20, yPos);
+          yPos += 4;
+        }
+        doc.setFontSize(10);
+        yPos += 3;
+      } else {
+        yPos += 7;
+      }
     });
     
     yPos += 5;
@@ -144,10 +238,16 @@ export default function AdminInvoices({ user }) {
           <h1 className="text-2xl font-bold text-slate-800">Gestión de Facturas</h1>
           <p className="text-slate-500">Administra facturas y pagos de clientes</p>
         </div>
-        <Button onClick={handleExportAll} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Exportar CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowCreateModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Crear Factura
+          </Button>
+          <Button onClick={handleExportAll} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -237,15 +337,110 @@ export default function AdminInvoices({ user }) {
       ) : (
         <div className="grid gap-4">
           {filteredInvoices.map(invoice => (
-            <InvoiceCard
-              key={invoice.id}
-              invoice={invoice}
-              onDownload={handleDownloadPDF}
-              showPayButton={false}
-            />
+            <div key={invoice.id} className="relative group">
+              <InvoiceCard
+                invoice={invoice}
+                onDownload={handleDownloadPDF}
+                showPayButton={false}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => {
+                  setEditingInvoice(invoice);
+                  setShowEditModal(true);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+            </div>
           ))}
         </div>
       )}
+
+      {/* Create Invoice Modal */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crear Factura Manual</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Seleccionar Consolidación</Label>
+              <Select value={selectedConsolidation} onValueChange={setSelectedConsolidation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona una consolidación" />
+                </SelectTrigger>
+                <SelectContent>
+                  {consolidations.map(cons => (
+                    <SelectItem key={cons.id} value={cons.id}>
+                      {cons.consolidation_tracking} - {cons.client_email} - ${cons.total_cost.toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateInvoice} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
+              {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Crear Factura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Invoice Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Factura</DialogTitle>
+          </DialogHeader>
+          {editingInvoice && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Estado</Label>
+                <Select 
+                  value={editingInvoice.status} 
+                  onValueChange={(val) => setEditingInvoice({...editingInvoice, status: val})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                    <SelectItem value="pagada">Pagada</SelectItem>
+                    <SelectItem value="vencida">Vencida</SelectItem>
+                    <SelectItem value="cancelada">Cancelada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Notas</Label>
+                <Input
+                  value={editingInvoice.notes || ''}
+                  onChange={(e) => setEditingInvoice({...editingInvoice, notes: e.target.value})}
+                  placeholder="Notas adicionales..."
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditInvoice} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
+              {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
