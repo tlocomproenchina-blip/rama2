@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit } from 'lucide-react';
+import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -29,6 +30,8 @@ export default function AdminInvoices({ user }) {
   const [consolidations, setConsolidations] = useState([]);
   const [selectedConsolidation, setSelectedConsolidation] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [deleteInvoice, setDeleteInvoice] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -96,6 +99,21 @@ export default function AdminInvoices({ user }) {
       toast.error('Error al actualizar factura');
     }
     setProcessing(false);
+  };
+
+  const handleDeleteInvoice = async () => {
+    if (!deleteInvoice) return;
+    
+    setDeleting(true);
+    try {
+      await base44.entities.Invoice.delete(deleteInvoice.id);
+      toast.success('Factura eliminada exitosamente');
+      setDeleteInvoice(null);
+      loadInvoices();
+    } catch (error) {
+      toast.error('Error al eliminar factura');
+    }
+    setDeleting(false);
   };
 
   const handleDownloadPDF = (invoice) => {
@@ -343,18 +361,27 @@ export default function AdminInvoices({ user }) {
                 onDownload={handleDownloadPDF}
                 showPayButton={false}
               />
-              <Button
-                variant="outline"
-                size="sm"
-                className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => {
-                  setEditingInvoice(invoice);
-                  setShowEditModal(true);
-                }}
-              >
-                <Edit className="h-4 w-4 mr-1" />
-                Editar
-              </Button>
+              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingInvoice(invoice);
+                    setShowEditModal(true);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Editar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDeleteInvoice(invoice)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -441,6 +468,37 @@ export default function AdminInvoices({ user }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteInvoice} onOpenChange={() => setDeleteInvoice(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar Factura?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás a punto de eliminar la factura{' '}
+              <span className="font-semibold text-slate-800">{deleteInvoice?.invoice_number}</span>.
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteInvoice();
+              }}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Eliminando...</>
+              ) : (
+                <><Trash2 className="h-4 w-4 mr-2" /> Eliminar</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
