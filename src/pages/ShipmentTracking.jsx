@@ -63,32 +63,9 @@ export default function ShipmentTracking({ user }) {
       }
 
       // Notify client
-      const statusMessages = {
-        disponible: {
-          subject: '📦 Tu carga está disponible para retiro',
-          body: `¡Buenas noticias! Tu consolidación ${consolidation.consolidation_tracking} ya está disponible para retiro en nuestra oficina.\n\nPor favor contáctanos para coordinar la entrega.`
-        },
-        entregado: {
-          subject: '✅ Tu carga ha sido entregada',
-          body: `Tu consolidación ${consolidation.consolidation_tracking} ha sido entregada exitosamente.\n\n¡Gracias por confiar en TLEC Logistics!`
-        }
-      };
-
-      if (statusMessages[newStatus]) {
-        base44.integrations.Core.SendEmail({
-          to: consolidation.client_email,
-          subject: statusMessages[newStatus].subject,
-          body: statusMessages[newStatus].body
-        }).catch(err => console.error('Email error:', err));
-
-        base44.entities.Notification.create({
-          user_email: consolidation.client_email,
-          title: statusMessages[newStatus].subject,
-          message: statusMessages[newStatus].body.split('\n')[0],
-          type: 'consolidation',
-          icon: newStatus === 'entregado' ? 'check' : 'package',
-          reference_id: consolidation.id
-        }).catch(err => console.error('Notification error:', err));
+      if (['disponible', 'entregado'].includes(newStatus)) {
+        const { notifyConsolidationStatus } = await import('@/utils/notifications');
+        notifyConsolidationStatus(consolidation, newStatus);
       }
 
       toast.success('Estado actualizado correctamente');

@@ -115,29 +115,19 @@ export default function PreAlert({ user }) {
         status: 'pre_alerta'
       });
 
-      // Notify admins (async, don't block navigation)
-      base44.entities.User.list().then(allUsers => {
-        const admins = allUsers.filter(u => u.role === 'admin');
-        admins.forEach(admin => {
-          // Email notification with insurance highlight
-          const isHighValue = formData.has_insurance && parseFloat(formData.fob_value) >= 500;
-          base44.integrations.Core.SendEmail({
-            to: admin.email,
-            subject: `${isHighValue ? '⚠️ ' : ''}📦 Nueva Pre-alerta${formData.has_insurance ? ' (Asegurada)' : ''}${isHighValue ? ' - ALTO VALOR' : ''}`,
-            body: `Nueva pre-alerta registrada:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''} (${user.email})\nShipping Mark: ${user.shipping_mark}\nTipo: ${formData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\nDescripción: ${formData.description}${formData.has_insurance ? `\n\n🛡️ PAQUETE ASEGURADO${isHighValue ? ' - ALTO VALOR' : ''}\nValor FOB: $${formData.fob_value}` : ''}`
-          }).catch(err => console.error('Email error:', err));
-
-          // In-app notification with insurance/high value alert
-          base44.entities.Notification.create({
-            user_email: admin.email,
-            title: formData.has_insurance ? `🛡️ Pre-alerta Asegurada${isHighValue ? ' (ALTO VALOR)' : ''}` : '📦 Nueva Pre-alerta',
-            message: `${user.first_name || user.email}: ${formData.tracking_number}${formData.has_insurance ? ` - Asegurado $${formData.fob_value}` : ''}`,
-            type: 'package',
-            icon: formData.has_insurance ? 'alert' : 'package',
-            reference_id: newPackage.id
-          }).catch(err => console.error('Notification error:', err));
+      // Notify admins
+      const isHighValue = formData.has_insurance && parseFloat(formData.fob_value) >= 500;
+      import('@/utils/notifications').then(({ notifyAdmins }) => {
+        notifyAdmins({
+          subject: `${isHighValue ? '⚠️ ' : ''}📦 Nueva Pre-alerta${formData.has_insurance ? ' (Asegurada)' : ''}${isHighValue ? ' - ALTO VALOR' : ''}`,
+          body: `Nueva pre-alerta registrada:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''} (${user.email})\nShipping Mark: ${user.shipping_mark}\nTipo: ${formData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\nDescripción: ${formData.description}${formData.has_insurance ? `\n\n🛡️ PAQUETE ASEGURADO${isHighValue ? ' - ALTO VALOR' : ''}\nValor FOB: $${formData.fob_value}` : ''}`,
+          title: formData.has_insurance ? `🛡️ Pre-alerta Asegurada${isHighValue ? ' (ALTO VALOR)' : ''}` : '📦 Nueva Pre-alerta',
+          message: `${user.first_name || user.email}: ${formData.tracking_number}${formData.has_insurance ? ` - Asegurado $${formData.fob_value}` : ''}`,
+          type: 'package',
+          icon: formData.has_insurance ? 'alert' : 'package',
+          referenceId: newPackage.id
         });
-      }).catch(err => console.error('Admin notification error:', err));
+      });
 
       toast.success('Pre-alerta creada exitosamente');
       navigate(createPageUrl('MyPackages'));
