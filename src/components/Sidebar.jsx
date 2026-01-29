@@ -18,7 +18,8 @@ import {
   Calculator,
   Trash2,
   AlertTriangle,
-  HelpCircle } from
+  HelpCircle,
+  BarChart3 } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -43,6 +44,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const adminMenuItems = [
   { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard, permission: 'view_packages' },
+  { name: 'Reportes', page: 'AdminReports', icon: BarChart3, permission: 'view_packages' },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package, permission: 'view_packages' },
   { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers, permission: 'consolidate' },
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText, permission: 'validate_payments' },
