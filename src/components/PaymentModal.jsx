@@ -10,17 +10,35 @@ import { toast } from 'sonner';
 
 export default function PaymentModal({ open, onClose, consolidation, onPaymentSubmitted }) {
   const [config, setConfig] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('binance');
+  const [paymentMethod, setPaymentMethod] = useState('');
   const [amount, setAmount] = useState('');
   const [proofFile, setProofFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [availableMethods, setAvailableMethods] = useState([]);
 
   useEffect(() => {
     const loadConfig = async () => {
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (configs.length > 0) {
         setConfig(configs[0]);
+        
+        // Filter available payment methods based on configuration
+        const methods = [];
+        if (configs[0].wallet_binance) methods.push({ id: 'binance', name: 'Binance', color: 'amber' });
+        if (configs[0].wallet_usdt_trc20) methods.push({ id: 'usdt_trc20', name: 'USDT TRC20', color: 'blue' });
+        if (configs[0].wallet_paypal) methods.push({ id: 'paypal', name: 'PayPal', color: 'blue' });
+        if (configs[0].wallet_debito_internacional) methods.push({ id: 'debito_internacional', name: 'Débito Internacional', color: 'purple' });
+        if (configs[0].wallet_wally) methods.push({ id: 'wally', name: 'Wally', color: 'green' });
+        if (configs[0].wallet_zinli) methods.push({ id: 'zinli', name: 'Zinli', color: 'pink' });
+        if (configs[0].wallet_wise) methods.push({ id: 'wise', name: 'Wise', color: 'teal' });
+        if (configs[0].wallet_skrill) methods.push({ id: 'skrill', name: 'Skrill', color: 'violet' });
+        if (configs[0].wallet_pago_movil_usdt) methods.push({ id: 'pago_movil_usdt', name: 'Pago Móvil → USDT', color: 'orange' });
+        
+        setAvailableMethods(methods);
+        if (methods.length > 0) {
+          setPaymentMethod(methods[0].id);
+        }
       }
       setLoading(false);
     };
@@ -159,42 +177,19 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
           <div className="space-y-3">
             <Label className="text-slate-700 font-medium">Método de Pago</Label>
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-3">
-              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'binance' ? 'border-amber-400 bg-amber-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                <RadioGroupItem value="binance" id="binance" />
-                <Label htmlFor="binance" className="cursor-pointer font-medium text-sm">Binance</Label>
-              </div>
-              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'usdt_trc20' ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                <RadioGroupItem value="usdt_trc20" id="usdt_trc20" />
-                <Label htmlFor="usdt_trc20" className="cursor-pointer font-medium text-sm">USDT TRC20</Label>
-              </div>
-              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'paypal' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                <RadioGroupItem value="paypal" id="paypal" />
-                <Label htmlFor="paypal" className="cursor-pointer font-medium text-sm">PayPal</Label>
-              </div>
-              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'debito_internacional' ? 'border-purple-400 bg-purple-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                <RadioGroupItem value="debito_internacional" id="debito_internacional" />
-                <Label htmlFor="debito_internacional" className="cursor-pointer font-medium text-sm">Débito Internacional</Label>
-              </div>
-              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'wally' ? 'border-green-400 bg-green-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                <RadioGroupItem value="wally" id="wally" />
-                <Label htmlFor="wally" className="cursor-pointer font-medium text-sm">Wally</Label>
-              </div>
-              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'zinli' ? 'border-pink-400 bg-pink-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                <RadioGroupItem value="zinli" id="zinli" />
-                <Label htmlFor="zinli" className="cursor-pointer font-medium text-sm">Zinli</Label>
-              </div>
-              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'wise' ? 'border-teal-400 bg-teal-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                <RadioGroupItem value="wise" id="wise" />
-                <Label htmlFor="wise" className="cursor-pointer font-medium text-sm">Wise</Label>
-              </div>
-              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'skrill' ? 'border-violet-400 bg-violet-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                <RadioGroupItem value="skrill" id="skrill" />
-                <Label htmlFor="skrill" className="cursor-pointer font-medium text-sm">Skrill</Label>
-              </div>
-              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'pago_movil_usdt' ? 'border-orange-400 bg-orange-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                <RadioGroupItem value="pago_movil_usdt" id="pago_movil_usdt" />
-                <Label htmlFor="pago_movil_usdt" className="cursor-pointer font-medium text-sm">Pago Móvil → USDT</Label>
-              </div>
+              {availableMethods.map((method) => (
+                <div 
+                  key={method.id}
+                  className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${
+                    paymentMethod === method.id 
+                      ? `border-${method.color}-400 bg-${method.color}-50` 
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <RadioGroupItem value={method.id} id={method.id} />
+                  <Label htmlFor={method.id} className="cursor-pointer font-medium text-sm">{method.name}</Label>
+                </div>
+              ))}
             </RadioGroup>
           </div>
 
