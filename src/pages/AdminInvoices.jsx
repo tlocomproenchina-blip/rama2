@@ -116,9 +116,10 @@ export default function AdminInvoices({ user }) {
     setDeleting(false);
   };
 
-  const handleDownloadPDF = (invoice) => {
+  const handleDownloadPDF = async (invoice) => {
     const doc = new jsPDF();
     
+    // Header
     doc.setFontSize(20);
     doc.text('TLEC Logistics', 20, 20);
     doc.setFontSize(10);
@@ -130,21 +131,33 @@ export default function AdminInvoices({ user }) {
     doc.text(`No: ${invoice.invoice_number}`, 150, 27);
     doc.text(`Fecha: ${new Date(invoice.invoice_date).toLocaleDateString()}`, 150, 33);
     
+    // Client Info
     doc.setFontSize(12);
     doc.text('Cliente:', 20, 50);
     doc.setFontSize(10);
     doc.text(invoice.client_email, 20, 57);
     
+    // Parse notes for client details
+    let yPos = 63;
     if (invoice.notes) {
-      const notesLines = doc.splitTextToSize(invoice.notes, 170);
-      let noteY = 63;
+      const notesLines = invoice.notes.split('\n');
       notesLines.forEach(line => {
-        doc.text(line, 20, noteY);
-        noteY += 5;
+        doc.text(line, 20, yPos);
+        yPos += 5;
       });
     }
     
-    let yPos = 90;
+    // Get packages for this consolidation
+    let packages = [];
+    if (invoice.consolidation_id) {
+      packages = await base44.entities.Package.filter({ 
+        consolidation_id: invoice.consolidation_id 
+      });
+    }
+    
+    yPos += 5;
+    
+    // Items Section
     doc.setFontSize(12);
     doc.text('Concepto', 20, yPos);
     doc.text('Total', 170, yPos);
@@ -156,12 +169,14 @@ export default function AdminInvoices({ user }) {
     invoice.items?.forEach(item => {
       doc.text(item.description, 20, yPos);
       doc.text(`$${item.total.toFixed(2)}`, 170, yPos);
-      yPos += 5;
+      yPos += 6;
       
       if (item.details) {
         doc.setFontSize(8);
+        
+        // Show main consolidation details
         if (item.details.tracking) {
-          doc.text(`  Tracking: ${item.details.tracking}`, 20, yPos);
+          doc.text(`  Tracking Consolidacion: ${item.details.tracking}`, 20, yPos);
           yPos += 4;
         }
         if (item.details.dimensions) {
@@ -169,23 +184,62 @@ export default function AdminInvoices({ user }) {
           yPos += 4;
         }
         if (item.details.weight) {
-          doc.text(`  Peso: ${item.details.weight}`, 20, yPos);
+          doc.text(`  Peso Real: ${item.details.weight}`, 20, yPos);
           yPos += 4;
         }
-        if (item.details.tracking_numbers && item.details.tracking_numbers.length > 0) {
-          doc.text(`  Trackings: ${item.details.tracking_numbers.join(', ')}`, 20, yPos);
+        if (item.details.billable_weight) {
+          doc.text(`  Peso Facturable: ${item.details.billable_weight}`, 20, yPos);
           yPos += 4;
         }
+        
+        yPos += 3;
+        
+        // Show each package tracking with description
+        if (packages.length > 0) {
+          doc.setFontSize(9);
+          doc.text(`  Paquetes Incluidos (${packages.length}):`, 20, yPos);
+          yPos += 5;
+          doc.setFontSize(8);
+          
+          packages.forEach((pkg, index) => {
+            // Check if we need a new page
+            if (yPos > 270) {
+              doc.addPage();
+              yPos = 20;
+            }
+            
+            doc.text(`    ${index + 1}. ${pkg.tracking_number}`, 20, yPos);
+            yPos += 4;
+            doc.text(`       Descripcion: ${pkg.description || 'N/A'}`, 20, yPos);
+            yPos += 4;
+            if (pkg.has_insurance && pkg.fob_value) {
+              doc.text(`       Monto Asegurado (FOB): $${pkg.fob_value.toFixed(2)}`, 20, yPos);
+              yPos += 4;
+            }
+            yPos += 2;
+          });
+        }
+        
+        // Insurance total if applicable
         if (item.details.fob_value) {
-          doc.text(`  Valor Asegurado: $${item.details.fob_value.toFixed(2)}`, 20, yPos);
+          yPos += 2;
+          doc.setFontSize(9);
+          doc.text(`  Total Valor Asegurado: $${item.details.fob_value.toFixed(2)}`, 20, yPos);
           yPos += 4;
         }
+        
         doc.setFontSize(10);
         yPos += 3;
       } else {
-        yPos += 7;
+        yPos += 5;
       }
     });
+    
+    // Check if we need a new page for totals
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
     
     yPos += 5;
     doc.line(20, yPos, 190, yPos);
@@ -201,6 +255,10 @@ export default function AdminInvoices({ user }) {
     if (invoice.payment_date) {
       yPos += 7;
       doc.text(`Pagado: ${new Date(invoice.payment_date).toLocaleDateString()}`, 20, yPos);
+      if (invoice.payment_method) {
+        yPos += 5;
+        doc.text(`Metodo: ${invoice.payment_method}`, 20, yPos);
+      }
     }
     
     doc.save(`factura-${invoice.invoice_number}.pdf`);
