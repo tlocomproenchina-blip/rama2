@@ -177,14 +177,21 @@ export default function AdminInvoices({ user }) {
           yPos = 20;
         }
         
-        const fobText = pkg.fob_value ? ` - FOB: $${pkg.fob_value.toFixed(2)}` : ' - Sin seguro';
-        const trackingLine = `${pkg.tracking_number} - ${pkg.description || 'N/A'}${fobText}`;
-        const lines = doc.splitTextToSize(trackingLine, 170);
+        const fobText = pkg.fob_value ? `FOB: $${pkg.fob_value.toFixed(2)}` : 'Sin seguro';
         
-        lines.forEach(line => {
-          doc.text(line, 20, yPos);
-          yPos += 4;
+        // Tracking number
+        doc.text(pkg.tracking_number, 25, yPos);
+        
+        // Description (wrapped if too long)
+        const descLines = doc.splitTextToSize(pkg.description || 'N/A', 100);
+        descLines.forEach((line, idx) => {
+          doc.text(line, 80, yPos + (idx * 4));
         });
+        
+        // FOB value aligned to the right
+        doc.text(fobText, 190, yPos, { align: 'right' });
+        
+        yPos += Math.max(4, descLines.length * 4);
       });
       
       yPos += 5;
