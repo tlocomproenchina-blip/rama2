@@ -26,7 +26,8 @@ import {
   Plus,
   Upload,
   Plane,
-  Ship
+  Ship,
+  Download
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -178,6 +179,61 @@ Email: ${client.email}`;
     toast.success('Información copiada al portapapeles');
   };
 
+  const handleExportClients = async () => {
+    try {
+      // Get all packages to calculate last activity
+      const packages = await base44.entities.Package.list();
+      const consolidations = await base44.entities.Consolidation.list();
+      
+      const csv = [
+        'Nombre,Apellido,Email,Teléfono/WhatsApp,Ciudad,Shipping Mark,Total Paquetes,Última Actividad,Estado'
+      ];
+
+      filteredClients.forEach(client => {
+        // Get client packages
+        const clientPackages = packages.filter(p => p.client_email === client.email);
+        const clientConsolidations = consolidations.filter(c => c.client_email === client.email);
+        
+        // Calculate last activity
+        const allDates = [
+          ...clientPackages.map(p => p.created_date),
+          ...clientConsolidations.map(c => c.created_date)
+        ].filter(d => d);
+        
+        const lastActivity = allDates.length > 0 
+          ? new Date(Math.max(...allDates.map(d => new Date(d)))).toLocaleDateString()
+          : 'Sin actividad';
+        
+        // Determine status
+        const status = client.shipping_mark ? 'Activo' : 'Pendiente SM';
+        
+        csv.push([
+          client.first_name || '',
+          client.last_name || '',
+          client.email,
+          client.whatsapp || 'N/A',
+          client.city || 'N/A',
+          client.shipping_mark || 'Sin asignar',
+          packagesCount[client.email] || 0,
+          lastActivity,
+          status
+        ].join(','));
+      });
+
+      const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `clientes-remarketing-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast.success('Datos exportados exitosamente');
+    } catch (error) {
+      toast.error('Error al exportar datos');
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteClient) return;
     setDeleting(true);
@@ -304,9 +360,18 @@ Email: ${client.email}`;
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Gestión de Clientes</h1>
-        <p className="text-slate-500">Administra los usuarios y asigna Shipping Marks</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Gestión de Clientes</h1>
+          <p className="text-slate-500">Administra los usuarios y asigna Shipping Marks</p>
+        </div>
+        <Button 
+          onClick={handleExportClients}
+          className="bg-emerald-600 hover:bg-emerald-700"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Exportar para Remarketing
+        </Button>
       </div>
 
       {/* Stats */}
