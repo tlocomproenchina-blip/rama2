@@ -16,7 +16,8 @@ import {
   Truck,
   MessageCircle,
   Calculator,
-  Trash2 } from
+  Trash2,
+  AlertTriangle } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -42,6 +43,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Paquetes', page: 'AdminPackages', icon: Package, permission: 'view_packages' },
   { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers, permission: 'consolidate' },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
+  { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle, permission: 'validate_payments' },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck, permission: 'view_packages' },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator, permission: 'view_packages' },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
