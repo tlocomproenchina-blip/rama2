@@ -16,11 +16,14 @@ import {
   Calendar,
   Search,
   Filter,
-  ArrowRight
+  ArrowRight,
+  Edit2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from 'sonner';
 
 export default function ShipmentTracking({ user }) {
   const [consolidations, setConsolidations] = useState([]);
@@ -46,6 +49,53 @@ export default function ShipmentTracking({ user }) {
     
     setConsolidations(filtered);
     setLoading(false);
+  };
+
+  const handleStatusChange = async (consolidation, newStatus) => {
+    try {
+      await base44.entities.Consolidation.update(consolidation.id, {
+        status: newStatus
+      });
+
+      // Update packages status
+      for (const pkgId of (consolidation.package_ids || [])) {
+        await base44.entities.Package.update(pkgId, { status: newStatus });
+      }
+
+      // Notify client
+      const statusMessages = {
+        disponible: {
+          subject: '📦 Tu carga está disponible para retiro',
+          body: `¡Buenas noticias! Tu consolidación ${consolidation.consolidation_tracking} ya está disponible para retiro en nuestra oficina.\n\nPor favor contáctanos para coordinar la entrega.`
+        },
+        entregado: {
+          subject: '✅ Tu carga ha sido entregada',
+          body: `Tu consolidación ${consolidation.consolidation_tracking} ha sido entregada exitosamente.\n\n¡Gracias por confiar en TLEC Logistics!`
+        }
+      };
+
+      if (statusMessages[newStatus]) {
+        base44.integrations.Core.SendEmail({
+          to: consolidation.client_email,
+          subject: statusMessages[newStatus].subject,
+          body: statusMessages[newStatus].body
+        }).catch(err => console.error('Email error:', err));
+
+        base44.entities.Notification.create({
+          user_email: consolidation.client_email,
+          title: statusMessages[newStatus].subject,
+          message: statusMessages[newStatus].body.split('\n')[0],
+          type: 'consolidation',
+          icon: newStatus === 'entregado' ? 'check' : 'package',
+          reference_id: consolidation.id
+        }).catch(err => console.error('Notification error:', err));
+      }
+
+      toast.success('Estado actualizado correctamente');
+      loadData();
+    } catch (error) {
+      toast.error('Error al actualizar el estado');
+    }
   };
 
   const getStatusSteps = (consolidation) => {
@@ -429,6 +479,31 @@ export default function ShipmentTracking({ user }) {
                         </p>
                       </div>
                     </div>
+
+                    {/* Admin Status Control */}
+                    {user?.role === 'admin' && con.status === 'en_transito' && (
+                      <div className="pt-4 border-t">
+                        <div className="flex items-center gap-3 bg-blue-50 p-4 rounded-lg">
+                          <Edit2 className="h-5 w-5 text-blue-600" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-800 mb-1">Cambiar Estado</p>
+                            <Select onValueChange={(value) => handleStatusChange(con, value)}>
+                              <SelectTrigger className="w-full lg:w-64 bg-white">
+                                <SelectValue placeholder="Seleccionar nuevo estado..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="disponible">
+                                  📦 Disponible para Retiro
+                                </SelectItem>
+                                <SelectItem value="entregado">
+                                  ✅ Entregado
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
