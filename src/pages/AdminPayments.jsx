@@ -37,8 +37,6 @@ export default function AdminPayments({ user }) {
     setLoading(false);
   };
 
-
-
   const handleStatusChange = async (con, newStatus) => {
     await base44.entities.Consolidation.update(con.id, { status: newStatus });
 
