@@ -64,7 +64,7 @@ export default function ShipmentTracking({ user }) {
 
       // Notify client
       if (['disponible', 'entregado'].includes(newStatus)) {
-        const { notifyConsolidationStatus } = await import('@/utils/notifications');
+        const { notifyConsolidationStatus } = await import('@/components/NotificationUtils');
         notifyConsolidationStatus(consolidation, newStatus);
       }
 

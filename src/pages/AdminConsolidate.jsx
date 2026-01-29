@@ -182,7 +182,7 @@ export default function AdminConsolidate({ user }) {
       }
 
       // Notify client
-      import('@/utils/notifications').then(({ sendNotification }) => {
+      import('@/components/NotificationUtils').then(({ sendNotification }) => {
         sendNotification({
           to: selectedClient.email,
           subject: '📦 Tu carga ha sido consolidada',

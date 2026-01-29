@@ -77,7 +77,7 @@ export default function Layout({ children, currentPageName }) {
       setUser(updatedUser);
 
       // Notify admins
-      import('@/utils/notifications').then(({ notifyAdmins }) => {
+      import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
         notifyAdmins({
           subject: '👤 Nuevo usuario registrado',
           body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario desde el panel de Clientes.`,

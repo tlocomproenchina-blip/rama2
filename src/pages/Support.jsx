@@ -80,7 +80,7 @@ export default function Support({ user }) {
       await base44.entities.SupportTicket.create(ticketData);
 
       // Notify admins
-      import('@/utils/notifications').then(({ notifyAdmins }) => {
+      import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
         notifyAdmins({
           subject: '🎫 Nuevo Ticket de Soporte',
           body: `Un nuevo ticket de soporte ha sido creado:\n\nTicket: ${ticketNumber}\nAsunto: ${newTicket.subject}\nCategoría: ${newTicket.category}\nPrioridad: ${newTicket.priority}\nCliente: ${user.full_name || user.email}\n${newTicket.related_tracking ? `Tracking: ${newTicket.related_tracking}\n` : ''}\nMensaje:\n${newTicket.message}`,

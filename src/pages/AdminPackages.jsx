@@ -93,7 +93,7 @@ export default function AdminPackages({ user }) {
     
     // Notify client
     if (['en_transito', 'disponible', 'entregado'].includes(newStatus)) {
-      const { notifyPackageStatus } = await import('@/utils/notifications');
+      const { notifyPackageStatus } = await import('@/components/NotificationUtils');
       notifyPackageStatus(pkg, newStatus);
     }
     

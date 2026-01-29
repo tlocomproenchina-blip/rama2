@@ -117,7 +117,7 @@ export default function PreAlert({ user }) {
 
       // Notify admins
       const isHighValue = formData.has_insurance && parseFloat(formData.fob_value) >= 500;
-      import('@/utils/notifications').then(({ notifyAdmins }) => {
+      import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
         notifyAdmins({
           subject: `${isHighValue ? '⚠️ ' : ''}📦 Nueva Pre-alerta${formData.has_insurance ? ' (Asegurada)' : ''}${isHighValue ? ' - ALTO VALOR' : ''}`,
           body: `Nueva pre-alerta registrada:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''} (${user.email})\nShipping Mark: ${user.shipping_mark}\nTipo: ${formData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\nDescripción: ${formData.description}${formData.has_insurance ? `\n\n🛡️ PAQUETE ASEGURADO${isHighValue ? ' - ALTO VALOR' : ''}\nValor FOB: $${formData.fob_value}` : ''}`,
