@@ -227,6 +227,17 @@ Email: ${client.email}`;
 
     setSaving(true);
     try {
+      // Validar si el tracking ya existe
+      const existingPackages = await base44.entities.Package.filter({ 
+        tracking_number: newPackage.tracking_number 
+      });
+
+      if (existingPackages.length > 0) {
+        toast.error('Este número de tracking ya está registrado en el sistema');
+        setSaving(false);
+        return;
+      }
+
       await base44.entities.Package.create({
         tracking_number: newPackage.tracking_number,
         client_email: packageClient.email,
