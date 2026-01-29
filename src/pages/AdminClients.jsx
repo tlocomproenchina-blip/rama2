@@ -181,67 +181,24 @@ Email: ${client.email}`;
 
   const handleExportClients = async () => {
     try {
-      // Get all packages to calculate last activity
-      const packages = await base44.entities.Package.list();
-      const consolidations = await base44.entities.Consolidation.list();
-      
-      // Helper function to escape CSV values
-      const escapeCSV = (value) => {
-        if (value === null || value === undefined) return '';
-        const str = String(value);
-        // If value contains comma, quote, or newline, wrap in quotes and escape quotes
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-          return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-      };
-      
-      const rows = [
-        ['Nombre', 'Apellido', 'Email', 'Teléfono/WhatsApp', 'Ciudad', 'Shipping Mark', 'Total Paquetes', 'Última Actividad', 'Estado']
-      ];
+      const rows = [['Teléfono/WhatsApp']];
 
       filteredClients.forEach(client => {
-        // Get client packages
-        const clientPackages = packages.filter(p => p.client_email === client.email);
-        const clientConsolidations = consolidations.filter(c => c.client_email === client.email);
-        
-        // Calculate last activity
-        const allDates = [
-          ...clientPackages.map(p => p.created_date),
-          ...clientConsolidations.map(c => c.created_date)
-        ].filter(d => d);
-        
-        const lastActivity = allDates.length > 0 
-          ? new Date(Math.max(...allDates.map(d => new Date(d)))).toLocaleDateString()
-          : 'Sin actividad';
-        
-        // Determine status
-        const status = client.shipping_mark ? 'Activo' : 'Pendiente SM';
-        
-        rows.push([
-          client.first_name || '',
-          client.last_name || '',
-          client.email,
-          client.whatsapp || 'N/A',
-          client.city || 'N/A',
-          client.shipping_mark || 'Sin asignar',
-          packagesCount[client.email] || 0,
-          lastActivity,
-          status
-        ]);
+        if (client.whatsapp) {
+          rows.push([client.whatsapp]);
+        }
       });
 
-      // Convert rows to CSV string with proper escaping
-      const csvContent = rows.map(row => row.map(escapeCSV).join(','));
-      const blob = new Blob([csvContent.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const csvContent = rows.map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `clientes-remarketing-${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = `contactos-remarketing-${new Date().toISOString().split('T')[0]}.csv`;
       link.click();
       URL.revokeObjectURL(url);
       
-      toast.success('Datos exportados exitosamente');
+      toast.success(`${rows.length - 1} contactos exportados`);
     } catch (error) {
       toast.error('Error al exportar datos');
     }
