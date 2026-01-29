@@ -137,10 +137,12 @@ export default function AdminInvoices({ user }) {
     doc.setFontSize(10);
     doc.text(invoice.client_email, 20, 57);
     
-    // Parse notes for client details
+    // Parse notes for client details (without Paquetes/Trackings lines)
     let yPos = 63;
     if (invoice.notes) {
-      const notesLines = invoice.notes.split('\n');
+      const notesLines = invoice.notes.split('\n').filter(line => 
+        !line.startsWith('Paquetes:') && !line.startsWith('Trackings:')
+      );
       notesLines.forEach(line => {
         doc.text(line, 20, yPos);
         yPos += 5;
@@ -159,7 +161,7 @@ export default function AdminInvoices({ user }) {
     
     yPos += 5;
     
-    // Show tracking list before items
+    // Show tracking list
     if (packages.length > 0) {
       doc.setFontSize(10);
       doc.text(`Paquetes: ${packages.length}`, 20, yPos);
