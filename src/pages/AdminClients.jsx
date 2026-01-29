@@ -185,8 +185,19 @@ Email: ${client.email}`;
       const packages = await base44.entities.Package.list();
       const consolidations = await base44.entities.Consolidation.list();
       
-      const csv = [
-        'Nombre,Apellido,Email,Teléfono/WhatsApp,Ciudad,Shipping Mark,Total Paquetes,Última Actividad,Estado'
+      // Helper function to escape CSV values
+      const escapeCSV = (value) => {
+        if (value === null || value === undefined) return '';
+        const str = String(value);
+        // If value contains comma, quote, or newline, wrap in quotes and escape quotes
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
+      const rows = [
+        ['Nombre', 'Apellido', 'Email', 'Teléfono/WhatsApp', 'Ciudad', 'Shipping Mark', 'Total Paquetes', 'Última Actividad', 'Estado']
       ];
 
       filteredClients.forEach(client => {
@@ -207,7 +218,7 @@ Email: ${client.email}`;
         // Determine status
         const status = client.shipping_mark ? 'Activo' : 'Pendiente SM';
         
-        csv.push([
+        rows.push([
           client.first_name || '',
           client.last_name || '',
           client.email,
@@ -217,10 +228,12 @@ Email: ${client.email}`;
           packagesCount[client.email] || 0,
           lastActivity,
           status
-        ].join(','));
+        ]);
       });
 
-      const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      // Convert rows to CSV string with proper escaping
+      const csvContent = rows.map(row => row.map(escapeCSV).join(','));
+      const blob = new Blob([csvContent.join('\n')], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
