@@ -171,6 +171,8 @@ export default function AdminInvoices({ user }) {
     
     doc.text(invoice.client_email, 20, yPos + 7);
     yPos += 13;
+    
+    // Parse notes for client details
     if (invoice.notes) {
       const notesLines = invoice.notes.split('\n').filter(line => 
         !line.startsWith('Paquetes:') && !line.startsWith('Trackings:')
@@ -181,7 +183,7 @@ export default function AdminInvoices({ user }) {
       });
     }
     
-    // Add WhatsApp if available
+    // WhatsApp
     if (clientUser?.whatsapp) {
       doc.text(`WhatsApp: ${clientUser.whatsapp}`, 20, yPos);
       yPos += 5;
