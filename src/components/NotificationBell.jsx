@@ -46,9 +46,21 @@ export default function NotificationBell({ user }) {
   useEffect(() => {
     if (user) {
       loadNotifications();
-      // Poll for new notifications every 30 seconds
-      const interval = setInterval(loadNotifications, 30000);
-      return () => clearInterval(interval);
+      
+      // Subscribe to real-time notifications
+      const unsubscribe = base44.entities.Notification.subscribe((event) => {
+        if (event.data.user_email === user.email) {
+          if (event.type === 'create') {
+            setNotifications(prev => [event.data, ...prev]);
+          } else if (event.type === 'update') {
+            setNotifications(prev => prev.map(n => n.id === event.id ? event.data : n));
+          } else if (event.type === 'delete') {
+            setNotifications(prev => prev.filter(n => n.id !== event.id));
+          }
+        }
+      });
+      
+      return unsubscribe;
     }
   }, [user]);
 
