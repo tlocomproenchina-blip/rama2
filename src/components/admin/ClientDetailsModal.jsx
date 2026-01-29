@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Package, 
   Layers, 
@@ -15,16 +17,23 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  FileText,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function ClientDetailsModal({ client, open, onClose, onClientUpdated }) {
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState([]);
   const [consolidations, setConsolidations] = useState([]);
+  const [notes, setNotes] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [newNote, setNewNote] = useState({ text: '', type: 'general' });
+  const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
     if (open && client) {
@@ -34,13 +43,48 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
 
   const loadClientData = async () => {
     setLoading(true);
-    const [pkgs, cons] = await Promise.all([
+    const [pkgs, cons, clientNotes] = await Promise.all([
       base44.entities.Package.filter({ client_email: client.email }),
-      base44.entities.Consolidation.filter({ client_email: client.email })
+      base44.entities.Consolidation.filter({ client_email: client.email }),
+      base44.entities.ClientNote.filter({ client_email: client.email })
     ]);
     setPackages(pkgs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
     setConsolidations(cons.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
+    setNotes(clientNotes.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
     setLoading(false);
+  };
+
+  const handleAddNote = async () => {
+    if (!newNote.text.trim()) {
+      toast.error('Escribe una nota primero');
+      return;
+    }
+    setSavingNote(true);
+    try {
+      const currentUser = await base44.auth.me();
+      await base44.entities.ClientNote.create({
+        client_email: client.email,
+        note: newNote.text,
+        note_type: newNote.type,
+        created_by: currentUser.email
+      });
+      setNewNote({ text: '', type: 'general' });
+      toast.success('Nota agregada');
+      loadClientData();
+    } catch (error) {
+      toast.error('Error al agregar nota');
+    }
+    setSavingNote(false);
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    try {
+      await base44.entities.ClientNote.delete(noteId);
+      toast.success('Nota eliminada');
+      loadClientData();
+    } catch (error) {
+      toast.error('Error al eliminar nota');
+    }
   };
 
   if (!client) return null;
@@ -107,10 +151,11 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
             </div>
           ) : (
             <Tabs defaultValue="packages" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="packages">Paquetes</TabsTrigger>
                 <TabsTrigger value="consolidations">Consolidaciones</TabsTrigger>
                 <TabsTrigger value="payments">Pagos</TabsTrigger>
+                <TabsTrigger value="notes">Notas</TabsTrigger>
               </TabsList>
 
               {/* Packages Tab */}
@@ -200,6 +245,88 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
                               </p>
                             )}
                           </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
+              {/* Notes Tab */}
+              <TabsContent value="notes" className="space-y-3 mt-4">
+                {/* Add Note Form */}
+                <Card className="border-0 shadow-sm bg-blue-50">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center gap-2 text-blue-800 font-medium">
+                      <Plus className="h-4 w-4" />
+                      Agregar Nueva Nota
+                    </div>
+                    <Select value={newNote.type} onValueChange={(value) => setNewNote({ ...newNote, type: value })}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general">General</SelectItem>
+                        <SelectItem value="payment">Pago</SelectItem>
+                        <SelectItem value="shipping">Envío</SelectItem>
+                        <SelectItem value="support">Soporte</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Textarea
+                      value={newNote.text}
+                      onChange={(e) => setNewNote({ ...newNote, text: e.target.value })}
+                      placeholder="Escribe una nota sobre el cliente..."
+                      rows={3}
+                      className="bg-white"
+                    />
+                    <Button 
+                      onClick={handleAddNote} 
+                      disabled={savingNote}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {savingNote ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                      Agregar Nota
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Notes List */}
+                {notes.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <FileText className="h-12 w-12 mx-auto mb-2 text-slate-300" />
+                    <p>No hay notas registradas</p>
+                  </div>
+                ) : (
+                  notes.map((note) => (
+                    <Card key={note.id} className="border-0 shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {note.note_type === 'general' && '📝 General'}
+                                {note.note_type === 'payment' && '💰 Pago'}
+                                {note.note_type === 'shipping' && '📦 Envío'}
+                                {note.note_type === 'support' && '🎫 Soporte'}
+                              </Badge>
+                              <span className="text-xs text-slate-500">
+                                {format(new Date(note.created_date), 'dd/MM/yyyy HH:mm')}
+                              </span>
+                              <span className="text-xs text-slate-400">
+                                por {note.created_by}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-700 whitespace-pre-line">{note.note}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteNote(note.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
