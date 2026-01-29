@@ -20,7 +20,8 @@ import {
   Ruler,
   DollarSign,
   Loader2,
-  CheckCircle
+  CheckCircle,
+  Box
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
@@ -43,6 +44,8 @@ export default function AdminConsolidate({ user }) {
     estimated_delivery: ''
   });
   const [processing, setProcessing] = useState(false);
+  const [inputMode, setInputMode] = useState('dimensions'); // 'dimensions' or 'cbm'
+  const [directCbm, setDirectCbm] = useState('');
 
   useEffect(() => {
     loadData();
@@ -97,13 +100,23 @@ export default function AdminConsolidate({ user }) {
 
   const calculateValues = () => {
     const { length_cm, width_cm, height_cm, real_weight_kg } = consolidationData;
-    const l = parseFloat(length_cm) || 0;
-    const w = parseFloat(width_cm) || 0;
-    const h = parseFloat(height_cm) || 0;
     const realWeight = parseFloat(real_weight_kg) || 0;
 
-    const cbm = (l * w * h) / 1000000;
-    const volumetricWeight = (l * w * h) / 5000;
+    let cbm, volumetricWeight;
+    
+    if (inputMode === 'cbm') {
+      // Usar CBM directo
+      cbm = parseFloat(directCbm) || 0;
+      volumetricWeight = cbm * 166.67; // Convertir CBM a kg volumétrico (1 CBM = 166.67 kg)
+    } else {
+      // Calcular desde dimensiones
+      const l = parseFloat(length_cm) || 0;
+      const w = parseFloat(width_cm) || 0;
+      const h = parseFloat(height_cm) || 0;
+      cbm = (l * w * h) / 1000000;
+      volumetricWeight = (l * w * h) / 5000;
+    }
+
     const billableWeight = Math.max(realWeight, volumetricWeight);
 
     // Calculate costs
@@ -160,9 +173,9 @@ export default function AdminConsolidate({ user }) {
         tracking_numbers: trackingNumbers,
         shipping_type: consolidationData.shipping_type,
         real_weight_kg: parseFloat(consolidationData.real_weight_kg),
-        length_cm: parseFloat(consolidationData.length_cm),
-        width_cm: parseFloat(consolidationData.width_cm),
-        height_cm: parseFloat(consolidationData.height_cm),
+        length_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.length_cm) : 0,
+        width_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.width_cm) : 0,
+        height_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.height_cm) : 0,
         cbm: calcs.cbm,
         volumetric_weight: calcs.volumetricWeight,
         billable_weight: calcs.billableWeight,
@@ -372,50 +385,103 @@ export default function AdminConsolidate({ user }) {
                 </Select>
               </div>
 
-              {/* Dimensions */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Weight className="h-4 w-4" /> Peso Real (kg)
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={consolidationData.real_weight_kg}
-                    onChange={(e) => setConsolidationData({ ...consolidationData, real_weight_kg: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Ruler className="h-4 w-4" /> Largo (cm)
-                  </Label>
-                  <Input
-                    type="number"
-                    value={consolidationData.length_cm}
-                    onChange={(e) => setConsolidationData({ ...consolidationData, length_cm: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Ancho (cm)</Label>
-                  <Input
-                    type="number"
-                    value={consolidationData.width_cm}
-                    onChange={(e) => setConsolidationData({ ...consolidationData, width_cm: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Alto (cm)</Label>
-                  <Input
-                    type="number"
-                    value={consolidationData.height_cm}
-                    onChange={(e) => setConsolidationData({ ...consolidationData, height_cm: e.target.value })}
-                    placeholder="0"
-                  />
+              {/* Input Mode Selection */}
+              <div className="space-y-2">
+                <Label>Método de Ingreso</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setInputMode('dimensions')}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      inputMode === 'dimensions'
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <Ruler className={`h-5 w-5 mx-auto mb-1 ${
+                      inputMode === 'dimensions' ? 'text-purple-600' : 'text-slate-400'
+                    }`} />
+                    <span className="text-sm font-medium">Dimensiones</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInputMode('cbm')}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      inputMode === 'cbm'
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <Box className={`h-5 w-5 mx-auto mb-1 ${
+                      inputMode === 'cbm' ? 'text-purple-600' : 'text-slate-400'
+                    }`} />
+                    <span className="text-sm font-medium">CBM Total</span>
+                  </button>
                 </div>
               </div>
+
+              {/* Peso Real */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Weight className="h-4 w-4" /> Peso Real (kg)
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={consolidationData.real_weight_kg}
+                  onChange={(e) => setConsolidationData({ ...consolidationData, real_weight_kg: e.target.value })}
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Dimensions or CBM */}
+              {inputMode === 'dimensions' ? (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Ruler className="h-4 w-4" /> Largo (cm)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={consolidationData.length_cm}
+                      onChange={(e) => setConsolidationData({ ...consolidationData, length_cm: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Ancho (cm)</Label>
+                    <Input
+                      type="number"
+                      value={consolidationData.width_cm}
+                      onChange={(e) => setConsolidationData({ ...consolidationData, width_cm: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Alto (cm)</Label>
+                    <Input
+                      type="number"
+                      value={consolidationData.height_cm}
+                      onChange={(e) => setConsolidationData({ ...consolidationData, height_cm: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Box className="h-4 w-4" /> CBM Total (m³)
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    value={directCbm}
+                    onChange={(e) => setDirectCbm(e.target.value)}
+                    placeholder="0.0000"
+                  />
+                  <p className="text-xs text-slate-500">Ingresa el volumen total en metros cúbicos</p>
+                </div>
+              )}
 
               {/* Estimated Delivery */}
               <div className="space-y-2">
@@ -430,7 +496,7 @@ export default function AdminConsolidate({ user }) {
               </div>
 
               {/* Calculations Preview */}
-              {consolidationData.real_weight_kg && consolidationData.length_cm && consolidationData.width_cm && consolidationData.height_cm && (
+              {consolidationData.real_weight_kg && ((inputMode === 'dimensions' && consolidationData.length_cm && consolidationData.width_cm && consolidationData.height_cm) || (inputMode === 'cbm' && directCbm)) && (
                 <Card className="bg-slate-50 border-slate-200">
                   <CardContent className="p-4">
                     <h4 className="font-semibold mb-4 flex items-center gap-2">
@@ -475,7 +541,7 @@ export default function AdminConsolidate({ user }) {
             </Button>
             <Button 
               onClick={handleConsolidate}
-              disabled={processing || !consolidationData.real_weight_kg || !consolidationData.length_cm}
+              disabled={processing || !consolidationData.real_weight_kg || (inputMode === 'dimensions' ? !consolidationData.length_cm : !directCbm)}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               {processing ? (

@@ -58,6 +58,7 @@ import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
 import AdminPermissions from './pages/AdminPermissions';
+import AdminReports from './pages/AdminReports';
 import AdminSettings from './pages/AdminSettings';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
@@ -72,7 +73,6 @@ import Rates from './pages/Rates';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminReports from './pages/AdminReports';
 import __Layout from './Layout.jsx';
 
 
@@ -88,6 +88,7 @@ export const PAGES = {
     "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPayments": AdminPayments,
     "AdminPermissions": AdminPermissions,
+    "AdminReports": AdminReports,
     "AdminSettings": AdminSettings,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
@@ -102,7 +103,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminReports": AdminReports,
 }
 
 export const pagesConfig = {
