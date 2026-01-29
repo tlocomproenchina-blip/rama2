@@ -34,7 +34,21 @@ export default function AdminSettings({ user }) {
     wallet_binance: '',
     wallet_usdt_trc20: '',
     binance_instructions: '',
-    usdt_instructions: ''
+    usdt_instructions: '',
+    wallet_paypal: '',
+    paypal_instructions: '',
+    wallet_debito_internacional: '',
+    debito_internacional_instructions: '',
+    wallet_wally: '',
+    wally_instructions: '',
+    wallet_zinli: '',
+    zinli_instructions: '',
+    wallet_wise: '',
+    wise_instructions: '',
+    wallet_skrill: '',
+    skrill_instructions: '',
+    wallet_pago_movil_usdt: '',
+    pago_movil_usdt_instructions: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -436,6 +450,174 @@ export default function AdminSettings({ user }) {
                       value={config.usdt_instructions}
                       onChange={(e) => setConfig({ ...config, usdt_instructions: e.target.value })}
                       placeholder="Instrucciones para el cliente"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* PayPal */}
+              <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
+                <h3 className="font-semibold text-slate-800 mb-4">PayPal</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Email de PayPal</Label>
+                    <Input
+                      value={config.wallet_paypal}
+                      onChange={(e) => setConfig({ ...config, wallet_paypal: e.target.value })}
+                      placeholder="tu-email@paypal.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instrucciones Adicionales</Label>
+                    <Textarea
+                      value={config.paypal_instructions}
+                      onChange={(e) => setConfig({ ...config, paypal_instructions: e.target.value })}
+                      placeholder="Instrucciones para el cliente"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Débito Internacional */}
+              <div className="p-6 bg-purple-50 rounded-xl border border-purple-100">
+                <h3 className="font-semibold text-slate-800 mb-4">Débito Internacional</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Datos de la Tarjeta/Cuenta</Label>
+                    <Input
+                      value={config.wallet_debito_internacional}
+                      onChange={(e) => setConfig({ ...config, wallet_debito_internacional: e.target.value })}
+                      placeholder="Datos para débito internacional"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instrucciones Adicionales</Label>
+                    <Textarea
+                      value={config.debito_internacional_instructions}
+                      onChange={(e) => setConfig({ ...config, debito_internacional_instructions: e.target.value })}
+                      placeholder="Instrucciones para el cliente"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Wally */}
+              <div className="p-6 bg-green-50 rounded-xl border border-green-100">
+                <h3 className="font-semibold text-slate-800 mb-4">Wally</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Usuario/Teléfono Wally</Label>
+                    <Input
+                      value={config.wallet_wally}
+                      onChange={(e) => setConfig({ ...config, wallet_wally: e.target.value })}
+                      placeholder="Usuario o teléfono Wally"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instrucciones Adicionales</Label>
+                    <Textarea
+                      value={config.wally_instructions}
+                      onChange={(e) => setConfig({ ...config, wally_instructions: e.target.value })}
+                      placeholder="Instrucciones para el cliente"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Zinli */}
+              <div className="p-6 bg-pink-50 rounded-xl border border-pink-100">
+                <h3 className="font-semibold text-slate-800 mb-4">Zinli</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Usuario/Teléfono Zinli</Label>
+                    <Input
+                      value={config.wallet_zinli}
+                      onChange={(e) => setConfig({ ...config, wallet_zinli: e.target.value })}
+                      placeholder="Usuario o teléfono Zinli"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instrucciones Adicionales</Label>
+                    <Textarea
+                      value={config.zinli_instructions}
+                      onChange={(e) => setConfig({ ...config, zinli_instructions: e.target.value })}
+                      placeholder="Instrucciones para el cliente"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Wise */}
+              <div className="p-6 bg-teal-50 rounded-xl border border-teal-100">
+                <h3 className="font-semibold text-slate-800 mb-4">Wise</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Email/Datos Wise</Label>
+                    <Input
+                      value={config.wallet_wise}
+                      onChange={(e) => setConfig({ ...config, wallet_wise: e.target.value })}
+                      placeholder="Email o datos Wise"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instrucciones Adicionales</Label>
+                    <Textarea
+                      value={config.wise_instructions}
+                      onChange={(e) => setConfig({ ...config, wise_instructions: e.target.value })}
+                      placeholder="Instrucciones para el cliente"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Skrill */}
+              <div className="p-6 bg-violet-50 rounded-xl border border-violet-100">
+                <h3 className="font-semibold text-slate-800 mb-4">Skrill</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Email Skrill</Label>
+                    <Input
+                      value={config.wallet_skrill}
+                      onChange={(e) => setConfig({ ...config, wallet_skrill: e.target.value })}
+                      placeholder="tu-email@skrill.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instrucciones Adicionales</Label>
+                    <Textarea
+                      value={config.skrill_instructions}
+                      onChange={(e) => setConfig({ ...config, skrill_instructions: e.target.value })}
+                      placeholder="Instrucciones para el cliente"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pago Móvil → USDT */}
+              <div className="p-6 bg-orange-50 rounded-xl border border-orange-100">
+                <h3 className="font-semibold text-slate-800 mb-4">Pago Móvil → USDT</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Datos de Pago Móvil/USDT</Label>
+                    <Input
+                      value={config.wallet_pago_movil_usdt}
+                      onChange={(e) => setConfig({ ...config, wallet_pago_movil_usdt: e.target.value })}
+                      placeholder="Teléfono o datos de conversión"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Instrucciones Adicionales</Label>
+                    <Textarea
+                      value={config.pago_movil_usdt_instructions}
+                      onChange={(e) => setConfig({ ...config, pago_movil_usdt_instructions: e.target.value })}
+                      placeholder="Instrucciones para el cliente (ej: tasa de conversión, pasos)"
                       rows={3}
                     />
                   </div>

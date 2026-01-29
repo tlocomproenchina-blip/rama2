@@ -29,12 +29,34 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
 
   const getWalletAddress = () => {
     if (!config) return '';
-    return paymentMethod === 'binance' ? config.wallet_binance : config.wallet_usdt_trc20;
+    const walletMap = {
+      binance: config.wallet_binance,
+      usdt_trc20: config.wallet_usdt_trc20,
+      paypal: config.wallet_paypal,
+      debito_internacional: config.wallet_debito_internacional,
+      wally: config.wallet_wally,
+      zinli: config.wallet_zinli,
+      wise: config.wallet_wise,
+      skrill: config.wallet_skrill,
+      pago_movil_usdt: config.wallet_pago_movil_usdt
+    };
+    return walletMap[paymentMethod] || '';
   };
 
   const getInstructions = () => {
     if (!config) return '';
-    return paymentMethod === 'binance' ? config.binance_instructions : config.usdt_instructions;
+    const instructionsMap = {
+      binance: config.binance_instructions,
+      usdt_trc20: config.usdt_instructions,
+      paypal: config.paypal_instructions,
+      debito_internacional: config.debito_internacional_instructions,
+      wally: config.wally_instructions,
+      zinli: config.zinli_instructions,
+      wise: config.wise_instructions,
+      skrill: config.skrill_instructions,
+      pago_movil_usdt: config.pago_movil_usdt_instructions
+    };
+    return instructionsMap[paymentMethod] || '';
   };
 
   const copyToClipboard = () => {
@@ -78,7 +100,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
           base44.integrations.Core.SendEmail({
             to: admin.email,
             subject: '💳 Nuevo pago reportado',
-            body: `Un cliente ha reportado un pago para la consolidación ${consolidation.consolidation_tracking}.\n\nMonto: $${amount}\nMétodo: ${paymentMethod === 'binance' ? 'Binance' : 'USDT TRC20'}\n\nPor favor revisa y valida el pago.`
+            body: `Un cliente ha reportado un pago para la consolidación ${consolidation.consolidation_tracking}.\n\nMonto: $${amount}\nMétodo: ${paymentMethod}\n\nPor favor revisa y valida el pago.`
           }).catch(err => console.error('Email error:', err));
 
           base44.entities.Notification.create({
@@ -137,28 +159,62 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
           <div className="space-y-3">
             <Label className="text-slate-700 font-medium">Método de Pago</Label>
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-3">
-              <div className={`flex items-center space-x-2 border rounded-xl p-4 cursor-pointer transition-all ${paymentMethod === 'binance' ? 'border-amber-400 bg-amber-50' : 'border-slate-200 hover:border-slate-300'}`}>
+              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'binance' ? 'border-amber-400 bg-amber-50' : 'border-slate-200 hover:border-slate-300'}`}>
                 <RadioGroupItem value="binance" id="binance" />
-                <Label htmlFor="binance" className="cursor-pointer font-medium">Binance</Label>
+                <Label htmlFor="binance" className="cursor-pointer font-medium text-sm">Binance</Label>
               </div>
-              <div className={`flex items-center space-x-2 border rounded-xl p-4 cursor-pointer transition-all ${paymentMethod === 'usdt_trc20' ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}>
+              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'usdt_trc20' ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}>
                 <RadioGroupItem value="usdt_trc20" id="usdt_trc20" />
-                <Label htmlFor="usdt_trc20" className="cursor-pointer font-medium">USDT TRC20</Label>
+                <Label htmlFor="usdt_trc20" className="cursor-pointer font-medium text-sm">USDT TRC20</Label>
+              </div>
+              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'paypal' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                <RadioGroupItem value="paypal" id="paypal" />
+                <Label htmlFor="paypal" className="cursor-pointer font-medium text-sm">PayPal</Label>
+              </div>
+              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'debito_internacional' ? 'border-purple-400 bg-purple-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                <RadioGroupItem value="debito_internacional" id="debito_internacional" />
+                <Label htmlFor="debito_internacional" className="cursor-pointer font-medium text-sm">Débito Internacional</Label>
+              </div>
+              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'wally' ? 'border-green-400 bg-green-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                <RadioGroupItem value="wally" id="wally" />
+                <Label htmlFor="wally" className="cursor-pointer font-medium text-sm">Wally</Label>
+              </div>
+              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'zinli' ? 'border-pink-400 bg-pink-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                <RadioGroupItem value="zinli" id="zinli" />
+                <Label htmlFor="zinli" className="cursor-pointer font-medium text-sm">Zinli</Label>
+              </div>
+              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'wise' ? 'border-teal-400 bg-teal-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                <RadioGroupItem value="wise" id="wise" />
+                <Label htmlFor="wise" className="cursor-pointer font-medium text-sm">Wise</Label>
+              </div>
+              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'skrill' ? 'border-violet-400 bg-violet-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                <RadioGroupItem value="skrill" id="skrill" />
+                <Label htmlFor="skrill" className="cursor-pointer font-medium text-sm">Skrill</Label>
+              </div>
+              <div className={`flex items-center space-x-2 border rounded-xl p-3 cursor-pointer transition-all ${paymentMethod === 'pago_movil_usdt' ? 'border-orange-400 bg-orange-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                <RadioGroupItem value="pago_movil_usdt" id="pago_movil_usdt" />
+                <Label htmlFor="pago_movil_usdt" className="cursor-pointer font-medium text-sm">Pago Móvil → USDT</Label>
               </div>
             </RadioGroup>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-700 font-medium">Dirección de Wallet</Label>
+            <Label className="text-slate-700 font-medium">
+              {['paypal', 'debito_internacional', 'wally', 'zinli', 'wise', 'skrill', 'pago_movil_usdt'].includes(paymentMethod) 
+                ? 'Datos de Pago' 
+                : 'Dirección de Wallet'}
+            </Label>
             <div className="flex gap-2">
               <Input 
-                value={getWalletAddress() || 'No configurada'} 
+                value={getWalletAddress() || 'No configurado'} 
                 readOnly 
                 className="bg-slate-50 font-mono text-sm"
               />
-              <Button variant="outline" size="icon" onClick={copyToClipboard}>
-                <Copy className="h-4 w-4" />
-              </Button>
+              {getWalletAddress() && (
+                <Button variant="outline" size="icon" onClick={copyToClipboard}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
 
