@@ -42,21 +42,44 @@ export default function AdminDelete({ user }) {
   const handleDeletePackage = async (pkg) => {
     setDeleting(true);
     try {
-      // Check if package is in a consolidation
+      // If package is in a consolidation, update the consolidation
       if (pkg.consolidation_id) {
-        const cons = await base44.entities.Consolidation.filter({ id: pkg.consolidation_id });
-        if (cons.length > 0) {
-          toast.error('No se puede eliminar: el paquete está en una consolidación');
-          setDeleting(false);
-          setDeleteDialog({ open: false, type: null, item: null });
-          return;
+        const consolidations = await base44.entities.Consolidation.filter({ id: pkg.consolidation_id });
+        if (consolidations.length > 0) {
+          const cons = consolidations[0];
+          
+          // Remove package from consolidation arrays
+          const updatedPackageIds = (cons.package_ids || []).filter(id => id !== pkg.id);
+          const updatedTrackingNumbers = (cons.tracking_numbers || []).filter(tn => tn !== pkg.tracking_number);
+          
+          // If no packages left, delete the consolidation
+          if (updatedPackageIds.length === 0) {
+            await base44.entities.Consolidation.delete(cons.id);
+            
+            // Delete related invoice if exists
+            const invoices = await base44.entities.Invoice.filter({ consolidation_id: cons.id });
+            for (const invoice of invoices) {
+              await base44.entities.Invoice.delete(invoice.id);
+            }
+            
+            toast.success('Paquete y consolidación vacía eliminados');
+          } else {
+            // Update consolidation to remove this package
+            await base44.entities.Consolidation.update(cons.id, {
+              package_ids: updatedPackageIds,
+              tracking_numbers: updatedTrackingNumbers
+            });
+            toast.success('Paquete eliminado y consolidación actualizada');
+          }
         }
       }
 
+      // Delete the package
       await base44.entities.Package.delete(pkg.id);
-      toast.success('Paquete eliminado exitosamente');
+      
       loadData();
     } catch (error) {
+      console.error('Error deleting package:', error);
       toast.error('Error al eliminar el paquete');
     }
     setDeleting(false);
@@ -68,19 +91,30 @@ export default function AdminDelete({ user }) {
     try {
       // Update packages to remove consolidation reference
       for (const pkgId of (cons.package_ids || [])) {
-        await base44.entities.Package.update(pkgId, { 
-          consolidation_id: null,
-          status: 'recibido'
-        });
+        try {
+          await base44.entities.Package.update(pkgId, { 
+            consolidation_id: null,
+            status: 'recibido'
+          });
+        } catch (err) {
+          console.error('Error updating package:', err);
+        }
       }
 
+      // Delete related invoices
+      const invoices = await base44.entities.Invoice.filter({ consolidation_id: cons.id });
+      for (const invoice of invoices) {
+        await base44.entities.Invoice.delete(invoice.id);
+      }
+
+      // Delete the consolidation
       await base44.entities.Consolidation.delete(cons.id);
       
       // Notify client
       base44.integrations.Core.SendEmail({
         to: cons.client_email,
         subject: '⚠️ Consolidación Cancelada',
-        body: `Tu consolidación ${cons.consolidation_tracking} ha sido cancelada.\n\nTus paquetes han sido devueltos al estado "Recibido" y estarán disponibles para una nueva consolidación.\n\nPor favor contáctanos si tienes dudas.`
+        body: `Tu consolidación ${cons.consolidation_tracking} ha sido cancelada.\n\nTus paquetes han sido devueltos al estado "Recibido" y estarán disponibles para una nueva consolidación.\n\nLas facturas relacionadas también han sido eliminadas.\n\nPor favor contáctanos si tienes dudas.`
       }).catch(err => console.error('Email error:', err));
 
       base44.entities.Notification.create({
@@ -91,9 +125,10 @@ export default function AdminDelete({ user }) {
         icon: 'alert'
       }).catch(err => console.error('Notification error:', err));
 
-      toast.success('Consolidación eliminada y cliente notificado');
+      toast.success('Consolidación, facturas relacionadas eliminadas y cliente notificado');
       loadData();
     } catch (error) {
+      console.error('Error deleting consolidation:', error);
       toast.error('Error al eliminar la consolidación');
     }
     setDeleting(false);
@@ -190,7 +225,7 @@ export default function AdminDelete({ user }) {
                           {pkg.consolidation_id && (
                             <>
                               <span>•</span>
-                              <span className="text-amber-600 font-medium">En consolidación</span>
+                              <span className="text-blue-600 font-medium">En consolidación (se actualizará)</span>
                             </>
                           )}
                         </div>
@@ -279,7 +314,7 @@ export default function AdminDelete({ user }) {
                     <p className="text-sm text-slate-600">{deleteDialog.item?.client_email}</p>
                   </div>
                   {deleteDialog.item?.consolidation_id && (
-                    <p className="text-amber-600 font-medium">⚠️ Este paquete está en una consolidación y no se puede eliminar.</p>
+                    <p className="text-blue-600 font-medium">ℹ️ Este paquete está en una consolidación. Se actualizará automáticamente la consolidación.</p>
                   )}
                 </>
               ) : (
