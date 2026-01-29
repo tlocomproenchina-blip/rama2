@@ -20,11 +20,15 @@ import {
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import EditProfileModal from '@/components/EditProfileModal';
+import ActiveConsolidationsWidget from '@/components/dashboard/ActiveConsolidationsWidget';
+import RecentPaymentsWidget from '@/components/dashboard/RecentPaymentsWidget';
+import DeliveryTimesWidget from '@/components/dashboard/DeliveryTimesWidget';
 import { toast } from 'sonner';
 
 export default function Dashboard({ user, refreshUser }) {
   const [packages, setPackages] = useState([]);
   const [consolidations, setConsolidations] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -36,14 +40,16 @@ export default function Dashboard({ user, refreshUser }) {
   const loadData = async () => {
     if (!user) return;
     
-    const [pkgs, cons, configs] = await Promise.all([
+    const [pkgs, cons, invs, configs] = await Promise.all([
       base44.entities.Package.filter({ client_email: user.email }),
       base44.entities.Consolidation.filter({ client_email: user.email }),
+      base44.entities.Invoice.filter({ client_email: user.email }),
       base44.entities.AppConfig.filter({ config_key: 'main' })
     ]);
     
     setPackages(pkgs);
     setConsolidations(cons);
+    setInvoices(invs);
     if (configs.length > 0) setConfig(configs[0]);
     setLoading(false);
   };
@@ -248,6 +254,15 @@ export default function Dashboard({ user, refreshUser }) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Widgets Section */}
+      {hasShippingMark && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <ActiveConsolidationsWidget consolidations={consolidations} />
+          <RecentPaymentsWidget invoices={invoices} />
+          <DeliveryTimesWidget consolidations={consolidations} />
+        </div>
+      )}
 
       {/* Quick Actions */}
       {hasShippingMark && (
