@@ -52,6 +52,13 @@ export default function NotificationBell({ user }) {
         if (event.data.user_email === user.email) {
           if (event.type === 'create') {
             setNotifications(prev => [event.data, ...prev]);
+            // Show toast notification with sound
+            toast.success(event.data.title, {
+              description: event.data.message,
+              duration: 5000,
+            });
+            // Play notification sound
+            playNotificationSound();
           } else if (event.type === 'update') {
             setNotifications(prev => prev.map(n => n.id === event.id ? event.data : n));
           } else if (event.type === 'delete') {
@@ -63,6 +70,25 @@ export default function NotificationBell({ user }) {
       return unsubscribe;
     }
   }, [user]);
+
+  const playNotificationSound = () => {
+    // Create a simple beep sound using Web Audio API
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  };
 
   const loadNotifications = async () => {
     if (!user) return;
