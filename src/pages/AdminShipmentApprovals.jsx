@@ -1,72 +1,215 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   CheckCircle2, 
   Search, 
   Loader2,
   Package,
   User,
-  Calendar,
   Layers,
   Plane,
   Ship,
-  Clock,
-  Download
+  Download,
+  Weight,
+  Ruler,
+  DollarSign,
+  Calendar,
+  Box,
+  Plus,
+  ArrowLeft
 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from 'sonner';
 
 export default function AdminShipmentApprovals({ user }) {
-  const [consolidations, setConsolidations] = useState([]);
+  const navigate = useNavigate();
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [allPackages, setAllPackages] = useState([]);
+  const [selectedPackages, setSelectedPackages] = useState([]);
+  const [config, setConfig] = useState(null);
+  const [consolidationData, setConsolidationData] = useState({
+    real_weight_kg: '',
+    length_cm: '',
+    width_cm: '',
+    height_cm: '',
+    estimated_delivery: ''
+  });
+  const [processing, setProcessing] = useState(false);
+  const [inputMode, setInputMode] = useState('dimensions');
+  const [directCbm, setDirectCbm] = useState('');
 
   useEffect(() => {
-    loadConsolidations();
+    loadData();
   }, []);
 
-  const loadConsolidations = async () => {
-    const cons = await base44.entities.Consolidation.list('-created_date');
-    setConsolidations(cons);
+  const loadData = async () => {
+    const [reqs, configs] = await Promise.all([
+      base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-created_date'),
+      base44.entities.AppConfig.filter({ config_key: 'main' })
+    ]);
+    
+    setRequests(reqs);
+    if (configs.length > 0) setConfig(configs[0]);
     setLoading(false);
   };
 
-  const filteredConsolidations = consolidations.filter(con => {
-    const searchLower = search.toLowerCase();
-    return (
-      con.consolidation_tracking?.toLowerCase().includes(searchLower) ||
-      con.client_email?.toLowerCase().includes(searchLower) ||
-      con.shipping_mark?.toLowerCase().includes(searchLower) ||
-      con.tracking_numbers?.some(t => t.toLowerCase().includes(searchLower))
+  const selectRequest = async (request) => {
+    setSelectedRequest(request);
+    setSelectedPackages(request.package_ids || []);
+    
+    const pkgs = await base44.entities.Package.filter({ 
+      client_email: request.client_email,
+      status: 'recibido'
+    });
+    setAllPackages(pkgs.filter(p => !p.consolidation_id));
+  };
+
+  const togglePackage = (pkgId) => {
+    setSelectedPackages(prev => 
+      prev.includes(pkgId) 
+        ? prev.filter(id => id !== pkgId)
+        : [...prev, pkgId]
     );
-  });
+  };
 
-  const approved = filteredConsolidations.filter(c => c.shipment_approved && !c.ready_for_dispatch);
-  const pending = filteredConsolidations.filter(c => c.payment_validated && c.ready_for_dispatch && !c.shipment_approved);
-  const readyForDispatch = filteredConsolidations.filter(c => c.ready_for_dispatch && c.shipment_approved);
+  const calculateValues = () => {
+    const { length_cm, width_cm, height_cm, real_weight_kg } = consolidationData;
+    const realWeight = parseFloat(real_weight_kg) || 0;
 
-  const handleMarkReady = async (con) => {
-    try {
-      await base44.entities.Consolidation.update(con.id, {
-        ready_for_dispatch: true
-      });
-      await loadConsolidations();
-    } catch (error) {
-      console.error('Error al marcar como listo:', error);
+    let cbm, volumetricWeight;
+    
+    if (inputMode === 'cbm') {
+      cbm = parseFloat(directCbm) || 0;
+      volumetricWeight = cbm * 166.67;
+    } else {
+      const l = parseFloat(length_cm) || 0;
+      const w = parseFloat(width_cm) || 0;
+      const h = parseFloat(height_cm) || 0;
+      cbm = (l * w * h) / 1000000;
+      volumetricWeight = (l * w * h) / 5000;
     }
+
+    const billableWeight = Math.max(realWeight, volumetricWeight);
+
+    const selectedPkgs = allPackages.filter(p => selectedPackages.includes(p.id));
+    const totalFOB = selectedPkgs.reduce((sum, p) => sum + (p.has_insurance ? (p.fob_value || 0) : 0), 0);
+    const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
+    const hasSensitive = selectedPkgs.some(p => p.has_insurance);
+
+    let shippingCost = 0;
+    if (selectedRequest.shipping_type === 'aereo') {
+      const rate = hasSensitive ? (config?.rate_air_sensitive || 0) : (config?.rate_air_general || 0);
+      shippingCost = billableWeight * rate;
+    } else {
+      const rate = hasSensitive ? (config?.rate_sea_sensitive || 0) : (config?.rate_sea_general || 0);
+      shippingCost = cbm * rate;
+    }
+
+    return {
+      cbm,
+      volumetricWeight,
+      billableWeight,
+      shippingCost,
+      insuranceCost,
+      totalCost: shippingCost + insuranceCost
+    };
+  };
+
+  const handleConsolidate = async () => {
+    if (selectedPackages.length === 0) {
+      toast.error('Selecciona al menos un paquete');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const calcs = calculateValues();
+      const selectedPkgs = allPackages.filter(p => selectedPackages.includes(p.id));
+      const trackingNumbers = selectedPkgs.map(p => p.tracking_number);
+      
+      const date = new Date();
+      const dateStr = `${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const consolidationTracking = `CON-${selectedRequest.shipping_mark || 'TLEC'}-${random}-${dateStr}`;
+
+      const consolidation = await base44.entities.Consolidation.create({
+        consolidation_tracking: consolidationTracking,
+        client_email: selectedRequest.client_email,
+        shipping_mark: selectedRequest.shipping_mark,
+        package_ids: selectedPackages,
+        tracking_numbers: trackingNumbers,
+        shipping_type: selectedRequest.shipping_type,
+        real_weight_kg: parseFloat(consolidationData.real_weight_kg),
+        length_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.length_cm) : 0,
+        width_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.width_cm) : 0,
+        height_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.height_cm) : 0,
+        cbm: calcs.cbm,
+        volumetric_weight: calcs.volumetricWeight,
+        billable_weight: calcs.billableWeight,
+        shipping_cost: calcs.shippingCost,
+        insurance_cost: calcs.insuranceCost,
+        total_cost: calcs.totalCost,
+        estimated_delivery: consolidationData.estimated_delivery,
+        consolidation_period_days: 30,
+        consolidation_request_id: selectedRequest.id,
+        status: 'en_transito'
+      });
+
+      for (const pkgId of selectedPackages) {
+        await base44.entities.Package.update(pkgId, {
+          status: 'consolidado',
+          consolidation_id: consolidation.id
+        });
+      }
+
+      await base44.entities.ConsolidationRequest.update(selectedRequest.id, {
+        status: 'consolidada',
+        consolidation_id: consolidation.id
+      });
+
+      import('@/components/invoice/InvoiceGenerator').then(({ generateInvoice }) => {
+        generateInvoice(consolidation).catch(err => console.error('Invoice error:', err));
+      });
+
+      import('@/components/NotificationUtils').then(({ sendNotification }) => {
+        sendNotification({
+          to: selectedRequest.client_email,
+          subject: '📦 Tu carga ha sido consolidada y enviada',
+          body: `¡Tu carga ha sido consolidada y está en tránsito!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nSe ha generado tu factura. Por favor realiza el pago para que podamos procesar la entrega.`,
+          type: 'consolidation',
+          icon: 'truck',
+          referenceId: consolidation.id
+        });
+      });
+
+      toast.success('Consolidación creada y enviada');
+      setSelectedRequest(null);
+      loadData();
+    } catch (error) {
+      toast.error('Error al consolidar');
+    }
+    setProcessing(false);
   };
 
   const handleExportApproved = () => {
     let exportText = '';
     
-    approved.forEach((con) => {
-      const shippingMark = con.shipping_mark || 'TLEC-NO-MARK';
+    requests.forEach((req) => {
+      const shippingMark = req.shipping_mark || 'TLEC-NO-MARK';
       exportText += `TLEC-${shippingMark}\n`;
       
-      con.tracking_numbers?.forEach((tracking) => {
+      req.tracking_numbers?.forEach((tracking) => {
         exportText += `${tracking}\n`;
       });
       
@@ -77,7 +220,7 @@ export default function AdminShipmentApprovals({ user }) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `aprobaciones-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `consolidaciones-aprobadas-${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
@@ -92,231 +235,361 @@ export default function AdminShipmentApprovals({ user }) {
     );
   }
 
-  const ConsolidationCard = ({ con, showReadyButton = false }) => (
-    <Card className="border-0 shadow-md hover:shadow-lg transition-all">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4 flex-1">
-            <div className="p-3 bg-purple-100 rounded-xl">
-              <Layers className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="flex-1 space-y-2">
-              <div>
-                <h3 className="font-semibold text-slate-800 font-mono text-lg">
-                  {con.consolidation_tracking}
-                </h3>
-                <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                  {con.shipping_type === 'aereo' 
-                    ? <><Plane className="h-4 w-4" /> Aéreo</>
-                    : <><Ship className="h-4 w-4" /> Marítimo</>
-                  }
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <div className="flex items-center gap-2 text-slate-600">
-                  <User className="h-4 w-4" />
-                  <span>{con.client_email}</span>
-                </div>
-                {con.shipping_mark && (
-                  <Badge variant="outline" className="font-mono">
-                    {con.shipping_mark}
-                  </Badge>
-                )}
-              </div>
-
-              {con.shipment_approved && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>Aprobado: {new Date(con.shipment_approved_date).toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</span>
-                </div>
-              )}
-
-              <div className="pt-2">
-                <p className="text-xs text-slate-500 mb-2">Paquetes incluidos:</p>
-                <div className="flex flex-wrap gap-1">
-                  {con.tracking_numbers?.map((tracking) => (
-                    <Badge key={tracking} variant="outline" className="font-mono text-xs">
-                      <Package className="h-3 w-3 mr-1" />
-                      {tracking}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-end gap-2">
-            <div className="text-right">
-              <p className="text-sm text-slate-500">Total</p>
-              <p className="text-xl font-bold text-slate-800">${con.total_cost?.toFixed(2)}</p>
-            </div>
-            {showReadyButton && !con.ready_for_dispatch && (
-              <Button
-                size="sm"
-                onClick={() => handleMarkReady(con)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle2 className="h-4 w-4 mr-1" />
-                Listo para Enviar
-              </Button>
-            )}
-            {con.ready_for_dispatch && (
-              <Badge className="bg-emerald-600">
-                Listo para envío
-              </Badge>
-            )}
+  if (selectedRequest) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedRequest(null)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Consolidar Físicamente</h1>
+            <p className="text-slate-500">Ingresa los detalles de la consolidación física</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
-  );
+
+        {/* Packages Selection */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="border-b">
+            <CardTitle>
+              Paquetes de {selectedRequest.shipping_mark}
+              <p className="text-sm font-normal text-slate-500 mt-1">
+                Puedes agregar más paquetes del mismo cliente si es necesario
+              </p>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {allPackages.map((pkg) => {
+                const isFromRequest = selectedRequest.package_ids?.includes(pkg.id);
+                return (
+                  <div 
+                    key={pkg.id} 
+                    className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${
+                      selectedPackages.includes(pkg.id) ? 'bg-purple-50' : 'hover:bg-slate-50'
+                    }`}
+                    onClick={() => togglePackage(pkg.id)}
+                  >
+                    <Checkbox 
+                      checked={selectedPackages.includes(pkg.id)}
+                      onCheckedChange={() => togglePackage(pkg.id)}
+                    />
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      {pkg.shipping_type === 'aereo' 
+                        ? <Plane className="h-5 w-5 text-blue-600" />
+                        : <Ship className="h-5 w-5 text-blue-600" />
+                      }
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono font-medium">{pkg.tracking_number}</p>
+                        {isFromRequest && (
+                          <Badge className="bg-purple-100 text-purple-700 text-xs">Solicitado</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-500">{pkg.description || 'Sin descripción'}</p>
+                    </div>
+                    {pkg.has_insurance && (
+                      <div className="text-right">
+                        <p className="text-sm text-emerald-600 font-medium">Asegurado</p>
+                        <p className="text-sm text-slate-500">FOB: ${pkg.fob_value}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Consolidation Details */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle>Detalles Físicos de la Consolidación</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label>Método de Ingreso</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setInputMode('dimensions')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    inputMode === 'dimensions'
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <Ruler className={`h-5 w-5 mx-auto mb-1 ${
+                    inputMode === 'dimensions' ? 'text-purple-600' : 'text-slate-400'
+                  }`} />
+                  <span className="text-sm font-medium">Dimensiones</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode('cbm')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    inputMode === 'cbm'
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <Box className={`h-5 w-5 mx-auto mb-1 ${
+                    inputMode === 'cbm' ? 'text-purple-600' : 'text-slate-400'
+                  }`} />
+                  <span className="text-sm font-medium">CBM Total</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Weight className="h-4 w-4" /> Peso Real (kg)
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={consolidationData.real_weight_kg}
+                onChange={(e) => setConsolidationData({ ...consolidationData, real_weight_kg: e.target.value })}
+                placeholder="0.00"
+              />
+            </div>
+
+            {inputMode === 'dimensions' ? (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Ruler className="h-4 w-4" /> Largo (cm)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={consolidationData.length_cm}
+                    onChange={(e) => setConsolidationData({ ...consolidationData, length_cm: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Ancho (cm)</Label>
+                  <Input
+                    type="number"
+                    value={consolidationData.width_cm}
+                    onChange={(e) => setConsolidationData({ ...consolidationData, width_cm: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Alto (cm)</Label>
+                  <Input
+                    type="number"
+                    value={consolidationData.height_cm}
+                    onChange={(e) => setConsolidationData({ ...consolidationData, height_cm: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Box className="h-4 w-4" /> CBM Total (m³)
+                </Label>
+                <Input
+                  type="number"
+                  step="0.0001"
+                  value={directCbm}
+                  onChange={(e) => setDirectCbm(e.target.value)}
+                  placeholder="0.0000"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" /> Fecha Estimada de Entrega
+              </Label>
+              <Input
+                type="date"
+                value={consolidationData.estimated_delivery}
+                onChange={(e) => setConsolidationData({ ...consolidationData, estimated_delivery: e.target.value })}
+              />
+            </div>
+
+            {consolidationData.real_weight_kg && ((inputMode === 'dimensions' && consolidationData.length_cm && consolidationData.width_cm && consolidationData.height_cm) || (inputMode === 'cbm' && directCbm)) && (
+              <Card className="bg-slate-50 border-slate-200">
+                <CardContent className="p-4">
+                  <h4 className="font-semibold mb-4 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-emerald-600" />
+                    Resumen de Costos
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-slate-500">CBM:</span>
+                      <span className="ml-2 font-medium">{calculateValues().cbm.toFixed(4)} m³</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Peso Volumétrico:</span>
+                      <span className="ml-2 font-medium">{calculateValues().volumetricWeight.toFixed(2)} kg</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Peso Facturable:</span>
+                      <span className="ml-2 font-medium">{calculateValues().billableWeight.toFixed(2)} kg</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Costo Envío:</span>
+                      <span className="ml-2 font-medium">${calculateValues().shippingCost.toFixed(2)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Costo Seguro:</span>
+                      <span className="ml-2 font-medium">${calculateValues().insuranceCost.toFixed(2)}</span>
+                    </div>
+                    <div className="col-span-2 pt-2 border-t mt-2">
+                      <span className="text-lg font-bold">Total:</span>
+                      <span className="ml-2 text-lg font-bold text-emerald-600">${calculateValues().totalCost.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end">
+          <Button 
+            onClick={handleConsolidate}
+            disabled={processing || !consolidationData.real_weight_kg || (inputMode === 'dimensions' ? !consolidationData.length_cm : !directCbm)}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            {processing ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Consolidando...</>
+            ) : (
+              <><CheckCircle2 className="h-4 w-4 mr-2" /> Consolidar y Enviar</>
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const filteredRequests = requests.filter(req => {
+    const searchLower = search.toLowerCase();
+    return (
+      req.client_email?.toLowerCase().includes(searchLower) ||
+      req.shipping_mark?.toLowerCase().includes(searchLower) ||
+      req.tracking_numbers?.some(t => t.toLowerCase().includes(searchLower))
+    );
+  });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Aprobaciones de Despacho</h1>
-        <p className="text-slate-500">Gestiona las aprobaciones de envío de clientes</p>
+        <h1 className="text-2xl font-bold text-slate-800">Consolidaciones Aprobadas</h1>
+        <p className="text-slate-500">Solicitudes listas para consolidar físicamente en el depósito</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="border-0 shadow-md bg-gradient-to-br from-yellow-50 to-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Pendientes</p>
-                <p className="text-3xl font-bold text-slate-800">{pending.length}</p>
-              </div>
-              <div className="p-3 bg-yellow-100 rounded-xl">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
+      <Card className="border-0 shadow-md bg-gradient-to-br from-green-50 to-white">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-500">Pendientes de Consolidar</p>
+              <p className="text-3xl font-bold text-slate-800">{requests.length}</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md bg-gradient-to-br from-green-50 to-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Aprobadas</p>
-                <p className="text-3xl font-bold text-slate-800">{approved.length}</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-xl">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
-              </div>
+            <div className="p-3 bg-green-100 rounded-xl">
+              <Layers className="h-6 w-6 text-green-600" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Listas para Enviar</p>
-                <p className="text-3xl font-bold text-slate-800">{readyForDispatch.length}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <Layers className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search */}
-      <Card className="border-0 shadow-md">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Buscar por tracking, cliente, shipping mark..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Tabs defaultValue="approved" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="approved" className="gap-2">
-            <CheckCircle2 className="h-4 w-4" />
-            Aprobadas ({approved.length})
-          </TabsTrigger>
-          <TabsTrigger value="pending" className="gap-2">
-            <Clock className="h-4 w-4" />
-            Pendientes ({pending.length})
-          </TabsTrigger>
-          <TabsTrigger value="ready" className="gap-2">
-            <Layers className="h-4 w-4" />
-            Listas ({readyForDispatch.length})
-          </TabsTrigger>
-        </TabsList>
+      <Card className="border-0 shadow-md">
+        <CardContent className="p-4">
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar por cliente, shipping mark, tracking..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            {requests.length > 0 && (
+              <Button
+                onClick={handleExportApproved}
+                variant="outline"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Exportar
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="approved" className="space-y-4">
-          {approved.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-12 text-center">
-                <CheckCircle2 className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin aprobaciones</h3>
-                <p className="text-slate-500">No hay consolidaciones aprobadas</p>
+      <div className="space-y-4">
+        {filteredRequests.length === 0 ? (
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-12 text-center">
+              <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin consolidaciones pendientes</h3>
+              <p className="text-slate-500">No hay solicitudes aprobadas para consolidar</p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredRequests.map((req) => (
+            <Card key={req.id} className="border-0 shadow-md hover:shadow-lg transition-all">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="p-3 bg-green-100 rounded-xl">
+                      <Layers className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <User className="h-4 w-4 text-slate-400" />
+                          <p className="font-medium text-slate-800">{req.client_email}</p>
+                        </div>
+                        <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                        {req.shipping_type === 'aereo' 
+                          ? <><Plane className="h-4 w-4" /> Aéreo</>
+                          : <><Ship className="h-4 w-4" /> Marítimo</>
+                        }
+                        <span className="flex items-center gap-1">
+                          <Package className="h-4 w-4" />
+                          {req.tracking_numbers?.length || 0} paquetes
+                        </span>
+                      </div>
+
+                      <div className="pt-2">
+                        <p className="text-xs text-slate-500 mb-2">Paquetes:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {req.tracking_numbers?.map((tracking) => (
+                            <Badge key={tracking} variant="outline" className="font-mono text-xs">
+                              <Package className="h-3 w-3 mr-1" />
+                              {tracking}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => selectRequest(req)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Layers className="h-4 w-4 mr-2" />
+                    Consolidar
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          ) : (
-            <>
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleExportApproved}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Exportar Aprobadas
-                </Button>
-              </div>
-              {approved.map((con) => <ConsolidationCard key={con.id} con={con} showReadyButton />)}
-            </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="pending" className="space-y-4">
-          {pending.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-12 text-center">
-                <Clock className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin pendientes</h3>
-                <p className="text-slate-500">No hay consolidaciones pendientes de aprobación</p>
-              </CardContent>
-            </Card>
-          ) : (
-            pending.map((con) => <ConsolidationCard key={con.id} con={con} />)
-          )}
-        </TabsContent>
-
-        <TabsContent value="ready" className="space-y-4">
-          {readyForDispatch.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-12 text-center">
-                <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin envíos listos</h3>
-                <p className="text-slate-500">No hay consolidaciones marcadas como listas para enviar</p>
-              </CardContent>
-            </Card>
-          ) : (
-            readyForDispatch.map((con) => <ConsolidationCard key={con.id} con={con} />)
-          )}
-        </TabsContent>
-      </Tabs>
+          ))
+        )}
+      </div>
     </div>
   );
 }

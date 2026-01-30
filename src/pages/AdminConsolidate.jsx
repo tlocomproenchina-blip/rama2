@@ -4,9 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { 
   Layers, 
@@ -14,200 +11,76 @@ import {
   ArrowLeft,
   Plane,
   Ship,
-  Calendar,
-  Weight,
-  Ruler,
-  DollarSign,
   Loader2,
   CheckCircle,
-  Box,
-  Plus,
-  Trash2
+  User,
+  Clock
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 
 export default function AdminConsolidate({ user }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [allPackages, setAllPackages] = useState([]);
-  const [selectedPackages, setSelectedPackages] = useState([]);
-  const [config, setConfig] = useState(null);
-  const [step, setStep] = useState(1); // 1: requests list, 2: add packages, 3: details
-  const [consolidationData, setConsolidationData] = useState({
-    shipping_type: 'aereo',
-    real_weight_kg: '',
-    length_cm: '',
-    width_cm: '',
-    height_cm: '',
-    estimated_delivery: ''
-  });
-  const [processing, setProcessing] = useState(false);
-  const [inputMode, setInputMode] = useState('dimensions');
-  const [directCbm, setDirectCbm] = useState('');
+  const [processing, setProcessing] = useState(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [reqs, configs] = await Promise.all([
-      base44.entities.ConsolidationRequest.filter({ status: 'pendiente' }, '-created_date'),
-      base44.entities.AppConfig.filter({ config_key: 'main' })
-    ]);
+    const reqs = await base44.entities.ConsolidationRequest.filter({ 
+      status: 'pendiente' 
+    }, '-created_date');
     
     setRequests(reqs);
-    if (configs.length > 0) setConfig(configs[0]);
     setLoading(false);
   };
 
-  const selectRequest = async (request) => {
-    setSelectedRequest(request);
-    setSelectedPackages(request.package_ids || []);
-    setConsolidationData({
-      shipping_type: request.shipping_type,
-      real_weight_kg: '',
-      length_cm: '',
-      width_cm: '',
-      height_cm: '',
-      estimated_delivery: ''
-    });
-
-    // Load all packages from this client
-    const pkgs = await base44.entities.Package.filter({ 
-      client_email: request.client_email,
-      status: 'recibido'
-    });
-    setAllPackages(pkgs.filter(p => !p.consolidation_id));
-    setStep(2);
-  };
-
-  const togglePackage = (pkgId) => {
-    setSelectedPackages(prev => 
-      prev.includes(pkgId) 
-        ? prev.filter(id => id !== pkgId)
-        : [...prev, pkgId]
-    );
-  };
-
-  const calculateValues = () => {
-    const { length_cm, width_cm, height_cm, real_weight_kg } = consolidationData;
-    const realWeight = parseFloat(real_weight_kg) || 0;
-
-    let cbm, volumetricWeight;
-    
-    if (inputMode === 'cbm') {
-      cbm = parseFloat(directCbm) || 0;
-      volumetricWeight = cbm * 166.67;
-    } else {
-      const l = parseFloat(length_cm) || 0;
-      const w = parseFloat(width_cm) || 0;
-      const h = parseFloat(height_cm) || 0;
-      cbm = (l * w * h) / 1000000;
-      volumetricWeight = (l * w * h) / 5000;
-    }
-
-    const billableWeight = Math.max(realWeight, volumetricWeight);
-
-    const selectedPkgs = allPackages.filter(p => selectedPackages.includes(p.id));
-    const totalFOB = selectedPkgs.reduce((sum, p) => sum + (p.has_insurance ? (p.fob_value || 0) : 0), 0);
-    const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
-    const hasSensitive = selectedPkgs.some(p => p.has_insurance);
-
-    let shippingCost = 0;
-    if (consolidationData.shipping_type === 'aereo') {
-      const rate = hasSensitive ? (config?.rate_air_sensitive || 0) : (config?.rate_air_general || 0);
-      shippingCost = billableWeight * rate;
-    } else {
-      const rate = hasSensitive ? (config?.rate_sea_sensitive || 0) : (config?.rate_sea_general || 0);
-      shippingCost = cbm * rate;
-    }
-
-    return {
-      cbm,
-      volumetricWeight,
-      billableWeight,
-      shippingCost,
-      insuranceCost,
-      totalCost: shippingCost + insuranceCost
-    };
-  };
-
-  const handleConsolidate = async () => {
-    if (selectedPackages.length === 0) {
-      toast.error('Selecciona al menos un paquete');
-      return;
-    }
-
-    setProcessing(true);
+  const handleApprove = async (request) => {
+    setProcessing(request.id);
     try {
-      const calcs = calculateValues();
-      const selectedPkgs = allPackages.filter(p => selectedPackages.includes(p.id));
-      const trackingNumbers = selectedPkgs.map(p => p.tracking_number);
-      
-      const date = new Date();
-      const dateStr = `${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
-      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const consolidationTracking = `CON-${selectedRequest.shipping_mark || 'TLEC'}-${random}-${dateStr}`;
-
-      const consolidation = await base44.entities.Consolidation.create({
-        consolidation_tracking: consolidationTracking,
-        client_email: selectedRequest.client_email,
-        shipping_mark: selectedRequest.shipping_mark,
-        package_ids: selectedPackages,
-        tracking_numbers: trackingNumbers,
-        shipping_type: consolidationData.shipping_type,
-        real_weight_kg: parseFloat(consolidationData.real_weight_kg),
-        length_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.length_cm) : 0,
-        width_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.width_cm) : 0,
-        height_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.height_cm) : 0,
-        cbm: calcs.cbm,
-        volumetric_weight: calcs.volumetricWeight,
-        billable_weight: calcs.billableWeight,
-        shipping_cost: calcs.shippingCost,
-        insurance_cost: calcs.insuranceCost,
-        total_cost: calcs.totalCost,
-        estimated_delivery: consolidationData.estimated_delivery,
-        consolidation_period_days: 30,
-        status: 'pendiente_pago'
+      await base44.entities.ConsolidationRequest.update(request.id, {
+        status: 'aprobada',
+        approved_by: user.email,
+        approved_date: new Date().toISOString()
       });
 
-      for (const pkgId of selectedPackages) {
-        await base44.entities.Package.update(pkgId, {
-          status: 'consolidado',
-          consolidation_id: consolidation.id
-        });
-      }
-
-      await base44.entities.ConsolidationRequest.update(selectedRequest.id, {
-        status: 'completada',
-        consolidation_id: consolidation.id
-      });
-
-      import('@/components/invoice/InvoiceGenerator').then(({ generateInvoice }) => {
-        generateInvoice(consolidation).catch(err => console.error('Invoice error:', err));
-      });
-
+      // Notify client
       import('@/components/NotificationUtils').then(({ sendNotification }) => {
         sendNotification({
-          to: selectedRequest.client_email,
-          subject: '📦 Tu carga ha sido consolidada',
-          body: `¡Tu solicitud de consolidación ha sido procesada!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nSe ha generado tu factura. Ingresa al sistema para realizar el pago.`,
-          type: 'consolidation',
-          icon: 'package',
-          referenceId: consolidation.id
+          to: request.client_email,
+          subject: '✅ Solicitud de consolidación aprobada',
+          body: `Tu solicitud de consolidación ha sido aprobada por el equipo.\n\nShipping Mark: ${request.shipping_mark}\nPaquetes: ${request.tracking_numbers?.length || 0}\n\nEn breve procederemos a consolidar tu carga físicamente.`,
+          type: 'general',
+          icon: 'check',
+          referenceId: request.id
         });
       });
 
-      toast.success('Consolidación creada exitosamente');
-      navigate(createPageUrl('AdminDashboard'));
+      toast.success('Solicitud aprobada');
+      loadData();
     } catch (error) {
-      toast.error('Error al crear consolidación');
+      toast.error('Error al aprobar solicitud');
     }
-    setProcessing(false);
+    setProcessing(null);
+  };
+
+  const handleReject = async (request) => {
+    if (!confirm('¿Estás seguro de cancelar esta solicitud?')) return;
+
+    setProcessing(request.id);
+    try {
+      await base44.entities.ConsolidationRequest.update(request.id, {
+        status: 'cancelada'
+      });
+
+      toast.success('Solicitud cancelada');
+      loadData();
+    } catch (error) {
+      toast.error('Error al cancelar solicitud');
+    }
+    setProcessing(null);
   };
 
   if (loading) {
@@ -220,339 +93,121 @@ export default function AdminConsolidate({ user }) {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center gap-4">
-        {step > 1 && (
-          <Button variant="ghost" size="icon" onClick={() => setStep(1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        )}
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Procesar Consolidaciones</h1>
-          <p className="text-slate-500">
-            {step === 1 && 'Solicitudes pendientes de los clientes'}
-            {step === 2 && 'Revisar y agregar paquetes'}
-            {step === 3 && 'Ingresar detalles de la consolidación'}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Aprobar Solicitudes de Consolidación</h1>
+        <p className="text-slate-500">Revisa y aprueba las solicitudes de los clientes</p>
       </div>
 
-      {/* Step 1: Requests List */}
-      {step === 1 && (
-        <div className="space-y-4">
-          {requests.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-12 text-center">
-                <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin solicitudes pendientes</h3>
-                <p className="text-slate-500">No hay solicitudes de consolidación por procesar</p>
-              </CardContent>
-            </Card>
-          ) : (
-            requests.map((req) => (
-              <Card key={req.id} className="border-0 shadow-md hover:shadow-lg transition-all">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="p-3 bg-purple-100 rounded-xl">
-                        <Layers className="h-6 w-6 text-purple-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <p className="font-medium text-slate-800">{req.client_email}</p>
-                          <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-sm text-slate-500">
-                          <span className="flex items-center gap-1">
-                            <Package className="h-4 w-4" />
-                            {req.tracking_numbers?.length || 0} paquetes
-                          </span>
-                          <span className="flex items-center gap-1">
-                            {req.shipping_type === 'aereo' ? <Plane className="h-4 w-4" /> : <Ship className="h-4 w-4" />}
-                            {req.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}
-                          </span>
-                          <span>{req.consolidation_period_days} días</span>
-                        </div>
-                        {req.notes && (
-                          <p className="text-sm text-slate-600 mt-2 italic">"{req.notes}"</p>
-                        )}
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={() => selectRequest(req)}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      Procesar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      )}
+      {/* Stats */}
+      <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-white">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-500">Solicitudes Pendientes</p>
+              <p className="text-3xl font-bold text-slate-800">{requests.length}</p>
+            </div>
+            <div className="p-3 bg-purple-100 rounded-xl">
+              <Clock className="h-6 w-6 text-purple-600" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Step 2: Package Selection */}
-      {step === 2 && selectedRequest && (
-        <div className="space-y-4">
+      {/* Requests List */}
+      <div className="space-y-4">
+        {requests.length === 0 ? (
           <Card className="border-0 shadow-lg">
-            <CardHeader className="border-b">
-              <CardTitle>
-                Paquetes de {selectedRequest.shipping_mark}
-                <p className="text-sm font-normal text-slate-500 mt-1">
-                  Puedes agregar más paquetes del mismo cliente
-                </p>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {allPackages.map((pkg) => {
-                  const isFromRequest = selectedRequest.package_ids?.includes(pkg.id);
-                  return (
-                    <div 
-                      key={pkg.id} 
-                      className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${
-                        selectedPackages.includes(pkg.id) ? 'bg-purple-50' : 'hover:bg-slate-50'
-                      }`}
-                      onClick={() => togglePackage(pkg.id)}
-                    >
-                      <Checkbox 
-                        checked={selectedPackages.includes(pkg.id)}
-                        onCheckedChange={() => togglePackage(pkg.id)}
-                      />
-                      <div className="p-2 bg-slate-100 rounded-lg">
-                        {pkg.shipping_type === 'aereo' 
-                          ? <Plane className="h-5 w-5 text-blue-600" />
-                          : <Ship className="h-5 w-5 text-blue-600" />
-                        }
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-mono font-medium">{pkg.tracking_number}</p>
-                          {isFromRequest && (
-                            <Badge className="bg-purple-100 text-purple-700 text-xs">Solicitado</Badge>
-                          )}
+            <CardContent className="p-12 text-center">
+              <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin solicitudes pendientes</h3>
+              <p className="text-slate-500">No hay solicitudes de consolidación por aprobar</p>
+            </CardContent>
+          </Card>
+        ) : (
+          requests.map((req) => (
+            <Card key={req.id} className="border-0 shadow-md hover:shadow-lg transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="p-3 bg-purple-100 rounded-xl">
+                      <Layers className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <User className="h-4 w-4 text-slate-400" />
+                          <p className="font-medium text-slate-800">{req.client_email}</p>
                         </div>
-                        <p className="text-sm text-slate-500">{pkg.description || 'Sin descripción'}</p>
+                        <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
                       </div>
-                      {pkg.has_insurance && (
-                        <div className="text-right">
-                          <p className="text-sm text-emerald-600 font-medium">Asegurado</p>
-                          <p className="text-sm text-slate-500">FOB: ${pkg.fob_value}</p>
+
+                      <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                        <div className="flex items-center gap-2">
+                          {req.shipping_type === 'aereo' 
+                            ? <><Plane className="h-4 w-4" /> Aéreo</>
+                            : <><Ship className="h-4 w-4" /> Marítimo</>
+                          }
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          {req.tracking_numbers?.length || 0} paquetes
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          {new Date(req.created_date).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      </div>
+
+                      {req.notes && (
+                        <div className="bg-slate-50 rounded-lg p-3">
+                          <p className="text-sm text-slate-600 italic">"{req.notes}"</p>
                         </div>
                       )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
 
-          <div className="flex justify-end">
-            <Button 
-              onClick={() => setStep(3)} 
-              disabled={selectedPackages.length === 0}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              Continuar ({selectedPackages.length} paquetes)
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Consolidation Details */}
-      {step === 3 && (
-        <div className="space-y-6">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Detalles de la Consolidación</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Tipo de Envío</Label>
-                <Select 
-                  value={consolidationData.shipping_type}
-                  onValueChange={(val) => setConsolidationData({ ...consolidationData, shipping_type: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="aereo">
-                      <div className="flex items-center gap-2">
-                        <Plane className="h-4 w-4" /> Aéreo
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="maritimo">
-                      <div className="flex items-center gap-2">
-                        <Ship className="h-4 w-4" /> Marítimo
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Método de Ingreso</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setInputMode('dimensions')}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      inputMode === 'dimensions'
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <Ruler className={`h-5 w-5 mx-auto mb-1 ${
-                      inputMode === 'dimensions' ? 'text-purple-600' : 'text-slate-400'
-                    }`} />
-                    <span className="text-sm font-medium">Dimensiones</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setInputMode('cbm')}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      inputMode === 'cbm'
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <Box className={`h-5 w-5 mx-auto mb-1 ${
-                      inputMode === 'cbm' ? 'text-purple-600' : 'text-slate-400'
-                    }`} />
-                    <span className="text-sm font-medium">CBM Total</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Weight className="h-4 w-4" /> Peso Real (kg)
-                </Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={consolidationData.real_weight_kg}
-                  onChange={(e) => setConsolidationData({ ...consolidationData, real_weight_kg: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-
-              {inputMode === 'dimensions' ? (
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Ruler className="h-4 w-4" /> Largo (cm)
-                    </Label>
-                    <Input
-                      type="number"
-                      value={consolidationData.length_cm}
-                      onChange={(e) => setConsolidationData({ ...consolidationData, length_cm: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Ancho (cm)</Label>
-                    <Input
-                      type="number"
-                      value={consolidationData.width_cm}
-                      onChange={(e) => setConsolidationData({ ...consolidationData, width_cm: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Alto (cm)</Label>
-                    <Input
-                      type="number"
-                      value={consolidationData.height_cm}
-                      onChange={(e) => setConsolidationData({ ...consolidationData, height_cm: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Box className="h-4 w-4" /> CBM Total (m³)
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    value={directCbm}
-                    onChange={(e) => setDirectCbm(e.target.value)}
-                    placeholder="0.0000"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" /> Fecha Estimada de Entrega
-                </Label>
-                <Input
-                  type="date"
-                  value={consolidationData.estimated_delivery}
-                  onChange={(e) => setConsolidationData({ ...consolidationData, estimated_delivery: e.target.value })}
-                />
-              </div>
-
-              {consolidationData.real_weight_kg && ((inputMode === 'dimensions' && consolidationData.length_cm && consolidationData.width_cm && consolidationData.height_cm) || (inputMode === 'cbm' && directCbm)) && (
-                <Card className="bg-slate-50 border-slate-200">
-                  <CardContent className="p-4">
-                    <h4 className="font-semibold mb-4 flex items-center gap-2">
-                      <DollarSign className="h-5 w-5 text-emerald-600" />
-                      Resumen de Costos
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-slate-500">CBM:</span>
-                        <span className="ml-2 font-medium">{calculateValues().cbm.toFixed(4)} m³</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Peso Volumétrico:</span>
-                        <span className="ml-2 font-medium">{calculateValues().volumetricWeight.toFixed(2)} kg</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Peso Facturable:</span>
-                        <span className="ml-2 font-medium">{calculateValues().billableWeight.toFixed(2)} kg</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Costo Envío:</span>
-                        <span className="ml-2 font-medium">${calculateValues().shippingCost.toFixed(2)}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Costo Seguro:</span>
-                        <span className="ml-2 font-medium">${calculateValues().insuranceCost.toFixed(2)}</span>
-                      </div>
-                      <div className="col-span-2 pt-2 border-t mt-2">
-                        <span className="text-lg font-bold">Total:</span>
-                        <span className="ml-2 text-lg font-bold text-emerald-600">${calculateValues().totalCost.toFixed(2)}</span>
+                      <div className="pt-2">
+                        <p className="text-xs text-slate-500 mb-2">Trackings solicitados:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {req.tracking_numbers?.map((tracking) => (
+                            <Badge key={tracking} variant="outline" className="font-mono text-xs">
+                              {tracking}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
 
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(2)}>
-              <ArrowLeft className="h-4 w-4 mr-2" /> Atrás
-            </Button>
-            <Button 
-              onClick={handleConsolidate}
-              disabled={processing || !consolidationData.real_weight_kg || (inputMode === 'dimensions' ? !consolidationData.length_cm : !directCbm)}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {processing ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando...</>
-              ) : (
-                <><CheckCircle className="h-4 w-4 mr-2" /> Crear Consolidación</>
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={() => handleApprove(req)}
+                      disabled={processing === req.id}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {processing === req.id ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Aprobando...</>
+                      ) : (
+                        <><CheckCircle className="h-4 w-4 mr-2" /> Aprobar</>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleReject(req)}
+                      disabled={processing === req.id}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
 }

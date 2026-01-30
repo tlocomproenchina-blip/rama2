@@ -74,10 +74,10 @@ import MyInvoices from './pages/MyInvoices';
 import MyPackages from './pages/MyPackages';
 import PreAlert from './pages/PreAlert';
 import Rates from './pages/Rates';
+import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import RequestConsolidation from './pages/RequestConsolidation';
 import __Layout from './Layout.jsx';
 
 
@@ -109,10 +109,10 @@ export const PAGES = {
     "MyPackages": MyPackages,
     "PreAlert": PreAlert,
     "Rates": Rates,
+    "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "RequestConsolidation": RequestConsolidation,
 }
 
 export const pagesConfig = {
