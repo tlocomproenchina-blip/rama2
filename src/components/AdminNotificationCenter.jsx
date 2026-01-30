@@ -108,14 +108,10 @@ export default function AdminNotificationCenter({ user }) {
 
   const saveNotification = async (title, message, type, icon, referenceId) => {
     try {
-      // Get all admins
-      const allUsers = await base44.entities.User.list();
-      const admins = allUsers.filter(u => u.role === 'admin');
-
-      // Save notification for each admin
-      for (const admin of admins) {
+      // Save notification only for current user
+      if (user?.email) {
         await base44.entities.Notification.create({
-          user_email: admin.email,
+          user_email: user.email,
           title,
           message,
           type,
