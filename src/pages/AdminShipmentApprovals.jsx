@@ -45,8 +45,8 @@ export default function AdminShipmentApprovals({ user }) {
   });
 
   const approved = filteredConsolidations.filter(c => c.shipment_approved && !c.ready_for_dispatch);
-  const pending = filteredConsolidations.filter(c => c.payment_validated && !c.shipment_approved);
-  const readyForDispatch = filteredConsolidations.filter(c => c.ready_for_dispatch);
+  const pending = filteredConsolidations.filter(c => c.payment_validated && c.ready_for_dispatch && !c.shipment_approved);
+  const readyForDispatch = filteredConsolidations.filter(c => c.ready_for_dispatch && c.shipment_approved);
 
   const handleMarkReady = async (con) => {
     try {
