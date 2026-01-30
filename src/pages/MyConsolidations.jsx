@@ -16,7 +16,9 @@ import {
   ChevronUp,
   Weight,
   Ruler,
-  RefreshCw
+  RefreshCw,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import PaymentModal from '@/components/PaymentModal';
@@ -46,6 +48,22 @@ export default function MyConsolidations({ user }) {
 
   const isPending = (con) => {
     return con.status === 'pago_pendiente_validacion';
+  };
+
+  const canApproveShipment = (con) => {
+    return con.payment_validated && !con.shipment_approved && con.status !== 'en_transito' && con.status !== 'disponible' && con.status !== 'entregado';
+  };
+
+  const handleApproveShipment = async (con) => {
+    try {
+      await base44.entities.Consolidation.update(con.id, {
+        shipment_approved: true,
+        shipment_approved_date: new Date().toISOString()
+      });
+      await loadConsolidations();
+    } catch (error) {
+      console.error('Error al aprobar despacho:', error);
+    }
   };
 
   const handleRefresh = async () => {
@@ -208,8 +226,8 @@ export default function MyConsolidations({ user }) {
                       </div>
                     </div>
 
-                    {/* Payment Section */}
-                    <div className="mt-6 pt-4 border-t border-slate-100">
+                    {/* Payment & Approval Section */}
+                    <div className="mt-6 pt-4 border-t border-slate-100 space-y-3">
                       {canPay(con) && (
                         <Button 
                           className="w-full lg:w-auto bg-emerald-600 hover:bg-emerald-700"
@@ -225,6 +243,34 @@ export default function MyConsolidations({ user }) {
                           <div>
                             <p className="font-medium text-yellow-800">Pago reportado, en espera de validación</p>
                             <p className="text-sm text-yellow-700">Te notificaremos cuando sea verificado</p>
+                          </div>
+                        </div>
+                      )}
+                      {canApproveShipment(con) && (
+                        <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-blue-800">Tu consolidación está lista para despacho</p>
+                              <p className="text-sm text-blue-700">Aprueba el envío desde China</p>
+                            </div>
+                            <Button
+                              onClick={() => handleApproveShipment(con)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Aprobar Despacho
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      {con.shipment_approved && (
+                        <div className="flex items-center gap-3 p-4 bg-green-50 rounded-xl border border-green-200">
+                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          <div>
+                            <p className="font-medium text-green-800">Despacho aprobado</p>
+                            <p className="text-sm text-green-700">
+                              Aprobado el {new Date(con.shipment_approved_date).toLocaleDateString('es-ES')}
+                            </p>
                           </div>
                         </div>
                       )}

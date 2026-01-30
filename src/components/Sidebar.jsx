@@ -21,7 +21,8 @@ import {
   HelpCircle,
   BarChart3,
   Tag,
-  TrendingUp } from
+  TrendingUp,
+  CheckCircle2 } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -49,6 +50,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Reportes', page: 'AdminReports', icon: BarChart3, permission: 'view_packages' },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package, permission: 'view_packages' },
   { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers, permission: 'consolidate' },
+  { name: 'Aprobaciones', page: 'AdminShipmentApprovals', icon: CheckCircle2, permission: 'consolidate' },
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText, permission: 'validate_payments' },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
   { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle, permission: 'validate_payments' },

@@ -76,6 +76,7 @@ import Support from './pages/Support';
 import AdminPromotions from './pages/AdminPromotions';
 import AdminMarketing from './pages/AdminMarketing';
 import EmployeeDashboard from './pages/EmployeeDashboard';
+import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import __Layout from './Layout.jsx';
 
 
@@ -109,6 +110,7 @@ export const PAGES = {
     "AdminPromotions": AdminPromotions,
     "AdminMarketing": AdminMarketing,
     "EmployeeDashboard": EmployeeDashboard,
+    "AdminShipmentApprovals": AdminShipmentApprovals,
 }
 
 export const pagesConfig = {
