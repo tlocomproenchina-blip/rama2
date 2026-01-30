@@ -54,15 +54,18 @@ import AdminDelete from './pages/AdminDelete';
 import AdminFAQ from './pages/AdminFAQ';
 import AdminInsured from './pages/AdminInsured';
 import AdminInvoices from './pages/AdminInvoices';
+import AdminMarketing from './pages/AdminMarketing';
 import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
 import AdminPermissions from './pages/AdminPermissions';
+import AdminPromotions from './pages/AdminPromotions';
 import AdminReports from './pages/AdminReports';
 import AdminSettings from './pages/AdminSettings';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
 import Dashboard from './pages/Dashboard';
+import EmployeeDashboard from './pages/EmployeeDashboard';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
@@ -73,9 +76,6 @@ import Rates from './pages/Rates';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminPromotions from './pages/AdminPromotions';
-import AdminMarketing from './pages/AdminMarketing';
-import EmployeeDashboard from './pages/EmployeeDashboard';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import __Layout from './Layout.jsx';
 
@@ -88,15 +88,18 @@ export const PAGES = {
     "AdminFAQ": AdminFAQ,
     "AdminInsured": AdminInsured,
     "AdminInvoices": AdminInvoices,
+    "AdminMarketing": AdminMarketing,
     "AdminPackages": AdminPackages,
     "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPayments": AdminPayments,
     "AdminPermissions": AdminPermissions,
+    "AdminPromotions": AdminPromotions,
     "AdminReports": AdminReports,
     "AdminSettings": AdminSettings,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
     "Dashboard": Dashboard,
+    "EmployeeDashboard": EmployeeDashboard,
     "FAQ": FAQ,
     "Home": Home,
     "MyConsolidations": MyConsolidations,
@@ -107,9 +110,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminPromotions": AdminPromotions,
-    "AdminMarketing": AdminMarketing,
-    "EmployeeDashboard": EmployeeDashboard,
     "AdminShipmentApprovals": AdminShipmentApprovals,
 }
 

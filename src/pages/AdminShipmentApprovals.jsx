@@ -14,7 +14,8 @@ import {
   Layers,
   Plane,
   Ship,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -56,6 +57,31 @@ export default function AdminShipmentApprovals({ user }) {
     } catch (error) {
       console.error('Error al marcar como listo:', error);
     }
+  };
+
+  const handleExportApproved = () => {
+    let exportText = '';
+    
+    approved.forEach((con) => {
+      const shippingMark = con.shipping_mark || 'TLEC-NO-MARK';
+      exportText += `TLEC-${shippingMark}\n`;
+      
+      con.tracking_numbers?.forEach((tracking) => {
+        exportText += `${tracking}\n`;
+      });
+      
+      exportText += '\n';
+    });
+
+    const blob = new Blob([exportText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `aprobaciones-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
   };
 
   if (loading) {
@@ -247,7 +273,19 @@ export default function AdminShipmentApprovals({ user }) {
               </CardContent>
             </Card>
           ) : (
-            approved.map((con) => <ConsolidationCard key={con.id} con={con} showReadyButton />)
+            <>
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleExportApproved}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar Aprobadas
+                </Button>
+              </div>
+              {approved.map((con) => <ConsolidationCard key={con.id} con={con} showReadyButton />)}
+            </>
           )}
         </TabsContent>
 
