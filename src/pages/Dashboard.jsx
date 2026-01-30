@@ -57,10 +57,10 @@ export default function Dashboard({ user, refreshUser }) {
     if (!user) return;
     
     const [pkgs, cons, invs, configs] = await Promise.all([
-      base44.entities.Package.filter({ client_email: user.email }),
-      base44.entities.Consolidation.filter({ client_email: user.email }),
-      base44.entities.Invoice.filter({ client_email: user.email }),
-      base44.entities.AppConfig.filter({ config_key: 'main' })
+      base44.entities.Package.list('-created_date'),
+      base44.entities.Consolidation.list('-created_date'),
+      base44.entities.Invoice.list('-created_date'),
+      base44.entities.AppConfig.list()
     ]);
     
     setPackages(pkgs);

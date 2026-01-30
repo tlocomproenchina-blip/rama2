@@ -45,7 +45,6 @@ export default function MyPackages({ user }) {
     if (!user) return;
     try {
       const pkgs = await base44.entities.Package.list('-created_date');
-      console.log('Packages loaded:', pkgs.length, 'for user:', user.email);
       setPackages(pkgs);
     } catch (error) {
       console.error('Error loading packages:', error);
