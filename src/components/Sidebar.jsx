@@ -81,6 +81,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       return employeeMenuItems.filter(item => {
         const permissionMap = {
           'AdminPackages': 'view_packages',
+          'AdminClients': 'view_clients',
           'AdminConsolidate': 'consolidate'
         };
         const requiredPerm = permissionMap[item.page];

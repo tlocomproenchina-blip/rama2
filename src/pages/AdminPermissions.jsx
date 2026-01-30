@@ -27,6 +27,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const PERMISSIONS = [
   { key: 'view_packages', label: 'Ver Paquetes', icon: Package, description: 'Puede ver todos los paquetes' },
+  { key: 'view_clients', label: 'Ver Clientes', icon: Users, description: 'Puede ver todos los clientes' },
   { key: 'consolidate', label: 'Consolidar Cargas', icon: Layers, description: 'Puede crear consolidaciones' },
   { key: 'validate_payments', label: 'Validar Pagos', icon: CreditCard, description: 'Puede validar y rechazar pagos' },
   { key: 'view_rates', label: 'Ver Tarifas', icon: DollarSign, description: 'Puede ver las tarifas configuradas' },
@@ -92,6 +93,7 @@ export default function AdminPermissions({ user }) {
         role: 'user',
         admin_permissions: {
           view_packages: true,
+          view_clients: true,
           consolidate: true,
           validate_payments: false,
           view_rates: true,
@@ -123,6 +125,7 @@ export default function AdminPermissions({ user }) {
     setSelectedUser(targetUser);
     setPermissions(targetUser.admin_permissions || {
       view_packages: true,
+      view_clients: true,
       consolidate: true,
       validate_payments: true,
       view_rates: true,
