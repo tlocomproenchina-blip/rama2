@@ -88,12 +88,34 @@ export default function AdminPermissions({ user }) {
   const handleMakeEmployee = async (targetUser) => {
     try {
       await base44.entities.User.update(targetUser.id, {
-        role: 'employee'
+        is_employee: true,
+        role: 'user',
+        admin_permissions: {
+          view_packages: true,
+          consolidate: true,
+          validate_payments: false,
+          view_rates: true,
+          general_config: false,
+          invite_users: false
+        }
       });
       toast.success(`${targetUser.email} ahora es empleado`);
       loadUsers();
     } catch (error) {
       toast.error('Error al actualizar rol');
+    }
+  };
+
+  const handleRevokeEmployee = async (targetUser) => {
+    try {
+      await base44.entities.User.update(targetUser.id, {
+        is_employee: false,
+        admin_permissions: null
+      });
+      toast.success(`Rol de empleado de ${targetUser.email} revocado`);
+      loadUsers();
+    } catch (error) {
+      toast.error('Error al revocar permisos de empleado');
     }
   };
 
@@ -135,8 +157,8 @@ export default function AdminPermissions({ user }) {
   });
 
   const admins = filteredUsers.filter(u => u.role === 'admin');
-  const employees = filteredUsers.filter(u => u.role === 'employee');
-  const regularUsers = filteredUsers.filter(u => u.role === 'user');
+  const employees = filteredUsers.filter(u => u.is_employee && u.role === 'user');
+  const regularUsers = filteredUsers.filter(u => !u.is_employee && u.role === 'user');
 
   if (loading) {
     return (
@@ -318,21 +340,49 @@ export default function AdminPermissions({ user }) {
                     <Button 
                       variant="outline" 
                       size="sm"
+                      onClick={() => openPermissions(emp)}
+                    >
+                      <Settings className="h-4 w-4 mr-1" />
+                      Permisos
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
                       onClick={() => handleMakeAdmin(emp)}
                       className="border-amber-200 text-amber-600 hover:bg-amber-50"
                     >
                       <Crown className="h-4 w-4 mr-1" />
                       Hacer Admin
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-red-200 text-red-600 hover:bg-red-50"
-                      onClick={() => handleRevokeAdmin(emp)}
-                    >
-                      <UserMinus className="h-4 w-4 mr-1" />
-                      Revocar
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="border-red-200 text-red-600 hover:bg-red-50"
+                        >
+                          <UserMinus className="h-4 w-4 mr-1" />
+                          Revocar Empleado
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Revocar rol de empleado?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {emp.email} perderá sus permisos de empleado y será un usuario regular.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleRevokeEmployee(emp)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Revocar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               ))}
