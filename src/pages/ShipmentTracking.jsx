@@ -133,7 +133,7 @@ export default function ShipmentTracking({ user }) {
         label: 'En Tránsito', 
         icon: consolidation.shipping_type === 'aereo' ? Plane : Ship,
         completed: ['en_transito', 'pago_validado', 'disponible', 'entregado'].includes(consolidation.status),
-        date: consolidation.status === 'en_transito' ? consolidation.updated_date : null
+        date: consolidation.created_date
       },
       { 
         key: 'payment', 
