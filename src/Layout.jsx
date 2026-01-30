@@ -28,7 +28,7 @@ export default function Layout({ children, currentPageName }) {
       setUser(currentUser);
 
       // Redirect admin to dashboard if on home page
-      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Home')) {
+      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
         navigate(createPageUrl('AdminDashboard'));
         setLoading(false);
         return;
