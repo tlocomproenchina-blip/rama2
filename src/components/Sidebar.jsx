@@ -66,11 +66,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
   const employeeMenuItems = [
-  { name: 'Dashboard', page: 'AdminDashboard', icon: LayoutDashboard },
+  { name: 'Dashboard', page: 'EmployeeDashboard', icon: LayoutDashboard },
+  { name: 'Clientes', page: 'AdminClients', icon: Users },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
   { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers },
-  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
-  { name: 'Clientes', page: 'AdminClients', icon: Users }];
+  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck }];
 
 
   const getMenuItems = () => {
