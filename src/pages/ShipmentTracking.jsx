@@ -196,6 +196,38 @@ export default function ShipmentTracking({ user }) {
     return null;
   };
 
+  const handleExportApprovals = () => {
+    // Group by shipping_mark and get tracking numbers
+    const grouped = {};
+    
+    consolidations.forEach(con => {
+      const mark = con.shipping_mark || 'SIN MARK';
+      if (!grouped[mark]) {
+        grouped[mark] = [];
+      }
+      grouped[mark].push(con.consolidation_tracking);
+    });
+
+    // Format as requested
+    let text = '';
+    Object.entries(grouped).forEach(([mark, trackings]) => {
+      text += mark + '\n';
+      trackings.forEach(tracking => {
+        text += tracking + '\n';
+      });
+    });
+
+    // Download as text file
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', `aprobaciones-${new Date().toISOString().split('T')[0]}.txt`);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    toast.success('Aprobaciones exportadas');
+  };
+
   const filteredCons = consolidations.filter(con => {
     const matchesSearch = 
       con.consolidation_tracking?.toLowerCase().includes(search.toLowerCase()) ||
