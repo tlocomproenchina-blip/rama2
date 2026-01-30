@@ -138,9 +138,17 @@ export default function Layout({ children, currentPageName }) {
         </header>
 
         {/* Desktop Notification Bell */}
-        <div className="hidden lg:block fixed top-4 right-4 z-40">
-          <NotificationBell user={user} />
-        </div>
+                <div className="hidden lg:block fixed top-4 right-4 z-40">
+                  <NotificationBell user={user} />
+                </div>
+
+                {/* Unread Notification Indicator - Mobile */}
+                <style>{`
+                  @keyframes pulse-bg {
+                    0%, 100% { background-color: rgba(239, 68, 68, 0.1); }
+                    50% { background-color: rgba(239, 68, 68, 0.2); }
+                  }
+                `}</style>
 
         <div className="p-4 lg:p-8">
           {React.cloneElement(children, { user, refreshUser: loadUser })}
