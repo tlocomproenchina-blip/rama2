@@ -133,11 +133,15 @@ export default function NotificationBell({ user }) {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className={`relative transition-all ${unreadCount > 0 ? 'animate-pulse' : ''}`}
+        >
+          <Bell className={`h-5 w-5 transition-colors ${unreadCount > 0 ? 'text-red-600' : ''}`} />
           {unreadCount > 0 && (
             <Badge 
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500 text-white text-xs"
+              className="absolute -top-1 -right-1 h-6 w-6 flex items-center justify-center p-0 bg-red-500 text-white text-xs font-bold animate-bounce shadow-lg"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
