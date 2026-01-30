@@ -120,12 +120,6 @@ export default function AdminNotificationCenter({ user }) {
         });
       }
 
-      // Show toast
-      toast.success(title, {
-        description: message,
-        duration: 5000,
-      });
-
       // Play sound
       playSound();
     } catch (error) {
