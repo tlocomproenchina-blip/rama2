@@ -43,12 +43,8 @@ export default function MyPackages({ user }) {
 
   const loadPackages = async () => {
     if (!user) return;
-    try {
-      const pkgs = await base44.entities.Package.list('-created_date');
-      setPackages(pkgs);
-    } catch (error) {
-      console.error('Error loading packages:', error);
-    }
+    const pkgs = await base44.entities.Package.filter({ client_email: user.email }, '-created_date');
+    setPackages(pkgs);
     setLoading(false);
   };
 
