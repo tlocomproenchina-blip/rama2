@@ -28,7 +28,7 @@ import { base44 } from '@/api/base44Client';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const isAdmin = user?.role === 'admin';
-  const isEmployee = user?.role === 'employee';
+  const isEmployee = user?.is_employee === true;
   const permissions = user?.admin_permissions || {};
 
   const clientMenuItems = [
@@ -77,8 +77,15 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     if (isAdmin) {
       return adminMenuItems.filter((item) => !item.permission || permissions[item.permission] !== false);
     }
-    if (isEmployee) {
-      return employeeMenuItems;
+    if (user?.is_employee && user?.admin_permissions) {
+      return employeeMenuItems.filter(item => {
+        const permissionMap = {
+          'AdminPackages': 'view_packages',
+          'AdminConsolidate': 'consolidate'
+        };
+        const requiredPerm = permissionMap[item.page];
+        return !requiredPerm || user.admin_permissions[requiredPerm];
+      });
     }
     return clientMenuItems;
   };
