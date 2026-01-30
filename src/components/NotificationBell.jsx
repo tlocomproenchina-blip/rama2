@@ -95,7 +95,7 @@ export default function NotificationBell({ user }) {
     const notifs = await base44.entities.Notification.filter(
       { user_email: user.email },
       '-created_date',
-      20
+      100
     );
     setNotifications(notifs);
     setLoading(false);
@@ -149,7 +149,7 @@ export default function NotificationBell({ user }) {
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-80 lg:w-96 p-0">
+      <DropdownMenuContent align="end" className="w-96 lg:w-[450px] p-0">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold text-slate-800">Notificaciones</h3>
           {unreadCount > 0 && (
@@ -164,7 +164,7 @@ export default function NotificationBell({ user }) {
           )}
         </div>
 
-        <ScrollArea className="h-[400px]">
+        <ScrollArea className="h-[500px]">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
