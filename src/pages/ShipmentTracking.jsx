@@ -19,7 +19,8 @@ import {
   ArrowRight,
   Edit2,
   Save,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
