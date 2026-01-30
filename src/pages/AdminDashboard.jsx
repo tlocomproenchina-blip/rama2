@@ -615,33 +615,71 @@ export default function AdminDashboard({ user }) {
         )}
       </div>
 
-      {/* Recent Packages */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Package className="h-5 w-5 text-blue-600" />
-            Paquetes Recientes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {recentPackages.map((pkg) => (
-              <div key={pkg.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-slate-800 font-mono">{pkg.tracking_number}</p>
-                  <p className="text-sm text-slate-500">{pkg.shipping_mark}</p>
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Changes - Real-time */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Actividad en Tiempo Real
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {recentChanges.length === 0 ? (
+                <p className="text-slate-500 text-sm text-center py-8">Sin cambios recientes</p>
+              ) : (
+                recentChanges.map((change) => (
+                  <div key={`${change.type}-${change.id}`} className={`p-3 rounded-lg border-l-4 ${
+                    change.action === 'create' ? 'bg-green-50 border-l-green-500' :
+                    change.action === 'update' ? 'bg-blue-50 border-l-blue-500' :
+                    'bg-red-50 border-l-red-500'
+                  }`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-800 text-sm">{change.title}</p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {change.tracking || change.client || 'Sin datos'}
+                        </p>
+                      </div>
+                      <p className="text-xs text-slate-400">{change.timestamp}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Packages */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Package className="h-5 w-5 text-blue-600" />
+              Paquetes Recientes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentPackages.map((pkg) => (
+                <div key={pkg.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-slate-800 font-mono">{pkg.tracking_number}</p>
+                    <p className="text-sm text-slate-500">{pkg.shipping_mark}</p>
+                  </div>
+                  <StatusBadge status={pkg.status} size="sm" />
                 </div>
-                <StatusBadge status={pkg.status} size="sm" />
-              </div>
-            ))}
-          </div>
-          <Link to={createPageUrl('AdminPackages')}>
-            <Button variant="outline" className="w-full mt-4">
-              Ver Todos <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+            <Link to={createPageUrl('AdminPackages')}>
+              <Button variant="outline" className="w-full mt-4">
+                Ver Todos <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
