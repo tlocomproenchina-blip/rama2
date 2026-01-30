@@ -467,7 +467,7 @@ export default function ShipmentTracking({ user }) {
                           >
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                               step.completed 
-                                ? `bg-${step.color}-100 text-${step.color}-600` 
+                                ? `${getColorClasses(step.color).bg} ${getColorClasses(step.color).text}` 
                                 : 'bg-slate-100 text-slate-400'
                             }`}>
                               <Icon className="h-5 w-5" />
