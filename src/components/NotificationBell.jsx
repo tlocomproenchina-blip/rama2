@@ -90,7 +90,19 @@ export default function NotificationBell({ user }) {
       '-created_date',
       100
     );
-    setNotifications(notifs);
+    
+    // Deduplicate notifications by reference_id, title, and message
+    const seen = new Set();
+    const deduped = notifs.filter(n => {
+      const key = `${n.reference_id}-${n.title}-${n.message}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+    
+    setNotifications(deduped);
     setLoading(false);
   };
 
