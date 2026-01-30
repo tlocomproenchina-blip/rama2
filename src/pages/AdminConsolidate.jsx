@@ -171,7 +171,7 @@ export default function AdminConsolidate({ user }) {
         insurance_cost: calcs.insuranceCost,
         total_cost: calcs.totalCost,
         estimated_delivery: consolidationData.estimated_delivery,
-        consolidation_period_days: selectedRequest.consolidation_period_days,
+        consolidation_period_days: 30,
         status: 'pendiente_pago'
       });
 

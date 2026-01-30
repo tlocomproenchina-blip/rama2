@@ -26,7 +26,6 @@ export default function RequestConsolidation({ user }) {
   const [config, setConfig] = useState(null);
   const [formData, setFormData] = useState({
     shipping_type: 'aereo',
-    consolidation_period_days: 15,
     notes: ''
   });
   const [submitting, setSubmitting] = useState(false);
@@ -96,7 +95,6 @@ export default function RequestConsolidation({ user }) {
         package_ids: selectedPackages,
         tracking_numbers: selectedPkgs.map(p => p.tracking_number),
         shipping_type: formData.shipping_type,
-        consolidation_period_days: formData.consolidation_period_days,
         notes: formData.notes,
         status: 'pendiente'
       });
@@ -156,50 +154,37 @@ export default function RequestConsolidation({ user }) {
           <CardTitle>Configuración de Consolidación</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Tipo de Envío</Label>
-              <Select 
-                value={formData.shipping_type}
-                onValueChange={(val) => setFormData({ ...formData, shipping_type: val })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="aereo">
-                    <div className="flex items-center gap-2">
-                      <Plane className="h-4 w-4" /> Aéreo
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="maritimo">
-                    <div className="flex items-center gap-2">
-                      <Ship className="h-4 w-4" /> Marítimo
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Período de Consolidación</Label>
-              <Select 
-                value={formData.consolidation_period_days.toString()}
-                onValueChange={(val) => setFormData({ ...formData, consolidation_period_days: parseInt(val) })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(config?.consolidation_periods || [15, 20, 30]).map(days => (
-                    <SelectItem key={days} value={days.toString()}>
-                      {days} días
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Tipo de Envío</Label>
+            <Select 
+              value={formData.shipping_type}
+              onValueChange={(val) => setFormData({ ...formData, shipping_type: val })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aereo">
+                  <div className="flex items-center gap-2">
+                    <Plane className="h-4 w-4" /> Aéreo
+                  </div>
+                </SelectItem>
+                <SelectItem value="maritimo">
+                  <div className="flex items-center gap-2">
+                    <Ship className="h-4 w-4" /> Marítimo
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-3">
+              <p className="text-sm text-blue-800">
+                <strong>Período de consolidación:</strong> 30 días desde la recepción del primer paquete
+              </p>
+            </CardContent>
+          </Card>
 
           <div className="space-y-2">
             <Label>Notas (opcional)</Label>
