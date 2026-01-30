@@ -36,6 +36,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
+  { name: 'Solicitar Consolidación', page: 'RequestConsolidation', icon: Layers },
   { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
   { name: 'Mis Facturas', page: 'MyInvoices', icon: FileText },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
