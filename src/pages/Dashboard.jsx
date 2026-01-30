@@ -271,6 +271,32 @@ export default function Dashboard({ user, refreshUser }) {
         </Card>
       </div>
 
+      {/* Approval Alert */}
+      {consolidations.filter(c => c.payment_validated && !c.shipment_approved && c.status !== 'en_transito' && c.status !== 'disponible' && c.status !== 'entregado').length > 0 && (
+        <Card className="border-2 border-blue-300 bg-blue-50 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-200 rounded-xl">
+                  <CheckCircle2 className="h-6 w-6 text-blue-700" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-900 text-lg">¡Consolidaciones listas para aprobar!</h3>
+                  <p className="text-blue-700">
+                    Tienes {consolidations.filter(c => c.payment_validated && !c.shipment_approved && c.status !== 'en_transito' && c.status !== 'disponible' && c.status !== 'entregado').length} consolidación(es) esperando tu aprobación de despacho
+                  </p>
+                </div>
+              </div>
+              <Link to={createPageUrl('MyConsolidations')}>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  Ver Consolidaciones
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Widgets Section */}
       {hasShippingMark && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
