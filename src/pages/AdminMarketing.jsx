@@ -1,0 +1,576 @@
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Loader2, Mail, Bell, Users, TrendingUp, Calendar, Send, Eye, MousePointer, DollarSign, Edit, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+export default function AdminMarketing({ user }) {
+  const [campaigns, setCampaigns] = useState([]);
+  const [promotions, setPromotions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [segmentPreview, setSegmentPreview] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    campaign_type: 'email',
+    target_segment: 'all',
+    email_subject: '',
+    email_body: '',
+    notification_title: '',
+    notification_message: '',
+    promotion_id: '',
+    scheduled_date: ''
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    const [campaignsData, promosData] = await Promise.all([
+      base44.entities.MarketingCampaign.list('-created_date'),
+      base44.entities.Promotion.list('-created_date')
+    ]);
+    setCampaigns(campaignsData);
+    setPromotions(promosData);
+    setLoading(false);
+  };
+
+  const getSegmentClients = async (segment) => {
+    const allUsers = await base44.entities.User.filter({ role: 'user' });
+    
+    if (segment === 'all') return allUsers;
+    
+    const consolidations = await base44.entities.Consolidation.list();
+    
+    if (segment === 'new_customers') {
+      const clientsWithConsolidations = new Set(consolidations.map(c => c.client_email));
+      return allUsers.filter(u => !clientsWithConsolidations.has(u.email));
+    }
+    
+    if (segment === 'returning_customers') {
+      const clientCounts = {};
+      consolidations.forEach(c => {
+        clientCounts[c.client_email] = (clientCounts[c.client_email] || 0) + 1;
+      });
+      return allUsers.filter(u => clientCounts[u.email] >= 2);
+    }
+    
+    if (segment === 'high_value') {
+      const clientTotals = {};
+      consolidations.forEach(c => {
+        clientTotals[c.client_email] = (clientTotals[c.client_email] || 0) + (c.total_cost || 0);
+      });
+      return allUsers.filter(u => clientTotals[u.email] >= 500);
+    }
+    
+    if (segment === 'inactive') {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      
+      const recentClients = new Set(
+        consolidations
+          .filter(c => new Date(c.created_date) > threeMonthsAgo)
+          .map(c => c.client_email)
+      );
+      
+      return allUsers.filter(u => !recentClients.has(u.email));
+    }
+    
+    return allUsers;
+  };
+
+  const handlePreviewSegment = async (segment) => {
+    setLoadingPreview(true);
+    const clients = await getSegmentClients(segment);
+    setSegmentPreview({ segment, count: clients.length, clients });
+    setLoadingPreview(false);
+  };
+
+  const handleOpenModal = (campaign = null) => {
+    if (campaign) {
+      setEditingCampaign(campaign);
+      setFormData(campaign);
+    } else {
+      setEditingCampaign(null);
+      setFormData({
+        name: '',
+        description: '',
+        campaign_type: 'email',
+        target_segment: 'all',
+        email_subject: '',
+        email_body: '',
+        notification_title: '',
+        notification_message: '',
+        promotion_id: '',
+        scheduled_date: ''
+      });
+    }
+    setSegmentPreview(null);
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.target_segment) {
+      toast.error('Completa los campos requeridos');
+      return;
+    }
+
+    if (formData.campaign_type === 'email' && (!formData.email_subject || !formData.email_body)) {
+      toast.error('Completa el asunto y cuerpo del email');
+      return;
+    }
+
+    if ((formData.campaign_type === 'notification' || formData.campaign_type === 'both') && 
+        (!formData.notification_title || !formData.notification_message)) {
+      toast.error('Completa el título y mensaje de la notificación');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const clients = await getSegmentClients(formData.target_segment);
+      const campaignData = {
+        ...formData,
+        recipients_count: clients.length,
+        status: formData.scheduled_date ? 'scheduled' : 'draft'
+      };
+
+      if (editingCampaign) {
+        await base44.entities.MarketingCampaign.update(editingCampaign.id, campaignData);
+        toast.success('Campaña actualizada');
+      } else {
+        await base44.entities.MarketingCampaign.create(campaignData);
+        toast.success('Campaña creada');
+      }
+      
+      setShowModal(false);
+      loadData();
+    } catch (error) {
+      toast.error('Error al guardar');
+    }
+    setSaving(false);
+  };
+
+  const handleSendNow = async (campaign) => {
+    if (!confirm('¿Enviar esta campaña ahora?')) return;
+    
+    try {
+      const clients = await getSegmentClients(campaign.target_segment);
+      
+      // Send emails
+      if (campaign.campaign_type === 'email' || campaign.campaign_type === 'both') {
+        for (const client of clients) {
+          await base44.integrations.Core.SendEmail({
+            to: client.email,
+            subject: campaign.email_subject,
+            body: campaign.email_body
+          });
+        }
+      }
+      
+      // Send notifications
+      if (campaign.campaign_type === 'notification' || campaign.campaign_type === 'both') {
+        for (const client of clients) {
+          await base44.entities.Notification.create({
+            user_email: client.email,
+            title: campaign.notification_title,
+            message: campaign.notification_message,
+            type: 'general',
+            icon: 'package'
+          });
+        }
+      }
+      
+      await base44.entities.MarketingCampaign.update(campaign.id, {
+        status: 'sent',
+        sent_date: new Date().toISOString()
+      });
+      
+      toast.success(`Campaña enviada a ${clients.length} clientes`);
+      loadData();
+    } catch (error) {
+      toast.error('Error al enviar campaña');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('¿Eliminar esta campaña?')) return;
+    
+    try {
+      await base44.entities.MarketingCampaign.delete(id);
+      toast.success('Campaña eliminada');
+      loadData();
+    } catch (error) {
+      toast.error('Error al eliminar');
+    }
+  };
+
+  const stats = {
+    total: campaigns.length,
+    sent: campaigns.filter(c => c.status === 'sent').length,
+    scheduled: campaigns.filter(c => c.status === 'scheduled').length,
+    avgOpenRate: campaigns.length > 0 
+      ? (campaigns.reduce((sum, c) => sum + (c.recipients_count > 0 ? (c.opened_count / c.recipients_count) * 100 : 0), 0) / campaigns.length).toFixed(1)
+      : 0,
+    totalRevenue: campaigns.reduce((sum, c) => sum + (c.revenue_generated || 0), 0)
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Campañas de Marketing</h1>
+          <p className="text-slate-500">Gestiona campañas de email y notificaciones</p>
+        </div>
+        <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-2" />
+          Nueva Campaña
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Total Campañas</p>
+                <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+              </div>
+              <Mail className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Enviadas</p>
+                <p className="text-2xl font-bold text-green-600">{stats.sent}</p>
+              </div>
+              <Send className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Programadas</p>
+                <p className="text-2xl font-bold text-orange-600">{stats.scheduled}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Tasa Apertura</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.avgOpenRate}%</p>
+              </div>
+              <Eye className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Ingresos</p>
+                <p className="text-2xl font-bold text-emerald-600">${stats.totalRevenue.toFixed(2)}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-emerald-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Campaigns List */}
+      <div className="grid gap-4">
+        {campaigns.length === 0 ? (
+          <Card className="border-0 shadow-lg">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Mail className="h-16 w-16 text-slate-300 mb-4" />
+              <p className="text-slate-500">No hay campañas creadas</p>
+            </CardContent>
+          </Card>
+        ) : (
+          campaigns.map(campaign => (
+            <Card key={campaign.id} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold text-slate-800">{campaign.name}</h3>
+                      {campaign.status === 'sent' && (
+                        <Badge className="bg-green-100 text-green-800">Enviada</Badge>
+                      )}
+                      {campaign.status === 'scheduled' && (
+                        <Badge className="bg-orange-100 text-orange-800">Programada</Badge>
+                      )}
+                      {campaign.status === 'draft' && (
+                        <Badge className="bg-slate-100 text-slate-800">Borrador</Badge>
+                      )}
+                      {campaign.campaign_type === 'email' && <Mail className="h-4 w-4 text-blue-600" />}
+                      {campaign.campaign_type === 'notification' && <Bell className="h-4 w-4 text-purple-600" />}
+                      {campaign.campaign_type === 'both' && (
+                        <>
+                          <Mail className="h-4 w-4 text-blue-600" />
+                          <Bell className="h-4 w-4 text-purple-600" />
+                        </>
+                      )}
+                    </div>
+                    
+                    <p className="text-slate-600 mb-3">{campaign.description}</p>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-slate-500" />
+                        {campaign.recipients_count} destinatarios
+                      </div>
+                      {campaign.status === 'sent' && (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <Eye className="h-4 w-4 text-purple-600" />
+                            {campaign.opened_count} aperturas ({campaign.recipients_count > 0 ? ((campaign.opened_count / campaign.recipients_count) * 100).toFixed(1) : 0}%)
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MousePointer className="h-4 w-4 text-blue-600" />
+                            {campaign.clicked_count} clics
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-green-600" />
+                            ${(campaign.revenue_generated || 0).toFixed(2)}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-4 mt-3 text-sm text-slate-500">
+                      <span>Segmento: {campaign.target_segment}</span>
+                      {campaign.scheduled_date && (
+                        <span>Programada: {new Date(campaign.scheduled_date).toLocaleString()}</span>
+                      )}
+                      {campaign.sent_date && (
+                        <span>Enviada: {new Date(campaign.sent_date).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {campaign.status === 'draft' && (
+                      <Button
+                        onClick={() => handleSendNow(campaign)}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Enviar Ahora
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleOpenModal(campaign)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDelete(campaign.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Create/Edit Modal */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingCampaign ? 'Editar Campaña' : 'Nueva Campaña'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 space-y-2">
+                <Label>Nombre de la Campaña *</Label>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="Ej: Promoción Verano"
+                />
+              </div>
+              
+              <div className="col-span-2 space-y-2">
+                <Label>Descripción</Label>
+                <Textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Descripción de la campaña..."
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de Campaña *</Label>
+                <Select value={formData.campaign_type} onValueChange={(val) => setFormData({...formData, campaign_type: val})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">Solo Email</SelectItem>
+                    <SelectItem value="notification">Solo Notificación</SelectItem>
+                    <SelectItem value="both">Email + Notificación</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Segmento Objetivo *</Label>
+                <div className="flex gap-2">
+                  <Select value={formData.target_segment} onValueChange={(val) => {
+                    setFormData({...formData, target_segment: val});
+                    handlePreviewSegment(val);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="new_customers">Clientes Nuevos</SelectItem>
+                      <SelectItem value="returning_customers">Recurrentes</SelectItem>
+                      <SelectItem value="high_value">Alto Valor</SelectItem>
+                      <SelectItem value="inactive">Inactivos (3+ meses)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {segmentPreview && (
+                  <p className="text-sm text-slate-600">
+                    {loadingPreview ? <Loader2 className="h-4 w-4 animate-spin inline" /> : `${segmentPreview.count} clientes`}
+                  </p>
+                )}
+              </div>
+
+              {(formData.campaign_type === 'email' || formData.campaign_type === 'both') && (
+                <>
+                  <div className="col-span-2 space-y-2">
+                    <Label>Asunto del Email *</Label>
+                    <Input
+                      value={formData.email_subject}
+                      onChange={(e) => setFormData({...formData, email_subject: e.target.value})}
+                      placeholder="¡Oferta especial para ti!"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2 space-y-2">
+                    <Label>Cuerpo del Email *</Label>
+                    <Textarea
+                      value={formData.email_body}
+                      onChange={(e) => setFormData({...formData, email_body: e.target.value})}
+                      placeholder="Contenido del email..."
+                      rows={6}
+                    />
+                  </div>
+                </>
+              )}
+
+              {(formData.campaign_type === 'notification' || formData.campaign_type === 'both') && (
+                <>
+                  <div className="col-span-2 space-y-2">
+                    <Label>Título de la Notificación *</Label>
+                    <Input
+                      value={formData.notification_title}
+                      onChange={(e) => setFormData({...formData, notification_title: e.target.value})}
+                      placeholder="¡Nueva oferta disponible!"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2 space-y-2">
+                    <Label>Mensaje de la Notificación *</Label>
+                    <Textarea
+                      value={formData.notification_message}
+                      onChange={(e) => setFormData({...formData, notification_message: e.target.value})}
+                      placeholder="Mensaje de la notificación..."
+                      rows={3}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-2">
+                <Label>Promoción Asociada (opcional)</Label>
+                <Select value={formData.promotion_id} onValueChange={(val) => setFormData({...formData, promotion_id: val})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ninguna" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>Ninguna</SelectItem>
+                    {promotions.filter(p => p.is_active).map(promo => (
+                      <SelectItem key={promo.id} value={promo.id}>
+                        {promo.name} ({promo.discount_value}{promo.discount_type === 'percentage' ? '%' : '$'} OFF)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Programar Envío (opcional)</Label>
+                <Input
+                  type="datetime-local"
+                  value={formData.scheduled_date}
+                  onChange={(e) => setFormData({...formData, scheduled_date: e.target.value})}
+                />
+                <p className="text-xs text-slate-500">Dejar vacío para guardar como borrador</p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {editingCampaign ? 'Actualizar' : 'Crear'} Campaña
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

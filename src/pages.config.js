@@ -73,6 +73,8 @@ import Rates from './pages/Rates';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
+import AdminPromotions from './pages/AdminPromotions';
+import AdminMarketing from './pages/AdminMarketing';
 import __Layout from './Layout.jsx';
 
 
@@ -103,6 +105,8 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
+    "AdminPromotions": AdminPromotions,
+    "AdminMarketing": AdminMarketing,
 }
 
 export const pagesConfig = {
