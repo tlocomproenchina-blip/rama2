@@ -35,6 +35,22 @@ export default function Dashboard({ user, refreshUser }) {
 
   useEffect(() => {
     loadData();
+    
+    // Real-time updates
+    if (user) {
+      const unsubscribePackages = base44.entities.Package.subscribe((event) => {
+        loadData();
+      });
+      
+      const unsubscribeConsolidations = base44.entities.Consolidation.subscribe((event) => {
+        loadData();
+      });
+      
+      return () => {
+        unsubscribePackages();
+        unsubscribeConsolidations();
+      };
+    }
   }, [user]);
 
   const loadData = async () => {

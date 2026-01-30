@@ -30,6 +30,15 @@ export default function MyPackages({ user }) {
 
   useEffect(() => {
     loadPackages();
+    
+    // Real-time updates
+    if (user) {
+      const unsubscribe = base44.entities.Package.subscribe((event) => {
+        loadPackages();
+      });
+      
+      return () => unsubscribe();
+    }
   }, [user]);
 
   const loadPackages = async () => {
