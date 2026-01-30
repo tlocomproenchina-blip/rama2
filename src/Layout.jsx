@@ -27,9 +27,16 @@ export default function Layout({ children, currentPageName }) {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
 
-      // Redirect admin to dashboard if on home page
+      // Redirect admin to admin dashboard
       if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
         navigate(createPageUrl('AdminDashboard'));
+        setLoading(false);
+        return;
+      }
+
+      // Redirect employee to employee dashboard
+      if (currentUser.is_employee && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard' || currentPageName === 'AdminDashboard')) {
+        navigate(createPageUrl('EmployeeDashboard'));
         setLoading(false);
         return;
       }

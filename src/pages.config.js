@@ -75,6 +75,7 @@ import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import AdminPromotions from './pages/AdminPromotions';
 import AdminMarketing from './pages/AdminMarketing';
+import EmployeeDashboard from './pages/EmployeeDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -107,6 +108,7 @@ export const PAGES = {
     "Support": Support,
     "AdminPromotions": AdminPromotions,
     "AdminMarketing": AdminMarketing,
+    "EmployeeDashboard": EmployeeDashboard,
 }
 
 export const pagesConfig = {
