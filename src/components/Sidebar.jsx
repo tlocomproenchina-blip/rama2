@@ -19,7 +19,9 @@ import {
   Trash2,
   AlertTriangle,
   HelpCircle,
-  BarChart3 } from
+  BarChart3,
+  Tag,
+  TrendingUp } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -50,6 +52,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText, permission: 'validate_payments' },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
   { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle, permission: 'validate_payments' },
+  { name: 'Promociones', page: 'AdminPromotions', icon: Tag, permission: 'general_config' },
+  { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp, permission: 'general_config' },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck, permission: 'view_packages' },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator, permission: 'view_packages' },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
