@@ -349,6 +349,15 @@ export default function ShipmentTracking({ user }) {
                 <TabsTrigger value="maritimo">Marítimo</TabsTrigger>
               </TabsList>
             </Tabs>
+            {user?.role === 'admin' && consolidations.length > 0 && (
+              <Button
+                onClick={handleExportApprovals}
+                className="bg-emerald-600 hover:bg-emerald-700 whitespace-nowrap"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
