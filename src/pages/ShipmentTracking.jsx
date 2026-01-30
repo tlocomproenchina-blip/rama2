@@ -17,12 +17,16 @@ import {
   Search,
   Filter,
   ArrowRight,
-  Edit2
+  Edit2,
+  Save,
+  X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 
 export default function ShipmentTracking({ user }) {
@@ -31,6 +35,9 @@ export default function ShipmentTracking({ user }) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
+  const [editingDate, setEditingDate] = useState(null);
+  const [newDate, setNewDate] = useState('');
+  const [savingDate, setSavingDate] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -73,6 +80,43 @@ export default function ShipmentTracking({ user }) {
     } catch (error) {
       toast.error('Error al actualizar el estado');
     }
+  };
+
+  const handleEditDate = (consolidation) => {
+    setEditingDate(consolidation);
+    setNewDate(consolidation.estimated_delivery ? format(new Date(consolidation.estimated_delivery), 'yyyy-MM-dd') : '');
+  };
+
+  const handleSaveDate = async () => {
+    if (!newDate) {
+      toast.error('Selecciona una fecha');
+      return;
+    }
+
+    setSavingDate(true);
+    try {
+      await base44.entities.Consolidation.update(editingDate.id, {
+        estimated_delivery: newDate
+      });
+
+      // Notify client
+      const { sendNotification } = await import('@/components/NotificationUtils');
+      sendNotification({
+        to: editingDate.client_email,
+        subject: '📅 Fecha de entrega actualizada',
+        body: `La fecha de entrega estimada de tu consolidación ${editingDate.consolidation_tracking} ha sido actualizada.\n\nNueva fecha estimada: ${format(new Date(newDate), 'dd/MM/yyyy')}\n\nIngresa al sistema para más detalles.`,
+        type: 'consolidation',
+        icon: 'alert',
+        referenceId: editingDate.id
+      });
+
+      toast.success('Fecha actualizada');
+      setEditingDate(null);
+      loadData();
+    } catch (error) {
+      toast.error('Error al actualizar fecha');
+    }
+    setSavingDate(false);
   };
 
   const getStatusSteps = (consolidation) => {
@@ -448,12 +492,24 @@ export default function ShipmentTracking({ user }) {
                       </div>
                       <div>
                         <p className="text-xs text-slate-500">Entrega Estimada</p>
-                        <p className="font-semibold text-slate-800">
-                          {con.estimated_delivery 
-                            ? format(new Date(con.estimated_delivery), 'dd/MM/yyyy')
-                            : '-'
-                          }
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-slate-800">
+                            {con.estimated_delivery 
+                              ? format(new Date(con.estimated_delivery), 'dd/MM/yyyy')
+                              : '-'
+                            }
+                          </p>
+                          {user?.role === 'admin' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditDate(con)}
+                              className="h-7 w-7 p-0"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -488,6 +544,41 @@ export default function ShipmentTracking({ user }) {
           })}
         </div>
       )}
+
+      {/* Edit Date Modal */}
+      <Dialog open={!!editingDate} onOpenChange={() => setEditingDate(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Fecha de Entrega Estimada</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Consolidación</Label>
+              <p className="text-sm font-mono text-slate-600 bg-slate-50 p-2 rounded">
+                {editingDate?.consolidation_tracking}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Nueva Fecha de Entrega Estimada</Label>
+              <Input
+                type="date"
+                value={newDate}
+                onChange={(e) => setNewDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingDate(null)}>
+              <X className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveDate} disabled={savingDate} className="bg-blue-600 hover:bg-blue-700">
+              {savingDate ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
