@@ -324,7 +324,7 @@ export default function ShipmentTracking({ user }) {
       {/* Filters */}
       <Card className="border-0 shadow-md">
         <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-end">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
