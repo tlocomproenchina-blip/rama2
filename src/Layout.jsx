@@ -113,6 +113,9 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
+      <style>{`
+        [data-sonner-toaster] { display: none !important; }
+      `}</style>
       <Toaster position="top-right" richColors />
       <AdminNotificationCenter user={user} />
       
