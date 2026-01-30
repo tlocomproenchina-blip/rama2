@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { 
   Layers, 
   Package, 
-  Users,
-  ArrowRight,
   ArrowLeft,
   Plane,
   Ship,
@@ -21,20 +20,23 @@ import {
   DollarSign,
   Loader2,
   CheckCircle,
-  Box
+  Box,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 
 export default function AdminConsolidate({ user }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [clients, setClients] = useState([]);
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [clientPackages, setClientPackages] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [allPackages, setAllPackages] = useState([]);
   const [selectedPackages, setSelectedPackages] = useState([]);
   const [config, setConfig] = useState(null);
-  const [step, setStep] = useState(1); // 1: select client, 2: select packages, 3: details
+  const [step, setStep] = useState(1); // 1: requests list, 2: add packages, 3: details
   const [consolidationData, setConsolidationData] = useState({
     shipping_type: 'aereo',
     real_weight_kg: '',
@@ -44,7 +46,7 @@ export default function AdminConsolidate({ user }) {
     estimated_delivery: ''
   });
   const [processing, setProcessing] = useState(false);
-  const [inputMode, setInputMode] = useState('dimensions'); // 'dimensions' or 'cbm'
+  const [inputMode, setInputMode] = useState('dimensions');
   const [directCbm, setDirectCbm] = useState('');
 
   useEffect(() => {
@@ -52,33 +54,34 @@ export default function AdminConsolidate({ user }) {
   }, []);
 
   const loadData = async () => {
-    const [packages, configs] = await Promise.all([
-      base44.entities.Package.filter({ status: 'recibido' }),
+    const [reqs, configs] = await Promise.all([
+      base44.entities.ConsolidationRequest.filter({ status: 'pendiente' }, '-created_date'),
       base44.entities.AppConfig.filter({ config_key: 'main' })
     ]);
-
-    // Group by client
-    const clientMap = {};
-    packages.forEach(pkg => {
-      if (!clientMap[pkg.client_email]) {
-        clientMap[pkg.client_email] = {
-          email: pkg.client_email,
-          shipping_mark: pkg.shipping_mark,
-          packages: []
-        };
-      }
-      clientMap[pkg.client_email].packages.push(pkg);
-    });
-
-    setClients(Object.values(clientMap));
+    
+    setRequests(reqs);
     if (configs.length > 0) setConfig(configs[0]);
     setLoading(false);
   };
 
-  const selectClient = (client) => {
-    setSelectedClient(client);
-    setClientPackages(client.packages);
-    setSelectedPackages([]);
+  const selectRequest = async (request) => {
+    setSelectedRequest(request);
+    setSelectedPackages(request.package_ids || []);
+    setConsolidationData({
+      shipping_type: request.shipping_type,
+      real_weight_kg: '',
+      length_cm: '',
+      width_cm: '',
+      height_cm: '',
+      estimated_delivery: ''
+    });
+
+    // Load all packages from this client
+    const pkgs = await base44.entities.Package.filter({ 
+      client_email: request.client_email,
+      status: 'recibido'
+    });
+    setAllPackages(pkgs.filter(p => !p.consolidation_id));
     setStep(2);
   };
 
@@ -90,14 +93,6 @@ export default function AdminConsolidate({ user }) {
     );
   };
 
-  const selectAllPackages = () => {
-    if (selectedPackages.length === clientPackages.length) {
-      setSelectedPackages([]);
-    } else {
-      setSelectedPackages(clientPackages.map(p => p.id));
-    }
-  };
-
   const calculateValues = () => {
     const { length_cm, width_cm, height_cm, real_weight_kg } = consolidationData;
     const realWeight = parseFloat(real_weight_kg) || 0;
@@ -105,11 +100,9 @@ export default function AdminConsolidate({ user }) {
     let cbm, volumetricWeight;
     
     if (inputMode === 'cbm') {
-      // Usar CBM directo
       cbm = parseFloat(directCbm) || 0;
-      volumetricWeight = cbm * 166.67; // Convertir CBM a kg volumétrico (1 CBM = 166.67 kg)
+      volumetricWeight = cbm * 166.67;
     } else {
-      // Calcular desde dimensiones
       const l = parseFloat(length_cm) || 0;
       const w = parseFloat(width_cm) || 0;
       const h = parseFloat(height_cm) || 0;
@@ -119,12 +112,9 @@ export default function AdminConsolidate({ user }) {
 
     const billableWeight = Math.max(realWeight, volumetricWeight);
 
-    // Calculate costs
-    const selectedPkgs = clientPackages.filter(p => selectedPackages.includes(p.id));
+    const selectedPkgs = allPackages.filter(p => selectedPackages.includes(p.id));
     const totalFOB = selectedPkgs.reduce((sum, p) => sum + (p.has_insurance ? (p.fob_value || 0) : 0), 0);
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
-
-    // Determine if it's sensitive cargo
     const hasSensitive = selectedPkgs.some(p => p.has_insurance);
 
     let shippingCost = 0;
@@ -155,20 +145,18 @@ export default function AdminConsolidate({ user }) {
     setProcessing(true);
     try {
       const calcs = calculateValues();
-      const selectedPkgs = clientPackages.filter(p => selectedPackages.includes(p.id));
+      const selectedPkgs = allPackages.filter(p => selectedPackages.includes(p.id));
       const trackingNumbers = selectedPkgs.map(p => p.tracking_number);
       
-      // Generate tracking
       const date = new Date();
       const dateStr = `${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
       const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const consolidationTracking = `CON-${selectedClient.shipping_mark || 'TLEC'}-${random}-${dateStr}`;
+      const consolidationTracking = `CON-${selectedRequest.shipping_mark || 'TLEC'}-${random}-${dateStr}`;
 
-      // Create consolidation
       const consolidation = await base44.entities.Consolidation.create({
         consolidation_tracking: consolidationTracking,
-        client_email: selectedClient.email,
-        shipping_mark: selectedClient.shipping_mark,
+        client_email: selectedRequest.client_email,
+        shipping_mark: selectedRequest.shipping_mark,
         package_ids: selectedPackages,
         tracking_numbers: trackingNumbers,
         shipping_type: consolidationData.shipping_type,
@@ -183,10 +171,10 @@ export default function AdminConsolidate({ user }) {
         insurance_cost: calcs.insuranceCost,
         total_cost: calcs.totalCost,
         estimated_delivery: consolidationData.estimated_delivery,
+        consolidation_period_days: selectedRequest.consolidation_period_days,
         status: 'pendiente_pago'
       });
 
-      // Update packages
       for (const pkgId of selectedPackages) {
         await base44.entities.Package.update(pkgId, {
           status: 'consolidado',
@@ -194,24 +182,27 @@ export default function AdminConsolidate({ user }) {
         });
       }
 
-      // Generate invoice
+      await base44.entities.ConsolidationRequest.update(selectedRequest.id, {
+        status: 'completada',
+        consolidation_id: consolidation.id
+      });
+
       import('@/components/invoice/InvoiceGenerator').then(({ generateInvoice }) => {
         generateInvoice(consolidation).catch(err => console.error('Invoice error:', err));
       });
 
-      // Notify client
       import('@/components/NotificationUtils').then(({ sendNotification }) => {
         sendNotification({
-          to: selectedClient.email,
+          to: selectedRequest.client_email,
           subject: '📦 Tu carga ha sido consolidada',
-          body: `¡Tu carga ha sido consolidada!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nSe ha generado tu factura. Ingresa al sistema para realizar el pago.`,
+          body: `¡Tu solicitud de consolidación ha sido procesada!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nSe ha generado tu factura. Ingresa al sistema para realizar el pago.`,
           type: 'consolidation',
           icon: 'package',
           referenceId: consolidation.id
         });
       });
 
-      toast.success('Consolidación e factura creadas exitosamente');
+      toast.success('Consolidación creada exitosamente');
       navigate(createPageUrl('AdminDashboard'));
     } catch (error) {
       toast.error('Error al crear consolidación');
@@ -229,61 +220,69 @@ export default function AdminConsolidate({ user }) {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-4">
         {step > 1 && (
-          <Button variant="ghost" size="icon" onClick={() => setStep(step - 1)}>
+          <Button variant="ghost" size="icon" onClick={() => setStep(1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Consolidar Paquetes</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Procesar Consolidaciones</h1>
           <p className="text-slate-500">
-            {step === 1 && 'Selecciona un cliente con paquetes recibidos'}
-            {step === 2 && 'Selecciona los paquetes a consolidar'}
-            {step === 3 && 'Ingresa los detalles de la consolidación'}
+            {step === 1 && 'Solicitudes pendientes de los clientes'}
+            {step === 2 && 'Revisar y agregar paquetes'}
+            {step === 3 && 'Ingresar detalles de la consolidación'}
           </p>
         </div>
       </div>
 
-      {/* Step 1: Select Client */}
+      {/* Step 1: Requests List */}
       {step === 1 && (
-        <div className="grid gap-4">
-          {clients.length === 0 ? (
+        <div className="space-y-4">
+          {requests.length === 0 ? (
             <Card className="border-0 shadow-lg">
               <CardContent className="p-12 text-center">
-                <Users className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin paquetes para consolidar</h3>
-                <p className="text-slate-500">No hay clientes con paquetes en estado "Recibido"</p>
+                <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin solicitudes pendientes</h3>
+                <p className="text-slate-500">No hay solicitudes de consolidación por procesar</p>
               </CardContent>
             </Card>
           ) : (
-            clients.map((client) => (
-              <Card 
-                key={client.email} 
-                className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer group"
-                onClick={() => selectClient(client)}
-              >
+            requests.map((req) => (
+              <Card key={req.id} className="border-0 shadow-md hover:shadow-lg transition-all">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-purple-100 rounded-xl group-hover:bg-purple-200 transition-colors">
-                        <Users className="h-6 w-6 text-purple-600" />
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="p-3 bg-purple-100 rounded-xl">
+                        <Layers className="h-6 w-6 text-purple-600" />
                       </div>
-                      <div>
-                        <p className="font-medium text-slate-800">{client.email}</p>
-                        <p className="text-sm text-slate-500 font-mono">{client.shipping_mark || 'Sin shipping mark'}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <p className="font-medium text-slate-800">{req.client_email}</p>
+                          <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-sm text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <Package className="h-4 w-4" />
+                            {req.tracking_numbers?.length || 0} paquetes
+                          </span>
+                          <span className="flex items-center gap-1">
+                            {req.shipping_type === 'aereo' ? <Plane className="h-4 w-4" /> : <Ship className="h-4 w-4" />}
+                            {req.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}
+                          </span>
+                          <span>{req.consolidation_period_days} días</span>
+                        </div>
+                        {req.notes && (
+                          <p className="text-sm text-slate-600 mt-2 italic">"{req.notes}"</p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-slate-800">{client.packages.length}</p>
-                        <p className="text-sm text-slate-500">paquetes</p>
-                      </div>
-                      <Button className="bg-purple-600 hover:bg-purple-700">
-                        Consolidar <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </div>
+                    <Button 
+                      onClick={() => selectRequest(req)}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      Procesar
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -292,50 +291,58 @@ export default function AdminConsolidate({ user }) {
         </div>
       )}
 
-      {/* Step 2: Select Packages */}
-      {step === 2 && (
+      {/* Step 2: Package Selection */}
+      {step === 2 && selectedRequest && (
         <div className="space-y-4">
-          <Card className="border-0 shadow-md">
+          <Card className="border-0 shadow-lg">
             <CardHeader className="border-b">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Paquetes de {selectedClient?.email}</CardTitle>
-                <Button variant="outline" size="sm" onClick={selectAllPackages}>
-                  {selectedPackages.length === clientPackages.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
-                </Button>
-              </div>
+              <CardTitle>
+                Paquetes de {selectedRequest.shipping_mark}
+                <p className="text-sm font-normal text-slate-500 mt-1">
+                  Puedes agregar más paquetes del mismo cliente
+                </p>
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y">
-                {clientPackages.map((pkg) => (
-                  <div 
-                    key={pkg.id} 
-                    className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${
-                      selectedPackages.includes(pkg.id) ? 'bg-purple-50' : 'hover:bg-slate-50'
-                    }`}
-                    onClick={() => togglePackage(pkg.id)}
-                  >
-                    <Checkbox 
-                      checked={selectedPackages.includes(pkg.id)}
-                      onCheckedChange={() => togglePackage(pkg.id)}
-                    />
-                    <div className="p-2 bg-slate-100 rounded-lg">
-                      {pkg.shipping_type === 'aereo' 
-                        ? <Plane className="h-5 w-5 text-blue-600" />
-                        : <Ship className="h-5 w-5 text-blue-600" />
-                      }
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-mono font-medium">{pkg.tracking_number}</p>
-                      <p className="text-sm text-slate-500">{pkg.description || 'Sin descripción'}</p>
-                    </div>
-                    {pkg.has_insurance && (
-                      <div className="text-right">
-                        <p className="text-sm text-emerald-600 font-medium">Asegurado</p>
-                        <p className="text-sm text-slate-500">FOB: ${pkg.fob_value}</p>
+                {allPackages.map((pkg) => {
+                  const isFromRequest = selectedRequest.package_ids?.includes(pkg.id);
+                  return (
+                    <div 
+                      key={pkg.id} 
+                      className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${
+                        selectedPackages.includes(pkg.id) ? 'bg-purple-50' : 'hover:bg-slate-50'
+                      }`}
+                      onClick={() => togglePackage(pkg.id)}
+                    >
+                      <Checkbox 
+                        checked={selectedPackages.includes(pkg.id)}
+                        onCheckedChange={() => togglePackage(pkg.id)}
+                      />
+                      <div className="p-2 bg-slate-100 rounded-lg">
+                        {pkg.shipping_type === 'aereo' 
+                          ? <Plane className="h-5 w-5 text-blue-600" />
+                          : <Ship className="h-5 w-5 text-blue-600" />
+                        }
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-mono font-medium">{pkg.tracking_number}</p>
+                          {isFromRequest && (
+                            <Badge className="bg-purple-100 text-purple-700 text-xs">Solicitado</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-500">{pkg.description || 'Sin descripción'}</p>
+                      </div>
+                      {pkg.has_insurance && (
+                        <div className="text-right">
+                          <p className="text-sm text-emerald-600 font-medium">Asegurado</p>
+                          <p className="text-sm text-slate-500">FOB: ${pkg.fob_value}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -346,7 +353,7 @@ export default function AdminConsolidate({ user }) {
               disabled={selectedPackages.length === 0}
               className="bg-purple-600 hover:bg-purple-700"
             >
-              Continuar <ArrowRight className="h-4 w-4 ml-2" />
+              Continuar ({selectedPackages.length} paquetes)
             </Button>
           </div>
         </div>
@@ -360,7 +367,6 @@ export default function AdminConsolidate({ user }) {
               <CardTitle>Detalles de la Consolidación</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Shipping Type */}
               <div className="space-y-2">
                 <Label>Tipo de Envío</Label>
                 <Select 
@@ -385,7 +391,6 @@ export default function AdminConsolidate({ user }) {
                 </Select>
               </div>
 
-              {/* Input Mode Selection */}
               <div className="space-y-2">
                 <Label>Método de Ingreso</Label>
                 <div className="grid grid-cols-2 gap-3">
@@ -420,7 +425,6 @@ export default function AdminConsolidate({ user }) {
                 </div>
               </div>
 
-              {/* Peso Real */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Weight className="h-4 w-4" /> Peso Real (kg)
@@ -434,7 +438,6 @@ export default function AdminConsolidate({ user }) {
                 />
               </div>
 
-              {/* Dimensions or CBM */}
               {inputMode === 'dimensions' ? (
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -479,11 +482,9 @@ export default function AdminConsolidate({ user }) {
                     onChange={(e) => setDirectCbm(e.target.value)}
                     placeholder="0.0000"
                   />
-                  <p className="text-xs text-slate-500">Ingresa el volumen total en metros cúbicos</p>
                 </div>
               )}
 
-              {/* Estimated Delivery */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" /> Fecha Estimada de Entrega
@@ -495,7 +496,6 @@ export default function AdminConsolidate({ user }) {
                 />
               </div>
 
-              {/* Calculations Preview */}
               {consolidationData.real_weight_kg && ((inputMode === 'dimensions' && consolidationData.length_cm && consolidationData.width_cm && consolidationData.height_cm) || (inputMode === 'cbm' && directCbm)) && (
                 <Card className="bg-slate-50 border-slate-200">
                   <CardContent className="p-4">
