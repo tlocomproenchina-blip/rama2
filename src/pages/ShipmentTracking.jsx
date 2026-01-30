@@ -126,35 +126,40 @@ export default function ShipmentTracking({ user }) {
         label: 'Consolidación Creada', 
         icon: Package,
         completed: true,
-        date: consolidation.created_date
+        date: consolidation.created_date,
+        color: 'emerald'
       },
       { 
         key: 'transit', 
         label: 'En Tránsito', 
         icon: consolidation.shipping_type === 'aereo' ? Plane : Ship,
         completed: ['en_transito', 'pago_validado', 'disponible', 'entregado'].includes(consolidation.status),
-        date: consolidation.created_date
+        date: consolidation.created_date,
+        color: 'blue'
       },
       { 
         key: 'payment', 
         label: 'Pago Validado', 
         icon: CheckCircle2,
         completed: ['pago_validado', 'disponible', 'entregado'].includes(consolidation.status) || consolidation.payment_validated,
-        date: consolidation.payment_validation_date
+        date: consolidation.payment_validation_date,
+        color: 'amber'
       },
       { 
         key: 'available', 
         label: 'Disponible para Retiro', 
         icon: MapPin,
         completed: ['disponible', 'entregado'].includes(consolidation.status),
-        date: consolidation.status === 'disponible' ? consolidation.updated_date : null
+        date: consolidation.status === 'disponible' ? consolidation.updated_date : null,
+        color: 'teal'
       },
       { 
         key: 'delivered', 
         label: 'Entregado', 
         icon: CheckCircle2,
         completed: consolidation.status === 'entregado',
-        date: consolidation.status === 'entregado' ? consolidation.updated_date : null
+        date: consolidation.status === 'entregado' ? consolidation.updated_date : null,
+        color: 'green'
       }
     ];
     return steps;
