@@ -49,9 +49,65 @@ export default function AdminDashboard({ user }) {
   const [chartData, setChartData] = useState({ daily: [], statusDist: [], shippingType: [], revenue: [], validationTimes: [] });
   const [loading, setLoading] = useState(true);
 
+  const [recentChanges, setRecentChanges] = useState([]);
+
   useEffect(() => {
     loadDashboardData();
+    setupRealtimeSubscriptions();
   }, []);
+
+  const setupRealtimeSubscriptions = () => {
+    // Subscribe to Package changes
+    const unsubscribePackages = base44.entities.Package.subscribe((event) => {
+      setRecentChanges(prev => [{
+        id: event.id,
+        type: 'package',
+        action: event.type,
+        title: `📦 Paquete ${event.type === 'create' ? 'creado' : event.type === 'update' ? 'actualizado' : 'eliminado'}`,
+        tracking: event.data?.tracking_number,
+        timestamp: new Date().toLocaleTimeString(),
+        data: event.data
+      }, ...prev.slice(0, 9)]);
+      
+      loadDashboardData();
+    });
+
+    // Subscribe to Consolidation changes
+    const unsubscribeConsolidations = base44.entities.Consolidation.subscribe((event) => {
+      setRecentChanges(prev => [{
+        id: event.id,
+        type: 'consolidation',
+        action: event.type,
+        title: `📦 Consolidación ${event.type === 'create' ? 'creada' : event.type === 'update' ? 'actualizada' : 'eliminada'}`,
+        tracking: event.data?.consolidation_tracking,
+        timestamp: new Date().toLocaleTimeString(),
+        data: event.data
+      }, ...prev.slice(0, 9)]);
+      
+      loadDashboardData();
+    });
+
+    // Subscribe to ConsolidationRequest changes
+    const unsubscribeRequests = base44.entities.ConsolidationRequest.subscribe((event) => {
+      setRecentChanges(prev => [{
+        id: event.id,
+        type: 'request',
+        action: event.type,
+        title: `🛒 Solicitud ${event.type === 'create' ? 'nueva' : event.type === 'update' ? 'actualizada' : 'eliminada'}`,
+        client: event.data?.client_email,
+        timestamp: new Date().toLocaleTimeString(),
+        data: event.data
+      }, ...prev.slice(0, 9)]);
+      
+      loadDashboardData();
+    });
+
+    return () => {
+      unsubscribePackages();
+      unsubscribeConsolidations();
+      unsubscribeRequests();
+    };
+  };
 
   const loadDashboardData = async () => {
     try {
