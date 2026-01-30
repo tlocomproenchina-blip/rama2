@@ -54,11 +54,15 @@ export default function AdminDashboard({ user }) {
   }, []);
 
   const loadDashboardData = async () => {
-    const [packages, consolidations, users] = await Promise.all([
-      base44.entities.Package.list('-created_date'),
-      base44.entities.Consolidation.list('-created_date'),
-      base44.entities.User.filter({ role: 'user' })
-    ]);
+    try {
+      const [packages, consolidations, users] = await Promise.all([
+        base44.entities.Package.list('-created_date'),
+        base44.entities.Consolidation.list('-created_date'),
+        base44.entities.User.list()
+      ]).catch(err => {
+        console.error('Error loading data:', err);
+        return [[], [], []];
+      });
 
     const pendingPays = consolidations.filter(c => c.status === 'pago_pendiente_validacion');
     const totalRevenue = consolidations
@@ -165,10 +169,14 @@ export default function AdminDashboard({ user }) {
       };
     });
 
-    setChartData({ daily: last7Days, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData });
-    setRecentPackages(packages.slice(0, 5));
-    setPendingPayments(pendingPays.slice(0, 3));
-    setLoading(false);
+      setChartData({ daily: last7Days, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData });
+      setRecentPackages(packages.slice(0, 5));
+      setPendingPayments(pendingPays.slice(0, 3));
+    } catch (error) {
+      console.error('Dashboard error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
