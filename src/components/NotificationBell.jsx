@@ -104,21 +104,19 @@ export default function NotificationBell({ user }) {
   };
 
   const markAllAsRead = async () => {
-    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-    if (unreadIds.length === 0) return;
-    
-    for (const id of unreadIds) {
-      await base44.entities.Notification.update(id, { read: true });
-    }
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-    toast.success('Todas las notificaciones marcadas como leídas');
+   const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+   if (unreadIds.length === 0) return;
+
+   for (const id of unreadIds) {
+     await base44.entities.Notification.update(id, { read: true });
+   }
+   setNotifications(notifications.map(n => ({ ...n, read: true })));
   };
 
   const deleteNotification = async (notifId, e) => {
-    e.stopPropagation();
-    await base44.entities.Notification.delete(notifId);
-    setNotifications(notifications.filter(n => n.id !== notifId));
-    toast.success('Notificación eliminada');
+   e.stopPropagation();
+   await base44.entities.Notification.delete(notifId);
+   setNotifications(notifications.filter(n => n.id !== notifId));
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
