@@ -52,13 +52,6 @@ export default function NotificationBell({ user }) {
         if (event.data.user_email === user.email) {
           if (event.type === 'create') {
             setNotifications(prev => [event.data, ...prev]);
-            // Show toast notification with sound
-            toast.success(event.data.title, {
-              description: event.data.message,
-              duration: 5000,
-            });
-            // Play notification sound
-            playNotificationSound();
           } else if (event.type === 'update') {
             setNotifications(prev => prev.map(n => n.id === event.id ? event.data : n));
           } else if (event.type === 'delete') {
