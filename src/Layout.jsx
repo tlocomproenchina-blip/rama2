@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar';
 import ContractModal from '@/components/ContractModal';
 import ProfileSetupModal from '@/components/ProfileSetupModal';
 import NotificationBell from '@/components/NotificationBell';
+import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
@@ -113,6 +114,7 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <Toaster position="top-right" richColors />
+      <AdminNotificationCenter user={user} />
       
       <Sidebar 
         user={user} 
