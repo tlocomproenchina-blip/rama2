@@ -129,18 +129,18 @@ export default function ShipmentTracking({ user }) {
         date: consolidation.created_date
       },
       { 
-        key: 'payment', 
-        label: 'Pago Validado', 
-        icon: CheckCircle2,
-        completed: consolidation.payment_validated,
-        date: consolidation.payment_validation_date
-      },
-      { 
         key: 'transit', 
         label: 'En Tránsito', 
         icon: consolidation.shipping_type === 'aereo' ? Plane : Ship,
-        completed: ['en_transito', 'disponible', 'entregado'].includes(consolidation.status),
+        completed: ['en_transito', 'pago_validado', 'disponible', 'entregado'].includes(consolidation.status),
         date: consolidation.status === 'en_transito' ? consolidation.updated_date : null
+      },
+      { 
+        key: 'payment', 
+        label: 'Pago Validado', 
+        icon: CheckCircle2,
+        completed: ['pago_validado', 'disponible', 'entregado'].includes(consolidation.status) || consolidation.payment_validated,
+        date: consolidation.payment_validation_date
       },
       { 
         key: 'available', 
