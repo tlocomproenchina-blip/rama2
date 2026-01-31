@@ -33,6 +33,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const permissions = user?.admin_permissions || {};
 
   const clientMenuItems = [
+  { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
