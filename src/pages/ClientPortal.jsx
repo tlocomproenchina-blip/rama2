@@ -63,28 +63,32 @@ export default function ClientPortal({ user, refreshUser }) {
   useEffect(() => {
     if (!user) return;
 
-    // Subscribe to real-time package updates
+    let debounceTimer;
+    const debouncedLoadData = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => loadData(), 1000);
+    };
+
     const unsubscribePackages = base44.entities.Package.subscribe((event) => {
       if (event.data?.client_email === user.email) {
-        loadData();
+        debouncedLoadData();
       }
     });
 
-    // Subscribe to real-time consolidation updates
     const unsubscribeConsolidations = base44.entities.Consolidation.subscribe((event) => {
       if (event.data?.client_email === user.email) {
-        loadData();
+        debouncedLoadData();
       }
     });
 
-    // Subscribe to real-time invoice updates
     const unsubscribeInvoices = base44.entities.Invoice.subscribe((event) => {
       if (event.data?.client_email === user.email) {
-        loadData();
+        debouncedLoadData();
       }
     });
 
     return () => {
+      clearTimeout(debounceTimer);
       unsubscribePackages();
       unsubscribeConsolidations();
       unsubscribeInvoices();

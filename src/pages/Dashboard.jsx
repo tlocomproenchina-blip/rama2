@@ -38,19 +38,26 @@ export default function Dashboard({ user, refreshUser }) {
     
     // Real-time updates
     if (user) {
+      let debounceTimer;
+      const debouncedLoadData = () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => loadData(), 1000);
+      };
+
       const unsubscribePackages = base44.entities.Package.subscribe((event) => {
         if (event.data?.client_email === user.email) {
-          loadData();
+          debouncedLoadData();
         }
       });
       
       const unsubscribeConsolidations = base44.entities.Consolidation.subscribe((event) => {
         if (event.data?.client_email === user.email) {
-          loadData();
+          debouncedLoadData();
         }
       });
       
       return () => {
+        clearTimeout(debounceTimer);
         unsubscribePackages();
         unsubscribeConsolidations();
       };

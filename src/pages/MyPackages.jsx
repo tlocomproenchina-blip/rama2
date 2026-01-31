@@ -33,13 +33,18 @@ export default function MyPackages({ user }) {
     
     // Real-time updates
     if (user) {
+      let debounceTimer;
       const unsubscribe = base44.entities.Package.subscribe((event) => {
         if (event.data?.client_email === user.email) {
-          loadPackages();
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => loadPackages(), 1000);
         }
       });
       
-      return () => unsubscribe();
+      return () => {
+        clearTimeout(debounceTimer);
+        unsubscribe();
+      };
     }
   }, [user]);
 

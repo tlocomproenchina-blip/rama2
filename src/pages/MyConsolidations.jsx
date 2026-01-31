@@ -36,13 +36,18 @@ export default function MyConsolidations({ user }) {
     
     // Real-time updates
     if (user) {
+      let debounceTimer;
       const unsubscribe = base44.entities.Consolidation.subscribe((event) => {
         if (event.data?.client_email === user.email) {
-          loadConsolidations();
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => loadConsolidations(), 1000);
         }
       });
       
-      return () => unsubscribe();
+      return () => {
+        clearTimeout(debounceTimer);
+        unsubscribe();
+      };
     }
   }, [user]);
 
