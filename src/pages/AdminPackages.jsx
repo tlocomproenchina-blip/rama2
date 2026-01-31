@@ -15,14 +15,17 @@ import {
   Eye,
   Plane,
   Ship,
-  Shield
+  Shield,
+  Trash2
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import AdvancedSearch from '@/components/admin/AdvancedSearch';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 export default function AdminPackages({ user }) {
   const [packages, setPackages] = useState([]);
@@ -35,6 +38,11 @@ export default function AdminPackages({ user }) {
   const [processing, setProcessing] = useState(false);
   const [viewImage, setViewImage] = useState(null);
   const [advancedFilters, setAdvancedFilters] = useState(null);
+  const [selectedPackages, setSelectedPackages] = useState([]);
+  const [bulkAction, setBulkAction] = useState('');
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   useEffect(() => {
     loadPackages();
@@ -106,6 +114,73 @@ export default function AdminPackages({ user }) {
     setAdvancedFilters(null);
     setSearch('');
     setStatusFilter('all');
+  };
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedPackages(filteredPackages.map(p => p.id));
+    } else {
+      setSelectedPackages([]);
+    }
+  };
+
+  const handleSelectPackage = (pkgId, checked) => {
+    if (checked) {
+      setSelectedPackages([...selectedPackages, pkgId]);
+    } else {
+      setSelectedPackages(selectedPackages.filter(id => id !== pkgId));
+    }
+  };
+
+  const handleBulkAction = () => {
+    if (!bulkAction) {
+      toast.error('Selecciona una acción');
+      return;
+    }
+    if (selectedPackages.length === 0) {
+      toast.error('Selecciona al menos un paquete');
+      return;
+    }
+    if (bulkAction === 'status' && !bulkStatus) {
+      toast.error('Selecciona un estado');
+      return;
+    }
+    setShowBulkConfirm(true);
+  };
+
+  const executeBulkAction = async () => {
+    setBulkProcessing(true);
+    try {
+      const selectedPkgs = packages.filter(p => selectedPackages.includes(p.id));
+
+      if (bulkAction === 'delete') {
+        await Promise.all(selectedPkgs.map(pkg => 
+          base44.entities.Package.delete(pkg.id)
+        ));
+        toast.success(`${selectedPackages.length} paquetes eliminados`);
+      } else if (bulkAction === 'status') {
+        await Promise.all(selectedPkgs.map(pkg => 
+          base44.entities.Package.update(pkg.id, { status: bulkStatus })
+        ));
+        
+        // Notify clients
+        if (['en_transito', 'disponible', 'entregado'].includes(bulkStatus)) {
+          const { notifyPackageStatus } = await import('@/components/NotificationUtils');
+          selectedPkgs.forEach(pkg => notifyPackageStatus(pkg, bulkStatus));
+        }
+        
+        toast.success(`${selectedPackages.length} paquetes actualizados`);
+      }
+
+      setSelectedPackages([]);
+      setBulkAction('');
+      setBulkStatus('');
+      setShowBulkConfirm(false);
+      loadPackages();
+    } catch (error) {
+      toast.error('Error al ejecutar acción masiva');
+    }
+    setBulkProcessing(false);
   };
 
   const filteredPackages = packages.filter(pkg => {
@@ -197,12 +272,77 @@ export default function AdminPackages({ user }) {
         </CardContent>
       </Card>
 
+      {/* Bulk Actions Bar */}
+      {selectedPackages.length > 0 && (
+        <Card className="border-0 shadow-lg bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={selectedPackages.length === filteredPackages.length}
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm font-medium text-slate-700">
+                  {selectedPackages.length} paquete(s) seleccionado(s)
+                </span>
+              </div>
+              
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                <Select value={bulkAction} onValueChange={setBulkAction}>
+                  <SelectTrigger className="w-48 bg-white">
+                    <SelectValue placeholder="Acción masiva" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="status">Cambiar Estado</SelectItem>
+                    <SelectItem value="delete">Eliminar</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {bulkAction === 'status' && (
+                  <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                    <SelectTrigger className="w-40 bg-white">
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recibido">Recibido</SelectItem>
+                      <SelectItem value="en_transito">En Tránsito</SelectItem>
+                      <SelectItem value="disponible">Disponible</SelectItem>
+                      <SelectItem value="entregado">Entregado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+
+                <Button 
+                  onClick={handleBulkAction}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Aplicar
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedPackages([])}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Packages Table */}
       <Card className="border-0 shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
+                <th className="text-left p-4 font-medium text-slate-600">
+                  <Checkbox 
+                    checked={selectedPackages.length === filteredPackages.length && filteredPackages.length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </th>
                 <th className="text-left p-4 font-medium text-slate-600">Tracking</th>
                 <th className="text-left p-4 font-medium text-slate-600">Cliente</th>
                 <th className="text-left p-4 font-medium text-slate-600">Shipping Mark</th>
@@ -214,6 +354,12 @@ export default function AdminPackages({ user }) {
             <tbody className="divide-y divide-slate-100">
               {filteredPackages.map((pkg) => (
                 <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="p-4">
+                    <Checkbox 
+                      checked={selectedPackages.includes(pkg.id)}
+                      onCheckedChange={(checked) => handleSelectPackage(pkg.id, checked)}
+                    />
+                  </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-medium text-slate-800">{pkg.tracking_number}</span>
@@ -352,6 +498,46 @@ export default function AdminPackages({ user }) {
           <img src={viewImage} alt="Paquete" className="w-full rounded-lg" />
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Action Confirmation */}
+      <AlertDialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Acción Masiva</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkAction === 'delete' ? (
+                <>
+                  Estás a punto de <span className="font-semibold text-red-600">eliminar {selectedPackages.length} paquete(s)</span>.
+                  Esta acción no se puede deshacer.
+                </>
+              ) : bulkAction === 'status' ? (
+                <>
+                  Cambiarás el estado de <span className="font-semibold">{selectedPackages.length} paquete(s)</span> a{' '}
+                  <span className="font-semibold text-blue-600">{bulkStatus}</span>.
+                  {['en_transito', 'disponible', 'entregado'].includes(bulkStatus) && ' Los clientes serán notificados.'}
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkProcessing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                executeBulkAction();
+              }}
+              disabled={bulkProcessing}
+              className={bulkAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}
+            >
+              {bulkProcessing ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando...</>
+              ) : (
+                <>Confirmar</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
