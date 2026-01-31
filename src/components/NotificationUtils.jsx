@@ -16,6 +16,18 @@ export async function sendNotification({ to, subject, body, title, message, type
       icon,
       reference_id: referenceId
     });
+
+    // Send push notification
+    try {
+      await base44.functions.invoke('sendPushNotification', {
+        userEmail: to,
+        title: title || subject,
+        body: message || body.split('\n')[0],
+        url: '/'
+      });
+    } catch (pushError) {
+      console.log('Push notification not sent (user may not be subscribed)');
+    }
   } catch (error) {
     console.error('Notification error:', error);
   }
