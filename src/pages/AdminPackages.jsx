@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { Badge } from "@/components/ui/badge";
+import AdvancedSearch from '@/components/admin/AdvancedSearch';
 
 export default function AdminPackages({ user }) {
   const [packages, setPackages] = useState([]);
@@ -33,6 +34,7 @@ export default function AdminPackages({ user }) {
   const [imageFile, setImageFile] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [viewImage, setViewImage] = useState(null);
+  const [advancedFilters, setAdvancedFilters] = useState(null);
 
   useEffect(() => {
     loadPackages();
@@ -96,12 +98,52 @@ export default function AdminPackages({ user }) {
     loadPackages();
   };
 
+  const handleAdvancedSearch = (filters) => {
+    setAdvancedFilters(filters);
+  };
+
+  const handleResetFilters = () => {
+    setAdvancedFilters(null);
+    setSearch('');
+    setStatusFilter('all');
+  };
+
   const filteredPackages = packages.filter(pkg => {
+    // Basic search
     const matchesSearch = 
       pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
       (pkg.shipping_mark || '').toLowerCase().includes(search.toLowerCase()) ||
       (pkg.client_email || '').toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || pkg.status === statusFilter;
+
+    // Advanced filters
+    if (advancedFilters) {
+      const {
+        tracking,
+        email,
+        shippingMark,
+        status,
+        shippingType,
+        dateFrom,
+        dateTo,
+        hasInsurance
+      } = advancedFilters;
+
+      if (tracking && !pkg.tracking_number.toLowerCase().includes(tracking.toLowerCase())) return false;
+      if (email && !pkg.client_email.toLowerCase().includes(email.toLowerCase())) return false;
+      if (shippingMark && !(pkg.shipping_mark || '').toLowerCase().includes(shippingMark.toLowerCase())) return false;
+      if (status !== 'all' && pkg.status !== status) return false;
+      if (shippingType !== 'all' && pkg.shipping_type !== shippingType) return false;
+      if (hasInsurance !== 'all' && pkg.has_insurance !== (hasInsurance === 'true')) return false;
+
+      // Date filtering
+      if (dateFrom || dateTo) {
+        const pkgDate = new Date(pkg.created_date);
+        if (dateFrom && pkgDate < new Date(dateFrom)) return false;
+        if (dateTo && pkgDate > new Date(dateTo + 'T23:59:59')) return false;
+      }
+    }
+
     return matchesSearch && matchesStatus;
   });
 
@@ -121,14 +163,21 @@ export default function AdminPackages({ user }) {
         <p className="text-slate-500">Administra todos los paquetes del sistema</p>
       </div>
 
-      {/* Filters */}
+      {/* Advanced Search */}
+      <AdvancedSearch
+        type="packages"
+        onSearch={handleAdvancedSearch}
+        onReset={handleResetFilters}
+      />
+
+      {/* Quick Filters */}
       <Card className="border-0 shadow-md">
         <CardContent className="p-4">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar por tracking, shipping mark o email..."
+                placeholder="Búsqueda rápida por tracking, shipping mark o email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
