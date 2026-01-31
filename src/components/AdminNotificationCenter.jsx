@@ -108,8 +108,24 @@ export default function AdminNotificationCenter({ user }) {
 
   const saveNotification = async (title, message, type, icon, referenceId) => {
     try {
-      // Save notification only for current user
-      if (user?.email) {
+      // Check if notification already exists for this user and reference
+      if (user?.email && referenceId) {
+        const existing = await base44.entities.Notification.filter({
+          user_email: user.email,
+          reference_id: referenceId,
+          title: title
+        }, '-created_date', 1);
+        
+        // If exists and was created in the last 5 seconds, skip
+        if (existing.length > 0) {
+          const lastNotif = existing[0];
+          const timeDiff = Date.now() - new Date(lastNotif.created_date).getTime();
+          if (timeDiff < 5000) {
+            return; // Skip duplicate
+          }
+        }
+        
+        // Save notification
         await base44.entities.Notification.create({
           user_email: user.email,
           title,
