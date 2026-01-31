@@ -33,6 +33,17 @@ export default function MyConsolidations({ user }) {
 
   useEffect(() => {
     loadConsolidations();
+    
+    // Real-time updates
+    if (user) {
+      const unsubscribe = base44.entities.Consolidation.subscribe((event) => {
+        if (event.data?.client_email === user.email) {
+          loadConsolidations();
+        }
+      });
+      
+      return () => unsubscribe();
+    }
   }, [user]);
 
   const loadConsolidations = async () => {

@@ -39,11 +39,15 @@ export default function Dashboard({ user, refreshUser }) {
     // Real-time updates
     if (user) {
       const unsubscribePackages = base44.entities.Package.subscribe((event) => {
-        loadData();
+        if (event.data?.client_email === user.email) {
+          loadData();
+        }
       });
       
       const unsubscribeConsolidations = base44.entities.Consolidation.subscribe((event) => {
-        loadData();
+        if (event.data?.client_email === user.email) {
+          loadData();
+        }
       });
       
       return () => {
