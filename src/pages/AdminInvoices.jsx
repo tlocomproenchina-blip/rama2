@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,6 +33,11 @@ export default function AdminInvoices({ user }) {
   const [processing, setProcessing] = useState(false);
   const [deleteInvoice, setDeleteInvoice] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState([]);
+  const [bulkAction, setBulkAction] = useState('');
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -322,6 +328,66 @@ export default function AdminInvoices({ user }) {
     toast.success('Reporte exportado');
   };
 
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedInvoices(filteredInvoices.map(i => i.id));
+    } else {
+      setSelectedInvoices([]);
+    }
+  };
+
+  const handleSelectInvoice = (invId, checked) => {
+    if (checked) {
+      setSelectedInvoices([...selectedInvoices, invId]);
+    } else {
+      setSelectedInvoices(selectedInvoices.filter(id => id !== invId));
+    }
+  };
+
+  const handleBulkAction = () => {
+    if (!bulkAction) {
+      toast.error('Selecciona una acción');
+      return;
+    }
+    if (selectedInvoices.length === 0) {
+      toast.error('Selecciona al menos una factura');
+      return;
+    }
+    if (bulkAction === 'status' && !bulkStatus) {
+      toast.error('Selecciona un estado');
+      return;
+    }
+    setShowBulkConfirm(true);
+  };
+
+  const executeBulkAction = async () => {
+    setBulkProcessing(true);
+    try {
+      const selectedInvs = invoices.filter(i => selectedInvoices.includes(i.id));
+
+      if (bulkAction === 'delete') {
+        await Promise.all(selectedInvs.map(inv => 
+          base44.entities.Invoice.delete(inv.id)
+        ));
+        toast.success(`${selectedInvoices.length} factura(s) eliminada(s)`);
+      } else if (bulkAction === 'status') {
+        await Promise.all(selectedInvs.map(inv => 
+          base44.entities.Invoice.update(inv.id, { status: bulkStatus })
+        ));
+        toast.success(`${selectedInvoices.length} factura(s) actualizada(s)`);
+      }
+
+      setSelectedInvoices([]);
+      setBulkAction('');
+      setBulkStatus('');
+      setShowBulkConfirm(false);
+      loadInvoices();
+    } catch (error) {
+      toast.error('Error al ejecutar acción masiva');
+    }
+    setBulkProcessing(false);
+  };
+
   const filteredInvoices = invoices.filter(inv => {
     const matchesSearch = 
       inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -436,6 +502,65 @@ export default function AdminInvoices({ user }) {
         </TabsList>
       </Tabs>
 
+      {/* Bulk Actions Bar */}
+      {selectedInvoices.length > 0 && (
+        <Card className="border-0 shadow-lg bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={selectedInvoices.length === filteredInvoices.length}
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="text-sm font-medium text-slate-700">
+                  {selectedInvoices.length} factura(s) seleccionada(s)
+                </span>
+              </div>
+              
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                <Select value={bulkAction} onValueChange={setBulkAction}>
+                  <SelectTrigger className="w-48 bg-white">
+                    <SelectValue placeholder="Acción masiva" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="status">Cambiar Estado</SelectItem>
+                    <SelectItem value="delete">Eliminar</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {bulkAction === 'status' && (
+                  <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                    <SelectTrigger className="w-40 bg-white">
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pendiente">Pendiente</SelectItem>
+                      <SelectItem value="pagada">Pagada</SelectItem>
+                      <SelectItem value="vencida">Vencida</SelectItem>
+                      <SelectItem value="cancelada">Cancelada</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+
+                <Button 
+                  onClick={handleBulkAction}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Aplicar
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedInvoices([])}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Invoice List */}
       {filteredInvoices.length === 0 ? (
         <Card className="border-0 shadow-lg">
@@ -448,6 +573,13 @@ export default function AdminInvoices({ user }) {
         <div className="grid gap-4">
           {filteredInvoices.map(invoice => (
             <div key={invoice.id} className="relative group">
+              <div className="absolute top-4 left-4 z-10">
+                <Checkbox 
+                  checked={selectedInvoices.includes(invoice.id)}
+                  onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked)}
+                  className="bg-white"
+                />
+              </div>
               <InvoiceCard
                 invoice={invoice}
                 onDownload={handleDownloadPDF}
@@ -586,6 +718,45 @@ export default function AdminInvoices({ user }) {
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Eliminando...</>
               ) : (
                 <><Trash2 className="h-4 w-4 mr-2" /> Eliminar</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Action Confirmation */}
+      <AlertDialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Acción Masiva</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkAction === 'delete' ? (
+                <>
+                  Estás a punto de <span className="font-semibold text-red-600">eliminar {selectedInvoices.length} factura(s)</span>.
+                  Esta acción no se puede deshacer.
+                </>
+              ) : bulkAction === 'status' ? (
+                <>
+                  Cambiarás el estado de <span className="font-semibold">{selectedInvoices.length} factura(s)</span> a{' '}
+                  <span className="font-semibold text-blue-600">{bulkStatus}</span>.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkProcessing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                executeBulkAction();
+              }}
+              disabled={bulkProcessing}
+              className={bulkAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}
+            >
+              {bulkProcessing ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando...</>
+              ) : (
+                <>Confirmar</>
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
