@@ -60,6 +60,37 @@ export default function ClientPortal({ user, refreshUser }) {
     loadData();
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    // Subscribe to real-time package updates
+    const unsubscribePackages = base44.entities.Package.subscribe((event) => {
+      if (event.data?.client_email === user.email) {
+        loadData();
+      }
+    });
+
+    // Subscribe to real-time consolidation updates
+    const unsubscribeConsolidations = base44.entities.Consolidation.subscribe((event) => {
+      if (event.data?.client_email === user.email) {
+        loadData();
+      }
+    });
+
+    // Subscribe to real-time invoice updates
+    const unsubscribeInvoices = base44.entities.Invoice.subscribe((event) => {
+      if (event.data?.client_email === user.email) {
+        loadData();
+      }
+    });
+
+    return () => {
+      unsubscribePackages();
+      unsubscribeConsolidations();
+      unsubscribeInvoices();
+    };
+  }, [user]);
+
   const loadData = async () => {
     try {
       const [pkgs, consols, invs, tkts] = await Promise.all([
