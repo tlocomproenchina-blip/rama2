@@ -7,7 +7,6 @@ import ContractModal from '@/components/ContractModal';
 import ProfileSetupModal from '@/components/ProfileSetupModal';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
-import OfflineQueue from '@/components/OfflineQueue';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
@@ -22,13 +21,6 @@ export default function Layout({ children, currentPageName }) {
 
   useEffect(() => {
     loadUser();
-    
-    // Registrar Service Worker para PWA
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => console.log('SW registrado:', registration.scope))
-        .catch(error => console.log('Error SW:', error));
-    }
   }, []);
 
   const loadUser = async () => {
@@ -126,7 +118,6 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
       <Toaster position="top-right" richColors />
       <AdminNotificationCenter user={user} />
-      <OfflineQueue />
       
       <Sidebar 
         user={user} 
