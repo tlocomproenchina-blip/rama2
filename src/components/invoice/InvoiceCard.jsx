@@ -2,8 +2,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, CreditCard, Calendar, DollarSign } from 'lucide-react';
+import { FileText, CreditCard, Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
+import InvoicePDFGenerator from './InvoicePDFGenerator';
 
 export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton = false }) {
   const statusColors = {
@@ -74,14 +75,9 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
               Pagar Online
             </Button>
           )}
-          <Button 
-            variant="outline" 
-            onClick={() => onDownload(invoice)}
-            className="flex-1"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Descargar PDF
-          </Button>
+          <div className="flex-1">
+            <InvoicePDFGenerator invoice={invoice} />
+          </div>
         </div>
 
         {invoice.payment_date && (
