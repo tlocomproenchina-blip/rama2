@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,6 +41,7 @@ const colorMap = {
 };
 
 export default function NotificationBell({ user }) {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -106,12 +109,32 @@ export default function NotificationBell({ user }) {
     setLoading(false);
   };
 
-  const markAsRead = async (notif) => {
+  const handleNotificationClick = async (notif) => {
+    // Mark as read
     if (!notif.read) {
       await base44.entities.Notification.update(notif.id, { read: true });
       setNotifications(notifications.map(n => 
         n.id === notif.id ? { ...n, read: true } : n
       ));
+    }
+
+    // Navigate based on type and reference_id
+    if (notif.reference_id) {
+      try {
+        if (notif.type === 'package') {
+          const pageName = user.role === 'admin' ? 'AdminPackages' : 'MyPackages';
+          navigate(createPageUrl(pageName));
+        } else if (notif.type === 'consolidation') {
+          const pageName = user.role === 'admin' ? 'ShipmentTracking' : 'MyConsolidations';
+          navigate(createPageUrl(pageName));
+        } else if (notif.type === 'payment') {
+          const pageName = user.role === 'admin' ? 'AdminInvoices' : 'MyInvoices';
+          navigate(createPageUrl(pageName));
+        }
+        setOpen(false);
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
     }
   };
 
@@ -189,7 +212,7 @@ export default function NotificationBell({ user }) {
                     className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer relative group ${
                       !notif.read ? 'bg-blue-50/50' : ''
                     }`}
-                    onClick={() => markAsRead(notif)}
+                    onClick={() => handleNotificationClick(notif)}
                   >
                     <div className="flex gap-3">
                       <div className={`p-2 rounded-lg h-fit ${colorClass}`}>
