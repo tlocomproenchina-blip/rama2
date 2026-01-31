@@ -23,6 +23,7 @@ import EditProfileModal from '@/components/EditProfileModal';
 import ActiveConsolidationsWidget from '@/components/dashboard/ActiveConsolidationsWidget';
 import RecentPaymentsWidget from '@/components/dashboard/RecentPaymentsWidget';
 import DeliveryTimesWidget from '@/components/dashboard/DeliveryTimesWidget';
+import PushNotificationManager from '@/components/PushNotificationManager';
 import { toast } from 'sonner';
 
 export default function Dashboard({ user, refreshUser }) {
@@ -153,6 +154,9 @@ export default function Dashboard({ user, refreshUser }) {
           </Button>
         </div>
       </div>
+
+      {/* Push Notifications */}
+      <PushNotificationManager user={user} />
 
       {/* Shipping Mark Card */}
       {hasShippingMark ? (
