@@ -26,6 +26,9 @@ import { toast } from 'sonner';
 export default function AdminSettings({ user }) {
   const [config, setConfig] = useState({
     config_key: 'main',
+    app_name: 'TLEC Logistics',
+    app_tagline: 'Sistema de Envíos',
+    app_logo_url: '',
     warehouse_address: '',
     contract_text: '',
     rate_air_general: 0,
@@ -60,6 +63,7 @@ export default function AdminSettings({ user }) {
   const [exporting, setExporting] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingAppLogo, setUploadingAppLogo] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -162,11 +166,24 @@ export default function AdminSettings({ user }) {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setConfig({ ...config, invoice_logo_url: file_url });
-      toast.success('Logo subido exitosamente');
+      toast.success('Logo de factura subido exitosamente');
     } catch (error) {
       toast.error('Error al subir logo');
     }
     setUploadingLogo(false);
+  };
+
+  const handleAppLogoUpload = async (file) => {
+    if (!file) return;
+    setUploadingAppLogo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setConfig({ ...config, app_logo_url: file_url });
+      toast.success('Logo de aplicación subido exitosamente');
+    } catch (error) {
+      toast.error('Error al subir logo');
+    }
+    setUploadingAppLogo(false);
   };
 
   const handleExportCSV = async () => {
@@ -241,13 +258,88 @@ export default function AdminSettings({ user }) {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-6 w-full">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="branding">Marca</TabsTrigger>
           <TabsTrigger value="invoice">Factura</TabsTrigger>
           <TabsTrigger value="rates">Tarifas</TabsTrigger>
           <TabsTrigger value="wallets">Wallets</TabsTrigger>
           <TabsTrigger value="contract">Contrato</TabsTrigger>
         </TabsList>
+
+        {/* Branding Tab */}
+        <TabsContent value="branding">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-blue-600" />
+                Marca y Apariencia
+              </CardTitle>
+              <CardDescription>
+                Personaliza el nombre y logo que aparece en el sidebar de la aplicación
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Nombre de la Aplicación</Label>
+                <Input
+                  value={config.app_name}
+                  onChange={(e) => setConfig({ ...config, app_name: e.target.value })}
+                  placeholder="TLEC Logistics"
+                />
+                <p className="text-xs text-slate-500">
+                  Este nombre aparecerá en el encabezado del sidebar
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Eslogan/Descripción</Label>
+                <Input
+                  value={config.app_tagline}
+                  onChange={(e) => setConfig({ ...config, app_tagline: e.target.value })}
+                  placeholder="Sistema de Envíos"
+                />
+                <p className="text-xs text-slate-500">
+                  Texto corto que aparece debajo del nombre en el sidebar
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Logo de la Aplicación (Relación 1:1)</Label>
+                <div className="space-y-3">
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleAppLogoUpload(e.target.files[0])}
+                      disabled={uploadingAppLogo}
+                    />
+                    {uploadingAppLogo && <Loader2 className="h-5 w-5 animate-spin text-blue-600" />}
+                  </div>
+                  {config.app_logo_url && (
+                    <div className="p-4 bg-[#1c3f82] rounded-lg border border-slate-700 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-white flex items-center justify-center">
+                        <img 
+                          src={config.app_logo_url} 
+                          alt="App logo preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-white font-bold">{config.app_name}</p>
+                        <p className="text-slate-400 text-xs">{config.app_tagline}</p>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    ⚠️ IMPORTANTE: Usa una imagen cuadrada (1:1) del mismo tamaño que el contenedor azul (40x40px recomendado). 
+                    El logo aparecerá en el sidebar para todos los usuarios.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Invoice Tab */}
         <TabsContent value="invoice">
@@ -287,7 +379,7 @@ export default function AdminSettings({ user }) {
               </div>
 
               <div className="space-y-2">
-                <Label>Logo de la Empresa</Label>
+                <Label>Logo para Facturas (Relación 1:1)</Label>
                 <div className="space-y-3">
                   <div className="flex gap-2 items-center">
                     <Input
@@ -300,15 +392,18 @@ export default function AdminSettings({ user }) {
                   </div>
                   {config.invoice_logo_url && (
                     <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                      <img 
-                        src={config.invoice_logo_url} 
-                        alt="Logo preview" 
-                        className="h-16 object-contain"
-                      />
+                      <div className="w-16 h-16 mx-auto">
+                        <img 
+                          src={config.invoice_logo_url} 
+                          alt="Invoice logo preview" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
                     </div>
                   )}
                   <p className="text-xs text-slate-500">
-                    El logo aparecerá en el encabezado de las facturas. Recomendado: fondo transparente, formato PNG
+                    ⚠️ IMPORTANTE: Usa una imagen cuadrada (1:1) para mejor visualización en facturas. 
+                    El logo aparecerá en el encabezado de todas las facturas PDF.
                   </p>
                 </div>
               </div>

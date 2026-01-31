@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
@@ -28,6 +28,22 @@ import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
+  const [config, setConfig] = useState(null);
+
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  const loadConfig = async () => {
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (configs.length > 0) {
+        setConfig(configs[0]);
+      }
+    } catch (error) {
+      console.error('Error loading config:', error);
+    }
+  };
   const isAdmin = user?.role === 'admin';
   const isEmployee = user?.is_employee === true;
   const permissions = user?.admin_permissions || {};
@@ -121,12 +137,26 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         <div className="bg-[#1c3f82] p-6 border-b border-slate-700/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Package className="h-5 w-5 text-white" />
-              </div>
+              {config?.app_logo_url ? (
+                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-white flex items-center justify-center">
+                  <img 
+                    src={config.app_logo_url} 
+                    alt="Logo" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Package className="h-5 w-5 text-white" />
+                </div>
+              )}
               <div>
-                <h1 className="text-lg font-bold text-white">TLEC Logistics</h1>
-                <p className="text-xs text-slate-400">Sistema de Envíos</p>
+                <h1 className="text-lg font-bold text-white">
+                  {config?.app_name || 'TLEC Logistics'}
+                </h1>
+                <p className="text-xs text-slate-400">
+                  {config?.app_tagline || 'Sistema de Envíos'}
+                </p>
               </div>
             </div>
             <Button
