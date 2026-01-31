@@ -34,7 +34,9 @@ export default function MyPackages({ user }) {
     // Real-time updates
     if (user) {
       const unsubscribe = base44.entities.Package.subscribe((event) => {
-        loadPackages();
+        if (event.data?.client_email === user.email) {
+          loadPackages();
+        }
       });
       
       return () => unsubscribe();
