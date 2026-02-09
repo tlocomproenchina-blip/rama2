@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -20,11 +20,15 @@ import {
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import EditProfileModal from '@/components/EditProfileModal';
-import ActiveConsolidationsWidget from '@/components/dashboard/ActiveConsolidationsWidget';
-import RecentPaymentsWidget from '@/components/dashboard/RecentPaymentsWidget';
-import DeliveryTimesWidget from '@/components/dashboard/DeliveryTimesWidget';
+import { PackageSkeletonLoader, ListSkeletonLoader, StatsGridSkeletonLoader } from '@/components/SkeletonLoaders';
+
+// Lazy load non-critical widgets
+const ActiveConsolidationsWidget = lazy(() => import('@/components/dashboard/ActiveConsolidationsWidget'));
+const RecentPaymentsWidget = lazy(() => import('@/components/dashboard/RecentPaymentsWidget'));
+const DeliveryTimesWidget = lazy(() => import('@/components/dashboard/DeliveryTimesWidget'));
 
 import { toast } from 'sonner';
+import { HeaderSkeletonLoader } from '@/components/SkeletonLoaders';
 
 export default function Dashboard({ user, refreshUser }) {
   const [packages, setPackages] = useState([]);
@@ -102,8 +106,17 @@ export default function Dashboard({ user, refreshUser }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
+        <HeaderSkeletonLoader />
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-3 md:p-4 lg:p-6">
+            <div className="space-y-3">
+              <div className="h-6 bg-slate-200 rounded w-24 animate-pulse" />
+              <div className="h-4 bg-slate-200 rounded w-full animate-pulse" />
+            </div>
+          </CardContent>
+        </Card>
+        <StatsGridSkeletonLoader />
       </div>
     );
   }
@@ -309,11 +322,15 @@ export default function Dashboard({ user, refreshUser }) {
 
       {/* Widgets Section */}
       {hasShippingMark && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-4">
-          <ActiveConsolidationsWidget consolidations={consolidations} />
-          <RecentPaymentsWidget invoices={invoices} />
-          <DeliveryTimesWidget consolidations={consolidations} />
-        </div>
+        <Suspense fallback={<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-4">
+          {[1,2,3].map(i => <div key={i} className="h-48 bg-slate-200 rounded-lg animate-pulse" />)}
+        </div>}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-4">
+            <ActiveConsolidationsWidget consolidations={consolidations} />
+            <RecentPaymentsWidget invoices={invoices} />
+            <DeliveryTimesWidget consolidations={consolidations} />
+          </div>
+        </Suspense>
       )}
 
       {/* Quick Actions */}
@@ -369,7 +386,7 @@ export default function Dashboard({ user, refreshUser }) {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
               {packages.slice(0, 5).map((pkg) => (
                 <div key={pkg.id} className="p-3 md:p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-3 min-w-0 flex-1">

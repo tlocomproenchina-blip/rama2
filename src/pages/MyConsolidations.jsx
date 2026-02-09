@@ -23,6 +23,7 @@ import {
 import StatusBadge from '@/components/StatusBadge';
 import PaymentModal from '@/components/PaymentModal';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
 import { toast } from 'sonner';
 
 export default function MyConsolidations({ user }) {
@@ -89,8 +90,9 @@ export default function MyConsolidations({ user }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
+        <div className="h-8 bg-slate-200 rounded w-32 animate-pulse" />
+        <ListSkeletonLoader count={3} />
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
 
 export default function MyPackages({ user }) {
   const [packages, setPackages] = useState([]);
@@ -55,17 +56,22 @@ export default function MyPackages({ user }) {
     setLoading(false);
   };
 
-  const filteredPackages = packages.filter(pkg => {
-    const matchesSearch = pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
-                         (pkg.description || '').toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || pkg.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+
+
+  const filteredPackages = useMemo(() => {
+    return packages.filter(pkg => {
+      const matchesSearch = pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
+                           (pkg.description || '').toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || pkg.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [packages, search, statusFilter]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
+        <div className="h-8 bg-slate-200 rounded w-32 animate-pulse" />
+        <ListSkeletonLoader count={5} />
       </div>
     );
   }
