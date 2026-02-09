@@ -206,6 +206,41 @@ Email: ${client.email}`;
     }
   };
 
+  const handleExportPendingClients = async () => {
+    try {
+      const pendingClients = clients.filter(c => !c.shipping_mark && c.profile_completed);
+      
+      if (pendingClients.length === 0) {
+        toast.error('No hay clientes pendientes de Shipping Mark');
+        return;
+      }
+
+      const lines = [];
+      pendingClients.forEach((client, index) => {
+        lines.push(`Nombre: ${client.first_name || ''} ${client.last_name || ''}`.trim());
+        lines.push(`Ciudad: ${client.city || 'N/A'}`);
+        lines.push(`WhatsApp: ${client.whatsapp || 'N/A'}`);
+        lines.push(`Email: ${client.email}`);
+        if (index < pendingClients.length - 1) {
+          lines.push('');
+        }
+      });
+
+      const txtContent = lines.join('\n');
+      const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `clientes-pendientes-shipping-mark-${new Date().toISOString().split('T')[0]}.txt`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast.success(`${pendingClientes.length} clientes pendientes exportados a TXT`);
+    } catch (error) {
+      toast.error('Error al exportar datos');
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteClient) return;
     setDeleting(true);
@@ -341,18 +376,28 @@ Email: ${client.email}`;
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Gestión de Clientes</h1>
           <p className="text-slate-500">Administra los usuarios y asigna Shipping Marks</p>
         </div>
-        <Button 
-          onClick={handleExportClients}
-          className="bg-emerald-600 hover:bg-emerald-700"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Exportar para Remarketing
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleExportPendingClients}
+            className="bg-orange-600 hover:bg-orange-700"
+            title="Exporta clientes sin Shipping Mark asignado"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar Pendientes (TXT)
+          </Button>
+          <Button 
+            onClick={handleExportClients}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar para Remarketing
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
