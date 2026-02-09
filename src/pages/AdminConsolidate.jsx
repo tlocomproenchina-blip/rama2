@@ -22,18 +22,43 @@ export default function AdminConsolidate({ user }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
+  const [clientsWithPackages, setClientsWithPackages] = useState([]);
   const [processing, setProcessing] = useState(null);
+  const [activeTab, setActiveTab] = useState('requests'); // 'requests' or 'clients'
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
+    // Load pending requests
     const reqs = await base44.entities.ConsolidationRequest.filter({ 
       status: 'pendiente' 
     }, '-created_date');
-    
     setRequests(reqs);
+
+    // Load all packages with pre-alerta status to group by client
+    const packages = await base44.entities.Package.filter({ 
+      status: 'pre_alerta' 
+    }, '-created_date');
+
+    // Group by client email
+    const clientMap = {};
+    packages.forEach(pkg => {
+      if (!clientMap[pkg.client_email]) {
+        clientMap[pkg.client_email] = [];
+      }
+      clientMap[pkg.client_email].push(pkg);
+    });
+
+    // Convert to array and sort by count
+    const clientsList = Object.entries(clientMap).map(([email, pkgs]) => ({
+      email,
+      packages: pkgs,
+      count: pkgs.length
+    })).sort((a, b) => b.count - a.count);
+
+    setClientsWithPackages(clientsList);
     setLoading(false);
   };
 
