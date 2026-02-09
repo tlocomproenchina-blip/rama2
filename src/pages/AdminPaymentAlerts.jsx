@@ -24,10 +24,43 @@ export default function AdminPaymentAlerts({ user }) {
   const [loading, setLoading] = useState(true);
   const [alertDays, setAlertDays] = useState(7);
   const [notifying, setNotifying] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    loadConfig();
     loadData();
   }, []);
+
+  const loadConfig = async () => {
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (configs.length > 0 && configs[0].payment_alert_days) {
+        setAlertDays(configs[0].payment_alert_days);
+      }
+    } catch (error) {
+      console.error('Error loading config:', error);
+    }
+  };
+
+  const handleAlertDaysChange = async (newDays) => {
+    const daysValue = parseInt(newDays) || 7;
+    setAlertDays(daysValue);
+    setSaving(true);
+    
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (configs.length > 0) {
+        await base44.entities.AppConfig.update(configs[0].id, {
+          payment_alert_days: daysValue
+        });
+        toast.success('Configuración guardada');
+      }
+    } catch (error) {
+      console.error('Error saving config:', error);
+      toast.error('Error al guardar la configuración');
+    }
+    setSaving(false);
+  };
 
   const loadData = async () => {
     setLoading(true);
