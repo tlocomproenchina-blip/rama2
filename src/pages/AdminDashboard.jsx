@@ -23,6 +23,8 @@ import {
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import StatusBadge from '@/components/StatusBadge';
 import ChangeDetectionBadge from '@/components/ChangeDetectionBadge';
+import DashboardHeader from '@/components/admin/DashboardHeader';
+import DashboardKPIs from '@/components/admin/DashboardKPIs';
 import { format, subDays, startOfDay } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -376,70 +378,10 @@ export default function AdminDashboard({ user }) {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Panel de Administración</h1>
-          <p className="text-slate-500">Bienvenido, {user?.full_name || user?.email}</p>
-        </div>
-        <Button
-          onClick={handleRefresh}
-          disabled={refreshing || cooldownActive}
-          variant="outline"
-          size="lg"
-          className="flex items-center gap-2"
-        >
-          {refreshing ? (
-            <><Loader2 className="h-5 w-5 animate-spin" /> Actualizando...</>
-          ) : (
-            <><TrendingUp className="h-5 w-5" /> Actualizar Dashboard</>
-          )}
-        </Button>
-      </div>
+      <DashboardHeader user={user} onRefresh={handleRefresh} refreshing={refreshing || cooldownActive} />
 
       {/* Analytics KPIs Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <TrendingUp className="h-6 w-6" />
-          📊 Key Performance Indicators
-        </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 hover:bg-white/20 transition-all">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="h-6 w-6 text-blue-200" />
-              <span className="text-xs text-blue-200 font-medium">Clientes</span>
-            </div>
-            <p className="text-4xl font-bold">{analyticsKPIs.activeClients}</p>
-            <p className="text-xs text-blue-200 mt-1">Activos</p>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 hover:bg-white/20 transition-all">
-            <div className="flex items-center justify-between mb-2">
-              <Truck className="h-6 w-6 text-indigo-200" />
-              <span className="text-xs text-indigo-200 font-medium">En Tránsito</span>
-            </div>
-            <p className="text-4xl font-bold">{analyticsKPIs.packagesInTransit}</p>
-            <p className="text-xs text-indigo-200 mt-1">Paquetes</p>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 hover:bg-white/20 transition-all">
-            <div className="flex items-center justify-between mb-2">
-              <DollarSign className="h-6 w-6 text-emerald-200" />
-              <span className="text-xs text-emerald-200 font-medium">Ingresos</span>
-            </div>
-            <p className="text-4xl font-bold">${analyticsKPIs.validatedRevenue.toFixed(0)}</p>
-            <p className="text-xs text-emerald-200 mt-1">Validados</p>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 hover:bg-white/20 transition-all">
-            <div className="flex items-center justify-between mb-2">
-              <Clock className="h-6 w-6 text-purple-200" />
-              <span className="text-xs text-purple-200 font-medium">Tiempo Prom.</span>
-            </div>
-            <p className="text-4xl font-bold">{analyticsKPIs.avgValidationTime.toFixed(1)}</p>
-            <p className="text-xs text-purple-200 mt-1">Horas validación</p>
-          </div>
-        </div>
-      </div>
+      <DashboardKPIs kpis={analyticsKPIs} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
