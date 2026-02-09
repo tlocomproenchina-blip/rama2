@@ -109,13 +109,13 @@ export default function AdminShipmentApprovals({ user }) {
     
     if (inputMode === 'cbm') {
       cbm = parseFloat(directCbm) || 0;
-      volumetricWeight = cbm * 166.67;
+      volumetricWeight = cbm * 167;
     } else {
       const l = parseFloat(length_cm) || 0;
       const w = parseFloat(width_cm) || 0;
       const h = parseFloat(height_cm) || 0;
       cbm = (l * w * h) / 1000000;
-      volumetricWeight = (l * w * h) / 5000;
+      volumetricWeight = cbm * 167;
     }
 
     const billableWeight = Math.max(realWeight, volumetricWeight);
