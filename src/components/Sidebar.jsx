@@ -241,6 +241,18 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
           {getMenuItems().map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.page;
+            
+            // Get badge count for this item
+            let badgeCount = null;
+            let showWarning = false;
+            
+            if (item.page === 'Dashboard' || item.page === 'ClientPortal') {
+              showWarning = notificationCounts.critical > 0;
+            } else if (item.page === 'MyPackages' || item.page === 'AdminPackages') {
+              badgeCount = notificationCounts.packages;
+            } else if (item.page === 'RequestConsolidation') {
+              badgeCount = notificationCounts.requests;
+            }
 
             return (
               <Link
@@ -248,15 +260,26 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                 to={createPageUrl(item.page)}
                 onClick={onClose}
                 className={`
-                  flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                  flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200
                   ${isActive ?
                 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' :
                 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
                 `
                 }>
-
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                <span className="font-medium">{item.name}</span>
+                <div className="flex items-center gap-3">
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium">{item.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {showWarning && (
+                    <span className="text-amber-400 animate-pulse">⚠</span>
+                  )}
+                  {badgeCount > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                      {badgeCount > 9 ? '9+' : badgeCount}
+                    </span>
+                  )}
+                </div>
               </Link>);
 
           })}
