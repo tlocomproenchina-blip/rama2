@@ -156,7 +156,7 @@ export default function Layout({ children, currentPageName }) {
               <Menu className="h-6 w-6" />
             </Button>
             <h1 className="font-semibold text-slate-800">TLEC Logistics</h1>
-            <NotificationBell user={user} />
+            <NotificationCenter user={user} />
           </div>
         </header>
 
