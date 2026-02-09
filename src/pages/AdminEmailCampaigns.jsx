@@ -271,7 +271,7 @@ export default function AdminEmailCampaigns({ user }) {
       
       if (results.failed === 0) {
         toast.success(`Emails enviados exitosamente a ${results.success} destinatarios`);
-        setEmailData({ subject: '', body: '', fromName: 'TLEC Logistics' });
+        setEmailData({ subject: '', body: '', fromName: config?.app_name || 'Logistics App' });
         setSelectedClients([]);
         setAttachments([]);
       } else {
