@@ -85,11 +85,81 @@ export default function InvoicePDFGenerator({ invoice }) {
       doc.setFont('helvetica', 'normal');
       
       const notesLines = (invoice.notes || '').split('\n');
-      notesLines.forEach(line => {
+      const clientInfoLines = notesLines.slice(0, 3); // First 3 lines are client info
+      clientInfoLines.forEach(line => {
         doc.text(line, 15, yPos);
         yPos += 5;
       });
-      yPos += 10;
+      yPos += 5;
+
+      // Get consolidation to fetch packages
+      let packages = [];
+      let hasInsurance = false;
+      if (invoice.consolidation_id) {
+        try {
+          const consolidations = await base44.entities.Consolidation.filter({ id: invoice.consolidation_id });
+          if (consolidations.length > 0) {
+            const consolidation = consolidations[0];
+            if (consolidation.package_ids && consolidation.package_ids.length > 0) {
+              const allPackages = await base44.entities.Package.list();
+              packages = allPackages.filter(p => consolidation.package_ids.includes(p.id));
+              hasInsurance = packages.some(p => p.has_insurance);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading packages:', error);
+        }
+      }
+
+      // Display packages in table format
+      if (packages.length > 0) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Paquetes: ${packages.length}`, 15, yPos);
+        yPos += 7;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text('Trackings:', 15, yPos);
+        yPos += 5;
+
+        // Create 3-column layout for tracking numbers
+        const startX = 15;
+        const colWidth = (pageWidth - 30) / 3;
+        let currentCol = 0;
+        let currentRow = 0;
+
+        packages.forEach((pkg, index) => {
+          const xPos = startX + (currentCol * colWidth);
+          const yPosition = yPos + (currentRow * 5);
+
+          // Check if we need a new page
+          if (yPosition > doc.internal.pageSize.height - 40) {
+            doc.addPage();
+            yPos = 20;
+            currentRow = 0;
+          }
+
+          const insuranceText = pkg.has_insurance ? '' : 'Sin seguro';
+          doc.text(pkg.tracking_number, xPos, yPos + (currentRow * 5));
+          if (insuranceText) {
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text(insuranceText, xPos + 50, yPos + (currentRow * 5));
+            doc.setFontSize(9);
+            doc.setTextColor(0, 0, 0);
+          }
+
+          currentCol++;
+          if (currentCol >= 3) {
+            currentCol = 0;
+            currentRow++;
+          }
+        });
+
+        yPos += Math.ceil(packages.length / 3) * 5 + 5;
+      }
+
+      yPos += 5;
 
       // Items table header
       doc.setFillColor(28, 63, 130);
@@ -135,10 +205,7 @@ export default function InvoicePDFGenerator({ invoice }) {
             doc.text(`  Paquetes incluidos: ${item.details.package_count}`, 20, yPos);
             yPos += 4;
           }
-          if (item.details.tracking_numbers && item.details.tracking_numbers.length > 0) {
-            doc.text(`  Trackings: ${item.details.tracking_numbers.join(', ')}`, 20, yPos);
-            yPos += 4;
-          }
+
           if (item.details.fob_value) {
             doc.text(`  Valor FOB: $${item.details.fob_value.toFixed(2)}`, 20, yPos);
             yPos += 4;
