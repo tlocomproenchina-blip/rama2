@@ -43,6 +43,8 @@ export default function AdminPackages({ user }) {
   const [bulkStatus, setBulkStatus] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [editImageModal, setEditImageModal] = useState(null);
+  const [newImageFile, setNewImageFile] = useState(null);
 
   useEffect(() => {
     loadPackages();
