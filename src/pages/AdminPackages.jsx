@@ -548,6 +548,75 @@ export default function AdminPackages({ user }) {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Image Modal */}
+      <Dialog open={!!editImageModal} onOpenChange={() => {
+        setEditImageModal(null);
+        setNewImageFile(null);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editImageModal?.package_image_url ? 'Reemplazar Foto' : 'Agregar Foto'}
+            </DialogTitle>
+            <DialogDescription>
+              Tracking: {editImageModal?.tracking_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {editImageModal?.package_image_url && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-slate-700">Foto actual</p>
+                <img src={editImageModal.package_image_url} alt="Actual" className="w-full rounded-lg" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                {editImageModal?.package_image_url ? 'Nueva' : 'Foto del'} paquete
+              </Label>
+              <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setNewImageFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                  id="edit-pkg-image"
+                />
+                <label htmlFor="edit-pkg-image" className="cursor-pointer">
+                  {newImageFile ? (
+                    <div className="flex items-center justify-center gap-2 text-emerald-600">
+                      <CheckCircle className="h-5 w-5" />
+                      <span className="font-medium text-sm">{newImageFile.name}</span>
+                    </div>
+                  ) : (
+                    <div className="text-slate-500">
+                      <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                      <p className="text-sm">Click para subir foto</p>
+                    </div>
+                  )}
+                </label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setEditImageModal(null);
+              setNewImageFile(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleUpdateImage} 
+              disabled={processing || !newImageFile} 
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+              {editImageModal?.package_image_url ? 'Reemplazar' : 'Agregar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Bulk Action Confirmation */}
       <AlertDialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
         <AlertDialogContent>
