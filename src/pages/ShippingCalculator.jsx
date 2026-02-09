@@ -15,7 +15,7 @@ export default function ShippingCalculator({ user }) {
   const [cargoCategory, setCargoCategory] = useState('general');
   const [includeInsurance, setIncludeInsurance] = useState(false);
   const [fobValue, setFobValue] = useState('');
-  const [inputMode, setInputMode] = useState('weight'); // 'weight' | 'dimensions' | 'cbm'
+  const [inputMode, setInputMode] = useState('dimensions'); // 'dimensions' | 'cbm'
   const [weight, setWeight] = useState('');
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [cbm, setCbm] = useState('');
@@ -36,24 +36,20 @@ export default function ShippingCalculator({ user }) {
   const calculateShipping = () => {
     if (!config) return;
 
-    let realWeight = 0;
+    const realWeight = parseFloat(weight) || 0;
     let calculatedCbm = 0;
     let volumetricWeight = 0;
 
     // Calculate based on input mode
-    if (inputMode === 'weight') {
-      realWeight = parseFloat(weight) || 0;
-    } else if (inputMode === 'dimensions') {
+    if (inputMode === 'dimensions') {
       const l = parseFloat(dimensions.length) || 0;
       const w = parseFloat(dimensions.width) || 0;
       const h = parseFloat(dimensions.height) || 0;
       calculatedCbm = l && w && h ? (l * w * h) / 1000000 : 0;
       volumetricWeight = l && w && h ? (l * w * h) / 5000 : 0;
-      realWeight = volumetricWeight; // For air shipping comparison
     } else if (inputMode === 'cbm') {
       calculatedCbm = parseFloat(cbm) || 0;
-      volumetricWeight = calculatedCbm * 200; // CBM to volumetric weight
-      realWeight = volumetricWeight;
+      volumetricWeight = calculatedCbm * 200;
     }
 
     // Determine rate
@@ -172,18 +168,7 @@ export default function ShippingCalculator({ user }) {
           {/* Input Mode Selection */}
           <div className="space-y-2">
             <Label>Método de Cálculo</Label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setInputMode('weight')}
-                className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                  inputMode === 'weight'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                }`}
-              >
-                Por Peso
-              </button>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setInputMode('dimensions')}
@@ -209,19 +194,17 @@ export default function ShippingCalculator({ user }) {
             </div>
           </div>
 
-          {/* Weight Input */}
-          {inputMode === 'weight' && (
-            <div className="space-y-2">
-              <Label>Peso (kg)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                placeholder="1.0"
-              />
-            </div>
-          )}
+          {/* Weight Input - Always visible */}
+          <div className="space-y-2">
+            <Label>Peso Real (kg)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="1.0"
+            />
+          </div>
 
           {/* CBM Input */}
           {inputMode === 'cbm' && (
