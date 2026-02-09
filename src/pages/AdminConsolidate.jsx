@@ -38,6 +38,22 @@ export default function AdminConsolidate({ user }) {
     }, '-created_date');
     setRequests(reqs);
 
+    // Get approved/consolidated requests to exclude their packages
+    const approvedRequests = await base44.entities.ConsolidationRequest.filter(
+      { status: 'aprobada' },
+      '-created_date'
+    );
+    const consolidatedRequests = await base44.entities.ConsolidationRequest.filter(
+      { status: 'consolidada' },
+      '-created_date'
+    );
+    
+    const allApprovedRequests = [...approvedRequests, ...consolidatedRequests];
+    const packageIdsInProgress = new Set();
+    allApprovedRequests.forEach(req => {
+      req.package_ids?.forEach(id => packageIdsInProgress.add(id));
+    });
+
     // Load packages with pre-alerta or recibido status
     const preAlertPackages = await base44.entities.Package.filter({ 
       status: 'pre_alerta' 
@@ -47,7 +63,10 @@ export default function AdminConsolidate({ user }) {
       status: 'recibido' 
     }, '-created_date');
 
-    const packages = [...preAlertPackages, ...receivedPackages];
+    // Filter out packages already in approved consolidations
+    const packages = [...preAlertPackages, ...receivedPackages].filter(
+      pkg => !packageIdsInProgress.has(pkg.id)
+    );
 
     // Group by client email
     const clientMap = {};
