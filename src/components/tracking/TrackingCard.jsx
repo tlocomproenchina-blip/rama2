@@ -171,10 +171,18 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                             {step.label}
                           </p>
                           {step.date && (
-                            <p className="text-xs text-slate-500">
-                              {format(new Date(step.date), 'dd/MM/yyyy HH:mm')}
-                            </p>
-                          )}
+                             <p className="text-xs text-slate-500">
+                               {(() => {
+                                 try {
+                                   const date = new Date(step.date);
+                                   if (isNaN(date.getTime())) return '-';
+                                   return format(date, 'dd/MM/yyyy HH:mm');
+                                 } catch (e) {
+                                   return '-';
+                                 }
+                               })()}
+                             </p>
+                           )}
                         </div>
                         {step.completed && <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />}
                       </motion.div>
