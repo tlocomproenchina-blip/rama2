@@ -53,10 +53,10 @@ export default function Rates({ user }) {
       const w = parseFloat(dimensions.width) || 0;
       const h = parseFloat(dimensions.height) || 0;
       calculatedCbm = l && w && h ? (l * w * h) / 1000000 : 0;
-      volumetricWeight = l && w && h ? (l * w * h) / 5000 : 0;
+      volumetricWeight = calculatedCbm * 167;
     } else if (inputMode === 'cbm') {
       calculatedCbm = parseFloat(cbm) || 0;
-      volumetricWeight = calculatedCbm * 200;
+      volumetricWeight = calculatedCbm * 167;
     }
 
     const isSensitive = cargoCategory === 'sensitive';
@@ -350,7 +350,7 @@ export default function Rates({ user }) {
           <div className="space-y-3 text-sm text-slate-600">
             <div className="flex gap-2">
               <span className="font-semibold min-w-[140px]">Peso Volumétrico:</span>
-              <span>Para envíos aéreos se calcula como (Largo × Ancho × Alto) / 5000</span>
+              <span>Para envíos aéreos se calcula como CBM × 167 kg/m³</span>
             </div>
             <div className="flex gap-2">
               <span className="font-semibold min-w-[140px]">CBM:</span>
