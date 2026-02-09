@@ -22,7 +22,8 @@ import {
   BarChart3,
   Tag,
   TrendingUp,
-  CheckCircle2 } from
+  CheckCircle2,
+  Mail } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -71,6 +72,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2, permission: 'consolidate' },
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText, permission: 'validate_payments' },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
+  { name: 'Enviar Emails', page: 'AdminEmailCampaigns', icon: Mail, permission: 'general_config' },
   { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle, permission: 'validate_payments' },
   { name: 'Promociones', page: 'AdminPromotions', icon: Tag, permission: 'general_config' },
   { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp, permission: 'general_config' },
