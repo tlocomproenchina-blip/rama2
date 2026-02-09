@@ -96,83 +96,122 @@ export default function InvoicePDFGenerator({ invoice }) {
 
       // Get consolidation to fetch packages
       let packages = [];
-      let hasInsurance = false;
       if (invoice.consolidation_id) {
-        try {
-          const consolidations = await base44.entities.Consolidation.filter({ id: invoice.consolidation_id });
-          if (consolidations.length > 0) {
-            const consolidation = consolidations[0];
-            if (consolidation.package_ids && consolidation.package_ids.length > 0) {
-              const allPackages = await base44.entities.Package.list();
-              packages = allPackages.filter(p => consolidation.package_ids.includes(p.id));
-              hasInsurance = packages.some(p => p.has_insurance);
-            }
-          }
-        } catch (error) {
-          console.error('Error loading packages:', error);
-        }
+       try {
+         const consolidations = await base44.entities.Consolidation.filter({ id: invoice.consolidation_id });
+         if (consolidations.length > 0) {
+           const consolidation = consolidations[0];
+           if (consolidation.package_ids && consolidation.package_ids.length > 0) {
+             const allPackages = await base44.entities.Package.list();
+             packages = allPackages.filter(p => consolidation.package_ids.includes(p.id));
+           }
+         }
+       } catch (error) {
+         console.error('Error loading packages:', error);
+       }
       }
 
-      // Display packages in table format (3 columns: Tracking | Descripción | FOB)
-      if (packages.length > 0) {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Paquetes: ${packages.length}`, 15, yPos);
-        yPos += 7;
-        doc.text('Trackings:', 15, yPos);
-        yPos += 5;
+      // Display packages in table format (3 columns: Tracking | Descripción | FOB) - Only if space available
+      if (packages.length > 0 && yPos < doc.internal.pageSize.height - 60) {
+       // Calculate total FOB for insured packages
+       const totalFOB = packages.filter(p => p.has_insurance).reduce((sum, p) => sum + (p.fob_value || 0), 0);
 
-        // Calculate total FOB for insured packages
-        const totalFOB = packages.filter(p => p.has_insurance).reduce((sum, p) => sum + (p.fob_value || 0), 0);
+       // Table layout: Tracking (60) | Description (80) | FOB/Status (45)
+       const col1X = 20; // Tracking
+       const col2X = 80; // Description (duplicate tracking)
+       const col3X = 160; // FOB or "Sin seguro"
 
-        // Table layout: Tracking (60) | Description (80) | FOB/Status (45)
-        const col1X = 20; // Tracking
-        const col2X = 80; // Description (duplicate tracking)
-        const col3X = 160; // FOB or "Sin seguro"
+       packages.forEach((pkg, index) => {
+         // Check if we need a new page
+         if (yPos > doc.internal.pageSize.height - 25) {
+           doc.addPage();
+           yPos = 20;
+         }
 
-        packages.forEach((pkg, index) => {
-          // Check if we need a new page
-          if (yPos > doc.internal.pageSize.height - 40) {
-            doc.addPage();
-            yPos = 20;
-          }
+         doc.setFontSize(9);
+         doc.setFont('helvetica', 'normal');
+         doc.setTextColor(0, 0, 0);
 
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(0, 0, 0);
+         // Column 1: Tracking Number
+         doc.text(pkg.tracking_number, col1X, yPos);
 
-          // Column 1: Tracking Number
-          doc.text(pkg.tracking_number, col1X, yPos);
+         // Column 2: Tracking Number (duplicate)
+         doc.text(pkg.tracking_number, col2X, yPos);
 
-          // Column 2: Tracking Number (duplicate)
-          doc.text(pkg.tracking_number, col2X, yPos);
+         // Column 3: FOB or "Sin seguro"
+         if (pkg.has_insurance && pkg.fob_value) {
+           doc.setTextColor(0, 0, 0);
+           doc.text(`FOB: $${pkg.fob_value.toFixed(2)}`, col3X, yPos);
+         } else {
+           doc.setFontSize(8);
+           doc.setTextColor(100, 100, 100);
+           doc.text('Sin seguro', col3X, yPos);
+           doc.setFontSize(9);
+           doc.setTextColor(0, 0, 0);
+         }
 
-          // Column 3: FOB or "Sin seguro"
-          if (pkg.has_insurance && pkg.fob_value) {
-            doc.setTextColor(0, 0, 0);
-            doc.text(`FOB: $${pkg.fob_value.toFixed(2)}`, col3X, yPos);
-          } else {
-            doc.setFontSize(8);
-            doc.setTextColor(100, 100, 100);
-            doc.text('Sin seguro', col3X, yPos);
-            doc.setFontSize(9);
-            doc.setTextColor(0, 0, 0);
-          }
+         yPos += 5;
+       });
 
-          yPos += 5;
-        });
+       // Total FOB declaration line if there's insurance
+       if (totalFOB > 0) {
+         yPos += 2;
+         doc.setFont('helvetica', 'bold');
+         doc.setFontSize(9);
+         doc.text(`FOB: $${totalFOB.toFixed(2)}`, col3X, yPos);
+         doc.setFont('helvetica', 'normal');
+         yPos += 5;
+       }
 
-        // Total FOB declaration line if there's insurance
-        if (totalFOB > 0) {
-          yPos += 2;
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(9);
-          doc.text(`FOB: $${totalFOB.toFixed(2)}`, col3X, yPos);
-          doc.setFont('helvetica', 'normal');
-          yPos += 5;
-        }
+       yPos += 5;
+      } else if (packages.length > 0 && yPos > doc.internal.pageSize.height - 60) {
+       // If not enough space, move to next page
+       doc.addPage();
+       yPos = 20;
 
-        yPos += 5;
+       // Display trackings on new page
+       doc.setFontSize(9);
+       doc.setFont('helvetica', 'bold');
+       doc.text('Detalles de Paquetes:', 15, yPos);
+       yPos += 7;
+
+       const totalFOB = packages.filter(p => p.has_insurance).reduce((sum, p) => sum + (p.fob_value || 0), 0);
+       const col1X = 20;
+       const col2X = 80;
+       const col3X = 160;
+
+       packages.forEach((pkg) => {
+         if (yPos > doc.internal.pageSize.height - 25) {
+           doc.addPage();
+           yPos = 20;
+         }
+
+         doc.setFontSize(9);
+         doc.setFont('helvetica', 'normal');
+         doc.setTextColor(0, 0, 0);
+         doc.text(pkg.tracking_number, col1X, yPos);
+         doc.text(pkg.tracking_number, col2X, yPos);
+
+         if (pkg.has_insurance && pkg.fob_value) {
+           doc.text(`FOB: $${pkg.fob_value.toFixed(2)}`, col3X, yPos);
+         } else {
+           doc.setFontSize(8);
+           doc.setTextColor(100, 100, 100);
+           doc.text('Sin seguro', col3X, yPos);
+           doc.setFontSize(9);
+           doc.setTextColor(0, 0, 0);
+         }
+         yPos += 5;
+       });
+
+       if (totalFOB > 0) {
+         yPos += 2;
+         doc.setFont('helvetica', 'bold');
+         doc.text(`FOB: $${totalFOB.toFixed(2)}`, col3X, yPos);
+         doc.setFont('helvetica', 'normal');
+         yPos += 5;
+       }
+       yPos += 5;
       }
 
       yPos += 5;
