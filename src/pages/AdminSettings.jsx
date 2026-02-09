@@ -30,6 +30,7 @@ export default function AdminSettings({ user }) {
     app_name: 'TLEC Logistics',
     app_tagline: 'Sistema de Envíos',
     app_logo_url: '',
+    favicon_url: '',
     warehouse_address: '',
     contract_text: '',
     rate_air_general: 0,
@@ -68,6 +69,7 @@ export default function AdminSettings({ user }) {
   const [recalculating, setRecalculating] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingAppLogo, setUploadingAppLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -188,6 +190,19 @@ export default function AdminSettings({ user }) {
       toast.error('Error al subir logo');
     }
     setUploadingAppLogo(false);
+  };
+
+  const handleFaviconUpload = async (file) => {
+    if (!file) return;
+    setUploadingFavicon(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setConfig({ ...config, favicon_url: file_url });
+      toast.success('Favicon subido exitosamente');
+    } catch (error) {
+      toast.error('Error al subir favicon');
+    }
+    setUploadingFavicon(false);
   };
 
   const handleExportCSV = async () => {
@@ -339,6 +354,39 @@ export default function AdminSettings({ user }) {
                   <p className="text-xs text-slate-500">
                     ⚠️ IMPORTANTE: Usa una imagen cuadrada (1:1) del mismo tamaño que el contenedor azul (40x40px recomendado). 
                     El logo aparecerá en el sidebar para todos los usuarios.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Favicon de la Pestaña</Label>
+                <div className="space-y-3">
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="file"
+                      accept=".ico,.png,.jpg,.jpeg,.svg,.gif"
+                      onChange={(e) => handleFaviconUpload(e.target.files[0])}
+                      disabled={uploadingFavicon}
+                    />
+                    {uploadingFavicon && <Loader2 className="h-5 w-5 animate-spin text-blue-600" />}
+                  </div>
+                  {config.favicon_url && (
+                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+                        <img 
+                          src={config.favicon_url} 
+                          alt="Favicon preview" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">Favicon cargado</p>
+                        <p className="text-xs text-slate-500">Aparecerá en la pestaña del navegador</p>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    ⚠️ Formatos soportados: .ico, .png, .jpg, .svg o .gif. Recomendado: 32x32px o 64x64px.
                   </p>
                 </div>
               </div>
