@@ -192,9 +192,14 @@ export default function AdminShipmentApprovals({ user }) {
         consolidation_id: consolidation.id
       });
 
-      import('@/components/invoice/InvoiceGenerator').then(({ generateInvoice }) => {
-        generateInvoice(consolidation).catch(err => console.error('Invoice error:', err));
-      });
+      // Generate invoice synchronously
+      try {
+        const { generateInvoice } = await import('@/components/invoice/InvoiceGenerator');
+        await generateInvoice(consolidation);
+      } catch (err) {
+        console.error('Error generating invoice:', err);
+        toast.error('Advertencia: Error al generar factura');
+      }
 
       import('@/components/NotificationUtils').then(({ sendNotification }) => {
         sendNotification({

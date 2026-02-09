@@ -6,14 +6,12 @@ export async function generateInvoice(consolidation) {
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 7);
 
-  // Obtener datos del cliente
-  const clients = await base44.entities.User.filter({ email: consolidation.client_email });
-  const client = clients[0] || {};
-
-  // Obtener paquetes incluidos
-  const packages = await base44.entities.Package.filter({ 
-    consolidation_id: consolidation.id 
-  });
+  // Obtener paquetes incluidos primero (más rápido)
+  const packages = consolidation.package_ids 
+    ? await Promise.all(consolidation.package_ids.map(id => 
+        base44.entities.Package.filter({ id }).then(p => p[0])
+      ))
+    : await base44.entities.Package.filter({ consolidation_id: consolidation.id });
 
   const items = [];
   
@@ -70,9 +68,10 @@ export async function generateInvoice(consolidation) {
     tax,
     total,
     status: 'pendiente',
-    notes: `Cliente: ${client.first_name || ''} ${client.last_name || ''}\nCiudad: ${client.city || 'N/A'}\nShipping Mark: ${consolidation.shipping_mark || 'N/A'}\nPaquetes: ${packages.length}\nTrackings: ${(consolidation.tracking_numbers || []).join(', ')}`
+    notes: `Shipping Mark: ${consolidation.shipping_mark || 'N/A'}\nPaquetes: ${packages.length}\nTrackings: ${(consolidation.tracking_numbers || []).join(', ')}`
   });
 
+  console.log('✓ Factura generada:', invoice.invoice_number);
   return invoice;
 }
 
