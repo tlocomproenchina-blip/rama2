@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
 import ContractModal from '@/components/ContractModal';
 import ProfileSetupModal from '@/components/ProfileSetupModal';
-import NotificationBell from '@/components/NotificationBell';
+import NotificationCenter from '@/components/NotificationCenter';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import ApiStatusIndicator from '@/components/api/ApiStatusIndicator';
 import { Menu, Loader2 } from 'lucide-react';
