@@ -83,7 +83,8 @@ export default function ShipmentTracking({ user }) {
 
   const handleEditDate = (consolidation) => {
     setEditingDate(consolidation);
-    setNewDate(consolidation.estimated_delivery ? format(new Date(consolidation.estimated_delivery), 'yyyy-MM-dd') : '');
+    setShippingDate(consolidation.shipping_date ? format(new Date(consolidation.shipping_date), 'yyyy-MM-ddTHH:mm') : '');
+    setEstimatedDate(consolidation.estimated_delivery ? format(new Date(consolidation.estimated_delivery), 'yyyy-MM-dd') : '');
   };
 
   const handleSaveDate = async () => {
