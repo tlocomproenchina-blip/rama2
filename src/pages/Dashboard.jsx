@@ -54,15 +54,16 @@ export default function Dashboard({ user, refreshUser }) {
       setLoading(false); // Show UI immediately with config
       
       // Then load user-specific data in sequence with longer delays to avoid rate limits
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const pkgs = await base44.entities.Package.filter({ client_email: user.email });
       setPackages(pkgs);
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 2500));
       
       const cons = await base44.entities.Consolidation.filter({ client_email: user.email });
       setConsolidations(cons);
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 2500));
       
       const invs = await base44.entities.Invoice.filter({ client_email: user.email });
       setInvoices(invs);
