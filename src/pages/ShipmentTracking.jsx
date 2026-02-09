@@ -451,7 +451,7 @@ export default function ShipmentTracking({ user }) {
       <Dialog open={!!editingDate} onOpenChange={() => setEditingDate(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Fecha de Entrega Estimada</DialogTitle>
+            <DialogTitle>Editar Fechas de Consolidación</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -461,11 +461,19 @@ export default function ShipmentTracking({ user }) {
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Nueva Fecha de Entrega Estimada</Label>
+              <Label>Fecha de Salida</Label>
+              <Input
+                type="datetime-local"
+                value={shippingDate}
+                onChange={(e) => setShippingDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Fecha de Entrega Estimada</Label>
               <Input
                 type="date"
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
+                value={estimatedDate}
+                onChange={(e) => setEstimatedDate(e.target.value)}
               />
             </div>
           </div>
