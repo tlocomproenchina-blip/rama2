@@ -185,27 +185,54 @@ export default function ShipmentTracking({ user }) {
       return (completed / steps.length) * 100;
     }
 
-    const createdDate = new Date(con.created_date);
-    const estimatedDeliveryDate = new Date(con.estimated_delivery);
-    const currentDate = new Date();
+    try {
+      // Parse dates ensuring they're valid
+      const createdDate = new Date(con.created_date);
+      const estimatedDeliveryDate = new Date(con.estimated_delivery);
+      
+      // Validate dates
+      if (isNaN(createdDate.getTime()) || isNaN(estimatedDeliveryDate.getTime())) {
+        // Fallback to steps calculation if dates invalid
+        const steps = getStatusSteps(con);
+        const completed = steps.filter(s => s.completed).length;
+        return (completed / steps.length) * 100;
+      }
 
-    const totalDays = differenceInDays(estimatedDeliveryDate, createdDate);
-    const elapsedDays = differenceInDays(currentDate, createdDate);
+      const currentDate = new Date();
+      const totalDays = differenceInDays(estimatedDeliveryDate, createdDate);
+      const elapsedDays = differenceInDays(currentDate, createdDate);
 
-    if (totalDays <= 0) return 100;
-    const progress = (elapsedDays / totalDays) * 100;
-    return Math.min(100, Math.max(0, progress));
+      if (totalDays <= 0) return 100;
+      const progress = (elapsedDays / totalDays) * 100;
+      return Math.min(100, Math.max(0, progress));
+    } catch (e) {
+      // Fallback to steps calculation
+      const steps = getStatusSteps(con);
+      const completed = steps.filter(s => s.completed).length;
+      return (completed / steps.length) * 100;
+    }
   };
 
   const getDaysInTransit = (con) => {
     if (!con.created_date) return 0;
-    return differenceInDays(new Date(), new Date(con.created_date));
+    try {
+      return differenceInDays(new Date(), new Date(con.created_date));
+    } catch (e) {
+      return 0;
+    }
   };
 
   const getEstimatedDaysRemaining = (con) => {
     if (con.estimated_delivery) {
-      const remaining = differenceInDays(new Date(con.estimated_delivery), new Date());
-      return remaining; // Return the actual value, can be negative if delayed
+      try {
+        const estimatedDate = new Date(con.estimated_delivery);
+        if (isNaN(estimatedDate.getTime())) return null;
+        
+        const remaining = differenceInDays(estimatedDate, new Date());
+        return remaining;
+      } catch (e) {
+        return null;
+      }
     }
     return null;
   };
