@@ -88,33 +88,39 @@ export default function ShipmentTracking({ user }) {
   };
 
   const handleSaveDate = async () => {
-    if (!newDate) {
-      toast.error('Selecciona una fecha');
+    if (!shippingDate && !estimatedDate) {
+      toast.error('Selecciona al menos una fecha');
       return;
     }
 
     setSavingDate(true);
     try {
-      await base44.entities.Consolidation.update(editingDate.id, {
-        estimated_delivery: newDate
-      });
+      const updateData = {};
+      if (shippingDate) updateData.shipping_date = shippingDate;
+      if (estimatedDate) updateData.estimated_delivery = estimatedDate;
 
-      // Notify client
-      const { sendNotification } = await import('@/components/NotificationUtils');
-      sendNotification({
-        to: editingDate.client_email,
-        subject: '📅 Fecha de entrega actualizada',
-        body: `La fecha de entrega estimada de tu consolidación ${editingDate.consolidation_tracking} ha sido actualizada.\n\nNueva fecha estimada: ${format(new Date(newDate), 'dd/MM/yyyy')}\n\nIngresa al sistema para más detalles.`,
-        type: 'consolidation',
-        icon: 'alert',
-        referenceId: editingDate.id
-      });
+      await base44.entities.Consolidation.update(editingDate.id, updateData);
 
-      toast.success('Fecha actualizada');
+      // Notify client if estimated delivery changed
+      if (estimatedDate) {
+        const { sendNotification } = await import('@/components/NotificationUtils');
+        sendNotification({
+          to: editingDate.client_email,
+          subject: '📅 Fecha de entrega actualizada',
+          body: `La fecha de entrega estimada de tu consolidación ${editingDate.consolidation_tracking} ha sido actualizada.\n\nNueva fecha estimada: ${format(new Date(estimatedDate), 'dd/MM/yyyy')}\n\nIngresa al sistema para más detalles.`,
+          type: 'consolidation',
+          icon: 'alert',
+          referenceId: editingDate.id
+        });
+      }
+
+      toast.success('Fechas actualizadas correctamente');
       setEditingDate(null);
+      setShippingDate('');
+      setEstimatedDate('');
       loadData();
     } catch (error) {
-      toast.error('Error al actualizar fecha');
+      toast.error('Error al actualizar fechas');
     }
     setSavingDate(false);
   };
