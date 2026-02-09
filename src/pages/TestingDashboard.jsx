@@ -87,10 +87,10 @@ export default function TestingDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard de Testing</h1>
-        <p className="text-slate-600">Prueba exhaustiva de todas las funciones de la aplicación</p>
-      </div>
+    <div className="mb-8">
+      <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard de Testing</h1>
+      <p className="text-slate-600">Prueba exhaustiva: backend admin + RLS, sincronización, integridad de datos</p>
+    </div>
 
       {!report ? (
         <div className="flex flex-col items-center justify-center py-16">
@@ -98,7 +98,7 @@ export default function TestingDashboard() {
             <CardContent className="p-8 text-center">
               <Play className="w-16 h-16 text-indigo-600 mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-semibold text-slate-900 mb-2">Ejecutar Pruebas</h3>
-              <p className="text-slate-600 mb-6">Haz clic para iniciar una prueba exhaustiva de la aplicación</p>
+              <p className="text-slate-600 mb-6">Backend admin + RLS, sincronización cliente-admin, integridad de datos</p>
               <Button 
                 onClick={runTests}
                 disabled={loading}
