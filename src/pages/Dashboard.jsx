@@ -37,12 +37,21 @@ export default function Dashboard({ user, refreshUser }) {
   useEffect(() => {
     loadData();
     
-    // Real-time updates with 5-second debounce to prevent rate limiting
+    // Real-time updates with 15-second debounce to prevent rate limiting
     if (user) {
       let debounceTimer;
+      let lastUpdate = 0;
+      const MIN_UPDATE_INTERVAL = 15000; // 15 seconds minimum between updates
+      
       const debouncedLoadData = () => {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => loadData(), 5000);
+        debounceTimer = setTimeout(() => {
+          const now = Date.now();
+          if (now - lastUpdate >= MIN_UPDATE_INTERVAL) {
+            lastUpdate = now;
+            loadData();
+          }
+        }, 15000);
       };
 
       const unsubscribePackages = base44.entities.Package.subscribe((event) => {
