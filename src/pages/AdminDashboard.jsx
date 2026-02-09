@@ -166,14 +166,14 @@ export default function AdminDashboard({ user }) {
 
   const loadDashboardData = async () => {
     try {
-      const [packages, consolidations, users] = await Promise.all([
-        base44.entities.Package.list('-created_date'),
-        base44.entities.Consolidation.list('-created_date'),
-        base44.entities.User.list()
-      ]).catch(err => {
-        console.error('Error loading data:', err);
-        return [[], [], []];
-      });
+      // Sequential calls with 2s delay between each
+      const packages = await base44.entities.Package.list('-created_date');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const consolidations = await base44.entities.Consolidation.list('-created_date');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const users = await base44.entities.User.list();
 
     const pendingPays = consolidations.filter(c => c.status === 'pago_pendiente_validacion');
     const totalRevenue = consolidations
