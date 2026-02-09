@@ -27,7 +27,8 @@ import {
   Upload,
   Plane,
   Ship,
-  Download
+  Download,
+  Filter
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -40,6 +41,7 @@ export default function AdminClients({ user }) {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [editClient, setEditClient] = useState(null);
   const [viewClient, setViewClient] = useState(null);
   const [deleteClient, setDeleteClient] = useState(null);
@@ -309,7 +311,7 @@ Email: ${client.email}`;
 
   const filteredClients = clients.filter(client => {
     const searchLower = search.toLowerCase();
-    return (
+    const matchesSearch = (
       (client.email || '').toLowerCase().includes(searchLower) ||
       (client.first_name || '').toLowerCase().includes(searchLower) ||
       (client.last_name || '').toLowerCase().includes(searchLower) ||
@@ -317,6 +319,15 @@ Email: ${client.email}`;
       (client.whatsapp || '').toLowerCase().includes(searchLower) ||
       (client.shipping_mark || '').toLowerCase().includes(searchLower)
     );
+
+    const matchesStatus = 
+      statusFilter === 'all' ? true :
+      statusFilter === 'with_mark' ? !!client.shipping_mark :
+      statusFilter === 'without_mark' ? !client.shipping_mark :
+      statusFilter === 'pending' ? (!client.shipping_mark && client.profile_completed) :
+      true;
+
+    return matchesSearch && matchesStatus;
   });
 
   if (loading) {
@@ -409,9 +420,9 @@ Email: ${client.email}`;
         </Card>
       </div>
 
-      {/* Search */}
+      {/* Search & Filters */}
       <Card className="border-0 shadow-md">
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
@@ -420,6 +431,46 @@ Email: ${client.email}`;
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
             />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-slate-500" />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={statusFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('all')}
+              >
+                Todos ({clients.length})
+              </Button>
+              <Button
+                variant={statusFilter === 'with_mark' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('with_mark')}
+                className={statusFilter === 'with_mark' ? '' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Con Shipping Mark ({clients.filter(c => c.shipping_mark).length})
+              </Button>
+              <Button
+                variant={statusFilter === 'without_mark' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('without_mark')}
+                className={statusFilter === 'without_mark' ? '' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}
+              >
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Sin Shipping Mark ({clients.filter(c => !c.shipping_mark).length})
+              </Button>
+              <Button
+                variant={statusFilter === 'pending' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('pending')}
+                className={statusFilter === 'pending' ? '' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
+              >
+                <Clock className="h-3 w-3 mr-1" />
+                Pendientes ({clients.filter(c => !c.shipping_mark && c.profile_completed).length})
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
