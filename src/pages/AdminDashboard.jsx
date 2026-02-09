@@ -164,16 +164,104 @@ export default function AdminDashboard({ user }) {
     toast.success('Dashboard actualizado');
   };
 
+  // Granular data loading functions for partial refresh
+  const loadPackagesData = async (pkgList) => {
+    const pkg = pkgList || await base44.entities.Package.list('-created_date');
+    const receivedCount = pkg.filter(p => p.status === 'recibido').length;
+    const preAlertCount = pkg.filter(p => p.status === 'pre_alerta').length;
+    const consolidatedCount = pkg.filter(p => p.status === 'consolidado').length;
+    const inTransitCount = pkg.filter(p => p.status === 'en_transito').length;
+
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = startOfDay(subDays(new Date(), i));
+      const count = pkg.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
+      last7Days.push({ date: format(date, 'dd MMM'), count });
+    }
+
+    setStats(prev => ({
+      ...prev,
+      packages: pkg.length,
+      receivedCount,
+      preAlertCount,
+      consolidatedCount,
+      inTransitCount
+    }));
+
+    setChartData(prev => ({ ...prev, daily: last7Days }));
+    setRecentPackages(pkg.slice(0, 5));
+    return pkg;
+  };
+
+  const loadConsolidationsData = async (consList) => {
+    const cons = consList || await base44.entities.Consolidation.list('-created_date');
+    const transiting = cons.filter(c => c.status === 'en_transito').length;
+    const available = cons.filter(c => c.status === 'disponible').length;
+    const delivered = cons.filter(c => c.status === 'entregado').length;
+    const pendingPayment = cons.filter(c => c.status === 'pago_validado').length;
+
+    const totalRevenue = cons.reduce((sum, c) => sum + (c.total_cost || 0), 0);
+    const shippingType = [
+      { name: 'Aéreo', value: cons.filter(c => c.shipping_type === 'aereo').length },
+      { name: 'Marítimo', value: cons.filter(c => c.shipping_type === 'maritimo').length }
+    ];
+
+    const statusDist = [
+      { name: 'En Tránsito', value: transiting },
+      { name: 'Pago Validado', value: pendingPayment },
+      { name: 'Disponible', value: available },
+      { name: 'Entregado', value: delivered }
+    ];
+
+    const validationTimesData = cons
+      .filter(c => c.payment_validation_date && c.payment_date)
+      .map(c => ({
+        name: c.consolidation_tracking?.substring(0, 6) || 'N/A',
+        hours: Math.round((new Date(c.payment_validation_date) - new Date(c.payment_date)) / (1000*60*60))
+      }))
+      .slice(0, 10);
+
+    const revenueByDay = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = startOfDay(subDays(new Date(), i));
+      const dayRevenue = cons
+        .filter(c => new Date(c.created_date) >= date && new Date(c.created_date) < new Date(date.getTime() + 24*60*60*1000))
+        .reduce((sum, c) => sum + (c.total_cost || 0), 0);
+      revenueByDay.push({ date: format(date, 'dd MMM'), revenue: dayRevenue });
+    }
+
+    const pendingPays = cons.filter(c => c.status === 'pago_validado').slice(0, 3);
+
+    setStats(prev => ({
+      ...prev,
+      consolidations: cons.length,
+      transiting,
+      available,
+      delivered,
+      totalRevenue
+    }));
+
+    setChartData(prev => ({ ...prev, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData }));
+    setPendingPayments(pendingPays);
+    return cons;
+  };
+
+  const loadUsersData = async (userList) => {
+    const users = userList || await base44.entities.User.list();
+    setStats(prev => ({ ...prev, users: users.length }));
+    return users;
+  };
+
   const loadDashboardData = async () => {
     try {
       // Sequential calls with 2s delay between each
-      const packages = await base44.entities.Package.list('-created_date');
+      const packages = await loadPackagesData();
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const consolidations = await base44.entities.Consolidation.list('-created_date');
+      const consolidations = await loadConsolidationsData();
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const users = await base44.entities.User.list();
+      const users = await loadUsersData();
 
     const pendingPays = consolidations.filter(c => c.status === 'pago_pendiente_validacion');
     const totalRevenue = consolidations
