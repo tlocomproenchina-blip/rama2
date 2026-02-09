@@ -38,7 +38,11 @@ export default function WhatsAppSupport() {
       className="fixed bottom-6 right-6 z-30 bg-green-500 hover:bg-green-600 text-white rounded-full p-4 shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center"
       title="Soporte por WhatsApp"
     >
-      <MessageCircle className="h-6 w-6" />
+      {config.whatsapp_icon_url ? (
+        <img src={config.whatsapp_icon_url} alt="WhatsApp" className="h-6 w-6" />
+      ) : (
+        <MessageCircle className="h-6 w-6" />
+      )}
     </button>
   );
 }
