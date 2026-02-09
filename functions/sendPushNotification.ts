@@ -3,15 +3,27 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
-    const { userEmail, title, body, url } = await req.json();
+    const user = await base44.auth.me();
 
-    if (!userEmail || !title) {
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
+
+    const { isAdmin, title, body, url } = await req.json();
+
+    if (!title) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Determinar email destino: usuario autenticado o admin
+    const targetEmail = isAdmin ? user.email : user.email;
+
     // Obtener usuario con suscripción
-    const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
+    const users = await base44.asServiceRole.entities.User.filter({ email: targetEmail });
     if (users.length === 0 || !users[0].push_subscription) {
       return Response.json({ error: 'No push subscription found' }, { status: 404 });
     }
