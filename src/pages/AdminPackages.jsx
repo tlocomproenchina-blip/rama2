@@ -16,7 +16,8 @@ import {
   Plane,
   Ship,
   Shield,
-  Trash2
+  Trash2,
+  Download
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
