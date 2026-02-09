@@ -374,14 +374,44 @@ export default function AdminMarketing({ user }) {
     'link', 'image'
   ];
 
+  const [emailStats, setEmailStats] = useState({
+    delivered: 0,
+    opened: 0,
+    clicked: 0,
+    bounced: 0,
+    conversions: 0,
+    revenue: 0
+  });
+
+  useEffect(() => {
+    calculateEmailStats();
+  }, []);
+
+  const calculateEmailStats = async () => {
+    try {
+      const emailLogs = await base44.entities.EmailLog.list();
+      const stats = {
+        delivered: emailLogs.filter(e => e.status === 'delivered').length,
+        opened: emailLogs.filter(e => e.status === 'opened').length,
+        clicked: emailLogs.filter(e => e.status === 'clicked').length,
+        bounced: emailLogs.filter(e => e.status === 'bounced').length,
+        conversions: emailLogs.filter(e => e.converted).length,
+        revenue: emailLogs.reduce((sum, e) => sum + (e.conversion_value || 0), 0)
+      };
+      setEmailStats(stats);
+    } catch (error) {
+      console.error('Error calculating email stats:', error);
+    }
+  };
+
   const stats = {
     total: campaigns.length,
     sent: campaigns.filter(c => c.status === 'sent').length,
     scheduled: campaigns.filter(c => c.status === 'scheduled').length,
-    avgOpenRate: campaigns.length > 0 
-      ? (campaigns.reduce((sum, c) => sum + (c.recipients_count > 0 ? (c.opened_count / c.recipients_count) * 100 : 0), 0) / campaigns.length).toFixed(1)
+    avgOpenRate: emailStats.opened > 0 && emailStats.delivered > 0
+      ? ((emailStats.opened / emailStats.delivered) * 100).toFixed(1)
       : 0,
-    totalRevenue: campaigns.reduce((sum, c) => sum + (c.revenue_generated || 0), 0)
+    totalRevenue: emailStats.revenue
   };
 
   if (loading) {
