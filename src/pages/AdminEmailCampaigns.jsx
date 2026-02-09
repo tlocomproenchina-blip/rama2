@@ -83,6 +83,9 @@ export default function AdminEmailCampaigns({ user }) {
     if (targetType === 'all') return clients;
     if (targetType === 'with_mark') return clients.filter(c => c.shipping_mark);
     if (targetType === 'without_mark') return clients.filter(c => !c.shipping_mark);
+    if (targetType === 'incomplete_data') {
+      return clients.filter(c => !c.shipping_mark && (!c.city || !c.whatsapp));
+    }
     if (targetType === 'custom') return clients.filter(c => selectedClients.includes(c.id));
     return [];
   };
@@ -273,7 +276,7 @@ export default function AdminEmailCampaigns({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-0 shadow-md">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -315,6 +318,22 @@ export default function AdminEmailCampaigns({ user }) {
               </div>
               <div className="p-3 bg-amber-100 rounded-xl">
                 <Clock className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Datos Incompletos</p>
+                <p className="text-3xl font-bold text-slate-800">
+                  {clients.filter(c => !c.shipping_mark && (!c.city || !c.whatsapp)).length}
+                </p>
+              </div>
+              <div className="p-3 bg-red-100 rounded-xl">
+                <AlertCircle className="h-6 w-6 text-red-600" />
               </div>
             </div>
           </CardContent>
@@ -650,6 +669,9 @@ export default function AdminEmailCampaigns({ user }) {
                     </SelectItem>
                     <SelectItem value="without_mark">
                       Sin Shipping Mark ({clients.filter(c => !c.shipping_mark).length})
+                    </SelectItem>
+                    <SelectItem value="incomplete_data">
+                      Con Datos Incompletos ({clients.filter(c => !c.shipping_mark && (!c.city || !c.whatsapp)).length})
                     </SelectItem>
                     <SelectItem value="custom">
                       Selección personalizada
