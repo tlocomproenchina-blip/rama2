@@ -422,12 +422,35 @@ export default function AdminPackages({ user }) {
                         </Button>
                       )}
                       {pkg.package_image_url && (
+                        <>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setViewImage(pkg.package_image_url)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {pkg.status === 'recibido' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => setEditImageModal(pkg)}
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <ImageIcon className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </>
+                      )}
+                      {!pkg.package_image_url && pkg.status === 'recibido' && (
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => setViewImage(pkg.package_image_url)}
+                          onClick={() => setEditImageModal(pkg)}
+                          className="text-blue-600 hover:text-blue-700"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Upload className="h-4 w-4 mr-1" />
+                          Foto
                         </Button>
                       )}
                       {pkg.status !== 'pre_alerta' && pkg.status !== 'consolidado' && (
