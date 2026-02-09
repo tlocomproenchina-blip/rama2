@@ -48,10 +48,15 @@ export default function NotificationBell({ user }) {
 
   useEffect(() => {
     if (user) {
-      loadNotifications();
+      // Delay initial load to prevent rate limits on page load
+      const timer = setTimeout(() => {
+        loadNotifications();
+      }, 4000);
       
       // Real-time subscriptions disabled to prevent rate limiting
       // Notifications will refresh when user opens the dropdown
+      
+      return () => clearTimeout(timer);
     }
   }, [user]);
 
