@@ -53,15 +53,93 @@ export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
 
   const [recentChanges, setRecentChanges] = useState([]);
-
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [nextRefreshIn, setNextRefreshIn] = useState(0);
+  const [cooldownActive, setCooldownActive] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  
+  const intervalRef = useRef(null);
+  const countdownRef = useRef(null);
+  const cooldownRef = useRef(null);
+  const cooldownTimerRef = useRef(null);
+  const lastRefreshRef = useRef(Date.now());
+  const lastManualRefreshRef = useRef(0);
 
+  // Visibility change handler
   useEffect(() => {
-    loadDashboardData();
-    // REAL-TIME SUBSCRIPTIONS DISABLED - Preventing rate limit errors
-    // Use manual refresh button instead
+    const handleVisibilityChange = () => {
+      setIsVisible(document.visibilityState === 'visible');
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
+
+  // Polling hybrid system
+  useEffect(() => {
+    if (cooldownActive) return;
+
+    const startAutoRefresh = () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+
+      const interval = isVisible ? 60 * 1000 : 5 * 60 * 1000;
+      let remaining = interval / 1000;
+
+      // Countdown timer
+      countdownRef.current = setInterval(() => {
+        setNextRefreshIn(--remaining);
+      }, 1000);
+
+      // Auto-refresh
+      intervalRef.current = setInterval(() => {
+        autoRefresh();
+      }, interval);
+
+      setNextRefreshIn(interval / 1000);
+    };
+
+    startAutoRefresh();
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [isVisible, cooldownActive]);
+
+  const autoRefresh = async () => {
+    try {
+      lastRefreshRef.current = Date.now();
+      await loadDashboardData();
+    } catch (error) {
+      console.error('Auto-refresh error:', error);
+    }
+  };
+
+  const handleRateLimitCooldown = () => {
+    setCooldownActive(true);
+    const cooldownMs = 10 * 60 * 1000;
+    let remaining = 10;
+
+    setCooldownRemaining(remaining);
+    
+    cooldownTimerRef.current = setInterval(() => {
+      remaining--;
+      setCooldownRemaining(remaining);
+      
+      if (remaining <= 0) {
+        clearInterval(cooldownTimerRef.current);
+        setCooldownActive(false);
+        toast.success('Auto-refresh reanudado');
+      }
+    }, 60000);
+
+    setTimeout(() => {
+      setCooldownActive(false);
+    }, cooldownMs);
+  };
 
   const handleRefresh = async () => {
     const now = Date.now();
