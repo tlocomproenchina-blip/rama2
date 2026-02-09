@@ -123,7 +123,7 @@ export default function AdminEmailTemplates({ user }) {
       const templateData = {
         ...formData,
         attachments,
-        is_default: false
+        is_default: editingTemplate?.is_default || false
       };
 
       if (editingTemplate) {
@@ -378,24 +378,22 @@ export default function AdminEmailTemplates({ user }) {
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleOpenModal(template)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                   {!template.is_default && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleOpenModal(template)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleDelete(template.id, template.is_default)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDelete(template.id, template.is_default)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
               </CardContent>
@@ -448,16 +446,67 @@ export default function AdminEmailTemplates({ user }) {
                 </Select>
               </div>
 
+              <div className="col-span-2 space-y-2">
+                <Label>Glosario de Variables Disponibles</Label>
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <p className="font-semibold text-slate-700 mb-2">Cliente</p>
+                      <div className="space-y-1 text-slate-600">
+                        <p><code className="bg-slate-200 px-1 rounded">{'{cliente_nombre}'}</code> - Nombre completo</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{email}'}</code> - Email del cliente</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{whatsapp}'}</code> - Teléfono</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{ciudad}'}</code> - Ciudad</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{shipping_mark}'}</code> - Shipping Mark</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-700 mb-2">Paquetes</p>
+                      <div className="space-y-1 text-slate-600">
+                        <p><code className="bg-slate-200 px-1 rounded">{'{tracking}'}</code> - Número de tracking</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{tipo_envio}'}</code> - Aéreo/Marítimo</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{descripcion}'}</code> - Descripción</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-700 mb-2">Consolidación</p>
+                      <div className="space-y-1 text-slate-600">
+                        <p><code className="bg-slate-200 px-1 rounded">{'{consolidation_tracking}'}</code> - Tracking</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{peso}'}</code> - Peso facturable</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{costo_envio}'}</code> - Costo</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{seguro}'}</code> - Seguro</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{total}'}</code> - Total</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{fecha_estimada}'}</code> - Fecha llegada</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-700 mb-2">Marketing</p>
+                      <div className="space-y-1 text-slate-600">
+                        <p><code className="bg-slate-200 px-1 rounded">{'{detalles_promocion}'}</code> - Detalles</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{fecha_vencimiento}'}</code> - Vencimiento</p>
+                        <p><code className="bg-slate-200 px-1 rounded">{'{descuento}'}</code> - % o monto</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-3 pt-3 border-t">
+                    💡 Usa estas variables en el asunto o cuerpo del email. Se reemplazarán automáticamente al enviar.
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label>Variables (separadas por coma)</Label>
+                <Label>Variables usadas en esta plantilla</Label>
                 <Input
                   value={formData.variables.join(', ')}
                   onChange={(e) => setFormData({
                     ...formData, 
                     variables: e.target.value.split(',').map(v => v.trim()).filter(v => v)
                   })}
-                  placeholder="{cliente_nombre}, {tracking}"
+                  placeholder="Ej: {cliente_nombre}, {tracking}"
                 />
+                <p className="text-xs text-slate-500">
+                  Copia y pega las variables del glosario que uses en esta plantilla
+                </p>
               </div>
 
               <div className="col-span-2 space-y-2">
