@@ -94,21 +94,27 @@ export default function InvoicePDFGenerator({ invoice }) {
       });
       yPos += 3;
 
-      // Get consolidation to fetch packages
+      // Get consolidation and client data to fetch packages
       let packages = [];
+      let consolidation = null;
+      let clientData = null;
       if (invoice.consolidation_id) {
-       try {
-         const consolidations = await base44.entities.Consolidation.filter({ id: invoice.consolidation_id });
-         if (consolidations.length > 0) {
-           const consolidation = consolidations[0];
-           if (consolidation.package_ids && consolidation.package_ids.length > 0) {
-             const allPackages = await base44.entities.Package.list();
-             packages = allPackages.filter(p => consolidation.package_ids.includes(p.id));
-           }
-         }
-       } catch (error) {
-         console.error('Error loading packages:', error);
-       }
+        try {
+          const consolidations = await base44.entities.Consolidation.filter({ id: invoice.consolidation_id });
+          if (consolidations.length > 0) {
+            consolidation = consolidations[0];
+            if (consolidation.package_ids && consolidation.package_ids.length > 0) {
+              const allPackages = await base44.entities.Package.list();
+              packages = allPackages.filter(p => consolidation.package_ids.includes(p.id));
+            }
+
+            // Fetch client user data
+            const users = await base44.entities.User.list();
+            clientData = users.find(u => u.email === consolidation.client_email);
+          }
+        } catch (error) {
+          console.error('Error loading packages:', error);
+        }
       }
 
       // Display packages in table format (3 columns: Tracking | Descripción | FOB) - Only if space available
