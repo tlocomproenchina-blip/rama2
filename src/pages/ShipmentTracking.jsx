@@ -34,7 +34,8 @@ export default function ShipmentTracking({ user }) {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [editingDate, setEditingDate] = useState(null);
-  const [newDate, setNewDate] = useState('');
+  const [shippingDate, setShippingDate] = useState('');
+  const [estimatedDate, setEstimatedDate] = useState('');
   const [savingDate, setSavingDate] = useState(false);
 
   useEffect(() => {
