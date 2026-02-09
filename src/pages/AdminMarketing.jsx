@@ -327,13 +327,14 @@ export default function AdminMarketing({ user }) {
         status: 'sent',
         sent_date: new Date().toISOString()
       });
-      
+
       toast.success(`Campaña enviada a ${clients.length} clientes`);
       loadData();
-    } catch (error) {
+      calculateEmailStats();
+      } catch (error) {
       toast.error('Error al enviar campaña');
-    }
-  };
+      }
+      };
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar esta campaña?')) return;
