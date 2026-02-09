@@ -16,7 +16,8 @@ import {
   AlertCircle,
   Eye,
   Tag,
-  Clock
+  Clock,
+  Search
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -35,6 +36,7 @@ export default function AdminEmailCampaigns({ user }) {
   });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sendResult, setSendResult] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadClients();
@@ -60,6 +62,23 @@ export default function AdminEmailCampaigns({ user }) {
         ? prev.filter(id => id !== clientId)
         : [...prev, clientId]
     );
+  };
+
+  const getFilteredClients = () => {
+    if (!searchQuery.trim()) return clients;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return clients.filter(client => {
+      const fullName = `${client.first_name || ''} ${client.last_name || ''}`.toLowerCase();
+      const email = (client.email || '').toLowerCase();
+      const phone = (client.whatsapp || '').toLowerCase();
+      const mark = (client.shipping_mark || '').toLowerCase();
+      
+      return fullName.includes(query) || 
+             email.includes(query) || 
+             phone.includes(query) || 
+             mark.includes(query);
+    });
   };
 
   const handleSendEmails = async () => {
@@ -327,7 +346,7 @@ export default function AdminEmailCampaigns({ user }) {
               </div>
 
               {targetType === 'custom' && (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">Seleccionar clientes</Label>
                     <Button
@@ -338,8 +357,22 @@ export default function AdminEmailCampaigns({ user }) {
                       {selectedClients.length === clients.length ? 'Deseleccionar' : 'Seleccionar'} todos
                     </Button>
                   </div>
-                  <div className="space-y-2">
-                    {clients.map((client) => (
+                  
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Buscar por nombre, email, teléfono o shipping mark..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {getFilteredClients().length === 0 ? (
+                      <p className="text-sm text-slate-500 text-center py-8">No se encontraron clientes</p>
+                    ) : (
+                      getFilteredClients().map((client) => (
                       <div
                         key={client.id}
                         className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
@@ -368,7 +401,8 @@ export default function AdminEmailCampaigns({ user }) {
                           )}
                         </div>
                       </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               )}
