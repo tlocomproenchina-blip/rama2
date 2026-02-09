@@ -13,38 +13,64 @@ Deno.serve(async (req) => {
     const isNew = event.type === 'create';
     const statusChanged = old_data && old_data.status !== consolidation.status;
 
-    if (isNew) {
-      // Nueva consolidación
-      await base44.asServiceRole.entities.Notification.create({
-        user_email: consolidation.client_email,
-        title: '📦 Consolidación creada',
-        message: `Tu consolidación ${consolidation.consolidation_tracking} ha sido creada.`,
-        type: 'consolidation',
-        priority: 'medium',
-        reference_id: consolidation.id,
-        entity_type: 'Consolidation',
-        icon: 'truck'
-      });
-    } else if (statusChanged) {
-      // Cambio de estado
-      const statusMessages = {
-        'en_transito': { title: '🚚 En tránsito', priority: 'high' },
-        'pago_validado': { title: '✅ Pago validado', priority: 'high' },
-        'disponible': { title: '📍 Disponible para retiro', priority: 'high' },
-        'entregado': { title: '🎉 Entregado', priority: 'medium' }
+    // SOLO notificar en casos críticos
+    const criticalStatuses = [
+      'requires_attention',
+      'payment_rejected',
+      'error'
+    ];
+
+    let shouldNotify = false;
+    let notificationData = null;
+
+    if (isNew && criticalStatuses.includes(consolidation.status)) {
+      // Nueva consolidación con estado crítico
+      shouldNotify = true;
+      notificationData = {
+        title: '🚨 Consolidación con error',
+        message: `Tu consolidación ${consolidation.consolidation_tracking} requiere atención.`,
+        priority: 'critical'
       };
+    } else if (statusChanged && criticalStatuses.includes(consolidation.status)) {
+      // Cambio a estado crítico
+      shouldNotify = true;
+      notificationData = {
+        title: '🚨 Consolidación requiere atención',
+        message: `Tu consolidación ${consolidation.consolidation_tracking} requiere atención inmediata.`,
+        priority: 'critical'
+      };
+    }
 
-      const statusInfo = statusMessages[consolidation.status] || { title: '🔔 Estado actualizado', priority: 'medium' };
+    if (!shouldNotify) {
+      return Response.json({ success: true });
+    }
 
+    // Crear notificación CRÍTICA
+    await base44.asServiceRole.entities.Notification.create({
+      user_email: consolidation.client_email,
+      title: notificationData.title,
+      message: notificationData.message,
+      type: 'consolidation',
+      priority: notificationData.priority,
+      reference_id: consolidation.id,
+      entity_type: 'Consolidation',
+      icon: 'alert'
+    });
+
+    // Notificar a admins
+    const users = await base44.asServiceRole.entities.User.list();
+    const admins = users.filter(u => u.role === 'admin');
+
+    for (const admin of admins) {
       await base44.asServiceRole.entities.Notification.create({
-        user_email: consolidation.client_email,
-        title: statusInfo.title,
-        message: `Tu consolidación ${consolidation.consolidation_tracking} ahora está ${consolidation.status}.`,
+        user_email: admin.email,
+        title: notificationData.title,
+        message: `${consolidation.client_email} - ${consolidation.consolidation_tracking}`,
         type: 'consolidation',
-        priority: statusInfo.priority,
+        priority: 'critical',
         reference_id: consolidation.id,
         entity_type: 'Consolidation',
-        icon: 'truck'
+        icon: 'alert'
       });
     }
 
