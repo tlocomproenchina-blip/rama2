@@ -173,6 +173,21 @@ export default function AdminEmailTemplates({ user }) {
     }
   };
 
+  const handleUpdateAllTemplates = async () => {
+    if (!confirm('¿Actualizar todas las plantillas para usar el nombre dinámico de la aplicación?')) return;
+    
+    setUpdatingTemplates(true);
+    try {
+      const response = await base44.functions.invoke('updateTemplatesWithAppName', {});
+      toast.success(`${response.data.updatedTemplates.length} plantillas actualizadas`);
+      loadTemplates();
+    } catch (error) {
+      toast.error('Error al actualizar plantillas');
+      console.error(error);
+    }
+    setUpdatingTemplates(false);
+  };
+
   const handleDuplicate = async (template) => {
     try {
       await base44.entities.EmailTemplate.create({
