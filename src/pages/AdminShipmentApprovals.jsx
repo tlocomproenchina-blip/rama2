@@ -24,7 +24,8 @@ import {
   Calendar,
   Box,
   Plus,
-  ArrowLeft
+  ArrowLeft,
+  Shield
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
@@ -49,6 +50,8 @@ export default function AdminShipmentApprovals({ user }) {
   const [inputMode, setInputMode] = useState('dimensions');
   const [directCbm, setDirectCbm] = useState('');
   const [selectedShippingType, setSelectedShippingType] = useState('aereo');
+  const [hasInsurance, setHasInsurance] = useState(false);
+  const [customFobValue, setCustomFobValue] = useState('');
 
   useEffect(() => {
     loadData();
@@ -74,7 +77,17 @@ export default function AdminShipmentApprovals({ user }) {
       client_email: request.client_email,
       status: 'recibido'
     });
-    setAllPackages(pkgs.filter(p => !p.consolidation_id));
+    const filteredPkgs = pkgs.filter(p => !p.consolidation_id);
+    setAllPackages(filteredPkgs);
+    
+    // Check if any of the selected packages has insurance
+    const selectedPkgs = filteredPkgs.filter(p => request.package_ids?.includes(p.id));
+    const pkgsWithInsurance = selectedPkgs.some(p => p.has_insurance);
+    setHasInsurance(pkgsWithInsurance);
+    
+    // Calculate total FOB from selected packages
+    const totalFOB = selectedPkgs.reduce((sum, p) => sum + (p.has_insurance ? (p.fob_value || 0) : 0), 0);
+    setCustomFobValue(totalFOB.toString());
   };
 
   const togglePackage = (pkgId) => {
@@ -105,16 +118,15 @@ export default function AdminShipmentApprovals({ user }) {
     const billableWeight = Math.max(realWeight, volumetricWeight);
 
     const selectedPkgs = allPackages.filter(p => selectedPackages.includes(p.id));
-    const totalFOB = selectedPkgs.reduce((sum, p) => sum + (p.has_insurance ? (p.fob_value || 0) : 0), 0);
+    const totalFOB = hasInsurance ? (parseFloat(customFobValue) || 0) : 0;
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
-    const hasSensitive = selectedPkgs.some(p => p.has_insurance);
 
     let shippingCost = 0;
     if (selectedShippingType === 'aereo') {
-      const rate = hasSensitive ? (config?.rate_air_sensitive || 0) : (config?.rate_air_general || 0);
+      const rate = hasInsurance ? (config?.rate_air_sensitive || 0) : (config?.rate_air_general || 0);
       shippingCost = billableWeight * rate;
     } else {
-      const rate = hasSensitive ? (config?.rate_sea_sensitive || 0) : (config?.rate_sea_general || 0);
+      const rate = hasInsurance ? (config?.rate_sea_sensitive || 0) : (config?.rate_sea_general || 0);
       shippingCost = cbm * rate;
     }
 
@@ -436,6 +448,39 @@ export default function AdminShipmentApprovals({ user }) {
                 value={consolidationData.estimated_delivery}
                 onChange={(e) => setConsolidationData({ ...consolidationData, estimated_delivery: e.target.value })}
               />
+            </div>
+
+            {/* Insurance Controls */}
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-emerald-600" />
+                  <Label className="text-base font-semibold">Seguro de Carga</Label>
+                </div>
+                <Checkbox
+                  checked={hasInsurance}
+                  onCheckedChange={setHasInsurance}
+                />
+              </div>
+
+              {hasInsurance && (
+                <div className="space-y-2 bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                  <Label className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" /> Valor FOB Total
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={customFobValue}
+                    onChange={(e) => setCustomFobValue(e.target.value)}
+                    placeholder="0.00"
+                    className="bg-white"
+                  />
+                  <p className="text-xs text-emerald-700">
+                    Seguro: {config?.insurance_percentage || 5}% del FOB = ${((parseFloat(customFobValue) || 0) * ((config?.insurance_percentage || 5) / 100)).toFixed(2)}
+                  </p>
+                </div>
+              )}
             </div>
 
             {consolidationData.real_weight_kg && ((inputMode === 'dimensions' && consolidationData.length_cm && consolidationData.width_cm && consolidationData.height_cm) || (inputMode === 'cbm' && directCbm)) && (
