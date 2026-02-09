@@ -9,8 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
-  CheckCircle2,
-  CheckCircle,
+  CheckCircle2, 
   Search, 
   Loader2,
   Package,
@@ -56,22 +55,18 @@ export default function AdminShipmentApprovals({ user }) {
   const [customFobValue, setCustomFobValue] = useState('');
   const [undoTracking, setUndoTracking] = useState('');
   const [undoing, setUndoing] = useState(false);
-  const [consolidations, setConsolidations] = useState([]);
-  const [approvingId, setApprovingId] = useState(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [reqs, configs, cons] = await Promise.all([
+    const [reqs, configs] = await Promise.all([
       base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-created_date'),
-      base44.entities.AppConfig.filter({ config_key: 'main' }),
-      base44.entities.Consolidation.filter({ status: 'en_transito' }, '-created_date')
+      base44.entities.AppConfig.filter({ config_key: 'main' })
     ]);
     
     setRequests(reqs);
-    setConsolidations(cons);
     if (configs.length > 0) setConfig(configs[0]);
     setLoading(false);
   };
@@ -280,34 +275,6 @@ export default function AdminShipmentApprovals({ user }) {
     }
     setUndoing(false);
   };
-
-  const handleApproveConsolidation = async (consolidation) => {
-    if (!confirm(`¿Aprobar consolidación ${consolidation.consolidation_tracking}?`)) {
-      return;
-    }
-
-    setApprovingId(consolidation.id);
-    try {
-      await base44.entities.Consolidation.update(consolidation.id, {
-        status: 'pago_validado'
-      });
-
-      toast.success('Consolidación aprobada');
-      loadData();
-    } catch (error) {
-      toast.error('Error al aprobar consolidación');
-    }
-    setApprovingId(null);
-  };
-
-  // Group consolidations by client
-  const consolidationsByClient = consolidations.reduce((acc, con) => {
-    if (!acc[con.client_email]) {
-      acc[con.client_email] = [];
-    }
-    acc[con.client_email].push(con);
-    return acc;
-  }, {});
 
   if (loading) {
     return (
@@ -687,161 +654,69 @@ export default function AdminShipmentApprovals({ user }) {
         </CardContent>
       </Card>
 
-      {/* Solicitudes de Consolidación Aprobadas */}
-      <div>
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Solicitudes Aprobadas para Consolidar</h2>
-        <div className="space-y-4">
-          {filteredRequests.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-12 text-center">
-                <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin consolidaciones pendientes</h3>
-                <p className="text-slate-500">No hay solicitudes aprobadas para consolidar</p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredRequests.map((req) => (
-              <Card key={req.id} className="border-0 shadow-md hover:shadow-lg transition-all">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="p-3 bg-green-100 rounded-xl">
-                        <Layers className="h-6 w-6 text-green-600" />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <div>
-                          <div className="flex items-center gap-3 mb-1">
-                            <User className="h-4 w-4 text-slate-400" />
-                            <p className="font-medium text-slate-800">{req.client_email}</p>
-                          </div>
-                          <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                          {req.shipping_type === 'aereo' 
-                            ? <><Plane className="h-4 w-4" /> Aéreo</>
-                            : <><Ship className="h-4 w-4" /> Marítimo</>
-                          }
-                          <span className="flex items-center gap-1">
-                            <Package className="h-4 w-4" />
-                            {req.tracking_numbers?.length || 0} paquetes
-                          </span>
-                        </div>
-
-                        <div className="pt-2">
-                          <p className="text-xs text-slate-500 mb-2">Paquetes:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {req.tracking_numbers?.map((tracking) => (
-                              <Badge key={tracking} variant="outline" className="font-mono text-xs">
-                                <Package className="h-3 w-3 mr-1" />
-                                {tracking}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => selectRequest(req)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Layers className="h-4 w-4 mr-2" />
-                      Consolidar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Cargas por Cliente - Aprobación Manual */}
-      <div>
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Todas las Cargas por Cliente</h2>
-        {Object.entries(consolidationsByClient).length === 0 ? (
+      <div className="space-y-4">
+        {filteredRequests.length === 0 ? (
           <Card className="border-0 shadow-lg">
             <CardContent className="p-12 text-center">
-              <Package className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-              <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin cargas en tránsito</h3>
-              <p className="text-slate-500">No hay consolidaciones esperando aprobación</p>
+              <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin consolidaciones pendientes</h3>
+              <p className="text-slate-500">No hay solicitudes aprobadas para consolidar</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
-            {Object.entries(consolidationsByClient).map(([clientEmail, clientConsolidations]) => (
-              <Card key={clientEmail} className="border-0 shadow-md">
-                <CardHeader className="border-b bg-slate-50">
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <User className="h-5 w-5 text-slate-400" />
-                      {clientEmail}
+          filteredRequests.map((req) => (
+            <Card key={req.id} className="border-0 shadow-md hover:shadow-lg transition-all">
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="p-3 bg-green-100 rounded-xl">
+                      <Layers className="h-6 w-6 text-green-600" />
                     </div>
-                    <Badge variant="outline">{clientConsolidations.length} carga(s)</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y">
-                    {clientConsolidations.map((con) => (
-                      <div key={con.id} className="p-5 hover:bg-slate-50 transition-colors">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 space-y-3">
-                            <div className="flex items-center gap-3">
-                              <p className="font-mono font-semibold text-slate-800">{con.consolidation_tracking}</p>
-                              <Badge className="bg-blue-100 text-blue-800">{con.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}</Badge>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                              <div>
-                                <p className="text-slate-500 text-xs">Peso Facturable</p>
-                                <p className="font-medium">{con.billable_weight?.toFixed(2) || 0} kg</p>
-                              </div>
-                              <div>
-                                <p className="text-slate-500 text-xs">CBM</p>
-                                <p className="font-medium">{con.cbm?.toFixed(4) || 0} m³</p>
-                              </div>
-                              <div>
-                                <p className="text-slate-500 text-xs">Total a Pagar</p>
-                                <p className="font-medium text-emerald-600">${con.total_cost?.toFixed(2) || 0}</p>
-                              </div>
-                              <div>
-                                <p className="text-slate-500 text-xs">Paquetes</p>
-                                <p className="font-medium">{con.tracking_numbers?.length || 0}</p>
-                              </div>
-                            </div>
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <User className="h-4 w-4 text-slate-400" />
+                          <p className="font-medium text-slate-800">{req.client_email}</p>
+                        </div>
+                        <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
+                      </div>
 
-                            <div className="pt-2">
-                              <p className="text-xs text-slate-500 mb-2">Paquetes incluidos:</p>
-                              <div className="flex flex-wrap gap-1">
-                                {con.tracking_numbers?.map((tracking) => (
-                                  <Badge key={tracking} variant="outline" className="font-mono text-xs">
-                                    {tracking}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                        {req.shipping_type === 'aereo' 
+                          ? <><Plane className="h-4 w-4" /> Aéreo</>
+                          : <><Ship className="h-4 w-4" /> Marítimo</>
+                        }
+                        <span className="flex items-center gap-1">
+                          <Package className="h-4 w-4" />
+                          {req.tracking_numbers?.length || 0} paquetes
+                        </span>
+                      </div>
 
-                          <Button
-                            onClick={() => handleApproveConsolidation(con)}
-                            disabled={approvingId === con.id}
-                            className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
-                          >
-                            {approvingId === con.id ? (
-                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Aprobando...</>
-                            ) : (
-                              <><CheckCircle className="h-4 w-4 mr-2" /> Aprobar</>
-                            )}
-                          </Button>
+                      <div className="pt-2">
+                        <p className="text-xs text-slate-500 mb-2">Paquetes:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {req.tracking_numbers?.map((tracking) => (
+                            <Badge key={tracking} variant="outline" className="font-mono text-xs">
+                              <Package className="h-3 w-3 mr-1" />
+                              {tracking}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+
+                  <Button
+                    onClick={() => selectRequest(req)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Layers className="h-4 w-4 mr-2" />
+                    Consolidar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
         )}
       </div>
     </div>
