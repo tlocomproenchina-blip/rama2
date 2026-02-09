@@ -293,7 +293,7 @@ export default function AdminMarketing({ user }) {
             recipient_email: client.email,
             recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
             sender_email: user.email,
-            from_name: 'TLEC Logistics',
+            from_name: config?.app_name || 'Logistics App',
             subject: personalizedSubject,
             body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
             campaign_id: campaign.id,
