@@ -59,10 +59,27 @@ export default function AdminEmailCampaigns({ user }) {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   useEffect(() => {
+    loadConfig();
     loadClients();
     loadEmailStats();
     loadTemplates();
   }, []);
+
+  const loadConfig = async () => {
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (configs.length > 0) {
+        setConfig(configs[0]);
+        setEmailData(prev => ({
+          ...prev,
+          fromName: configs[0].app_name || 'Logistics App'
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading config:', error);
+      setEmailData(prev => ({ ...prev, fromName: 'Logistics App' }));
+    }
+  };
 
   const loadClients = async () => {
     const users = await base44.entities.User.filter({ role: 'user' });
