@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
@@ -7,6 +7,7 @@ import ContractModal from '@/components/ContractModal';
 import ProfileSetupModal from '@/components/ProfileSetupModal';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
+import ApiStatusIndicator from '@/components/api/ApiStatusIndicator';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
@@ -118,6 +119,7 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
       <Toaster position="top-right" richColors />
       <AdminNotificationCenter user={user} />
+      <ApiStatusIndicator />
       
       <Sidebar 
         user={user} 
