@@ -76,25 +76,30 @@ export default function NotificationBell({ user }) {
 
   const loadNotifications = async () => {
     if (!user) return;
-    const notifs = await base44.entities.Notification.filter(
-      { user_email: user.email },
-      '-created_date',
-      100
-    );
-    
-    // Deduplicate notifications by reference_id, title, and message
-    const seen = new Set();
-    const deduped = notifs.filter(n => {
-      const key = `${n.reference_id}-${n.title}-${n.message}`;
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
-    
-    setNotifications(deduped);
-    setLoading(false);
+    try {
+      const notifs = await base44.entities.Notification.filter(
+        { user_email: user.email },
+        '-created_date',
+        50 // Reduced from 100 to 50 to lighten the load
+      );
+      
+      // Deduplicate notifications by reference_id, title, and message
+      const seen = new Set();
+      const deduped = notifs.filter(n => {
+        const key = `${n.reference_id}-${n.title}-${n.message}`;
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+      
+      setNotifications(deduped);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      setLoading(false);
+    }
   };
 
   const handleNotificationClick = async (notif) => {

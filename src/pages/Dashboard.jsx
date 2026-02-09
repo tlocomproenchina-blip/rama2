@@ -53,22 +53,26 @@ export default function Dashboard({ user, refreshUser }) {
       
       setLoading(false); // Show UI immediately with config
       
-      // Then load user-specific data in sequence with delays to avoid rate limits
+      // Then load user-specific data in sequence with longer delays to avoid rate limits
       const pkgs = await base44.entities.Package.filter({ client_email: user.email });
       setPackages(pkgs);
       
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       const cons = await base44.entities.Consolidation.filter({ client_email: user.email });
       setConsolidations(cons);
       
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       const invs = await base44.entities.Invoice.filter({ client_email: user.email });
       setInvoices(invs);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      toast.error('Error al cargar datos. Por favor recarga la página.');
+      if (error.message?.includes('Rate limit')) {
+        toast.error('Demasiadas solicitudes. Espera un momento y recarga la página.');
+      } else {
+        toast.error('Error al cargar datos. Por favor recarga la página.');
+      }
       setLoading(false);
     }
   };
