@@ -48,9 +48,21 @@ export default function AdminMarketing({ user }) {
   });
 
   useEffect(() => {
+    loadConfig();
     loadData();
     loadTemplates();
   }, []);
+
+  const loadConfig = async () => {
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (configs.length > 0) {
+        setConfig(configs[0]);
+      }
+    } catch (error) {
+      console.error('Error loading config:', error);
+    }
+  };
 
   const loadData = async () => {
     const [campaignsData, promosData] = await Promise.all([
