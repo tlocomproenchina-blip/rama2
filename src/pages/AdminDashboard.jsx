@@ -51,62 +51,30 @@ export default function AdminDashboard({ user }) {
 
   const [recentChanges, setRecentChanges] = useState([]);
 
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
     loadDashboardData();
-    setupRealtimeSubscriptions();
+    // REAL-TIME SUBSCRIPTIONS DISABLED - Preventing rate limit errors
+    // Use manual refresh button instead
   }, []);
 
-  const setupRealtimeSubscriptions = () => {
-    // Subscribe to Package changes
-    const unsubscribePackages = base44.entities.Package.subscribe((event) => {
-      setRecentChanges(prev => [{
-        id: event.id,
-        type: 'package',
-        action: event.type,
-        title: `📦 Paquete ${event.type === 'create' ? 'creado' : event.type === 'update' ? 'actualizado' : 'eliminado'}`,
-        tracking: event.data?.tracking_number,
-        timestamp: new Date().toLocaleTimeString(),
-        data: event.data
-      }, ...prev.slice(0, 9)]);
-      
-      loadDashboardData();
-    });
+  const handleRefresh = async () => {
+    const now = Date.now();
+    const timeSinceLastRefresh = (now - lastRefreshTime) / 1000;
 
-    // Subscribe to Consolidation changes
-    const unsubscribeConsolidations = base44.entities.Consolidation.subscribe((event) => {
-      setRecentChanges(prev => [{
-        id: event.id,
-        type: 'consolidation',
-        action: event.type,
-        title: `📦 Consolidación ${event.type === 'create' ? 'creada' : event.type === 'update' ? 'actualizada' : 'eliminada'}`,
-        tracking: event.data?.consolidation_tracking,
-        timestamp: new Date().toLocaleTimeString(),
-        data: event.data
-      }, ...prev.slice(0, 9)]);
-      
-      loadDashboardData();
-    });
+    if (timeSinceLastRefresh < 60) {
+      const remainingTime = Math.ceil(60 - timeSinceLastRefresh);
+      toast.error(`Espera ${remainingTime}s antes de actualizar nuevamente`);
+      return;
+    }
 
-    // Subscribe to ConsolidationRequest changes
-    const unsubscribeRequests = base44.entities.ConsolidationRequest.subscribe((event) => {
-      setRecentChanges(prev => [{
-        id: event.id,
-        type: 'request',
-        action: event.type,
-        title: `🛒 Solicitud ${event.type === 'create' ? 'nueva' : event.type === 'update' ? 'actualizada' : 'eliminada'}`,
-        client: event.data?.client_email,
-        timestamp: new Date().toLocaleTimeString(),
-        data: event.data
-      }, ...prev.slice(0, 9)]);
-      
-      loadDashboardData();
-    });
-
-    return () => {
-      unsubscribePackages();
-      unsubscribeConsolidations();
-      unsubscribeRequests();
-    };
+    setRefreshing(true);
+    setLastRefreshTime(now);
+    await loadDashboardData();
+    setRefreshing(false);
+    toast.success('Dashboard actualizado');
   };
 
   const loadDashboardData = async () => {
@@ -246,9 +214,24 @@ export default function AdminDashboard({ user }) {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Panel de Administración</h1>
-        <p className="text-slate-500">Bienvenido, {user?.full_name || user?.email}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Panel de Administración</h1>
+          <p className="text-slate-500">Bienvenido, {user?.full_name || user?.email}</p>
+        </div>
+        <Button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          variant="outline"
+          size="lg"
+          className="flex items-center gap-2"
+        >
+          {refreshing ? (
+            <><Loader2 className="h-5 w-5 animate-spin" /> Actualizando...</>
+          ) : (
+            <><TrendingUp className="h-5 w-5" /> Actualizar Dashboard</>
+          )}
+        </Button>
       </div>
 
       {/* Analytics KPIs Section */}

@@ -30,25 +30,12 @@ export default function MyConsolidations({ user }) {
   const [expandedId, setExpandedId] = useState(null);
   const [paymentModal, setPaymentModal] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
 
   useEffect(() => {
     loadConsolidations();
-    
-    // Real-time updates
-    if (user) {
-      let debounceTimer;
-      const unsubscribe = base44.entities.Consolidation.subscribe((event) => {
-        if (event.data?.client_email === user.email) {
-          clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => loadConsolidations(), 1000);
-        }
-      });
-      
-      return () => {
-        clearTimeout(debounceTimer);
-        unsubscribe();
-      };
-    }
+    // REAL-TIME SUBSCRIPTION DISABLED - Preventing rate limit errors
+    // Use manual refresh button instead
   }, [user]);
 
   const loadConsolidations = async () => {
@@ -83,9 +70,20 @@ export default function MyConsolidations({ user }) {
   };
 
   const handleRefresh = async () => {
+    const now = Date.now();
+    const timeSinceLastRefresh = (now - lastRefreshTime) / 1000;
+
+    if (timeSinceLastRefresh < 60) {
+      const remainingTime = Math.ceil(60 - timeSinceLastRefresh);
+      toast.error(`Espera ${remainingTime}s antes de actualizar nuevamente`);
+      return;
+    }
+
     setRefreshing(true);
+    setLastRefreshTime(now);
     await loadConsolidations();
     setRefreshing(false);
+    toast.success('Consolidaciones actualizadas');
   };
 
   if (loading) {
