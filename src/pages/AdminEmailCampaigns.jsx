@@ -32,6 +32,7 @@ import EmailHistoryModal from '@/components/admin/EmailHistoryModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
+import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
 
 export default function AdminEmailCampaigns({ user }) {
   const [clients, setClients] = useState([]);
@@ -215,11 +216,15 @@ export default function AdminEmailCampaigns({ user }) {
 
       for (const client of targets) {
         try {
+          // Reemplazar variables en el asunto y cuerpo
+          const personalizedSubject = replaceEmailVariables(emailData.subject, client);
+          const personalizedBody = replaceEmailVariables(emailBody, client);
+          
           await base44.integrations.Core.SendEmail({
             from_name: emailData.fromName,
             to: client.email,
-            subject: emailData.subject,
-            body: emailBody
+            subject: personalizedSubject,
+            body: personalizedBody
           });
           
           // Log the email
@@ -228,8 +233,8 @@ export default function AdminEmailCampaigns({ user }) {
             recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
             sender_email: user.email,
             from_name: emailData.fromName,
-            subject: emailData.subject,
-            body_preview: emailData.body.replace(/<[^>]*>/g, '').substring(0, 200),
+            subject: personalizedSubject,
+            body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
             source: 'manual',
             status: 'sent',
             sent_date: new Date().toISOString()

@@ -14,6 +14,7 @@ import 'react-quill/dist/quill.snow.css';
 import { Plus, Loader2, Mail, Bell, Users, TrendingUp, Calendar, Send, Eye, MousePointer, DollarSign, Edit, Trash2, Paperclip, X, Image as ImageIcon, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import EmailHistoryModal from '@/components/admin/EmailHistoryModal';
+import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
 
 export default function AdminMarketing({ user }) {
   const [campaigns, setCampaigns] = useState([]);
@@ -264,10 +265,14 @@ export default function AdminMarketing({ user }) {
         }
 
         for (const client of clients) {
+          // Reemplazar variables en el asunto y cuerpo
+          const personalizedSubject = replaceEmailVariables(campaign.email_subject, client);
+          const personalizedBody = replaceEmailVariables(emailBody, client);
+          
           await base44.integrations.Core.SendEmail({
             to: client.email,
-            subject: campaign.email_subject,
-            body: emailBody
+            subject: personalizedSubject,
+            body: personalizedBody
           });
           
           // Log the email
@@ -276,8 +281,8 @@ export default function AdminMarketing({ user }) {
             recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
             sender_email: user.email,
             from_name: 'TLEC Logistics',
-            subject: campaign.email_subject,
-            body_preview: campaign.email_body.replace(/<[^>]*>/g, '').substring(0, 200),
+            subject: personalizedSubject,
+            body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
             campaign_id: campaign.id,
             campaign_name: campaign.name,
             source: 'campaign',
