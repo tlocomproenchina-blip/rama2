@@ -108,6 +108,27 @@ export default function AdminPackages({ user }) {
     loadPackages();
   };
 
+  const handleEditImage = async () => {
+    if (!editImageModal || !newImageFile) return;
+    setProcessing(true);
+
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: newImageFile });
+      
+      await base44.entities.Package.update(editImageModal.id, {
+        package_image_url: file_url
+      });
+
+      toast.success('Imagen actualizada exitosamente');
+      setEditImageModal(null);
+      setNewImageFile(null);
+      loadPackages();
+    } catch (error) {
+      toast.error('Error al actualizar imagen');
+    }
+    setProcessing(false);
+  };
+
   const handleAdvancedSearch = (filters) => {
     setAdvancedFilters(filters);
   };
