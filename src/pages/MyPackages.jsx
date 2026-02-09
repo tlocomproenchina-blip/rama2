@@ -71,12 +71,12 @@ export default function MyPackages({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Mis Paquetes</h1>
-          <p className="text-slate-500">Gestiona y rastrea todos tus paquetes</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800">Mis Paquetes</h1>
+          <p className="text-xs md:text-sm text-slate-500">Gestiona y rastrea todos tus paquetes</p>
         </div>
         {user?.shipping_mark && (
           <Link to={createPageUrl('PreAlert')}>
@@ -90,19 +90,20 @@ export default function MyPackages({ user }) {
 
       {/* Filters */}
       <Card className="border-0 shadow-md">
-        <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
+        <CardContent className="p-3 md:p-4">
+          <div className="flex flex-col gap-3 md:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar por tracking o descripción..."
+                placeholder="Buscar por tracking..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-sm"
               />
             </div>
-            <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
-              <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full">
+            <div className="overflow-x-auto -mx-3 md:mx-0">
+              <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-max md:w-full">
+              <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full">
                 <TabsTrigger value="all">Todos</TabsTrigger>
                 <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
                 <TabsTrigger value="recibido">Recibido</TabsTrigger>
@@ -111,6 +112,7 @@ export default function MyPackages({ user }) {
                 <TabsTrigger value="entregado">Entregado</TabsTrigger>
               </TabsList>
             </Tabs>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -118,10 +120,10 @@ export default function MyPackages({ user }) {
       {/* Packages List */}
       {filteredPackages.length === 0 ? (
         <Card className="border-0 shadow-lg">
-          <CardContent className="p-12 text-center">
-            <Package className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">No hay paquetes</h3>
-            <p className="text-slate-500 mb-4">
+          <CardContent className="p-6 md:p-12 text-center">
+            <Package className="h-12 md:h-16 w-12 md:w-16 mx-auto mb-3 md:mb-4 text-slate-300" />
+            <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">No hay paquetes</h3>
+            <p className="text-xs md:text-sm text-slate-500 mb-3 md:mb-4">
               {search ? 'No se encontraron paquetes con ese criterio' : 'Aún no tienes paquetes registrados'}
             </p>
             {user?.shipping_mark && !search && (
@@ -135,36 +137,36 @@ export default function MyPackages({ user }) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 md:gap-4">
           {filteredPackages.map((pkg) => (
             <Card key={pkg.id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-4 lg:p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+              <CardContent className="p-3 md:p-4 lg:p-6">
+                <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                   {/* Main Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-slate-100 rounded-lg">
+                   <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 md:gap-3 mb-2">
+                      <div className="p-2 bg-slate-100 rounded-lg flex-shrink-0">
                         {pkg.shipping_type === 'aereo' 
-                          ? <Plane className="h-5 w-5 text-blue-600" />
-                          : <Ship className="h-5 w-5 text-blue-600" />
+                          ? <Plane className="h-4 w-4 md:h-5 text-blue-600" />
+                          : <Ship className="h-4 w-4 md:h-5 text-blue-600" />
                         }
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-slate-800 font-mono">{pkg.tracking_number}</h3>
-                        <p className="text-sm text-slate-500 capitalize">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-slate-800 font-mono text-xs md:text-sm truncate">{pkg.tracking_number}</h3>
+                        <p className="text-xs md:text-sm text-slate-500 capitalize">
                           {pkg.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}
                         </p>
                       </div>
                     </div>
                     {pkg.description && (
-                      <p className="text-sm text-slate-600 mt-2">{pkg.description}</p>
+                      <p className="text-xs md:text-sm text-slate-600 mt-2 line-clamp-2">{pkg.description}</p>
                     )}
                   </div>
 
                   {/* Badges */}
                   <div className="flex flex-wrap items-center gap-2">
                     {pkg.has_insurance && (
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
                         <Shield className="h-3 w-3 mr-1" />
                         Asegurado
                       </Badge>
@@ -174,9 +176,9 @@ export default function MyPackages({ user }) {
                         variant="outline"
                         size="sm"
                         onClick={() => setSelectedImage(pkg.package_image_url)}
-                        className="text-slate-600"
+                        className="text-slate-600 text-xs"
                       >
-                        <ImageIcon className="h-4 w-4 mr-1" />
+                        <ImageIcon className="h-3 w-3 mr-1" />
                         Ver Foto
                       </Button>
                     )}
@@ -184,7 +186,7 @@ export default function MyPackages({ user }) {
                   </div>
 
                   {/* Date */}
-                  <div className="text-sm text-slate-500">
+                  <div className="text-xs md:text-sm text-slate-500">
                     {new Date(pkg.created_date).toLocaleDateString('es-ES', {
                       day: 'numeric',
                       month: 'short',
@@ -200,11 +202,11 @@ export default function MyPackages({ user }) {
 
       {/* Image Modal */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-xl md:max-w-2xl mx-auto">
           <DialogHeader>
-            <DialogTitle>Foto del Paquete</DialogTitle>
+            <DialogTitle className="text-base md:text-lg">Foto del Paquete</DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
+          <div className="mt-4 overflow-y-auto max-h-[70vh]">
             <img 
               src={selectedImage} 
               alt="Paquete recibido" 
