@@ -83,14 +83,16 @@ export default function InvoicePDFGenerator({ invoice }) {
       yPos += 7;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      
+
       const notesLines = (invoice.notes || '').split('\n');
-      const clientInfoLines = notesLines.slice(0, 3); // First 3 lines are client info
+      const clientInfoLines = notesLines.slice(0, 1); // Only first line (email)
       clientInfoLines.forEach(line => {
-        doc.text(line, 15, yPos);
-        yPos += 5;
+       if (line && !line.includes('Paquetes:') && !line.includes('Trackings:')) {
+         doc.text(line, 15, yPos);
+         yPos += 5;
+       }
       });
-      yPos += 5;
+      yPos += 3;
 
       // Get consolidation to fetch packages
       let packages = [];
