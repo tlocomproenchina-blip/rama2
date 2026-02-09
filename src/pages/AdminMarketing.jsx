@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Loader2, Mail, Bell, Users, TrendingUp, Calendar, Send, Eye, MousePointer, DollarSign, Edit, Trash2 } from 'lucide-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import { Plus, Loader2, Mail, Bell, Users, TrendingUp, Calendar, Send, Eye, MousePointer, DollarSign, Edit, Trash2, Paperclip, X, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminMarketing({ user }) {
@@ -21,6 +22,8 @@ export default function AdminMarketing({ user }) {
   const [saving, setSaving] = useState(false);
   const [segmentPreview, setSegmentPreview] = useState(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -100,6 +103,45 @@ export default function AdminMarketing({ user }) {
     setLoadingPreview(false);
   };
 
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setUploadingFile(true);
+    try {
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        setAttachments(prev => [...prev, { name: file.name, url: file_url, size: file.size }]);
+      }
+      toast.success('Archivo(s) adjuntado(s)');
+    } catch (error) {
+      toast.error('Error al subir archivo');
+    }
+    setUploadingFile(false);
+    e.target.value = '';
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const imageHtml = `<img src="${file_url}" alt="${file.name}" style="max-width: 100%; height: auto;" />`;
+      setFormData({ ...formData, email_body: formData.email_body + imageHtml });
+      toast.success('Imagen insertada');
+    } catch (error) {
+      toast.error('Error al subir imagen');
+    }
+    setUploadingFile(false);
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleOpenModal = (campaign = null) => {
     if (campaign) {
       setEditingCampaign(campaign);
@@ -120,6 +162,7 @@ export default function AdminMarketing({ user }) {
       });
     }
     setSegmentPreview(null);
+    setAttachments([]);
     setShowModal(true);
   };
 
@@ -173,11 +216,20 @@ export default function AdminMarketing({ user }) {
       
       // Send emails
       if (campaign.campaign_type === 'email' || campaign.campaign_type === 'both') {
+        let emailBody = campaign.email_body;
+        
+        if (attachments.length > 0) {
+          emailBody += '\n\n--- Archivos Adjuntos ---\n';
+          attachments.forEach(att => {
+            emailBody += `\n${att.name}: ${att.url}`;
+          });
+        }
+
         for (const client of clients) {
           await base44.integrations.Core.SendEmail({
             to: client.email,
             subject: campaign.email_subject,
-            body: campaign.email_body
+            body: emailBody
           });
         }
       }
@@ -218,6 +270,29 @@ export default function AdminMarketing({ user }) {
       toast.error('Error al eliminar');
     }
   };
+
+  const quillModules = useMemo(() => ({
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      [{ 'font': [] }],
+      [{ 'size': ['small', false, 'large', 'huge'] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'align': [] }],
+      ['link'],
+      ['clean']
+    ]
+  }), []);
+
+  const quillFormats = [
+    'header', 'font', 'size',
+    'bold', 'italic', 'underline', 'strike',
+    'color', 'background',
+    'list', 'bullet',
+    'align',
+    'link', 'image'
+  ];
 
   const stats = {
     total: campaigns.length,
@@ -499,12 +574,95 @@ export default function AdminMarketing({ user }) {
                   
                   <div className="col-span-2 space-y-2">
                     <Label>Cuerpo del Email *</Label>
-                    <Textarea
-                      value={formData.email_body}
-                      onChange={(e) => setFormData({...formData, email_body: e.target.value})}
-                      placeholder="Contenido del email..."
-                      rows={6}
-                    />
+                    <div className="border rounded-lg overflow-hidden">
+                      <ReactQuill
+                        theme="snow"
+                        value={formData.email_body}
+                        onChange={(content) => setFormData({ ...formData, email_body: content })}
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="Escribe tu mensaje aquí..."
+                        className="bg-white"
+                        style={{ minHeight: '250px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 space-y-3">
+                    <Label>Adjuntos e Imágenes</Label>
+                    <div className="flex gap-2">
+                      <label className="flex-1">
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          className="w-full"
+                          disabled={uploadingFile}
+                          asChild
+                        >
+                          <span>
+                            {uploadingFile ? (
+                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo...</>
+                            ) : (
+                              <><Paperclip className="h-4 w-4 mr-2" /> Adjuntar Archivo</>
+                            )}
+                          </span>
+                        </Button>
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                          multiple
+                          disabled={uploadingFile}
+                        />
+                      </label>
+
+                      <label className="flex-1">
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          className="w-full"
+                          disabled={uploadingFile}
+                          asChild
+                        >
+                          <span>
+                            {uploadingFile ? (
+                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo...</>
+                            ) : (
+                              <><ImageIcon className="h-4 w-4 mr-2" /> Insertar Imagen</>
+                            )}
+                          </span>
+                        </Button>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={uploadingFile}
+                        />
+                      </label>
+                    </div>
+
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-700">Archivos adjuntos:</p>
+                        {attachments.map((att, idx) => (
+                          <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border">
+                            <Paperclip className="h-4 w-4 text-slate-400" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-800 truncate">{att.name}</p>
+                              <p className="text-xs text-slate-500">{(att.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeAttachment(idx)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </>
               )}
