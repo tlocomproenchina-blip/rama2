@@ -37,9 +37,22 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const loadConfig = async () => {
     try {
+      // Check cache first (1 hour TTL)
+      const cached = sessionStorage.getItem('app_config');
+      const cacheTime = sessionStorage.getItem('app_config_time');
+      const now = Date.now();
+      
+      if (cached && cacheTime && (now - parseInt(cacheTime)) < 3600000) {
+        setConfig(JSON.parse(cached));
+        return;
+      }
+
+      // Load from API only if cache expired
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (configs.length > 0) {
         setConfig(configs[0]);
+        sessionStorage.setItem('app_config', JSON.stringify(configs[0]));
+        sessionStorage.setItem('app_config_time', now.toString());
       }
     } catch (error) {
       console.error('Error loading config:', error);
