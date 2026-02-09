@@ -22,7 +22,23 @@ export default function Layout({ children, currentPageName }) {
 
   useEffect(() => {
     loadUser();
+    loadFavicon();
   }, []);
+
+  const loadFavicon = async () => {
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (configs.length > 0 && configs[0].app_logo_url) {
+        const link = document.querySelector("link[rel='icon']") || document.createElement('link');
+        link.rel = 'icon';
+        link.href = configs[0].app_logo_url;
+        link.type = 'image/png';
+        document.head.appendChild(link);
+      }
+    } catch (error) {
+      console.error('Error loading favicon:', error);
+    }
+  };
 
   const loadUser = async () => {
     try {
