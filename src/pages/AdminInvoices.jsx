@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2 } from 'lucide-react';
+import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -38,6 +38,8 @@ export default function AdminInvoices({ user }) {
   const [bulkStatus, setBulkStatus] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [deconsolidateConfirm, setDeconsolidateConfirm] = useState(null);
+  const [deconsolidating, setDeconsolidating] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -388,6 +390,75 @@ export default function AdminInvoices({ user }) {
     setBulkProcessing(false);
   };
 
+  const handleDeconsolidate = async (invoice) => {
+    if (!invoice.consolidation_id) {
+      toast.error('Esta factura no tiene consolidación asociada');
+      return;
+    }
+    setDeconsolidateConfirm(invoice);
+  };
+
+  const executeDeconsolidation = async () => {
+    if (!deconsolidateConfirm) return;
+
+    setDeconsolidating(true);
+    try {
+      const consolidation = await base44.entities.Consolidation.filter({ 
+        id: deconsolidateConfirm.consolidation_id 
+      });
+
+      if (!consolidation || consolidation.length === 0) {
+        toast.error('Consolidación no encontrada');
+        return;
+      }
+
+      const cons = consolidation[0];
+      const packageIds = cons.package_ids || [];
+
+      // Revert package statuses to "recibido" and remove consolidation_id
+      await Promise.all(packageIds.map(pkgId => 
+        base44.entities.Package.update(pkgId, {
+          status: 'recibido',
+          consolidation_id: null
+        })
+      ));
+
+      // Delete the consolidation
+      await base44.entities.Consolidation.delete(cons.id);
+
+      // Update consolidation request if exists
+      if (cons.consolidation_request_id) {
+        await base44.entities.ConsolidationRequest.update(cons.consolidation_request_id, {
+          status: 'pendiente',
+          consolidation_id: null
+        });
+      }
+
+      // Delete the invoice
+      await base44.entities.Invoice.delete(deconsolidateConfirm.id);
+
+      // Notify client
+      const { sendNotification } = await import('@/components/NotificationUtils');
+      sendNotification({
+        to: cons.client_email,
+        subject: '📦 Consolidación desconsolidada',
+        body: `Tu consolidación ${cons.consolidation_tracking} ha sido desconsolidada.\n\nTus ${packageIds.length} paquete(s) están nuevamente disponibles en estado "Recibido" para ser consolidados en el futuro.`,
+        type: 'consolidation',
+        icon: 'package',
+        referenceId: cons.id
+      });
+
+      toast.success('Consolidación desconsolidada exitosamente');
+      setDeconsolidateConfirm(null);
+      loadInvoices();
+      loadConsolidations();
+    } catch (error) {
+      console.error('Error deconsolidating:', error);
+      toast.error('Error al desconsolidar');
+    }
+    setDeconsolidating(false);
+  };
+
   const filteredInvoices = invoices.filter(inv => {
     const matchesSearch = 
       inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -597,6 +668,17 @@ export default function AdminInvoices({ user }) {
                   <Edit className="h-4 w-4 mr-1" />
                   Editar
                 </Button>
+                {invoice.consolidation_id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeconsolidate(invoice)}
+                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                  >
+                    <PackageX className="h-4 w-4 mr-1" />
+                    Desconsolidar
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -718,6 +800,48 @@ export default function AdminInvoices({ user }) {
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Eliminando...</>
               ) : (
                 <><Trash2 className="h-4 w-4 mr-2" /> Eliminar</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Deconsolidate Confirmation Dialog */}
+      <AlertDialog open={!!deconsolidateConfirm} onOpenChange={() => setDeconsolidateConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Desconsolidar Consolidación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás a punto de desconsolidar la factura{' '}
+              <span className="font-semibold text-slate-800">{deconsolidateConfirm?.invoice_number}</span>
+              {' '}asociada a la consolidación{' '}
+              <span className="font-semibold text-slate-800">{deconsolidateConfirm?.consolidation_tracking}</span>.
+              <br /><br />
+              Esto hará lo siguiente:
+              <ul className="list-disc ml-6 mt-2">
+                <li>Los paquetes volverán al estado <strong>"Recibido"</strong></li>
+                <li>Se eliminará la consolidación</li>
+                <li>Se eliminará esta factura</li>
+                <li>Los paquetes podrán ser consolidados nuevamente</li>
+              </ul>
+              <br />
+              <strong>Esta acción no se puede deshacer.</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deconsolidating}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                executeDeconsolidation();
+              }}
+              disabled={deconsolidating}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {deconsolidating ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Desconsolidando...</>
+              ) : (
+                <><PackageX className="h-4 w-4 mr-2" /> Desconsolidar</>
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
