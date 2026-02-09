@@ -68,6 +68,29 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       console.error('Error loading config:', error);
     }
   };
+
+  const loadNotificationCounts = async () => {
+    try {
+      if (!user?.email) return;
+
+      const notifications = await base44.entities.Notification.filter({
+        user_email: user.email,
+        read: false
+      });
+
+      const critical = notifications.filter(n => n.priority === 'critical').length;
+      const packageCount = notifications.filter(n => n.entity_type === 'Package').length;
+      const requestCount = notifications.filter(n => n.entity_type === 'ConsolidationRequest').length;
+
+      setNotificationCounts({
+        critical,
+        packages: packageCount,
+        requests: requestCount
+      });
+    } catch (error) {
+      console.error('Error loading notification counts:', error);
+    }
+  };
   const isAdmin = user?.role === 'admin';
   const isEmployee = user?.is_employee === true;
   const permissions = user?.admin_permissions || {};
