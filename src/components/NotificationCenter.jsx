@@ -107,18 +107,28 @@ export default function NotificationCenter({ user }) {
       >
         <Bell className="h-5 w-5 text-slate-700" />
         
-        {/* Unread Badge */}
+        {/* Unread Badge - CRITICAL in Red */}
         <AnimatePresence>
-          {unreadCount > 0 && (
+          {getCriticalCount() > 0 ? (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1, backgroundColor: ['#ef4444', '#dc2626'] }}
+              exit={{ scale: 0 }}
+              transition={{ repeat: Infinity, duration: 1 }}
+              className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+            >
+              {getCriticalCount() > 9 ? '9+' : getCriticalCount()}
+            </motion.div>
+          ) : unreadCount > 0 ? (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0 }}
-              className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+              className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </motion.div>
-          )}
+          ) : null}
         </AnimatePresence>
       </motion.button>
 
