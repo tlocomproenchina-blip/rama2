@@ -9,6 +9,7 @@ import NotificationCenter from '@/components/NotificationCenter';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import ApiStatusIndicator from '@/components/api/ApiStatusIndicator';
 import WhatsAppSupport from '@/components/WhatsAppSupport';
+import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
@@ -140,6 +141,7 @@ export default function Layout({ children, currentPageName }) {
       <Toaster position="top-right" richColors />
       <AdminNotificationCenter user={user} />
       <ApiStatusIndicator />
+      <PWAInstallPrompt />
       {user?.role === 'user' && <WhatsAppSupport />}
       
       <Sidebar 
