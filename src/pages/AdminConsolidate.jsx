@@ -115,6 +115,53 @@ export default function AdminConsolidate({ user }) {
     setProcessing(null);
   };
 
+  const handleQuickConsolidate = async (clientEmail, packages) => {
+    const shippingTypes = [...new Set(packages.map(p => p.shipping_type))];
+    
+    if (shippingTypes.length > 1) {
+      toast.error('Los paquetes deben ser del mismo tipo de envío');
+      return;
+    }
+
+    setProcessing(clientEmail);
+    try {
+      // Get or create shipping mark
+      const users = await base44.entities.User.list();
+      const client = users.find(u => u.email === clientEmail);
+      
+      if (!client || !client.shipping_mark) {
+        toast.error('El cliente no tiene shipping mark asignado');
+        setProcessing(null);
+        return;
+      }
+
+      // Create consolidation request
+      const newRequest = await base44.entities.ConsolidationRequest.create({
+        client_email: clientEmail,
+        shipping_mark: client.shipping_mark,
+        package_ids: packages.map(p => p.id),
+        tracking_numbers: packages.map(p => p.tracking_number),
+        shipping_type: shippingTypes[0],
+        status: 'pendiente'
+      });
+
+      // Auto-approve it
+      await base44.entities.ConsolidationRequest.update(newRequest.id, {
+        status: 'aprobada',
+        approved_by: user.email,
+        approved_date: new Date().toISOString()
+      });
+
+      toast.success('Solicitud creada y aprobada');
+      setExpandedClient(null);
+      loadData();
+    } catch (error) {
+      toast.error('Error al crear solicitud de consolidación');
+      console.error(error);
+    }
+    setProcessing(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
