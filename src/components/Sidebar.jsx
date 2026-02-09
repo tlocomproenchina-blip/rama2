@@ -73,6 +73,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText, permission: 'validate_payments' },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
   { name: 'Enviar Emails', page: 'AdminEmailCampaigns', icon: Mail, permission: 'general_config' },
+  { name: 'Plantillas Email', page: 'AdminEmailTemplates', icon: FileText, permission: 'general_config' },
   { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle, permission: 'validate_payments' },
   { name: 'Promociones', page: 'AdminPromotions', icon: Tag, permission: 'general_config' },
   { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp, permission: 'general_config' },
