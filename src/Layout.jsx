@@ -177,7 +177,7 @@ export default function Layout({ children, currentPageName }) {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">TLEC Logistics</h1>
+            <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
             <NotificationCenter user={user} />
           </div>
         </header>
