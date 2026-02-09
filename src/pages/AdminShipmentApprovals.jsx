@@ -280,6 +280,34 @@ export default function AdminShipmentApprovals({ user }) {
     setUndoing(false);
   };
 
+  const handleApproveConsolidation = async (consolidation) => {
+    if (!confirm(`¿Aprobar consolidación ${consolidation.consolidation_tracking}?`)) {
+      return;
+    }
+
+    setApprovingId(consolidation.id);
+    try {
+      await base44.entities.Consolidation.update(consolidation.id, {
+        status: 'pago_validado'
+      });
+
+      toast.success('Consolidación aprobada');
+      loadData();
+    } catch (error) {
+      toast.error('Error al aprobar consolidación');
+    }
+    setApprovingId(null);
+  };
+
+  // Group consolidations by client
+  const consolidationsByClient = consolidations.reduce((acc, con) => {
+    if (!acc[con.client_email]) {
+      acc[con.client_email] = [];
+    }
+    acc[con.client_email].push(con);
+    return acc;
+  }, {});
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
