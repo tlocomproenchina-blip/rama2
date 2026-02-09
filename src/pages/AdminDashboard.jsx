@@ -309,6 +309,39 @@ export default function AdminDashboard({ user }) {
       {/* Change Detection Badge */}
       <ChangeDetectionBadge onRefresh={handleRefresh} />
 
+      {/* Cooldown Warning Banner */}
+      {cooldownActive && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium text-red-800">
+              ⏸️ Auto-refresh pausado por límites temporales
+            </p>
+            <p className="text-sm text-red-700">
+              Reintentaremos en {cooldownRemaining} min
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Status Bar */}
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+        <div className="text-sm">
+          <span className="text-slate-700 font-medium">
+            🔄 Auto-refresh: <span className="text-green-600 font-bold">ON</span>
+          </span>
+          <span className="text-slate-600 ml-4">
+            ({isVisible ? '60s activo' : '5m inactivo'})
+          </span>
+          <span className="text-slate-600 ml-4">
+            • Última actualización: <span className="font-mono">{format(new Date(lastRefreshRef.current), 'HH:mm:ss')}</span>
+          </span>
+        </div>
+        <div className="text-sm font-medium text-blue-600">
+          ⏱️ Próxima en: {nextRefreshIn}s
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -317,7 +350,7 @@ export default function AdminDashboard({ user }) {
         </div>
         <Button
           onClick={handleRefresh}
-          disabled={refreshing}
+          disabled={refreshing || cooldownActive}
           variant="outline"
           size="lg"
           className="flex items-center gap-2"
