@@ -4,9 +4,10 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
-export default function ChangeDetectionBadge({ onRefresh }) {
+export default function ChangeDetectionBadge({ onRefresh, onRefreshPackages, onRefreshConsolidations }) {
   const [hasNewChanges, setHasNewChanges] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [changedEntities, setChangedEntities] = useState({ packages: false, consolidations: false, requests: false });
 
   // Función para verificar cambios
   const checkForChanges = async () => {
