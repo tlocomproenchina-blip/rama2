@@ -459,6 +459,28 @@ export default function AdminEmailCampaigns({ user }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
+                <Label>Usar Plantilla (Opcional)</Label>
+                <Select value={selectedTemplate?.id || ''} onValueChange={handleSelectTemplate}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una plantilla" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>Sin plantilla</SelectItem>
+                    {templates.map(template => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name} ({template.category})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedTemplate && (
+                  <p className="text-xs text-blue-600">
+                    Plantilla cargada. Puedes modificar el contenido si lo necesitas.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label>Nombre del Remitente</Label>
                 <Input
                   value={emailData.fromName}
