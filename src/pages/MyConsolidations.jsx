@@ -23,6 +23,7 @@ import {
 import StatusBadge from '@/components/StatusBadge';
 import PaymentModal from '@/components/PaymentModal';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { toast } from 'sonner';
 
 export default function MyConsolidations({ user }) {
   const [consolidations, setConsolidations] = useState([]);

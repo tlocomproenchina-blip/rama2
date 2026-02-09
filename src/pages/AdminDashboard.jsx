@@ -22,6 +22,7 @@ import {
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import StatusBadge from '@/components/StatusBadge';
 import { format, subDays, startOfDay } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function AdminDashboard({ user }) {
   const [stats, setStats] = useState({
