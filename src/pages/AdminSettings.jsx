@@ -41,6 +41,8 @@ export default function AdminSettings({ user }) {
     invoice_company_name: 'TLEC CARGO LTD',
     invoice_company_tagline: 'Sistema de Envios Internacionales',
     invoice_logo_url: '',
+    invoice_overdue_days: 7,
+    payment_alert_days: 7,
     wallet_binance: '',
     wallet_usdt_trc20: '',
     binance_instructions: '',
