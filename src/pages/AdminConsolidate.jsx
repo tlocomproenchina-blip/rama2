@@ -25,6 +25,7 @@ export default function AdminConsolidate({ user }) {
   const [clientsWithPackages, setClientsWithPackages] = useState([]);
   const [processing, setProcessing] = useState(null);
   const [activeTab, setActiveTab] = useState('requests'); // 'requests' or 'clients'
+  const [expandedClient, setExpandedClient] = useState(null); // Track expanded client for quick consolidate
 
   useEffect(() => {
     loadData();
