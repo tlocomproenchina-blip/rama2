@@ -14,29 +14,44 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
-    // Crear notificación
+    // SOLO generar notificación para eventos críticos
+    const isCritical = pkg.has_insurance || pkg.status === 'requires_attention';
+    
+    if (!isCritical) {
+      return Response.json({ success: true });
+    }
+
+    // Crear notificación CRÍTICA
+    const criticalTitle = pkg.has_insurance 
+      ? '⚠️ Paquete asegurado registrado'
+      : '🚨 Paquete requiere atención';
+    
+    const criticalMessage = pkg.has_insurance
+      ? `Tu paquete ${pkg.tracking_number} ha sido registrado con seguro.`
+      : `Tu paquete ${pkg.tracking_number} requiere atención.`;
+
     await base44.asServiceRole.entities.Notification.create({
       user_email: pkg.client_email,
-      title: '📦 Pre-alerta recibida',
-      message: `Tu paquete ${pkg.tracking_number} ha sido registrado en el sistema.`,
+      title: criticalTitle,
+      message: criticalMessage,
       type: 'package',
-      priority: 'medium',
+      priority: 'critical',
       reference_id: pkg.id,
       entity_type: 'Package',
-      icon: 'package'
+      icon: 'alert'
     });
 
-    // Notificar a admins
+    // Notificar a admins solo en casos críticos
     const users = await base44.asServiceRole.entities.User.list();
     const admins = users.filter(u => u.role === 'admin');
 
     for (const admin of admins) {
       await base44.asServiceRole.entities.Notification.create({
         user_email: admin.email,
-        title: '🔔 Nuevo paquete registrado',
-        message: `${pkg.client_email} registró ${pkg.tracking_number}`,
+        title: criticalTitle,
+        message: `${pkg.client_email} - ${pkg.tracking_number}`,
         type: 'package',
-        priority: 'low',
+        priority: 'critical',
         reference_id: pkg.id,
         entity_type: 'Package',
         icon: 'alert'
@@ -46,6 +61,6 @@ Deno.serve(async (req) => {
     return Response.json({ success: true });
   } catch (error) {
     console.error('Error creating package notification:', error);
-    return Response.json({ success: true }); // No fallar
+    return Response.json({ success: true });
   }
 });
