@@ -104,24 +104,47 @@ export default function ChangeDetectionBadge({ onRefresh, onRefreshPackages, onR
                 <p className="text-red-700 text-sm">Se han registrado cambios en Paquetes, Consolidaciones o Solicitudes</p>
               </div>
             </div>
-            <Button
-              onClick={handleRefresh}
-              disabled={isChecking}
-              className="bg-red-600 hover:bg-red-700 text-white flex-shrink-0"
-              size="sm"
-            >
-              {isChecking ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                  Actualizando...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Actualizar ahora
-                </>
+            <div className="flex gap-2">
+              {(onRefreshPackages || onRefreshConsolidations) && (
+                <Button
+                  onClick={handlePartialRefresh}
+                  disabled={isChecking}
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0"
+                  size="sm"
+                  title="Solo actualiza las entidades que cambiaron"
+                >
+                  {isChecking ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      Parcial...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Actualizar Parcial
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
+              <Button
+                onClick={handleRefresh}
+                disabled={isChecking}
+                className="bg-red-600 hover:bg-red-700 text-white flex-shrink-0"
+                size="sm"
+              >
+                {isChecking ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    Actualizando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Actualizar Todo
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </motion.div>
       )}
