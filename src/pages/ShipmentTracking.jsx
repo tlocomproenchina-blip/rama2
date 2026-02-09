@@ -178,9 +178,23 @@ export default function ShipmentTracking({ user }) {
   };
 
   const getProgress = (con) => {
-    const steps = getStatusSteps(con);
-    const completed = steps.filter(s => s.completed).length;
-    return (completed / steps.length) * 100;
+    // Calculate progress based on estimated delivery date
+    if (!con.created_date || !con.estimated_delivery) {
+      const steps = getStatusSteps(con);
+      const completed = steps.filter(s => s.completed).length;
+      return (completed / steps.length) * 100;
+    }
+
+    const createdDate = new Date(con.created_date);
+    const estimatedDeliveryDate = new Date(con.estimated_delivery);
+    const currentDate = new Date();
+
+    const totalDays = differenceInDays(estimatedDeliveryDate, createdDate);
+    const elapsedDays = differenceInDays(currentDate, createdDate);
+
+    if (totalDays <= 0) return 100;
+    const progress = (elapsedDays / totalDays) * 100;
+    return Math.min(100, Math.max(0, progress));
   };
 
   const getDaysInTransit = (con) => {
@@ -191,7 +205,7 @@ export default function ShipmentTracking({ user }) {
   const getEstimatedDaysRemaining = (con) => {
     if (con.estimated_delivery) {
       const remaining = differenceInDays(new Date(con.estimated_delivery), new Date());
-      return Math.max(0, remaining);
+      return remaining; // Return the actual value, can be negative if delayed
     }
     return null;
   };
