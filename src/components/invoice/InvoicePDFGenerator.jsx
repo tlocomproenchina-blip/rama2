@@ -111,52 +111,66 @@ export default function InvoicePDFGenerator({ invoice }) {
         }
       }
 
-      // Display packages in table format
+      // Display packages in table format (3 columns: Tracking | Descripción | FOB)
       if (packages.length > 0) {
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text(`Paquetes: ${packages.length}`, 15, yPos);
         yPos += 7;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
         doc.text('Trackings:', 15, yPos);
         yPos += 5;
 
-        // Create 3-column layout for tracking numbers
-        const startX = 15;
-        const colWidth = (pageWidth - 30) / 3;
-        let currentCol = 0;
-        let currentRow = 0;
+        // Calculate total FOB for insured packages
+        const totalFOB = packages.filter(p => p.has_insurance).reduce((sum, p) => sum + (p.fob_value || 0), 0);
+
+        // Table layout: Tracking (60) | Description (80) | FOB/Status (45)
+        const col1X = 20; // Tracking
+        const col2X = 80; // Description (duplicate tracking)
+        const col3X = 160; // FOB or "Sin seguro"
 
         packages.forEach((pkg, index) => {
-          const xPos = startX + (currentCol * colWidth);
-          const yPosition = yPos + (currentRow * 5);
-
           // Check if we need a new page
-          if (yPosition > doc.internal.pageSize.height - 40) {
+          if (yPos > doc.internal.pageSize.height - 40) {
             doc.addPage();
             yPos = 20;
-            currentRow = 0;
           }
 
-          const insuranceText = pkg.has_insurance ? '' : 'Sin seguro';
-          doc.text(pkg.tracking_number, xPos, yPos + (currentRow * 5));
-          if (insuranceText) {
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(0, 0, 0);
+
+          // Column 1: Tracking Number
+          doc.text(pkg.tracking_number, col1X, yPos);
+
+          // Column 2: Tracking Number (duplicate)
+          doc.text(pkg.tracking_number, col2X, yPos);
+
+          // Column 3: FOB or "Sin seguro"
+          if (pkg.has_insurance && pkg.fob_value) {
+            doc.setTextColor(0, 0, 0);
+            doc.text(`FOB: $${pkg.fob_value.toFixed(2)}`, col3X, yPos);
+          } else {
             doc.setFontSize(8);
             doc.setTextColor(100, 100, 100);
-            doc.text(insuranceText, xPos + 50, yPos + (currentRow * 5));
+            doc.text('Sin seguro', col3X, yPos);
             doc.setFontSize(9);
             doc.setTextColor(0, 0, 0);
           }
 
-          currentCol++;
-          if (currentCol >= 3) {
-            currentCol = 0;
-            currentRow++;
-          }
+          yPos += 5;
         });
 
-        yPos += Math.ceil(packages.length / 3) * 5 + 5;
+        // Total FOB declaration line if there's insurance
+        if (totalFOB > 0) {
+          yPos += 2;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.text(`FOB: $${totalFOB.toFixed(2)}`, col3X, yPos);
+          doc.setFont('helvetica', 'normal');
+          yPos += 5;
+        }
+
+        yPos += 5;
       }
 
       yPos += 5;
