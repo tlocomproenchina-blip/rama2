@@ -36,6 +36,7 @@ import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
 
 export default function AdminEmailCampaigns({ user }) {
   const [clients, setClients] = useState([]);
+  const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [targetType, setTargetType] = useState('all');
@@ -43,7 +44,7 @@ export default function AdminEmailCampaigns({ user }) {
   const [emailData, setEmailData] = useState({
     subject: '',
     body: '',
-    fromName: 'TLEC Logistics'
+    fromName: ''
   });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sendResult, setSendResult] = useState(null);
