@@ -337,7 +337,11 @@ export default function AdminDashboard({ user }) {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Change Detection Badge */}
-      <ChangeDetectionBadge onRefresh={handleRefresh} />
+      <ChangeDetectionBadge 
+        onRefresh={handleRefresh}
+        onRefreshPackages={refreshPackages}
+        onRefreshConsolidations={refreshConsolidations}
+      />
 
       {/* Cooldown Warning Banner */}
       {cooldownActive && (
