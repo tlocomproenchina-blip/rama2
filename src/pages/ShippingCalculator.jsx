@@ -15,8 +15,10 @@ export default function ShippingCalculator({ user }) {
   const [cargoCategory, setCargoCategory] = useState('general');
   const [includeInsurance, setIncludeInsurance] = useState(false);
   const [fobValue, setFobValue] = useState('');
+  const [inputMode, setInputMode] = useState('weight'); // 'weight' | 'dimensions' | 'cbm'
   const [weight, setWeight] = useState('');
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
+  const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
 
   useEffect(() => {
@@ -34,14 +36,25 @@ export default function ShippingCalculator({ user }) {
   const calculateShipping = () => {
     if (!config) return;
 
-    const realWeight = parseFloat(weight) || 0;
-    const l = parseFloat(dimensions.length) || 0;
-    const w = parseFloat(dimensions.width) || 0;
-    const h = parseFloat(dimensions.height) || 0;
+    let realWeight = 0;
+    let calculatedCbm = 0;
+    let volumetricWeight = 0;
 
-    // Calculate CBM and volumetric weight
-    const cbm = l && w && h ? (l * w * h) / 1000000 : 0;
-    const volumetricWeight = l && w && h ? (l * w * h) / 5000 : 0;
+    // Calculate based on input mode
+    if (inputMode === 'weight') {
+      realWeight = parseFloat(weight) || 0;
+    } else if (inputMode === 'dimensions') {
+      const l = parseFloat(dimensions.length) || 0;
+      const w = parseFloat(dimensions.width) || 0;
+      const h = parseFloat(dimensions.height) || 0;
+      calculatedCbm = l && w && h ? (l * w * h) / 1000000 : 0;
+      volumetricWeight = l && w && h ? (l * w * h) / 5000 : 0;
+      realWeight = volumetricWeight; // For air shipping comparison
+    } else if (inputMode === 'cbm') {
+      calculatedCbm = parseFloat(cbm) || 0;
+      volumetricWeight = calculatedCbm * 200; // CBM to volumetric weight
+      realWeight = volumetricWeight;
+    }
 
     // Determine rate
     const isSensitive = cargoCategory === 'sensitive';
@@ -57,14 +70,14 @@ export default function ShippingCalculator({ user }) {
       // For air: charge by the greater of real or volumetric weight, minimum 1 kg
       billableWeight = Math.max(realWeight, volumetricWeight, 1);
       baseCost = billableWeight * rate;
-      chargedBy = `${billableWeight.toFixed(2)} kg (mayor entre real, volumétrico y mín 1 kg) — ${realWeight.toFixed(2)} kg usado: peso real`;
+      chargedBy = `${billableWeight.toFixed(2)} kg`;
     } else {
       rate = isSensitive ? (config.rate_sea_sensitive || 0) : (config.rate_sea_general || 0);
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
       // For sea: charge by CBM
-      baseCost = cbm * rate;
-      billableWeight = cbm;
-      chargedBy = `${cbm.toFixed(4)} CBM`;
+      baseCost = calculatedCbm * rate;
+      billableWeight = calculatedCbm;
+      chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
     }
 
     // Calculate insurance
@@ -77,7 +90,7 @@ export default function ShippingCalculator({ user }) {
       rate,
       rateType,
       volumetricWeight,
-      cbm,
+      cbm: calculatedCbm,
       billableWeight,
       chargedBy,
       baseCost,
@@ -156,17 +169,73 @@ export default function ShippingCalculator({ user }) {
             </Select>
           </div>
 
-          {/* Weight */}
+          {/* Input Mode Selection */}
           <div className="space-y-2">
-            <Label>Peso (kg)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              placeholder="1.0"
-            />
+            <Label>Método de Cálculo</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setInputMode('weight')}
+                className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                  inputMode === 'weight'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                }`}
+              >
+                Por Peso
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('dimensions')}
+                className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                  inputMode === 'dimensions'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                }`}
+              >
+                Por Dimensiones
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('cbm')}
+                className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                  inputMode === 'cbm'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                }`}
+              >
+                Por CBM
+              </button>
+            </div>
           </div>
+
+          {/* Weight Input */}
+          {inputMode === 'weight' && (
+            <div className="space-y-2">
+              <Label>Peso (kg)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                placeholder="1.0"
+              />
+            </div>
+          )}
+
+          {/* CBM Input */}
+          {inputMode === 'cbm' && (
+            <div className="space-y-2">
+              <Label>CBM (Metros Cúbicos)</Label>
+              <Input
+                type="number"
+                step="0.0001"
+                value={cbm}
+                onChange={(e) => setCbm(e.target.value)}
+                placeholder="0.0000"
+              />
+            </div>
+          )}
 
           {/* Info Box */}
           {shippingType === 'aereo' ? (
@@ -192,29 +261,31 @@ export default function ShippingCalculator({ user }) {
           )}
 
           {/* Dimensions */}
-          <div className="space-y-2">
-            <Label>Dimensiones (cm)</Label>
-            <div className="grid grid-cols-3 gap-3">
-              <Input
-                type="number"
-                placeholder="Largo"
-                value={dimensions.length}
-                onChange={(e) => setDimensions({ ...dimensions, length: e.target.value })}
-              />
-              <Input
-                type="number"
-                placeholder="Ancho"
-                value={dimensions.width}
-                onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
-              />
-              <Input
-                type="number"
-                placeholder="Alto"
-                value={dimensions.height}
-                onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
-              />
+          {inputMode === 'dimensions' && (
+            <div className="space-y-2">
+              <Label>Dimensiones (cm)</Label>
+              <div className="grid grid-cols-3 gap-3">
+                <Input
+                  type="number"
+                  placeholder="Largo"
+                  value={dimensions.length}
+                  onChange={(e) => setDimensions({ ...dimensions, length: e.target.value })}
+                />
+                <Input
+                  type="number"
+                  placeholder="Ancho"
+                  value={dimensions.width}
+                  onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
+                />
+                <Input
+                  type="number"
+                  placeholder="Alto"
+                  value={dimensions.height}
+                  onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Insurance */}
           <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
