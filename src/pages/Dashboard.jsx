@@ -51,16 +51,16 @@ export default function Dashboard({ user, refreshUser }) {
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (configs.length > 0) setConfig(configs[0]);
       
-      // Then load user-specific data in sequence with small delays to avoid rate limits
+      // Then load user-specific data in sequence with delays to avoid rate limits
       const pkgs = await base44.entities.Package.filter({ client_email: user.email });
       setPackages(pkgs);
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const cons = await base44.entities.Consolidation.filter({ client_email: user.email });
       setConsolidations(cons);
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const invs = await base44.entities.Invoice.filter({ client_email: user.email });
       setInvoices(invs);

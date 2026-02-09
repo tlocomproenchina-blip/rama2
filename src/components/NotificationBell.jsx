@@ -50,20 +50,8 @@ export default function NotificationBell({ user }) {
     if (user) {
       loadNotifications();
       
-      // Subscribe to real-time notifications
-      const unsubscribe = base44.entities.Notification.subscribe((event) => {
-        if (event.data.user_email === user.email) {
-          if (event.type === 'create') {
-            setNotifications(prev => [event.data, ...prev]);
-          } else if (event.type === 'update') {
-            setNotifications(prev => prev.map(n => n.id === event.id ? event.data : n));
-          } else if (event.type === 'delete') {
-            setNotifications(prev => prev.filter(n => n.id !== event.id));
-          }
-        }
-      });
-      
-      return unsubscribe;
+      // Real-time subscriptions disabled to prevent rate limiting
+      // Notifications will refresh when user opens the dropdown
     }
   }, [user]);
 
@@ -157,7 +145,10 @@ export default function NotificationBell({ user }) {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (isOpen) loadNotifications(); // Refresh when opening
+    }}>
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
