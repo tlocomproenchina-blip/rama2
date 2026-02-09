@@ -20,7 +20,7 @@ import { differenceInDays, format } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function AdminPaymentAlerts({ user }) {
-  const [consolidations, setConsolidations] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alertDays, setAlertDays] = useState(7);
   const [notifying, setNotifying] = useState({});
@@ -31,10 +31,18 @@ export default function AdminPaymentAlerts({ user }) {
 
   const loadData = async () => {
     setLoading(true);
-    const cons = await base44.entities.Consolidation.filter({
-      status: 'pendiente_pago'
-    });
-    setConsolidations(cons.sort((a, b) => new Date(a.created_date) - new Date(b.created_date)));
+    const [cons, invoices] = await Promise.all([
+      base44.entities.Consolidation.filter({ status: 'pendiente_pago' }),
+      base44.entities.Invoice.filter({ status: 'pendiente' })
+    ]);
+
+    // Combinar consolidations e invoices en un único array
+    const allPayments = [
+      ...cons.map(c => ({ ...c, type: 'consolidation', payment_id: c.id })),
+      ...invoices.map(inv => ({ ...inv, type: 'invoice', payment_id: inv.id }))
+    ].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+
+    setPayments(allPayments);
     setLoading(false);
   };
 
@@ -42,39 +50,42 @@ export default function AdminPaymentAlerts({ user }) {
     return differenceInDays(new Date(), new Date(consolidation.created_date));
   };
 
-  const notifyClient = async (consolidation) => {
-    setNotifying({ ...notifying, [consolidation.id]: true });
+  const notifyClient = async (payment) => {
+    setNotifying({ ...notifying, [payment.payment_id]: true });
     
     try {
-      const daysOverdue = getDaysOverdue(consolidation);
+      const daysOverdue = getDaysOverdue(payment);
+      const subject = payment.type === 'invoice' ? 'Factura' : 'Consolidación';
+      const reference = payment.type === 'invoice' ? payment.invoice_number : payment.consolidation_tracking;
+      const amount = payment.type === 'invoice' ? payment.total : payment.total_cost;
       
       // Send email
       await base44.integrations.Core.SendEmail({
-        to: consolidation.client_email,
+        to: payment.client_email,
         subject: '⏰ Recordatorio de Pago Pendiente',
-        body: `Tienes un pago pendiente para tu consolidación:\n\nTracking: ${consolidation.consolidation_tracking}\nMonto: $${consolidation.total_cost?.toFixed(2)}\nDías pendientes: ${daysOverdue}\n\nPor favor realiza el pago lo antes posible para que tu carga pueda ser enviada.\n\nIngresa al sistema para ver los detalles y realizar el pago.`
+        body: `Tienes un pago pendiente para tu ${subject.toLowerCase()}:\n\nReferencia: ${reference}\nMonto: $${amount?.toFixed(2)}\nDías pendientes: ${daysOverdue}\n\nPor favor realiza el pago lo antes posible.\n\nIngresa al sistema para ver los detalles y realizar el pago.`
       });
 
       // In-app notification
       await base44.entities.Notification.create({
-        user_email: consolidation.client_email,
+        user_email: payment.client_email,
         title: '⏰ Recordatorio de Pago',
-        message: `Pago pendiente de $${consolidation.total_cost?.toFixed(2)} - ${daysOverdue} días`,
+        message: `Pago pendiente de $${amount?.toFixed(2)} - ${daysOverdue} días`,
         type: 'payment',
         icon: 'dollar',
-        reference_id: consolidation.id
+        reference_id: payment.payment_id
       });
 
-      toast.success(`Recordatorio enviado a ${consolidation.client_email}`);
+      toast.success(`Recordatorio enviado a ${payment.client_email}`);
     } catch (error) {
       toast.error('Error al enviar recordatorio');
     }
     
-    setNotifying({ ...notifying, [consolidation.id]: false });
+    setNotifying({ ...notifying, [payment.payment_id]: false });
   };
 
   const notifyAllOverdue = async () => {
-    const overdue = consolidations.filter(c => getDaysOverdue(c) >= alertDays);
+    const overdue = payments.filter(p => getDaysOverdue(p) >= alertDays);
     
     if (overdue.length === 0) {
       toast.info('No hay pagos pendientes para notificar');
@@ -85,14 +96,14 @@ export default function AdminPaymentAlerts({ user }) {
     if (!confirmed) return;
 
     setLoading(true);
-    for (const con of overdue) {
-      await notifyClient(con);
+    for (const payment of overdue) {
+      await notifyClient(payment);
     }
     setLoading(false);
     toast.success(`${overdue.length} recordatorio(s) enviado(s)`);
   };
 
-  const overdueConsolidations = consolidations.filter(c => getDaysOverdue(c) >= alertDays);
+  const overduePayments = payments.filter(p => getDaysOverdue(p) >= alertDays);
 
   if (loading) {
     return (
@@ -123,7 +134,7 @@ export default function AdminPaymentAlerts({ user }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Pagos Pendientes</p>
-                <p className="text-3xl font-bold text-slate-800">{consolidations.length}</p>
+                <p className="text-3xl font-bold text-slate-800">{payments.length}</p>
               </div>
               <div className="p-3 bg-orange-100 rounded-xl">
                 <DollarSign className="h-6 w-6 text-orange-600" />
@@ -137,7 +148,7 @@ export default function AdminPaymentAlerts({ user }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Vencidos ({alertDays}+ días)</p>
-                <p className="text-3xl font-bold text-slate-800">{overdueConsolidations.length}</p>
+                <p className="text-3xl font-bold text-slate-800">{overduePayments.length}</p>
               </div>
               <div className="p-3 bg-red-100 rounded-xl">
                 <AlertTriangle className="h-6 w-6 text-red-600" />
@@ -152,7 +163,7 @@ export default function AdminPaymentAlerts({ user }) {
               <div>
                 <p className="text-sm text-slate-500">Total Pendiente</p>
                 <p className="text-2xl font-bold text-slate-800">
-                  ${consolidations.reduce((sum, c) => sum + (c.total_cost || 0), 0).toFixed(2)}
+                  ${payments.reduce((sum, p) => sum + (p.type === 'invoice' ? (p.total || 0) : (p.total_cost || 0)), 0).toFixed(2)}
                 </p>
               </div>
               <div className="p-3 bg-amber-100 rounded-xl">
@@ -185,11 +196,11 @@ export default function AdminPaymentAlerts({ user }) {
             </div>
             <Button 
               onClick={notifyAllOverdue}
-              disabled={overdueConsolidations.length === 0}
+              disabled={overduePayments.length === 0}
               className="bg-orange-600 hover:bg-orange-700"
             >
               <Mail className="h-4 w-4 mr-2" />
-              Enviar Recordatorios ({overdueConsolidations.length})
+              Enviar Recordatorios ({overduePayments.length})
             </Button>
           </div>
           <p className="text-sm text-slate-500">
@@ -199,26 +210,31 @@ export default function AdminPaymentAlerts({ user }) {
       </Card>
 
       {/* Overdue Payments List */}
-      {overdueConsolidations.length > 0 && (
+      {overduePayments.length > 0 && (
         <Card className="border-0 shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="h-5 w-5" />
-              Pagos Vencidos ({overdueConsolidations.length})
+              Pagos Vencidos ({overduePayments.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {overdueConsolidations.map((con) => {
-              const daysOverdue = getDaysOverdue(con);
+            {overduePayments.map((payment) => {
+              const daysOverdue = getDaysOverdue(payment);
+              const reference = payment.type === 'invoice' ? payment.invoice_number : payment.consolidation_tracking;
+              const amount = payment.type === 'invoice' ? payment.total : payment.total_cost;
+              const typeLabel = payment.type === 'invoice' ? '📄 Factura' : '📦 Consolidación';
+              
               return (
                 <div 
-                  key={con.id}
+                  key={payment.payment_id}
                   className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 p-4 bg-red-50 border border-red-200 rounded-lg"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
+                      <span className="text-xs font-semibold text-red-600">{typeLabel}</span>
                       <span className="font-mono font-medium text-slate-800">
-                        {con.consolidation_tracking}
+                        {reference}
                       </span>
                       <Badge className="bg-red-100 text-red-700 border-red-200">
                         <Clock className="h-3 w-3 mr-1" />
@@ -228,25 +244,25 @@ export default function AdminPaymentAlerts({ user }) {
                     <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
                       <span className="flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        {con.client_email}
+                        {payment.client_email}
                       </span>
                       <span className="flex items-center gap-1">
                         <DollarSign className="h-3 w-3" />
-                        ${con.total_cost?.toFixed(2)}
+                        ${amount?.toFixed(2)}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        Creado: {format(new Date(con.created_date), 'dd/MM/yyyy')}
+                        Creado: {format(new Date(payment.created_date), 'dd/MM/yyyy')}
                       </span>
                     </div>
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => notifyClient(con)}
-                    disabled={notifying[con.id]}
+                    onClick={() => notifyClient(payment)}
+                    disabled={notifying[payment.payment_id]}
                     className="bg-orange-600 hover:bg-orange-700"
                   >
-                    {notifying[con.id] ? (
+                    {notifying[payment.payment_id] ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <Mail className="h-4 w-4 mr-2" />
@@ -265,23 +281,26 @@ export default function AdminPaymentAlerts({ user }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
-            Todos los Pagos Pendientes ({consolidations.length})
+            Todos los Pagos Pendientes ({payments.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {consolidations.length === 0 ? (
+          {payments.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               <DollarSign className="h-12 w-12 mx-auto mb-2 text-slate-300" />
               <p>No hay pagos pendientes</p>
             </div>
           ) : (
-            consolidations.map((con) => {
-              const daysOverdue = getDaysOverdue(con);
+            payments.map((payment) => {
+              const daysOverdue = getDaysOverdue(payment);
               const isOverdue = daysOverdue >= alertDays;
+              const reference = payment.type === 'invoice' ? payment.invoice_number : payment.consolidation_tracking;
+              const amount = payment.type === 'invoice' ? payment.total : payment.total_cost;
+              const typeLabel = payment.type === 'invoice' ? '📄 Factura' : '📦 Consolidación';
               
               return (
                 <div 
-                  key={con.id}
+                  key={payment.payment_id}
                   className={`flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 p-4 rounded-lg border ${
                     isOverdue 
                       ? 'bg-red-50 border-red-200' 
@@ -290,8 +309,9 @@ export default function AdminPaymentAlerts({ user }) {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
+                      <span className="text-xs font-semibold text-slate-600">{typeLabel}</span>
                       <span className="font-mono font-medium text-slate-800">
-                        {con.consolidation_tracking}
+                        {reference}
                       </span>
                       {isOverdue && (
                         <Badge className="bg-red-100 text-red-700 border-red-200">
@@ -303,11 +323,11 @@ export default function AdminPaymentAlerts({ user }) {
                     <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
                       <span className="flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        {con.client_email}
+                        {payment.client_email}
                       </span>
                       <span className="flex items-center gap-1">
                         <DollarSign className="h-3 w-3" />
-                        ${con.total_cost?.toFixed(2)}
+                        ${amount?.toFixed(2)}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
@@ -315,7 +335,7 @@ export default function AdminPaymentAlerts({ user }) {
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {format(new Date(con.created_date), 'dd/MM/yyyy')}
+                        {format(new Date(payment.created_date), 'dd/MM/yyyy')}
                       </span>
                     </div>
                   </div>
@@ -323,10 +343,10 @@ export default function AdminPaymentAlerts({ user }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => notifyClient(con)}
-                      disabled={notifying[con.id]}
+                      onClick={() => notifyClient(payment)}
+                      disabled={notifying[payment.payment_id]}
                     >
-                      {notifying[con.id] ? (
+                      {notifying[payment.payment_id] ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <Mail className="h-4 w-4 mr-2" />
