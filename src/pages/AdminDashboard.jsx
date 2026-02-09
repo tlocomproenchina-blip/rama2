@@ -215,6 +215,9 @@ export default function AdminDashboard({ user }) {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
+      {/* Change Detection Badge */}
+      <ChangeDetectionBadge onRefresh={handleRefresh} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
