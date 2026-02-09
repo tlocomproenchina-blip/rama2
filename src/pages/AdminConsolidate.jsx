@@ -37,10 +37,16 @@ export default function AdminConsolidate({ user }) {
     }, '-created_date');
     setRequests(reqs);
 
-    // Load all packages with pre-alerta status to group by client
-    const packages = await base44.entities.Package.filter({ 
+    // Load packages with pre-alerta or recibido status
+    const preAlertPackages = await base44.entities.Package.filter({ 
       status: 'pre_alerta' 
     }, '-created_date');
+    
+    const receivedPackages = await base44.entities.Package.filter({ 
+      status: 'recibido' 
+    }, '-created_date');
+
+    const packages = [...preAlertPackages, ...receivedPackages];
 
     // Group by client email
     const clientMap = {};
