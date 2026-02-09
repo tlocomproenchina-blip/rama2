@@ -257,121 +257,48 @@ export default function AdminDashboard({ user }) {
       // Sequential calls with 2s delay between each
       const packages = await loadPackagesData();
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       const consolidations = await loadConsolidationsData();
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       const users = await loadUsersData();
 
-    const pendingPays = consolidations.filter(c => c.status === 'pago_pendiente_validacion');
-    const totalRevenue = consolidations
-      .filter(c => c.payment_validated)
-      .reduce((sum, c) => sum + (c.payment_amount || 0), 0);
-    
-    const insuredPackages = packages.filter(p => p.has_insurance);
-    const totalInsuredValue = insuredPackages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
+      // Calculate additional stats
+      const insuredPackages = packages.filter(p => p.has_insurance);
+      const totalInsuredValue = insuredPackages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
 
-    setStats({
-      totalPackages: packages.length,
-      preAlertas: packages.filter(p => p.status === 'pre_alerta').length,
-      recibidos: packages.filter(p => p.status === 'recibido').length,
-      enTransito: packages.filter(p => p.status === 'en_transito').length,
-      disponibles: packages.filter(p => p.status === 'disponible').length,
-      entregados: packages.filter(p => p.status === 'entregado').length,
-      consolidaciones: consolidations.length,
-      pendientesPago: pendingPays.length,
-      clientes: users.length,
-      totalIngresos: totalRevenue,
-      asegurados: insuredPackages.length,
-      valorSeguro: totalInsuredValue
-    });
+      setStats(prev => ({
+        ...prev,
+        asegurados: insuredPackages.length,
+        valorSeguro: totalInsuredValue
+      }));
 
-    // Daily packages trend (last 7 days)
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = startOfDay(subDays(new Date(), 6 - i));
-      const dayPackages = packages.filter(p => {
-        const pkgDate = startOfDay(new Date(p.created_date));
-        return pkgDate.getTime() === date.getTime();
-      });
-      return {
-        date: format(date, 'dd/MM'),
-        paquetes: dayPackages.length
-      };
-    });
-
-    // Status distribution
-    const statusDist = [
-      { name: 'Pre-alerta', value: packages.filter(p => p.status === 'pre_alerta').length },
-      { name: 'Recibido', value: packages.filter(p => p.status === 'recibido').length },
-      { name: 'En Tránsito', value: packages.filter(p => p.status === 'en_transito').length },
-      { name: 'Disponible', value: packages.filter(p => p.status === 'disponible').length },
-      { name: 'Entregado', value: packages.filter(p => p.status === 'entregado').length }
-    ].filter(s => s.value > 0);
-
-    // Shipping type distribution
-    const shippingType = [
-      { name: 'Aéreo', value: packages.filter(p => p.shipping_type === 'aereo').length },
-      { name: 'Marítimo', value: packages.filter(p => p.shipping_type === 'maritimo').length }
-    ];
-
-    // Analytics KPIs
-    const activeClients = users.filter(u => u.profile_completed).length;
-    const packagesInTransit = packages.filter(p => p.status === 'en_transito').length;
-    const validatedRevenue = consolidations
-      .filter(c => c.payment_validated)
-      .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
-
-    // Calculate average payment validation time
-    const validatedConsolidations = consolidations.filter(c => 
-      c.payment_validated && c.payment_date && c.payment_validation_date
-    );
-    const avgValidationTime = validatedConsolidations.length > 0
-      ? validatedConsolidations.reduce((sum, c) => {
-          const paymentTime = new Date(c.payment_date).getTime();
-          const validationTime = new Date(c.payment_validation_date).getTime();
-          const hours = (validationTime - paymentTime) / (1000 * 60 * 60);
-          return sum + Math.max(0, hours);
-        }, 0) / validatedConsolidations.length
-      : 0;
-
-    setAnalyticsKPIs({
-      activeClients,
-      packagesInTransit,
-      validatedRevenue,
-      avgValidationTime
-    });
-
-    // Revenue over time (last 7 days)
-    const revenueByDay = last7Days.map((dayData) => {
-      const date = dayData.date.split('/').reverse().join('-');
-      const dayRevenue = consolidations
-        .filter(c => {
-          if (!c.payment_validated || !c.payment_validation_date) return false;
-          const validationDate = format(new Date(c.payment_validation_date), 'dd/MM');
-          return validationDate === dayData.date;
-        })
+      // Analytics KPIs
+      const activeClients = users.filter(u => u.profile_completed).length;
+      const packagesInTransit = packages.filter(p => p.status === 'en_transito').length;
+      const validatedRevenue = consolidations
+        .filter(c => c.payment_validated)
         .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
-      return {
-        date: dayData.date,
-        revenue: dayRevenue
-      };
-    });
 
-    // Validation times distribution (last 10)
-    const validationTimesData = validatedConsolidations.slice(0, 10).map((c, idx) => {
-      const paymentTime = new Date(c.payment_date).getTime();
-      const validationTime = new Date(c.payment_validation_date).getTime();
-      const hours = Math.max(0, (validationTime - paymentTime) / (1000 * 60 * 60));
-      return {
-        name: `#${idx + 1}`,
-        hours: parseFloat(hours.toFixed(1))
-      };
-    });
+      const validatedConsolidations = consolidations.filter(c => 
+        c.payment_validated && c.payment_date && c.payment_validation_date
+      );
+      const avgValidationTime = validatedConsolidations.length > 0
+        ? validatedConsolidations.reduce((sum, c) => {
+            const paymentTime = new Date(c.payment_date).getTime();
+            const validationTime = new Date(c.payment_validation_date).getTime();
+            const hours = (validationTime - paymentTime) / (1000 * 60 * 60);
+            return sum + Math.max(0, hours);
+          }, 0) / validatedConsolidations.length
+        : 0;
 
-      setChartData({ daily: last7Days, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData });
-      setRecentPackages(packages.slice(0, 5));
-      setPendingPayments(pendingPays.slice(0, 3));
-      } catch (error) {
+      setAnalyticsKPIs({
+        activeClients,
+        packagesInTransit,
+        validatedRevenue,
+        avgValidationTime
+      });
+    } catch (error) {
       console.error('Dashboard error:', error);
 
       // Detect rate limit error
@@ -379,10 +306,25 @@ export default function AdminDashboard({ user }) {
         handleRateLimitCooldown();
         toast.error('Límite de solicitudes excedido. Auto-refresh pausado por 10 minutos');
       }
-      } finally {
+    } finally {
       setLoading(false);
-      }
-      };
+    }
+  };
+
+  // Partial refresh functions (for ChangeDetectionBadge)
+  const refreshPackages = async () => {
+    setRefreshing(true);
+    await loadPackagesData();
+    setRefreshing(false);
+    toast.success('✅ Paquetes actualizados');
+  };
+
+  const refreshConsolidations = async () => {
+    setRefreshing(true);
+    await loadConsolidationsData();
+    setRefreshing(false);
+    toast.success('✅ Consolidaciones actualizadas');
+  };
 
   if (loading) {
     return (
