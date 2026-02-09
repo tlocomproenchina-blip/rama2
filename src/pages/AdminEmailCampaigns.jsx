@@ -23,8 +23,12 @@ import {
   Paperclip,
   X,
   Image as ImageIcon,
-  Upload
+  Upload,
+  History,
+  TrendingUp,
+  MousePointer
 } from 'lucide-react';
+import EmailHistoryModal from '@/components/admin/EmailHistoryModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
@@ -47,15 +51,32 @@ export default function AdminEmailCampaigns({ user }) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showHtmlInput, setShowHtmlInput] = useState(false);
   const [htmlCode, setHtmlCode] = useState('');
+  const [historyModal, setHistoryModal] = useState({ open: false, client: null });
+  const [emailStats, setEmailStats] = useState(null);
 
   useEffect(() => {
     loadClients();
+    loadEmailStats();
   }, []);
 
   const loadClients = async () => {
     const users = await base44.entities.User.filter({ role: 'user' });
     setClients(users);
     setLoading(false);
+  };
+
+  const loadEmailStats = async () => {
+    const logs = await base44.entities.EmailLog.list();
+    const stats = {
+      total: logs.length,
+      delivered: logs.filter(l => ['delivered', 'opened', 'clicked'].includes(l.status)).length,
+      opened: logs.filter(l => ['opened', 'clicked'].includes(l.status)).length,
+      clicked: logs.filter(l => l.status === 'clicked').length,
+      bounced: logs.filter(l => l.status === 'bounced').length,
+      conversions: logs.filter(l => l.converted).length,
+      conversionValue: logs.reduce((sum, l) => sum + (l.conversion_value || 0), 0)
+    };
+    setEmailStats(stats);
   };
 
   const getTargetClients = () => {
@@ -163,12 +184,28 @@ export default function AdminEmailCampaigns({ user }) {
             subject: emailData.subject,
             body: emailBody
           });
+          
+          // Log the email
+          await base44.entities.EmailLog.create({
+            recipient_email: client.email,
+            recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
+            sender_email: user.email,
+            from_name: emailData.fromName,
+            subject: emailData.subject,
+            body_preview: emailData.body.replace(/<[^>]*>/g, '').substring(0, 200),
+            source: 'manual',
+            status: 'sent',
+            sent_date: new Date().toISOString()
+          });
+          
           results.success++;
         } catch (error) {
           results.failed++;
           results.errors.push({ email: client.email, error: error.message });
         }
       }
+      
+      loadEmailStats();
 
       setSendResult(results);
       
@@ -236,7 +273,7 @@ export default function AdminEmailCampaigns({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-0 shadow-md">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -297,6 +334,65 @@ export default function AdminEmailCampaigns({ user }) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Email Tracking Stats */}
+      {emailStats && (
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+              Estadísticas de Email Marketing
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600">{emailStats.total}</p>
+                <p className="text-xs text-slate-600">Total Enviados</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">{emailStats.delivered}</p>
+                <p className="text-xs text-slate-600">Entregados</p>
+                <p className="text-xs text-slate-500">
+                  {emailStats.total > 0 ? ((emailStats.delivered / emailStats.total) * 100).toFixed(1) : 0}%
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-purple-600">{emailStats.opened}</p>
+                <p className="text-xs text-slate-600">Abiertos</p>
+                <p className="text-xs text-slate-500">
+                  {emailStats.delivered > 0 ? ((emailStats.opened / emailStats.delivered) * 100).toFixed(1) : 0}%
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-indigo-600">{emailStats.clicked}</p>
+                <p className="text-xs text-slate-600">Clics</p>
+                <p className="text-xs text-slate-500">
+                  {emailStats.opened > 0 ? ((emailStats.clicked / emailStats.opened) * 100).toFixed(1) : 0}%
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-red-600">{emailStats.bounced}</p>
+                <p className="text-xs text-slate-600">Rebotes</p>
+                <p className="text-xs text-slate-500">
+                  {emailStats.total > 0 ? ((emailStats.bounced / emailStats.total) * 100).toFixed(1) : 0}%
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-emerald-600">{emailStats.conversions}</p>
+                <p className="text-xs text-slate-600">Conversiones</p>
+                <p className="text-xs text-slate-500">
+                  {emailStats.clicked > 0 ? ((emailStats.conversions / emailStats.clicked) * 100).toFixed(1) : 0}%
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-amber-600">${emailStats.conversionValue.toFixed(0)}</p>
+                <p className="text-xs text-slate-600">Ingresos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Email Composer */}
@@ -610,12 +706,30 @@ export default function AdminEmailCampaigns({ user }) {
                               : client.email}
                           </p>
                           <p className="text-xs text-slate-500 truncate">{client.email}</p>
-                          {client.shipping_mark && (
-                            <Badge variant="outline" className="text-xs mt-1">
-                              <Tag className="h-3 w-3 mr-1" />
-                              {client.shipping_mark}
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {client.shipping_mark && (
+                              <Badge variant="outline" className="text-xs">
+                                <Tag className="h-3 w-3 mr-1" />
+                                {client.shipping_mark}
+                              </Badge>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHistoryModal({ 
+                                  open: true, 
+                                  client: { 
+                                    email: client.email, 
+                                    name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email 
+                                  } 
+                                });
+                              }}
+                              className="text-blue-600 hover:text-blue-700 text-xs flex items-center gap-1"
+                            >
+                              <History className="h-3 w-3" />
+                              Ver historial
+                            </button>
+                          </div>
                         </div>
                       </div>
                       ))
@@ -687,6 +801,14 @@ export default function AdminEmailCampaigns({ user }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Email History Modal */}
+      <EmailHistoryModal
+        open={historyModal.open}
+        onClose={() => setHistoryModal({ open: false, client: null })}
+        clientEmail={historyModal.client?.email}
+        clientName={historyModal.client?.name}
+      />
     </div>
   );
 }

@@ -27,6 +27,7 @@ export default function AdminMarketing({ user }) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showHtmlInput, setShowHtmlInput] = useState(false);
   const [htmlCode, setHtmlCode] = useState('');
+  const [historyModal, setHistoryModal] = useState({ open: false, client: null });
   
   const [formData, setFormData] = useState({
     name: '',
@@ -234,6 +235,21 @@ export default function AdminMarketing({ user }) {
             subject: campaign.email_subject,
             body: emailBody
           });
+          
+          // Log the email
+          await base44.entities.EmailLog.create({
+            recipient_email: client.email,
+            recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
+            sender_email: user.email,
+            from_name: 'TLEC Logistics',
+            subject: campaign.email_subject,
+            body_preview: campaign.email_body.replace(/<[^>]*>/g, '').substring(0, 200),
+            campaign_id: campaign.id,
+            campaign_name: campaign.name,
+            source: 'campaign',
+            status: 'sent',
+            sent_date: new Date().toISOString()
+          });
         }
       }
       
@@ -338,12 +354,12 @@ export default function AdminMarketing({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">Total Campañas</p>
+                <p className="text-sm text-slate-500">Total</p>
                 <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
               </div>
               <Mail className="h-8 w-8 text-blue-600" />
@@ -379,10 +395,38 @@ export default function AdminMarketing({ user }) {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">Tasa Apertura</p>
+                <p className="text-sm text-slate-500">Apertura</p>
                 <p className="text-2xl font-bold text-purple-600">{stats.avgOpenRate}%</p>
               </div>
               <Eye className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Clics</p>
+                <p className="text-2xl font-bold text-indigo-600">
+                  {campaigns.reduce((sum, c) => sum + (c.clicked_count || 0), 0)}
+                </p>
+              </div>
+              <MousePointer className="h-8 w-8 text-indigo-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Conversiones</p>
+                <p className="text-2xl font-bold text-teal-600">
+                  {campaigns.reduce((sum, c) => sum + (c.converted_count || 0), 0)}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-teal-600" />
             </div>
           </CardContent>
         </Card>
@@ -451,7 +495,11 @@ export default function AdminMarketing({ user }) {
                           </div>
                           <div className="flex items-center gap-2">
                             <MousePointer className="h-4 w-4 text-blue-600" />
-                            {campaign.clicked_count} clics
+                            {campaign.clicked_count} clics ({campaign.opened_count > 0 ? ((campaign.clicked_count / campaign.opened_count) * 100).toFixed(1) : 0}% CTR)
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4 text-teal-600" />
+                            {campaign.converted_count || 0} conversiones
                           </div>
                           <div className="flex items-center gap-2">
                             <DollarSign className="h-4 w-4 text-green-600" />
@@ -788,6 +836,14 @@ export default function AdminMarketing({ user }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Email History Modal */}
+      <EmailHistoryModal
+        open={historyModal.open}
+        onClose={() => setHistoryModal({ open: false, client: null })}
+        clientEmail={historyModal.client?.email}
+        clientName={historyModal.client?.name}
+      />
     </div>
   );
 }
