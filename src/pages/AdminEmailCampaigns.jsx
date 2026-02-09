@@ -508,7 +508,7 @@ export default function AdminEmailCampaigns({ user }) {
                 <Input
                   value={emailData.fromName}
                   onChange={(e) => setEmailData({ ...emailData, fromName: e.target.value })}
-                  placeholder="TLEC Logistics"
+                  placeholder={config?.app_name || 'Logistics App'}
                 />
               </div>
 
