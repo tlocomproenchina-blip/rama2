@@ -55,18 +55,22 @@ export default function AdminShipmentApprovals({ user }) {
   const [customFobValue, setCustomFobValue] = useState('');
   const [undoTracking, setUndoTracking] = useState('');
   const [undoing, setUndoing] = useState(false);
+  const [consolidations, setConsolidations] = useState([]);
+  const [approvingId, setApprovingId] = useState(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [reqs, configs] = await Promise.all([
+    const [reqs, configs, cons] = await Promise.all([
       base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-created_date'),
-      base44.entities.AppConfig.filter({ config_key: 'main' })
+      base44.entities.AppConfig.filter({ config_key: 'main' }),
+      base44.entities.Consolidation.filter({ status: 'en_transito' }, '-created_date')
     ]);
     
     setRequests(reqs);
+    setConsolidations(cons);
     if (configs.length > 0) setConfig(configs[0]);
     setLoading(false);
   };
