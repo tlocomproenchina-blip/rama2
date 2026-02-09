@@ -46,10 +46,10 @@ export default function ShippingCalculator({ user }) {
       const w = parseFloat(dimensions.width) || 0;
       const h = parseFloat(dimensions.height) || 0;
       calculatedCbm = l && w && h ? (l * w * h) / 1000000 : 0;
-      volumetricWeight = l && w && h ? (l * w * h) / 5000 : 0;
+      volumetricWeight = calculatedCbm * 167;
     } else if (inputMode === 'cbm') {
       calculatedCbm = parseFloat(cbm) || 0;
-      volumetricWeight = calculatedCbm * 200;
+      volumetricWeight = calculatedCbm * 167;
     }
 
     // Determine rate
@@ -228,7 +228,7 @@ export default function ShippingCalculator({ user }) {
                 Se calcula por <strong>peso real</strong> y por <strong>volumen</strong>, y se factura el <strong>que sea mayor</strong>. Mínimo 1 kg.
               </p>
               <p className="text-xs text-blue-600 mt-2">
-                Fórmula de <strong>peso volumétrico</strong>: (L × A × H) / 5000 — equivalente a CBM × 200.
+                Fórmula de <strong>peso volumétrico</strong>: CBM × 167 kg/m³
               </p>
             </div>
           ) : (
