@@ -153,15 +153,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Test 11: Schema validation
+    // Test 11: Entidades - ConsolidationRequest
     try {
-      const packageSchema = await base44.entities.Package.schema();
-      if (packageSchema && packageSchema.properties) {
-        passed.push('✓ Schema de Package disponible');
+      const requests = await base44.entities.ConsolidationRequest.list();
+      if (Array.isArray(requests)) {
+        passed.push('✓ Lectura de solicitudes de consolidación');
       }
     } catch (error) {
       errors.push({
-        test: 'Package.schema()',
+        test: 'ConsolidationRequest.list()',
         error: error.message,
         severity: 'warning'
       });
