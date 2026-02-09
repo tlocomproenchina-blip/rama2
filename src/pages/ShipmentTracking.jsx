@@ -211,12 +211,8 @@ export default function ShipmentTracking({ user }) {
   };
 
   const getDaysInTransit = (con) => {
-    if (!con.created_date) return 0;
-    try {
-      return differenceInDays(new Date(), new Date(con.created_date));
-    } catch (e) {
-      return 0;
-    }
+    // Días estimados de tránsito según tipo de envío
+    return con.shipping_type === 'maritimo' ? 90 : 30;
   };
 
   const getEstimatedDaysRemaining = (con) => {
