@@ -141,37 +141,37 @@ export default function RequestConsolidation({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Solicitar Consolidación</h1>
-        <p className="text-slate-500">Selecciona los paquetes que deseas consolidar</p>
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800">Solicitar Consolidación</h1>
+        <p className="text-xs md:text-sm text-slate-500">Selecciona los paquetes que deseas consolidar</p>
       </div>
 
       {/* Settings */}
       <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle>Configuración de Consolidación</CardTitle>
+        <CardHeader className="p-3 md:p-4 lg:p-6">
+          <CardTitle className="text-base md:text-lg">Configuración de Consolidación</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-3 md:p-4 lg:p-6 space-y-4">
           <div className="space-y-2">
-            <Label>Tipo de Envío</Label>
+            <Label className="text-xs md:text-sm">Tipo de Envío</Label>
             <Select 
               value={formData.shipping_type}
               onValueChange={(val) => setFormData({ ...formData, shipping_type: val })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="aereo">
                   <div className="flex items-center gap-2">
-                    <Plane className="h-4 w-4" /> Aéreo
+                    <Plane className="h-3 w-3 md:h-4" /> Aéreo
                   </div>
                 </SelectItem>
                 <SelectItem value="maritimo">
                   <div className="flex items-center gap-2">
-                    <Ship className="h-4 w-4" /> Marítimo
+                    <Ship className="h-3 w-3 md:h-4" /> Marítimo
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -180,19 +180,20 @@ export default function RequestConsolidation({ user }) {
 
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-3">
-              <p className="text-sm text-blue-800">
-                <strong>Período de consolidación:</strong> 30 días desde la recepción del primer paquete
+              <p className="text-xs md:text-sm text-blue-800">
+                <strong>Período:</strong> 30 días desde la recepción del primer paquete
               </p>
             </CardContent>
           </Card>
 
           <div className="space-y-2">
-            <Label>Notas (opcional)</Label>
+            <Label className="text-xs md:text-sm">Notas (opcional)</Label>
             <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Agrega cualquier nota o instrucción especial..."
-              rows={3}
+              placeholder="Agrega cualquier nota..."
+              rows={2}
+              className="text-sm"
             />
           </div>
         </CardContent>
@@ -200,20 +201,20 @@ export default function RequestConsolidation({ user }) {
 
       {/* Package Selection */}
       <Card className="border-0 shadow-lg">
-        <CardHeader className="border-b">
-          <div className="flex items-center justify-between">
-            <CardTitle>Paquetes Disponibles ({packages.length})</CardTitle>
-            <Button variant="outline" size="sm" onClick={selectAll}>
-              {selectedPackages.length === packages.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+        <CardHeader className="border-b p-3 md:p-4 lg:p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3">
+            <CardTitle className="text-base md:text-lg">Paquetes Disponibles ({packages.length})</CardTitle>
+            <Button variant="outline" size="sm" onClick={selectAll} className="w-full md:w-auto text-xs md:text-sm">
+              {selectedPackages.length === packages.length ? 'Deseleccionar' : 'Seleccionar'}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y">
+          <div className="divide-y max-h-96 overflow-y-auto">
             {packages.map((pkg) => (
               <div 
                 key={pkg.id} 
-                className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${
+                className={`p-3 md:p-4 flex items-start md:items-center gap-3 cursor-pointer transition-colors ${
                   selectedPackages.includes(pkg.id) ? 'bg-purple-50' : 'hover:bg-slate-50'
                 }`}
                 onClick={() => togglePackage(pkg.id)}
@@ -221,21 +222,22 @@ export default function RequestConsolidation({ user }) {
                 <Checkbox 
                   checked={selectedPackages.includes(pkg.id)}
                   onCheckedChange={() => togglePackage(pkg.id)}
+                  className="mt-1 md:mt-0 flex-shrink-0"
                 />
-                <div className="p-2 bg-slate-100 rounded-lg">
+                <div className="p-2 bg-slate-100 rounded-lg flex-shrink-0">
                   {pkg.shipping_type === 'aereo' 
-                    ? <Plane className="h-5 w-5 text-blue-600" />
-                    : <Ship className="h-5 w-5 text-blue-600" />
+                    ? <Plane className="h-4 w-4 md:h-5 text-blue-600" />
+                    : <Ship className="h-4 w-4 md:h-5 text-blue-600" />
                   }
                 </div>
-                <div className="flex-1">
-                  <p className="font-mono font-medium">{pkg.tracking_number}</p>
-                  <p className="text-sm text-slate-500">{pkg.description || 'Sin descripción'}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-mono font-medium text-xs md:text-sm truncate">{pkg.tracking_number}</p>
+                  <p className="text-xs md:text-sm text-slate-500 line-clamp-1">{pkg.description || 'Sin descripción'}</p>
                 </div>
                 {pkg.has_insurance && (
-                  <div className="text-right">
-                    <p className="text-sm text-emerald-600 font-medium">Asegurado</p>
-                    <p className="text-sm text-slate-500">FOB: ${pkg.fob_value}</p>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs md:text-sm text-emerald-600 font-medium">Asegurado</p>
+                    <p className="text-xs md:text-sm text-slate-500">FOB: ${pkg.fob_value}</p>
                   </div>
                 )}
               </div>
@@ -246,34 +248,35 @@ export default function RequestConsolidation({ user }) {
 
       {/* Info Alert */}
       <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="p-4">
+        <CardContent className="p-3 md:p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="text-sm text-blue-800">
+            <AlertCircle className="h-4 w-4 md:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-xs md:text-sm text-blue-800 min-w-0">
               <p className="font-medium mb-1">¿Qué sucede después?</p>
-              <p>Tu solicitud será revisada por un administrador quien procesará la consolidación, calculará los costos y generará tu factura.</p>
+              <p>Un administrador revisará tu solicitud, procesará la consolidación y generará tu factura.</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Submit */}
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col md:flex-row gap-2 md:gap-3 md:justify-end">
         <Button 
           variant="outline" 
           onClick={() => navigate(createPageUrl('Dashboard'))}
+          className="w-full md:w-auto"
         >
           Cancelar
         </Button>
         <Button 
           onClick={handleSubmit}
           disabled={submitting || selectedPackages.length === 0}
-          className="bg-purple-600 hover:bg-purple-700"
+          className="bg-purple-600 hover:bg-purple-700 w-full md:w-auto"
         >
           {submitting ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+            <><Loader2 className="h-3 w-3 md:h-4 mr-2 animate-spin" /> Enviando...</>
           ) : (
-            <><CheckCircle className="h-4 w-4 mr-2" /> Enviar Solicitud ({selectedPackages.length} paquetes)</>
+            <><CheckCircle className="h-3 w-3 md:h-4 mr-2" /> Enviar ({selectedPackages.length})</>
           )}
         </Button>
       </div>
