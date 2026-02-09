@@ -338,26 +338,37 @@ export default function AdminPackages({ user }) {
       {/* Quick Filters */}
       <Card className="border-0 shadow-md">
         <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Búsqueda rápida por tracking, shipping mark o email..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Búsqueda rápida por tracking, shipping mark o email..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
+                <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full">
+                  <TabsTrigger value="all">Todos</TabsTrigger>
+                  <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
+                  <TabsTrigger value="recibido">Recibido</TabsTrigger>
+                  <TabsTrigger value="consolidado">Consolidado</TabsTrigger>
+                  <TabsTrigger value="en_transito">Tránsito</TabsTrigger>
+                  <TabsTrigger value="entregado">Entregado</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
-            <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
-              <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full">
-                <TabsTrigger value="all">Todos</TabsTrigger>
-                <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
-                <TabsTrigger value="recibido">Recibido</TabsTrigger>
-                <TabsTrigger value="consolidado">Consolidado</TabsTrigger>
-                <TabsTrigger value="en_transito">Tránsito</TabsTrigger>
-                <TabsTrigger value="entregado">Entregado</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <Button
+              onClick={handleExportPreAlerta}
+              variant="outline"
+              size="sm"
+              className="border-blue-200 text-blue-600 hover:bg-blue-50"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Pre-alerta
+            </Button>
           </div>
         </CardContent>
       </Card>
