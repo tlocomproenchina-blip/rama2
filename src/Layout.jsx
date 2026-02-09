@@ -25,8 +25,20 @@ export default function Layout({ children, currentPageName }) {
 
   useEffect(() => {
     loadUser();
+    loadConfig();
     loadFavicon();
   }, []);
+
+  const loadConfig = async () => {
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (configs.length > 0) {
+        setConfig(configs[0]);
+      }
+    } catch (error) {
+      console.error('Error loading config:', error);
+    }
+  };
 
   const loadFavicon = async () => {
     try {
