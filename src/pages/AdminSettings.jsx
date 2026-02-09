@@ -20,7 +20,9 @@ import {
   ShieldCheck,
   Upload,
   Receipt,
-  MessageCircle
+  MessageCircle,
+  Clock,
+  Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
 
