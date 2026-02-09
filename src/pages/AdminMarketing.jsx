@@ -289,19 +289,24 @@ export default function AdminMarketing({ user }) {
           });
           
           // Log the email
-          await base44.entities.EmailLog.create({
-            recipient_email: client.email,
-            recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
-            sender_email: user.email,
-            from_name: config?.app_name || 'Logistics App',
-            subject: personalizedSubject,
-            body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
-            campaign_id: campaign.id,
-            campaign_name: campaign.name,
-            source: 'campaign',
-            status: 'sent',
-            sent_date: new Date().toISOString()
-          });
+              await base44.entities.EmailLog.create({
+                recipient_email: client.email,
+                recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
+                sender_email: user.email,
+                from_name: config?.app_name || 'Logistics App',
+                subject: personalizedSubject,
+                body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
+                campaign_id: campaign.id,
+                campaign_name: campaign.name,
+                source: 'campaign',
+                status: 'delivered',
+                sent_date: new Date().toISOString(),
+                delivered_date: new Date().toISOString(),
+                open_count: 0,
+                click_count: 0,
+                converted: false,
+                conversion_value: 0
+              });
         }
       }
       
