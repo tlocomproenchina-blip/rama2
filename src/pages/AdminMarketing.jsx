@@ -19,6 +19,7 @@ import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
 export default function AdminMarketing({ user }) {
   const [campaigns, setCampaigns] = useState([]);
   const [promotions, setPromotions] = useState([]);
+  const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
