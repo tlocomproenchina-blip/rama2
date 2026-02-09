@@ -1,0 +1,423 @@
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Mail, 
+  Send, 
+  Users, 
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Eye,
+  Tag,
+  Clock
+} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { toast } from 'sonner';
+
+export default function AdminEmailCampaigns({ user }) {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [targetType, setTargetType] = useState('all');
+  const [selectedClients, setSelectedClients] = useState([]);
+  const [emailData, setEmailData] = useState({
+    subject: '',
+    body: '',
+    fromName: 'TLEC Logistics'
+  });
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
+
+  useEffect(() => {
+    loadClients();
+  }, []);
+
+  const loadClients = async () => {
+    const users = await base44.entities.User.filter({ role: 'user' });
+    setClients(users);
+    setLoading(false);
+  };
+
+  const getTargetClients = () => {
+    if (targetType === 'all') return clients;
+    if (targetType === 'with_mark') return clients.filter(c => c.shipping_mark);
+    if (targetType === 'without_mark') return clients.filter(c => !c.shipping_mark);
+    if (targetType === 'custom') return clients.filter(c => selectedClients.includes(c.id));
+    return [];
+  };
+
+  const toggleClient = (clientId) => {
+    setSelectedClients(prev => 
+      prev.includes(clientId) 
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
+
+  const handleSendEmails = async () => {
+    if (!emailData.subject || !emailData.body) {
+      toast.error('Completa el asunto y el mensaje');
+      return;
+    }
+
+    const targets = getTargetClients();
+    if (targets.length === 0) {
+      toast.error('No hay destinatarios seleccionados');
+      return;
+    }
+
+    setSending(true);
+    const results = { success: 0, failed: 0, errors: [] };
+
+    try {
+      for (const client of targets) {
+        try {
+          await base44.integrations.Core.SendEmail({
+            from_name: emailData.fromName,
+            to: client.email,
+            subject: emailData.subject,
+            body: emailData.body
+          });
+          results.success++;
+        } catch (error) {
+          results.failed++;
+          results.errors.push({ email: client.email, error: error.message });
+        }
+      }
+
+      setSendResult(results);
+      
+      if (results.failed === 0) {
+        toast.success(`Emails enviados exitosamente a ${results.success} destinatarios`);
+        setEmailData({ subject: '', body: '', fromName: 'TLEC Logistics' });
+        setSelectedClients([]);
+      } else {
+        toast.warning(`${results.success} enviados, ${results.failed} fallidos`);
+      }
+    } catch (error) {
+      toast.error('Error al enviar emails');
+    }
+    setSending(false);
+  };
+
+  const targetClients = getTargetClients();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Envío de Emails</h1>
+        <p className="text-slate-500">Envía comunicaciones manuales a tus clientes</p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Total Clientes</p>
+                <p className="text-3xl font-bold text-slate-800">{clients.length}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Con Shipping Mark</p>
+                <p className="text-3xl font-bold text-slate-800">
+                  {clients.filter(c => c.shipping_mark).length}
+                </p>
+              </div>
+              <div className="p-3 bg-emerald-100 rounded-xl">
+                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Sin Shipping Mark</p>
+                <p className="text-3xl font-bold text-slate-800">
+                  {clients.filter(c => !c.shipping_mark).length}
+                </p>
+              </div>
+              <div className="p-3 bg-amber-100 rounded-xl">
+                <Clock className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-white">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Destinatarios</p>
+                <p className="text-3xl font-bold text-blue-600">{targetClients.length}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Mail className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Email Composer */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Redactar Email
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nombre del Remitente</Label>
+                <Input
+                  value={emailData.fromName}
+                  onChange={(e) => setEmailData({ ...emailData, fromName: e.target.value })}
+                  placeholder="TLEC Logistics"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Asunto *</Label>
+                <Input
+                  value={emailData.subject}
+                  onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
+                  placeholder="Ej: Nuevas tarifas de envío"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Mensaje *</Label>
+                <Textarea
+                  value={emailData.body}
+                  onChange={(e) => setEmailData({ ...emailData, body: e.target.value })}
+                  placeholder="Escribe tu mensaje aquí..."
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-slate-500">
+                  Puedes usar saltos de línea para dar formato al texto
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setPreviewOpen(true)}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={!emailData.subject || !emailData.body}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Vista Previa
+                </Button>
+                <Button
+                  onClick={handleSendEmails}
+                  disabled={sending || !emailData.subject || !emailData.body || targetClients.length === 0}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  {sending ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                  ) : (
+                    <><Send className="h-4 w-4 mr-2" /> Enviar a {targetClients.length} destinatarios</>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Send Results */}
+          {sendResult && (
+            <Card className={`border-0 shadow-lg ${sendResult.failed === 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+              <CardContent className="p-5">
+                <div className="flex items-start gap-4">
+                  <div className={`p-3 rounded-xl ${sendResult.failed === 0 ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                    {sendResult.failed === 0 ? (
+                      <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                    ) : (
+                      <AlertCircle className="h-6 w-6 text-amber-600" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-slate-800 mb-2">Resultado del Envío</h3>
+                    <div className="space-y-1 text-sm">
+                      <p className="text-emerald-700">✓ {sendResult.success} emails enviados exitosamente</p>
+                      {sendResult.failed > 0 && (
+                        <>
+                          <p className="text-red-700">✗ {sendResult.failed} emails fallidos</p>
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-slate-600 hover:text-slate-800">Ver errores</summary>
+                            <div className="mt-2 space-y-1 text-xs">
+                              {sendResult.errors.map((err, idx) => (
+                                <p key={idx} className="text-red-600">• {err.email}: {err.error}</p>
+                              ))}
+                            </div>
+                          </details>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Target Selection */}
+        <div className="space-y-6">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Destinatarios
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Seleccionar Grupo</Label>
+                <Select value={targetType} onValueChange={setTargetType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      Todos los clientes ({clients.length})
+                    </SelectItem>
+                    <SelectItem value="with_mark">
+                      Con Shipping Mark ({clients.filter(c => c.shipping_mark).length})
+                    </SelectItem>
+                    <SelectItem value="without_mark">
+                      Sin Shipping Mark ({clients.filter(c => !c.shipping_mark).length})
+                    </SelectItem>
+                    <SelectItem value="custom">
+                      Selección personalizada
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {targetType === 'custom' && (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Seleccionar clientes</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedClients(selectedClients.length === clients.length ? [] : clients.map(c => c.id))}
+                    >
+                      {selectedClients.length === clients.length ? 'Deseleccionar' : 'Seleccionar'} todos
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {clients.map((client) => (
+                      <div
+                        key={client.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                          selectedClients.includes(client.id)
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'hover:bg-slate-50 border-slate-200'
+                        }`}
+                        onClick={() => toggleClient(client.id)}
+                      >
+                        <Checkbox
+                          checked={selectedClients.includes(client.id)}
+                          onCheckedChange={() => toggleClient(client.id)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-slate-800 truncate">
+                            {client.first_name && client.last_name
+                              ? `${client.first_name} ${client.last_name}`
+                              : client.email}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">{client.email}</p>
+                          {client.shipping_mark && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              <Tag className="h-3 w-3 mr-1" />
+                              {client.shipping_mark}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Total destinatarios:</span>
+                  <span className="font-bold text-blue-600">{targetClients.length}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Vista Previa del Email</DialogTitle>
+            <DialogDescription>
+              Así se verá el email que recibirán los destinatarios
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-slate-500">De:</p>
+                  <p className="font-medium">{emailData.fromName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Asunto:</p>
+                  <p className="font-medium">{emailData.subject}</p>
+                </div>
+                <div className="pt-3 border-t">
+                  <p className="text-xs text-slate-500 mb-2">Mensaje:</p>
+                  <div className="whitespace-pre-wrap text-sm">{emailData.body}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
