@@ -39,7 +39,7 @@ export default function WhatsAppSupport() {
       title="Soporte por WhatsApp"
     >
       {config.whatsapp_icon_url ? (
-        <img src={config.whatsapp_icon_url} alt="WhatsApp" className="h-6 w-6" />
+        <img src={config.whatsapp_icon_url} alt="WhatsApp" className="h-6 w-6 object-contain" />
       ) : (
         <MessageCircle className="h-6 w-6" />
       )}
