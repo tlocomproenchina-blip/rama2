@@ -36,9 +36,15 @@ export default function AdminPaymentAlerts({ user }) {
       base44.entities.Invoice.filter({ status: 'pendiente' })
     ]);
 
-    // Combinar consolidations e invoices en un único array
+    // Get consolidation IDs that have invoices
+    const consolidationIdsWithInvoices = new Set(invoices.map(inv => inv.consolidation_id).filter(Boolean));
+    
+    // Only include consolidations that don't have an invoice
+    const filteredCons = cons.filter(c => !consolidationIdsWithInvoices.has(c.id));
+
+    // Combinar consolidations (sin factura) e invoices en un único array
     const allPayments = [
-      ...cons.map(c => ({ ...c, type: 'consolidation', payment_id: c.id })),
+      ...filteredCons.map(c => ({ ...c, type: 'consolidation', payment_id: c.id })),
       ...invoices.map(inv => ({ ...inv, type: 'invoice', payment_id: inv.id }))
     ].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
 
