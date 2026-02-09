@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { 
   Mail, 
   Send, 
@@ -17,7 +18,11 @@ import {
   Eye,
   Tag,
   Clock,
-  Search
+  Search,
+  Paperclip,
+  X,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -37,6 +42,8 @@ export default function AdminEmailCampaigns({ user }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [sendResult, setSendResult] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [attachments, setAttachments] = useState([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   useEffect(() => {
     loadClients();
@@ -81,6 +88,45 @@ export default function AdminEmailCampaigns({ user }) {
     });
   };
 
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setUploadingFile(true);
+    try {
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        setAttachments(prev => [...prev, { name: file.name, url: file_url, size: file.size }]);
+      }
+      toast.success('Archivo(s) adjuntado(s)');
+    } catch (error) {
+      toast.error('Error al subir archivo');
+    }
+    setUploadingFile(false);
+    e.target.value = '';
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const imageHtml = `<img src="${file_url}" alt="${file.name}" style="max-width: 100%; height: auto;" />`;
+      setEmailData({ ...emailData, body: emailData.body + imageHtml });
+      toast.success('Imagen insertada');
+    } catch (error) {
+      toast.error('Error al subir imagen');
+    }
+    setUploadingFile(false);
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSendEmails = async () => {
     if (!emailData.subject || !emailData.body) {
       toast.error('Completa el asunto y el mensaje');
@@ -97,13 +143,22 @@ export default function AdminEmailCampaigns({ user }) {
     const results = { success: 0, failed: 0, errors: [] };
 
     try {
+      let emailBody = emailData.body;
+      
+      if (attachments.length > 0) {
+        emailBody += '\n\n--- Archivos Adjuntos ---\n';
+        attachments.forEach(att => {
+          emailBody += `\n${att.name}: ${att.url}`;
+        });
+      }
+
       for (const client of targets) {
         try {
           await base44.integrations.Core.SendEmail({
             from_name: emailData.fromName,
             to: client.email,
             subject: emailData.subject,
-            body: emailData.body
+            body: emailBody
           });
           results.success++;
         } catch (error) {
@@ -118,6 +173,7 @@ export default function AdminEmailCampaigns({ user }) {
         toast.success(`Emails enviados exitosamente a ${results.success} destinatarios`);
         setEmailData({ subject: '', body: '', fromName: 'TLEC Logistics' });
         setSelectedClients([]);
+        setAttachments([]);
       } else {
         toast.warning(`${results.success} enviados, ${results.failed} fallidos`);
       }
@@ -128,6 +184,29 @@ export default function AdminEmailCampaigns({ user }) {
   };
 
   const targetClients = getTargetClients();
+
+  const quillModules = useMemo(() => ({
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      [{ 'font': [] }],
+      [{ 'size': ['small', false, 'large', 'huge'] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'align': [] }],
+      ['link'],
+      ['clean']
+    ]
+  }), []);
+
+  const quillFormats = [
+    'header', 'font', 'size',
+    'bold', 'italic', 'underline', 'strike',
+    'color', 'background',
+    'list', 'bullet',
+    'align',
+    'link', 'image'
+  ];
 
   if (loading) {
     return (
@@ -238,16 +317,98 @@ export default function AdminEmailCampaigns({ user }) {
 
               <div className="space-y-2">
                 <Label>Mensaje *</Label>
-                <Textarea
-                  value={emailData.body}
-                  onChange={(e) => setEmailData({ ...emailData, body: e.target.value })}
-                  placeholder="Escribe tu mensaje aquí..."
-                  rows={12}
-                  className="font-mono text-sm"
-                />
+                <div className="border rounded-lg overflow-hidden">
+                  <ReactQuill
+                    theme="snow"
+                    value={emailData.body}
+                    onChange={(content) => setEmailData({ ...emailData, body: content })}
+                    modules={quillModules}
+                    formats={quillFormats}
+                    placeholder="Escribe tu mensaje aquí..."
+                    className="bg-white"
+                    style={{ minHeight: '300px' }}
+                  />
+                </div>
                 <p className="text-xs text-slate-500">
-                  Puedes usar saltos de línea para dar formato al texto
+                  Usa la barra de herramientas para dar formato a tu mensaje
                 </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Adjuntos e Imágenes</Label>
+                <div className="flex gap-2">
+                  <label className="flex-1">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      className="w-full"
+                      disabled={uploadingFile}
+                      asChild
+                    >
+                      <span>
+                        {uploadingFile ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo...</>
+                        ) : (
+                          <><Paperclip className="h-4 w-4 mr-2" /> Adjuntar Archivo</>
+                        )}
+                      </span>
+                    </Button>
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      multiple
+                      disabled={uploadingFile}
+                    />
+                  </label>
+
+                  <label className="flex-1">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      className="w-full"
+                      disabled={uploadingFile}
+                      asChild
+                    >
+                      <span>
+                        {uploadingFile ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo...</>
+                        ) : (
+                          <><ImageIcon className="h-4 w-4 mr-2" /> Insertar Imagen</>
+                        )}
+                      </span>
+                    </Button>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingFile}
+                    />
+                  </label>
+                </div>
+
+                {attachments.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-slate-700">Archivos adjuntos:</p>
+                    {attachments.map((att, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border">
+                        <Paperclip className="h-4 w-4 text-slate-400" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 truncate">{att.name}</p>
+                          <p className="text-xs text-slate-500">{(att.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeAttachment(idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3">
@@ -440,8 +601,26 @@ export default function AdminEmailCampaigns({ user }) {
                 </div>
                 <div className="pt-3 border-t">
                   <p className="text-xs text-slate-500 mb-2">Mensaje:</p>
-                  <div className="whitespace-pre-wrap text-sm">{emailData.body}</div>
+                  <div 
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: emailData.body }}
+                  />
                 </div>
+                {attachments.length > 0 && (
+                  <div className="pt-3 border-t">
+                    <p className="text-xs text-slate-500 mb-2">Archivos adjuntos:</p>
+                    <div className="space-y-1">
+                      {attachments.map((att, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm">
+                          <Paperclip className="h-3 w-3 text-slate-400" />
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {att.name}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
