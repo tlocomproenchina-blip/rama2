@@ -76,36 +76,6 @@ export default function InvoicePDFGenerator({ invoice }) {
       doc.text(`Vencimiento: ${new Date(invoice.due_date).toLocaleDateString()}`, pageWidth - 15, yPos, { align: 'right' });
       yPos += 15;
 
-      // Client info
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Cliente:', 15, yPos);
-      yPos += 7;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-
-      // Display client information
-      if (clientData) {
-       const fullName = `${clientData.full_name || ''}`.trim();
-       doc.text(fullName, 15, yPos);
-       yPos += 5;
-
-       if (consolidation?.shipping_mark) {
-         doc.text(`Envío: ${consolidation.shipping_mark}`, 15, yPos);
-         yPos += 5;
-       }
-
-       if (clientData.whatsapp) {
-         doc.text(`WhatsApp: ${clientData.whatsapp}`, 15, yPos);
-         yPos += 5;
-       }
-      } else {
-       // Fallback if client data not available
-       doc.text(invoice.client_email || 'N/A', 15, yPos);
-       yPos += 5;
-      }
-      yPos += 2;
-
       // Get consolidation and client data to fetch packages
       let packages = [];
       let consolidation = null;
@@ -128,6 +98,36 @@ export default function InvoicePDFGenerator({ invoice }) {
           console.error('Error loading packages:', error);
         }
       }
+
+      // Client info
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Cliente:', 15, yPos);
+      yPos += 7;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+
+      // Display client information
+      if (clientData) {
+        const fullName = `${clientData.full_name || ''}`.trim();
+        doc.text(fullName, 15, yPos);
+        yPos += 5;
+
+        if (consolidation?.shipping_mark) {
+          doc.text(`Envío: ${consolidation.shipping_mark}`, 15, yPos);
+          yPos += 5;
+        }
+
+        if (clientData.whatsapp) {
+          doc.text(`WhatsApp: ${clientData.whatsapp}`, 15, yPos);
+          yPos += 5;
+        }
+      } else {
+        // Fallback if client data not available
+        doc.text(invoice.client_email || 'N/A', 15, yPos);
+        yPos += 5;
+      }
+      yPos += 2;
 
       // Display packages in table format (3 columns: Tracking | Descripción | FOB) - Only if space available
       if (packages.length > 0 && yPos < doc.internal.pageSize.height - 60) {
