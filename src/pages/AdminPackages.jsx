@@ -418,15 +418,25 @@ export default function AdminPackages({ user }) {
                           Recibir
                         </Button>
                       )}
-                      {pkg.package_image_url && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => setViewImage(pkg.package_image_url)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
+                      {pkg.status !== 'pre_alerta' && (
+                         <Button 
+                           size="sm" 
+                           variant="outline"
+                           onClick={() => setEditImageModal(pkg)}
+                           title="Agregar o cambiar imagen"
+                         >
+                           <ImageIcon className="h-4 w-4" />
+                         </Button>
+                       )}
+                       {pkg.package_image_url && (
+                         <Button 
+                           size="sm" 
+                           variant="outline"
+                           onClick={() => setViewImage(pkg.package_image_url)}
+                         >
+                           <Eye className="h-4 w-4" />
+                         </Button>
+                       )}
                       {pkg.status !== 'pre_alerta' && pkg.status !== 'consolidado' && (
                         <Select 
                           value={pkg.status} 
