@@ -326,56 +326,107 @@ export default function AdminConsolidate({ user }) {
               <CardContent className="p-12 text-center">
                 <Package className="h-16 w-16 mx-auto mb-4 text-slate-300" />
                 <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin cargas pendientes</h3>
-                <p className="text-slate-500">No hay paquetes en pre-alerta</p>
+                <p className="text-slate-500">No hay paquetes en pre-alerta o recibidos</p>
               </CardContent>
             </Card>
           ) : (
-            clientsWithPackages.map((client) => (
-              <Card key={client.email} className="border-0 shadow-md hover:shadow-lg transition-all">
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-blue-100 rounded-xl">
-                          <User className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-800">{client.email}</p>
-                          <Badge className="mt-1 bg-blue-100 text-blue-700">
-                            {client.count} paquete{client.count !== 1 ? 's' : ''}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2">
-                      {client.packages.map((pkg) => (
-                        <div key={pkg.id} className="flex items-center justify-between bg-slate-50 rounded-lg p-3">
-                          <div className="flex items-center gap-3 flex-1">
-                            <Package className="h-4 w-4 text-slate-400" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-mono text-sm font-medium text-slate-800">{pkg.tracking_number}</p>
-                              <p className="text-xs text-slate-500">{pkg.description}</p>
+            clientsWithPackages.map((client) => {
+              const preAlertPkgs = client.packages.filter(p => p.status === 'pre_alerta');
+              const receivedPkgs = client.packages.filter(p => p.status === 'recibido');
+              
+              return (
+                <Card key={client.email} className="border-0 shadow-md hover:shadow-lg transition-all">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="p-3 bg-blue-100 rounded-xl">
+                            <User className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-800">{client.email}</p>
+                            <div className="flex gap-2 mt-1">
+                              {preAlertPkgs.length > 0 && (
+                                <Badge className="bg-yellow-100 text-yellow-700">
+                                  {preAlertPkgs.length} pre-alerta
+                                </Badge>
+                              )}
+                              {receivedPkgs.length > 0 && (
+                                <Badge className="bg-green-100 text-green-700">
+                                  {receivedPkgs.length} recibido
+                                </Badge>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 ml-2">
-                            {pkg.shipping_type === 'aereo' 
-                              ? <Plane className="h-4 w-4 text-slate-400" />
-                              : <Ship className="h-4 w-4 text-slate-400" />
-                            }
-                            {pkg.has_insurance && (
-                              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 text-xs">
-                                Asegurado
-                              </Badge>
-                            )}
+                        </div>
+                        <Button
+                          onClick={() => setExpandedClient(expandedClient === client.email ? null : client.email)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {expandedClient === client.email ? 'Contraer' : 'Ver detalles'}
+                        </Button>
+                      </div>
+
+                      {expandedClient === client.email && (
+                        <div className="space-y-3 border-t pt-4">
+                          <div className="grid grid-cols-1 gap-2">
+                            {client.packages.map((pkg) => (
+                              <div key={pkg.id} className={`flex items-center justify-between rounded-lg p-3 ${
+                                pkg.status === 'recibido' ? 'bg-green-50' : 'bg-slate-50'
+                              }`}>
+                                <div className="flex items-center gap-3 flex-1">
+                                  <Package className="h-4 w-4 text-slate-400" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-mono text-sm font-medium text-slate-800">{pkg.tracking_number}</p>
+                                    <p className="text-xs text-slate-500">{pkg.description}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 ml-2">
+                                  <Badge 
+                                    variant="outline"
+                                    className={pkg.status === 'recibido' 
+                                      ? 'bg-green-100 text-green-700 text-xs' 
+                                      : 'bg-yellow-100 text-yellow-700 text-xs'
+                                    }
+                                  >
+                                    {pkg.status === 'recibido' ? 'Recibido' : 'Pre-alerta'}
+                                  </Badge>
+                                  {pkg.shipping_type === 'aereo' 
+                                    ? <Plane className="h-4 w-4 text-slate-400" />
+                                    : <Ship className="h-4 w-4 text-slate-400" />
+                                  }
+                                  {pkg.has_insurance && (
+                                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 text-xs">
+                                      Asegurado
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="pt-2 border-t flex gap-2">
+                            <Button
+                              onClick={() => handleQuickConsolidate(client.email, client.packages)}
+                              disabled={processing === client.email}
+                              className="flex-1 bg-blue-600 hover:bg-blue-700"
+                              size="sm"
+                            >
+                              {processing === client.email ? (
+                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</>
+                              ) : (
+                                <><CheckCircle className="h-4 w-4 mr-2" /> Crear y Aprobar Consolidación</>
+                              )}
+                            </Button>
                           </div>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
       )}
