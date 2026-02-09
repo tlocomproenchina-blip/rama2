@@ -477,6 +477,40 @@ export default function AdminSettings({ user }) {
                   </p>
                 </div>
               </div>
+
+              <div className="space-y-2 pt-6 border-t border-slate-200">
+                <Label className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Días para considerar factura vencida
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={config.invoice_overdue_days}
+                  onChange={(e) => setConfig({ ...config, invoice_overdue_days: parseInt(e.target.value) || 7 })}
+                  className="mt-1"
+                />
+                <p className="text-xs text-slate-500">
+                  Número de días para que una factura se considere vencida
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-4">
+                <Label className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  Días para alertas de pago
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={config.payment_alert_days}
+                  onChange={(e) => setConfig({ ...config, payment_alert_days: parseInt(e.target.value) || 7 })}
+                  className="mt-1"
+                />
+                <p className="text-xs text-slate-500">
+                  Número de días para generar alertas de pagos pendientes
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
