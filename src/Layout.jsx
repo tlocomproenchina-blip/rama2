@@ -160,10 +160,10 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </header>
 
-        {/* Desktop Notification Bell */}
-                <div className="hidden lg:block fixed top-4 right-4 z-40">
-                  <NotificationBell user={user} />
-                </div>
+        {/* Desktop Notification Center */}
+        <div className="hidden lg:block fixed top-4 right-4 z-40">
+          <NotificationCenter user={user} />
+        </div>
 
                 {/* Unread Notification Indicator - Mobile */}
                 <style>{`
