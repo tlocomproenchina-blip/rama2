@@ -30,9 +30,19 @@ import { base44 } from '@/api/base44Client';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const [config, setConfig] = useState(null);
+  const [notificationCounts, setNotificationCounts] = useState({
+    critical: 0,
+    packages: 0,
+    requests: 0
+  });
 
   useEffect(() => {
     loadConfig();
+    loadNotificationCounts();
+    
+    // Poll for notification counts every 180 seconds
+    const interval = setInterval(loadNotificationCounts, 180000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadConfig = async () => {
