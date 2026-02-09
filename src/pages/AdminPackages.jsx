@@ -210,6 +210,69 @@ export default function AdminPackages({ user }) {
     setBulkProcessing(false);
   };
 
+  const handleExportPreAlerta = async () => {
+    try {
+      // Get only pre-alerta packages grouped by client
+      const preAlertaPkgs = packages.filter(p => p.status === 'pre_alerta');
+      
+      if (preAlertaPkgs.length === 0) {
+        toast.error('No hay paquetes en pre-alerta para exportar');
+        return;
+      }
+
+      // Get all users for shipping marks
+      const users = await base44.entities.User.list();
+      const userMap = {};
+      users.forEach(u => {
+        userMap[u.email] = u;
+      });
+
+      // Group by client email
+      const clientMap = {};
+      preAlertaPkgs.forEach(pkg => {
+        if (!clientMap[pkg.client_email]) {
+          clientMap[pkg.client_email] = [];
+        }
+        clientMap[pkg.client_email].push(pkg);
+      });
+
+      // Generate text content
+      let content = '';
+      const clients = Object.keys(clientMap).sort();
+      
+      clients.forEach((email, index) => {
+        const pkgs = clientMap[email];
+        const shippingMark = userMap[email]?.shipping_mark || 'N/A';
+        
+        content += `Cliente \n${shippingMark}\ntracking Number\n`;
+        pkgs.forEach(pkg => {
+          content += `${pkg.tracking_number}\n`;
+        });
+        
+        // Add blank line between clients except for last one
+        if (index < clients.length - 1) {
+          content += '\n\n';
+        }
+      });
+
+      // Create and download file
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pre_alerta_${new Date().toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+      toast.success(`Exportado ${preAlertaPkgs.length} paquetes`);
+    } catch (error) {
+      toast.error('Error al exportar');
+      console.error(error);
+    }
+  };
+
   const filteredPackages = packages.filter(pkg => {
     // Basic search
     const matchesSearch = 
