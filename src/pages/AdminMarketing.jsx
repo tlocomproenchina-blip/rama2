@@ -29,6 +29,8 @@ export default function AdminMarketing({ user }) {
   const [showHtmlInput, setShowHtmlInput] = useState(false);
   const [htmlCode, setHtmlCode] = useState('');
   const [historyModal, setHistoryModal] = useState({ open: false, client: null });
+  const [emailTemplates, setEmailTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -45,6 +47,7 @@ export default function AdminMarketing({ user }) {
 
   useEffect(() => {
     loadData();
+    loadTemplates();
   }, []);
 
   const loadData = async () => {
@@ -55,6 +58,36 @@ export default function AdminMarketing({ user }) {
     setCampaigns(campaignsData);
     setPromotions(promosData);
     setLoading(false);
+  };
+
+  const loadTemplates = async () => {
+    const data = await base44.entities.EmailTemplate.list('-created_date');
+    setEmailTemplates(data);
+  };
+
+  const handleSelectTemplate = async (templateId) => {
+    if (!templateId) {
+      setSelectedTemplate(null);
+      return;
+    }
+    
+    const template = emailTemplates.find(t => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setFormData({
+        ...formData,
+        email_subject: template.subject,
+        email_body: template.body
+      });
+      setAttachments(template.attachments || []);
+      
+      // Incrementar contador de uso
+      await base44.entities.EmailTemplate.update(template.id, {
+        usage_count: (template.usage_count || 0) + 1
+      });
+      
+      toast.success('Plantilla cargada');
+    }
   };
 
   const getSegmentClients = async (segment) => {
@@ -624,6 +657,28 @@ export default function AdminMarketing({ user }) {
 
               {(formData.campaign_type === 'email' || formData.campaign_type === 'both') && (
                 <>
+                  <div className="col-span-2 space-y-2">
+                    <Label>Usar Plantilla (Opcional)</Label>
+                    <Select value={selectedTemplate?.id || ''} onValueChange={handleSelectTemplate}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una plantilla" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={null}>Sin plantilla</SelectItem>
+                        {emailTemplates.map(template => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name} ({template.category})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedTemplate && (
+                      <p className="text-xs text-blue-600">
+                        Plantilla cargada. Puedes modificar el contenido si lo necesitas.
+                      </p>
+                    )}
+                  </div>
+
                   <div className="col-span-2 space-y-2">
                     <Label>Asunto del Email *</Label>
                     <Input

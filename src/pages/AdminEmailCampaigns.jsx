@@ -53,10 +53,13 @@ export default function AdminEmailCampaigns({ user }) {
   const [htmlCode, setHtmlCode] = useState('');
   const [historyModal, setHistoryModal] = useState({ open: false, client: null });
   const [emailStats, setEmailStats] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   useEffect(() => {
     loadClients();
     loadEmailStats();
+    loadTemplates();
   }, []);
 
   const loadClients = async () => {
@@ -77,6 +80,37 @@ export default function AdminEmailCampaigns({ user }) {
       conversionValue: logs.reduce((sum, l) => sum + (l.conversion_value || 0), 0)
     };
     setEmailStats(stats);
+  };
+
+  const loadTemplates = async () => {
+    const data = await base44.entities.EmailTemplate.list('-created_date');
+    setTemplates(data);
+  };
+
+  const handleSelectTemplate = async (templateId) => {
+    if (!templateId) {
+      setSelectedTemplate(null);
+      return;
+    }
+    
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      setEmailData({
+        ...emailData,
+        subject: template.subject,
+        body: template.body,
+        fromName: emailData.fromName
+      });
+      setAttachments(template.attachments || []);
+      
+      // Incrementar contador de uso
+      await base44.entities.EmailTemplate.update(template.id, {
+        usage_count: (template.usage_count || 0) + 1
+      });
+      
+      toast.success('Plantilla cargada');
+    }
   };
 
   const getTargetClients = () => {
