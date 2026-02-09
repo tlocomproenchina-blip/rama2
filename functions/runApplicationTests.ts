@@ -496,18 +496,22 @@ Deno.serve(async (req) => {
     try {
       const consolidations = await base44.asServiceRole.entities.Consolidation.list();
       const validStatuses = ['en_transito', 'pago_validado', 'disponible', 'entregado'];
-      let invalidStatuses = 0;
+      const invalidConsolidations = [];
       
       for (const cons of consolidations) {
         if (!validStatuses.includes(cons.status)) {
-          invalidStatuses++;
+          invalidConsolidations.push({
+            id: cons.id,
+            tracking: cons.consolidation_tracking,
+            status: cons.status
+          });
         }
       }
       
-      if (invalidStatuses === 0) {
+      if (invalidConsolidations.length === 0) {
         passed.push(`✓ Estados: Todas las consolidaciones tienen estados válidos`);
       } else {
-        warnings.push(`⚠ ${invalidStatuses} consolidaciones con estados inválidos`);
+        warnings.push(`⚠ ${invalidConsolidations.length} consolidaciones con estados inválidos: ${invalidConsolidations.map(c => `${c.tracking}(${c.status})`).join(', ')}`);
       }
     } catch (error) {
       errors.push({
