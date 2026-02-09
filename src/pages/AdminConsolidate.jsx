@@ -123,13 +123,41 @@ export default function AdminConsolidate({ user }) {
         <p className="text-slate-500">Revisa y aprueba las solicitudes de los clientes</p>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-200">
+        <button
+          onClick={() => setActiveTab('requests')}
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'requests'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-600 hover:text-slate-800'
+          }`}
+        >
+          Solicitudes ({requests.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('clients')}
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'clients'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-600 hover:text-slate-800'
+          }`}
+        >
+          Clientes con Cargas ({clientsWithPackages.length})
+        </button>
+      </div>
+
       {/* Stats */}
       <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-white">
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500">Solicitudes Pendientes</p>
-              <p className="text-3xl font-bold text-slate-800">{requests.length}</p>
+              <p className="text-sm text-slate-500">
+                {activeTab === 'requests' ? 'Solicitudes Pendientes' : 'Clientes con Paquetes Pendientes'}
+              </p>
+              <p className="text-3xl font-bold text-slate-800">
+                {activeTab === 'requests' ? requests.length : clientsWithPackages.length}
+              </p>
             </div>
             <div className="p-3 bg-purple-100 rounded-xl">
               <Clock className="h-6 w-6 text-purple-600" />
