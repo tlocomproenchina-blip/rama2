@@ -43,8 +43,6 @@ export default function AdminPackages({ user }) {
   const [bulkStatus, setBulkStatus] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
-  const [editImageModal, setEditImageModal] = useState(null);
-  const [newImageFile, setNewImageFile] = useState(null);
 
   useEffect(() => {
     loadPackages();
@@ -106,27 +104,6 @@ export default function AdminPackages({ user }) {
     
     toast.success('Estado actualizado y cliente notificado');
     loadPackages();
-  };
-
-  const handleEditImage = async () => {
-    if (!editImageModal || !newImageFile) return;
-    setProcessing(true);
-
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: newImageFile });
-      
-      await base44.entities.Package.update(editImageModal.id, {
-        package_image_url: file_url
-      });
-
-      toast.success('Imagen actualizada exitosamente');
-      setEditImageModal(null);
-      setNewImageFile(null);
-      loadPackages();
-    } catch (error) {
-      toast.error('Error al actualizar imagen');
-    }
-    setProcessing(false);
   };
 
   const handleAdvancedSearch = (filters) => {
@@ -418,25 +395,15 @@ export default function AdminPackages({ user }) {
                           Recibir
                         </Button>
                       )}
-                      {pkg.status !== 'pre_alerta' && (
-                         <Button 
-                           size="sm" 
-                           variant="outline"
-                           onClick={() => setEditImageModal(pkg)}
-                           title="Agregar o cambiar imagen"
-                         >
-                           <ImageIcon className="h-4 w-4" />
-                         </Button>
-                       )}
-                       {pkg.package_image_url && (
-                         <Button 
-                           size="sm" 
-                           variant="outline"
-                           onClick={() => setViewImage(pkg.package_image_url)}
-                         >
-                           <Eye className="h-4 w-4" />
-                         </Button>
-                       )}
+                      {pkg.package_image_url && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => setViewImage(pkg.package_image_url)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
                       {pkg.status !== 'pre_alerta' && pkg.status !== 'consolidado' && (
                         <Select 
                           value={pkg.status} 
@@ -529,63 +496,6 @@ export default function AdminPackages({ user }) {
             <DialogTitle>Foto del Paquete</DialogTitle>
           </DialogHeader>
           <img src={viewImage} alt="Paquete" className="w-full rounded-lg" />
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Image Modal */}
-      <Dialog open={!!editImageModal} onOpenChange={() => { setEditImageModal(null); setNewImageFile(null); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Actualizar Foto del Paquete</DialogTitle>
-            <DialogDescription>
-              {editImageModal?.tracking_number}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {editImageModal?.package_image_url && (
-              <div>
-                <p className="text-sm text-slate-500 mb-2">Imagen actual:</p>
-                <img src={editImageModal.package_image_url} alt="Actual" className="w-full rounded-lg max-h-48 object-cover" />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                Nueva foto del paquete
-              </Label>
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setNewImageFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                  id="edit-pkg-image"
-                />
-                <label htmlFor="edit-pkg-image" className="cursor-pointer">
-                  {newImageFile ? (
-                    <div className="flex items-center justify-center gap-2 text-emerald-600">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium">{newImageFile.name}</span>
-                    </div>
-                  ) : (
-                    <div className="text-slate-500">
-                      <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-sm">Click para subir foto</p>
-                    </div>
-                  )}
-                </label>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setEditImageModal(null); setNewImageFile(null); }}>
-              Cancelar
-            </Button>
-            <Button onClick={handleEditImage} disabled={processing || !newImageFile} className="bg-blue-600 hover:bg-blue-700">
-              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-              Actualizar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
