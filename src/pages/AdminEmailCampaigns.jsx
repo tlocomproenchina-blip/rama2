@@ -45,6 +45,8 @@ export default function AdminEmailCampaigns({ user }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [showHtmlInput, setShowHtmlInput] = useState(false);
+  const [htmlCode, setHtmlCode] = useState('');
 
   useEffect(() => {
     loadClients();
@@ -186,6 +188,15 @@ export default function AdminEmailCampaigns({ user }) {
 
   const targetClients = getTargetClients();
 
+  const handlePasteHtml = () => {
+    if (htmlCode.trim()) {
+      setEmailData({ ...emailData, body: htmlCode });
+      setHtmlCode('');
+      setShowHtmlInput(false);
+      toast.success('HTML pegado correctamente');
+    }
+  };
+
   const quillModules = useMemo(() => ({
     toolbar: [
       [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
@@ -317,22 +328,66 @@ export default function AdminEmailCampaigns({ user }) {
               </div>
 
               <div className="space-y-2">
-                <Label>Mensaje *</Label>
-                <div className="border rounded-lg overflow-hidden">
-                  <ReactQuill
-                    theme="snow"
-                    value={emailData.body}
-                    onChange={(content) => setEmailData({ ...emailData, body: content })}
-                    modules={quillModules}
-                    formats={quillFormats}
-                    placeholder="Escribe tu mensaje aquí..."
-                    className="bg-white"
-                    style={{ minHeight: '300px' }}
-                  />
+                <div className="flex items-center justify-between">
+                  <Label>Mensaje *</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowHtmlInput(!showHtmlInput)}
+                  >
+                    {showHtmlInput ? 'Cerrar HTML' : '< > Pegar HTML'}
+                  </Button>
                 </div>
-                <p className="text-xs text-slate-500">
-                  Usa la barra de herramientas para dar formato a tu mensaje
-                </p>
+
+                {showHtmlInput ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={htmlCode}
+                      onChange={(e) => setHtmlCode(e.target.value)}
+                      placeholder="Pega tu código HTML aquí..."
+                      rows={12}
+                      className="font-mono text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={handlePasteHtml}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Aplicar HTML
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setHtmlCode('');
+                          setShowHtmlInput(false);
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="border rounded-lg overflow-hidden">
+                      <ReactQuill
+                        theme="snow"
+                        value={emailData.body}
+                        onChange={(content) => setEmailData({ ...emailData, body: content })}
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="Escribe tu mensaje aquí..."
+                        className="bg-white"
+                        style={{ minHeight: '300px' }}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Usa la barra de herramientas para dar formato o el botón "Pegar HTML" para código personalizado
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="space-y-3">
