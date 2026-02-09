@@ -47,17 +47,8 @@ export default function NotificationBell({ user }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      // Delay initial load significantly to prevent rate limits on page load
-      const timer = setTimeout(() => {
-        loadNotifications();
-      }, 12000); // Load after all Dashboard data is loaded
-      
-      // Real-time subscriptions disabled to prevent rate limiting
-      // Notifications will refresh when user opens the dropdown
-      
-      return () => clearTimeout(timer);
-    }
+    // Do NOT load notifications on mount to avoid rate limiting
+    // Notifications will only load when user opens the dropdown
   }, [user]);
 
   const playNotificationSound = () => {
