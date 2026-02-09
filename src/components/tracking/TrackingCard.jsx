@@ -231,11 +231,19 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                     <p className="text-xs text-slate-500 mb-1">Fecha Salida</p>
                     <div className="flex items-center gap-1">
                       <p className="font-semibold text-slate-800">
-                        {consolidation.shipping_date 
-                          ? format(new Date(consolidation.shipping_date), 'dd/MM')
-                          : '-'
-                        }
-                      </p>
+                          {consolidation.shipping_date 
+                            ? (() => {
+                                try {
+                                  const date = new Date(consolidation.shipping_date);
+                                  if (isNaN(date.getTime())) return '-';
+                                  return format(date, 'dd/MM');
+                                } catch (e) {
+                                  return '-';
+                                }
+                              })()
+                            : '-'
+                          }
+                        </p>
                       {user?.role === 'admin' && (
                         <Button
                           variant="ghost"
