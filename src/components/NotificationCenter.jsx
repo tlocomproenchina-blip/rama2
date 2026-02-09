@@ -145,6 +145,13 @@ export default function NotificationCenter({ user }) {
             {/* Header */}
             <div className="p-4 border-b border-slate-200 flex items-center justify-between">
               <h3 className="font-semibold text-slate-800">Notificaciones</h3>
+              {getCriticalCount() > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded">
+                    {getCriticalCount()} críticas
+                  </span>
+                </div>
+              )}
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
