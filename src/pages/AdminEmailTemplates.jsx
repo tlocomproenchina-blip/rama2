@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 export default function AdminEmailTemplates({ user }) {
   const [templates, setTemplates] = useState([]);
+  const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
@@ -24,6 +25,7 @@ export default function AdminEmailTemplates({ user }) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showHtmlInput, setShowHtmlInput] = useState(false);
   const [htmlCode, setHtmlCode] = useState('');
+  const [updatingTemplates, setUpdatingTemplates] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -35,8 +37,20 @@ export default function AdminEmailTemplates({ user }) {
   });
 
   useEffect(() => {
+    loadConfig();
     loadTemplates();
   }, []);
+
+  const loadConfig = async () => {
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (configs.length > 0) {
+        setConfig(configs[0]);
+      }
+    } catch (error) {
+      console.error('Error loading config:', error);
+    }
+  };
 
   const loadTemplates = async () => {
     const data = await base44.entities.EmailTemplate.list('-created_date');
