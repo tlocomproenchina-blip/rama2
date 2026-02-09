@@ -43,7 +43,7 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
           className="cursor-pointer bg-gradient-to-r from-slate-50 to-white p-4 lg:p-6 border-b hover:from-slate-100"
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 mb-3">
             {/* Left Side */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
@@ -78,29 +78,39 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
             </div>
 
             {/* Right Side - Quick Stats */}
-            <div className="flex items-center gap-4">
-              <div className="hidden lg:block text-right">
-                <p className="text-xs text-slate-500">Progreso</p>
-                <p className="text-lg font-bold text-blue-600">{Math.round(progress)}%</p>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">Tránsito / Estimado</p>
+                  <p className="text-sm lg:text-base font-bold text-slate-800">
+                    {daysInTransit}d / {daysRemaining !== null ? daysRemaining + 'd' : '-'}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                >
+                  <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-              >
-                <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-              </Button>
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-blue-500 to-emerald-500"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 1, ease: "easeOut" }}
-            />
+          {/* Progress Bar with Label */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-slate-600">Progreso</span>
+              <span className="text-xs font-bold text-blue-600">{Math.round(progress)}%</span>
+            </div>
+            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-blue-500 to-emerald-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+              />
+            </div>
           </div>
         </motion.div>
 
