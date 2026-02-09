@@ -61,7 +61,8 @@ export default function AdminSettings({ user }) {
     pago_movil_usdt_instructions: '',
     whatsapp_enabled: false,
     whatsapp_number: '',
-    whatsapp_message: 'Hola, necesito ayuda con mi envío'
+    whatsapp_message: 'Hola, necesito ayuda con mi envío',
+    whatsapp_icon_url: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,7 @@ export default function AdminSettings({ user }) {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingAppLogo, setUploadingAppLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [uploadingWhatsAppIcon, setUploadingWhatsAppIcon] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -203,6 +205,19 @@ export default function AdminSettings({ user }) {
       toast.error('Error al subir favicon');
     }
     setUploadingFavicon(false);
+  };
+
+  const handleWhatsAppIconUpload = async (file) => {
+    if (!file) return;
+    setUploadingWhatsAppIcon(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setConfig({ ...config, whatsapp_icon_url: file_url });
+      toast.success('Icono de WhatsApp subido exitosamente');
+    } catch (error) {
+      toast.error('Error al subir icono');
+    }
+    setUploadingWhatsAppIcon(false);
   };
 
   const handleExportCSV = async () => {
@@ -919,15 +934,37 @@ export default function AdminSettings({ user }) {
                       </p>
                     </div>
 
-                    <div className="p-3 bg-white rounded-lg border border-green-100">
-                      <p className="text-sm font-medium text-slate-800 mb-2">Vista previa:</p>
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                          <MessageCircle className="h-6 w-6 text-white" />
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Icono Personalizado (opcional)</Label>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleWhatsAppIconUpload(e.target.files[0])}
+                            disabled={uploadingWhatsAppIcon}
+                          />
+                          {uploadingWhatsAppIcon && <Loader2 className="h-5 w-5 animate-spin text-green-600" />}
                         </div>
-                        <div>
-                          <p className="text-sm text-slate-700">Botón flotante</p>
-                          <p className="text-xs text-slate-500">Aparecerá en la esquina inferior derecha</p>
+                        <p className="text-xs text-slate-500">
+                          Sube una imagen PNG o SVG (recomendado: 64x64px). Si no subes imagen, se usará el icono por defecto.
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-lg border border-green-100">
+                        <p className="text-sm font-medium text-slate-800 mb-2">Vista previa:</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                            {config.whatsapp_icon_url ? (
+                              <img src={config.whatsapp_icon_url} alt="WhatsApp icon" className="w-6 h-6" />
+                            ) : (
+                              <MessageCircle className="h-6 w-6 text-white" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-700">Botón flotante</p>
+                            <p className="text-xs text-slate-500">Aparecerá en la esquina inferior derecha</p>
+                          </div>
                         </div>
                       </div>
                     </div>
