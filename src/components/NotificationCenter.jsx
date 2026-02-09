@@ -92,6 +92,10 @@ export default function NotificationCenter({ user }) {
     return colors[priority] || colors.medium;
   };
 
+  const getCriticalCount = () => {
+    return notifications.filter(n => n.priority === 'critical' && !n.read).length;
+  };
+
   return (
     <div className="relative">
       {/* Bell Icon Button */}
