@@ -486,32 +486,75 @@ export default function AdminMarketing({ user }) {
         </Card>
 
         <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Clics</p>
-                <p className="text-2xl font-bold text-indigo-600">
-                  {campaigns.reduce((sum, c) => sum + (c.clicked_count || 0), 0)}
-                </p>
-              </div>
-              <MousePointer className="h-8 w-8 text-indigo-600" />
-            </div>
-          </CardContent>
-        </Card>
+           <CardContent className="p-6">
+             <div className="flex items-center justify-between">
+               <div>
+                 <p className="text-sm text-slate-500">Entregados</p>
+                 <p className="text-2xl font-bold text-green-600">{emailStats.delivered}</p>
+                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
+               </div>
+               <Send className="h-8 w-8 text-green-600" />
+             </div>
+           </CardContent>
+         </Card>
 
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Conversiones</p>
-                <p className="text-2xl font-bold text-teal-600">
-                  {campaigns.reduce((sum, c) => sum + (c.converted_count || 0), 0)}
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-teal-600" />
-            </div>
-          </CardContent>
-        </Card>
+         <Card className="border-0 shadow-lg">
+           <CardContent className="p-6">
+             <div className="flex items-center justify-between">
+               <div>
+                 <p className="text-sm text-slate-500">Abiertos</p>
+                 <p className="text-2xl font-bold text-purple-600">{emailStats.opened}</p>
+                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
+               </div>
+               <Eye className="h-8 w-8 text-purple-600" />
+             </div>
+           </CardContent>
+         </Card>
+
+         <Card className="border-0 shadow-lg">
+           <CardContent className="p-6">
+             <div className="flex items-center justify-between">
+               <div>
+                 <p className="text-sm text-slate-500">Clics</p>
+                 <p className="text-2xl font-bold text-indigo-600">
+                   {emailStats.clicked}
+                 </p>
+                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
+               </div>
+               <MousePointer className="h-8 w-8 text-indigo-600" />
+             </div>
+           </CardContent>
+         </Card>
+
+         <Card className="border-0 shadow-lg">
+           <CardContent className="p-6">
+             <div className="flex items-center justify-between">
+               <div>
+                 <p className="text-sm text-slate-500">Rebotes</p>
+                 <p className="text-2xl font-bold text-red-600">
+                   {emailStats.bounced}
+                 </p>
+                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
+               </div>
+               <XCircle className="h-8 w-8 text-red-600" />
+             </div>
+           </CardContent>
+         </Card>
+
+         <Card className="border-0 shadow-lg">
+           <CardContent className="p-6">
+             <div className="flex items-center justify-between">
+               <div>
+                 <p className="text-sm text-slate-500">Conversiones</p>
+                 <p className="text-2xl font-bold text-teal-600">
+                   {emailStats.conversions}
+                 </p>
+                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
+               </div>
+               <TrendingUp className="h-8 w-8 text-teal-600" />
+             </div>
+           </CardContent>
+         </Card>
 
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
