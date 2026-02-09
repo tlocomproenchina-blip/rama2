@@ -19,7 +19,8 @@ import {
   Ship,
   ShieldCheck,
   Upload,
-  Receipt
+  Receipt,
+  MessageCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -56,7 +57,10 @@ export default function AdminSettings({ user }) {
     wallet_skrill: '',
     skrill_instructions: '',
     wallet_pago_movil_usdt: '',
-    pago_movil_usdt_instructions: ''
+    pago_movil_usdt_instructions: '',
+    whatsapp_enabled: false,
+    whatsapp_number: '',
+    whatsapp_message: 'Hola, necesito ayuda con mi envío'
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -258,12 +262,13 @@ export default function AdminSettings({ user }) {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="branding">Marca</TabsTrigger>
           <TabsTrigger value="invoice">Factura</TabsTrigger>
           <TabsTrigger value="rates">Tarifas</TabsTrigger>
           <TabsTrigger value="wallets">Wallets</TabsTrigger>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="contract">Contrato</TabsTrigger>
         </TabsList>
 
@@ -804,6 +809,82 @@ export default function AdminSettings({ user }) {
                     />
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* WhatsApp Tab */}
+        <TabsContent value="whatsapp">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-green-600" />
+                Soporte por WhatsApp
+              </CardTitle>
+              <CardDescription>
+                Configura el botón flotante de soporte en WhatsApp para clientes
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <input
+                    type="checkbox"
+                    id="whatsapp_enabled"
+                    checked={config.whatsapp_enabled}
+                    onChange={(e) => setConfig({ ...config, whatsapp_enabled: e.target.checked })}
+                    className="w-5 h-5 cursor-pointer"
+                  />
+                  <label htmlFor="whatsapp_enabled" className="text-sm font-medium text-slate-700 cursor-pointer">
+                    Activar soporte por WhatsApp
+                  </label>
+                </div>
+
+                {config.whatsapp_enabled && (
+                  <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-100">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4 text-green-600" />
+                        Número de WhatsApp
+                      </Label>
+                      <Input
+                        value={config.whatsapp_number}
+                        onChange={(e) => setConfig({ ...config, whatsapp_number: e.target.value })}
+                        placeholder="584121234567"
+                        className="font-mono"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Formato: número sin + ni espacios (ej: 584121234567 para +58 412 1234567)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Mensaje Predeterminado</Label>
+                      <Input
+                        value={config.whatsapp_message}
+                        onChange={(e) => setConfig({ ...config, whatsapp_message: e.target.value })}
+                        placeholder="Hola, necesito ayuda"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Mensaje que aparecerá automáticamente cuando el cliente hace clic en el botón
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-white rounded-lg border border-green-100">
+                      <p className="text-sm font-medium text-slate-800 mb-2">Vista previa:</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                          <MessageCircle className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-700">Botón flotante</p>
+                          <p className="text-xs text-slate-500">Aparecerá en la esquina inferior derecha</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
