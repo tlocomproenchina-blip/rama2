@@ -166,7 +166,7 @@ export default function AdminDashboard({ user }) {
 
   // Granular data loading functions for partial refresh
   const loadPackagesData = async (pkgList) => {
-    const pkg = pkgList || await base44.entities.Package.list('-created_date');
+    const pkg = pkgList || await base44.entities.Package.list('-created_date', 100);
     const receivedCount = pkg.filter(p => p.status === 'recibido').length;
     const preAlertCount = pkg.filter(p => p.status === 'pre_alerta').length;
     const consolidatedCount = pkg.filter(p => p.status === 'consolidado').length;
@@ -181,11 +181,11 @@ export default function AdminDashboard({ user }) {
 
     setStats(prev => ({
       ...prev,
-      packages: pkg.length,
-      receivedCount,
-      preAlertCount,
+      totalPackages: pkg.length,
+      recibidos: receivedCount,
+      preAlertas: preAlertCount,
       consolidatedCount,
-      inTransitCount
+      enTransito: inTransitCount
     }));
 
     setChartData(prev => ({ ...prev, daily: last7Days }));
@@ -194,7 +194,7 @@ export default function AdminDashboard({ user }) {
   };
 
   const loadConsolidationsData = async (consList) => {
-    const cons = consList || await base44.entities.Consolidation.list('-created_date');
+    const cons = consList || await base44.entities.Consolidation.list('-created_date', 50);
     const transiting = cons.filter(c => c.status === 'en_transito').length;
     const available = cons.filter(c => c.status === 'disponible').length;
     const delivered = cons.filter(c => c.status === 'entregado').length;
@@ -234,11 +234,12 @@ export default function AdminDashboard({ user }) {
 
     setStats(prev => ({
       ...prev,
-      consolidations: cons.length,
-      transiting,
-      available,
-      delivered,
-      totalRevenue
+      consolidaciones: cons.length,
+      enTransito: transiting,
+      disponibles: available,
+      entregados: delivered,
+      totalIngresos: totalRevenue,
+      pendientesPago: pendingPayment
     }));
 
     setChartData(prev => ({ ...prev, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData }));
