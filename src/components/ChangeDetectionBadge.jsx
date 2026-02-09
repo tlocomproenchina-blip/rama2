@@ -43,6 +43,11 @@ export default function ChangeDetectionBadge({ onRefresh, onRefreshPackages, onR
                         requests.length > 0;
       
       setHasNewChanges(hasChanges);
+      setChangedEntities({
+        packages: packages.length > 0,
+        consolidations: consolidations.length > 0,
+        requests: requests.length > 0
+      });
       
       // Guardar timestamp actual
       sessionStorage.setItem('lastCheckedTimestamp', new Date().toISOString());
