@@ -254,14 +254,12 @@ export default function AdminDashboard({ user }) {
 
   const loadDashboardData = async () => {
     try {
-      // Sequential calls with 2s delay between each
-      const packages = await loadPackagesData();
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const consolidations = await loadConsolidationsData();
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const users = await loadUsersData();
+      // Parallel data loading - no delays
+      const [packages, consolidations, users] = await Promise.all([
+        loadPackagesData(),
+        loadConsolidationsData(),
+        loadUsersData()
+      ]);
 
       // Calculate additional stats
       const insuredPackages = packages.filter(p => p.has_insurance);
