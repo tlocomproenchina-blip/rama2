@@ -29,12 +29,15 @@ export default function Layout({ children, currentPageName }) {
   const loadFavicon = async () => {
     try {
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
-      if (configs.length > 0 && configs[0].app_logo_url) {
-        const link = document.querySelector("link[rel='icon']") || document.createElement('link');
-        link.rel = 'icon';
-        link.href = configs[0].app_logo_url;
-        link.type = 'image/png';
-        document.head.appendChild(link);
+      if (configs.length > 0) {
+        const faviconUrl = configs[0].favicon_url || configs[0].app_logo_url;
+        if (faviconUrl) {
+          const link = document.querySelector("link[rel='icon']") || document.createElement('link');
+          link.rel = 'icon';
+          link.href = faviconUrl;
+          link.type = faviconUrl.endsWith('.ico') ? 'image/x-icon' : 'image/png';
+          document.head.appendChild(link);
+        }
       }
     } catch (error) {
       console.error('Error loading favicon:', error);
