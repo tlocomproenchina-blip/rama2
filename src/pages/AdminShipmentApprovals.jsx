@@ -25,7 +25,8 @@ import {
   Box,
   Plus,
   ArrowLeft,
-  Shield
+  Shield,
+  Undo
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
@@ -52,6 +53,8 @@ export default function AdminShipmentApprovals({ user }) {
   const [selectedShippingType, setSelectedShippingType] = useState('aereo');
   const [hasInsurance, setHasInsurance] = useState(false);
   const [customFobValue, setCustomFobValue] = useState('');
+  const [undoTracking, setUndoTracking] = useState('');
+  const [undoing, setUndoing] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -244,6 +247,33 @@ export default function AdminShipmentApprovals({ user }) {
     a.click();
     window.URL.revokeObjectURL(url);
     a.remove();
+  };
+
+  const handleUndoConsolidation = async () => {
+    if (!undoTracking.trim()) {
+      toast.error('Ingresa el tracking de consolidación');
+      return;
+    }
+
+    if (!confirm(`¿Deshacer consolidación ${undoTracking}? Los paquetes volverán a estar disponibles.`)) {
+      return;
+    }
+
+    setUndoing(true);
+    try {
+      const response = await base44.functions.invoke('undoConsolidation', {
+        consolidation_tracking: undoTracking.trim()
+      });
+
+      if (response.data.success) {
+        toast.success(`Consolidación deshecha. ${response.data.packages_restored} paquetes restaurados`);
+        setUndoTracking('');
+        loadData();
+      }
+    } catch (error) {
+      toast.error('Error al deshacer consolidación');
+    }
+    setUndoing(false);
   };
 
   if (loading) {
@@ -560,19 +590,43 @@ export default function AdminShipmentApprovals({ user }) {
         <p className="text-slate-500">Solicitudes listas para consolidar físicamente en el depósito</p>
       </div>
 
-      <Card className="border-0 shadow-md bg-gradient-to-br from-green-50 to-white">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-500">Pendientes de Consolidar</p>
-              <p className="text-3xl font-bold text-slate-800">{requests.length}</p>
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card className="border-0 shadow-md bg-gradient-to-br from-green-50 to-white">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Pendientes de Consolidar</p>
+                <p className="text-3xl font-bold text-slate-800">{requests.length}</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-xl">
+                <Layers className="h-6 w-6 text-green-600" />
+              </div>
             </div>
-            <div className="p-3 bg-green-100 rounded-xl">
-              <Layers className="h-6 w-6 text-green-600" />
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md bg-gradient-to-br from-red-50 to-white">
+          <CardContent className="p-5">
+            <Label className="text-sm text-slate-500 mb-2 block">Deshacer Consolidación</Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="CON-TLEC-..."
+                value={undoTracking}
+                onChange={(e) => setUndoTracking(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <Button
+                onClick={handleUndoConsolidation}
+                disabled={undoing || !undoTracking.trim()}
+                variant="outline"
+                className="border-red-300 text-red-700 hover:bg-red-50"
+              >
+                {undoing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo className="h-4 w-4" />}
+              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="border-0 shadow-md">
         <CardContent className="p-4">
