@@ -35,27 +35,38 @@ export default function Dashboard({ user, refreshUser }) {
   const [showEditProfile, setShowEditProfile] = useState(false);
 
   useEffect(() => {
-    loadData();
+    if (user && user.email) {
+      loadData();
+    }
     
     // Real-time updates disabled to prevent rate limiting
     // Users can refresh the page manually to see updates
-  }, [user]);
+  }, []);
 
   const loadData = async () => {
-    if (!user) return;
+    if (!user || !user.email) return;
     
     try {
-      const [pkgs, cons, invs, configs] = await Promise.all([
-        base44.entities.Package.filter({ client_email: user.email }),
-        base44.entities.Consolidation.filter({ client_email: user.email }),
-        base44.entities.Invoice.filter({ client_email: user.email }),
-        base44.entities.AppConfig.filter({ config_key: 'main' })
-      ]);
-      
-      setPackages(pkgs);
-      setConsolidations(cons);
-      setInvoices(invs);
+      // Load config first (cached, no rate limit issue)
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (configs.length > 0) setConfig(configs[0]);
+      
+      // Then load user-specific data in sequence with small delays to avoid rate limits
+      const pkgs = await base44.entities.Package.filter({ client_email: user.email });
+      setPackages(pkgs);
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const cons = await base44.entities.Consolidation.filter({ client_email: user.email });
+      setConsolidations(cons);
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const invs = await base44.entities.Invoice.filter({ client_email: user.email });
+      setInvoices(invs);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      toast.error('Error al cargar datos. Por favor recarga la página.');
     } finally {
       setLoading(false);
     }
