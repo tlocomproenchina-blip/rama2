@@ -134,9 +134,10 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden">
       <style>{`
         [data-sonner-toaster] { display: none !important; }
+        body { overflow-x: hidden; }
       `}</style>
       <Toaster position="top-right" richColors />
       <AdminNotificationCenter user={user} />
@@ -151,18 +152,19 @@ export default function Layout({ children, currentPageName }) {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <main className="flex-1 min-h-screen">
+      <main className="flex-1 min-h-screen flex flex-col">
         {/* Mobile Header */}
         <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <Button 
               variant="ghost" 
               size="icon"
+              className="h-10 w-10"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu className="h-6 w-6" />
+              <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="font-semibold text-slate-800">TLEC Logistics</h1>
+            <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">TLEC Logistics</h1>
             <NotificationCenter user={user} />
           </div>
         </header>
@@ -172,16 +174,11 @@ export default function Layout({ children, currentPageName }) {
           <NotificationCenter user={user} />
         </div>
 
-                {/* Unread Notification Indicator - Mobile */}
-                <style>{`
-                  @keyframes pulse-bg {
-                    0%, 100% { background-color: rgba(239, 68, 68, 0.1); }
-                    50% { background-color: rgba(239, 68, 68, 0.2); }
-                  }
-                `}</style>
-
-        <div className="p-4 lg:p-8">
-          {React.cloneElement(children, { user, refreshUser: loadUser })}
+        {/* Main Content */}
+        <div className="flex-1 overflow-x-hidden w-full">
+          <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]">
+            {React.cloneElement(children, { user, refreshUser: loadUser })}
+          </div>
         </div>
       </main>
 

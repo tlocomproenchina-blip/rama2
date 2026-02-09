@@ -112,29 +112,29 @@ export default function Dashboard({ user, refreshUser }) {
   const hasShippingMark = user?.shipping_mark && user.shipping_mark.length > 0;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-4 md:space-y-6 lg:space-y-8 w-full">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-4 lg:p-8 text-white shadow-xl">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex-1">
-            <h1 className="text-xl lg:text-3xl font-bold mb-2">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg md:rounded-2xl p-4 md:p-6 lg:p-8 text-white shadow-lg">
+        <div className="flex flex-col gap-3 md:gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg md:text-2xl lg:text-3xl font-bold mb-2 break-words">
               ¡Bienvenido, {user?.first_name || 'Usuario'}!
             </h1>
-            <p className="text-blue-100 text-sm lg:text-base mb-3">
+            <p className="text-blue-100 text-xs md:text-sm lg:text-base mb-3 line-clamp-2">
               {hasShippingMark 
                 ? 'Gestiona tus envíos y consulta el estado de tus paquetes' 
                 : 'Tu perfil está siendo procesado. Pronto recibirás tu Shipping Mark.'
               }
             </p>
             {user?.city && user?.whatsapp && (
-              <div className="flex flex-wrap gap-3 lg:gap-4 text-xs lg:text-sm text-blue-100">
-                <div className="flex items-center gap-1.5 lg:gap-2">
-                  <MapPin className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                  {user.city}
+              <div className="flex flex-wrap gap-2 md:gap-3 lg:gap-4 text-xs md:text-sm lg:text-base text-blue-100">
+                <div className="flex items-center gap-1 md:gap-1.5 lg:gap-2 min-w-0">
+                  <MapPin className="h-3 w-3 md:h-3.5 lg:h-4 flex-shrink-0" />
+                  <span className="truncate">{user.city}</span>
                 </div>
-                <div className="flex items-center gap-1.5 lg:gap-2">
-                  <Phone className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                  {user.whatsapp}
+                <div className="flex items-center gap-1 md:gap-1.5 lg:gap-2 min-w-0">
+                  <Phone className="h-3 w-3 md:h-3.5 lg:h-4 flex-shrink-0" />
+                  <span className="truncate">{user.whatsapp}</span>
                 </div>
               </div>
             )}
@@ -143,7 +143,7 @@ export default function Dashboard({ user, refreshUser }) {
             variant="outline" 
             size="sm"
             onClick={() => setShowEditProfile(true)}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20 w-full lg:w-auto"
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20 w-full md:w-auto mt-2 md:mt-0"
           >
             <Edit2 className="h-4 w-4 mr-2" />
             Editar Contacto
@@ -156,16 +156,16 @@ export default function Dashboard({ user, refreshUser }) {
       {/* Shipping Mark Card */}
       {hasShippingMark ? (
         <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-white">
-          <CardContent className="p-4 lg:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+          <CardContent className="p-3 md:p-4 lg:p-6">
+            <div className="flex flex-col gap-4 md:gap-5 lg:flex-row lg:gap-6">
               {/* Shipping Mark */}
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2 text-slate-500 text-xs lg:text-sm">
-                  <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+              <div className="flex-1 space-y-2 min-w-0">
+                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
+                  <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
                   Tu Shipping Mark
                 </div>
-                <div className="flex items-center gap-2 lg:gap-3">
-                  <span className="text-xl lg:text-3xl font-bold text-slate-800 font-mono break-all">
+                <div className="flex items-center gap-2 md:gap-2.5 lg:gap-3 min-w-0">
+                  <span className="text-lg md:text-2xl lg:text-3xl font-bold text-slate-800 font-mono break-all">
                     {user.shipping_mark}
                   </span>
                   <Button 
@@ -180,13 +180,13 @@ export default function Dashboard({ user, refreshUser }) {
               </div>
 
               {/* Warehouse Address */}
-              <div className="flex-1 space-y-2 border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-6">
-                <div className="flex items-center gap-2 text-slate-500 text-xs lg:text-sm">
-                  <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+              <div className="flex-1 space-y-2 border-t md:border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 md:pt-4 lg:pt-0 lg:pl-6 min-w-0">
+                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
+                  <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
                   Dirección del Warehouse
                 </div>
-                <div className="flex items-start gap-2 lg:gap-3">
-                  <p className="text-slate-700 text-xs lg:text-base whitespace-pre-line flex-1">
+                <div className="flex items-start gap-2 md:gap-2.5 lg:gap-3 min-w-0">
+                  <p className="text-slate-700 text-xs md:text-sm lg:text-base break-words flex-1">
                     {config?.warehouse_address || 'Dirección no configurada'}
                   </p>
                   {config?.warehouse_address && (
@@ -223,58 +223,58 @@ export default function Dashboard({ user, refreshUser }) {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 lg:gap-4">
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-3 lg:p-5">
+          <CardContent className="p-2 md:p-3 lg:p-5">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-xs lg:text-sm text-slate-500 truncate">Pre-alertas</p>
-                <p className="text-2xl lg:text-3xl font-bold text-slate-800">{stats.preAlerta}</p>
+                <p className="text-xs md:text-xs lg:text-sm text-slate-500 truncate">Pre-alertas</p>
+                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-800">{stats.preAlerta}</p>
               </div>
-              <div className="p-2 lg:p-3 bg-amber-100 rounded-lg lg:rounded-xl flex-shrink-0">
-                <AlertTriangle className="h-5 w-5 lg:h-6 lg:w-6 text-amber-600" />
+              <div className="p-2 md:p-2.5 lg:p-3 bg-amber-100 rounded-lg lg:rounded-xl flex-shrink-0">
+                <AlertTriangle className="h-4 w-4 md:h-5 lg:h-6 lg:w-6 text-amber-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-3 lg:p-5">
+          <CardContent className="p-2 md:p-3 lg:p-5">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-xs lg:text-sm text-slate-500 truncate">Recibidos</p>
-                <p className="text-2xl lg:text-3xl font-bold text-slate-800">{stats.recibidos}</p>
+                <p className="text-xs md:text-xs lg:text-sm text-slate-500 truncate">Recibidos</p>
+                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-800">{stats.recibidos}</p>
               </div>
-              <div className="p-2 lg:p-3 bg-blue-100 rounded-lg lg:rounded-xl flex-shrink-0">
-                <Package className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
+              <div className="p-2 md:p-2.5 lg:p-3 bg-blue-100 rounded-lg lg:rounded-xl flex-shrink-0">
+                <Package className="h-4 w-4 md:h-5 lg:h-6 lg:w-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-3 lg:p-5">
+          <CardContent className="p-2 md:p-3 lg:p-5">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-xs lg:text-sm text-slate-500 truncate">En Tránsito</p>
-                <p className="text-2xl lg:text-3xl font-bold text-slate-800">{stats.enTransito}</p>
+                <p className="text-xs md:text-xs lg:text-sm text-slate-500 truncate">En Tránsito</p>
+                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-800">{stats.enTransito}</p>
               </div>
-              <div className="p-2 lg:p-3 bg-indigo-100 rounded-lg lg:rounded-xl flex-shrink-0">
-                <Truck className="h-5 w-5 lg:h-6 lg:w-6 text-indigo-600" />
+              <div className="p-2 md:p-2.5 lg:p-3 bg-indigo-100 rounded-lg lg:rounded-xl flex-shrink-0">
+                <Truck className="h-4 w-4 md:h-5 lg:h-6 lg:w-6 text-indigo-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-3 lg:p-5">
+          <CardContent className="p-2 md:p-3 lg:p-5">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-xs lg:text-sm text-slate-500 truncate">Disponibles</p>
-                <p className="text-2xl lg:text-3xl font-bold text-slate-800">{stats.disponibles}</p>
+                <p className="text-xs md:text-xs lg:text-sm text-slate-500 truncate">Disponibles</p>
+                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-800">{stats.disponibles}</p>
               </div>
-              <div className="p-2 lg:p-3 bg-emerald-100 rounded-lg lg:rounded-xl flex-shrink-0">
-                <MapPin className="h-5 w-5 lg:h-6 lg:w-6 text-emerald-600" />
+              <div className="p-2 md:p-2.5 lg:p-3 bg-emerald-100 rounded-lg lg:rounded-xl flex-shrink-0">
+                <MapPin className="h-4 w-4 md:h-5 lg:h-6 lg:w-6 text-emerald-600" />
               </div>
             </div>
           </CardContent>
@@ -309,7 +309,7 @@ export default function Dashboard({ user, refreshUser }) {
 
       {/* Widgets Section */}
       {hasShippingMark && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-4">
           <ActiveConsolidationsWidget consolidations={consolidations} />
           <RecentPaymentsWidget invoices={invoices} />
           <DeliveryTimesWidget consolidations={consolidations} />
@@ -318,7 +318,7 @@ export default function Dashboard({ user, refreshUser }) {
 
       {/* Quick Actions */}
       {hasShippingMark && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 lg:gap-4">
           <Link to={createPageUrl('PreAlert')}>
             <Card className="border-0 shadow-md hover:shadow-xl transition-all cursor-pointer group">
               <CardContent className="p-4 lg:p-6 flex items-center gap-3 lg:gap-4">
@@ -351,12 +351,12 @@ export default function Dashboard({ user, refreshUser }) {
 
       {/* Recent Packages */}
       <Card className="border-0 shadow-lg">
-        <CardHeader className="border-b border-slate-100">
-          <CardTitle className="text-lg font-semibold text-slate-800">Paquetes Recientes</CardTitle>
+        <CardHeader className="border-b border-slate-100 p-3 md:p-4 lg:p-6">
+          <CardTitle className="text-base md:text-lg font-semibold text-slate-800">Paquetes Recientes</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {packages.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
+            <div className="p-4 md:p-8 text-center text-slate-500">
               <Package className="h-12 w-12 mx-auto mb-3 text-slate-300" />
               <p>No tienes paquetes registrados</p>
               {hasShippingMark && (
@@ -371,19 +371,21 @@ export default function Dashboard({ user, refreshUser }) {
           ) : (
             <div className="divide-y divide-slate-100">
               {packages.slice(0, 5).map((pkg) => (
-                <div key={pkg.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-slate-100 rounded-lg">
-                      <Package className="h-5 w-5 text-slate-600" />
+                <div key={pkg.id} className="p-3 md:p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="p-2 bg-slate-100 rounded-lg flex-shrink-0">
+                      <Package className="h-4 w-4 md:h-5 text-slate-600" />
                     </div>
-                    <div>
-                      <p className="font-medium text-slate-800">{pkg.tracking_number}</p>
-                      <p className="text-sm text-slate-500 capitalize">
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-800 text-sm md:text-base truncate">{pkg.tracking_number}</p>
+                      <p className="text-xs md:text-sm text-slate-500 capitalize">
                         {pkg.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}
                       </p>
                     </div>
                   </div>
-                  <StatusBadge status={pkg.status} />
+                  <div className="flex-shrink-0">
+                    <StatusBadge status={pkg.status} />
+                  </div>
                 </div>
               ))}
             </div>
