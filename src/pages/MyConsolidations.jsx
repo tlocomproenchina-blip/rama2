@@ -96,23 +96,24 @@ export default function MyConsolidations({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Mis Consolidaciones</h1>
-          <p className="text-slate-500">Revisa tus paquetes consolidados y realiza pagos</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800">Mis Consolidaciones</h1>
+          <p className="text-xs md:text-sm text-slate-500">Revisa tus paquetes consolidados y realiza pagos</p>
         </div>
         <Button
           onClick={handleRefresh}
           disabled={refreshing}
           variant="outline"
           size="sm"
+          className="w-full md:w-auto"
         >
           {refreshing ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Actualizando...</>
+            <><Loader2 className="h-3 w-3 md:h-4 mr-2 animate-spin" /> Actualizando...</>
           ) : (
-            <><RefreshCw className="h-4 w-4 mr-2" /> Actualizar</>
+            <><RefreshCw className="h-3 w-3 md:h-4 mr-2" /> Actualizar</>
           )}
         </Button>
       </div>
@@ -120,35 +121,35 @@ export default function MyConsolidations({ user }) {
       {/* Consolidations List */}
       {consolidations.length === 0 ? (
         <Card className="border-0 shadow-lg">
-          <CardContent className="p-12 text-center">
-            <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin consolidaciones</h3>
-            <p className="text-slate-500">
+          <CardContent className="p-6 md:p-12 text-center">
+            <Layers className="h-12 md:h-16 w-12 md:w-16 mx-auto mb-3 md:mb-4 text-slate-300" />
+            <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">Sin consolidaciones</h3>
+            <p className="text-xs md:text-sm text-slate-500">
               Aún no tienes paquetes consolidados. Cuando tus paquetes sean consolidados, aparecerán aquí.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {consolidations.map((con) => (
             <Card key={con.id} className="border-0 shadow-lg overflow-hidden">
               <Collapsible open={expandedId === con.id} onOpenChange={() => setExpandedId(expandedId === con.id ? null : con.id)}>
                 <CollapsibleTrigger asChild>
-                  <CardHeader className="p-4 lg:p-6 cursor-pointer hover:bg-slate-50 transition-colors">
-                    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                  <CardHeader className="p-3 md:p-4 lg:p-6 cursor-pointer hover:bg-slate-50 transition-colors">
+                    <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                       {/* Main Info */}
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="p-3 bg-purple-100 rounded-xl">
-                          <Layers className="h-6 w-6 text-purple-600" />
+                      <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                        <div className="p-2.5 md:p-3 bg-purple-100 rounded-lg md:rounded-xl flex-shrink-0">
+                          <Layers className="h-5 w-5 md:h-6 text-purple-600" />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-slate-800 font-mono text-lg">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-slate-800 font-mono text-xs md:text-base lg:text-lg truncate">
                             {con.consolidation_tracking}
                           </h3>
-                          <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+                          <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-slate-500 mt-1 flex-wrap">
                             {con.shipping_type === 'aereo' 
-                              ? <><Plane className="h-4 w-4" /> Aéreo</>
-                              : <><Ship className="h-4 w-4" /> Marítimo</>
+                              ? <><Plane className="h-3 w-3 md:h-4 flex-shrink-0" /> <span>Aéreo</span></>
+                              : <><Ship className="h-3 w-3 md:h-4 flex-shrink-0" /> <span>Marítimo</span></>
                             }
                             <span>•</span>
                             <span>{con.tracking_numbers?.length || 0} paquetes</span>
@@ -157,49 +158,49 @@ export default function MyConsolidations({ user }) {
                       </div>
 
                       {/* Status & Total */}
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm text-slate-500">Total</p>
-                          <p className="text-xl font-bold text-slate-800">${con.total_cost?.toFixed(2)}</p>
+                      <div className="flex items-center gap-2 md:gap-4 justify-between md:justify-end">
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xs md:text-sm text-slate-500">Total</p>
+                          <p className="text-base md:text-xl font-bold text-slate-800">${con.total_cost?.toFixed(2)}</p>
                         </div>
                         <StatusBadge status={con.status} />
-                        {expandedId === con.id ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+                        {expandedId === con.id ? <ChevronUp className="h-4 w-4 md:h-5 text-slate-400 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 md:h-5 text-slate-400 flex-shrink-0" />}
                       </div>
                     </div>
                   </CardHeader>
                 </CollapsibleTrigger>
 
                 <CollapsibleContent>
-                  <CardContent className="p-4 lg:p-6 pt-0 border-t border-slate-100">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                  <CardContent className="p-3 md:p-4 lg:p-6 pt-3 md:pt-4 border-t border-slate-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mt-3 md:mt-4">
                       {/* Details */}
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-slate-700">Detalles del Envío</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Weight className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-500">Peso Real:</span>
-                            <span className="font-medium">{con.real_weight_kg} kg</span>
+                      <div className="space-y-3 md:space-y-4">
+                        <h4 className="font-semibold text-slate-700 text-sm md:text-base">Detalles del Envío</h4>
+                        <div className="grid grid-cols-2 gap-3 md:gap-4 text-xs md:text-sm">
+                          <div className="flex items-start gap-2 min-w-0">
+                            <Weight className="h-3 w-3 md:h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-500 flex-shrink-0">Peso Real:</span>
+                            <span className="font-medium truncate">{con.real_weight_kg} kg</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Weight className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-500">Peso Vol.:</span>
-                            <span className="font-medium">{con.volumetric_weight?.toFixed(2)} kg</span>
+                          <div className="flex items-start gap-2 min-w-0">
+                            <Weight className="h-3 w-3 md:h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-500 flex-shrink-0">Peso Vol.:</span>
+                            <span className="font-medium truncate">{con.volumetric_weight?.toFixed(2)} kg</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Ruler className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-500">CBM:</span>
-                            <span className="font-medium">{con.cbm?.toFixed(4)} m³</span>
+                          <div className="flex items-start gap-2 min-w-0">
+                            <Ruler className="h-3 w-3 md:h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-500 flex-shrink-0">CBM:</span>
+                            <span className="font-medium truncate">{con.cbm?.toFixed(4)} m³</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Ruler className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-500">Dimensiones:</span>
-                            <span className="font-medium">{con.length_cm}×{con.width_cm}×{con.height_cm} cm</span>
+                          <div className="flex items-start gap-2 min-w-0 col-span-2">
+                            <Ruler className="h-3 w-3 md:h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-500 flex-shrink-0">Dimensiones:</span>
+                            <span className="font-medium truncate">{con.length_cm}×{con.width_cm}×{con.height_cm} cm</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-500">Entrega Est.:</span>
-                            <span className="font-medium">
+                          <div className="flex items-start gap-2 min-w-0 col-span-2">
+                            <Calendar className="h-3 w-3 md:h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-500 flex-shrink-0">Entrega Est.:</span>
+                            <span className="font-medium truncate">
                               {con.estimated_delivery ? new Date(con.estimated_delivery).toLocaleDateString('es-ES') : 'Pendiente'}
                             </span>
                           </div>
@@ -207,9 +208,9 @@ export default function MyConsolidations({ user }) {
                       </div>
 
                       {/* Costs */}
-                      <div className="space-y-4">
-                        <h4 className="font-semibold text-slate-700">Costos</h4>
-                        <div className="bg-slate-50 rounded-xl p-4 space-y-2">
+                      <div className="space-y-3 md:space-y-4">
+                        <h4 className="font-semibold text-slate-700 text-sm md:text-base">Costos</h4>
+                        <div className="bg-slate-50 rounded-lg md:rounded-xl p-3 md:p-4 space-y-2">
                           <div className="flex justify-between text-sm">
                             <span className="text-slate-500">Costo de envío:</span>
                             <span className="font-medium">${con.shipping_cost?.toFixed(2)}</span>
@@ -229,8 +230,8 @@ export default function MyConsolidations({ user }) {
                     </div>
 
                     {/* Tracking Numbers */}
-                    <div className="mt-6">
-                      <h4 className="font-semibold text-slate-700 mb-3">Paquetes Incluidos</h4>
+                    <div className="mt-4 md:mt-6">
+                      <h4 className="font-semibold text-slate-700 mb-2 md:mb-3 text-sm md:text-base">Paquetes Incluidos</h4>
                       <div className="flex flex-wrap gap-2">
                         {con.tracking_numbers?.map((tracking) => (
                           <Badge key={tracking} variant="outline" className="font-mono">
@@ -242,48 +243,50 @@ export default function MyConsolidations({ user }) {
                     </div>
 
                     {/* Payment & Approval Section */}
-                    <div className="mt-6 pt-4 border-t border-slate-100 space-y-3">
+                    <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-slate-100 space-y-3">
                       {canPay(con) && (
                         <Button 
-                          className="w-full lg:w-auto bg-emerald-600 hover:bg-emerald-700"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700"
                           onClick={() => setPaymentModal(con)}
+                          size="sm"
                         >
-                          <CreditCard className="h-4 w-4 mr-2" />
+                          <CreditCard className="h-3 w-3 md:h-4 mr-2" />
                           Pagar Consolidación
                         </Button>
                       )}
                       {isPending(con) && (
-                        <div className="flex items-center gap-3 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                          <Loader2 className="h-5 w-5 animate-spin text-yellow-600" />
-                          <div>
-                            <p className="font-medium text-yellow-800">Pago reportado, en espera de validación</p>
-                            <p className="text-sm text-yellow-700">Te notificaremos cuando sea verificado</p>
+                        <div className="flex items-start gap-3 p-3 md:p-4 bg-yellow-50 rounded-lg md:rounded-xl border border-yellow-200">
+                          <Loader2 className="h-4 w-4 md:h-5 animate-spin text-yellow-600 flex-shrink-0 mt-1" />
+                          <div className="min-w-0">
+                            <p className="font-medium text-yellow-800 text-sm md:text-base">Pago reportado, en espera de validación</p>
+                            <p className="text-xs md:text-sm text-yellow-700">Te notificaremos cuando sea verificado</p>
                           </div>
                         </div>
                       )}
                       {canApproveShipment(con) && (
-                        <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium text-blue-800">Tu consolidación está lista para despacho</p>
-                              <p className="text-sm text-blue-700">Aprueba el envío desde China</p>
+                        <div className="p-3 md:p-4 bg-blue-50 rounded-lg md:rounded-xl border border-blue-200">
+                          <div className="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
+                            <div className="min-w-0">
+                              <p className="font-medium text-blue-800 text-sm md:text-base">Tu consolidación está lista para despacho</p>
+                              <p className="text-xs md:text-sm text-blue-700">Aprueba el envío desde China</p>
                             </div>
                             <Button
                               onClick={() => handleApproveShipment(con)}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
+                              size="sm"
                             >
-                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              <CheckCircle2 className="h-3 w-3 md:h-4 mr-2" />
                               Aprobar Despacho
                             </Button>
                           </div>
                         </div>
                       )}
                       {con.shipment_approved && (
-                        <div className="flex items-center gap-3 p-4 bg-green-50 rounded-xl border border-green-200">
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          <div>
-                            <p className="font-medium text-green-800">Despacho aprobado</p>
-                            <p className="text-sm text-green-700">
+                        <div className="flex items-start gap-3 p-3 md:p-4 bg-green-50 rounded-lg md:rounded-xl border border-green-200">
+                          <CheckCircle2 className="h-4 w-4 md:h-5 text-green-600 flex-shrink-0 mt-1" />
+                          <div className="min-w-0">
+                            <p className="font-medium text-green-800 text-sm md:text-base">Despacho aprobado</p>
+                            <p className="text-xs md:text-sm text-green-700 truncate">
                               Aprobado el {new Date(con.shipment_approved_date).toLocaleDateString('es-ES')}
                             </p>
                           </div>
