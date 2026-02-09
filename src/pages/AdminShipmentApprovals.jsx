@@ -48,6 +48,7 @@ export default function AdminShipmentApprovals({ user }) {
   const [processing, setProcessing] = useState(false);
   const [inputMode, setInputMode] = useState('dimensions');
   const [directCbm, setDirectCbm] = useState('');
+  const [selectedShippingType, setSelectedShippingType] = useState('aereo');
 
   useEffect(() => {
     loadData();
@@ -67,6 +68,7 @@ export default function AdminShipmentApprovals({ user }) {
   const selectRequest = async (request) => {
     setSelectedRequest(request);
     setSelectedPackages(request.package_ids || []);
+    setSelectedShippingType(request.shipping_type || 'aereo');
     
     const pkgs = await base44.entities.Package.filter({ 
       client_email: request.client_email,
@@ -108,7 +110,7 @@ export default function AdminShipmentApprovals({ user }) {
     const hasSensitive = selectedPkgs.some(p => p.has_insurance);
 
     let shippingCost = 0;
-    if (selectedRequest.shipping_type === 'aereo') {
+    if (selectedShippingType === 'aereo') {
       const rate = hasSensitive ? (config?.rate_air_sensitive || 0) : (config?.rate_air_general || 0);
       shippingCost = billableWeight * rate;
     } else {
@@ -149,7 +151,7 @@ export default function AdminShipmentApprovals({ user }) {
         shipping_mark: selectedRequest.shipping_mark,
         package_ids: selectedPackages,
         tracking_numbers: trackingNumbers,
-        shipping_type: selectedRequest.shipping_type,
+        shipping_type: selectedShippingType,
         real_weight_kg: parseFloat(consolidationData.real_weight_kg),
         length_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.length_cm) : 0,
         width_cm: inputMode === 'dimensions' ? parseFloat(consolidationData.width_cm) : 0,
@@ -309,6 +311,29 @@ export default function AdminShipmentApprovals({ user }) {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
+              <Label>Tipo de Envío</Label>
+              <Select value={selectedShippingType} onValueChange={setSelectedShippingType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="aereo">
+                    <div className="flex items-center gap-2">
+                      <Plane className="h-4 w-4" />
+                      Aéreo
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="maritimo">
+                    <div className="flex items-center gap-2">
+                      <Ship className="h-4 w-4" />
+                      Marítimo
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label>Método de Ingreso</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -418,7 +443,7 @@ export default function AdminShipmentApprovals({ user }) {
                 <CardContent className="p-4">
                   <h4 className="font-semibold mb-4 flex items-center gap-2">
                     <DollarSign className="h-5 w-5 text-emerald-600" />
-                    Resumen de Costos
+                    Resumen de Costos - {selectedShippingType === 'aereo' ? 'Aéreo' : 'Marítimo'}
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
@@ -434,7 +459,7 @@ export default function AdminShipmentApprovals({ user }) {
                       <span className="ml-2 font-medium">{calculateValues().billableWeight.toFixed(2)} kg</span>
                     </div>
                     <div>
-                      <span className="text-slate-500">Costo Envío:</span>
+                      <span className="text-slate-500">Costo Envío {selectedShippingType === 'aereo' ? '(por kg)' : '(por CBM)'}:</span>
                       <span className="ml-2 font-medium">${calculateValues().shippingCost.toFixed(2)}</span>
                     </div>
                     <div>
