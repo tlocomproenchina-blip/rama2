@@ -220,6 +220,27 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                     <p className="font-semibold text-slate-800">{consolidation.package_ids?.length || 0}</p>
                   </div>
                   <div>
+                    <p className="text-xs text-slate-500 mb-1">Fecha Salida</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-semibold text-slate-800">
+                        {consolidation.shipping_date 
+                          ? format(new Date(consolidation.shipping_date), 'dd/MM')
+                          : '-'
+                        }
+                      </p>
+                      {user?.role === 'admin' && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onEditDate(consolidation)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div>
                     <p className="text-xs text-slate-500 mb-1">Entrega Estimada</p>
                     <div className="flex items-center gap-1">
                       <p className="font-semibold text-slate-800">
