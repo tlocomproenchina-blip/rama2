@@ -27,6 +27,7 @@ import {
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
+import { cacheManager } from '@/components/CacheManager';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const [config, setConfig] = useState(null);
@@ -47,13 +48,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const loadConfig = async () => {
     try {
-      // Check cache first (1 hour TTL)
-      const cached = sessionStorage.getItem('app_config');
-      const cacheTime = sessionStorage.getItem('app_config_time');
-      const now = Date.now();
-      
-      if (cached && cacheTime && (now - parseInt(cacheTime)) < 3600000) {
-        setConfig(JSON.parse(cached));
+      // Check cache manager (1 hour TTL)
+      const cached = cacheManager.get('app_config');
+      if (cached) {
+        setConfig(cached);
         return;
       }
 
@@ -61,8 +59,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (configs.length > 0) {
         setConfig(configs[0]);
-        sessionStorage.setItem('app_config', JSON.stringify(configs[0]));
-        sessionStorage.setItem('app_config_time', now.toString());
+        cacheManager.set('app_config', configs[0], 3600000); // 1 hour
       }
     } catch (error) {
       console.error('Error loading config:', error);
