@@ -143,16 +143,22 @@ export default function AdminDashboard({ user }) {
 
   const handleRefresh = async () => {
     const now = Date.now();
-    const timeSinceLastRefresh = (now - lastRefreshTime) / 1000;
+    const timeSinceLastManual = (now - lastManualRefreshRef.current) / 1000;
 
-    if (timeSinceLastRefresh < 60) {
-      const remainingTime = Math.ceil(60 - timeSinceLastRefresh);
-      toast.error(`Espera ${remainingTime}s antes de actualizar nuevamente`);
+    if (timeSinceLastManual < 60) {
+      const remainingTime = Math.ceil(60 - timeSinceLastManual);
+      toast.error(`Espera ${remainingTime}s antes de actualizar manualmente`);
       return;
     }
 
     setRefreshing(true);
-    setLastRefreshTime(now);
+    lastManualRefreshRef.current = now;
+    lastRefreshRef.current = now;
+    
+    // Restart intervals
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    
     await loadDashboardData();
     setRefreshing(false);
     toast.success('Dashboard actualizado');
