@@ -273,10 +273,24 @@ export default function AdminEmailTemplates({ user }) {
           <h1 className="text-2xl font-bold text-slate-800">Plantillas de Email</h1>
           <p className="text-slate-500">Gestiona plantillas reutilizables para tus emails</p>
         </div>
-        <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Plantilla
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleUpdateAllTemplates} 
+            variant="outline"
+            disabled={updatingTemplates}
+            className="flex items-center gap-2"
+          >
+            {updatingTemplates ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Actualizando...</>
+            ) : (
+              <>🔄 Actualizar Nombre App</>
+            )}
+          </Button>
+          <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Plantilla
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
