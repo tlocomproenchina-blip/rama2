@@ -229,7 +229,8 @@ export default function AdminPaymentAlerts({ user }) {
                 type="number"
                 min="1"
                 value={alertDays}
-                onChange={(e) => setAlertDays(parseInt(e.target.value) || 7)}
+                onChange={(e) => handleAlertDaysChange(e.target.value)}
+                disabled={saving}
                 className="mt-1"
               />
             </div>
