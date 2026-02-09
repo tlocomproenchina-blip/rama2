@@ -84,15 +84,27 @@ export default function InvoicePDFGenerator({ invoice }) {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
 
-      const notesLines = (invoice.notes || '').split('\n');
-      const clientInfoLines = notesLines.slice(0, 1); // Only first line (email)
-      clientInfoLines.forEach(line => {
-       if (line && !line.includes('Paquetes:') && !line.includes('Trackings:')) {
-         doc.text(line, 15, yPos);
+      // Display client information
+      if (clientData) {
+       const fullName = `${clientData.full_name || ''}`.trim();
+       doc.text(fullName, 15, yPos);
+       yPos += 5;
+
+       if (consolidation?.shipping_mark) {
+         doc.text(`Envío: ${consolidation.shipping_mark}`, 15, yPos);
          yPos += 5;
        }
-      });
-      yPos += 3;
+
+       if (clientData.whatsapp) {
+         doc.text(`WhatsApp: ${clientData.whatsapp}`, 15, yPos);
+         yPos += 5;
+       }
+      } else {
+       // Fallback if client data not available
+       doc.text(invoice.client_email || 'N/A', 15, yPos);
+       yPos += 5;
+      }
+      yPos += 2;
 
       // Get consolidation and client data to fetch packages
       let packages = [];
