@@ -75,6 +75,18 @@ export default function ChangeDetectionBadge({ onRefresh, onRefreshPackages, onR
     onRefresh();
   };
 
+  const handlePartialRefresh = async () => {
+    // Only refresh changed entities
+    if (changedEntities.packages && onRefreshPackages) {
+      await onRefreshPackages();
+    }
+    if (changedEntities.consolidations && onRefreshConsolidations) {
+      await onRefreshConsolidations();
+    }
+    setHasNewChanges(false);
+    sessionStorage.setItem('lastCheckedTimestamp', new Date().toISOString());
+  };
+
   return (
     <AnimatePresence>
       {hasNewChanges && (
