@@ -166,101 +166,165 @@ export default function AdminConsolidate({ user }) {
         </CardContent>
       </Card>
 
-      {/* Requests List */}
-      <div className="space-y-4">
-        {requests.length === 0 ? (
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-12 text-center">
-              <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-              <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin solicitudes pendientes</h3>
-              <p className="text-slate-500">No hay solicitudes de consolidación por aprobar</p>
-            </CardContent>
-          </Card>
-        ) : (
-          requests.map((req) => (
-            <Card key={req.id} className="border-0 shadow-md hover:shadow-lg transition-all">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="p-3 bg-purple-100 rounded-xl">
-                      <Layers className="h-6 w-6 text-purple-600" />
-                    </div>
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <User className="h-4 w-4 text-slate-400" />
-                          <p className="font-medium text-slate-800">{req.client_email}</p>
-                        </div>
-                        <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
-                      </div>
-
-                      <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                        <div className="flex items-center gap-2">
-                          {req.shipping_type === 'aereo' 
-                            ? <><Plane className="h-4 w-4" /> Aéreo</>
-                            : <><Ship className="h-4 w-4" /> Marítimo</>
-                          }
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4" />
-                          {req.tracking_numbers?.length || 0} paquetes
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          {new Date(req.created_date).toLocaleDateString('es-ES', {
-                            day: 'numeric',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                      </div>
-
-                      {req.notes && (
-                        <div className="bg-slate-50 rounded-lg p-3">
-                          <p className="text-sm text-slate-600 italic">"{req.notes}"</p>
-                        </div>
-                      )}
-
-                      <div className="pt-2">
-                        <p className="text-xs text-slate-500 mb-2">Trackings solicitados:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {req.tracking_numbers?.map((tracking) => (
-                            <Badge key={tracking} variant="outline" className="font-mono text-xs">
-                              {tracking}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={() => handleApprove(req)}
-                      disabled={processing === req.id}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {processing === req.id ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Aprobando...</>
-                      ) : (
-                        <><CheckCircle className="h-4 w-4 mr-2" /> Aprobar</>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleReject(req)}
-                      disabled={processing === req.id}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
+      {/* Requests Tab */}
+      {activeTab === 'requests' && (
+        <div className="space-y-4">
+          {requests.length === 0 ? (
+            <Card className="border-0 shadow-lg">
+              <CardContent className="p-12 text-center">
+                <Layers className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin solicitudes pendientes</h3>
+                <p className="text-slate-500">No hay solicitudes de consolidación por aprobar</p>
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          ) : (
+            requests.map((req) => (
+              <Card key={req.id} className="border-0 shadow-md hover:shadow-lg transition-all">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="p-3 bg-purple-100 rounded-xl">
+                        <Layers className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <User className="h-4 w-4 text-slate-400" />
+                            <p className="font-medium text-slate-800">{req.client_email}</p>
+                          </div>
+                          <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                          <div className="flex items-center gap-2">
+                            {req.shipping_type === 'aereo' 
+                              ? <><Plane className="h-4 w-4" /> Aéreo</>
+                              : <><Ship className="h-4 w-4" /> Marítimo</>
+                            }
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4" />
+                            {req.tracking_numbers?.length || 0} paquetes
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            {new Date(req.created_date).toLocaleDateString('es-ES', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+
+                        {req.notes && (
+                          <div className="bg-slate-50 rounded-lg p-3">
+                            <p className="text-sm text-slate-600 italic">"{req.notes}"</p>
+                          </div>
+                        )}
+
+                        <div className="pt-2">
+                          <p className="text-xs text-slate-500 mb-2">Trackings solicitados:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {req.tracking_numbers?.map((tracking) => (
+                              <Badge key={tracking} variant="outline" className="font-mono text-xs">
+                                {tracking}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        onClick={() => handleApprove(req)}
+                        disabled={processing === req.id}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {processing === req.id ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Aprobando...</>
+                        ) : (
+                          <><CheckCircle className="h-4 w-4 mr-2" /> Aprobar</>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleReject(req)}
+                        disabled={processing === req.id}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Clients Tab */}
+      {activeTab === 'clients' && (
+        <div className="space-y-4">
+          {clientsWithPackages.length === 0 ? (
+            <Card className="border-0 shadow-lg">
+              <CardContent className="p-12 text-center">
+                <Package className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin cargas pendientes</h3>
+                <p className="text-slate-500">No hay paquetes en pre-alerta</p>
+              </CardContent>
+            </Card>
+          ) : (
+            clientsWithPackages.map((client) => (
+              <Card key={client.email} className="border-0 shadow-md hover:shadow-lg transition-all">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-blue-100 rounded-xl">
+                          <User className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-800">{client.email}</p>
+                          <Badge className="mt-1 bg-blue-100 text-blue-700">
+                            {client.count} paquete{client.count !== 1 ? 's' : ''}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                      {client.packages.map((pkg) => (
+                        <div key={pkg.id} className="flex items-center justify-between bg-slate-50 rounded-lg p-3">
+                          <div className="flex items-center gap-3 flex-1">
+                            <Package className="h-4 w-4 text-slate-400" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-mono text-sm font-medium text-slate-800">{pkg.tracking_number}</p>
+                              <p className="text-xs text-slate-500">{pkg.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            {pkg.shipping_type === 'aereo' 
+                              ? <Plane className="h-4 w-4 text-slate-400" />
+                              : <Ship className="h-4 w-4 text-slate-400" />
+                            }
+                            {pkg.has_insurance && (
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 text-xs">
+                                Asegurado
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
