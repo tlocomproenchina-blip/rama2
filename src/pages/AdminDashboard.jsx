@@ -283,12 +283,18 @@ export default function AdminDashboard({ user }) {
       setChartData({ daily: last7Days, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData });
       setRecentPackages(packages.slice(0, 5));
       setPendingPayments(pendingPays.slice(0, 3));
-    } catch (error) {
+      } catch (error) {
       console.error('Dashboard error:', error);
-    } finally {
+
+      // Detect rate limit error
+      if (error?.message?.includes('Rate limit') || error?.status === 429) {
+        handleRateLimitCooldown();
+        toast.error('Límite de solicitudes excedido. Auto-refresh pausado por 10 minutos');
+      }
+      } finally {
       setLoading(false);
-    }
-  };
+      }
+      };
 
   if (loading) {
     return (
