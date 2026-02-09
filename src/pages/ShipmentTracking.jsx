@@ -433,9 +433,13 @@ export default function ShipmentTracking({ user }) {
                           {daysInTransit} días desde creación
                         </div>
                         {daysRemaining !== null && (
-                          <div className="text-sm text-emerald-600 flex items-center gap-1">
+                          <div className={`text-sm flex items-center gap-1 ${daysRemaining < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                             <Calendar className="h-4 w-4" />
-                            ~{daysRemaining} días restantes
+                            {daysRemaining < 0 ? (
+                              <>{Math.abs(daysRemaining)} días retrasado</>
+                            ) : (
+                              <>{daysRemaining} días restantes</>
+                            )}
                           </div>
                         )}
                       </div>
