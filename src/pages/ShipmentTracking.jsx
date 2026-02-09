@@ -225,8 +225,14 @@ export default function ShipmentTracking({ user }) {
         const estimatedDate = new Date(con.estimated_delivery);
         if (isNaN(estimatedDate.getTime())) return null;
         
-        const remaining = differenceInDays(estimatedDate, new Date());
-        return remaining;
+        // Calcular días restantes hasta la fecha estimada
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const deliveryDate = new Date(estimatedDate);
+        deliveryDate.setHours(0, 0, 0, 0);
+        
+        const remaining = differenceInDays(deliveryDate, today);
+        return remaining >= 0 ? remaining : remaining; // Mostrar negativo si está retrasado
       } catch (e) {
         return null;
       }
