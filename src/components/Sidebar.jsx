@@ -289,30 +289,30 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
         {/* Theme Toggle & Logout */}
         <div className="bg-[#1c3f82] p-4 border-t border-slate-700/50 space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-slate-800/30 rounded-lg p-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setTheme('light')}
-              className={`flex-1 ${theme === 'light' ? 'bg-slate-700/50 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}`}
+              className={`flex-1 h-8 transition-all ${theme === 'light' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-300'}`}
             >
-              <Sun className="h-4 w-4" />
+              <Sun className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setTheme('dark')}
-              className={`flex-1 ${theme === 'dark' ? 'bg-slate-700/50 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}`}
+              className={`flex-1 h-8 transition-all ${theme === 'dark' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-300'}`}
             >
-              <Moon className="h-4 w-4" />
+              <Moon className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setTheme('system')}
-              className={`flex-1 ${theme === 'system' ? 'bg-slate-700/50 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}`}
+              className={`flex-1 h-8 transition-all ${theme === 'system' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-300'}`}
             >
-              <Monitor className="h-4 w-4" />
+              <Monitor className="h-3.5 w-3.5" />
             </Button>
           </div>
           <Button
