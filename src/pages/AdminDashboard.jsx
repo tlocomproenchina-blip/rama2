@@ -618,6 +618,27 @@ export default function AdminDashboard({ user }) {
         </div>
       </div>
 
+      {/* Performance Log */}
+      {performanceLog.length > 0 && (
+        <details className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <summary className="cursor-pointer font-medium text-slate-700 hover:text-slate-900">
+            📊 Performance Log (clic para ver)
+          </summary>
+          <div className="mt-3 space-y-2 text-xs font-mono">
+            {performanceLog.map((log, idx) => (
+              <div key={idx} className={`flex justify-between p-2 rounded ${
+                log.name.includes('TOTAL') ? 'bg-green-100 font-bold' : 'bg-white'
+              }`}>
+                <span>{log.name}</span>
+                <span className="text-slate-600">
+                  {log.duration}ms {log.count !== '-' && `(${log.count} records)`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
