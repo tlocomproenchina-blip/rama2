@@ -405,7 +405,7 @@ export default function AdminEmailCampaigns({ user }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Destinatarios</p>
-                <p className="text-3xl font-bold text-blue-600">{targetClients.length}</p>
+                <p className="text-3xl font-bold text-blue-600">{getTargetClients.length}</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-xl">
                 <Mail className="h-6 w-6 text-blue-600" />
