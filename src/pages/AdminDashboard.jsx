@@ -59,8 +59,6 @@ export default function AdminDashboard({ user }) {
   const [nextRefreshIn, setNextRefreshIn] = useState(0);
   const [cooldownActive, setCooldownActive] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [performanceLog, setPerformanceLog] = useState([]);
   
   const intervalRef = useRef(null);
   const countdownRef = useRef(null);
@@ -68,7 +66,6 @@ export default function AdminDashboard({ user }) {
   const cooldownTimerRef = useRef(null);
   const lastRefreshRef = useRef(Date.now());
   const lastManualRefreshRef = useRef(0);
-  const refreshLock = useRef(false);
 
   // Visibility change handler
   useEffect(() => {
@@ -115,16 +112,11 @@ export default function AdminDashboard({ user }) {
   const autoRefresh = async () => {
     try {
       lastRefreshRef.current = Date.now();
-      await loadDashboardRefresh();
+      await loadDashboardData();
     } catch (error) {
       console.error('Auto-refresh error:', error);
     }
   };
-
-  // Initial load on mount - NO THROTTLE
-  useEffect(() => {
-    loadDashboardInitial();
-  }, []);
 
   const handleRateLimitCooldown = () => {
     setCooldownActive(true);
@@ -167,307 +159,14 @@ export default function AdminDashboard({ user }) {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (countdownRef.current) clearInterval(countdownRef.current);
     
-    await loadDashboardRefresh();
+    await loadDashboardData();
     setRefreshing(false);
     toast.success('Dashboard actualizado');
   };
 
-  // Initial fast load - NO THROTTLE, optimized queries
-  const loadDashboardInitial = async () => {
-    if (refreshLock.current) return;
-    refreshLock.current = true;
-
-    const perfLog = [];
-    const logQuery = (name, start, count) => {
-      const duration = Date.now() - start;
-      perfLog.push({ name, duration, count });
-      console.log(`[PERF] ${name}: ${duration}ms (${count} records)`);
-    };
-
-    try {
-      const totalStart = Date.now();
-
-      // Query 1: Recent packages (last 30 days, max 50)
-      const pkgStart = Date.now();
-      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
-      const packages = await base44.entities.Package.filter(
-        { created_date: { $gte: thirtyDaysAgo } },
-        '-created_date',
-        50
-      );
-      logQuery('Packages (30d, limit 50)', pkgStart, packages.length);
-
-      // Query 2: Recent consolidations (last 30 days, max 50)
-      const consStart = Date.now();
-      const consolidations = await base44.entities.Consolidation.filter(
-        { created_date: { $gte: thirtyDaysAgo } },
-        '-created_date',
-        50
-      );
-      logQuery('Consolidations (30d, limit 50)', consStart, consolidations.length);
-
-      // Query 3: Active users count (profile completed only)
-      const usersStart = Date.now();
-      const users = await base44.entities.User.filter({ profile_completed: true });
-      logQuery('Active Users (profile_completed)', usersStart, users.length);
-
-      // Process packages
-      const receivedCount = packages.filter(p => p.status === 'recibido').length;
-      const preAlertCount = packages.filter(p => p.status === 'pre_alerta').length;
-      const consolidatedCount = packages.filter(p => p.status === 'consolidado').length;
-      const inTransitCount = packages.filter(p => p.status === 'en_transito').length;
-      const insuredPackages = packages.filter(p => p.has_insurance);
-      const totalInsuredValue = insuredPackages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
-
-      // Last 7 days chart (from 30-day dataset)
-      const last7Days = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = startOfDay(subDays(new Date(), i));
-        const paquetes = packages.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
-        last7Days.push({ date: format(date, 'dd MMM'), paquetes });
-      }
-
-      // Process consolidations
-      const transiting = consolidations.filter(c => c.status === 'en_transito').length;
-      const available = consolidations.filter(c => c.status === 'disponible').length;
-      const delivered = consolidations.filter(c => c.status === 'entregado').length;
-      const pendingPayment = consolidations.filter(c => c.status === 'pago_validado').length;
-      const totalRevenue = consolidations.reduce((sum, c) => sum + (c.total_cost || 0), 0);
-
-      const shippingType = [
-        { name: 'Aéreo', value: consolidations.filter(c => c.shipping_type === 'aereo').length },
-        { name: 'Marítimo', value: consolidations.filter(c => c.shipping_type === 'maritimo').length }
-      ];
-
-      const statusDist = [
-        { name: 'En Tránsito', value: transiting },
-        { name: 'Pago Validado', value: pendingPayment },
-        { name: 'Disponible', value: available },
-        { name: 'Entregado', value: delivered }
-      ];
-
-      // Revenue by day (last 7 days)
-      const revenueByDay = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = startOfDay(subDays(new Date(), i));
-        const dayRevenue = consolidations
-          .filter(c => new Date(c.created_date) >= date && new Date(c.created_date) < new Date(date.getTime() + 24*60*60*1000))
-          .reduce((sum, c) => sum + (c.total_cost || 0), 0);
-        revenueByDay.push({ date: format(date, 'dd MMM'), revenue: dayRevenue });
-      }
-
-      // Validation times (top 10)
-      const validationTimesData = consolidations
-        .filter(c => c.payment_validation_date && c.payment_date)
-        .map(c => ({
-          name: c.consolidation_tracking?.substring(0, 6) || 'N/A',
-          hours: Math.round((new Date(c.payment_validation_date) - new Date(c.payment_date)) / (1000*60*60))
-        }))
-        .slice(0, 10);
-
-      // KPIs
-      const validatedRevenue = consolidations
-        .filter(c => c.payment_validated)
-        .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
-
-      const validatedConsolidations = consolidations.filter(c => 
-        c.payment_validated && c.payment_date && c.payment_validation_date
-      );
-      const avgValidationTime = validatedConsolidations.length > 0
-        ? validatedConsolidations.reduce((sum, c) => {
-            const paymentTime = new Date(c.payment_date).getTime();
-            const validationTime = new Date(c.payment_validation_date).getTime();
-            const hours = (validationTime - paymentTime) / (1000 * 60 * 60);
-            return sum + Math.max(0, hours);
-          }, 0) / validatedConsolidations.length
-        : 0;
-
-      // Update state
-      setStats({
-        totalPackages: packages.length,
-        preAlertas: preAlertCount,
-        recibidos: receivedCount,
-        enTransito: inTransitCount,
-        disponibles: available,
-        entregados: delivered,
-        consolidaciones: consolidations.length,
-        pendientesPago: pendingPayment,
-        clientes: users.length,
-        totalIngresos: totalRevenue,
-        asegurados: insuredPackages.length,
-        valorSeguro: totalInsuredValue
-      });
-
-      setAnalyticsKPIs({
-        activeClients: users.length,
-        packagesInTransit: inTransitCount,
-        validatedRevenue,
-        avgValidationTime
-      });
-
-      setChartData({
-        daily: last7Days,
-        statusDist,
-        shippingType,
-        revenue: revenueByDay,
-        validationTimes: validationTimesData
-      });
-
-      setRecentPackages(packages.slice(0, 5));
-      setPendingPayments(consolidations.filter(c => c.status === 'pago_validado').slice(0, 3));
-
-      const totalDuration = Date.now() - totalStart;
-      perfLog.push({ name: '🚀 TOTAL INITIAL LOAD', duration: totalDuration, count: '-' });
-      console.log(`[PERF] 🚀 TOTAL: ${totalDuration}ms`);
-      setPerformanceLog(perfLog);
-
-      setIsInitialLoad(false);
-      lastRefreshRef.current = Date.now();
-    } catch (error) {
-      console.error('Initial load error:', error);
-      if (error?.message?.includes('Rate limit') || error?.status === 429) {
-        handleRateLimitCooldown();
-        toast.error('Límite de solicitudes excedido');
-      }
-    } finally {
-      refreshLock.current = false;
-      setLoading(false);
-    }
-  };
-
-  // Refresh load - WITH THROTTLE for polling/manual refresh
-  const loadDashboardRefresh = async () => {
-    if (refreshLock.current) {
-      console.log('[REFRESH] Lock active, skipping');
-      return;
-    }
-    refreshLock.current = true;
-
-    try {
-      // Same optimized queries as initial load
-      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
-      const [packages, consolidations, users] = await Promise.all([
-        base44.entities.Package.filter({ created_date: { $gte: thirtyDaysAgo } }, '-created_date', 50),
-        base44.entities.Consolidation.filter({ created_date: { $gte: thirtyDaysAgo } }, '-created_date', 50),
-        base44.entities.User.filter({ profile_completed: true })
-      ]);
-
-      // Same processing as initial load
-      const receivedCount = packages.filter(p => p.status === 'recibido').length;
-      const preAlertCount = packages.filter(p => p.status === 'pre_alerta').length;
-      const consolidatedCount = packages.filter(p => p.status === 'consolidado').length;
-      const inTransitCount = packages.filter(p => p.status === 'en_transito').length;
-      const insuredPackages = packages.filter(p => p.has_insurance);
-      const totalInsuredValue = insuredPackages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
-
-      const last7Days = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = startOfDay(subDays(new Date(), i));
-        const paquetes = packages.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
-        last7Days.push({ date: format(date, 'dd MMM'), paquetes });
-      }
-
-      const transiting = consolidations.filter(c => c.status === 'en_transito').length;
-      const available = consolidations.filter(c => c.status === 'disponible').length;
-      const delivered = consolidations.filter(c => c.status === 'entregado').length;
-      const pendingPayment = consolidations.filter(c => c.status === 'pago_validado').length;
-      const totalRevenue = consolidations.reduce((sum, c) => sum + (c.total_cost || 0), 0);
-
-      const shippingType = [
-        { name: 'Aéreo', value: consolidations.filter(c => c.shipping_type === 'aereo').length },
-        { name: 'Marítimo', value: consolidations.filter(c => c.shipping_type === 'maritimo').length }
-      ];
-
-      const statusDist = [
-        { name: 'En Tránsito', value: transiting },
-        { name: 'Pago Validado', value: pendingPayment },
-        { name: 'Disponible', value: available },
-        { name: 'Entregado', value: delivered }
-      ];
-
-      const revenueByDay = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = startOfDay(subDays(new Date(), i));
-        const dayRevenue = consolidations
-          .filter(c => new Date(c.created_date) >= date && new Date(c.created_date) < new Date(date.getTime() + 24*60*60*1000))
-          .reduce((sum, c) => sum + (c.total_cost || 0), 0);
-        revenueByDay.push({ date: format(date, 'dd MMM'), revenue: dayRevenue });
-      }
-
-      const validationTimesData = consolidations
-        .filter(c => c.payment_validation_date && c.payment_date)
-        .map(c => ({
-          name: c.consolidation_tracking?.substring(0, 6) || 'N/A',
-          hours: Math.round((new Date(c.payment_validation_date) - new Date(c.payment_date)) / (1000*60*60))
-        }))
-        .slice(0, 10);
-
-      const validatedRevenue = consolidations
-        .filter(c => c.payment_validated)
-        .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
-
-      const validatedConsolidations = consolidations.filter(c => 
-        c.payment_validated && c.payment_date && c.payment_validation_date
-      );
-      const avgValidationTime = validatedConsolidations.length > 0
-        ? validatedConsolidations.reduce((sum, c) => {
-            const paymentTime = new Date(c.payment_date).getTime();
-            const validationTime = new Date(c.payment_validation_date).getTime();
-            const hours = (validationTime - paymentTime) / (1000 * 60 * 60);
-            return sum + Math.max(0, hours);
-          }, 0) / validatedConsolidations.length
-        : 0;
-
-      setStats({
-        totalPackages: packages.length,
-        preAlertas: preAlertCount,
-        recibidos: receivedCount,
-        enTransito: inTransitCount,
-        disponibles: available,
-        entregados: delivered,
-        consolidaciones: consolidations.length,
-        pendientesPago: pendingPayment,
-        clientes: users.length,
-        totalIngresos: totalRevenue,
-        asegurados: insuredPackages.length,
-        valorSeguro: totalInsuredValue
-      });
-
-      setAnalyticsKPIs({
-        activeClients: users.length,
-        packagesInTransit: inTransitCount,
-        validatedRevenue,
-        avgValidationTime
-      });
-
-      setChartData({
-        daily: last7Days,
-        statusDist,
-        shippingType,
-        revenue: revenueByDay,
-        validationTimes: validationTimesData
-      });
-
-      setRecentPackages(packages.slice(0, 5));
-      setPendingPayments(consolidations.filter(c => c.status === 'pago_validado').slice(0, 3));
-
-      lastRefreshRef.current = Date.now();
-    } catch (error) {
-      console.error('Refresh error:', error);
-      if (error?.message?.includes('Rate limit') || error?.status === 429) {
-        handleRateLimitCooldown();
-        toast.error('Límite de solicitudes excedido. Auto-refresh pausado por 10 minutos');
-      }
-    } finally {
-      refreshLock.current = false;
-    }
-  };
-
   // Granular data loading functions for partial refresh
   const loadPackagesData = async (pkgList) => {
-    const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
-    const pkg = pkgList || await base44.entities.Package.filter({ created_date: { $gte: thirtyDaysAgo } }, '-created_date', 50);
-    
+    const pkg = pkgList || await base44.entities.Package.list('-created_date');
     const receivedCount = pkg.filter(p => p.status === 'recibido').length;
     const preAlertCount = pkg.filter(p => p.status === 'pre_alerta').length;
     const consolidatedCount = pkg.filter(p => p.status === 'consolidado').length;
@@ -476,17 +175,17 @@ export default function AdminDashboard({ user }) {
     const last7Days = [];
     for (let i = 6; i >= 0; i--) {
       const date = startOfDay(subDays(new Date(), i));
-      const paquetes = pkg.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
-      last7Days.push({ date: format(date, 'dd MMM'), paquetes });
+      const count = pkg.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
+      last7Days.push({ date: format(date, 'dd MMM'), count });
     }
 
     setStats(prev => ({
       ...prev,
-      totalPackages: pkg.length,
-      recibidos: receivedCount,
-      preAlertas: preAlertCount,
-      consolidados: consolidatedCount,
-      enTransito: inTransitCount
+      packages: pkg.length,
+      receivedCount,
+      preAlertCount,
+      consolidatedCount,
+      inTransitCount
     }));
 
     setChartData(prev => ({ ...prev, daily: last7Days }));
@@ -495,9 +194,7 @@ export default function AdminDashboard({ user }) {
   };
 
   const loadConsolidationsData = async (consList) => {
-    const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
-    const cons = consList || await base44.entities.Consolidation.filter({ created_date: { $gte: thirtyDaysAgo } }, '-created_date', 50);
-    
+    const cons = consList || await base44.entities.Consolidation.list('-created_date');
     const transiting = cons.filter(c => c.status === 'en_transito').length;
     const available = cons.filter(c => c.status === 'disponible').length;
     const delivered = cons.filter(c => c.status === 'entregado').length;
@@ -537,11 +234,11 @@ export default function AdminDashboard({ user }) {
 
     setStats(prev => ({
       ...prev,
-      consolidaciones: cons.length,
-      enTransito: transiting,
-      disponibles: available,
-      entregados: delivered,
-      totalIngresos: totalRevenue
+      consolidations: cons.length,
+      transiting,
+      available,
+      delivered,
+      totalRevenue
     }));
 
     setChartData(prev => ({ ...prev, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData }));
@@ -549,7 +246,70 @@ export default function AdminDashboard({ user }) {
     return cons;
   };
 
+  const loadUsersData = async (userList) => {
+    const users = userList || await base44.entities.User.list();
+    setStats(prev => ({ ...prev, users: users.length }));
+    return users;
+  };
 
+  const loadDashboardData = async () => {
+    try {
+      // Sequential calls with 2s delay between each
+      const packages = await loadPackagesData();
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const consolidations = await loadConsolidationsData();
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const users = await loadUsersData();
+
+      // Calculate additional stats
+      const insuredPackages = packages.filter(p => p.has_insurance);
+      const totalInsuredValue = insuredPackages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
+
+      setStats(prev => ({
+        ...prev,
+        asegurados: insuredPackages.length,
+        valorSeguro: totalInsuredValue
+      }));
+
+      // Analytics KPIs
+      const activeClients = users.filter(u => u.profile_completed).length;
+      const packagesInTransit = packages.filter(p => p.status === 'en_transito').length;
+      const validatedRevenue = consolidations
+        .filter(c => c.payment_validated)
+        .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
+
+      const validatedConsolidations = consolidations.filter(c => 
+        c.payment_validated && c.payment_date && c.payment_validation_date
+      );
+      const avgValidationTime = validatedConsolidations.length > 0
+        ? validatedConsolidations.reduce((sum, c) => {
+            const paymentTime = new Date(c.payment_date).getTime();
+            const validationTime = new Date(c.payment_validation_date).getTime();
+            const hours = (validationTime - paymentTime) / (1000 * 60 * 60);
+            return sum + Math.max(0, hours);
+          }, 0) / validatedConsolidations.length
+        : 0;
+
+      setAnalyticsKPIs({
+        activeClients,
+        packagesInTransit,
+        validatedRevenue,
+        avgValidationTime
+      });
+    } catch (error) {
+      console.error('Dashboard error:', error);
+
+      // Detect rate limit error
+      if (error?.message?.includes('Rate limit') || error?.status === 429) {
+        handleRateLimitCooldown();
+        toast.error('Límite de solicitudes excedido. Auto-refresh pausado por 10 minutos');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Partial refresh functions (for ChangeDetectionBadge)
   const refreshPackages = async () => {
@@ -568,10 +328,8 @@ export default function AdminDashboard({ user }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
-        <p className="text-slate-600 font-medium">Cargando dashboard optimizado...</p>
-        <p className="text-slate-400 text-sm mt-2">Primera carga: {'<'}3 segundos</p>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
@@ -617,27 +375,6 @@ export default function AdminDashboard({ user }) {
           ⏱️ Próxima en: {nextRefreshIn}s
         </div>
       </div>
-
-      {/* Performance Log */}
-      {performanceLog.length > 0 && (
-        <details className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-          <summary className="cursor-pointer font-medium text-slate-700 hover:text-slate-900">
-            📊 Performance Log (clic para ver)
-          </summary>
-          <div className="mt-3 space-y-2 text-xs font-mono">
-            {performanceLog.map((log, idx) => (
-              <div key={idx} className={`flex justify-between p-2 rounded ${
-                log.name.includes('TOTAL') ? 'bg-green-100 font-bold' : 'bg-white'
-              }`}>
-                <span>{log.name}</span>
-                <span className="text-slate-600">
-                  {log.duration}ms {log.count !== '-' && `(${log.count} records)`}
-                </span>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">

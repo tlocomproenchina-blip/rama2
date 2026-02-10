@@ -289,24 +289,19 @@ export default function AdminMarketing({ user }) {
           });
           
           // Log the email
-              await base44.entities.EmailLog.create({
-                recipient_email: client.email,
-                recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
-                sender_email: user.email,
-                from_name: config?.app_name || 'Logistics App',
-                subject: personalizedSubject,
-                body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
-                campaign_id: campaign.id,
-                campaign_name: campaign.name,
-                source: 'campaign',
-                status: 'delivered',
-                sent_date: new Date().toISOString(),
-                delivered_date: new Date().toISOString(),
-                open_count: 0,
-                click_count: 0,
-                converted: false,
-                conversion_value: 0
-              });
+          await base44.entities.EmailLog.create({
+            recipient_email: client.email,
+            recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
+            sender_email: user.email,
+            from_name: config?.app_name || 'Logistics App',
+            subject: personalizedSubject,
+            body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
+            campaign_id: campaign.id,
+            campaign_name: campaign.name,
+            source: 'campaign',
+            status: 'sent',
+            sent_date: new Date().toISOString()
+          });
         }
       }
       
@@ -327,14 +322,13 @@ export default function AdminMarketing({ user }) {
         status: 'sent',
         sent_date: new Date().toISOString()
       });
-
+      
       toast.success(`Campaña enviada a ${clients.length} clientes`);
       loadData();
-      calculateEmailStats();
-      } catch (error) {
+    } catch (error) {
       toast.error('Error al enviar campaña');
-      }
-      };
+    }
+  };
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar esta campaña?')) return;
@@ -380,44 +374,14 @@ export default function AdminMarketing({ user }) {
     'link', 'image'
   ];
 
-  const [emailStats, setEmailStats] = useState({
-    delivered: 0,
-    opened: 0,
-    clicked: 0,
-    bounced: 0,
-    conversions: 0,
-    revenue: 0
-  });
-
-  useEffect(() => {
-    calculateEmailStats();
-  }, []);
-
-  const calculateEmailStats = async () => {
-    try {
-      const emailLogs = await base44.entities.EmailLog.list();
-      const stats = {
-        delivered: emailLogs.filter(e => e.status === 'delivered').length,
-        opened: emailLogs.filter(e => e.status === 'opened').length,
-        clicked: emailLogs.filter(e => e.status === 'clicked').length,
-        bounced: emailLogs.filter(e => e.status === 'bounced').length,
-        conversions: emailLogs.filter(e => e.converted).length,
-        revenue: emailLogs.reduce((sum, e) => sum + (e.conversion_value || 0), 0)
-      };
-      setEmailStats(stats);
-    } catch (error) {
-      console.error('Error calculating email stats:', error);
-    }
-  };
-
   const stats = {
     total: campaigns.length,
     sent: campaigns.filter(c => c.status === 'sent').length,
     scheduled: campaigns.filter(c => c.status === 'scheduled').length,
-    avgOpenRate: emailStats.opened > 0 && emailStats.delivered > 0
-      ? ((emailStats.opened / emailStats.delivered) * 100).toFixed(1)
+    avgOpenRate: campaigns.length > 0 
+      ? (campaigns.reduce((sum, c) => sum + (c.recipients_count > 0 ? (c.opened_count / c.recipients_count) * 100 : 0), 0) / campaigns.length).toFixed(1)
       : 0,
-    totalRevenue: emailStats.revenue
+    totalRevenue: campaigns.reduce((sum, c) => sum + (c.revenue_generated || 0), 0)
   };
 
   if (loading) {
@@ -492,75 +456,32 @@ export default function AdminMarketing({ user }) {
         </Card>
 
         <Card className="border-0 shadow-lg">
-           <CardContent className="p-6">
-             <div className="flex items-center justify-between">
-               <div>
-                 <p className="text-sm text-slate-500">Entregados</p>
-                 <p className="text-2xl font-bold text-green-600">{emailStats.delivered}</p>
-                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
-               </div>
-               <Send className="h-8 w-8 text-green-600" />
-             </div>
-           </CardContent>
-         </Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Clics</p>
+                <p className="text-2xl font-bold text-indigo-600">
+                  {campaigns.reduce((sum, c) => sum + (c.clicked_count || 0), 0)}
+                </p>
+              </div>
+              <MousePointer className="h-8 w-8 text-indigo-600" />
+            </div>
+          </CardContent>
+        </Card>
 
-         <Card className="border-0 shadow-lg">
-           <CardContent className="p-6">
-             <div className="flex items-center justify-between">
-               <div>
-                 <p className="text-sm text-slate-500">Abiertos</p>
-                 <p className="text-2xl font-bold text-purple-600">{emailStats.opened}</p>
-                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
-               </div>
-               <Eye className="h-8 w-8 text-purple-600" />
-             </div>
-           </CardContent>
-         </Card>
-
-         <Card className="border-0 shadow-lg">
-           <CardContent className="p-6">
-             <div className="flex items-center justify-between">
-               <div>
-                 <p className="text-sm text-slate-500">Clics</p>
-                 <p className="text-2xl font-bold text-indigo-600">
-                   {emailStats.clicked}
-                 </p>
-                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
-               </div>
-               <MousePointer className="h-8 w-8 text-indigo-600" />
-             </div>
-           </CardContent>
-         </Card>
-
-         <Card className="border-0 shadow-lg">
-           <CardContent className="p-6">
-             <div className="flex items-center justify-between">
-               <div>
-                 <p className="text-sm text-slate-500">Rebotes</p>
-                 <p className="text-2xl font-bold text-red-600">
-                   {emailStats.bounced}
-                 </p>
-                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
-               </div>
-               <XCircle className="h-8 w-8 text-red-600" />
-             </div>
-           </CardContent>
-         </Card>
-
-         <Card className="border-0 shadow-lg">
-           <CardContent className="p-6">
-             <div className="flex items-center justify-between">
-               <div>
-                 <p className="text-sm text-slate-500">Conversiones</p>
-                 <p className="text-2xl font-bold text-teal-600">
-                   {emailStats.conversions}
-                 </p>
-                 <p className="text-xs text-slate-500 mt-1">0.0%</p>
-               </div>
-               <TrendingUp className="h-8 w-8 text-teal-600" />
-             </div>
-           </CardContent>
-         </Card>
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Conversiones</p>
+                <p className="text-2xl font-bold text-teal-600">
+                  {campaigns.reduce((sum, c) => sum + (c.converted_count || 0), 0)}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-teal-600" />
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
