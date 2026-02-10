@@ -476,8 +476,8 @@ export default function AdminDashboard({ user }) {
     const last7Days = [];
     for (let i = 6; i >= 0; i--) {
       const date = startOfDay(subDays(new Date(), i));
-      const count = pkg.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
-      last7Days.push({ date: format(date, 'dd MMM'), count });
+      const paquetes = pkg.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
+      last7Days.push({ date: format(date, 'dd MMM'), paquetes });
     }
 
     setStats(prev => ({
