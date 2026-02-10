@@ -5,7 +5,7 @@ export async function getAdmins() {
   return allUsers.filter(u => u.role === 'admin');
 }
 
-export async function sendNotification({ to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null, entityType = null }) {
+export async function sendNotification({ to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
   try {
     await base44.integrations.Core.SendEmail({ to, subject, body });
     await base44.entities.Notification.create({
@@ -14,8 +14,7 @@ export async function sendNotification({ to, subject, body, title, message, type
       message: message || body.split('\n')[0],
       type,
       icon,
-      reference_id: referenceId,
-      entity_type: entityType
+      reference_id: referenceId
     });
 
     // Send push notification
@@ -34,11 +33,11 @@ export async function sendNotification({ to, subject, body, title, message, type
   }
 }
 
-export async function notifyAdmins({ subject, body, title, message, type = 'general', icon = 'alert', referenceId = null, entityType = null }) {
+export async function notifyAdmins({ subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
   try {
     const admins = await getAdmins();
     await Promise.all(admins.map(admin => 
-      sendNotification({ to: admin.email, subject, body, title, message, type, icon, referenceId, entityType })
+      sendNotification({ to: admin.email, subject, body, title, message, type, icon, referenceId })
     ));
   } catch (error) {
     console.error('Admin notification error:', error);
@@ -68,8 +67,7 @@ export async function notifyPackageStatus(pkg, status) {
     body: `${msg.subject}\n\nTracking: ${pkg.tracking_number}\nShipping Mark: ${pkg.shipping_mark || 'N/A'}`,
     type: 'package',
     icon: msg.icon,
-    referenceId: pkg.id,
-    entityType: 'Package'
+    referenceId: pkg.id
   });
 }
 
@@ -83,7 +81,6 @@ export async function notifyConsolidationStatus(consolidation, status) {
     body: `${msg.subject}\n\nTracking: ${consolidation.consolidation_tracking}\nShipping Mark: ${consolidation.shipping_mark || 'N/A'}`,
     type: 'consolidation',
     icon: msg.icon,
-    referenceId: consolidation.id,
-    entityType: 'Consolidation'
+    referenceId: consolidation.id
   });
 }
