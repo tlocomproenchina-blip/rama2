@@ -167,7 +167,7 @@ export default function AdminDashboard({ user }) {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (countdownRef.current) clearInterval(countdownRef.current);
     
-    await loadDashboardData();
+    await loadDashboardRefresh();
     setRefreshing(false);
     toast.success('Dashboard actualizado');
   };
