@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { Plus, Loader2, Mail, Edit, Trash2, Eye, Copy, Paperclip, X, Image as ImageIcon, Star } from 'lucide-react';
 import { toast } from 'sonner';
+
+const ReactQuill = lazy(() => import('react-quill'));
 
 export default function AdminEmailTemplates({ user }) {
   const [templates, setTemplates] = useState([]);
@@ -52,11 +52,11 @@ export default function AdminEmailTemplates({ user }) {
     }
   };
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     const data = await base44.entities.EmailTemplate.list('-created_date');
     setTemplates(data);
     setLoading(false);
-  };
+  }, []);
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -248,7 +248,7 @@ export default function AdminEmailTemplates({ user }) {
     marketing: 'bg-orange-100 text-orange-800'
   };
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: templates.length,
     byCategory: templates.reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + 1;
@@ -256,7 +256,7 @@ export default function AdminEmailTemplates({ user }) {
     }, {}),
     defaults: templates.filter(t => t.is_default).length,
     custom: templates.filter(t => !t.is_default).length
-  };
+  }), [templates]);
 
   if (loading) {
     return (
@@ -604,7 +604,7 @@ export default function AdminEmailTemplates({ user }) {
                     </div>
                   </div>
                 ) : (
-                  <>
+                  <Suspense fallback={<div className="border rounded-lg p-4 bg-slate-50 h-64 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-blue-600" /></div>}>
                     <div className="border rounded-lg overflow-hidden">
                       <ReactQuill
                         theme="snow"
@@ -617,7 +617,7 @@ export default function AdminEmailTemplates({ user }) {
                         style={{ minHeight: '250px' }}
                       />
                     </div>
-                  </>
+                  </Suspense>
                 )}
               </div>
 

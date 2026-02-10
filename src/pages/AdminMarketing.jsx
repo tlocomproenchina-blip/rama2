@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = lazy(() => import('react-quill'));
 import { Plus, Loader2, Mail, Bell, Users, TrendingUp, Calendar, Send, Eye, MousePointer, DollarSign, Edit, Trash2, Paperclip, X, Image as ImageIcon, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import EmailHistoryModal from '@/components/admin/EmailHistoryModal';
@@ -48,9 +48,10 @@ export default function AdminMarketing({ user }) {
   });
 
   useEffect(() => {
-    loadConfig();
-    loadData();
-    loadTemplates();
+    const init = async () => {
+      await Promise.all([loadConfig(), loadData(), loadTemplates()]);
+    };
+    init();
   }, []);
 
   const loadConfig = async () => {
@@ -374,7 +375,7 @@ export default function AdminMarketing({ user }) {
     'link', 'image'
   ];
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: campaigns.length,
     sent: campaigns.filter(c => c.status === 'sent').length,
     scheduled: campaigns.filter(c => c.status === 'scheduled').length,
@@ -382,7 +383,7 @@ export default function AdminMarketing({ user }) {
       ? (campaigns.reduce((sum, c) => sum + (c.recipients_count > 0 ? (c.opened_count / c.recipients_count) * 100 : 0), 0) / campaigns.length).toFixed(1)
       : 0,
     totalRevenue: campaigns.reduce((sum, c) => sum + (c.revenue_generated || 0), 0)
-  };
+  }), [campaigns]);
 
   if (loading) {
     return (
@@ -749,7 +750,7 @@ export default function AdminMarketing({ user }) {
                         </div>
                       </div>
                     ) : (
-                      <>
+                      <Suspense fallback={<div className="border rounded-lg p-4 bg-slate-50 h-64 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-blue-600" /></div>}>
                         <div className="border rounded-lg overflow-hidden">
                           <ReactQuill
                             theme="snow"
@@ -765,7 +766,7 @@ export default function AdminMarketing({ user }) {
                         <p className="text-xs text-slate-500">
                           Usa la barra de herramientas para dar formato o el botón "Pegar HTML" para código personalizado
                         </p>
-                      </>
+                      </Suspense>
                     )}
                   </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ export default function EmailHistoryModal({ open, onClose, clientEmail, clientNa
 
   useEffect(() => {
     if (open && clientEmail) {
+      setLoading(true);
       loadEmailHistory();
     }
   }, [open, clientEmail]);
@@ -47,13 +48,13 @@ export default function EmailHistoryModal({ open, onClose, clientEmail, clientNa
     );
   };
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: logs.length,
     delivered: logs.filter(l => ['delivered', 'opened', 'clicked'].includes(l.status)).length,
     opened: logs.filter(l => ['opened', 'clicked'].includes(l.status)).length,
     clicked: logs.filter(l => l.status === 'clicked').length,
     bounced: logs.filter(l => l.status === 'bounced').length
-  };
+  }), [logs]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = lazy(() => import('react-quill'));
 import { 
   Mail, 
   Send, 
@@ -59,10 +59,15 @@ export default function AdminEmailCampaigns({ user }) {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   useEffect(() => {
-    loadConfig();
-    loadClients();
-    loadEmailStats();
-    loadTemplates();
+    const init = async () => {
+      await Promise.all([
+        loadConfig(),
+        loadClients(),
+        loadEmailStats(),
+        loadTemplates()
+      ]);
+    };
+    init();
   }, []);
 
   const loadConfig = async () => {
@@ -132,7 +137,7 @@ export default function AdminEmailCampaigns({ user }) {
     }
   };
 
-  const getTargetClients = () => {
+  const getTargetClients = useMemo(() => {
     if (targetType === 'all') return clients;
     if (targetType === 'with_mark') return clients.filter(c => c.shipping_mark);
     if (targetType === 'without_mark') return clients.filter(c => !c.shipping_mark);
@@ -141,7 +146,7 @@ export default function AdminEmailCampaigns({ user }) {
     }
     if (targetType === 'custom') return clients.filter(c => selectedClients.includes(c.id));
     return [];
-  };
+  }, [targetType, clients, selectedClients]);
 
   const toggleClient = (clientId) => {
     setSelectedClients(prev => 
@@ -151,7 +156,7 @@ export default function AdminEmailCampaigns({ user }) {
     );
   };
 
-  const getFilteredClients = () => {
+  const getFilteredClients = useMemo(() => {
     if (!searchQuery.trim()) return clients;
     
     const query = searchQuery.toLowerCase().trim();
@@ -166,7 +171,7 @@ export default function AdminEmailCampaigns({ user }) {
              phone.includes(query) || 
              mark.includes(query);
     });
-  };
+  }, [clients, searchQuery]);
 
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -213,8 +218,7 @@ export default function AdminEmailCampaigns({ user }) {
       return;
     }
 
-    const targets = getTargetClients();
-    if (targets.length === 0) {
+    if (getTargetClients.length === 0) {
       toast.error('No hay destinatarios seleccionados');
       return;
     }
@@ -232,7 +236,7 @@ export default function AdminEmailCampaigns({ user }) {
         });
       }
 
-      for (const client of targets) {
+      for (const client of getTargetClients) {
         try {
           // Reemplazar variables en el asunto y cuerpo
           const personalizedSubject = replaceEmailVariables(emailData.subject, client);
@@ -283,7 +287,7 @@ export default function AdminEmailCampaigns({ user }) {
     setSending(false);
   };
 
-  const targetClients = getTargetClients();
+
 
   const handlePasteHtml = () => {
     if (htmlCode.trim()) {
@@ -564,7 +568,7 @@ export default function AdminEmailCampaigns({ user }) {
                     </div>
                   </div>
                 ) : (
-                  <>
+                  <Suspense fallback={<div className="border rounded-lg p-4 bg-slate-50 h-80 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-blue-600" /></div>}>
                     <div className="border rounded-lg overflow-hidden">
                       <ReactQuill
                         theme="snow"
@@ -580,7 +584,7 @@ export default function AdminEmailCampaigns({ user }) {
                     <p className="text-xs text-slate-500">
                       Usa la barra de herramientas para dar formato o el botón "Pegar HTML" para código personalizado
                     </p>
-                  </>
+                  </Suspense>
                 )}
               </div>
 
@@ -673,13 +677,13 @@ export default function AdminEmailCampaigns({ user }) {
                 </Button>
                 <Button
                   onClick={handleSendEmails}
-                  disabled={sending || !emailData.subject || !emailData.body || targetClients.length === 0}
+                  disabled={sending || !emailData.subject || !emailData.body || getTargetClients.length === 0}
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
                 >
                   {sending ? (
                     <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
                   ) : (
-                    <><Send className="h-4 w-4 mr-2" /> Enviar a {targetClients.length} destinatarios</>
+                    <><Send className="h-4 w-4 mr-2" /> Enviar a {getTargetClients.length} destinatarios</>
                   )}
                 </Button>
               </div>
@@ -842,7 +846,7 @@ export default function AdminEmailCampaigns({ user }) {
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-600">Total destinatarios:</span>
-                  <span className="font-bold text-blue-600">{targetClients.length}</span>
+                  <span className="font-bold text-blue-600">{getTargetClients.length}</span>
                 </div>
               </div>
             </CardContent>
