@@ -10,9 +10,13 @@ import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import ApiStatusIndicator from '@/components/api/ApiStatusIndicator';
 import WhatsAppSupport from '@/components/WhatsAppSupport';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+import MobileTabBar from '@/components/MobileTabBar';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import RouteTransition from '@/components/RouteTransition';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
+import { AnimatePresence } from 'framer-motion';
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -147,64 +151,103 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden">
-      <style>{`
-        [data-sonner-toaster] { display: none !important; }
-        body { overflow-x: hidden; }
-      `}</style>
-      <Toaster position="top-right" richColors />
-      <AdminNotificationCenter user={user} />
-      <ApiStatusIndicator />
-      <PWAInstallPrompt />
-      {user?.role === 'user' && <WhatsAppSupport />}
-      
-      <Sidebar 
-        user={user} 
-        currentPage={currentPageName}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+    <ThemeProvider>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col lg:flex-row overflow-x-hidden" style={{ overscrollBehavior: 'none' }}>
+        <style>{`
+          [data-sonner-toaster] { display: none !important; }
+          body { overflow-x: hidden; }
+          
+          :root {
+            --background: 248 250 252;
+            --foreground: 15 23 42;
+            --card: 255 255 255;
+            --card-foreground: 15 23 42;
+            --muted: 241 245 249;
+            --muted-foreground: 100 116 139;
+            --border: 226 232 240;
+            --primary: 37 99 235;
+            --primary-foreground: 255 255 255;
+          }
+          
+          .dark {
+            --background: 2 6 23;
+            --foreground: 248 250 252;
+            --card: 15 23 42;
+            --card-foreground: 248 250 252;
+            --muted: 30 41 59;
+            --muted-foreground: 148 163 184;
+            --border: 51 65 85;
+            --primary: 59 130 246;
+            --primary-foreground: 255 255 255;
+          }
+          
+          .select-none { user-select: none; -webkit-user-select: none; }
+          button, .tab-item, [role="button"] { user-select: none; -webkit-user-select: none; }
+        `}</style>
+        <Toaster position="top-right" richColors />
+        <AdminNotificationCenter user={user} />
+        <ApiStatusIndicator />
+        <PWAInstallPrompt />
+        {user?.role === 'user' && <WhatsAppSupport />}
+        
+        <Sidebar 
+          user={user} 
+          currentPage={currentPageName}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
 
-      <main className="flex-1 min-h-screen flex flex-col">
-        {/* Mobile Header */}
-        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-10 w-10"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-            <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
+        <main className="flex-1 min-h-screen flex flex-col">
+          {/* Mobile Header */}
+          <header 
+            className="lg:hidden sticky top-0 z-30 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-4 py-3 select-none"
+            style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-10 w-10"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <h1 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
+              <NotificationCenter user={user} />
+            </div>
+          </header>
+
+          {/* Desktop Notification Center */}
+          <div className="hidden lg:block fixed top-4 right-4 z-40">
             <NotificationCenter user={user} />
           </div>
-        </header>
 
-        {/* Desktop Notification Center */}
-        <div className="hidden lg:block fixed top-4 right-4 z-40">
-          <NotificationCenter user={user} />
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-x-hidden w-full">
-          <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]">
-            {React.cloneElement(children, { user, refreshUser: loadUser })}
+          {/* Main Content */}
+          <div className="flex-1 overflow-x-hidden w-full pb-20 md:pb-0">
+            <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]">
+              <AnimatePresence mode="wait">
+                <RouteTransition key={currentPageName}>
+                  {React.cloneElement(children, { user, refreshUser: loadUser })}
+                </RouteTransition>
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
-      </main>
 
-      {/* Modals */}
-      <ContractModal 
-        open={showContract} 
-        onAccept={handleContractAccept}
-        onReject={handleContractReject}
-      />
-      <ProfileSetupModal 
-        open={showProfile} 
-        onComplete={handleProfileComplete}
-      />
-    </div>
+          {/* Mobile Tab Bar */}
+          {user?.role === 'user' && <MobileTabBar />}
+        </main>
+
+        {/* Modals */}
+        <ContractModal 
+          open={showContract} 
+          onAccept={handleContractAccept}
+          onReject={handleContractReject}
+        />
+        <ProfileSetupModal 
+          open={showProfile} 
+          onComplete={handleProfileComplete}
+        />
+      </div>
+    </ThemeProvider>
   );
 }
