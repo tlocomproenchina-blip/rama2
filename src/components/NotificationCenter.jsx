@@ -6,8 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 export default function NotificationCenter({ user }) {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -46,13 +49,44 @@ export default function NotificationCenter({ user }) {
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
-  // Marcar como leída
-  const markAsRead = async (notificationId) => {
+  // Marcar como leída y navegar
+  const handleNotificationClick = async (notification) => {
     try {
-      await base44.entities.Notification.update(notificationId, { read: true });
+      // Marcar como leída
+      if (!notification.read) {
+        await base44.entities.Notification.update(notification.id, { read: true });
+      }
+      
+      // Cerrar el panel
+      setIsOpen(false);
+      
+      // Navegar según el tipo de entidad
+      if (notification.entity_type && notification.reference_id) {
+        switch (notification.entity_type) {
+          case 'Package':
+            navigate(createPageUrl('MyPackages'));
+            break;
+          case 'Consolidation':
+            navigate(createPageUrl('MyConsolidations'));
+            break;
+          case 'ConsolidationRequest':
+            navigate(createPageUrl('RequestConsolidation'));
+            break;
+          case 'Invoice':
+            navigate(createPageUrl('MyInvoices'));
+            break;
+          case 'SupportTicket':
+            navigate(createPageUrl('Support'));
+            break;
+          default:
+            // Si no hay tipo específico, solo marcar como leída
+            break;
+        }
+      }
+      
       loadNotifications();
     } catch (error) {
-      toast.error('Error actualizando notificación');
+      toast.error('Error al procesar notificación');
     }
   };
 
@@ -191,7 +225,7 @@ export default function NotificationCenter({ user }) {
                         notif.priority === 'critical' ? 'bg-red-50 border-l-4 border-l-red-500' :
                         !notif.read ? 'bg-blue-50' : ''
                       }`}
-                      onClick={() => markAsRead(notif.id)}
+                      onClick={() => handleNotificationClick(notif)}
                     >
                       <div className="flex gap-3">
                         {/* Icon */}
