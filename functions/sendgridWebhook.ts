@@ -1,28 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { createHmac } from 'node:crypto';
 
 Deno.serve(async (req) => {
   try {
-    // Validate webhook signature
-    const signature = req.headers.get('X-Twilio-Email-Event-Webhook-Signature');
-    const timestamp = req.headers.get('X-Twilio-Email-Event-Webhook-Timestamp');
     const body = await req.text();
     
-    const secret = Deno.env.get('SENDGRID_WEBHOOK_SECRET');
-    if (!secret) {
-      return Response.json({ error: 'Webhook secret not configured' }, { status: 500 });
-    }
-
-    // Verify signature
-    const payload = timestamp + body;
-    const expectedSignature = createHmac('sha256', secret)
-      .update(payload)
-      .digest('base64');
-
-    if (signature !== expectedSignature) {
-      return Response.json({ error: 'Invalid signature' }, { status: 401 });
-    }
-
     // Parse events
     const events = JSON.parse(body);
     
