@@ -3,6 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const body = await req.text();
+    console.log('📨 Webhook received:', body.substring(0, 200));
     
     // Parse events
     const events = JSON.parse(body);
