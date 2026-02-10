@@ -568,8 +568,10 @@ export default function AdminDashboard({ user }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
+        <p className="text-slate-600 font-medium">Cargando dashboard optimizado...</p>
+        <p className="text-slate-400 text-sm mt-2">Primera carga: {'<'}3 segundos</p>
       </div>
     );
   }
