@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     
     // Parse events
     const events = JSON.parse(body);
-    
+    console.log('✅ Parsed events:', events.length, 'events');
     const base44 = createClientFromRequest(req);
     
     // Process each event
@@ -16,12 +16,19 @@ Deno.serve(async (req) => {
       const eventType = event.event;
       const timestamp = new Date(event.timestamp * 1000).toISOString();
       
+      console.log('🔍 Processing event:', eventType, 'for', email);
+      
       // Find the email log
       const logs = await base44.asServiceRole.entities.EmailLog.filter({ 
         recipient_email: email 
       });
       
-      if (logs.length === 0) continue;
+      console.log('📧 Found', logs.length, 'logs for', email);
+      
+      if (logs.length === 0) {
+        console.log('⚠️ No logs found for', email);
+        continue;
+      }
       
       // Find the most recent log that matches (or use sg_message_id if available)
       let log = logs[0];
