@@ -59,6 +59,8 @@ export default function AdminDashboard({ user }) {
   const [nextRefreshIn, setNextRefreshIn] = useState(0);
   const [cooldownActive, setCooldownActive] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [performanceLog, setPerformanceLog] = useState([]);
   
   const intervalRef = useRef(null);
   const countdownRef = useRef(null);
@@ -66,6 +68,7 @@ export default function AdminDashboard({ user }) {
   const cooldownTimerRef = useRef(null);
   const lastRefreshRef = useRef(Date.now());
   const lastManualRefreshRef = useRef(0);
+  const refreshLock = useRef(false);
 
   // Visibility change handler
   useEffect(() => {
