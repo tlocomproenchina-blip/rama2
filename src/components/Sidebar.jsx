@@ -23,18 +23,13 @@ import {
   Tag,
   TrendingUp,
   CheckCircle2,
-  Mail,
-  Sun,
-  Moon,
-  Monitor } from
+  Mail } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
 import { cacheManager } from '@/components/CacheManager';
-import { useTheme } from '@/components/ThemeProvider';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
-  const { theme, setTheme } = useTheme();
   const [config, setConfig] = useState(null);
   const [notificationCounts, setNotificationCounts] = useState({
     critical: 0,
@@ -287,34 +282,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
           })}
         </nav>
 
-        {/* Theme Toggle & Logout */}
-        <div className="bg-[#1c3f82] p-4 border-t border-slate-700/50 space-y-2">
-          <div className="flex items-center gap-1 bg-slate-800/30 rounded-lg p-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTheme('light')}
-              className={`flex-1 h-8 transition-all ${theme === 'light' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-300'}`}
-            >
-              <Sun className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTheme('dark')}
-              className={`flex-1 h-8 transition-all ${theme === 'dark' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-300'}`}
-            >
-              <Moon className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTheme('system')}
-              className={`flex-1 h-8 transition-all ${theme === 'system' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-300'}`}
-            >
-              <Monitor className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+        {/* Logout */}
+        <div className="bg-[#1c3f82] p-4 border-t border-slate-700/50">
           <Button
             variant="ghost"
             className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700/50"

@@ -4,12 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { base44 } from '@/api/base44Client';
-import { MapPin, Phone, Loader2, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
+import { MapPin, Phone, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import DeleteAccountModal from '@/components/DeleteAccountModal';
 
 export default function EditProfileModal({ open, onClose, user, onUpdate }) {
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [formData, setFormData] = useState({
     city: '',
     whatsapp: ''
@@ -106,18 +104,6 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
           </div>
         </div>
 
-        <div className="border-t pt-4 mt-4">
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setShowDeleteModal(true)}
-            className="w-full"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Eliminar Cuenta
-          </Button>
-        </div>
-
         <DialogFooter className="flex gap-3">
           <Button variant="outline" onClick={onClose}>
             Cancelar
@@ -128,11 +114,6 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
           </Button>
         </DialogFooter>
       </DialogContent>
-
-      <DeleteAccountModal
-        open={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-      />
     </Dialog>
   );
 }
