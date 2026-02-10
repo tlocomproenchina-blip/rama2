@@ -788,10 +788,10 @@ export default function AdminEmailCampaigns({ user }) {
                   </div>
 
                   <div className="space-y-2 max-h-80 overflow-y-auto">
-                    {getFilteredClients().length === 0 ? (
-                      <p className="text-sm text-slate-500 text-center py-8">No se encontraron clientes</p>
-                    ) : (
-                      getFilteredClients().map((client) => (
+                   {getFilteredClients.length === 0 ? (
+                     <p className="text-sm text-slate-500 text-center py-8">No se encontraron clientes</p>
+                   ) : (
+                     getFilteredClients.map((client) => (
                       <div
                         key={client.id}
                         className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
