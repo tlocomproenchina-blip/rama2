@@ -363,8 +363,8 @@ export default function AdminDashboard({ user }) {
       const last7Days = [];
       for (let i = 6; i >= 0; i--) {
         const date = startOfDay(subDays(new Date(), i));
-        const count = packages.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
-        last7Days.push({ date: format(date, 'dd MMM'), count });
+        const paquetes = packages.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
+        last7Days.push({ date: format(date, 'dd MMM'), paquetes });
       }
 
       const transiting = consolidations.filter(c => c.status === 'en_transito').length;
