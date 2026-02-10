@@ -49,6 +49,7 @@
  */
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
+import AdminDashboard from './pages/AdminDashboard';
 import AdminDelete from './pages/AdminDelete';
 import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
 import AdminEmailTemplates from './pages/AdminEmailTemplates';
@@ -80,14 +81,13 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminDashboard from './pages/AdminDashboard';
-import TestingDashboard from './pages/TestingDashboard';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
+    "AdminDashboard": AdminDashboard,
     "AdminDelete": AdminDelete,
     "AdminEmailCampaigns": AdminEmailCampaigns,
     "AdminEmailTemplates": AdminEmailTemplates,
@@ -119,8 +119,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminDashboard": AdminDashboard,
-    "TestingDashboard": TestingDashboard,
 }
 
 export const pagesConfig = {
