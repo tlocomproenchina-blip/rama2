@@ -251,24 +251,17 @@ export default function AdminEmailCampaigns({ user }) {
           });
           
           // Log the email
-           await base44.entities.EmailLog.create({
-             recipient_email: client.email,
-             recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
-             sender_email: user.email,
-             from_name: emailData.fromName,
-             subject: personalizedSubject,
-             body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
-             source: 'manual',
-             status: 'sent',
-             sent_date: new Date().toISOString(),
-             sg_message_id: '',
-             campaign_id: null,
-             campaign_name: null,
-             open_count: 0,
-             click_count: 0,
-             conversion_value: 0,
-             converted: false
-           });
+          await base44.entities.EmailLog.create({
+            recipient_email: client.email,
+            recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
+            sender_email: user.email,
+            from_name: emailData.fromName,
+            subject: personalizedSubject,
+            body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
+            source: 'manual',
+            status: 'sent',
+            sent_date: new Date().toISOString()
+          });
           
           results.success++;
         } catch (error) {
