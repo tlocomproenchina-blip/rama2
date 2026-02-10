@@ -549,64 +549,7 @@ export default function AdminDashboard({ user }) {
     return cons;
   };
 
-  const loadDashboardData = async () => {
-    try {
-      // Sequential calls with 2s delay between each
-      const packages = await loadPackagesData();
-      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const consolidations = await loadConsolidationsData();
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const users = await loadUsersData();
-
-      // Calculate additional stats
-      const insuredPackages = packages.filter(p => p.has_insurance);
-      const totalInsuredValue = insuredPackages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
-
-      setStats(prev => ({
-        ...prev,
-        asegurados: insuredPackages.length,
-        valorSeguro: totalInsuredValue
-      }));
-
-      // Analytics KPIs
-      const activeClients = users.filter(u => u.profile_completed).length;
-      const packagesInTransit = packages.filter(p => p.status === 'en_transito').length;
-      const validatedRevenue = consolidations
-        .filter(c => c.payment_validated)
-        .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
-
-      const validatedConsolidations = consolidations.filter(c => 
-        c.payment_validated && c.payment_date && c.payment_validation_date
-      );
-      const avgValidationTime = validatedConsolidations.length > 0
-        ? validatedConsolidations.reduce((sum, c) => {
-            const paymentTime = new Date(c.payment_date).getTime();
-            const validationTime = new Date(c.payment_validation_date).getTime();
-            const hours = (validationTime - paymentTime) / (1000 * 60 * 60);
-            return sum + Math.max(0, hours);
-          }, 0) / validatedConsolidations.length
-        : 0;
-
-      setAnalyticsKPIs({
-        activeClients,
-        packagesInTransit,
-        validatedRevenue,
-        avgValidationTime
-      });
-    } catch (error) {
-      console.error('Dashboard error:', error);
-
-      // Detect rate limit error
-      if (error?.message?.includes('Rate limit') || error?.status === 429) {
-        handleRateLimitCooldown();
-        toast.error('Límite de solicitudes excedido. Auto-refresh pausado por 10 minutos');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Partial refresh functions (for ChangeDetectionBadge)
   const refreshPackages = async () => {
