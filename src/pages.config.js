@@ -49,14 +49,12 @@
  */
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
-import AdminDashboard from './pages/AdminDashboard';
 import AdminDelete from './pages/AdminDelete';
 import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
 import AdminEmailTemplates from './pages/AdminEmailTemplates';
 import AdminFAQ from './pages/AdminFAQ';
 import AdminInsured from './pages/AdminInsured';
 import AdminInvoices from './pages/AdminInvoices';
-import AdminMarketing from './pages/AdminMarketing';
 import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
@@ -81,21 +79,20 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminMenuOrder from './pages/AdminMenuOrder';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminMarketing from './pages/AdminMarketing';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
-    "AdminDashboard": AdminDashboard,
     "AdminDelete": AdminDelete,
     "AdminEmailCampaigns": AdminEmailCampaigns,
     "AdminEmailTemplates": AdminEmailTemplates,
     "AdminFAQ": AdminFAQ,
     "AdminInsured": AdminInsured,
     "AdminInvoices": AdminInvoices,
-    "AdminMarketing": AdminMarketing,
     "AdminPackages": AdminPackages,
     "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPayments": AdminPayments,
@@ -120,7 +117,8 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminMenuOrder": AdminMenuOrder,
+    "AdminDashboard": AdminDashboard,
+    "AdminMarketing": AdminMarketing,
 }
 
 export const pagesConfig = {

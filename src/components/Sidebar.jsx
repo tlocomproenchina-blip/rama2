@@ -107,7 +107,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Soporte', page: 'Support', icon: MessageCircle }];
 
 
-  const defaultAdminMenuItems = [
+  const adminMenuItems = [
   { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard, permission: 'view_packages' },
   { name: 'Reportes', page: 'AdminReports', icon: BarChart3, permission: 'view_packages' },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package, permission: 'view_packages' },
@@ -128,26 +128,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Clientes', page: 'AdminClients', icon: Users, permission: 'view_packages' },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2, permission: 'view_packages' },
   { name: 'Administradores', page: 'AdminPermissions', icon: Shield, permission: 'invite_users' },
-  { name: 'Ordenar Menú', page: 'AdminMenuOrder', icon: Settings, permission: 'general_config' },
   { name: 'Configuración', page: 'AdminSettings', icon: Settings, permission: 'general_config' }];
-
-  const getAdminMenuItems = () => {
-    // Check if user has custom menu order
-    if (user?.menu_order && Array.isArray(user.menu_order)) {
-      const orderedItems = user.menu_order.map(page => 
-        defaultAdminMenuItems.find(item => item.page === page)
-      ).filter(Boolean);
-      
-      // Add any new items that aren't in the saved order
-      const existingPages = new Set(user.menu_order);
-      const newItems = defaultAdminMenuItems.filter(item => !existingPages.has(item.page));
-      
-      return [...orderedItems, ...newItems].filter(item => !item.permission || permissions[item.permission] !== false);
-    }
-    
-    // Use default order
-    return defaultAdminMenuItems.filter(item => !item.permission || permissions[item.permission] !== false);
-  };
 
 
   const employeeMenuItems = [
@@ -160,7 +141,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const getMenuItems = () => {
     if (isAdmin) {
-      return getAdminMenuItems();
+      return adminMenuItems.filter((item) => !item.permission || permissions[item.permission] !== false);
     }
     if (user?.is_employee && user?.admin_permissions) {
       return employeeMenuItems.filter(item => {
