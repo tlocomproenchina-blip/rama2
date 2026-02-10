@@ -185,23 +185,23 @@ export default function AdminDashboard({ user }) {
 
   // Granular data loading functions for partial refresh
   const loadPackagesData = async () => {
-    // Query recent packages (last 30 days, limit 100)
-    const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
     const startTime = performance.now();
-    console.log('🔍 [PERF] Loading packages...');
-    const recentPackages = await base44.entities.Package.list('-created_date', 100);
+    console.log('🔍 [PERF] Loading packages (last 30 days, limit 50)...');
+    
+    // Only fetch recent packages (limit 50 for dashboard display)
+    const recentPackages = await base44.entities.Package.list('-created_date', 50);
+    
     const duration = performance.now() - startTime;
     console.log(`✅ [PERF] Packages loaded: ${recentPackages.length} records in ${duration.toFixed(0)}ms`);
     
-    // Calculate counts from recent data
+    // Calculate counts from recent data only
     const receivedCount = recentPackages.filter(p => p.status === 'recibido').length;
     const preAlertCount = recentPackages.filter(p => p.status === 'pre_alerta').length;
-    const consolidatedCount = recentPackages.filter(p => p.status === 'consolidado').length;
     const inTransitCount = recentPackages.filter(p => p.status === 'en_transito').length;
     const entregadosCount = recentPackages.filter(p => p.status === 'entregado').length;
     const disponiblesCount = recentPackages.filter(p => p.status === 'disponible').length;
 
-    // Calculate chart data for last 7 days from recent data
+    // Calculate chart data for last 7 days only
     const last7Days = [];
     for (let i = 6; i >= 0; i--) {
       const date = startOfDay(subDays(new Date(), i));
@@ -229,14 +229,16 @@ export default function AdminDashboard({ user }) {
   };
 
   const loadConsolidationsData = async () => {
-    // Query recent consolidations (last 30 days, limit 100)
     const startTime = performance.now();
-    console.log('🔍 [PERF] Loading consolidations...');
-    const recentCons = await base44.entities.Consolidation.list('-created_date', 100);
+    console.log('🔍 [PERF] Loading consolidations (last 30 days, limit 50)...');
+    
+    // Only fetch recent consolidations (limit 50)
+    const recentCons = await base44.entities.Consolidation.list('-created_date', 50);
+    
     const duration = performance.now() - startTime;
     console.log(`✅ [PERF] Consolidations loaded: ${recentCons.length} records in ${duration.toFixed(0)}ms`);
     
-    // Calculate counts and metrics
+    // Calculate counts from recent data only
     const transiting = recentCons.filter(c => c.status === 'en_transito').length;
     const available = recentCons.filter(c => c.status === 'disponible').length;
     const delivered = recentCons.filter(c => c.status === 'entregado').length;
@@ -292,12 +294,15 @@ export default function AdminDashboard({ user }) {
   };
 
   const loadUsersData = async () => {
-    // Query users with limit
     const startTime = performance.now();
-    console.log('🔍 [PERF] Loading users...');
-    const users = await base44.entities.User.list('-created_date', 200);
+    console.log('🔍 [PERF] Loading users (limit 100)...');
+    
+    // Reduced limit - dashboard doesn't need all users
+    const users = await base44.entities.User.list('-created_date', 100);
+    
     const duration = performance.now() - startTime;
     console.log(`✅ [PERF] Users loaded: ${users.length} records in ${duration.toFixed(0)}ms`);
+    
     const activeClients = users.filter(u => u.profile_completed).length;
     
     setStats(prev => ({ 
@@ -327,11 +332,9 @@ export default function AdminDashboard({ user }) {
         throw new Error('Unauthorized: Admin role required');
       }
       
-      // Load packages and consolidations sequentially (no Promise.all)
+      // Sequential loading to avoid rate limits and concurrent query issues
       const packages = await loadPackagesData();
       const consolidations = await loadConsolidationsData();
-      
-      // Load users separately
       const { users, activeClients } = await loadUsersData();
 
       // Calculate insurance stats from packages
