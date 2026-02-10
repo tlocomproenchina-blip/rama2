@@ -23,13 +23,18 @@ import {
   Tag,
   TrendingUp,
   CheckCircle2,
-  Mail } from
+  Mail,
+  Sun,
+  Moon,
+  Monitor } from
 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
 import { cacheManager } from '@/components/CacheManager';
+import { useTheme } from '@/components/ThemeProvider';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
+  const { theme, setTheme } = useTheme();
   const [config, setConfig] = useState(null);
   const [notificationCounts, setNotificationCounts] = useState({
     critical: 0,
@@ -282,8 +287,34 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="bg-[#1c3f82] p-4 border-t border-slate-700/50">
+        {/* Theme Toggle & Logout */}
+        <div className="bg-[#1c3f82] p-4 border-t border-slate-700/50 space-y-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTheme('light')}
+              className={`flex-1 ${theme === 'light' ? 'bg-slate-700/50 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}`}
+            >
+              <Sun className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTheme('dark')}
+              className={`flex-1 ${theme === 'dark' ? 'bg-slate-700/50 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}`}
+            >
+              <Moon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTheme('system')}
+              className={`flex-1 ${theme === 'system' ? 'bg-slate-700/50 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'}`}
+            >
+              <Monitor className="h-4 w-4" />
+            </Button>
+          </div>
           <Button
             variant="ghost"
             className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700/50"
