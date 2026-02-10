@@ -115,11 +115,16 @@ export default function AdminDashboard({ user }) {
   const autoRefresh = async () => {
     try {
       lastRefreshRef.current = Date.now();
-      await loadDashboardData();
+      await loadDashboardRefresh();
     } catch (error) {
       console.error('Auto-refresh error:', error);
     }
   };
+
+  // Initial load on mount - NO THROTTLE
+  useEffect(() => {
+    loadDashboardInitial();
+  }, []);
 
   const handleRateLimitCooldown = () => {
     setCooldownActive(true);
