@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { Plus, Loader2, Mail, Edit, Trash2, Eye, Copy, Paperclip, X, Image as ImageIcon, Star } from 'lucide-react';
 import { toast } from 'sonner';
+import 'react-quill/dist/quill.snow.css';
 
 const ReactQuill = lazy(() => import('react-quill'));
 
