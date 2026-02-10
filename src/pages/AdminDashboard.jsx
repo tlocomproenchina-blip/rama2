@@ -167,9 +167,302 @@ export default function AdminDashboard({ user }) {
     toast.success('Dashboard actualizado');
   };
 
+  // Initial fast load - NO THROTTLE, optimized queries
+  const loadDashboardInitial = async () => {
+    if (refreshLock.current) return;
+    refreshLock.current = true;
+
+    const perfLog = [];
+    const logQuery = (name, start, count) => {
+      const duration = Date.now() - start;
+      perfLog.push({ name, duration, count });
+      console.log(`[PERF] ${name}: ${duration}ms (${count} records)`);
+    };
+
+    try {
+      const totalStart = Date.now();
+
+      // Query 1: Recent packages (last 30 days, max 50)
+      const pkgStart = Date.now();
+      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+      const packages = await base44.entities.Package.filter(
+        { created_date: { $gte: thirtyDaysAgo } },
+        '-created_date',
+        50
+      );
+      logQuery('Packages (30d, limit 50)', pkgStart, packages.length);
+
+      // Query 2: Recent consolidations (last 30 days, max 50)
+      const consStart = Date.now();
+      const consolidations = await base44.entities.Consolidation.filter(
+        { created_date: { $gte: thirtyDaysAgo } },
+        '-created_date',
+        50
+      );
+      logQuery('Consolidations (30d, limit 50)', consStart, consolidations.length);
+
+      // Query 3: Active users count (profile completed only)
+      const usersStart = Date.now();
+      const users = await base44.entities.User.filter({ profile_completed: true });
+      logQuery('Active Users (profile_completed)', usersStart, users.length);
+
+      // Process packages
+      const receivedCount = packages.filter(p => p.status === 'recibido').length;
+      const preAlertCount = packages.filter(p => p.status === 'pre_alerta').length;
+      const consolidatedCount = packages.filter(p => p.status === 'consolidado').length;
+      const inTransitCount = packages.filter(p => p.status === 'en_transito').length;
+      const insuredPackages = packages.filter(p => p.has_insurance);
+      const totalInsuredValue = insuredPackages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
+
+      // Last 7 days chart (from 30-day dataset)
+      const last7Days = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = startOfDay(subDays(new Date(), i));
+        const count = packages.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
+        last7Days.push({ date: format(date, 'dd MMM'), count });
+      }
+
+      // Process consolidations
+      const transiting = consolidations.filter(c => c.status === 'en_transito').length;
+      const available = consolidations.filter(c => c.status === 'disponible').length;
+      const delivered = consolidations.filter(c => c.status === 'entregado').length;
+      const pendingPayment = consolidations.filter(c => c.status === 'pago_validado').length;
+      const totalRevenue = consolidations.reduce((sum, c) => sum + (c.total_cost || 0), 0);
+
+      const shippingType = [
+        { name: 'Aéreo', value: consolidations.filter(c => c.shipping_type === 'aereo').length },
+        { name: 'Marítimo', value: consolidations.filter(c => c.shipping_type === 'maritimo').length }
+      ];
+
+      const statusDist = [
+        { name: 'En Tránsito', value: transiting },
+        { name: 'Pago Validado', value: pendingPayment },
+        { name: 'Disponible', value: available },
+        { name: 'Entregado', value: delivered }
+      ];
+
+      // Revenue by day (last 7 days)
+      const revenueByDay = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = startOfDay(subDays(new Date(), i));
+        const dayRevenue = consolidations
+          .filter(c => new Date(c.created_date) >= date && new Date(c.created_date) < new Date(date.getTime() + 24*60*60*1000))
+          .reduce((sum, c) => sum + (c.total_cost || 0), 0);
+        revenueByDay.push({ date: format(date, 'dd MMM'), revenue: dayRevenue });
+      }
+
+      // Validation times (top 10)
+      const validationTimesData = consolidations
+        .filter(c => c.payment_validation_date && c.payment_date)
+        .map(c => ({
+          name: c.consolidation_tracking?.substring(0, 6) || 'N/A',
+          hours: Math.round((new Date(c.payment_validation_date) - new Date(c.payment_date)) / (1000*60*60))
+        }))
+        .slice(0, 10);
+
+      // KPIs
+      const validatedRevenue = consolidations
+        .filter(c => c.payment_validated)
+        .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
+
+      const validatedConsolidations = consolidations.filter(c => 
+        c.payment_validated && c.payment_date && c.payment_validation_date
+      );
+      const avgValidationTime = validatedConsolidations.length > 0
+        ? validatedConsolidations.reduce((sum, c) => {
+            const paymentTime = new Date(c.payment_date).getTime();
+            const validationTime = new Date(c.payment_validation_date).getTime();
+            const hours = (validationTime - paymentTime) / (1000 * 60 * 60);
+            return sum + Math.max(0, hours);
+          }, 0) / validatedConsolidations.length
+        : 0;
+
+      // Update state
+      setStats({
+        totalPackages: packages.length,
+        preAlertas: preAlertCount,
+        recibidos: receivedCount,
+        enTransito: inTransitCount,
+        disponibles: available,
+        entregados: delivered,
+        consolidaciones: consolidations.length,
+        pendientesPago: pendingPayment,
+        clientes: users.length,
+        totalIngresos: totalRevenue,
+        asegurados: insuredPackages.length,
+        valorSeguro: totalInsuredValue
+      });
+
+      setAnalyticsKPIs({
+        activeClients: users.length,
+        packagesInTransit: inTransitCount,
+        validatedRevenue,
+        avgValidationTime
+      });
+
+      setChartData({
+        daily: last7Days,
+        statusDist,
+        shippingType,
+        revenue: revenueByDay,
+        validationTimes: validationTimesData
+      });
+
+      setRecentPackages(packages.slice(0, 5));
+      setPendingPayments(consolidations.filter(c => c.status === 'pago_validado').slice(0, 3));
+
+      const totalDuration = Date.now() - totalStart;
+      perfLog.push({ name: '🚀 TOTAL INITIAL LOAD', duration: totalDuration, count: '-' });
+      console.log(`[PERF] 🚀 TOTAL: ${totalDuration}ms`);
+      setPerformanceLog(perfLog);
+
+      setIsInitialLoad(false);
+      lastRefreshRef.current = Date.now();
+    } catch (error) {
+      console.error('Initial load error:', error);
+      if (error?.message?.includes('Rate limit') || error?.status === 429) {
+        handleRateLimitCooldown();
+        toast.error('Límite de solicitudes excedido');
+      }
+    } finally {
+      refreshLock.current = false;
+      setLoading(false);
+    }
+  };
+
+  // Refresh load - WITH THROTTLE for polling/manual refresh
+  const loadDashboardRefresh = async () => {
+    if (refreshLock.current) {
+      console.log('[REFRESH] Lock active, skipping');
+      return;
+    }
+    refreshLock.current = true;
+
+    try {
+      // Same optimized queries as initial load
+      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+      const [packages, consolidations, users] = await Promise.all([
+        base44.entities.Package.filter({ created_date: { $gte: thirtyDaysAgo } }, '-created_date', 50),
+        base44.entities.Consolidation.filter({ created_date: { $gte: thirtyDaysAgo } }, '-created_date', 50),
+        base44.entities.User.filter({ profile_completed: true })
+      ]);
+
+      // Same processing as initial load
+      const receivedCount = packages.filter(p => p.status === 'recibido').length;
+      const preAlertCount = packages.filter(p => p.status === 'pre_alerta').length;
+      const consolidatedCount = packages.filter(p => p.status === 'consolidado').length;
+      const inTransitCount = packages.filter(p => p.status === 'en_transito').length;
+      const insuredPackages = packages.filter(p => p.has_insurance);
+      const totalInsuredValue = insuredPackages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
+
+      const last7Days = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = startOfDay(subDays(new Date(), i));
+        const count = packages.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
+        last7Days.push({ date: format(date, 'dd MMM'), count });
+      }
+
+      const transiting = consolidations.filter(c => c.status === 'en_transito').length;
+      const available = consolidations.filter(c => c.status === 'disponible').length;
+      const delivered = consolidations.filter(c => c.status === 'entregado').length;
+      const pendingPayment = consolidations.filter(c => c.status === 'pago_validado').length;
+      const totalRevenue = consolidations.reduce((sum, c) => sum + (c.total_cost || 0), 0);
+
+      const shippingType = [
+        { name: 'Aéreo', value: consolidations.filter(c => c.shipping_type === 'aereo').length },
+        { name: 'Marítimo', value: consolidations.filter(c => c.shipping_type === 'maritimo').length }
+      ];
+
+      const statusDist = [
+        { name: 'En Tránsito', value: transiting },
+        { name: 'Pago Validado', value: pendingPayment },
+        { name: 'Disponible', value: available },
+        { name: 'Entregado', value: delivered }
+      ];
+
+      const revenueByDay = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = startOfDay(subDays(new Date(), i));
+        const dayRevenue = consolidations
+          .filter(c => new Date(c.created_date) >= date && new Date(c.created_date) < new Date(date.getTime() + 24*60*60*1000))
+          .reduce((sum, c) => sum + (c.total_cost || 0), 0);
+        revenueByDay.push({ date: format(date, 'dd MMM'), revenue: dayRevenue });
+      }
+
+      const validationTimesData = consolidations
+        .filter(c => c.payment_validation_date && c.payment_date)
+        .map(c => ({
+          name: c.consolidation_tracking?.substring(0, 6) || 'N/A',
+          hours: Math.round((new Date(c.payment_validation_date) - new Date(c.payment_date)) / (1000*60*60))
+        }))
+        .slice(0, 10);
+
+      const validatedRevenue = consolidations
+        .filter(c => c.payment_validated)
+        .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
+
+      const validatedConsolidations = consolidations.filter(c => 
+        c.payment_validated && c.payment_date && c.payment_validation_date
+      );
+      const avgValidationTime = validatedConsolidations.length > 0
+        ? validatedConsolidations.reduce((sum, c) => {
+            const paymentTime = new Date(c.payment_date).getTime();
+            const validationTime = new Date(c.payment_validation_date).getTime();
+            const hours = (validationTime - paymentTime) / (1000 * 60 * 60);
+            return sum + Math.max(0, hours);
+          }, 0) / validatedConsolidations.length
+        : 0;
+
+      setStats({
+        totalPackages: packages.length,
+        preAlertas: preAlertCount,
+        recibidos: receivedCount,
+        enTransito: inTransitCount,
+        disponibles: available,
+        entregados: delivered,
+        consolidaciones: consolidations.length,
+        pendientesPago: pendingPayment,
+        clientes: users.length,
+        totalIngresos: totalRevenue,
+        asegurados: insuredPackages.length,
+        valorSeguro: totalInsuredValue
+      });
+
+      setAnalyticsKPIs({
+        activeClients: users.length,
+        packagesInTransit: inTransitCount,
+        validatedRevenue,
+        avgValidationTime
+      });
+
+      setChartData({
+        daily: last7Days,
+        statusDist,
+        shippingType,
+        revenue: revenueByDay,
+        validationTimes: validationTimesData
+      });
+
+      setRecentPackages(packages.slice(0, 5));
+      setPendingPayments(consolidations.filter(c => c.status === 'pago_validado').slice(0, 3));
+
+      lastRefreshRef.current = Date.now();
+    } catch (error) {
+      console.error('Refresh error:', error);
+      if (error?.message?.includes('Rate limit') || error?.status === 429) {
+        handleRateLimitCooldown();
+        toast.error('Límite de solicitudes excedido. Auto-refresh pausado por 10 minutos');
+      }
+    } finally {
+      refreshLock.current = false;
+    }
+  };
+
   // Granular data loading functions for partial refresh
   const loadPackagesData = async (pkgList) => {
-    const pkg = pkgList || await base44.entities.Package.list('-created_date');
+    const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+    const pkg = pkgList || await base44.entities.Package.filter({ created_date: { $gte: thirtyDaysAgo } }, '-created_date', 50);
+    
     const receivedCount = pkg.filter(p => p.status === 'recibido').length;
     const preAlertCount = pkg.filter(p => p.status === 'pre_alerta').length;
     const consolidatedCount = pkg.filter(p => p.status === 'consolidado').length;
@@ -184,11 +477,11 @@ export default function AdminDashboard({ user }) {
 
     setStats(prev => ({
       ...prev,
-      packages: pkg.length,
-      receivedCount,
-      preAlertCount,
-      consolidatedCount,
-      inTransitCount
+      totalPackages: pkg.length,
+      recibidos: receivedCount,
+      preAlertas: preAlertCount,
+      consolidados: consolidatedCount,
+      enTransito: inTransitCount
     }));
 
     setChartData(prev => ({ ...prev, daily: last7Days }));
@@ -197,7 +490,9 @@ export default function AdminDashboard({ user }) {
   };
 
   const loadConsolidationsData = async (consList) => {
-    const cons = consList || await base44.entities.Consolidation.list('-created_date');
+    const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+    const cons = consList || await base44.entities.Consolidation.filter({ created_date: { $gte: thirtyDaysAgo } }, '-created_date', 50);
+    
     const transiting = cons.filter(c => c.status === 'en_transito').length;
     const available = cons.filter(c => c.status === 'disponible').length;
     const delivered = cons.filter(c => c.status === 'entregado').length;
@@ -237,22 +532,16 @@ export default function AdminDashboard({ user }) {
 
     setStats(prev => ({
       ...prev,
-      consolidations: cons.length,
-      transiting,
-      available,
-      delivered,
-      totalRevenue
+      consolidaciones: cons.length,
+      enTransito: transiting,
+      disponibles: available,
+      entregados: delivered,
+      totalIngresos: totalRevenue
     }));
 
     setChartData(prev => ({ ...prev, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData }));
     setPendingPayments(pendingPays);
     return cons;
-  };
-
-  const loadUsersData = async (userList) => {
-    const users = userList || await base44.entities.User.list();
-    setStats(prev => ({ ...prev, users: users.length }));
-    return users;
   };
 
   const loadDashboardData = async () => {
