@@ -207,9 +207,28 @@ export default function MyPackages({ user }) {
         </div>
       )}
 
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop */}
+      <div className="hidden md:block space-y-4 md:space-y-5 lg:space-y-6 w-full">
+        {content}
+      </div>
+
+      {/* Mobile with Pull-to-Refresh */}
+      <div className="md:hidden h-full">
+        <PullToRefresh onRefresh={loadPackages}>
+          <div className="space-y-4 p-4">
+            {content}
+          </div>
+        </PullToRefresh>
+      </div>
+
       {/* Image Modal */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-xl md:max-w-2xl mx-auto">
+        <DialogContent className="max-w-xl md:max-w-2xl mx-auto dark:bg-slate-900 dark:border-slate-700">
           <DialogHeader>
             <DialogTitle className="text-base md:text-lg">Foto del Paquete</DialogTitle>
           </DialogHeader>
@@ -222,6 +241,6 @@ export default function MyPackages({ user }) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
