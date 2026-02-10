@@ -174,7 +174,11 @@ export default function AdminDashboard({ user }) {
   const loadPackagesData = async () => {
     // Query recent packages (last 30 days, limit 100)
     const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+    const startTime = performance.now();
+    console.log('🔍 [PERF] Loading packages...');
     const recentPackages = await base44.entities.Package.list('-created_date', 100);
+    const duration = performance.now() - startTime;
+    console.log(`✅ [PERF] Packages loaded: ${recentPackages.length} records in ${duration.toFixed(0)}ms`);
     
     // Calculate counts from recent data
     const receivedCount = recentPackages.filter(p => p.status === 'recibido').length;
@@ -213,7 +217,11 @@ export default function AdminDashboard({ user }) {
 
   const loadConsolidationsData = async () => {
     // Query recent consolidations (last 30 days, limit 100)
+    const startTime = performance.now();
+    console.log('🔍 [PERF] Loading consolidations...');
     const recentCons = await base44.entities.Consolidation.list('-created_date', 100);
+    const duration = performance.now() - startTime;
+    console.log(`✅ [PERF] Consolidations loaded: ${recentCons.length} records in ${duration.toFixed(0)}ms`);
     
     // Calculate counts and metrics
     const transiting = recentCons.filter(c => c.status === 'en_transito').length;
@@ -272,7 +280,11 @@ export default function AdminDashboard({ user }) {
 
   const loadUsersData = async () => {
     // Query users with limit
+    const startTime = performance.now();
+    console.log('🔍 [PERF] Loading users...');
     const users = await base44.entities.User.list('-created_date', 200);
+    const duration = performance.now() - startTime;
+    console.log(`✅ [PERF] Users loaded: ${users.length} records in ${duration.toFixed(0)}ms`);
     const activeClients = users.filter(u => u.profile_completed).length;
     
     setStats(prev => ({ 
@@ -286,12 +298,15 @@ export default function AdminDashboard({ user }) {
   const loadDashboardData = async () => {
     // Check refresh lock to prevent concurrent loads
     if (refreshLockRef.current) {
-      console.log('⚠️ Refresh already in progress, skipping...');
+      console.log('⚠️ [PERF] Refresh already in progress, skipping...');
       return;
     }
 
     try {
       refreshLockRef.current = true;
+      const dashboardStartTime = performance.now();
+      console.log('🚀 [PERF] ===== DASHBOARD LOAD START =====');
+      console.log(`👤 [PERF] User role: ${user?.role}, Email: ${user?.email}`);
       
       // Load packages and consolidations sequentially (no Promise.all)
       const packages = await loadPackagesData();
@@ -334,8 +349,21 @@ export default function AdminDashboard({ user }) {
         validatedRevenue,
         avgValidationTime
       });
+
+      const totalDuration = performance.now() - dashboardStartTime;
+      console.log('🏁 [PERF] ===== DASHBOARD LOAD COMPLETE =====');
+      console.log(`⏱️ [PERF] Total dashboard load time: ${totalDuration.toFixed(0)}ms`);
+      
+      if (totalDuration > 3000) {
+        console.warn('⚠️ [PERF] Dashboard load exceeded 3 seconds!');
+      }
     } catch (error) {
-      console.error('Dashboard error:', error);
+      console.error('❌ [PERF] Dashboard error:', error);
+      console.error('❌ [PERF] Error details:', {
+        message: error?.message,
+        status: error?.status,
+        stack: error?.stack?.split('\n').slice(0, 3)
+      });
 
       // Detect rate limit error
       if (error?.message?.includes('Rate limit') || error?.message?.includes('rate limit') || error?.status === 429) {
