@@ -27,6 +27,19 @@ import { format, subDays, startOfDay } from 'date-fns';
 import { toast } from 'sonner';
 
 export default function AdminDashboard({ user }) {
+  // Block access if not admin
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Card className="max-w-md p-8 text-center">
+          <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Acceso Denegado</h2>
+          <p className="text-slate-600">Solo los administradores pueden acceder a este panel.</p>
+        </Card>
+      </div>
+    );
+  }
+
   const [stats, setStats] = useState({
     totalPackages: 0,
     preAlertas: 0,
@@ -307,6 +320,12 @@ export default function AdminDashboard({ user }) {
       const dashboardStartTime = performance.now();
       console.log('🚀 [PERF] ===== DASHBOARD LOAD START =====');
       console.log(`👤 [PERF] User role: ${user?.role}, Email: ${user?.email}`);
+      
+      // Double-check admin status before queries
+      if (user?.role !== 'admin') {
+        console.error('❌ [PERF] Non-admin attempting to load admin dashboard');
+        throw new Error('Unauthorized: Admin role required');
+      }
       
       // Load packages and consolidations sequentially (no Promise.all)
       const packages = await loadPackagesData();
