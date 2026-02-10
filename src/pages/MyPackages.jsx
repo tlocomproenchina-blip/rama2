@@ -21,6 +21,7 @@ import {
 import StatusBadge from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function MyPackages({ user }) {
   const [packages, setPackages] = useState([]);
@@ -76,17 +77,17 @@ export default function MyPackages({ user }) {
     );
   }
 
-  return (
-    <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
+  const content = (
+    <>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-800">Mis Paquetes</h1>
-          <p className="text-xs md:text-sm text-slate-500">Gestiona y rastrea todos tus paquetes</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-200">Mis Paquetes</h1>
+          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Gestiona y rastrea todos tus paquetes</p>
         </div>
         {user?.shipping_mark && (
           <Link to={createPageUrl('PreAlert')}>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700 select-none">
               <Plus className="h-4 w-4 mr-2" />
               Nueva Pre-alerta
             </Button>
@@ -95,7 +96,7 @@ export default function MyPackages({ user }) {
       </div>
 
       {/* Filters */}
-      <Card className="border-0 shadow-md">
+      <Card className="border-0 shadow-md dark:bg-slate-900 dark:border-slate-700">
         <CardContent className="p-3 md:p-4">
           <div className="flex flex-col gap-3 md:gap-4">
             <div className="relative flex-1">
@@ -109,7 +110,7 @@ export default function MyPackages({ user }) {
             </div>
             <div className="overflow-x-auto -mx-3 md:mx-0">
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-max md:w-full">
-              <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full">
+              <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full select-none">
                 <TabsTrigger value="all">Todos</TabsTrigger>
                 <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
                 <TabsTrigger value="recibido">Recibido</TabsTrigger>
@@ -145,7 +146,7 @@ export default function MyPackages({ user }) {
       ) : (
         <div className="grid gap-3 md:gap-4">
           {filteredPackages.map((pkg) => (
-            <Card key={pkg.id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
+            <Card key={pkg.id} className="border-0 shadow-md hover:shadow-lg transition-shadow dark:bg-slate-900 dark:border-slate-700">
               <CardContent className="p-3 md:p-4 lg:p-6">
                 <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                   {/* Main Info */}

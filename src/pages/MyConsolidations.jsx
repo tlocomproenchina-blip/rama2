@@ -25,6 +25,7 @@ import PaymentModal from '@/components/PaymentModal';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
 import { toast } from 'sonner';
+import PullToRefresh from '@/components/PullToRefresh';
 
 export default function MyConsolidations({ user }) {
   const [consolidations, setConsolidations] = useState([]);
@@ -97,20 +98,20 @@ export default function MyConsolidations({ user }) {
     );
   }
 
-  return (
-    <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
+  const content = (
+    <>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-800">Mis Consolidaciones</h1>
-          <p className="text-xs md:text-sm text-slate-500">Revisa tus paquetes consolidados y realiza pagos</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-200">Mis Consolidaciones</h1>
+          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Revisa tus paquetes consolidados y realiza pagos</p>
         </div>
         <Button
           onClick={handleRefresh}
           disabled={refreshing}
           variant="outline"
           size="sm"
-          className="w-full md:w-auto"
+          className="w-full md:w-auto select-none"
         >
           {refreshing ? (
             <><Loader2 className="h-3 w-3 md:h-4 mr-2 animate-spin" /> Actualizando...</>
@@ -302,6 +303,33 @@ export default function MyConsolidations({ user }) {
           ))}
         </div>
       )}
+    </>
+  );
+
+  if (loading) {
+    return (
+      <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
+        <div className="h-8 bg-slate-200 rounded w-32 animate-pulse" />
+        <ListSkeletonLoader count={3} />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Desktop */}
+      <div className="hidden md:block space-y-4 md:space-y-5 lg:space-y-6 w-full">
+        {content}
+      </div>
+
+      {/* Mobile with Pull-to-Refresh */}
+      <div className="md:hidden h-full">
+        <PullToRefresh onRefresh={loadConsolidations}>
+          <div className="space-y-4 p-4">
+            {content}
+          </div>
+        </PullToRefresh>
+      </div>
 
       {/* Payment Modal */}
       {paymentModal && (
@@ -312,6 +340,6 @@ export default function MyConsolidations({ user }) {
           onPaymentSubmitted={loadConsolidations}
         />
       )}
-    </div>
+    </>
   );
 }
