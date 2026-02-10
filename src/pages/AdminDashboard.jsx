@@ -66,6 +66,7 @@ export default function AdminDashboard({ user }) {
   const cooldownTimerRef = useRef(null);
   const lastRefreshRef = useRef(Date.now());
   const lastManualRefreshRef = useRef(0);
+  const refreshLockRef = useRef(false);
 
   // Visibility change handler
   useEffect(() => {
@@ -151,6 +152,11 @@ export default function AdminDashboard({ user }) {
       return;
     }
 
+    if (refreshLockRef.current) {
+      toast.info('Actualización en progreso...');
+      return;
+    }
+
     setRefreshing(true);
     lastManualRefreshRef.current = now;
     lastRefreshRef.current = now;
@@ -165,45 +171,61 @@ export default function AdminDashboard({ user }) {
   };
 
   // Granular data loading functions for partial refresh
-  const loadPackagesData = async (pkgList) => {
-    const pkg = pkgList || await base44.entities.Package.list('-created_date');
-    const receivedCount = pkg.filter(p => p.status === 'recibido').length;
-    const preAlertCount = pkg.filter(p => p.status === 'pre_alerta').length;
-    const consolidatedCount = pkg.filter(p => p.status === 'consolidado').length;
-    const inTransitCount = pkg.filter(p => p.status === 'en_transito').length;
+  const loadPackagesData = async () => {
+    // Query recent packages (last 30 days, limit 100)
+    const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+    const recentPackages = await base44.entities.Package.list('-created_date', 100);
+    
+    // Calculate counts from recent data
+    const receivedCount = recentPackages.filter(p => p.status === 'recibido').length;
+    const preAlertCount = recentPackages.filter(p => p.status === 'pre_alerta').length;
+    const consolidatedCount = recentPackages.filter(p => p.status === 'consolidado').length;
+    const inTransitCount = recentPackages.filter(p => p.status === 'en_transito').length;
+    const entregadosCount = recentPackages.filter(p => p.status === 'entregado').length;
+    const disponiblesCount = recentPackages.filter(p => p.status === 'disponible').length;
 
+    // Calculate chart data for last 7 days from recent data
     const last7Days = [];
     for (let i = 6; i >= 0; i--) {
       const date = startOfDay(subDays(new Date(), i));
-      const count = pkg.filter(p => new Date(p.created_date) >= date && new Date(p.created_date) < new Date(date.getTime() + 24*60*60*1000)).length;
+      const nextDate = new Date(date.getTime() + 24*60*60*1000);
+      const count = recentPackages.filter(p => {
+        const pDate = new Date(p.created_date);
+        return pDate >= date && pDate < nextDate;
+      }).length;
       last7Days.push({ date: format(date, 'dd MMM'), count });
     }
 
     setStats(prev => ({
       ...prev,
-      packages: pkg.length,
-      receivedCount,
-      preAlertCount,
-      consolidatedCount,
-      inTransitCount
+      totalPackages: recentPackages.length,
+      recibidos: receivedCount,
+      preAlertas: preAlertCount,
+      enTransito: inTransitCount,
+      entregados: entregadosCount,
+      disponibles: disponiblesCount
     }));
 
     setChartData(prev => ({ ...prev, daily: last7Days }));
-    setRecentPackages(pkg.slice(0, 5));
-    return pkg;
+    setRecentPackages(recentPackages.slice(0, 5));
+    return recentPackages;
   };
 
-  const loadConsolidationsData = async (consList) => {
-    const cons = consList || await base44.entities.Consolidation.list('-created_date');
-    const transiting = cons.filter(c => c.status === 'en_transito').length;
-    const available = cons.filter(c => c.status === 'disponible').length;
-    const delivered = cons.filter(c => c.status === 'entregado').length;
-    const pendingPayment = cons.filter(c => c.status === 'pago_validado').length;
+  const loadConsolidationsData = async () => {
+    // Query recent consolidations (last 30 days, limit 100)
+    const recentCons = await base44.entities.Consolidation.list('-created_date', 100);
+    
+    // Calculate counts and metrics
+    const transiting = recentCons.filter(c => c.status === 'en_transito').length;
+    const available = recentCons.filter(c => c.status === 'disponible').length;
+    const delivered = recentCons.filter(c => c.status === 'entregado').length;
+    const pendingPayment = recentCons.filter(c => c.status === 'pago_validado').length;
 
-    const totalRevenue = cons.reduce((sum, c) => sum + (c.total_cost || 0), 0);
+    const totalRevenue = recentCons.reduce((sum, c) => sum + (c.total_cost || 0), 0);
+    
     const shippingType = [
-      { name: 'Aéreo', value: cons.filter(c => c.shipping_type === 'aereo').length },
-      { name: 'Marítimo', value: cons.filter(c => c.shipping_type === 'maritimo').length }
+      { name: 'Aéreo', value: recentCons.filter(c => c.shipping_type === 'aereo').length },
+      { name: 'Marítimo', value: recentCons.filter(c => c.shipping_type === 'maritimo').length }
     ];
 
     const statusDist = [
@@ -213,7 +235,7 @@ export default function AdminDashboard({ user }) {
       { name: 'Entregado', value: delivered }
     ];
 
-    const validationTimesData = cons
+    const validationTimesData = recentCons
       .filter(c => c.payment_validation_date && c.payment_date)
       .map(c => ({
         name: c.consolidation_tracking?.substring(0, 6) || 'N/A',
@@ -224,46 +246,61 @@ export default function AdminDashboard({ user }) {
     const revenueByDay = [];
     for (let i = 6; i >= 0; i--) {
       const date = startOfDay(subDays(new Date(), i));
-      const dayRevenue = cons
-        .filter(c => new Date(c.created_date) >= date && new Date(c.created_date) < new Date(date.getTime() + 24*60*60*1000))
+      const nextDate = new Date(date.getTime() + 24*60*60*1000);
+      const dayRevenue = recentCons
+        .filter(c => {
+          const cDate = new Date(c.created_date);
+          return cDate >= date && cDate < nextDate;
+        })
         .reduce((sum, c) => sum + (c.total_cost || 0), 0);
       revenueByDay.push({ date: format(date, 'dd MMM'), revenue: dayRevenue });
     }
 
-    const pendingPays = cons.filter(c => c.status === 'pago_validado').slice(0, 3);
+    const pendingPays = recentCons.filter(c => c.status === 'pago_validado').slice(0, 3);
 
     setStats(prev => ({
       ...prev,
-      consolidations: cons.length,
-      transiting,
-      available,
-      delivered,
-      totalRevenue
+      consolidaciones: recentCons.length,
+      pendientesPago: pendingPayment,
+      totalIngresos: totalRevenue
     }));
 
     setChartData(prev => ({ ...prev, statusDist, shippingType, revenue: revenueByDay, validationTimes: validationTimesData }));
     setPendingPayments(pendingPays);
-    return cons;
+    return recentCons;
   };
 
-  const loadUsersData = async (userList) => {
-    const users = userList || await base44.entities.User.list();
-    setStats(prev => ({ ...prev, users: users.length }));
-    return users;
+  const loadUsersData = async () => {
+    // Query users with limit
+    const users = await base44.entities.User.list('-created_date', 200);
+    const activeClients = users.filter(u => u.profile_completed).length;
+    
+    setStats(prev => ({ 
+      ...prev, 
+      clientes: users.length 
+    }));
+    
+    return { users, activeClients };
   };
 
   const loadDashboardData = async () => {
+    // Check refresh lock to prevent concurrent loads
+    if (refreshLockRef.current) {
+      console.log('⚠️ Refresh already in progress, skipping...');
+      return;
+    }
+
     try {
-      // Sequential calls with 2s delay between each
+      refreshLockRef.current = true;
+      
+      // Load packages and consolidations sequentially (no Promise.all)
       const packages = await loadPackagesData();
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
       const consolidations = await loadConsolidationsData();
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Load users separately
+      const { users, activeClients } = await loadUsersData();
 
-      const users = await loadUsersData();
-
-      // Calculate additional stats
+      // Calculate insurance stats from packages
       const insuredPackages = packages.filter(p => p.has_insurance);
       const totalInsuredValue = insuredPackages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
 
@@ -274,10 +311,9 @@ export default function AdminDashboard({ user }) {
       }));
 
       // Analytics KPIs
-      const activeClients = users.filter(u => u.profile_completed).length;
       const packagesInTransit = packages.filter(p => p.status === 'en_transito').length;
       const validatedRevenue = consolidations
-        .filter(c => c.payment_validated)
+        .filter(c => c.payment_validated && (c.payment_amount || c.total_cost))
         .reduce((sum, c) => sum + (c.payment_amount || c.total_cost || 0), 0);
 
       const validatedConsolidations = consolidations.filter(c => 
@@ -302,11 +338,14 @@ export default function AdminDashboard({ user }) {
       console.error('Dashboard error:', error);
 
       // Detect rate limit error
-      if (error?.message?.includes('Rate limit') || error?.status === 429) {
+      if (error?.message?.includes('Rate limit') || error?.message?.includes('rate limit') || error?.status === 429) {
         handleRateLimitCooldown();
         toast.error('Límite de solicitudes excedido. Auto-refresh pausado por 10 minutos');
+      } else {
+        toast.error('Error al cargar dashboard');
       }
     } finally {
+      refreshLockRef.current = false;
       setLoading(false);
     }
   };
@@ -670,7 +709,7 @@ export default function AdminDashboard({ user }) {
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
                 />
-                <Line type="monotone" dataKey="paquetes" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} />
+                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
