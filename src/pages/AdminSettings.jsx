@@ -88,6 +88,7 @@ export default function AdminSettings({ user }) {
      shipping_type_air_enabled: true,
      shipping_type_sea_enabled: true,
      allow_profile_updates: true,
+     consolidation_periods: [15, 20, 30],
      whatsapp_enabled: false,
      whatsapp_number: '',
      whatsapp_message: '',
