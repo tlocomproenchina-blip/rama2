@@ -297,6 +297,19 @@ export default function AdminSettings({ user }) {
     setUploadingShippingMarkExample(false);
   };
 
+  const handleWhatsAppIconUpload = async (file) => {
+    if (!file) return;
+    setUploadingWhatsAppIcon(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setAppConfig({ ...appConfig, whatsapp_icon_url: file_url });
+      toast.success('Ícono WhatsApp subido');
+    } catch (error) {
+      toast.error('Error al subir ícono');
+    }
+    setUploadingWhatsAppIcon(false);
+  };
+
   const filteredStates = statesConfig.filter(state =>
     state.state_name.toLowerCase().includes(stateSearch.toLowerCase())
   );
