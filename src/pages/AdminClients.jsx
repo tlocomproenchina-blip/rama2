@@ -594,7 +594,7 @@ Email: ${client.email}`;
             <Card 
               key={client.id} 
               className={`border-0 shadow-md hover:shadow-lg transition-shadow ${
-                !client.shipping_mark && client.profile_completed ? 'border-l-4 border-l-amber-400' : ''
+                !hasValidShippingMark(client) && client.profile_completed && !hasIncompleteData(client) ? 'border-l-4 border-l-amber-400' : ''
               }`}
             >
               <CardContent className="p-4 lg:p-6">
