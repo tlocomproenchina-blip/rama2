@@ -10,6 +10,7 @@ import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import ApiStatusIndicator from '@/components/api/ApiStatusIndicator';
 import WhatsAppSupport from '@/components/WhatsAppSupport';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+import { notifyAdmins } from '@/components/NotificationUtils';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
@@ -120,14 +121,12 @@ export default function Layout({ children, currentPageName }) {
       setUser(updatedUser);
 
       // Notify admins
-      import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
-        notifyAdmins({
-          subject: '👤 Nuevo usuario registrado',
-          body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario desde el panel de Clientes.`,
-          message: `${profileData.first_name} ${profileData.last_name} (${user.email}) completó su registro`,
-          type: 'general',
-          icon: 'alert'
-        });
+      notifyAdmins({
+        subject: '👤 Nuevo usuario registrado',
+        body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario desde el panel de Clientes.`,
+        message: `${profileData.first_name} ${profileData.last_name} (${user.email}) completó su registro`,
+        type: 'general',
+        icon: 'alert'
       });
     } catch (error) {
       console.error('Error completing profile:', error);
