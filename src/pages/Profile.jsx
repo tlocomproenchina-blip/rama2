@@ -135,19 +135,22 @@ export default function Profile({ user, refreshUser }) {
     setSaving(true);
     
     try {
-      await base44.auth.updateMe(formData);
-      
-      if (refreshUser) {
-        await refreshUser();
-      }
-      
-      toast.success('Perfil actualizado exitosamente');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Error al actualizar el perfil: ' + (error.message || 'Error desconocido'));
-    } finally {
-      setSaving(false);
-    }
+       await base44.auth.updateMe(formData);
+
+       setShowSuccess(true);
+       setTimeout(() => setShowSuccess(false), 3000);
+
+       if (refreshUser) {
+         await refreshUser();
+       }
+
+       toast.success('✓ Perfil actualizado exitosamente');
+     } catch (error) {
+       console.error('Error updating profile:', error);
+       toast.error('Error al actualizar el perfil: ' + (error.message || 'Error desconocido'));
+     } finally {
+       setSaving(false);
+     }
   };
 
   const isFieldDisabled = (fieldName) => {
