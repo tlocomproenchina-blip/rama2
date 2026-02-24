@@ -488,7 +488,7 @@ Email: ${client.email}`;
               <div>
                 <p className="text-sm text-slate-500">Pendientes</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {clients.filter(c => !c.shipping_mark && c.profile_completed).length}
+                  {clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c)).length}
                 </p>
               </div>
               <div className="p-3 bg-amber-100 rounded-xl">
