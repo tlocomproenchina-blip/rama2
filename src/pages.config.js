@@ -81,6 +81,7 @@ import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import AdminSettings from './pages/AdminSettings';
+import Profile from './pages/Profile';
 import __Layout from './Layout.jsx';
 
 
@@ -119,6 +120,7 @@ export const PAGES = {
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
     "AdminSettings": AdminSettings,
+    "Profile": Profile,
 }
 
 export const pagesConfig = {

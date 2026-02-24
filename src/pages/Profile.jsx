@@ -1,0 +1,263 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { User, MapPin, Phone, Save, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+const VENEZUELAN_STATES = [
+  'Amazonas', 'Anzoátegui', 'Apure', 'Aragua', 'Barinas', 
+  'Bolívar', 'Carabobo', 'Cojedes', 'Delta Amacuro', 'Distrito Capital',
+  'Falcón', 'Guárico', 'Lara', 'Mérida', 'Miranda', 
+  'Monagas', 'Nueva Esparta', 'Portuguesa', 'Sucre', 'Táchira',
+  'Trujillo', 'Vargas', 'Yaracuy', 'Zulia'
+];
+
+export default function Profile({ user, refreshUser }) {
+  const [formData, setFormData] = useState({
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
+    phone: user?.phone || '',
+    whatsapp: user?.whatsapp || '',
+    state: user?.state || '',
+    city: user?.city || '',
+    address: user?.address || ''
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    
+    try {
+      // Validaciones
+      if (!formData.first_name || !formData.last_name) {
+        toast.error('Nombre y apellido son obligatorios');
+        setSaving(false);
+        return;
+      }
+
+      if (!formData.phone) {
+        toast.error('El teléfono es obligatorio');
+        setSaving(false);
+        return;
+      }
+
+      if (!formData.whatsapp) {
+        toast.error('El WhatsApp es obligatorio');
+        setSaving(false);
+        return;
+      }
+
+      if (!formData.state) {
+        toast.error('El estado es obligatorio');
+        setSaving(false);
+        return;
+      }
+
+      if (!formData.city) {
+        toast.error('La ciudad es obligatoria');
+        setSaving(false);
+        return;
+      }
+
+      await base44.auth.updateMe(formData);
+      
+      toast.success('Perfil actualizado exitosamente');
+      
+      if (refreshUser) {
+        await refreshUser();
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Error al actualizar el perfil');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-white/10 rounded-xl">
+            <User className="h-8 w-8" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Mi Perfil</h1>
+            <p className="text-blue-100">Actualiza tu información personal</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Form */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Información Personal
+          </CardTitle>
+          <CardDescription>
+            Mantén tu información actualizada para un mejor servicio
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Nombre y Apellido */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="first_name">Nombre *</Label>
+                <Input
+                  id="first_name"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  placeholder="Tu nombre"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last_name">Apellido *</Label>
+                <Input
+                  id="last_name"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  placeholder="Tu apellido"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Teléfonos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Teléfono *
+                </Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+58 414 1234567"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  WhatsApp *
+                </Label>
+                <Input
+                  id="whatsapp"
+                  value={formData.whatsapp}
+                  onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                  placeholder="+58 414 1234567"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Ubicación */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="state" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Estado *
+                </Label>
+                <Select 
+                  value={formData.state}
+                  onValueChange={(value) => setFormData({ ...formData, state: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona tu estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VENEZUELAN_STATES.map((state) => (
+                      <SelectItem key={state} value={state}>
+                        {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Ciudad *
+                </Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="Tu ciudad"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Dirección */}
+            <div className="space-y-2">
+              <Label htmlFor="address">Dirección Completa</Label>
+              <Textarea
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Calle, número, edificio, apartamento, referencias..."
+                rows={3}
+              />
+              <p className="text-xs text-slate-500">
+                Opcional: Esta información es útil para entregas a domicilio
+              </p>
+            </div>
+
+            {/* Submit Button */}
+            <Button 
+              type="submit" 
+              disabled={saving}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Cambios
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Account Info - Read Only */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-slate-600">Información de Cuenta</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label className="text-xs text-slate-500">Email</Label>
+            <p className="text-sm font-medium text-slate-700">{user?.email}</p>
+          </div>
+          {user?.shipping_mark && (
+            <div>
+              <Label className="text-xs text-slate-500">Shipping Mark</Label>
+              <p className="text-sm font-medium text-slate-700 font-mono">{user.shipping_mark}</p>
+            </div>
+          )}
+          <p className="text-xs text-slate-500 italic">
+            Para cambiar tu email o shipping mark, contacta con soporte
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

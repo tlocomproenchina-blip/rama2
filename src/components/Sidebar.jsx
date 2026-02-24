@@ -95,6 +95,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const clientMenuItems = [
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
+  { name: 'Mi Perfil', page: 'Profile', icon: Users },
   { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
   { name: 'Solicitar Consolidación', page: 'RequestConsolidation', icon: Layers },
