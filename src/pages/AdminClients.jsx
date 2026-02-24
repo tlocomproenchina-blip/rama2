@@ -408,7 +408,13 @@ Email: ${client.email}`;
       statusFilter === 'incomplete' ? hasIncompleteData(client) :
       true;
 
-    return matchesSearch && matchesStatus;
+    let matchesDate = true;
+    if (dateFilter !== 'all') {
+      const clientDate = new Date(client.created_date).toISOString().split('T')[0];
+      matchesDate = clientDate === dateFilter;
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   if (loading) {
