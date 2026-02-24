@@ -80,42 +80,37 @@ export default function Profile({ user, refreshUser }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validaciones
+    if (!formData.first_name || !formData.last_name) {
+      toast.error('Nombre y apellido son obligatorios');
+      return;
+    }
+
+    if (!formData.phone) {
+      toast.error('El teléfono es obligatorio');
+      return;
+    }
+
+    if (!formData.whatsapp) {
+      toast.error('El WhatsApp es obligatorio');
+      return;
+    }
+
+    if (!formData.state) {
+      toast.error('El estado es obligatorio');
+      return;
+    }
+
+    if (!formData.city) {
+      toast.error('La ciudad es obligatoria');
+      return;
+    }
+
     setSaving(true);
     
     try {
-      // Validaciones
-      if (!formData.first_name || !formData.last_name) {
-        toast.error('Nombre y apellido son obligatorios');
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.phone) {
-        toast.error('El teléfono es obligatorio');
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.whatsapp) {
-        toast.error('El WhatsApp es obligatorio');
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.state) {
-        toast.error('El estado es obligatorio');
-        setSaving(false);
-        return;
-      }
-
-      if (!formData.city) {
-        toast.error('La ciudad es obligatoria');
-        setSaving(false);
-        return;
-      }
-
       await base44.auth.updateMe(formData);
-      
       toast.success('Perfil actualizado exitosamente');
       
       if (refreshUser) {
