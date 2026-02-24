@@ -22,6 +22,7 @@ export default function Profile({ user, refreshUser }) {
   const [saving, setSaving] = useState(false);
   const [stateConfigs, setStateConfigs] = useState([]);
   const [pricingConfig, setPricingConfig] = useState(null);
+  const [appConfig, setAppConfig] = useState(null);
 
   useEffect(() => {
     loadConfigs();
@@ -49,6 +50,11 @@ export default function Profile({ user, refreshUser }) {
       const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
       if (pricing.length > 0) {
         setPricingConfig(pricing[0]);
+      }
+
+      const config = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (config.length > 0) {
+        setAppConfig(config[0]);
       }
     } catch (error) {
       console.error('Error loading configs:', error);
@@ -153,6 +159,13 @@ export default function Profile({ user, refreshUser }) {
           <CardDescription>
             Mantén tu información actualizada para un mejor servicio
           </CardDescription>
+          {appConfig?.allow_profile_updates === false && (
+            <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-800">
+                ⚠️ <strong>Actualización de perfil deshabilitada</strong> - Por el momento no es posible actualizar tu información.
+              </p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -278,7 +291,7 @@ export default function Profile({ user, refreshUser }) {
             {/* Submit Button */}
             <Button 
               type="submit" 
-              disabled={saving}
+              disabled={saving || appConfig?.allow_profile_updates === false}
               className="w-full bg-blue-600 hover:bg-blue-700"
             >
               {saving ? (
