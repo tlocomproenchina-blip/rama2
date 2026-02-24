@@ -118,6 +118,28 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
             </DialogTitle>
           </DialogHeader>
 
+          {/* Client Info Section */}
+          <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg mb-4">
+            <div>
+              <p className="text-xs text-slate-600 font-medium mb-1">Estado</p>
+              <p className="text-sm text-slate-800">{client.state || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-600 font-medium mb-1">Ciudad</p>
+              <p className="text-sm text-slate-800">{client.city || '—'}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-xs text-slate-600 font-medium mb-1">Dirección</p>
+              <p className="text-sm text-slate-800">{client.address || '—'}</p>
+            </div>
+            {client.whatsapp && (
+              <div className="col-span-2">
+                <p className="text-xs text-slate-600 font-medium mb-1">WhatsApp</p>
+                <p className="text-sm text-slate-800">{client.whatsapp}</p>
+              </div>
+            )}
+          </div>
+
           {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-4 my-4">
             <Card className="border-0 shadow-sm bg-blue-50">
