@@ -632,7 +632,7 @@ Email: ${client.email}`;
                         {client.whatsapp}
                       </Badge>
                     )}
-                    {client.shipping_mark ? (
+                    {hasValidShippingMark(client) ? (
                       <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
                         <Tag className="h-3 w-3 mr-1" />
                         {client.shipping_mark}
