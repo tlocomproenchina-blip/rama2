@@ -19,7 +19,9 @@ import {
 export default function Rates({ user }) {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [shippingType, setShippingType] = useState('aereo');
+  const [stateConfig, setStateConfig] = useState(null);
+  const [pricingConfig, setPricingConfig] = useState(null);
+  const [shippingType, setShippingType] = useState('');
   const [cargoCategory, setCargoCategory] = useState('general');
   const [includeInsurance, setIncludeInsurance] = useState(false);
   const [fobValue, setFobValue] = useState('');
@@ -34,10 +36,30 @@ export default function Rates({ user }) {
   }, []);
 
   const loadConfig = async () => {
-    const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+    const [configs, pricing, states] = await Promise.all([
+      base44.entities.AppConfig.filter({ config_key: 'main' }),
+      base44.entities.PricingConfig.filter({ config_key: 'main' }),
+      user?.state ? base44.entities.StateConfig.filter({ state_code: user.state }) : Promise.resolve([])
+    ]);
+    
     if (configs.length > 0) {
       setConfig(configs[0]);
+      // Set default shipping type to first enabled option
+      if (configs[0].shipping_type_air_enabled !== false) {
+        setShippingType('aereo');
+      } else if (configs[0].shipping_type_sea_enabled !== false) {
+        setShippingType('maritimo');
+      }
     }
+    
+    if (pricing.length > 0) {
+      setPricingConfig(pricing[0]);
+    }
+    
+    if (states.length > 0) {
+      setStateConfig(states[0]);
+    }
+    
     setLoading(false);
   };
 
@@ -116,6 +138,7 @@ export default function Rates({ user }) {
       {/* Shipping Rates */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Air Shipping */}
+        {config?.shipping_type_air_enabled !== false && (
         <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-white">
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
@@ -170,10 +193,28 @@ export default function Rates({ user }) {
                 ⏱️ <span className="font-medium">Tiempo estimado:</span> 7-15 días
               </p>
             </div>
+            
+            {stateConfig && pricingConfig && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                <p className="text-xs font-semibold text-green-900 mb-2">💰 Precio para {stateConfig.state_name}</p>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-800">Carga Regular:</span>
+                    <span className="font-bold text-green-900">${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-800">Alto Riesgo:</span>
+                    <span className="font-bold text-green-900">${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
+        )}
 
         {/* Sea Shipping */}
+        {config?.shipping_type_sea_enabled !== false && (
         <Card className="border-0 shadow-lg bg-gradient-to-br from-indigo-50 to-white">
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
@@ -228,8 +269,25 @@ export default function Rates({ user }) {
                 ⏱️ <span className="font-medium">Tiempo estimado:</span> 45-60 días
               </p>
             </div>
+            
+            {stateConfig && pricingConfig && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                <p className="text-xs font-semibold text-green-900 mb-2">💰 Precio para {stateConfig.state_name}</p>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-800">Carga Regular:</span>
+                    <span className="font-bold text-green-900">${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-green-800">Alto Riesgo:</span>
+                    <span className="font-bold text-green-900">${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Insurance */}
@@ -379,38 +437,42 @@ export default function Rates({ user }) {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Shipping Type */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => setShippingType('aereo')}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                shippingType === 'aereo'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <Plane className={`h-5 w-5 ${shippingType === 'aereo' ? 'text-blue-600' : 'text-slate-400'}`} />
-                <span className="font-semibold text-slate-800">Aéreo</span>
-              </div>
-              <p className="text-sm text-slate-500">15-20 días</p>
-            </button>
+          <div className={`grid ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+            {config?.shipping_type_air_enabled !== false && (
+              <button
+                type="button"
+                onClick={() => setShippingType('aereo')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  shippingType === 'aereo'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Plane className={`h-5 w-5 ${shippingType === 'aereo' ? 'text-blue-600' : 'text-slate-400'}`} />
+                  <span className="font-semibold text-slate-800">Aéreo</span>
+                </div>
+                <p className="text-sm text-slate-500">15-20 días</p>
+              </button>
+            )}
 
-            <button
-              type="button"
-              onClick={() => setShippingType('maritimo')}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                shippingType === 'maritimo'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <Ship className={`h-5 w-5 ${shippingType === 'maritimo' ? 'text-blue-600' : 'text-slate-400'}`} />
-                <span className="font-semibold text-slate-800">Marítimo</span>
-              </div>
-              <p className="text-sm text-slate-500">75-90 días</p>
-            </button>
+            {config?.shipping_type_sea_enabled !== false && (
+              <button
+                type="button"
+                onClick={() => setShippingType('maritimo')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  shippingType === 'maritimo'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Ship className={`h-5 w-5 ${shippingType === 'maritimo' ? 'text-blue-600' : 'text-slate-400'}`} />
+                  <span className="font-semibold text-slate-800">Marítimo</span>
+                </div>
+                <p className="text-sm text-slate-500">75-90 días</p>
+              </button>
+            )}
           </div>
 
           {/* Cargo Category */}
