@@ -242,7 +242,7 @@ Email: ${client.email}`;
   const handleExportPendingClients = async () => {
     try {
       const pendingClients = clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c));
-      
+
       if (pendingClients.length === 0) {
         toast.error('No hay clientes pendientes de Shipping Mark');
         return;
@@ -250,10 +250,13 @@ Email: ${client.email}`;
 
       const lines = [];
       pendingClients.forEach((client, index) => {
-        lines.push(`Nombre: ${client.first_name || ''} ${client.last_name || ''}`.trim());
-        lines.push(`Ciudad: ${client.city || 'N/A'}`);
-        lines.push(`WhatsApp: ${client.whatsapp || 'N/A'}`);
+        lines.push(`Nombre: ${(client.first_name || '') + ' ' + (client.last_name || '')}`.trim());
+        lines.push(`Estado: ${client.state || ''}`);
+        lines.push(`Ciudad: ${client.city || ''}`);
+        lines.push(`Direccion: ${client.address || ''}`);
+        lines.push(`WhatsApp: ${client.whatsapp || ''}`);
         lines.push(`Email: ${client.email}`);
+        lines.push(`Codigo asignado: ${client.shipping_mark || ''}`);
         if (index < pendingClients.length - 1) {
           lines.push('');
         }
@@ -267,8 +270,8 @@ Email: ${client.email}`;
       link.download = `clientes-pendientes-shipping-mark-${new Date().toISOString().split('T')[0]}.txt`;
       link.click();
       URL.revokeObjectURL(url);
-      
-      toast.success(`${pendingClientes.length} clientes pendientes exportados a TXT`);
+
+      toast.success(`${pendingClients.length} clientes pendientes exportados a TXT`);
     } catch (error) {
       toast.error('Error al exportar datos');
     }
