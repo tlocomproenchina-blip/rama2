@@ -31,6 +31,12 @@ export default function ShippingCalculator({ user }) {
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
     if (configs.length > 0) {
       setConfig(configs[0]);
+      // Set default to first enabled option
+      if (configs[0].shipping_type_air_enabled !== false) {
+        setShippingType('aereo');
+      } else if (configs[0].shipping_type_sea_enabled !== false) {
+        setShippingType('maritimo');
+      }
     }
     
     const states = await base44.entities.StateConfig.filter({ is_active: true });
@@ -131,36 +137,40 @@ export default function ShippingCalculator({ user }) {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Shipping Type */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => setShippingType('aereo')}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                shippingType === 'aereo'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <Plane className={`h-5 w-5 ${shippingType === 'aereo' ? 'text-blue-600' : 'text-slate-400'}`} />
-                <span className="font-semibold text-slate-800">Aéreo</span>
-              </div>
-              <p className="text-sm text-slate-500">15-20 días</p>
-            </button>
+          <div className={`grid ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+            {config?.shipping_type_air_enabled !== false && (
+              <button
+                onClick={() => setShippingType('aereo')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  shippingType === 'aereo'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Plane className={`h-5 w-5 ${shippingType === 'aereo' ? 'text-blue-600' : 'text-slate-400'}`} />
+                  <span className="font-semibold text-slate-800">Aéreo</span>
+                </div>
+                <p className="text-sm text-slate-500">15-20 días</p>
+              </button>
+            )}
 
-            <button
-              onClick={() => setShippingType('maritimo')}
-              className={`p-4 rounded-xl border-2 transition-all ${
-                shippingType === 'maritimo'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <Ship className={`h-5 w-5 ${shippingType === 'maritimo' ? 'text-blue-600' : 'text-slate-400'}`} />
-                <span className="font-semibold text-slate-800">Marítimo</span>
-              </div>
-              <p className="text-sm text-slate-500">75-90 días</p>
-            </button>
+            {config?.shipping_type_sea_enabled !== false && (
+              <button
+                onClick={() => setShippingType('maritimo')}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  shippingType === 'maritimo'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Ship className={`h-5 w-5 ${shippingType === 'maritimo' ? 'text-blue-600' : 'text-slate-400'}`} />
+                  <span className="font-semibold text-slate-800">Marítimo</span>
+                </div>
+                <p className="text-sm text-slate-500">75-90 días</p>
+              </button>
+            )}
           </div>
 
           {/* Cargo Category */}
