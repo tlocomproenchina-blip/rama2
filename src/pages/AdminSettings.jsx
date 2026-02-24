@@ -712,13 +712,244 @@ export default function AdminSettings({ user }) {
           </Card>
         </TabsContent>
 
-        {/* Tabs vacíos temporales */}
+        {/* Tab Pagos */}
         <TabsContent value="pagos">
           <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle>Configuración de Pagos</CardTitle>
-              <CardDescription>En desarrollo</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Wallets de Pago
+              </CardTitle>
+              <CardDescription>
+                Configura las direcciones de wallet para recibir pagos
+              </CardDescription>
             </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Binance */}
+              <div className="p-6 bg-amber-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">Binance</h3>
+                <div className="space-y-2">
+                  <Label>Dirección de Wallet</Label>
+                  <Input
+                    value={appConfig.wallet_binance || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_binance: e.target.value })}
+                    placeholder="Dirección de wallet Binance"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.binance_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, binance_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente (ej: usar red específica)"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* USDT TRC20 */}
+              <div className="p-6 bg-blue-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">USDT TRC20</h3>
+                <div className="space-y-2">
+                  <Label>Dirección de Wallet</Label>
+                  <Input
+                    value={appConfig.wallet_usdt_trc20 || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_usdt_trc20: e.target.value })}
+                    placeholder="Dirección de wallet USDT TRC20"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.usdt_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, usdt_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* PayPal */}
+              <div className="p-6 bg-indigo-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">PayPal</h3>
+                <div className="space-y-2">
+                  <Label>Email de PayPal</Label>
+                  <Input
+                    value={appConfig.wallet_paypal || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_paypal: e.target.value })}
+                    placeholder="tu-email@paypal.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.paypal_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, paypal_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Débito Internacional */}
+              <div className="p-6 bg-purple-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">Débito Internacional</h3>
+                <div className="space-y-2">
+                  <Label>Datos de la Tarjeta/Cuenta</Label>
+                  <Input
+                    value={appConfig.wallet_debito_internacional || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_debito_internacional: e.target.value })}
+                    placeholder="Datos para débito internacional"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.debito_internacional_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, debito_internacional_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Wally */}
+              <div className="p-6 bg-amber-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">Wally</h3>
+                <div className="space-y-2">
+                  <Label>Usuario/Teléfono Wally</Label>
+                  <Input
+                    value={appConfig.wallet_wally || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_wally: e.target.value })}
+                    placeholder="Usuario o teléfono Wally"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.wally_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wally_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Zinli */}
+              <div className="p-6 bg-blue-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">Zinli</h3>
+                <div className="space-y-2">
+                  <Label>Usuario/Teléfono Zinli</Label>
+                  <Input
+                    value={appConfig.wallet_zinli || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_zinli: e.target.value })}
+                    placeholder="Usuario o teléfono Zinli"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.zinli_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, zinli_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Wise */}
+              <div className="p-6 bg-indigo-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">Wise</h3>
+                <div className="space-y-2">
+                  <Label>Email/Datos Wise</Label>
+                  <Input
+                    value={appConfig.wallet_wise || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_wise: e.target.value })}
+                    placeholder="Email o datos Wise"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.wise_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wise_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Skrill */}
+              <div className="p-6 bg-purple-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">Skrill</h3>
+                <div className="space-y-2">
+                  <Label>Email Skrill</Label>
+                  <Input
+                    value={appConfig.wallet_skrill || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_skrill: e.target.value })}
+                    placeholder="tu-email@skrill.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.skrill_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, skrill_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Zelle */}
+              <div className="p-6 bg-amber-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">Zelle</h3>
+                <div className="space-y-2">
+                  <Label>Email/Teléfono Zelle</Label>
+                  <Input
+                    value={appConfig.wallet_zelle || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_zelle: e.target.value })}
+                    placeholder="Email o teléfono Zelle"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.zelle_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, zelle_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              {/* Pago Móvil → USDT */}
+              <div className="p-6 bg-blue-50 rounded-xl space-y-4">
+                <h3 className="font-semibold text-slate-800">Pago Móvil → USDT</h3>
+                <div className="space-y-2">
+                  <Label>Datos de Pago Móvil/USDT</Label>
+                  <Input
+                    value={appConfig.wallet_pago_movil_usdt || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, wallet_pago_movil_usdt: e.target.value })}
+                    placeholder="Teléfono o datos de conversión"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instrucciones Adicionales</Label>
+                  <Textarea
+                    value={appConfig.pago_movil_usdt_instructions || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, pago_movil_usdt_instructions: e.target.value })}
+                    placeholder="Instrucciones para el cliente"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar configuración de pagos
+              </Button>
+            </CardContent>
           </Card>
         </TabsContent>
 
