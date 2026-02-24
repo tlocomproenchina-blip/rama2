@@ -18,14 +18,26 @@ Deno.serve(async (req) => {
         for (const client of clients) {
             const firstName = client.first_name || '';
             const lastName = client.last_name || '';
-            const fullName = `${firstName} ${lastName}`.trim() || client.email;
-            const city = client.city || 'N/A';
-            const whatsapp = client.whatsapp || 'N/A';
-            const email = client.email || 'N/A';
-            const shippingMark = client.shipping_mark || '*******';
+            const fullName = `${firstName} ${lastName}`.trim();
+            const state = client.state || '';
+            const city = client.city || '';
+            
+            // Construir dirección completa
+            const addressLine1 = client.address_line1 || '';
+            const addressLine2 = client.address_line2 || '';
+            let fullAddress = addressLine1;
+            if (addressLine2) {
+                fullAddress += (fullAddress ? ', ' : '') + addressLine2;
+            }
+            
+            const whatsapp = client.whatsapp || '';
+            const email = client.email || '';
+            const shippingMark = client.shipping_mark || '';
 
             content += `Nombre: ${fullName}\n`;
+            content += `Estado: ${state}\n`;
             content += `Ciudad: ${city}\n`;
+            content += `Direccion: ${fullAddress}\n`;
             content += `WhatsApp: ${whatsapp}\n`;
             content += `Email: ${email}\n`;
             content += `Codigo asignado: ${shippingMark}\n`;
