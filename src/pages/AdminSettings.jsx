@@ -787,18 +787,70 @@ export default function AdminSettings({ user }) {
               </div>
 
               <div className="space-y-2">
-                <Label>Prefijo de Shipping Mark</Label>
-                <Input
-                  value={appConfig.shipping_mark_prefix}
-                  onChange={(e) => setAppConfig({ ...appConfig, shipping_mark_prefix: e.target.value })}
-                  placeholder="TLEC-"
-                />
-              </div>
+                 <Label>Prefijo de Shipping Mark</Label>
+                 <Input
+                   value={appConfig.shipping_mark_prefix}
+                   onChange={(e) => setAppConfig({ ...appConfig, shipping_mark_prefix: e.target.value })}
+                   placeholder="TLEC-"
+                 />
+               </div>
 
-              <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
-                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar cambios
-              </Button>
+               {/* WhatsApp Configuration */}
+               <div className="mt-8 p-6 bg-green-50 rounded-xl border border-green-200 space-y-4">
+                 <div className="flex items-center justify-between">
+                   <div>
+                     <h3 className="font-semibold text-slate-800 text-lg">Configuración WhatsApp</h3>
+                     <p className="text-sm text-slate-600 mt-1">Personaliza el botón de soporte por WhatsApp</p>
+                   </div>
+                   <Switch
+                     checked={appConfig.whatsapp_enabled}
+                     onCheckedChange={(checked) => setAppConfig({ ...appConfig, whatsapp_enabled: checked })}
+                   />
+                 </div>
+
+                 {appConfig.whatsapp_enabled && (
+                   <div className="space-y-4">
+                     <div className="space-y-2">
+                       <Label>Número de WhatsApp</Label>
+                       <Input
+                         value={appConfig.whatsapp_number || ''}
+                         onChange={(e) => setAppConfig({ ...appConfig, whatsapp_number: e.target.value })}
+                         placeholder="8615115661301"
+                       />
+                       <p className="text-xs text-slate-500">Formato: sin +, sin espacios (ej: 584121234567)</p>
+                     </div>
+
+                     <div className="space-y-2">
+                       <Label>Mensaje por defecto</Label>
+                       <Textarea
+                         value={appConfig.whatsapp_message || ''}
+                         onChange={(e) => setAppConfig({ ...appConfig, whatsapp_message: e.target.value })}
+                         placeholder="Hola, necesito ayuda con mi envío"
+                         rows={2}
+                       />
+                     </div>
+
+                     <div className="space-y-2">
+                       <Label>Ícono personalizado</Label>
+                       <Input
+                         type="file"
+                         accept="image/*"
+                         onChange={(e) => handleWhatsAppIconUpload(e.target.files[0])}
+                         disabled={uploadingWhatsAppIcon}
+                       />
+                       {appConfig.whatsapp_icon_url && (
+                         <img src={appConfig.whatsapp_icon_url} alt="WhatsApp Icon" className="h-12 w-12 object-contain rounded border" />
+                       )}
+                       <p className="text-xs text-slate-500">Deixe em branco para usar o ícone padrão</p>
+                     </div>
+                   </div>
+                 )}
+               </div>
+
+               <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                 Guardar cambios
+               </Button>
             </CardContent>
           </Card>
         </TabsContent>
