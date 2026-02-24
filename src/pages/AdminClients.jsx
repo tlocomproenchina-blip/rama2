@@ -398,9 +398,9 @@ Email: ${client.email}`;
 
     const matchesStatus = 
       statusFilter === 'all' ? true :
-      statusFilter === 'with_mark' ? !!client.shipping_mark :
-      statusFilter === 'without_mark' ? !client.shipping_mark :
-      statusFilter === 'pending' ? (!client.shipping_mark && client.profile_completed && !hasIncompleteData(client)) :
+      statusFilter === 'with_mark' ? hasValidShippingMark(client) :
+      statusFilter === 'without_mark' ? !hasValidShippingMark(client) :
+      statusFilter === 'pending' ? (!hasValidShippingMark(client) && client.profile_completed && !hasIncompleteData(client)) :
       statusFilter === 'incomplete' ? hasIncompleteData(client) :
       true;
 
