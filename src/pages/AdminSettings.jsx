@@ -287,7 +287,7 @@ export default function AdminSettings({ user }) {
       </div>
 
       <Tabs defaultValue="tarifas" className="space-y-6">
-        <TabsList className="grid grid-cols-8 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="tarifas" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
             Tarifas
@@ -303,10 +303,6 @@ export default function AdminSettings({ user }) {
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             General
-          </TabsTrigger>
-          <TabsTrigger value="empresa" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Empresa
           </TabsTrigger>
           <TabsTrigger value="facturas" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -953,21 +949,110 @@ export default function AdminSettings({ user }) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="empresa">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Información de la Empresa</CardTitle>
-              <CardDescription>En desarrollo</CardDescription>
-            </CardHeader>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="facturas">
           <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle>Configuración de Facturas</CardTitle>
-              <CardDescription>En desarrollo</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Configuración de Factura
+              </CardTitle>
+              <CardDescription>
+                Personaliza la información que aparece en las facturas PDF
+              </CardDescription>
             </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Nombre de la Empresa</Label>
+                <Input
+                  value={appConfig.invoice_company_name || ''}
+                  onChange={(e) => setAppConfig({ ...appConfig, invoice_company_name: e.target.value })}
+                  placeholder="TLEC CARGO LTD"
+                />
+                <p className="text-xs text-slate-500">Nombre que aparecerá en el encabezado de la factura</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Eslogan/Descripción</Label>
+                <Input
+                  value={appConfig.invoice_company_tagline || ''}
+                  onChange={(e) => setAppConfig({ ...appConfig, invoice_company_tagline: e.target.value })}
+                  placeholder="Sistema de Envíos Internacionales"
+                />
+                <p className="text-xs text-slate-500">Texto que aparece debajo del nombre de la empresa</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Logo para Facturas (Relación 1:1)</Label>
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleLogoUpload(e.target.files[0])}
+                      disabled={uploadingLogo}
+                    />
+                    {appConfig.invoice_logo_url ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <img 
+                          src={appConfig.invoice_logo_url} 
+                          alt="Logo factura" 
+                          className="h-16 w-16 object-contain rounded border"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAppConfig({ ...appConfig, invoice_logo_url: '' })}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Eliminar
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 mt-1">Sin archivos seleccionados</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800">
+                    <strong>IMPORTANTE:</strong> Usa una imagen cuadrada (1:1) para mejor visualización en facturas. El logo aparecerá en el encabezado de todas las facturas PDF.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-slate-600" />
+                  <Label>Días para considerar factura vencida</Label>
+                </div>
+                <Input
+                  type="number"
+                  value={appConfig.invoice_overdue_days || 7}
+                  onChange={(e) => setAppConfig({ ...appConfig, invoice_overdue_days: parseInt(e.target.value) || 7 })}
+                  placeholder="7"
+                />
+                <p className="text-xs text-slate-500">Número de días para que una factura se considere vencida</p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-slate-600" />
+                  <Label>Días para alertas de pago</Label>
+                </div>
+                <Input
+                  type="number"
+                  value={appConfig.payment_alert_days || 7}
+                  onChange={(e) => setAppConfig({ ...appConfig, payment_alert_days: parseInt(e.target.value) || 7 })}
+                  placeholder="7"
+                />
+                <p className="text-xs text-slate-500">Número de días para generar alertas de pagos pendientes</p>
+              </div>
+
+              <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar configuración de facturas
+              </Button>
+            </CardContent>
           </Card>
         </TabsContent>
 
