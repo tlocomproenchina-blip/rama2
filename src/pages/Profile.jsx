@@ -178,6 +178,7 @@ export default function Profile({ user, refreshUser }) {
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                   placeholder="Tu nombre"
+                  disabled={appConfig?.allow_profile_updates === false}
                   required
                 />
               </div>
@@ -188,6 +189,7 @@ export default function Profile({ user, refreshUser }) {
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                   placeholder="Tu apellido"
+                  disabled={appConfig?.allow_profile_updates === false}
                   required
                 />
               </div>
@@ -205,6 +207,7 @@ export default function Profile({ user, refreshUser }) {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+58 414 1234567"
+                  disabled={appConfig?.allow_profile_updates === false}
                   required
                 />
               </div>
@@ -218,6 +221,7 @@ export default function Profile({ user, refreshUser }) {
                   value={formData.whatsapp}
                   onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
                   placeholder="+58 414 1234567"
+                  disabled={appConfig?.allow_profile_updates === false}
                   required
                 />
               </div>
@@ -233,6 +237,7 @@ export default function Profile({ user, refreshUser }) {
                 <Select 
                   value={formData.state}
                   onValueChange={(value) => setFormData({ ...formData, state: value })}
+                  disabled={appConfig?.allow_profile_updates === false}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona tu estado" />
@@ -268,6 +273,7 @@ export default function Profile({ user, refreshUser }) {
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   placeholder="Tu ciudad"
+                  disabled={appConfig?.allow_profile_updates === false}
                   required
                 />
               </div>
@@ -281,6 +287,7 @@ export default function Profile({ user, refreshUser }) {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Calle, número, edificio, apartamento, referencias..."
+                disabled={appConfig?.allow_profile_updates === false}
                 rows={3}
               />
               <p className="text-xs text-slate-500">
