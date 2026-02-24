@@ -376,35 +376,6 @@ export default function ShippingCalculator({ user }) {
               <span className="font-semibold">{result.cbm.toFixed(4)}</span>
             </div>
 
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Se cobra por:</span>
-              <span className="font-semibold text-sm">{result.chargedBy}</span>
-            </div>
-
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Costo base:</span>
-              <span className="font-semibold">${result.baseCost.toFixed(2)}</span>
-            </div>
-
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Envío ({pricingConfig?.profit_percentage || 0}% beneficio):</span>
-              <span className="font-semibold">${result.shippingCost.toFixed(2)}</span>
-            </div>
-
-            {result.stateShipping > 0 && result.stateName && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">Envío local ({result.stateName}):</span>
-                <span className="font-semibold">${result.stateShipping.toFixed(2)}</span>
-              </div>
-            )}
-
-            {result.doorToDoor > 0 && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">Puerta a Puerta:</span>
-                <span className="font-semibold">${result.doorToDoor.toFixed(2)}</span>
-              </div>
-            )}
-
             {result.insuranceCost > 0 && (
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-600">Seguro:</span>
