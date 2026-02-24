@@ -620,31 +620,13 @@ export default function AdminSettings({ user }) {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label>Porcentaje de seguro (%)</Label>
-                  <Input
-                    type="number"
-                    value={appConfig.insurance_percentage}
-                    onChange={(e) => setAppConfig({ ...appConfig, insurance_percentage: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Días para vencimiento de factura</Label>
-                  <Input
-                    type="number"
-                    value={appConfig.invoice_overdue_days}
-                    onChange={(e) => setAppConfig({ ...appConfig, invoice_overdue_days: parseInt(e.target.value) || 7 })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Días para alertas de pago</Label>
-                  <Input
-                    type="number"
-                    value={appConfig.payment_alert_days}
-                    onChange={(e) => setAppConfig({ ...appConfig, payment_alert_days: parseInt(e.target.value) || 7 })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>Porcentaje de seguro (%)</Label>
+                <Input
+                  type="number"
+                  value={appConfig.insurance_percentage}
+                  onChange={(e) => setAppConfig({ ...appConfig, insurance_percentage: parseFloat(e.target.value) || 0 })}
+                />
               </div>
 
               <div className="space-y-2">
