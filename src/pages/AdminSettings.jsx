@@ -165,7 +165,7 @@ export default function AdminSettings({ user }) {
   const handleSaveState = async (state) => {
     try {
       await base44.entities.StateConfig.update(state.id, state);
-      toast.success(`${state.state_name} actualizado`);
+      toast.success(`${state.state_name} guardado exitosamente`);
     } catch (error) {
       toast.error('Error al guardar estado');
     }
