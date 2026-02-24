@@ -21,15 +21,17 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 
 export default function PreAlert({ user }) {
   const navigate = useNavigate();
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const enabledTypes = useEnabledShippingTypes();
   const [formData, setFormData] = useState({
     tracking_number: '',
-    shipping_type: 'aereo',
+    shipping_type: '',
     description: '',
     has_insurance: false,
     fob_value: ''
@@ -43,7 +45,17 @@ export default function PreAlert({ user }) {
 
   const loadConfig = async () => {
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
-    if (configs.length > 0) setConfig(configs[0]);
+    if (configs.length > 0) {
+      setConfig(configs[0]);
+      // Set default shipping type to first enabled option
+      if (!formData.shipping_type) {
+        if (configs[0].shipping_type_air_enabled !== false) {
+          setFormData(prev => ({ ...prev, shipping_type: 'aereo' }));
+        } else if (configs[0].shipping_type_sea_enabled !== false) {
+          setFormData(prev => ({ ...prev, shipping_type: 'maritimo' }));
+        }
+      }
+    }
     setLoading(false);
   };
 
@@ -222,30 +234,34 @@ export default function PreAlert({ user }) {
               <RadioGroup 
                 value={formData.shipping_type} 
                 onValueChange={(val) => setFormData({ ...formData, shipping_type: val })}
-                className="grid grid-cols-2 gap-4"
+                className={`grid ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}
               >
-                <div className={`flex items-center space-x-3 border rounded-xl p-4 cursor-pointer transition-all ${
-                  formData.shipping_type === 'aereo' 
-                    ? 'border-blue-400 bg-blue-50' 
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}>
-                  <RadioGroupItem value="aereo" id="aereo" />
-                  <Label htmlFor="aereo" className="cursor-pointer flex items-center gap-2">
-                    <Plane className="h-5 w-5 text-blue-600" />
-                    <span className="font-medium">Aéreo</span>
-                  </Label>
-                </div>
-                <div className={`flex items-center space-x-3 border rounded-xl p-4 cursor-pointer transition-all ${
-                  formData.shipping_type === 'maritimo' 
-                    ? 'border-blue-400 bg-blue-50' 
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}>
-                  <RadioGroupItem value="maritimo" id="maritimo" />
-                  <Label htmlFor="maritimo" className="cursor-pointer flex items-center gap-2">
-                    <Ship className="h-5 w-5 text-blue-600" />
-                    <span className="font-medium">Marítimo</span>
-                  </Label>
-                </div>
+                {config?.shipping_type_air_enabled !== false && (
+                  <div className={`flex items-center space-x-3 border rounded-xl p-4 cursor-pointer transition-all ${
+                    formData.shipping_type === 'aereo' 
+                      ? 'border-blue-400 bg-blue-50' 
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}>
+                    <RadioGroupItem value="aereo" id="aereo" />
+                    <Label htmlFor="aereo" className="cursor-pointer flex items-center gap-2">
+                      <Plane className="h-5 w-5 text-blue-600" />
+                      <span className="font-medium">Aéreo</span>
+                    </Label>
+                  </div>
+                )}
+                {config?.shipping_type_sea_enabled !== false && (
+                  <div className={`flex items-center space-x-3 border rounded-xl p-4 cursor-pointer transition-all ${
+                    formData.shipping_type === 'maritimo' 
+                      ? 'border-blue-400 bg-blue-50' 
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}>
+                    <RadioGroupItem value="maritimo" id="maritimo" />
+                    <Label htmlFor="maritimo" className="cursor-pointer flex items-center gap-2">
+                      <Ship className="h-5 w-5 text-blue-600" />
+                      <span className="font-medium">Marítimo</span>
+                    </Label>
+                  </div>
+                )}
               </RadioGroup>
             </div>
 
