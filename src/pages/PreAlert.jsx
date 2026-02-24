@@ -203,6 +203,18 @@ export default function PreAlert({ user }) {
         </div>
       </div>
 
+      {/* Consolidation Alert */}
+      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 flex items-start gap-4">
+        <Clock className="h-6 w-6 text-indigo-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <h3 className="font-semibold text-indigo-900 text-sm mb-1">Información de Consolidación</h3>
+          <p className="text-indigo-800 text-sm leading-relaxed">
+            Una vez recibido tu primer paquete, contarás con <span className="font-bold">{config?.consolidation_periods?.[0] || 30} días</span> para solicitar la consolidación. 
+            De lo contrario, realizaremos una consolidación automática con los paquetes disponibles en depósito.
+          </p>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit}>
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6 space-y-6">
