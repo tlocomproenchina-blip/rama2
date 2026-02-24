@@ -106,6 +106,7 @@ export default function AdminSettings({ user }) {
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [uploadingInvoiceLogo, setUploadingInvoiceLogo] = useState(false);
   const [uploadingShippingMarkExample, setUploadingShippingMarkExample] = useState(false);
+  const [uploadingWhatsAppIcon, setUploadingWhatsAppIcon] = useState(false);
 
   useEffect(() => {
     loadAllConfigs();
