@@ -563,7 +563,7 @@ Email: ${client.email}`;
                 className={statusFilter === 'pending' ? '' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
               >
                 <Clock className="h-3 w-3 mr-1" />
-                Pendientes ({clients.filter(c => !c.shipping_mark && c.profile_completed).length})
+                Pendientes ({clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c)).length})
               </Button>
               <Button
                 variant={statusFilter === 'incomplete' ? 'default' : 'outline'}
