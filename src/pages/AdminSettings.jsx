@@ -84,7 +84,9 @@ export default function AdminSettings({ user }) {
     invoice_logo_url: '',
     invoice_overdue_days: 7,
     payment_alert_days: 7,
-    shipping_mark_prefix: 'TLEC-'
+    shipping_mark_prefix: 'TLEC-',
+    shipping_type_air_enabled: true,
+    shipping_type_sea_enabled: true
   });
 
   // Privacy Config
@@ -319,33 +321,33 @@ export default function AdminSettings({ user }) {
 
       <Tabs defaultValue="tarifas" className="space-y-6">
         <TabsList className="grid grid-cols-7 w-full">
-          <TabsTrigger value="tarifas" className="flex items-center gap-2">
+          <TabsTrigger value="tarifas" className="flex items-center gap-2 text-xs">
             <DollarSign className="h-4 w-4" />
-            Tarifas
+            <span className="hidden md:inline">Tarifas</span>
           </TabsTrigger>
-          <TabsTrigger value="estados" className="flex items-center gap-2">
+          <TabsTrigger value="estados" className="flex items-center gap-2 text-xs">
             <MapPin className="h-4 w-4" />
-            Estados
+            <span className="hidden md:inline">Estados</span>
           </TabsTrigger>
-          <TabsTrigger value="pagos" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            Pagos
-          </TabsTrigger>
-          <TabsTrigger value="general" className="flex items-center gap-2">
+          <TabsTrigger value="envios" className="flex items-center gap-2 text-xs">
             <Settings className="h-4 w-4" />
-            General
+            <span className="hidden md:inline">Envíos</span>
           </TabsTrigger>
-          <TabsTrigger value="facturas" className="flex items-center gap-2">
+          <TabsTrigger value="pagos" className="flex items-center gap-2 text-xs">
+            <DollarSign className="h-4 w-4" />
+            <span className="hidden md:inline">Pagos</span>
+          </TabsTrigger>
+          <TabsTrigger value="general" className="flex items-center gap-2 text-xs">
+            <Settings className="h-4 w-4" />
+            <span className="hidden md:inline">General</span>
+          </TabsTrigger>
+          <TabsTrigger value="facturas" className="flex items-center gap-2 text-xs">
             <FileText className="h-4 w-4" />
-            Facturas
+            <span className="hidden md:inline">Facturas</span>
           </TabsTrigger>
-          <TabsTrigger value="privacidad" className="flex items-center gap-2">
+          <TabsTrigger value="privacidad" className="flex items-center gap-2 text-xs">
             <ShieldCheck className="h-4 w-4" />
-            Privacidad
-          </TabsTrigger>
-          <TabsTrigger value="push" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Push
+            <span className="hidden md:inline">Privacidad</span>
           </TabsTrigger>
         </TabsList>
 
@@ -438,6 +440,72 @@ export default function AdminSettings({ user }) {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab Tipos de Envío */}
+        <TabsContent value="envios">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Tipos de Envío Disponibles</CardTitle>
+              <CardDescription>
+                Habilita o deshabilita los tipos de envío que estarán disponibles en todo el sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-6 bg-blue-50 rounded-xl border border-blue-200">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 text-lg">Envío Aéreo</p>
+                      <p className="text-sm text-slate-600">Permite a los usuarios seleccionar envío aéreo</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appConfig.shipping_type_air_enabled}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, shipping_type_air_enabled: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-6 bg-cyan-50 rounded-xl border border-cyan-200">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-cyan-100 rounded-lg">
+                      <svg className="h-6 w-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 text-lg">Envío Marítimo</p>
+                      <p className="text-sm text-slate-600">Permite a los usuarios seleccionar envío marítimo</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appConfig.shipping_type_sea_enabled}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, shipping_type_sea_enabled: checked })}
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <div className="flex items-start gap-2">
+                  <div className="text-amber-600 mt-0.5">⚠️</div>
+                  <div className="text-sm text-amber-800">
+                    <p className="font-semibold mb-1">Importante:</p>
+                    <p>Al deshabilitar un tipo de envío, este dejará de aparecer en todos los formularios y opciones del sistema para administradores y usuarios. Los envíos existentes no se verán afectados.</p>
+                  </div>
+                </div>
+              </div>
+
+              <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar configuración
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1111,14 +1179,7 @@ export default function AdminSettings({ user }) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="push">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Notificaciones Push</CardTitle>
-              <CardDescription>En desarrollo</CardDescription>
-            </CardHeader>
-          </Card>
-        </TabsContent>
+
       </Tabs>
     </div>
   );
