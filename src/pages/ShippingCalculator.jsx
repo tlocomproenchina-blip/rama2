@@ -10,6 +10,8 @@ import { Calculator, Plane, Ship, Package, Loader2 } from 'lucide-react';
 
 export default function ShippingCalculator({ user }) {
   const [config, setConfig] = useState(null);
+  const [stateConfigs, setStateConfigs] = useState([]);
+  const [selectedState, setSelectedState] = useState('');
   const [loading, setLoading] = useState(true);
   const [shippingType, setShippingType] = useState('aereo');
   const [cargoCategory, setCargoCategory] = useState('general');
@@ -30,6 +32,10 @@ export default function ShippingCalculator({ user }) {
     if (configs.length > 0) {
       setConfig(configs[0]);
     }
+    
+    const states = await base44.entities.StateConfig.filter({ is_active: true });
+    setStateConfigs(states);
+    
     setLoading(false);
   };
 
@@ -80,7 +86,11 @@ export default function ShippingCalculator({ user }) {
     const fob = parseFloat(fobValue) || 0;
     const insuranceCost = includeInsurance && fob > 0 ? fob * (config.insurance_percentage / 100) : 0;
 
-    const totalCost = baseCost + insuranceCost;
+    // Get state shipping cost
+    const stateShipping = selectedState ? 
+      (stateConfigs.find(s => s.state_code === selectedState)?.shipping_rate || 0) : 0;
+
+    const totalCost = baseCost + insuranceCost + stateShipping;
 
     setResult({
       rate,
@@ -91,6 +101,8 @@ export default function ShippingCalculator({ user }) {
       chargedBy,
       baseCost,
       insuranceCost,
+      stateShipping,
+      stateName: selectedState ? stateConfigs.find(s => s.state_code === selectedState)?.state_name : null,
       totalCost
     });
   };
@@ -163,6 +175,28 @@ export default function ShippingCalculator({ user }) {
                 <SelectItem value="sensitive">Sensible</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* State Selection */}
+          <div className="space-y-2">
+            <Label>Estado de Destino</Label>
+            <Select value={selectedState} onValueChange={setSelectedState}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un estado" />
+              </SelectTrigger>
+              <SelectContent>
+                {stateConfigs.map((state) => (
+                  <SelectItem key={state.state_code} value={state.state_code}>
+                    {state.state_name} {state.shipping_rate > 0 ? `(+$${state.shipping_rate.toFixed(2)})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedState && (
+              <p className="text-xs text-slate-500">
+                Incluye envío local al estado seleccionado
+              </p>
+            )}
           </div>
 
           {/* Input Mode Selection */}
@@ -348,6 +382,13 @@ export default function ShippingCalculator({ user }) {
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-600">Seguro:</span>
                 <span className="font-semibold">${result.insuranceCost.toFixed(2)}</span>
+              </div>
+            )}
+
+            {result.stateShipping > 0 && result.stateName && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-slate-600">Envío local ({result.stateName}):</span>
+                <span className="font-semibold">${result.stateShipping.toFixed(2)}</span>
               </div>
             )}
 
