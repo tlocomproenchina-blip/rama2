@@ -61,6 +61,7 @@ export default function AdminClients({ user }) {
     package_image_url: ''
   });
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [dateFilter, setDateFilter] = useState('all');
 
   useEffect(() => {
     loadClients();
