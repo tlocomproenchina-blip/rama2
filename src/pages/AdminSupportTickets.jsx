@@ -626,6 +626,7 @@ export default function AdminSupportTickets({ user }) {
                     <SelectItem value="envio">Envío</SelectItem>
                     <SelectItem value="tracking">Tracking</SelectItem>
                     <SelectItem value="consolidacion">Consolidación</SelectItem>
+                    <SelectItem value="actualizar_datos">Actualizar Datos</SelectItem>
                     <SelectItem value="otro">Otro</SelectItem>
                   </SelectContent>
                 </Select>
