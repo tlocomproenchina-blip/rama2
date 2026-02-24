@@ -198,7 +198,7 @@ export default function RequestConsolidation({ user }) {
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-3">
               <p className="text-xs md:text-sm text-blue-800">
-                <strong>Período:</strong> 30 días desde la recepción del primer paquete
+                <strong>Período:</strong> {config?.consolidation_periods?.[0] || 30} días desde la recepción del primer paquete
               </p>
             </CardContent>
           </Card>
