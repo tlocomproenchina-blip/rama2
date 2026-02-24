@@ -381,6 +381,10 @@ Email: ${client.email}`;
     return !client.first_name || !client.last_name || !client.phone || !client.whatsapp || !client.state || !client.city;
   };
 
+  const hasValidShippingMark = (client) => {
+    return client.shipping_mark && client.shipping_mark.length > 5 && client.shipping_mark !== 'TLEC-';
+  };
+
   const filteredClients = clients.filter(client => {
     const searchLower = search.toLowerCase();
     const matchesSearch = (
