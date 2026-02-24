@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
+import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 
 export default function RequestConsolidation({ user }) {
   const navigate = useNavigate();
@@ -24,8 +25,9 @@ export default function RequestConsolidation({ user }) {
   const [packages, setPackages] = useState([]);
   const [selectedPackages, setSelectedPackages] = useState([]);
   const [config, setConfig] = useState(null);
+  const enabledTypes = useEnabledShippingTypes();
   const [formData, setFormData] = useState({
-    shipping_type: 'aereo',
+    shipping_type: '',
     notes: ''
   });
   const [submitting, setSubmitting] = useState(false);
@@ -59,7 +61,17 @@ export default function RequestConsolidation({ user }) {
     const available = pkgs.filter(p => !p.consolidation_id && !packagesInRequests.has(p.id));
     
     setPackages(available);
-    if (configs.length > 0) setConfig(configs[0]);
+    if (configs.length > 0) {
+      setConfig(configs[0]);
+      // Set default shipping type to first enabled option
+      if (!formData.shipping_type) {
+        if (configs[0].shipping_type_air_enabled !== false) {
+          setFormData(prev => ({ ...prev, shipping_type: 'aereo' }));
+        } else if (configs[0].shipping_type_sea_enabled !== false) {
+          setFormData(prev => ({ ...prev, shipping_type: 'maritimo' }));
+        }
+      }
+    }
     setLoading(false);
   };
 
@@ -165,16 +177,20 @@ export default function RequestConsolidation({ user }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="aereo">
-                  <div className="flex items-center gap-2">
-                    <Plane className="h-3 w-3 md:h-4" /> Aéreo
-                  </div>
-                </SelectItem>
-                <SelectItem value="maritimo">
-                  <div className="flex items-center gap-2">
-                    <Ship className="h-3 w-3 md:h-4" /> Marítimo
-                  </div>
-                </SelectItem>
+                {config?.shipping_type_air_enabled !== false && (
+                  <SelectItem value="aereo">
+                    <div className="flex items-center gap-2">
+                      <Plane className="h-3 w-3 md:h-4" /> Aéreo
+                    </div>
+                  </SelectItem>
+                )}
+                {config?.shipping_type_sea_enabled !== false && (
+                  <SelectItem value="maritimo">
+                    <div className="flex items-center gap-2">
+                      <Ship className="h-3 w-3 md:h-4" /> Marítimo
+                    </div>
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
