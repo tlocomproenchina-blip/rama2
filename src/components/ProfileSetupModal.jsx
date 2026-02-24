@@ -53,7 +53,10 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const calculatePricing = () => {
     if (!formData.state || !pricingConfig) return null;
     
-    const stateConfig = stateConfigs.find(s => s.state_code === formData.state);
+    // Buscar por código o por nombre (para compatibilidad con datos antiguos)
+    const stateConfig = stateConfigs.find(s => 
+      s.state_code === formData.state || s.state_name === formData.state
+    );
     if (!stateConfig) return null;
 
     const stateRate = stateConfig.shipping_rate || 0;
