@@ -111,14 +111,15 @@ export default function Profile({ user, refreshUser }) {
     
     try {
       await base44.auth.updateMe(formData);
-      toast.success('Perfil actualizado exitosamente');
       
       if (refreshUser) {
         await refreshUser();
       }
+      
+      toast.success('Perfil actualizado exitosamente');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Error al actualizar el perfil');
+      toast.error('Error al actualizar el perfil: ' + (error.message || 'Error desconocido'));
     } finally {
       setSaving(false);
     }
