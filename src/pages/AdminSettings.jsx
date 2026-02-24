@@ -71,24 +71,28 @@ export default function AdminSettings({ user }) {
   const [uniformRate, setUniformRate] = useState('');
 
   // App Config
-  const [appConfig, setAppConfig] = useState({
-    app_name: 'TLEC Logistics',
-    app_tagline: 'Tu socio confiable en envíos',
-    app_logo_url: '',
-    favicon_url: '',
-    warehouse_address: '',
-    contract_text: '',
-    insurance_percentage: 5,
-    invoice_company_name: 'TLEC CARGO LTD',
-    invoice_company_tagline: 'Sistema de Envios Internacionales',
-    invoice_logo_url: '',
-    invoice_overdue_days: 7,
-    payment_alert_days: 7,
-    shipping_mark_prefix: 'TLEC-',
-    shipping_type_air_enabled: true,
-    shipping_type_sea_enabled: true,
-    allow_profile_updates: true
-  });
+   const [appConfig, setAppConfig] = useState({
+     app_name: 'TLEC Logistics',
+     app_tagline: 'Tu socio confiable en envíos',
+     app_logo_url: '',
+     favicon_url: '',
+     warehouse_address: '',
+     contract_text: '',
+     insurance_percentage: 5,
+     invoice_company_name: 'TLEC CARGO LTD',
+     invoice_company_tagline: 'Sistema de Envios Internacionales',
+     invoice_logo_url: '',
+     invoice_overdue_days: 7,
+     payment_alert_days: 7,
+     shipping_mark_prefix: 'TLEC-',
+     shipping_type_air_enabled: true,
+     shipping_type_sea_enabled: true,
+     allow_profile_updates: true,
+     whatsapp_enabled: false,
+     whatsapp_number: '',
+     whatsapp_message: '',
+     whatsapp_icon_url: ''
+   });
 
   // Privacy Config
   const [privacyConfig, setPrivacyConfig] = useState({
