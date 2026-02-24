@@ -18,7 +18,8 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
