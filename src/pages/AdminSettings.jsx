@@ -6,170 +6,230 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { 
   Settings, 
   Save,
   Loader2,
-  Building2,
-  FileText,
   DollarSign,
-  Wallet,
-  Download,
-  Plane,
-  Ship,
+  MapPin,
   ShieldCheck,
   Upload,
-  Receipt,
-  MessageCircle,
-  Clock,
-  Bell
+  Calculator,
+  CheckCircle,
+  XCircle,
+  Search,
+  Building2,
+  FileText,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const VENEZUELAN_STATES = [
+  { code: 'zulia', name: 'Zulia' },
+  { code: 'tachira', name: 'Táchira' },
+  { code: 'falcon', name: 'Falcón' },
+  { code: 'lara', name: 'Lara' },
+  { code: 'trujillo', name: 'Trujillo' },
+  { code: 'merida', name: 'Mérida' },
+  { code: 'barinas', name: 'Barinas' },
+  { code: 'apure', name: 'Apure' },
+  { code: 'guarico', name: 'Guárico' },
+  { code: 'anzoategui', name: 'Anzoátegui' },
+  { code: 'delta_amacuro', name: 'Delta Amacuro' },
+  { code: 'amazonas', name: 'Amazonas' },
+  { code: 'bolivar', name: 'Bolívar' },
+  { code: 'miranda', name: 'Miranda' },
+  { code: 'caracas', name: 'Caracas' },
+  { code: 'vargas', name: 'Vargas' },
+  { code: 'aragua', name: 'Aragua' },
+  { code: 'carabobo', name: 'Carabobo' },
+  { code: 'cojedes', name: 'Cojedes' },
+  { code: 'yaracuy', name: 'Yaracuy' },
+  { code: 'portuguesa', name: 'Portuguesa' },
+  { code: 'monagas', name: 'Monagas' },
+  { code: 'sucre', name: 'Sucre' },
+  { code: 'nueva_esparta', name: 'Nueva Esparta' }
+];
+
 export default function AdminSettings({ user }) {
-  const [config, setConfig] = useState({
-    config_key: 'main',
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  // Pricing Config
+  const [pricingConfig, setPricingConfig] = useState({
+    base_rate_regular: 690,
+    base_rate_high_risk: 790,
+    profit_percentage: 10,
+    door_to_door_cost: 20,
+    is_door_to_door_optional: true
+  });
+
+  // States Config
+  const [statesConfig, setStatesConfig] = useState([]);
+  const [stateSearch, setStateSearch] = useState('');
+  const [uniformRate, setUniformRate] = useState('');
+
+  // App Config
+  const [appConfig, setAppConfig] = useState({
     app_name: 'TLEC Logistics',
-    app_tagline: 'Sistema de Envíos',
+    app_tagline: 'Tu socio confiable en envíos',
     app_logo_url: '',
     favicon_url: '',
     warehouse_address: '',
     contract_text: '',
-    rate_air_general: 0,
-    rate_air_sensitive: 0,
-    rate_sea_general: 0,
-    rate_sea_sensitive: 0,
     insurance_percentage: 5,
-    invoice_company_name: 'TLEC CARGO LTD',
-    invoice_company_tagline: 'Sistema de Envios Internacionales',
-    invoice_logo_url: '',
     invoice_overdue_days: 7,
     payment_alert_days: 7,
-    wallet_binance: '',
-    wallet_usdt_trc20: '',
-    binance_instructions: '',
-    usdt_instructions: '',
-    wallet_paypal: '',
-    paypal_instructions: '',
-    wallet_debito_internacional: '',
-    debito_internacional_instructions: '',
-    wallet_wally: '',
-    wally_instructions: '',
-    wallet_zinli: '',
-    zinli_instructions: '',
-    wallet_wise: '',
-    wise_instructions: '',
-    wallet_skrill: '',
-    skrill_instructions: '',
-    wallet_pago_movil_usdt: '',
-    pago_movil_usdt_instructions: '',
-    whatsapp_enabled: false,
-    whatsapp_number: '',
-    whatsapp_message: 'Hola, necesito ayuda con mi envío',
-    whatsapp_icon_url: ''
+    shipping_mark_prefix: 'TLEC-'
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [recalculating, setRecalculating] = useState(false);
+
+  // Privacy Config
+  const [privacyConfig, setPrivacyConfig] = useState({
+    data_retention_days: 90,
+    auto_delete_images: true,
+    privacy_policy: '',
+    terms_of_service: ''
+  });
+
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingAppLogo, setUploadingAppLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
-  const [uploadingWhatsAppIcon, setUploadingWhatsAppIcon] = useState(false);
 
   useEffect(() => {
-    loadConfig();
+    loadAllConfigs();
   }, []);
 
-  const loadConfig = async () => {
-    const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
-    if (configs.length > 0) {
-      setConfig(configs[0]);
+  const loadAllConfigs = async () => {
+    try {
+      // Load pricing config
+      const pricingConfigs = await base44.entities.PricingConfig.filter({ config_key: 'main' });
+      if (pricingConfigs.length > 0) {
+        setPricingConfig(pricingConfigs[0]);
+      }
+
+      // Load states config
+      const states = await base44.entities.StateConfig.list();
+      if (states.length === 0) {
+        // Initialize all 24 states
+        const initialStates = VENEZUELAN_STATES.map(s => ({
+          state_code: s.code,
+          state_name: s.name,
+          shipping_rate: 0,
+          is_active: true
+        }));
+        await base44.entities.StateConfig.bulkCreate(initialStates);
+        setStatesConfig(initialStates);
+      } else {
+        setStatesConfig(states);
+      }
+
+      // Load app config
+      const appConfigs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (appConfigs.length > 0) {
+        setAppConfig(appConfigs[0]);
+      }
+
+      // Load privacy config
+      const privacyConfigs = await base44.entities.PrivacyConfig.filter({ config_key: 'main' });
+      if (privacyConfigs.length > 0) {
+        setPrivacyConfig(privacyConfigs[0]);
+      }
+    } catch (error) {
+      console.error('Error loading configs:', error);
+      toast.error('Error al cargar configuración');
     }
     setLoading(false);
   };
 
-  const handleSave = async () => {
+  const handleSavePricing = async () => {
     setSaving(true);
     try {
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
-      if (configs.length > 0) {
-        await base44.entities.AppConfig.update(configs[0].id, config);
+      const existing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
+      if (existing.length > 0) {
+        await base44.entities.PricingConfig.update(existing[0].id, { ...pricingConfig, config_key: 'main' });
       } else {
-        await base44.entities.AppConfig.create(config);
+        await base44.entities.PricingConfig.create({ ...pricingConfig, config_key: 'main' });
       }
-      toast.success('Configuración guardada exitosamente');
+      toast.success('Configuración de precios guardada');
     } catch (error) {
-      toast.error('Error al guardar');
+      toast.error('Error al guardar precios');
     }
     setSaving(false);
   };
 
-  const recalculatePendingConsolidations = async () => {
-    setRecalculating(true);
+  const handleSaveState = async (state) => {
     try {
-      // Get CURRENT config to ensure we're using latest rates
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
-      const currentConfig = configs[0] || config;
-
-      const pendingConsolidations = await base44.entities.Consolidation.filter({ 
-        status: 'pendiente_pago' 
-      });
-
-      let updated = 0;
-      for (const cons of pendingConsolidations) {
-        // Get packages for insurance check
-        const packages = await base44.entities.Package.filter({ consolidation_id: cons.id });
-        const hasSensitive = packages.some(p => p.has_insurance);
-        const totalFOB = packages.reduce((sum, p) => sum + (p.has_insurance ? (p.fob_value || 0) : 0), 0);
-
-        // Recalculate
-        const cbm = (cons.length_cm * cons.width_cm * cons.height_cm) / 1000000;
-        const volumetricWeight = (cons.length_cm * cons.width_cm * cons.height_cm) / 5000;
-        const billableWeight = Math.max(cons.real_weight_kg, volumetricWeight);
-
-        let shippingCost = 0;
-        if (cons.shipping_type === 'aereo') {
-          const rate = hasSensitive ? currentConfig.rate_air_sensitive : currentConfig.rate_air_general;
-          shippingCost = billableWeight * rate;
-        } else {
-          const rate = hasSensitive ? currentConfig.rate_sea_sensitive : currentConfig.rate_sea_general;
-          shippingCost = cbm * rate;
-        }
-
-        const insuranceCost = totalFOB * (currentConfig.insurance_percentage / 100);
-        const totalCost = shippingCost + insuranceCost;
-
-        await base44.entities.Consolidation.update(cons.id, {
-          cbm,
-          volumetric_weight: volumetricWeight,
-          billable_weight: billableWeight,
-          shipping_cost: shippingCost,
-          insurance_cost: insuranceCost,
-          total_cost: totalCost
-        });
-
-        updated++;
-      }
-
-      // Notify all affected clients
-      const uniqueEmails = [...new Set(pendingConsolidations.map(c => c.client_email))];
-      for (const email of uniqueEmails) {
-        base44.entities.Notification.create({
-          user_email: email,
-          title: '💰 Montos Actualizados',
-          message: 'Los montos de tus consolidaciones pendientes han sido actualizados. Por favor revisa tus consolidaciones.',
-          type: 'general',
-          icon: 'dollar'
-        }).catch(err => console.error('Notification error:', err));
-      }
-
-      toast.success(`${updated} consolidaciones actualizadas y clientes notificados`);
+      await base44.entities.StateConfig.update(state.id, state);
+      toast.success(`${state.state_name} actualizado`);
     } catch (error) {
-      console.error('Recalculation error:', error);
-      toast.error('Error al recalcular: ' + (error.message || 'Error desconocido'));
+      toast.error('Error al guardar estado');
     }
-    setRecalculating(false);
+  };
+
+  const handleToggleAllStates = async (active) => {
+    setSaving(true);
+    try {
+      for (const state of statesConfig) {
+        await base44.entities.StateConfig.update(state.id, { is_active: active });
+      }
+      setStatesConfig(statesConfig.map(s => ({ ...s, is_active: active })));
+      toast.success(active ? 'Todos los estados activados' : 'Todos los estados desactivados');
+    } catch (error) {
+      toast.error('Error al actualizar estados');
+    }
+    setSaving(false);
+  };
+
+  const handleApplyUniformRate = async () => {
+    if (!uniformRate || parseFloat(uniformRate) < 0) {
+      toast.error('Ingresa una tarifa válida');
+      return;
+    }
+    setSaving(true);
+    try {
+      const rate = parseFloat(uniformRate);
+      for (const state of statesConfig) {
+        await base44.entities.StateConfig.update(state.id, { shipping_rate: rate });
+      }
+      setStatesConfig(statesConfig.map(s => ({ ...s, shipping_rate: rate })));
+      toast.success(`Tarifa uniforme de $${rate} aplicada a todos los estados`);
+      setUniformRate('');
+    } catch (error) {
+      toast.error('Error al aplicar tarifa uniforme');
+    }
+    setSaving(false);
+  };
+
+  const handleSaveGeneral = async () => {
+    setSaving(true);
+    try {
+      const existing = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (existing.length > 0) {
+        await base44.entities.AppConfig.update(existing[0].id, { ...appConfig, config_key: 'main' });
+      } else {
+        await base44.entities.AppConfig.create({ ...appConfig, config_key: 'main' });
+      }
+      toast.success('Configuración general guardada');
+    } catch (error) {
+      toast.error('Error al guardar configuración');
+    }
+    setSaving(false);
+  };
+
+  const handleSavePrivacy = async () => {
+    setSaving(true);
+    try {
+      const existing = await base44.entities.PrivacyConfig.filter({ config_key: 'main' });
+      if (existing.length > 0) {
+        await base44.entities.PrivacyConfig.update(existing[0].id, { ...privacyConfig, config_key: 'main' });
+      } else {
+        await base44.entities.PrivacyConfig.create({ ...privacyConfig, config_key: 'main' });
+      }
+      toast.success('Configuración de privacidad guardada');
+    } catch (error) {
+      toast.error('Error al guardar privacidad');
+    }
+    setSaving(false);
   };
 
   const handleLogoUpload = async (file) => {
@@ -177,25 +237,12 @@ export default function AdminSettings({ user }) {
     setUploadingLogo(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setConfig({ ...config, invoice_logo_url: file_url });
-      toast.success('Logo de factura subido exitosamente');
+      setAppConfig({ ...appConfig, app_logo_url: file_url });
+      toast.success('Logo subido');
     } catch (error) {
       toast.error('Error al subir logo');
     }
     setUploadingLogo(false);
-  };
-
-  const handleAppLogoUpload = async (file) => {
-    if (!file) return;
-    setUploadingAppLogo(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setConfig({ ...config, app_logo_url: file_url });
-      toast.success('Logo de aplicación subido exitosamente');
-    } catch (error) {
-      toast.error('Error al subir logo');
-    }
-    setUploadingAppLogo(false);
   };
 
   const handleFaviconUpload = async (file) => {
@@ -203,69 +250,17 @@ export default function AdminSettings({ user }) {
     setUploadingFavicon(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setConfig({ ...config, favicon_url: file_url });
-      toast.success('Favicon subido exitosamente');
+      setAppConfig({ ...appConfig, favicon_url: file_url });
+      toast.success('Favicon subido');
     } catch (error) {
       toast.error('Error al subir favicon');
     }
     setUploadingFavicon(false);
   };
 
-  const handleWhatsAppIconUpload = async (file) => {
-    if (!file) return;
-    setUploadingWhatsAppIcon(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setConfig({ ...config, whatsapp_icon_url: file_url });
-      toast.success('Icono de WhatsApp subido exitosamente');
-    } catch (error) {
-      toast.error('Error al subir icono');
-    }
-    setUploadingWhatsAppIcon(false);
-  };
-
-  const handleExportCSV = async () => {
-    setExporting(true);
-    try {
-      const packages = await base44.entities.Package.filter({ status: 'pre_alerta' });
-
-      // Agrupar por cliente
-      const byClient = {};
-      packages.forEach(pkg => {
-        if (!byClient[pkg.client_email]) {
-          byClient[pkg.client_email] = {
-            shipping_mark: pkg.shipping_mark || 'Sin Shipping Mark',
-            trackings: []
-          };
-        }
-        byClient[pkg.client_email].trackings.push(pkg.tracking_number);
-      });
-
-      // Construir CSV: shipping mark, luego trackings
-      const rows = [];
-      Object.keys(byClient).forEach(email => {
-        const client = byClient[email];
-        rows.push(client.shipping_mark);
-        client.trackings.forEach(tracking => {
-          rows.push(tracking);
-        });
-      });
-
-      const csvContent = rows.join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `pre-alertas-${new Date().toISOString().split('T')[0]}.csv`;
-      link.click();
-
-      toast.success(`${packages.length} trackings exportados`);
-    } catch (error) {
-      toast.error('Error al exportar');
-    }
-    setExporting(false);
-  };
+  const filteredStates = statesConfig.filter(state =>
+    state.state_name.toLowerCase().includes(stateSearch.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -275,771 +270,482 @@ export default function AdminSettings({ user }) {
     );
   }
 
+  const calculateExample = () => {
+    const base = pricingConfig.base_rate_regular;
+    const benefit = pricingConfig.profit_percentage;
+    const state = 50; // ejemplo
+    const doorToDoor = pricingConfig.door_to_door_cost;
+    const total = (base * (1 + benefit / 100)) + state + doorToDoor;
+    return total.toFixed(2);
+  };
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Configuración General</h1>
-          <p className="text-slate-500">Administra la configuración del sistema</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={handleExportCSV} disabled={exporting}>
-            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-            Exportar CSV
-          </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-            Guardar Todo
-          </Button>
-        </div>
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Panel de Administración</h1>
+        <p className="text-slate-500">Gestión de tarifas, estados y configuración del sistema</p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid grid-cols-7 w-full">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="branding">Marca</TabsTrigger>
-          <TabsTrigger value="invoice">Factura</TabsTrigger>
-          <TabsTrigger value="rates">Tarifas</TabsTrigger>
-          <TabsTrigger value="wallets">Wallets</TabsTrigger>
-          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="contract">Contrato</TabsTrigger>
+      <Tabs defaultValue="tarifas" className="space-y-6">
+        <TabsList className="grid grid-cols-8 w-full">
+          <TabsTrigger value="tarifas" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Tarifas
+          </TabsTrigger>
+          <TabsTrigger value="estados" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Estados
+          </TabsTrigger>
+          <TabsTrigger value="pagos" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Pagos
+          </TabsTrigger>
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            General
+          </TabsTrigger>
+          <TabsTrigger value="empresa" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Empresa
+          </TabsTrigger>
+          <TabsTrigger value="facturas" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Facturas
+          </TabsTrigger>
+          <TabsTrigger value="privacidad" className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            Privacidad
+          </TabsTrigger>
+          <TabsTrigger value="push" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Push
+          </TabsTrigger>
         </TabsList>
 
-        {/* Branding Tab */}
-        <TabsContent value="branding">
+        {/* Tab Tarifas */}
+        <TabsContent value="tarifas">
           <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-blue-600" />
-                Marca y Apariencia
-              </CardTitle>
+              <CardTitle>Configuración de Precios</CardTitle>
               <CardDescription>
-                Personaliza el nombre y logo que aparece en el sidebar de la aplicación
+                Gestiona las tarifas base y porcentajes de beneficio del sistema
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Nombre de la Aplicación</Label>
-                <Input
-                  value={config.app_name}
-                  onChange={(e) => setConfig({ ...config, app_name: e.target.value })}
-                  placeholder="TLEC Logistics"
-                />
-                <p className="text-xs text-slate-500">
-                  Este nombre aparecerá en el encabezado del sidebar
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Eslogan/Descripción</Label>
-                <Input
-                  value={config.app_tagline}
-                  onChange={(e) => setConfig({ ...config, app_tagline: e.target.value })}
-                  placeholder="Sistema de Envíos"
-                />
-                <p className="text-xs text-slate-500">
-                  Texto corto que aparece debajo del nombre en el sidebar
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Logo de la Aplicación (Relación 1:1)</Label>
-                <div className="space-y-3">
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleAppLogoUpload(e.target.files[0])}
-                      disabled={uploadingAppLogo}
-                    />
-                    {uploadingAppLogo && <Loader2 className="h-5 w-5 animate-spin text-blue-600" />}
-                  </div>
-                  {config.app_logo_url && (
-                    <div className="p-4 bg-[#1c3f82] rounded-lg border border-slate-700 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-white flex items-center justify-center">
-                        <img 
-                          src={config.app_logo_url} 
-                          alt="App logo preview" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-white font-bold">{config.app_name}</p>
-                        <p className="text-slate-400 text-xs">{config.app_tagline}</p>
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-xs text-slate-500">
-                    ⚠️ IMPORTANTE: Usa una imagen cuadrada (1:1) del mismo tamaño que el contenedor azul (40x40px recomendado). 
-                    El logo aparecerá en el sidebar para todos los usuarios.
-                  </p>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Tarifa base Regular ($)</Label>
+                  <Input
+                    type="number"
+                    value={pricingConfig.base_rate_regular}
+                    onChange={(e) => setPricingConfig({ ...pricingConfig, base_rate_regular: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tarifa base Alto Riesgo ($)</Label>
+                  <Input
+                    type="number"
+                    value={pricingConfig.base_rate_high_risk}
+                    onChange={(e) => setPricingConfig({ ...pricingConfig, base_rate_high_risk: parseFloat(e.target.value) || 0 })}
+                  />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Favicon de la Pestaña</Label>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Porcentaje de beneficio (%)</Label>
+                  <Input
+                    type="number"
+                    value={pricingConfig.profit_percentage}
+                    onChange={(e) => setPricingConfig({ ...pricingConfig, profit_percentage: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Costo puerta a puerta ($)</Label>
+                  <Input
+                    type="number"
+                    value={pricingConfig.door_to_door_cost}
+                    onChange={(e) => setPricingConfig({ ...pricingConfig, door_to_door_cost: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-slate-800">¿Puerta a puerta opcional?</p>
+                  <p className="text-sm text-slate-500">Permite al cliente elegir si desea servicio puerta a puerta</p>
+                </div>
+                <Switch
+                  checked={pricingConfig.is_door_to_door_optional}
+                  onCheckedChange={(checked) => setPricingConfig({ ...pricingConfig, is_door_to_door_optional: checked })}
+                />
+              </div>
+
+              <Button onClick={handleSavePricing} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar configuración
+              </Button>
+
+              {/* Fórmula de Cálculo */}
+              <div className="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <Calculator className="h-5 w-5 text-blue-600" />
+                  <h3 className="font-semibold text-slate-800">Fórmula de Cálculo</h3>
+                </div>
                 <div className="space-y-3">
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      type="file"
-                      accept=".ico,.png,.jpg,.jpeg,.svg,.gif"
-                      onChange={(e) => handleFaviconUpload(e.target.files[0])}
-                      disabled={uploadingFavicon}
-                    />
-                    {uploadingFavicon && <Loader2 className="h-5 w-5 animate-spin text-blue-600" />}
-                  </div>
-                  {config.favicon_url && (
-                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
-                        <img 
-                          src={config.favicon_url} 
-                          alt="Favicon preview" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Favicon cargado</p>
-                        <p className="text-xs text-slate-500">Aparecerá en la pestaña del navegador</p>
+                  <code className="block p-3 bg-white rounded border text-sm">
+                    Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta
+                  </code>
+                  
+                  <div className="p-4 bg-white rounded-lg border">
+                    <p className="text-sm font-medium text-slate-700 mb-2">Ejemplo de Cálculo</p>
+                    <div className="space-y-1 text-sm text-slate-600">
+                      <p>Tarifa Base Regular: ${pricingConfig.base_rate_regular}</p>
+                      <p>Porcentaje de Beneficio: {pricingConfig.profit_percentage}%</p>
+                      <p>Tarifa Estado (ejemplo): $50</p>
+                      <p>Puerta a Puerta: ${pricingConfig.door_to_door_cost}</p>
+                      <div className="mt-3 pt-3 border-t border-slate-200">
+                        <p className="font-bold text-blue-600 text-lg">Precio Final: ${calculateExample()}</p>
                       </div>
                     </div>
-                  )}
-                  <p className="text-xs text-slate-500">
-                    ⚠️ Formatos soportados: .ico, .png, .jpg, .svg o .gif. Recomendado: 32x32px o 64x64px.
-                  </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Invoice Tab */}
-        <TabsContent value="invoice">
+        {/* Tab Estados */}
+        <TabsContent value="estados">
           <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-indigo-600" />
-                Configuración de Factura
-              </CardTitle>
+              <CardTitle>Gestión de Estados Venezolanos</CardTitle>
               <CardDescription>
-                Personaliza la información que aparece en las facturas PDF
+                Configura las tarifas de envío por estado
               </CardDescription>
+              <div className="flex items-center gap-2 text-sm text-slate-600 mt-2">
+                <span className="font-medium">{statesConfig.filter(s => s.is_active).length} de {statesConfig.length}</span>
+                <span>estados activos</span>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Nombre de la Empresa</Label>
-                <Input
-                  value={config.invoice_company_name}
-                  onChange={(e) => setConfig({ ...config, invoice_company_name: e.target.value })}
-                  placeholder="TLEC CARGO LTD"
-                />
-                <p className="text-xs text-slate-500">
-                  Nombre que aparecerá en el encabezado de la factura
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Eslogan/Descripción</Label>
-                <Input
-                  value={config.invoice_company_tagline}
-                  onChange={(e) => setConfig({ ...config, invoice_company_tagline: e.target.value })}
-                  placeholder="Sistema de Envios Internacionales"
-                />
-                <p className="text-xs text-slate-500">
-                  Texto que aparece debajo del nombre de la empresa
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Logo para Facturas (Relación 1:1)</Label>
-                <div className="space-y-3">
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleLogoUpload(e.target.files[0])}
-                      disabled={uploadingLogo}
-                    />
-                    {uploadingLogo && <Loader2 className="h-5 w-5 animate-spin text-blue-600" />}
-                  </div>
-                  {config.invoice_logo_url && (
-                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                      <div className="w-16 h-16 mx-auto">
-                        <img 
-                          src={config.invoice_logo_url} 
-                          alt="Invoice logo preview" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-xs text-slate-500">
-                    ⚠️ IMPORTANTE: Usa una imagen cuadrada (1:1) para mejor visualización en facturas. 
-                    El logo aparecerá en el encabezado de todas las facturas PDF.
-                  </p>
+              {/* Search and Actions */}
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Buscar estado..."
+                    value={stateSearch}
+                    onChange={(e) => setStateSearch(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
+                <Button
+                  variant="outline"
+                  onClick={() => handleToggleAllStates(true)}
+                  className="whitespace-nowrap"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Activar todos
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleToggleAllStates(false)}
+                  className="whitespace-nowrap"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Desactivar todos
+                </Button>
               </div>
 
-              <div className="space-y-2 pt-6 border-t border-slate-200">
-                <Label className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Días para considerar factura vencida
-                </Label>
+              {/* Uniform Rate */}
+              <div className="flex gap-3 p-4 bg-slate-50 rounded-lg">
                 <Input
                   type="number"
-                  min="1"
-                  value={config.invoice_overdue_days}
-                  onChange={(e) => setConfig({ ...config, invoice_overdue_days: parseInt(e.target.value) || 7 })}
-                  className="mt-1"
+                  placeholder="Tarifa uniforme"
+                  value={uniformRate}
+                  onChange={(e) => setUniformRate(e.target.value)}
+                  className="flex-1"
                 />
-                <p className="text-xs text-slate-500">
-                  Número de días para que una factura se considere vencida
-                </p>
+                <Button onClick={handleApplyUniformRate} disabled={saving}>
+                  Aplicar tarifa uniforme
+                </Button>
               </div>
 
-              <div className="space-y-2 pt-4">
-                <Label className="flex items-center gap-2">
-                  <Bell className="h-4 w-4" />
-                  Días para alertas de pago
-                </Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={config.payment_alert_days}
-                  onChange={(e) => setConfig({ ...config, payment_alert_days: parseInt(e.target.value) || 7 })}
-                  className="mt-1"
-                />
-                <p className="text-xs text-slate-500">
-                  Número de días para generar alertas de pagos pendientes
-                </p>
+              {/* States Table */}
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left p-3 font-medium text-slate-700">Estado</th>
+                      <th className="text-left p-3 font-medium text-slate-700">Tarifa de Envío ($)</th>
+                      <th className="text-center p-3 font-medium text-slate-700">Activo</th>
+                      <th className="text-center p-3 font-medium text-slate-700">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStates.map((state) => (
+                      <tr key={state.id} className="border-t hover:bg-slate-50">
+                        <td className="p-3 font-medium text-slate-800">{state.state_name}</td>
+                        <td className="p-3">
+                          <Input
+                            type="number"
+                            value={state.shipping_rate}
+                            onChange={(e) => {
+                              const updated = statesConfig.map(s =>
+                                s.id === state.id ? { ...s, shipping_rate: parseFloat(e.target.value) || 0 } : s
+                              );
+                              setStatesConfig(updated);
+                            }}
+                            className="w-32"
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          <Switch
+                            checked={state.is_active}
+                            onCheckedChange={(checked) => {
+                              const updated = statesConfig.map(s =>
+                                s.id === state.id ? { ...s, is_active: checked } : s
+                              );
+                              setStatesConfig(updated);
+                            }}
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveState(state)}
+                          >
+                            <Save className="h-4 w-4 mr-1" />
+                            Guardar
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* General Tab */}
+        {/* Tab General */}
         <TabsContent value="general">
           <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-blue-600" />
-                Información General
-              </CardTitle>
+              <CardTitle>Configuración General de la Aplicación</CardTitle>
               <CardDescription>
-                Configura la información básica del sistema
+                Personaliza la identidad y configuraciones básicas del sistema
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Dirección del Warehouse
-                </Label>
-                <Textarea
-                  value={config.warehouse_address}
-                  onChange={(e) => setConfig({ ...config, warehouse_address: e.target.value })}
-                  placeholder="Ingresa la dirección completa del warehouse"
-                  rows={4}
+                <Label>Nombre de la aplicación</Label>
+                <Input
+                  value={appConfig.app_name}
+                  onChange={(e) => setAppConfig({ ...appConfig, app_name: e.target.value })}
+                  placeholder="TLEC Logistics"
                 />
-                <p className="text-xs text-slate-500">
-                  Esta dirección será mostrada a los clientes en su dashboard
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Rates Tab */}
-        <TabsContent value="rates">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-emerald-600" />
-                Tarifas de Envío
-              </CardTitle>
-              <CardDescription>
-                Configura las tarifas para envíos aéreos y marítimos
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="border-b pb-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-amber-800 mb-1">
-                    ⚠️ Actualización de Tarifas
-                  </p>
-                  <p className="text-sm text-amber-700">
-                    Si cambias las tarifas, puedes recalcular automáticamente todas las consolidaciones pendientes de pago con las nuevas tarifas.
-                  </p>
-                </div>
-                <Button
-                  onClick={recalculatePendingConsolidations}
-                  disabled={recalculating}
-                  variant="outline"
-                  className="border-amber-300 text-amber-700 hover:bg-amber-100"
-                >
-                  {recalculating ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Recalculando...</>
-                  ) : (
-                    <>Recalcular Pendientes</>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-            <CardContent className="space-y-6">
-              {/* Aéreo */}
-              <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Plane className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-800">Envío Aéreo</h3>
-                    <p className="text-sm text-slate-500">Tarifas por kilogramo</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Carga General (USD/Kg)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={config.rate_air_general}
-                      onChange={(e) => setConfig({ ...config, rate_air_general: parseFloat(e.target.value) || 0 })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Carga Sensible (USD/Kg)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={config.rate_air_sensitive}
-                      onChange={(e) => setConfig({ ...config, rate_air_sensitive: parseFloat(e.target.value) || 0 })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
               </div>
 
-              {/* Marítimo */}
-              <div className="p-6 bg-indigo-50 rounded-xl border border-indigo-100">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-indigo-100 rounded-lg">
-                    <Ship className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-800">Envío Marítimo</h3>
-                    <p className="text-sm text-slate-500">Tarifas por CBM</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Carga General (USD/CBM)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={config.rate_sea_general}
-                      onChange={(e) => setConfig({ ...config, rate_sea_general: parseFloat(e.target.value) || 0 })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Carga Sensible (USD/CBM)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={config.rate_sea_sensitive}
-                      onChange={(e) => setConfig({ ...config, rate_sea_sensitive: parseFloat(e.target.value) || 0 })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
+              <div className="space-y-2">
+                <Label>Eslogan</Label>
+                <Input
+                  value={appConfig.app_tagline}
+                  onChange={(e) => setAppConfig({ ...appConfig, app_tagline: e.target.value })}
+                  placeholder="Tu socio confiable en envíos"
+                />
               </div>
 
-              <div className="p-6 bg-emerald-50 rounded-xl border border-emerald-100">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-emerald-100 rounded-lg">
-                    <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-800">Seguro de Envío</h3>
-                    <p className="text-sm text-slate-500">Porcentaje sobre el valor FOB</p>
-                  </div>
-                </div>
+              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label>Porcentaje de Seguro (%)</Label>
+                  <Label>Logo de la aplicación</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleLogoUpload(e.target.files[0])}
+                    disabled={uploadingLogo}
+                  />
+                  {appConfig.app_logo_url && (
+                    <img src={appConfig.app_logo_url} alt="Logo" className="h-16 w-16 object-contain rounded border" />
+                  )}
+                  <p className="text-xs text-slate-500">Sin archivos seleccionados</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Favicon</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFaviconUpload(e.target.files[0])}
+                    disabled={uploadingFavicon}
+                  />
+                  {appConfig.favicon_url && (
+                    <img src={appConfig.favicon_url} alt="Favicon" className="h-8 w-8 object-contain rounded border" />
+                  )}
+                  <p className="text-xs text-slate-500">Sin archivos seleccionados</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Dirección del almacén</Label>
+                <Textarea
+                  value={appConfig.warehouse_address}
+                  onChange={(e) => setAppConfig({ ...appConfig, warehouse_address: e.target.value })}
+                  placeholder="Dirección completa del almacén..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Texto del contrato de servicio</Label>
+                <Textarea
+                  value={appConfig.contract_text}
+                  onChange={(e) => setAppConfig({ ...appConfig, contract_text: e.target.value })}
+                  placeholder="Términos y condiciones del servicio..."
+                  rows={8}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label>Porcentaje de seguro (%)</Label>
                   <Input
                     type="number"
-                    step="0.1"
-                    value={config.insurance_percentage}
-                    onChange={(e) => setConfig({ ...config, insurance_percentage: parseFloat(e.target.value) || 0 })}
-                    placeholder="5"
+                    value={appConfig.insurance_percentage}
+                    onChange={(e) => setAppConfig({ ...appConfig, insurance_percentage: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Días para vencimiento de factura</Label>
+                  <Input
+                    type="number"
+                    value={appConfig.invoice_overdue_days}
+                    onChange={(e) => setAppConfig({ ...appConfig, invoice_overdue_days: parseInt(e.target.value) || 7 })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Días para alertas de pago</Label>
+                  <Input
+                    type="number"
+                    value={appConfig.payment_alert_days}
+                    onChange={(e) => setAppConfig({ ...appConfig, payment_alert_days: parseInt(e.target.value) || 7 })}
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Wallets Tab */}
-        <TabsContent value="wallets">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-purple-600" />
-                Wallets de Pago
-              </CardTitle>
-              <CardDescription>
-                Configura las direcciones de wallet para recibir pagos
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Binance */}
-              <div className="p-6 bg-amber-50 rounded-xl border border-amber-100">
-                <h3 className="font-semibold text-slate-800 mb-4">Binance</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Dirección de Wallet</Label>
-                    <Input
-                      value={config.wallet_binance}
-                      onChange={(e) => setConfig({ ...config, wallet_binance: e.target.value })}
-                      placeholder="Dirección de wallet Binance"
-                      className="font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instrucciones Adicionales</Label>
-                    <Textarea
-                      value={config.binance_instructions}
-                      onChange={(e) => setConfig({ ...config, binance_instructions: e.target.value })}
-                      placeholder="Instrucciones para el cliente (ej: usar red específica)"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* USDT TRC20 */}
-              <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
-                <h3 className="font-semibold text-slate-800 mb-4">USDT TRC20</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Dirección de Wallet</Label>
-                    <Input
-                      value={config.wallet_usdt_trc20}
-                      onChange={(e) => setConfig({ ...config, wallet_usdt_trc20: e.target.value })}
-                      placeholder="Dirección de wallet USDT TRC20"
-                      className="font-mono"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instrucciones Adicionales</Label>
-                    <Textarea
-                      value={config.usdt_instructions}
-                      onChange={(e) => setConfig({ ...config, usdt_instructions: e.target.value })}
-                      placeholder="Instrucciones para el cliente"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* PayPal */}
-              <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
-                <h3 className="font-semibold text-slate-800 mb-4">PayPal</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Email de PayPal</Label>
-                    <Input
-                      value={config.wallet_paypal}
-                      onChange={(e) => setConfig({ ...config, wallet_paypal: e.target.value })}
-                      placeholder="tu-email@paypal.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instrucciones Adicionales</Label>
-                    <Textarea
-                      value={config.paypal_instructions}
-                      onChange={(e) => setConfig({ ...config, paypal_instructions: e.target.value })}
-                      placeholder="Instrucciones para el cliente"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Débito Internacional */}
-              <div className="p-6 bg-purple-50 rounded-xl border border-purple-100">
-                <h3 className="font-semibold text-slate-800 mb-4">Débito Internacional</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Datos de la Tarjeta/Cuenta</Label>
-                    <Input
-                      value={config.wallet_debito_internacional}
-                      onChange={(e) => setConfig({ ...config, wallet_debito_internacional: e.target.value })}
-                      placeholder="Datos para débito internacional"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instrucciones Adicionales</Label>
-                    <Textarea
-                      value={config.debito_internacional_instructions}
-                      onChange={(e) => setConfig({ ...config, debito_internacional_instructions: e.target.value })}
-                      placeholder="Instrucciones para el cliente"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Wally */}
-              <div className="p-6 bg-green-50 rounded-xl border border-green-100">
-                <h3 className="font-semibold text-slate-800 mb-4">Wally</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Usuario/Teléfono Wally</Label>
-                    <Input
-                      value={config.wallet_wally}
-                      onChange={(e) => setConfig({ ...config, wallet_wally: e.target.value })}
-                      placeholder="Usuario o teléfono Wally"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instrucciones Adicionales</Label>
-                    <Textarea
-                      value={config.wally_instructions}
-                      onChange={(e) => setConfig({ ...config, wally_instructions: e.target.value })}
-                      placeholder="Instrucciones para el cliente"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Zinli */}
-              <div className="p-6 bg-pink-50 rounded-xl border border-pink-100">
-                <h3 className="font-semibold text-slate-800 mb-4">Zinli</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Usuario/Teléfono Zinli</Label>
-                    <Input
-                      value={config.wallet_zinli}
-                      onChange={(e) => setConfig({ ...config, wallet_zinli: e.target.value })}
-                      placeholder="Usuario o teléfono Zinli"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instrucciones Adicionales</Label>
-                    <Textarea
-                      value={config.zinli_instructions}
-                      onChange={(e) => setConfig({ ...config, zinli_instructions: e.target.value })}
-                      placeholder="Instrucciones para el cliente"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Wise */}
-              <div className="p-6 bg-teal-50 rounded-xl border border-teal-100">
-                <h3 className="font-semibold text-slate-800 mb-4">Wise</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Email/Datos Wise</Label>
-                    <Input
-                      value={config.wallet_wise}
-                      onChange={(e) => setConfig({ ...config, wallet_wise: e.target.value })}
-                      placeholder="Email o datos Wise"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instrucciones Adicionales</Label>
-                    <Textarea
-                      value={config.wise_instructions}
-                      onChange={(e) => setConfig({ ...config, wise_instructions: e.target.value })}
-                      placeholder="Instrucciones para el cliente"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Skrill */}
-              <div className="p-6 bg-violet-50 rounded-xl border border-violet-100">
-                <h3 className="font-semibold text-slate-800 mb-4">Skrill</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Email Skrill</Label>
-                    <Input
-                      value={config.wallet_skrill}
-                      onChange={(e) => setConfig({ ...config, wallet_skrill: e.target.value })}
-                      placeholder="tu-email@skrill.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instrucciones Adicionales</Label>
-                    <Textarea
-                      value={config.skrill_instructions}
-                      onChange={(e) => setConfig({ ...config, skrill_instructions: e.target.value })}
-                      placeholder="Instrucciones para el cliente"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Pago Móvil → USDT */}
-              <div className="p-6 bg-orange-50 rounded-xl border border-orange-100">
-                <h3 className="font-semibold text-slate-800 mb-4">Pago Móvil → USDT</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Datos de Pago Móvil/USDT</Label>
-                    <Input
-                      value={config.wallet_pago_movil_usdt}
-                      onChange={(e) => setConfig({ ...config, wallet_pago_movil_usdt: e.target.value })}
-                      placeholder="Teléfono o datos de conversión"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Instrucciones Adicionales</Label>
-                    <Textarea
-                      value={config.pago_movil_usdt_instructions}
-                      onChange={(e) => setConfig({ ...config, pago_movil_usdt_instructions: e.target.value })}
-                      placeholder="Instrucciones para el cliente (ej: tasa de conversión, pasos)"
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* WhatsApp Tab */}
-        <TabsContent value="whatsapp">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-green-600" />
-                Soporte por WhatsApp
-              </CardTitle>
-              <CardDescription>
-                Configura el botón flotante de soporte en WhatsApp para clientes
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <input
-                    type="checkbox"
-                    id="whatsapp_enabled"
-                    checked={config.whatsapp_enabled}
-                    onChange={(e) => setConfig({ ...config, whatsapp_enabled: e.target.checked })}
-                    className="w-5 h-5 cursor-pointer"
-                  />
-                  <label htmlFor="whatsapp_enabled" className="text-sm font-medium text-slate-700 cursor-pointer">
-                    Activar soporte por WhatsApp
-                  </label>
-                </div>
-
-                {config.whatsapp_enabled && (
-                  <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-100">
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <MessageCircle className="h-4 w-4 text-green-600" />
-                        Número de WhatsApp
-                      </Label>
-                      <Input
-                        value={config.whatsapp_number}
-                        onChange={(e) => setConfig({ ...config, whatsapp_number: e.target.value })}
-                        placeholder="584121234567"
-                        className="font-mono"
-                      />
-                      <p className="text-xs text-slate-500">
-                        Formato: número sin + ni espacios (ej: 584121234567 para +58 412 1234567)
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Mensaje Predeterminado</Label>
-                      <Input
-                        value={config.whatsapp_message}
-                        onChange={(e) => setConfig({ ...config, whatsapp_message: e.target.value })}
-                        placeholder="Hola, necesito ayuda"
-                      />
-                      <p className="text-xs text-slate-500">
-                        Mensaje que aparecerá automáticamente cuando el cliente hace clic en el botón
-                      </p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Icono Personalizado (opcional)</Label>
-                        <div className="flex gap-2 items-center">
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleWhatsAppIconUpload(e.target.files[0])}
-                            disabled={uploadingWhatsAppIcon}
-                          />
-                          {uploadingWhatsAppIcon && <Loader2 className="h-5 w-5 animate-spin text-green-600" />}
-                        </div>
-                        <p className="text-xs text-slate-500">
-                          Sube una imagen PNG o SVG (recomendado: 64x64px). Si no subes imagen, se usará el icono por defecto.
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-white rounded-lg border border-green-100">
-                        <p className="text-sm font-medium text-slate-800 mb-2">Vista previa:</p>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                            {config.whatsapp_icon_url ? (
-                              <img src={config.whatsapp_icon_url} alt="WhatsApp icon" className="w-6 h-6" />
-                            ) : (
-                              <MessageCircle className="h-6 w-6 text-white" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm text-slate-700">Botón flotante</p>
-                            <p className="text-xs text-slate-500">Aparecerá en la esquina inferior derecha</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Contract Tab */}
-        <TabsContent value="contract">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-slate-600" />
-                Contrato de Servicio
-              </CardTitle>
-              <CardDescription>
-                Texto del contrato que deben aceptar los clientes al registrarse
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
               <div className="space-y-2">
-                <Label>Texto del Contrato</Label>
-                <Textarea
-                  value={config.contract_text}
-                  onChange={(e) => setConfig({ ...config, contract_text: e.target.value })}
-                  placeholder="Ingresa el texto completo del contrato de servicio..."
-                  rows={20}
-                  className="font-mono text-sm"
+                <Label>Prefijo de Shipping Mark</Label>
+                <Input
+                  value={appConfig.shipping_mark_prefix}
+                  onChange={(e) => setAppConfig({ ...appConfig, shipping_mark_prefix: e.target.value })}
+                  placeholder="TLEC-"
+                />
+              </div>
+
+              <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar cambios
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab Privacidad */}
+        <TabsContent value="privacidad">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Privacidad y Gestión de Datos</CardTitle>
+              <CardDescription>
+                Configura políticas de retención y privacidad de datos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Retención de datos (días)</Label>
+                <Input
+                  type="number"
+                  value={privacyConfig.data_retention_days}
+                  onChange={(e) => setPrivacyConfig({ ...privacyConfig, data_retention_days: parseInt(e.target.value) || 90 })}
                 />
                 <p className="text-xs text-slate-500">
-                  Este texto se mostrará a los nuevos usuarios antes de poder usar el sistema
+                  Número de días que se mantienen los datos antes de la eliminación automática
                 </p>
               </div>
+
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-slate-800">Eliminación automática de imágenes</p>
+                  <p className="text-sm text-slate-500">Eliminar automáticamente imágenes de paquetes después de la entrega</p>
+                </div>
+                <Switch
+                  checked={privacyConfig.auto_delete_images}
+                  onCheckedChange={(checked) => setPrivacyConfig({ ...privacyConfig, auto_delete_images: checked })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Política de privacidad</Label>
+                <Textarea
+                  value={privacyConfig.privacy_policy}
+                  onChange={(e) => setPrivacyConfig({ ...privacyConfig, privacy_policy: e.target.value })}
+                  placeholder="Escribe la política de privacidad completa..."
+                  rows={8}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Términos de servicio</Label>
+                <Textarea
+                  value={privacyConfig.terms_of_service}
+                  onChange={(e) => setPrivacyConfig({ ...privacyConfig, terms_of_service: e.target.value })}
+                  placeholder="Escribe los términos de servicio..."
+                  rows={8}
+                />
+              </div>
+
+              <Button onClick={handleSavePrivacy} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar cambios
+              </Button>
             </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tabs vacíos temporales */}
+        <TabsContent value="pagos">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Configuración de Pagos</CardTitle>
+              <CardDescription>En desarrollo</CardDescription>
+            </CardHeader>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="empresa">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Información de la Empresa</CardTitle>
+              <CardDescription>En desarrollo</CardDescription>
+            </CardHeader>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="facturas">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Configuración de Facturas</CardTitle>
+              <CardDescription>En desarrollo</CardDescription>
+            </CardHeader>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="push">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Notificaciones Push</CardTitle>
+              <CardDescription>En desarrollo</CardDescription>
+            </CardHeader>
           </Card>
         </TabsContent>
       </Tabs>
