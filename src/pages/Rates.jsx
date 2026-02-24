@@ -161,7 +161,7 @@ export default function Rates({ user }) {
                 <div className="text-right">
                   <p className="text-2xl font-bold text-blue-600">
                     {stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}`
+                      `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}`
                     ) : (
                       `$${config?.rate_air_general?.toFixed(2) || '0.00'}`
                     )}
@@ -183,7 +183,7 @@ export default function Rates({ user }) {
                 <div className="text-right">
                   <p className="text-2xl font-bold text-amber-600">
                     {stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}`
+                      `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}`
                     ) : (
                       `$${config?.rate_air_sensitive?.toFixed(2) || '0.00'}`
                     )}
@@ -229,7 +229,7 @@ export default function Rates({ user }) {
                 <div className="text-right">
                   <p className="text-2xl font-bold text-indigo-600">
                     {stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}`
+                      `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}`
                     ) : (
                       `$${config?.rate_sea_general?.toFixed(2) || '0.00'}`
                     )}
@@ -251,7 +251,7 @@ export default function Rates({ user }) {
                 <div className="text-right">
                   <p className="text-2xl font-bold text-amber-600">
                     {stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}`
+                      `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}`
                     ) : (
                       `$${config?.rate_sea_sensitive?.toFixed(2) || '0.00'}`
                     )}
