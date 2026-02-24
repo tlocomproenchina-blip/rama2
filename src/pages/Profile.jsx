@@ -331,23 +331,31 @@ export default function Profile({ user, refreshUser }) {
             </div>
 
             {/* Submit Button */}
-            <Button 
-              type="submit" 
-              disabled={saving || (!hasMissingFields && profileUpdatesDisabled)}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar Cambios
-                </>
-              )}
-            </Button>
+             <div className="relative">
+               <Button 
+                 type="submit" 
+                 disabled={saving || (!hasMissingFields && profileUpdatesDisabled)}
+                 className="w-full bg-blue-600 hover:bg-blue-700"
+               >
+                 {saving ? (
+                   <>
+                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                     Guardando...
+                   </>
+                 ) : (
+                   <>
+                     <Save className="h-4 w-4 mr-2" />
+                     Guardar Cambios
+                   </>
+                 )}
+               </Button>
+               {showSuccess && (
+                 <div className="absolute top-full mt-2 left-0 right-0 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 animate-in fade-in zoom-in-95">
+                   <CheckCircle2 className="h-5 w-5 text-green-600" />
+                   <span className="text-sm font-medium text-green-800">¡Cambios guardados exitosamente!</span>
+                 </div>
+               )}
+             </div>
           </form>
         </CardContent>
       </Card>
