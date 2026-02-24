@@ -396,7 +396,7 @@ Email: ${client.email}`;
       statusFilter === 'all' ? true :
       statusFilter === 'with_mark' ? !!client.shipping_mark :
       statusFilter === 'without_mark' ? !client.shipping_mark :
-      statusFilter === 'pending' ? (!client.shipping_mark && client.profile_completed) :
+      statusFilter === 'pending' ? (!client.shipping_mark && client.profile_completed && !hasIncompleteData(client)) :
       statusFilter === 'incomplete' ? hasIncompleteData(client) :
       true;
 
