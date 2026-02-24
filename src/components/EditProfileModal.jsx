@@ -14,6 +14,22 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [config, setConfig] = useState(null);
+
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  const loadConfig = async () => {
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (configs.length > 0) {
+        setConfig(configs[0]);
+      }
+    } catch (error) {
+      console.error('Error loading config:', error);
+    }
+  };
 
   useEffect(() => {
     if (user && open) {
@@ -47,6 +63,35 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
     }
     setSaving(false);
   };
+
+  if (config?.allow_profile_updates === false) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-amber-50 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+              </div>
+              Actualización de Datos No Disponible
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-slate-600">
+              Momentáneamente no es posible actualizar tu información de perfil. Por favor intenta más tarde.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
