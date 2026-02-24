@@ -24,6 +24,21 @@ export default function Profile({ user, refreshUser }) {
   const [pricingConfig, setPricingConfig] = useState(null);
   const [appConfig, setAppConfig] = useState(null);
 
+  const getMissingFields = () => {
+    const missing = [];
+    if (!user?.first_name) missing.push('first_name');
+    if (!user?.last_name) missing.push('last_name');
+    if (!user?.phone) missing.push('phone');
+    if (!user?.whatsapp) missing.push('whatsapp');
+    if (!user?.state) missing.push('state');
+    if (!user?.city) missing.push('city');
+    return missing;
+  };
+
+  const missingFields = getMissingFields();
+  const hasMissingFields = missingFields.length > 0;
+  const profileUpdatesDisabled = appConfig?.allow_profile_updates === false;
+
   useEffect(() => {
     loadConfigs();
   }, []);
@@ -134,6 +149,15 @@ export default function Profile({ user, refreshUser }) {
     }
   };
 
+  const isFieldDisabled = (fieldName) => {
+    // Si hay campos faltantes, solo habilitar los que faltan
+    if (hasMissingFields) {
+      return !missingFields.includes(fieldName);
+    }
+    // Si no hay campos faltantes, deshabilitar por configuración global
+    return profileUpdatesDisabled;
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -159,7 +183,14 @@ export default function Profile({ user, refreshUser }) {
           <CardDescription>
             Mantén tu información actualizada para un mejor servicio
           </CardDescription>
-          {appConfig?.allow_profile_updates === false && (
+          {hasMissingFields && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                ℹ️ Por favor completa los datos faltantes para finalizar tu registro.
+              </p>
+            </div>
+          )}
+          {!hasMissingFields && profileUpdatesDisabled && (
             <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
               <p className="text-sm text-amber-800">
                 ⚠️ <strong>Actualización de perfil deshabilitada</strong> - crea un ticket en soporte para actualizar tus datos.
@@ -174,13 +205,13 @@ export default function Profile({ user, refreshUser }) {
               <div className="space-y-2">
                 <Label htmlFor="first_name">Nombre *</Label>
                 <Input
-                  id="first_name"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  placeholder="Tu nombre"
-                  disabled={appConfig?.allow_profile_updates === false}
-                  required
-                />
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    placeholder="Tu nombre"
+                    disabled={isFieldDisabled('first_name')}
+                    required
+                  />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="last_name">Apellido *</Label>
@@ -189,7 +220,7 @@ export default function Profile({ user, refreshUser }) {
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                   placeholder="Tu apellido"
-                  disabled={appConfig?.allow_profile_updates === false}
+                  disabled={isFieldDisabled('last_name')}
                   required
                 />
               </div>
@@ -207,7 +238,7 @@ export default function Profile({ user, refreshUser }) {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+58 414 1234567"
-                  disabled={appConfig?.allow_profile_updates === false}
+                  disabled={isFieldDisabled('phone')}
                   required
                 />
               </div>
@@ -221,7 +252,7 @@ export default function Profile({ user, refreshUser }) {
                   value={formData.whatsapp}
                   onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
                   placeholder="+58 414 1234567"
-                  disabled={appConfig?.allow_profile_updates === false}
+                  disabled={isFieldDisabled('whatsapp')}
                   required
                 />
               </div>
@@ -237,7 +268,7 @@ export default function Profile({ user, refreshUser }) {
                 <Select 
                   value={formData.state}
                   onValueChange={(value) => setFormData({ ...formData, state: value })}
-                  disabled={appConfig?.allow_profile_updates === false}
+                  disabled={isFieldDisabled('state')}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona tu estado" />
@@ -273,7 +304,7 @@ export default function Profile({ user, refreshUser }) {
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   placeholder="Tu ciudad"
-                  disabled={appConfig?.allow_profile_updates === false}
+                  disabled={isFieldDisabled('city')}
                   required
                 />
               </div>
@@ -287,7 +318,7 @@ export default function Profile({ user, refreshUser }) {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Calle, número, edificio, apartamento, referencias..."
-                disabled={appConfig?.allow_profile_updates === false}
+                disabled={isFieldDisabled('address')}
                 rows={3}
               />
               <p className="text-xs text-slate-500">
@@ -298,7 +329,7 @@ export default function Profile({ user, refreshUser }) {
             {/* Submit Button */}
             <Button 
               type="submit" 
-              disabled={saving || appConfig?.allow_profile_updates === false}
+              disabled={saving || (!hasMissingFields && profileUpdatesDisabled)}
               className="w-full bg-blue-600 hover:bg-blue-700"
             >
               {saving ? (
