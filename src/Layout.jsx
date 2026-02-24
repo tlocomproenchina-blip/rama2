@@ -84,6 +84,21 @@ export default function Layout({ children, currentPageName }) {
           setShowContract(true);
         } else if (!currentUser.profile_completed) {
           setShowProfile(true);
+        } else {
+          // Check for missing fields and redirect to profile
+          const missingFields = [];
+          if (!currentUser.first_name) missingFields.push('first_name');
+          if (!currentUser.last_name) missingFields.push('last_name');
+          if (!currentUser.phone) missingFields.push('phone');
+          if (!currentUser.whatsapp) missingFields.push('whatsapp');
+          if (!currentUser.state) missingFields.push('state');
+          if (!currentUser.city) missingFields.push('city');
+          
+          if (missingFields.length > 0 && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
+            navigate(createPageUrl('Profile'));
+            setLoading(false);
+            return;
+          }
         }
       }
       
