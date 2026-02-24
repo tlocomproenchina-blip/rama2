@@ -35,6 +35,18 @@ export async function generateInvoice(consolidation) {
     }
   });
 
+  // Item de consolidación de carga
+  const consolidationFee = packages.length * 1;
+  items.push({
+    description: `Consolidación de carga ($1 por paquete)`,
+    quantity: packages.length,
+    unit_price: 1,
+    total: consolidationFee,
+    details: {
+      package_count: packages.length
+    }
+  });
+
   // Item de seguro con detalles
   if (consolidation.insurance_cost > 0) {
     const insuredPackages = packages.filter(p => p.has_insurance);
@@ -52,7 +64,7 @@ export async function generateInvoice(consolidation) {
     });
   }
 
-  const subtotal = consolidation.shipping_cost + consolidation.insurance_cost;
+  const subtotal = consolidation.shipping_cost + consolidationFee + consolidation.insurance_cost;
   const tax = 0;
   const total = consolidation.total_cost;
 
