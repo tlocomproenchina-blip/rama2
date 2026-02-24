@@ -23,6 +23,7 @@ export default function Profile({ user, refreshUser }) {
   const [stateConfigs, setStateConfigs] = useState([]);
   const [pricingConfig, setPricingConfig] = useState(null);
   const [appConfig, setAppConfig] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const getMissingFields = () => {
     const missing = [];
