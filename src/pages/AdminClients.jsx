@@ -539,13 +539,13 @@ Email: ${client.email}`;
                 Todos ({clients.length})
               </Button>
               <Button
-                variant={statusFilter === 'with_mark' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('with_mark')}
-                className={statusFilter === 'with_mark' ? '' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
+              variant={statusFilter === 'with_mark' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter('with_mark')}
+              className={statusFilter === 'with_mark' ? '' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
               >
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Con Shipping Mark ({clients.filter(c => c.shipping_mark).length})
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Con Shipping Mark ({clients.filter(c => hasValidShippingMark(c)).length})
               </Button>
               <Button
                 variant={statusFilter === 'without_mark' ? 'default' : 'outline'}
