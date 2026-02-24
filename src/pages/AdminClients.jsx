@@ -377,6 +377,10 @@ Email: ${client.email}`;
     setSaving(false);
   };
 
+  const hasIncompleteData = (client) => {
+    return !client.first_name || !client.last_name || !client.phone || !client.whatsapp || !client.state || !client.city;
+  };
+
   const filteredClients = clients.filter(client => {
     const searchLower = search.toLowerCase();
     const matchesSearch = (
@@ -393,6 +397,7 @@ Email: ${client.email}`;
       statusFilter === 'with_mark' ? !!client.shipping_mark :
       statusFilter === 'without_mark' ? !client.shipping_mark :
       statusFilter === 'pending' ? (!client.shipping_mark && client.profile_completed) :
+      statusFilter === 'incomplete' ? hasIncompleteData(client) :
       true;
 
     return matchesSearch && matchesStatus;
@@ -556,10 +561,19 @@ Email: ${client.email}`;
                 <Clock className="h-3 w-3 mr-1" />
                 Pendientes ({clients.filter(c => !c.shipping_mark && c.profile_completed).length})
               </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              <Button
+                variant={statusFilter === 'incomplete' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('incomplete')}
+                className={statusFilter === 'incomplete' ? '' : 'border-red-200 text-red-700 hover:bg-red-50'}
+              >
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Con Datos Faltantes ({clients.filter(c => hasIncompleteData(c)).length})
+              </Button>
+              </div>
+              </div>
+              </CardContent>
+              </Card>
 
       {/* Clients List */}
       {filteredClients.length === 0 ? (
