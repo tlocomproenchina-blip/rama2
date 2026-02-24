@@ -538,6 +538,26 @@ Email: ${client.email}`;
             />
           </div>
           
+          {/* Date Filter */}
+          <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
+            <span className="text-sm font-medium text-slate-700">Filtrar por fecha:</span>
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-auto"
+            />
+            {dateFilter !== 'all' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDateFilter('all')}
+              >
+                Ver todos
+              </Button>
+            )}
+          </div>
+
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-slate-500" />
             <div className="flex flex-wrap gap-2">
