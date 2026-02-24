@@ -70,17 +70,43 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Create notification for client
+        // Create notification for client with tracking numbers
+        const trackingList = receivedPackages.map(p => p.tracking_number).join(', ');
+        const notificationMessage = `Se ha consolidado automáticamente ${receivedPackages.length} paquete(s):\n\n${receivedPackages.map(p => `📦 ${p.tracking_number}`).join('\n')}\n\nTracking de consolidación: ${consolidationTracking}`;
+        
         await base44.asServiceRole.entities.Notification.create({
           user_email: request.client_email,
           title: '📦 Consolidación Automática Completada',
-          message: `Se ha consolidado automáticamente ${receivedPackages.length} paquete(s) con tracking ${consolidationTracking}`,
+          message: notificationMessage,
           type: 'consolidation',
           priority: 'high',
           reference_id: consolidation.id,
           entity_type: 'Consolidation',
           icon: 'truck'
         });
+
+        // Send email notification to client
+        try {
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            to: request.client_email,
+            subject: `📦 Tu consolidación automática está lista - ${consolidationTracking}`,
+            body: `
+              <h2>¡Consolidación Automática Completada!</h2>
+              <p>Hola,</p>
+              <p>Se ha realizado una consolidación automática de tus paquetes ya que el período de espera ha vencido.</p>
+              <h3>Paquetes Consolidados (${receivedPackages.length}):</h3>
+              <ul>
+                ${receivedPackages.map(p => `<li>${p.tracking_number} - ${p.description}</li>`).join('')}
+              </ul>
+              <h3>Información de Consolidación:</h3>
+              <p><strong>Tracking Consolidado:</strong> ${consolidationTracking}</p>
+              <p>Puedes seguir el estado de tu consolidación en tu panel de cliente.</p>
+              <p>¡Gracias por usar nuestros servicios!</p>
+            `
+          });
+        } catch (emailError) {
+          console.error('Error sending email:', emailError);
+        }
 
         // Create notification for admins
         const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
