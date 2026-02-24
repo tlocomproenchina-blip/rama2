@@ -37,6 +37,7 @@ import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
 
 export default function AdminEmailCampaigns({ user }) {
   const [clients, setClients] = useState([]);
+  const [packages, setPackages] = useState([]);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -88,8 +89,12 @@ export default function AdminEmailCampaigns({ user }) {
   };
 
   const loadClients = async () => {
-    const users = await base44.entities.User.filter({ role: 'user' });
+    const [users, pkgs] = await Promise.all([
+      base44.entities.User.filter({ role: 'user' }),
+      base44.entities.Package.list()
+    ]);
     setClients(users);
+    setPackages(pkgs);
     setLoading(false);
   };
 
@@ -145,9 +150,18 @@ export default function AdminEmailCampaigns({ user }) {
     if (targetType === 'incomplete_data') {
       return clients.filter(c => !c.shipping_mark && (!c.city || !c.whatsapp));
     }
+    if (targetType === 'with_active_packages') {
+      const activeStatuses = ['recibido', 'consolidado', 'en_transito'];
+      const clientsWithActivePackages = new Set(
+        packages
+          .filter(pkg => activeStatuses.includes(pkg.status))
+          .map(pkg => pkg.client_email)
+      );
+      return clients.filter(c => clientsWithActivePackages.has(c.email));
+    }
     if (targetType === 'custom') return clients.filter(c => selectedClients.includes(c.id));
     return [];
-  }, [targetType, clients, selectedClients]);
+  }, [targetType, clients, selectedClients, packages]);
 
   const toggleClient = (clientId) => {
     setSelectedClients(prev => 
@@ -756,6 +770,15 @@ export default function AdminEmailCampaigns({ user }) {
                     </SelectItem>
                     <SelectItem value="incomplete_data">
                       Con Datos Incompletos ({clients.filter(c => !c.shipping_mark && (!c.city || !c.whatsapp)).length})
+                    </SelectItem>
+                    <SelectItem value="with_active_packages">
+                      Con Paquetes Activos ({(() => {
+                        const activeStatuses = ['recibido', 'consolidado', 'en_transito'];
+                        const clientsWithActivePackages = new Set(
+                          packages.filter(pkg => activeStatuses.includes(pkg.status)).map(pkg => pkg.client_email)
+                        );
+                        return clients.filter(c => clientsWithActivePackages.has(c.email)).length;
+                      })()})
                     </SelectItem>
                     <SelectItem value="custom">
                       Selección personalizada
