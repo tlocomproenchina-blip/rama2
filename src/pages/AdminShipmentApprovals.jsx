@@ -55,19 +55,24 @@ export default function AdminShipmentApprovals({ user }) {
   const [customFobValue, setCustomFobValue] = useState('');
   const [undoTracking, setUndoTracking] = useState('');
   const [undoing, setUndoing] = useState(false);
+  const [clientUser, setClientUser] = useState(null);
+  const [pricingConfig, setPricingConfig] = useState(null);
+  const [stateConfig, setStateConfig] = useState(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [reqs, configs] = await Promise.all([
+    const [reqs, configs, pricing] = await Promise.all([
       base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-created_date'),
-      base44.entities.AppConfig.filter({ config_key: 'main' })
+      base44.entities.AppConfig.filter({ config_key: 'main' }),
+      base44.entities.PricingConfig.filter({ config_key: 'main' })
     ]);
     
     setRequests(reqs);
     if (configs.length > 0) setConfig(configs[0]);
+    if (pricing.length > 0) setPricingConfig(pricing[0]);
     setLoading(false);
   };
 
@@ -76,12 +81,30 @@ export default function AdminShipmentApprovals({ user }) {
     setSelectedPackages(request.package_ids || []);
     setSelectedShippingType(request.shipping_type || 'aereo');
     
-    const pkgs = await base44.entities.Package.filter({ 
-      client_email: request.client_email,
-      status: 'recibido'
-    });
+    const [pkgs, users, states] = await Promise.all([
+      base44.entities.Package.filter({ 
+        client_email: request.client_email,
+        status: 'recibido'
+      }),
+      base44.entities.User.list(),
+      base44.entities.StateConfig.list()
+    ]);
+    
     const filteredPkgs = pkgs.filter(p => !p.consolidation_id);
     setAllPackages(filteredPkgs);
+    
+    // Get client user data for state
+    const client = users.find(u => u.email === request.client_email);
+    setClientUser(client);
+    
+    // Get state config for shipping rate
+    if (client?.state) {
+      const state = states.find(s => 
+        s.state_code === client.state || 
+        s.state_name.toLowerCase() === client.state.toLowerCase()
+      );
+      setStateConfig(state);
+    }
     
     // Check if any of the selected packages has insurance
     const selectedPkgs = filteredPkgs.filter(p => request.package_ids?.includes(p.id));
@@ -120,26 +143,51 @@ export default function AdminShipmentApprovals({ user }) {
 
     const billableWeight = Math.max(realWeight, volumetricWeight);
 
-    const selectedPkgs = allPackages.filter(p => selectedPackages.includes(p.id));
     const totalFOB = hasInsurance ? (parseFloat(customFobValue) || 0) : 0;
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
 
+    // Calculate base shipping cost (Tarifa Base)
+    let baseRate = 0;
+    if (selectedShippingType === 'aereo') {
+      baseRate = hasInsurance ? (pricingConfig?.base_rate_high_risk || 790) : (pricingConfig?.base_rate_regular || 690);
+    } else {
+      baseRate = hasInsurance ? (pricingConfig?.base_rate_high_risk || 790) : (pricingConfig?.base_rate_regular || 690);
+    }
+    
+    // Apply profit percentage (Beneficio)
+    const profitPercentage = pricingConfig?.profit_percentage || 10;
+    const baseWithProfit = baseRate * (1 + profitPercentage / 100);
+    
+    // Calculate shipping cost based on billable weight/CBM
     let shippingCost = 0;
     if (selectedShippingType === 'aereo') {
-      const rate = hasInsurance ? (config?.rate_air_sensitive || 0) : (config?.rate_air_general || 0);
-      shippingCost = billableWeight * rate;
+      shippingCost = billableWeight * baseWithProfit;
     } else {
-      const rate = hasInsurance ? (config?.rate_sea_sensitive || 0) : (config?.rate_sea_general || 0);
-      shippingCost = cbm * rate;
+      shippingCost = cbm * baseWithProfit;
     }
+    
+    // Add state shipping rate (Tarifa Estado)
+    const stateShippingRate = stateConfig?.shipping_rate || 0;
+    
+    // Add door-to-door if applicable (Puerta a Puerta)
+    const doorToDoorCost = pricingConfig?.is_door_to_door_optional 
+      ? (pricingConfig?.door_to_door_cost || 0)
+      : 0;
+    
+    // Formula: Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta
+    const totalCost = shippingCost + stateShippingRate + doorToDoorCost + insuranceCost;
 
     return {
       cbm,
       volumetricWeight,
       billableWeight,
+      baseRate,
+      profitPercentage,
       shippingCost,
+      stateShippingRate,
+      doorToDoorCost,
       insuranceCost,
-      totalCost: shippingCost + insuranceCost
+      totalCost
     };
   };
 
@@ -519,36 +567,69 @@ export default function AdminShipmentApprovals({ user }) {
             </div>
 
             {consolidationData.real_weight_kg && ((inputMode === 'dimensions' && consolidationData.length_cm && consolidationData.width_cm && consolidationData.height_cm) || (inputMode === 'cbm' && directCbm)) && (
-              <Card className="bg-slate-50 border-slate-200">
+              <Card className="bg-blue-50 border-blue-200">
                 <CardContent className="p-4">
-                  <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-emerald-600" />
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-blue-600" />
                     Resumen de Costos - {selectedShippingType === 'aereo' ? 'Aéreo' : 'Marítimo'}
                   </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-slate-500">CBM:</span>
-                      <span className="ml-2 font-medium">{calculateValues().cbm.toFixed(4)} m³</span>
+                  
+                  {/* Estado del cliente */}
+                  {clientUser?.state && (
+                    <div className="mb-3 p-2 bg-white rounded border border-blue-200">
+                      <p className="text-xs text-slate-500">Estado del Cliente</p>
+                      <p className="font-medium text-sm">{stateConfig?.state_name || clientUser.state}</p>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Peso Volumétrico:</span>
-                      <span className="ml-2 font-medium">{calculateValues().volumetricWeight.toFixed(2)} kg</span>
+                  )}
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">CBM:</span>
+                      <span className="font-medium">{calculateValues().cbm.toFixed(4)} m³</span>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Peso Facturable:</span>
-                      <span className="ml-2 font-medium">{calculateValues().billableWeight.toFixed(2)} kg</span>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Peso Volumétrico:</span>
+                      <span className="font-medium">{calculateValues().volumetricWeight.toFixed(2)} kg</span>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Costo Envío {selectedShippingType === 'aereo' ? '(por kg)' : '(por CBM)'}:</span>
-                      <span className="ml-2 font-medium">${calculateValues().shippingCost.toFixed(2)}</span>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Peso Facturable:</span>
+                      <span className="font-medium">{calculateValues().billableWeight.toFixed(2)} kg</span>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Costo Seguro:</span>
-                      <span className="ml-2 font-medium">${calculateValues().insuranceCost.toFixed(2)}</span>
+                    
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Tarifa Base:</span>
+                        <span className="font-medium">${calculateValues().baseRate.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Beneficio ({calculateValues().profitPercentage}%):</span>
+                        <span className="font-medium">${(calculateValues().baseRate * calculateValues().profitPercentage / 100).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Costo Envío:</span>
+                        <span className="font-medium">${calculateValues().shippingCost.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Tarifa Estado:</span>
+                        <span className="font-medium">${calculateValues().stateShippingRate.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Puerta a Puerta:</span>
+                        <span className="font-medium">${calculateValues().doorToDoorCost.toFixed(2)}</span>
+                      </div>
+                      {hasInsurance && (
+                        <div className="flex justify-between text-emerald-700">
+                          <span className="font-medium">Seguro ({config?.insurance_percentage || 5}%):</span>
+                          <span className="font-medium">${calculateValues().insuranceCost.toFixed(2)}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="col-span-2 pt-2 border-t mt-2">
-                      <span className="text-lg font-bold">Total:</span>
-                      <span className="ml-2 text-lg font-bold text-emerald-600">${calculateValues().totalCost.toFixed(2)}</span>
+                    
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-bold">Total:</span>
+                        <span className="text-lg font-bold text-emerald-600">${calculateValues().totalCost.toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

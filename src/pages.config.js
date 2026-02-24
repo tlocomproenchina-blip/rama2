@@ -63,6 +63,7 @@ import AdminPayments from './pages/AdminPayments';
 import AdminPermissions from './pages/AdminPermissions';
 import AdminPromotions from './pages/AdminPromotions';
 import AdminReports from './pages/AdminReports';
+import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
@@ -75,13 +76,12 @@ import MyConsolidations from './pages/MyConsolidations';
 import MyInvoices from './pages/MyInvoices';
 import MyPackages from './pages/MyPackages';
 import PreAlert from './pages/PreAlert';
+import Profile from './pages/Profile';
 import Rates from './pages/Rates';
 import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminSettings from './pages/AdminSettings';
-import Profile from './pages/Profile';
 import __Layout from './Layout.jsx';
 
 
@@ -102,6 +102,7 @@ export const PAGES = {
     "AdminPermissions": AdminPermissions,
     "AdminPromotions": AdminPromotions,
     "AdminReports": AdminReports,
+    "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
@@ -114,13 +115,12 @@ export const PAGES = {
     "MyInvoices": MyInvoices,
     "MyPackages": MyPackages,
     "PreAlert": PreAlert,
+    "Profile": Profile,
     "Rates": Rates,
     "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminSettings": AdminSettings,
-    "Profile": Profile,
 }
 
 export const pagesConfig = {
