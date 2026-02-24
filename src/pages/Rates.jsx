@@ -201,22 +201,6 @@ export default function Rates({ user }) {
                 ⏱️ <span className="font-medium">Tiempo estimado:</span> 7-15 días
               </p>
             </div>
-            
-            {stateConfig && pricingConfig && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                <p className="text-xs font-semibold text-green-900 mb-2">💰 Precio para {stateConfig.state_name}</p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-green-800">Carga Regular:</span>
-                    <span className="font-bold text-green-900">${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-green-800">Alto Riesgo:</span>
-                    <span className="font-bold text-green-900">${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
         )}
@@ -285,22 +269,6 @@ export default function Rates({ user }) {
                 ⏱️ <span className="font-medium">Tiempo estimado:</span> 45-60 días
               </p>
             </div>
-            
-            {stateConfig && pricingConfig && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                <p className="text-xs font-semibold text-green-900 mb-2">💰 Precio para {stateConfig.state_name}</p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-green-800">Carga Regular:</span>
-                    <span className="font-bold text-green-900">${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-green-800">Alto Riesgo:</span>
-                    <span className="font-bold text-green-900">${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + (pricingConfig.is_door_to_door_optional ? 0 : pricingConfig.door_to_door_cost)).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
         )}
