@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,16 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, MapPin, Phone, Save, Loader2 } from 'lucide-react';
+import { User, MapPin, Phone, Save, Loader2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
-
-const VENEZUELAN_STATES = [
-  'Amazonas', 'Anzoátegui', 'Apure', 'Aragua', 'Barinas', 
-  'Bolívar', 'Carabobo', 'Cojedes', 'Delta Amacuro', 'Distrito Capital',
-  'Falcón', 'Guárico', 'Lara', 'Mérida', 'Miranda', 
-  'Monagas', 'Nueva Esparta', 'Portuguesa', 'Sucre', 'Táchira',
-  'Trujillo', 'Vargas', 'Yaracuy', 'Zulia'
-];
 
 export default function Profile({ user, refreshUser }) {
   const [formData, setFormData] = useState({
@@ -28,6 +20,49 @@ export default function Profile({ user, refreshUser }) {
     address: user?.address || ''
   });
   const [saving, setSaving] = useState(false);
+  const [stateConfigs, setStateConfigs] = useState([]);
+  const [pricingConfig, setPricingConfig] = useState(null);
+
+  useEffect(() => {
+    loadConfigs();
+  }, []);
+
+  const loadConfigs = async () => {
+    try {
+      const states = await base44.entities.StateConfig.filter({ is_active: true });
+      setStateConfigs(states);
+      
+      const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
+      if (pricing.length > 0) {
+        setPricingConfig(pricing[0]);
+      }
+    } catch (error) {
+      console.error('Error loading configs:', error);
+    }
+  };
+
+  const calculatePricing = () => {
+    if (!formData.state || !pricingConfig) return null;
+    
+    const stateConfig = stateConfigs.find(s => s.state_code === formData.state);
+    if (!stateConfig) return null;
+
+    const stateRate = stateConfig.shipping_rate || 0;
+    const doorToDoor = pricingConfig.door_to_door_cost || 0;
+    const benefitPercent = pricingConfig.profit_percentage || 0;
+
+    const regularBase = pricingConfig.base_rate_regular || 0;
+    const regularPrice = (regularBase * (1 + benefitPercent / 100)) + stateRate + doorToDoor;
+
+    const highRiskBase = pricingConfig.base_rate_high_risk || 0;
+    const highRiskPrice = (highRiskBase * (1 + benefitPercent / 100)) + stateRate + doorToDoor;
+
+    return {
+      regular: regularPrice.toFixed(2),
+      highRisk: highRiskPrice.toFixed(2),
+      stateName: stateConfig.state_name
+    };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -177,13 +212,25 @@ export default function Profile({ user, refreshUser }) {
                     <SelectValue placeholder="Selecciona tu estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    {VENEZUELAN_STATES.map((state) => (
-                      <SelectItem key={state} value={state}>
-                        {state}
+                    {stateConfigs.map((state) => (
+                      <SelectItem key={state.state_code} value={state.state_code}>
+                        {state.state_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {calculatePricing() && (
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="h-4 w-4 text-blue-600" />
+                      <p className="text-sm font-semibold text-blue-900">Precios de envío para {calculatePricing().stateName}</p>
+                    </div>
+                    <div className="space-y-1 text-xs text-blue-800">
+                      <p>• Carga Regular: <span className="font-bold">${calculatePricing().regular}</span></p>
+                      <p>• Carga Alto Riesgo: <span className="font-bold">${calculatePricing().highRisk}</span></p>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="city" className="flex items-center gap-2">
