@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 import { 
   CheckCircle2, 
   Search, 
@@ -40,6 +41,7 @@ export default function AdminShipmentApprovals({ user }) {
   const [allPackages, setAllPackages] = useState([]);
   const [selectedPackages, setSelectedPackages] = useState([]);
   const [config, setConfig] = useState(null);
+  const enabledTypes = useEnabledShippingTypes();
   const [consolidationData, setConsolidationData] = useState({
     real_weight_kg: '',
     length_cm: '',
@@ -412,18 +414,22 @@ export default function AdminShipmentApprovals({ user }) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="aereo">
-                    <div className="flex items-center gap-2">
-                      <Plane className="h-4 w-4" />
-                      Aéreo
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="maritimo">
-                    <div className="flex items-center gap-2">
-                      <Ship className="h-4 w-4" />
-                      Marítimo
-                    </div>
-                  </SelectItem>
+                  {config?.shipping_type_air_enabled !== false && (
+                    <SelectItem value="aereo">
+                      <div className="flex items-center gap-2">
+                        <Plane className="h-4 w-4" />
+                        Aéreo
+                      </div>
+                    </SelectItem>
+                  )}
+                  {config?.shipping_type_sea_enabled !== false && (
+                    <SelectItem value="maritimo">
+                      <div className="flex items-center gap-2">
+                        <Ship className="h-4 w-4" />
+                        Marítimo
+                      </div>
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
