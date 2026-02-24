@@ -86,11 +86,13 @@ export default function Layout({ children, currentPageName }) {
           setShowProfile(true);
         }
       }
+      
+      setLoading(false);
     } catch (error) {
       // Not logged in - redirect to login
       base44.auth.redirectToLogin();
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleContractAccept = async () => {
