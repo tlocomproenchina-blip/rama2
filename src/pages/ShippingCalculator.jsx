@@ -197,7 +197,7 @@ export default function ShippingCalculator({ user }) {
               <SelectContent>
                 {stateConfigs.map((state) => (
                   <SelectItem key={state.state_code} value={state.state_code}>
-                    {state.state_name} {state.shipping_rate > 0 ? `(+$${state.shipping_rate.toFixed(2)})` : ''}
+                    {state.state_name}
                   </SelectItem>
                 ))}
               </SelectContent>
