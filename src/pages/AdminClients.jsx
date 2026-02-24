@@ -554,7 +554,7 @@ Email: ${client.email}`;
                 className={statusFilter === 'without_mark' ? '' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}
               >
                 <AlertTriangle className="h-3 w-3 mr-1" />
-                Sin Shipping Mark ({clients.filter(c => !c.shipping_mark).length})
+                Sin Shipping Mark ({clients.filter(c => !hasValidShippingMark(c)).length})
               </Button>
               <Button
                 variant={statusFilter === 'pending' ? 'default' : 'outline'}
