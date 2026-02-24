@@ -24,6 +24,10 @@ export default function Profile({ user, refreshUser }) {
   const [pricingConfig, setPricingConfig] = useState(null);
 
   useEffect(() => {
+    loadConfigs();
+  }, []);
+
+  useEffect(() => {
     if (user) {
       setFormData({
         first_name: user.first_name || '',
@@ -35,8 +39,7 @@ export default function Profile({ user, refreshUser }) {
         address: user.address || ''
       });
     }
-    loadConfigs();
-  }, [user]);
+  }, [user?.id]);
 
   const loadConfigs = async () => {
     try {
