@@ -186,7 +186,9 @@ export default function AdminClients({ user }) {
 
   const handleCopyClientInfo = (client) => {
     const info = `Nombre: ${client.first_name || ''} ${client.last_name || ''}
+Estado: ${client.state || 'N/A'}
 Ciudad: ${client.city || 'N/A'}
+Dirección: ${client.address || 'N/A'}
 WhatsApp: ${client.whatsapp || 'N/A'}
 Email: ${client.email}`;
     
