@@ -24,8 +24,19 @@ export default function Profile({ user, refreshUser }) {
   const [pricingConfig, setPricingConfig] = useState(null);
 
   useEffect(() => {
+    if (user) {
+      setFormData({
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        phone: user.phone || '',
+        whatsapp: user.whatsapp || '',
+        state: user.state || '',
+        city: user.city || '',
+        address: user.address || ''
+      });
+    }
     loadConfigs();
-  }, []);
+  }, [user]);
 
   const loadConfigs = async () => {
     try {
