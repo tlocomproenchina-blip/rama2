@@ -51,6 +51,7 @@ export default function AdminClients({ user }) {
   const [packagesCount, setPackagesCount] = useState({});
   const [addingPackage, setAddingPackage] = useState(false);
   const [packageClient, setPackageClient] = useState(null);
+  const [stateConfigs, setStateConfigs] = useState([]);
   const [newPackage, setNewPackage] = useState({
     tracking_number: '',
     description: '',
@@ -63,7 +64,17 @@ export default function AdminClients({ user }) {
 
   useEffect(() => {
     loadClients();
+    loadStateConfigs();
   }, []);
+
+  const loadStateConfigs = async () => {
+    try {
+      const states = await base44.entities.StateConfig.filter({ is_active: true });
+      setStateConfigs(states);
+    } catch (error) {
+      console.error('Error loading states:', error);
+    }
+  };
 
   const loadClients = async () => {
     const [users, packages] = await Promise.all([
@@ -87,7 +98,9 @@ export default function AdminClients({ user }) {
     setEditData({
       first_name: client.first_name || '',
       last_name: client.last_name || '',
+      state: client.state || '',
       city: client.city || '',
+      address: client.address || '',
       whatsapp: client.whatsapp || '',
       shipping_mark: client.shipping_mark || ''
     });
@@ -875,12 +888,42 @@ Email: ${client.email}`;
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Estado
+              </Label>
+              <select
+                value={editData.state}
+                onChange={(e) => setEditData({ ...editData, state: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Selecciona un estado</option>
+                {stateConfigs.map((state) => (
+                  <option key={state.state_code} value={state.state_code}>
+                    {state.state_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" /> Ciudad
               </Label>
               <Input
                 value={editData.city}
                 onChange={(e) => setEditData({ ...editData, city: e.target.value })}
                 placeholder="Ciudad de entrega"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Dirección
+              </Label>
+              <Textarea
+                value={editData.address}
+                onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+                placeholder="Dirección completa"
+                rows={2}
               />
             </div>
 
