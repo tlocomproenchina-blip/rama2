@@ -100,18 +100,21 @@ export default function ShippingCalculator({ user }) {
       chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
     }
 
-    // Apply profit percentage
+    // Apply profit percentage: baseRate * billableWeight * (1 + profit%)
     const profitMargin = pricingConfig?.profit_percentage || 0;
-    const shippingCost = baseCost * (1 + profitMargin / 100);
+    const shippingCost = baseRate * billableWeight * (1 + profitMargin / 100);
 
     // Add state shipping cost
     const stateShipping = userStateConfig?.shipping_rate || 0;
+
+    // Add door to door cost
+    const doorToDoor = pricingConfig?.door_to_door_cost || 0;
 
     // Calculate insurance
     const fob = parseFloat(fobValue) || 0;
     const insuranceCost = includeInsurance && fob > 0 ? fob * (config?.insurance_percentage / 100) : 0;
 
-    const totalCost = shippingCost + stateShipping + insuranceCost;
+    const totalCost = shippingCost + stateShipping + doorToDoor + insuranceCost;
 
     setResult({
       baseRate,
@@ -124,6 +127,7 @@ export default function ShippingCalculator({ user }) {
       shippingCost,
       insuranceCost,
       stateShipping,
+      doorToDoor,
       stateName: userStateConfig?.state_name || null,
       totalCost
     });
@@ -391,6 +395,13 @@ export default function ShippingCalculator({ user }) {
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-600">Envío local ({result.stateName}):</span>
                 <span className="font-semibold">${result.stateShipping.toFixed(2)}</span>
+              </div>
+            )}
+
+            {result.doorToDoor > 0 && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-slate-600">Puerta a Puerta:</span>
+                <span className="font-semibold">${result.doorToDoor.toFixed(2)}</span>
               </div>
             )}
 
