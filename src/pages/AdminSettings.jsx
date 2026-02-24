@@ -79,6 +79,9 @@ export default function AdminSettings({ user }) {
     warehouse_address: '',
     contract_text: '',
     insurance_percentage: 5,
+    invoice_company_name: 'TLEC CARGO LTD',
+    invoice_company_tagline: 'Sistema de Envios Internacionales',
+    invoice_logo_url: '',
     invoice_overdue_days: 7,
     payment_alert_days: 7,
     shipping_mark_prefix: 'TLEC-'
@@ -94,6 +97,7 @@ export default function AdminSettings({ user }) {
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [uploadingInvoiceLogo, setUploadingInvoiceLogo] = useState(false);
 
   useEffect(() => {
     loadAllConfigs();
@@ -256,6 +260,19 @@ export default function AdminSettings({ user }) {
       toast.error('Error al subir favicon');
     }
     setUploadingFavicon(false);
+  };
+
+  const handleInvoiceLogoUpload = async (file) => {
+    if (!file) return;
+    setUploadingInvoiceLogo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setAppConfig({ ...appConfig, invoice_logo_url: file_url });
+      toast.success('Logo de factura subido');
+    } catch (error) {
+      toast.error('Error al subir logo de factura');
+    }
+    setUploadingInvoiceLogo(false);
   };
 
   const filteredStates = statesConfig.filter(state =>
@@ -965,9 +982,109 @@ export default function AdminSettings({ user }) {
         <TabsContent value="facturas">
           <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle>Configuración de Facturas</CardTitle>
-              <CardDescription>En desarrollo</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Configuración de Factura
+              </CardTitle>
+              <CardDescription>
+                Personaliza la información que aparece en las facturas PDF
+              </CardDescription>
             </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label>Nombre de la Empresa</Label>
+                <Input
+                  value={appConfig.invoice_company_name || ''}
+                  onChange={(e) => setAppConfig({ ...appConfig, invoice_company_name: e.target.value })}
+                  placeholder="TLEC CARGO LTD"
+                />
+                <p className="text-xs text-slate-500">Nombre que aparecerá en el encabezado de la factura</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Eslogan/Descripción</Label>
+                <Input
+                  value={appConfig.invoice_company_tagline || ''}
+                  onChange={(e) => setAppConfig({ ...appConfig, invoice_company_tagline: e.target.value })}
+                  placeholder="Sistema de Envios Internacionales"
+                />
+                <p className="text-xs text-slate-500">Texto que aparece debajo del nombre de la empresa</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Logo para Facturas (Relación 1:1)</Label>
+                <div className="flex items-start gap-4">
+                  <div className="flex-1">
+                    <label className="block">
+                      <div className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                        <Upload className="h-4 w-4 text-slate-600" />
+                        <span className="text-sm text-slate-700">
+                          {uploadingInvoiceLogo ? 'Subiendo...' : 'Seleccionar archivo'}
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleInvoiceLogoUpload(e.target.files[0])}
+                        disabled={uploadingInvoiceLogo}
+                      />
+                    </label>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {appConfig.invoice_logo_url ? 'Archivo cargado' : 'Sin archivos seleccionados'}
+                    </p>
+                  </div>
+                  {appConfig.invoice_logo_url && (
+                    <div className="flex-shrink-0">
+                      <img 
+                        src={appConfig.invoice_logo_url} 
+                        alt="Logo Factura" 
+                        className="h-16 w-16 object-contain rounded border border-slate-200" 
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                  <div className="text-amber-600 mt-0.5">⚠️</div>
+                  <p className="text-xs text-amber-800">
+                    <strong>IMPORTANTE:</strong> Usa una imagen cuadrada (1:1) para mejor visualización en facturas. El logo aparecerá en el encabezado de todas las facturas PDF.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-slate-600" />
+                    <Label>Días para considerar factura vencida</Label>
+                  </div>
+                  <Input
+                    type="number"
+                    value={appConfig.invoice_overdue_days || 7}
+                    onChange={(e) => setAppConfig({ ...appConfig, invoice_overdue_days: parseInt(e.target.value) || 7 })}
+                  />
+                  <p className="text-xs text-slate-500">Número de días para que una factura se considere vencida</p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-slate-600" />
+                    <Label>Días para alertas de pago</Label>
+                  </div>
+                  <Input
+                    type="number"
+                    value={appConfig.payment_alert_days || 7}
+                    onChange={(e) => setAppConfig({ ...appConfig, payment_alert_days: parseInt(e.target.value) || 7 })}
+                  />
+                  <p className="text-xs text-slate-500">Número de días para generar alertas de pagos pendientes</p>
+                </div>
+              </div>
+
+              <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar configuración de facturas
+              </Button>
+            </CardContent>
           </Card>
         </TabsContent>
 
