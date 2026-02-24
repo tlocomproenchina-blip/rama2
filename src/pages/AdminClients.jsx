@@ -242,7 +242,7 @@ Email: ${client.email}`;
 
   const handleExportPendingClients = async () => {
     try {
-      const pendingClients = clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c));
+      const pendingClients = filteredClients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c));
 
       if (pendingClients.length === 0) {
         toast.error('No hay clientes pendientes de Shipping Mark');
