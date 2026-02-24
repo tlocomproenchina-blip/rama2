@@ -176,8 +176,11 @@ export default function AdminShipmentApprovals({ user }) {
       ? (pricingConfig?.door_to_door_cost || 0)
       : 0;
     
-    // Formula: Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta
-    const totalCost = shippingCost + stateShippingRate + doorToDoorCost + insuranceCost;
+    // Consolidation fee: $1 per package
+    const consolidationFee = selectedPackages.length * 1;
+    
+    // Formula: Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta + Consolidación
+    const totalCost = shippingCost + stateShippingRate + doorToDoorCost + consolidationFee + insuranceCost;
 
     return {
       cbm,
@@ -188,6 +191,7 @@ export default function AdminShipmentApprovals({ user }) {
       shippingCost,
       stateShippingRate,
       doorToDoorCost,
+      consolidationFee,
       insuranceCost,
       totalCost
     };
@@ -622,6 +626,10 @@ export default function AdminShipmentApprovals({ user }) {
                       <div className="flex justify-between">
                         <span className="text-slate-600">Puerta a Puerta:</span>
                         <span className="font-medium">${calculateValues().doorToDoorCost.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Consolidación de carga ({selectedPackages.length} paquetes):</span>
+                        <span className="font-medium">${calculateValues().consolidationFee.toFixed(2)}</span>
                       </div>
                       {hasInsurance && (
                         <div className="flex justify-between text-emerald-700">
