@@ -472,7 +472,7 @@ Email: ${client.email}`;
               <div>
                 <p className="text-sm text-slate-500">Con Shipping Mark</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {clients.filter(c => c.shipping_mark).length}
+                  {clients.filter(c => hasValidShippingMark(c)).length}
                 </p>
               </div>
               <div className="p-3 bg-emerald-100 rounded-xl">
