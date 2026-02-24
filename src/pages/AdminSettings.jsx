@@ -304,7 +304,7 @@ export default function AdminSettings({ user }) {
       </div>
 
       <Tabs defaultValue="tarifas" className="space-y-6">
-        <TabsList className="grid grid-cols-8 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="tarifas" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
             Tarifas
@@ -320,10 +320,6 @@ export default function AdminSettings({ user }) {
           <TabsTrigger value="general" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             General
-          </TabsTrigger>
-          <TabsTrigger value="empresa" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Empresa
           </TabsTrigger>
           <TabsTrigger value="facturas" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -970,14 +966,7 @@ export default function AdminSettings({ user }) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="empresa">
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Información de la Empresa</CardTitle>
-              <CardDescription>En desarrollo</CardDescription>
-            </CardHeader>
-          </Card>
-        </TabsContent>
+
 
         <TabsContent value="facturas">
           <Card className="border-0 shadow-lg">
