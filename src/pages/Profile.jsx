@@ -162,7 +162,7 @@ export default function Profile({ user, refreshUser }) {
           {appConfig?.allow_profile_updates === false && (
             <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
               <p className="text-sm text-amber-800">
-                ⚠️ <strong>Actualización de perfil deshabilitada</strong> - Por el momento no es posible actualizar tu información.
+                ⚠️ <strong>Actualización de perfil deshabilitada</strong> - crea un ticket en soporte para actualizar tus datos.
               </p>
             </div>
           )}
