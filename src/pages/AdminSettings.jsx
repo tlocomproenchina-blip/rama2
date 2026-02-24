@@ -846,15 +846,64 @@ export default function AdminSettings({ user }) {
                      </div>
                    </div>
                  )}
-               </div>
+                 </div>
 
-               <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                 {/* Consolidation Periods */}
+                 <div className="mt-8 p-6 bg-indigo-50 rounded-xl border border-indigo-200 space-y-4">
+                 <div className="flex items-center gap-2 mb-4">
+                   <Clock className="h-5 w-5 text-indigo-600" />
+                   <h3 className="font-semibold text-slate-800 text-lg">Períodos de Consolidación</h3>
+                 </div>
+                 <p className="text-sm text-slate-600 mb-4">Configura los períodos (en días) disponibles para que los clientes elijan al solicitar consolidación</p>
+                 <div className="space-y-3">
+                   {(appConfig.consolidation_periods || [15, 20, 30]).map((period, index) => (
+                     <div key={index} className="flex items-center gap-3">
+                       <Input
+                         type="number"
+                         value={period}
+                         onChange={(e) => {
+                           const newPeriods = [...(appConfig.consolidation_periods || [])];
+                           newPeriods[index] = parseInt(e.target.value) || 0;
+                           setAppConfig({ ...appConfig, consolidation_periods: newPeriods });
+                         }}
+                         min="1"
+                         placeholder="Días"
+                         className="w-32"
+                       />
+                       <span className="text-sm text-slate-600">días</span>
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={() => {
+                           const newPeriods = (appConfig.consolidation_periods || []).filter((_, i) => i !== index);
+                           setAppConfig({ ...appConfig, consolidation_periods: newPeriods });
+                         }}
+                         className="ml-auto"
+                       >
+                         Eliminar
+                       </Button>
+                     </div>
+                   ))}
+                 </div>
+                 <Button
+                   variant="outline"
+                   onClick={() => {
+                     const newPeriods = [...(appConfig.consolidation_periods || []), 30];
+                     setAppConfig({ ...appConfig, consolidation_periods: newPeriods });
+                   }}
+                   className="w-full mt-2"
+                 >
+                   + Agregar período
+                 </Button>
+                 </div>
+
+                 <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
                  {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                  Guardar cambios
-               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                 </Button>
+                 </CardContent>
+                 </Card>
+                 </TabsContent>
 
         {/* Tab Privacidad */}
         <TabsContent value="privacidad">
