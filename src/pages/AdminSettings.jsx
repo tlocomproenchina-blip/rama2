@@ -86,7 +86,8 @@ export default function AdminSettings({ user }) {
     payment_alert_days: 7,
     shipping_mark_prefix: 'TLEC-',
     shipping_type_air_enabled: true,
-    shipping_type_sea_enabled: true
+    shipping_type_sea_enabled: true,
+    allow_profile_updates: true
   });
 
   // Privacy Config
@@ -490,6 +491,24 @@ export default function AdminSettings({ user }) {
                     onCheckedChange={(checked) => setAppConfig({ ...appConfig, shipping_type_sea_enabled: checked })}
                   />
                 </div>
+
+                <div className="flex items-center justify-between p-6 bg-purple-50 rounded-xl border border-purple-200">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-purple-100 rounded-lg">
+                      <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 text-lg">Actualización de Perfil</p>
+                      <p className="text-sm text-slate-600">Permitir que los clientes actualicen su información</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appConfig.allow_profile_updates}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, allow_profile_updates: checked })}
+                  />
+                </div>
               </div>
 
               <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
@@ -497,7 +516,7 @@ export default function AdminSettings({ user }) {
                   <div className="text-amber-600 mt-0.5">⚠️</div>
                   <div className="text-sm text-amber-800">
                     <p className="font-semibold mb-1">Importante:</p>
-                    <p>Al deshabilitar un tipo de envío, este dejará de aparecer en todos los formularios y opciones del sistema para administradores y usuarios. Los envíos existentes no se verán afectados.</p>
+                    <p>Al deshabilitar un tipo de envío, este dejará de aparecer en todos los formularios y opciones del sistema para administradores y usuarios. Los envíos existentes no se verán afectados. Desabilitar la actualización de perfil es útil para campañas de renovación de información.</p>
                   </div>
                 </div>
               </div>
