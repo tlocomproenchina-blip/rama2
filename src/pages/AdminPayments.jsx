@@ -28,13 +28,19 @@ export default function AdminPayments({ user }) {
   }, []);
 
   const loadData = async () => {
-    const [cons, users] = await Promise.all([
-      base44.entities.Consolidation.list('-created_date'),
-      base44.entities.User.filter({ role: 'user' })
-    ]);
-    setConsolidations(cons);
-    setClients(users);
-    setLoading(false);
+    try {
+      const [cons, users] = await Promise.all([
+        base44.entities.Consolidation.list('-created_date'),
+        base44.entities.User.list()
+      ]);
+      setConsolidations(cons);
+      setClients(users);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Error al cargar datos');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStatusChange = async (con, newStatus) => {
