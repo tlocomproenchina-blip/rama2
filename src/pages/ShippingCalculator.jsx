@@ -218,18 +218,26 @@ export default function ShippingCalculator({ user }) {
           {/* State Selection */}
           <div className="space-y-2">
             <Label>Estado de Destino</Label>
-            <Select value={selectedState} onValueChange={setSelectedState}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un estado" />
-              </SelectTrigger>
-              <SelectContent>
-                {states.map((state) => (
-                  <SelectItem key={state.state_code} value={state.state_code}>
-                    {state.state_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {user?.role === 'admin' ? (
+              <Select value={selectedState} onValueChange={setSelectedState}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((state) => (
+                    <SelectItem key={state.state_code} value={state.state_code}>
+                      {state.state_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                value={states.find(s => s.state_code === selectedState)?.state_name || 'No configurado'}
+                disabled
+                className="bg-slate-50"
+              />
+            )}
           </div>
 
           {/* Input Mode Selection */}
