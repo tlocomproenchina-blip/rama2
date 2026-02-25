@@ -403,11 +403,6 @@ export default function ShippingCalculator({ user }) {
               <span className="font-semibold">{result.cbm.toFixed(4)}</span>
             </div>
 
-            <div className="flex justify-between py-2 border-b bg-blue-50 px-3 rounded">
-              <span className="text-slate-700 font-medium">Envío internacional:</span>
-              <span className="font-bold text-blue-700">${result.shippingCost.toFixed(2)}</span>
-            </div>
-
             {result.insuranceCost > 0 && (
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-600">Seguro:</span>
