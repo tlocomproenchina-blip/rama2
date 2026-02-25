@@ -10,6 +10,7 @@ import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import ApiStatusIndicator from '@/components/api/ApiStatusIndicator';
 import WhatsAppSupport from '@/components/WhatsAppSupport';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+import WelcomeTour from '@/components/WelcomeTour';
 import { notifyAdmins } from '@/components/NotificationUtils';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -173,6 +174,7 @@ export default function Layout({ children, currentPageName }) {
       <ApiStatusIndicator />
       <PWAInstallPrompt />
       {user?.role === 'user' && <WhatsAppSupport />}
+      {user?.role === 'user' && <WelcomeTour user={user} onComplete={loadUser} />}
       
       <Sidebar 
         user={user} 
