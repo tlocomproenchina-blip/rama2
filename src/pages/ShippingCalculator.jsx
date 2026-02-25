@@ -65,7 +65,7 @@ export default function ShippingCalculator({ user }) {
   };
 
   const calculateShipping = () => {
-    if (!config) return;
+    if (!config || !selectedState) return;
 
     const realWeight = parseFloat(weight) || 0;
     let calculatedCbm = 0;
@@ -83,58 +83,32 @@ export default function ShippingCalculator({ user }) {
       volumetricWeight = calculatedCbm * 167;
     }
 
-    // Determine rate based on pricing config
+    // Get final price from state based on cargo category
     const isSensitive = cargoCategory === 'sensitive';
-    let baseRate = 0;
-    let billableWeight = 0;
-    let baseCost = 0;
-    let chargedBy = '';
-    let rateType = '';
+    const finalPrice = isSensitive 
+      ? (selectedState.price_high_risk || 0) 
+      : (selectedState.price_regular || 0);
+    
+    const rateType = shippingType === 'aereo' 
+      ? (isSensitive ? 'Aéreo Sensible' : 'Aéreo General')
+      : (isSensitive ? 'Marítimo Sensible' : 'Marítimo General');
 
-    if (shippingType === 'aereo') {
-      baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
-      rateType = isSensitive ? 'Aéreo Sensible' : 'Aéreo General';
-      // For air: charge by the greater of real or volumetric weight, minimum 1 kg
-      billableWeight = Math.max(realWeight, volumetricWeight, 1);
-      baseCost = billableWeight * baseRate;
-      chargedBy = `${billableWeight.toFixed(2)} kg`;
-    } else {
-      baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
-      rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
-      // For sea: charge by CBM
-      baseCost = calculatedCbm * baseRate;
-      billableWeight = calculatedCbm;
-      chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
-    }
-
-    // Apply profit percentage: baseRate * billableWeight * (1 + profit%)
-    const profitMargin = pricingConfig?.profit_percentage || 0;
-    const shippingCost = baseRate * billableWeight * (1 + profitMargin / 100);
-
-    // Add state shipping cost
-    const stateShipping = selectedState?.shipping_rate || 0;
-
-    // Add door to door cost
-    const doorToDoor = pricingConfig?.door_to_door_cost || 0;
+    // Formula: precio final * CBM
+    const shippingCost = finalPrice * calculatedCbm;
 
     // Calculate insurance
     const fob = parseFloat(fobValue) || 0;
     const insuranceCost = includeInsurance && fob > 0 ? fob * (config?.insurance_percentage / 100) : 0;
 
-    const totalCost = shippingCost + stateShipping + doorToDoor + insuranceCost;
+    const totalCost = shippingCost + insuranceCost;
 
     setResult({
-      baseRate,
+      finalPrice,
       rateType,
       volumetricWeight,
       cbm: calculatedCbm,
-      billableWeight,
-      chargedBy,
-      baseCost,
       shippingCost,
       insuranceCost,
-      stateShipping,
-      doorToDoor,
       stateName: selectedState?.state_name || null,
       totalCost
     });
@@ -393,15 +367,17 @@ export default function ShippingCalculator({ user }) {
             <div className="flex justify-between py-2 border-b">
               <span className="text-slate-600">Tarifa base:</span>
               <div className="text-right">
-                <span className="font-semibold">${result.baseRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
+                <span className="font-semibold">${result.finalPrice.toFixed(2)}/CBM</span>
                 <p className="text-xs text-slate-500">{result.rateType}</p>
               </div>
             </div>
 
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Peso volumétrico:</span>
-              <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
-            </div>
+            {shippingType === 'aereo' && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-slate-600">Peso volumétrico:</span>
+                <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
+              </div>
+            )}
 
             <div className="flex justify-between py-2 border-b">
               <span className="text-slate-600">CBM calculado:</span>
@@ -412,20 +388,6 @@ export default function ShippingCalculator({ user }) {
               <div className="flex justify-between py-2 border-b">
                 <span className="text-slate-600">Seguro:</span>
                 <span className="font-semibold">${result.insuranceCost.toFixed(2)}</span>
-              </div>
-            )}
-
-            {result.stateShipping > 0 && result.stateName && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">Envío a {result.stateName}:</span>
-                <span className="font-semibold">${result.stateShipping.toFixed(2)}</span>
-              </div>
-            )}
-
-            {result.doorToDoor > 0 && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">Puerta a puerta:</span>
-                <span className="font-semibold">${result.doorToDoor.toFixed(2)}</span>
               </div>
             )}
 
