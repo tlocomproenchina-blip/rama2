@@ -172,7 +172,7 @@ export default function Dashboard({ user, refreshUser }) {
           <CardContent className="p-3 md:p-4 lg:p-6">
             <div className="flex flex-col gap-4 md:gap-5 lg:flex-row lg:gap-6">
               {/* Shipping Mark */}
-              <div className="flex-1 space-y-2 min-w-0">
+              <div className="flex-1 space-y-2 min-w-0" data-tour="shipping-mark">
                 <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
                   <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
                   Tu Shipping Mark
@@ -193,7 +193,7 @@ export default function Dashboard({ user, refreshUser }) {
               </div>
 
               {/* Warehouse Address */}
-              <div className="flex-1 space-y-2 border-t md:border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 md:pt-4 lg:pt-0 lg:pl-6 min-w-0">
+              <div className="flex-1 space-y-2 border-t md:border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 md:pt-4 lg:pt-0 lg:pl-6 min-w-0" data-tour="warehouse-address">
                 <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
                   <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
                   Dirección del Warehouse
@@ -256,7 +256,7 @@ export default function Dashboard({ user, refreshUser }) {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 lg:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 lg:gap-4" data-tour="stats">
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
           <CardContent className="p-2 md:p-3 lg:p-5">
             <div className="flex items-center justify-between gap-2">
@@ -356,7 +356,7 @@ export default function Dashboard({ user, refreshUser }) {
       {/* Quick Actions */}
       {hasShippingMark && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 lg:gap-4">
-          <Link to={createPageUrl('PreAlert')}>
+          <Link to={createPageUrl('PreAlert')} data-tour="create-prealert">
             <Card className="border-0 shadow-md hover:shadow-xl transition-all cursor-pointer group">
               <CardContent className="p-4 lg:p-6 flex items-center gap-3 lg:gap-4">
                 <div className="p-3 lg:p-4 bg-blue-100 rounded-lg lg:rounded-xl group-hover:bg-blue-200 transition-colors flex-shrink-0">
@@ -370,7 +370,7 @@ export default function Dashboard({ user, refreshUser }) {
             </Card>
           </Link>
 
-          <Link to={createPageUrl('MyConsolidations')}>
+          <Link to={createPageUrl('MyConsolidations')} data-tour="consolidations">
             <Card className="border-0 shadow-md hover:shadow-xl transition-all cursor-pointer group">
               <CardContent className="p-4 lg:p-6 flex items-center gap-3 lg:gap-4">
                 <div className="p-3 lg:p-4 bg-purple-100 rounded-lg lg:rounded-xl group-hover:bg-purple-200 transition-colors flex-shrink-0">
