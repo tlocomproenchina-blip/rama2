@@ -355,14 +355,6 @@ export default function AdminPermissions({ user }) {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => openPermissions(emp)}
-                    >
-                      <Settings className="h-4 w-4 mr-1" />
-                      Permisos
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
                       onClick={() => handleMakeAdmin(emp)}
                       className="border-amber-200 text-amber-600 hover:bg-amber-50"
                     >
