@@ -21,7 +21,8 @@ import {
   Search,
   Building2,
   FileText,
-  Clock
+  Clock,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 

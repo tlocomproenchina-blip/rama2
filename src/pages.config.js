@@ -47,6 +47,7 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AccountingDashboard from './pages/AccountingDashboard';
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
@@ -60,8 +61,10 @@ import AdminMarketing from './pages/AdminMarketing';
 import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
+import AdminPermissions from './pages/AdminPermissions';
 import AdminPromotions from './pages/AdminPromotions';
 import AdminReports from './pages/AdminReports';
+import AdminRoles from './pages/AdminRoles';
 import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
@@ -81,13 +84,11 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminPermissions from './pages/AdminPermissions';
-import AdminRoles from './pages/AdminRoles';
-import AccountingDashboard from './pages/AccountingDashboard';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AccountingDashboard": AccountingDashboard,
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
@@ -101,8 +102,10 @@ export const PAGES = {
     "AdminPackages": AdminPackages,
     "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPayments": AdminPayments,
+    "AdminPermissions": AdminPermissions,
     "AdminPromotions": AdminPromotions,
     "AdminReports": AdminReports,
+    "AdminRoles": AdminRoles,
     "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
@@ -122,9 +125,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminPermissions": AdminPermissions,
-    "AdminRoles": AdminRoles,
-    "AccountingDashboard": AccountingDashboard,
 }
 
 export const pagesConfig = {
