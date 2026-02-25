@@ -21,6 +21,7 @@ import {
   DollarSign,
   Users
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -37,6 +38,7 @@ const PERMISSIONS = [
 
 export default function AdminPermissions({ user }) {
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
@@ -44,13 +46,22 @@ export default function AdminPermissions({ user }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadUsers();
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    const [allUsers, allRoles] = await Promise.all([
+      base44.entities.User.list(),
+      base44.entities.RoleConfig.filter({ is_active: true })
+    ]);
+    setUsers(allUsers);
+    setRoles(allRoles);
+    setLoading(false);
+  };
 
   const loadUsers = async () => {
     const allUsers = await base44.entities.User.list();
     setUsers(allUsers);
-    setLoading(false);
   };
 
   const handleMakeAdmin = async (targetUser) => {
@@ -421,15 +432,37 @@ export default function AdminPermissions({ user }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleMakeEmployee(u)}
-                      className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                    {u.custom_role && (
+                      <Badge variant="outline" className="text-blue-600">
+                        {roles.find(r => r.role_code === u.custom_role)?.role_name}
+                      </Badge>
+                    )}
+                    <Select 
+                      value={u.custom_role || 'none'}
+                      onValueChange={async (value) => {
+                        try {
+                          await base44.entities.User.update(u.id, {
+                            custom_role: value === 'none' ? null : value
+                          });
+                          toast.success('Rol actualizado');
+                          loadUsers();
+                        } catch (error) {
+                          toast.error('Error al actualizar rol');
+                        }
+                      }}
                     >
-                      <Shield className="h-4 w-4 mr-1" />
-                      Hacer Empleado
-                    </Button>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Asignar rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin rol personalizado</SelectItem>
+                        {roles.filter(r => r.role_code !== 'admin' && r.role_code !== 'user').map(role => (
+                          <SelectItem key={role.id} value={role.role_code}>
+                            {role.role_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button 
                       variant="outline" 
                       size="sm"
