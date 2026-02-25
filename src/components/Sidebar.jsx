@@ -31,6 +31,7 @@ import { cacheManager } from '@/components/CacheManager';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const [config, setConfig] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [notificationCounts, setNotificationCounts] = useState({
     critical: 0,
     packages: 0,
@@ -39,12 +40,13 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   useEffect(() => {
     loadConfig();
+    loadUserRole();
     loadNotificationCounts();
     
     // Poll for notification counts every 180 seconds
     const interval = setInterval(loadNotificationCounts, 180000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const loadConfig = async () => {
     try {
@@ -63,6 +65,22 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       }
     } catch (error) {
       console.error('Error loading config:', error);
+    }
+  };
+
+  const loadUserRole = async () => {
+    try {
+      if (!user?.role_key && !user?.role) return;
+      
+      // Get role key - use custom role_key or fallback to basic role
+      const roleKey = user.role_key || user.role || 'user';
+      
+      const roles = await base44.entities.Role.filter({ role_key: roleKey, is_active: true });
+      if (roles.length > 0) {
+        setUserRole(roles[0]);
+      }
+    } catch (error) {
+      console.error('Error loading user role:', error);
     }
   };
 
@@ -141,6 +159,13 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
   const getMenuItems = () => {
+    // If user has a role with visible_pages, use that
+    if (userRole?.visible_pages && userRole.visible_pages.length > 0) {
+      const allPages = [...adminMenuItems, ...employeeMenuItems, ...clientMenuItems];
+      return allPages.filter(item => userRole.visible_pages.includes(item.page));
+    }
+    
+    // Fallback to legacy logic
     if (isAdmin) {
       return adminMenuItems.filter((item) => !item.permission || permissions[item.permission] !== false);
     }
