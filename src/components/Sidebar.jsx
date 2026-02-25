@@ -169,19 +169,19 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
   const getMenuItems = () => {
-    if (isAdmin) {
-      return adminMenuItems;
-    }
-    
-    // Custom role with role config
+    if (isAdmin) return adminMenuItems;
+
+    // Avoid flicker: if user has a custom role but roleConfig not loaded yet, render nothing
+    if (customRole && !roleConfig) return [];
+
     if (customRole && roleConfig) {
       const visiblePages = roleConfig.visible_pages || [];
-      
+
       // Special handling for accounting role
       if (customRole === 'accounting') {
         return accountingMenuItems.filter(item => visiblePages.includes(item.page));
       }
-      
+
       const allMenuItems = [...adminMenuItems, ...employeeMenuItems, ...clientMenuItems];
       const seen = new Set();
       return allMenuItems.filter(item => {
@@ -192,7 +192,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         return false;
       });
     }
-    
+
     return clientMenuItems;
   };
 
