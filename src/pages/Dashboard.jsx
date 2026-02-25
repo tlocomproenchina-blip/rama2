@@ -215,6 +215,26 @@ export default function Dashboard({ user, refreshUser }) {
                 </div>
               </div>
             </div>
+
+            {/* Shipping Mark Example Image */}
+            {config?.shipping_mark_example_image_url && (
+              <div className="border-t border-slate-200 pt-4">
+                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm mb-3">
+                  <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
+                  Imagen de ejemplo del Shipping Mark
+                </div>
+                <div className="bg-slate-50 rounded-lg p-3 md:p-4">
+                  <p className="text-xs md:text-sm text-slate-600 mb-3">
+                    Esta imagen se mostrará a los usuarios como ejemplo de cómo debe quedar su shipping mark
+                  </p>
+                  <img 
+                    src={config.shipping_mark_example_image_url} 
+                    alt="Ejemplo de Shipping Mark" 
+                    className="w-full max-w-md mx-auto rounded-lg border border-slate-200 shadow-sm"
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
