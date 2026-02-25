@@ -123,6 +123,7 @@ export default function AdminPermissions({ user }) {
     try {
       await base44.entities.User.update(targetUser.id, {
         is_employee: false,
+        custom_role: null,
         admin_permissions: null
       });
       toast.success(`Rol de empleado de ${targetUser.email} revocado`);
