@@ -170,7 +170,14 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     if (customRole && roleConfig) {
       const visiblePages = roleConfig.visible_pages || [];
       const allMenuItems = [...adminMenuItems, ...employeeMenuItems, ...clientMenuItems];
-      return allMenuItems.filter(item => visiblePages.includes(item.page));
+      const seen = new Set();
+      return allMenuItems.filter(item => {
+        if (visiblePages.includes(item.page) && !seen.has(item.page)) {
+          seen.add(item.page);
+          return true;
+        }
+        return false;
+      });
     }
     
     return clientMenuItems;
