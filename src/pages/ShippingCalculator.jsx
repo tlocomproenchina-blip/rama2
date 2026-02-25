@@ -11,7 +11,8 @@ import { Calculator, Plane, Ship, Package, Loader2 } from 'lucide-react';
 export default function ShippingCalculator({ user }) {
   const [config, setConfig] = useState(null);
   const [pricingConfig, setPricingConfig] = useState(null);
-  const [userStateConfig, setUserStateConfig] = useState(null);
+  const [states, setStates] = useState([]);
+  const [selectedState, setSelectedState] = useState('');
   const [loading, setLoading] = useState(true);
   const [shippingType, setShippingType] = useState('aereo');
   const [cargoCategory, setCargoCategory] = useState('general');
@@ -28,9 +29,10 @@ export default function ShippingCalculator({ user }) {
   }, []);
 
   const loadConfig = async () => {
-    const [configs, pricing] = await Promise.all([
+    const [configs, pricing, allStates] = await Promise.all([
       base44.entities.AppConfig.filter({ config_key: 'main' }),
-      base44.entities.PricingConfig.filter({ config_key: 'main' })
+      base44.entities.PricingConfig.filter({ config_key: 'main' }),
+      base44.entities.StateConfig.filter({ is_active: true })
     ]);
     
     if (configs.length > 0) {
@@ -47,10 +49,11 @@ export default function ShippingCalculator({ user }) {
       setPricingConfig(pricing[0]);
     }
     
-    if (user?.state) {
-      const states = await base44.entities.StateConfig.filter({ state_code: user.state });
-      if (states.length > 0) {
-        setUserStateConfig(states[0]);
+    if (allStates.length > 0) {
+      setStates(allStates);
+      // Set default state from user if available
+      if (user?.state) {
+        setSelectedState(user.state);
       }
     }
     
@@ -105,7 +108,8 @@ export default function ShippingCalculator({ user }) {
     const shippingCost = baseRate * billableWeight * (1 + profitMargin / 100);
 
     // Add state shipping cost
-    const stateShipping = userStateConfig?.shipping_rate || 0;
+    const selectedStateConfig = states.find(s => s.state_code === selectedState);
+    const stateShipping = selectedStateConfig?.shipping_rate || 0;
 
     // Add door to door cost
     const doorToDoor = pricingConfig?.door_to_door_cost || 0;
@@ -128,7 +132,7 @@ export default function ShippingCalculator({ user }) {
       insuranceCost,
       stateShipping,
       doorToDoor,
-      stateName: userStateConfig?.state_name || null,
+      stateName: selectedStateConfig?.state_name || null,
       totalCost
     });
   };
@@ -203,6 +207,23 @@ export default function ShippingCalculator({ user }) {
               <SelectContent>
                 <SelectItem value="general">General</SelectItem>
                 <SelectItem value="sensitive">Sensible</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* State Selection */}
+          <div className="space-y-2">
+            <Label>Estado de Destino</Label>
+            <Select value={selectedState} onValueChange={setSelectedState}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un estado" />
+              </SelectTrigger>
+              <SelectContent>
+                {states.map((state) => (
+                  <SelectItem key={state.state_code} value={state.state_code}>
+                    {state.state_name} - ${state.shipping_rate.toFixed(2)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -375,6 +396,25 @@ export default function ShippingCalculator({ user }) {
               <span className="text-slate-600">CBM calculado:</span>
               <span className="font-semibold">{result.cbm.toFixed(4)}</span>
             </div>
+
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-slate-600">Costo de envío:</span>
+              <span className="font-semibold">${result.shippingCost.toFixed(2)}</span>
+            </div>
+
+            {result.stateShipping > 0 && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-slate-600">Envío a {result.stateName}:</span>
+                <span className="font-semibold">${result.stateShipping.toFixed(2)}</span>
+              </div>
+            )}
+
+            {result.doorToDoor > 0 && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-slate-600">Servicio puerta a puerta:</span>
+                <span className="font-semibold">${result.doorToDoor.toFixed(2)}</span>
+              </div>
+            )}
 
             {result.insuranceCost > 0 && (
               <div className="flex justify-between py-2 border-b">

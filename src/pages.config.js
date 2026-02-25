@@ -47,6 +47,7 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDelete from './pages/AdminDelete';
@@ -79,13 +80,13 @@ import Profile from './pages/Profile';
 import Rates from './pages/Rates';
 import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
-import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminClients from './pages/AdminClients';
+import ShippingCalculator from './pages/ShippingCalculator';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
     "AdminDelete": AdminDelete,
@@ -118,9 +119,8 @@ export const PAGES = {
     "Rates": Rates,
     "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
-    "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminClients": AdminClients,
+    "ShippingCalculator": ShippingCalculator,
 }
 
 export const pagesConfig = {
