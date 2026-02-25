@@ -103,9 +103,10 @@ export default function ShippingCalculator({ user }) {
       chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
     }
 
-    // Apply profit percentage: baseRate * billableWeight * (1 + profit%)
+    // Apply profit percentage to base rate first: (Tarifa Base × (1 + % Beneficio/100)) × Peso/Volumen
     const profitMargin = pricingConfig?.profit_percentage || 0;
-    const shippingCost = baseRate * billableWeight * (1 + profitMargin / 100);
+    const adjustedRate = baseRate * (1 + profitMargin / 100);
+    const shippingCost = adjustedRate * billableWeight;
 
     // Add state shipping cost
     const selectedStateConfig = states.find(s => s.state_code === selectedState);
@@ -118,6 +119,7 @@ export default function ShippingCalculator({ user }) {
     const fob = parseFloat(fobValue) || 0;
     const insuranceCost = includeInsurance && fob > 0 ? fob * (config?.insurance_percentage / 100) : 0;
 
+    // Final formula: (Tarifa Base × (1 + % Beneficio/100)) × Peso/Volumen + Tarifa Estado + Puerta a Puerta + Seguro
     const totalCost = shippingCost + stateShipping + doorToDoor + insuranceCost;
 
     setResult({
