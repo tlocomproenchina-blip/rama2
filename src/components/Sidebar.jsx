@@ -96,15 +96,15 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: 'Mi Perfil', page: 'Profile', icon: Users },
-  { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
+  { name: 'Mis Paquetes', page: 'MyPackages', icon: Package, tourAttr: 'my-packages' },
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
   { name: 'Solicitar Consolidación', page: 'RequestConsolidation', icon: Layers },
   { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
-  { name: 'Mis Facturas', page: 'MyInvoices', icon: FileText },
+  { name: 'Mis Facturas', page: 'MyInvoices', icon: FileText, tourAttr: 'invoices' },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: CreditCard },
   { name: 'Tarifas', page: 'Rates', icon: FileText },
-  { name: 'Ayuda (FAQ)', page: 'FAQ', icon: HelpCircle },
+  { name: 'Ayuda (FAQ)', page: 'FAQ', icon: HelpCircle, tourAttr: 'help' },
   { name: 'Soporte', page: 'Support', icon: MessageCircle }];
 
 
