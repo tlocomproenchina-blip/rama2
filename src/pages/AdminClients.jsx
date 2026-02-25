@@ -459,9 +459,10 @@ Email: ${client.email}`;
           <h1 className="text-2xl font-bold text-slate-800">Gestión de Clientes</h1>
           <p className="text-slate-500">Administra los usuarios y asigna Shipping Marks</p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleExportAllClients}
+        {canExport && (
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleExportAllClients}
             className="bg-blue-600 hover:bg-blue-700"
             title="Exporta todos los clientes en formato TXT"
           >
