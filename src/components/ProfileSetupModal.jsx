@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, MapPin, Phone, Loader2, AlertCircle, DollarSign } from 'lucide-react';
+import { Textarea } from "@/components/ui/textarea";
+import { User, MapPin, Phone, Loader2, AlertCircle, DollarSign, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 
@@ -14,7 +15,8 @@ export default function ProfileSetupModal({ open, onComplete }) {
     last_name: '',
     state: '',
     city: '',
-    whatsapp: ''
+    whatsapp: '',
+    address: ''
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -46,6 +48,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
     if (!formData.state.trim()) newErrors.state = 'Estado requerido';
     if (!formData.city.trim()) newErrors.city = 'Ciudad requerida';
     if (!formData.whatsapp.trim()) newErrors.whatsapp = 'WhatsApp requerido';
+    // address is optional
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -210,6 +213,22 @@ export default function ProfileSetupModal({ open, onComplete }) {
                 <AlertCircle className="h-3 w-3" /> {errors.whatsapp}
               </p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address" className="text-slate-700 flex items-center gap-2">
+              <Home className="h-4 w-4" /> Dirección Completa
+            </Label>
+            <Textarea
+              id="address"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              placeholder="Calle, número, edificio, apartamento, referencias..."
+              rows={3}
+            />
+            <p className="text-xs text-slate-500">
+              Opcional: Útil para entregas a domicilio
+            </p>
           </div>
         </div>
 
