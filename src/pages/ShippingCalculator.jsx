@@ -225,11 +225,16 @@ export default function ShippingCalculator({ user }) {
                 <SelectValue placeholder="Selecciona un estado" />
               </SelectTrigger>
               <SelectContent>
-                {allStates.map((state) => (
-                  <SelectItem key={state.state_code} value={state.state_code}>
-                    {state.state_name} {state.shipping_rate > 0 && `(+$${state.shipping_rate.toFixed(2)})`}
-                  </SelectItem>
-                ))}
+                {allStates.map((state) => {
+                  const finalPrice = cargoCategory === 'sensitive' 
+                    ? state.price_high_risk 
+                    : state.price_regular;
+                  return (
+                    <SelectItem key={state.state_code} value={state.state_code}>
+                      {state.state_name} {finalPrice > 0 && `($${finalPrice.toFixed(2)})`}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
