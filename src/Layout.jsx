@@ -9,6 +9,7 @@ import NotificationCenter from '@/components/NotificationCenter';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import ApiStatusIndicator from '@/components/api/ApiStatusIndicator';
 import WhatsAppSupport from '@/components/WhatsAppSupport';
+import ChatbotAssistant from '@/components/ChatbotAssistant';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { notifyAdmins } from '@/components/NotificationUtils';
 import { Menu, Loader2 } from 'lucide-react';
@@ -173,6 +174,7 @@ export default function Layout({ children, currentPageName }) {
       <ApiStatusIndicator />
       <PWAInstallPrompt />
       {user?.role === 'user' && <WhatsAppSupport />}
+      {user?.role === 'user' && config?.chatbot_enabled && <ChatbotAssistant user={user} />}
       
       <Sidebar 
         user={user} 

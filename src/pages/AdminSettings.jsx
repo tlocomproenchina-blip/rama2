@@ -806,6 +806,35 @@ export default function AdminSettings({ user }) {
                  />
                </div>
 
+               {/* Chatbot Configuration */}
+               <div className="mt-8 p-6 bg-indigo-50 rounded-xl border border-indigo-200 space-y-4">
+                 <div className="flex items-center justify-between">
+                   <div>
+                     <h3 className="font-semibold text-slate-800 text-lg">Asistente Virtual (AI)</h3>
+                     <p className="text-sm text-slate-600 mt-1">Chatbot inteligente para atención al cliente 24/7</p>
+                   </div>
+                   <Switch
+                     checked={appConfig.chatbot_enabled}
+                     onCheckedChange={(checked) => setAppConfig({ ...appConfig, chatbot_enabled: checked })}
+                   />
+                 </div>
+                 {appConfig.chatbot_enabled && (
+                   <div className="p-4 bg-white rounded-lg border border-indigo-200">
+                     <p className="text-sm text-slate-700">
+                       ✨ El asistente tiene acceso a:
+                     </p>
+                     <ul className="text-sm text-slate-600 mt-2 space-y-1 list-disc list-inside">
+                       <li>Información de cuenta del cliente</li>
+                       <li>Paquetes y consolidaciones</li>
+                       <li>Preguntas frecuentes</li>
+                     </ul>
+                     <p className="text-xs text-slate-500 mt-3">
+                       El asistente redirigirá a soporte si no puede responder
+                     </p>
+                   </div>
+                 )}
+               </div>
+
                {/* WhatsApp Configuration */}
                <div className="mt-8 p-6 bg-green-50 rounded-xl border border-green-200 space-y-4">
                  <div className="flex items-center justify-between">
