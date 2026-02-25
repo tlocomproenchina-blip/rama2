@@ -224,8 +224,8 @@ export default function Dashboard({ user, refreshUser }) {
                   Imagen de ejemplo del Shipping Mark
                 </div>
                 <div className="bg-slate-50 rounded-lg p-3 md:p-4">
-                  <p className="text-xs md:text-sm text-slate-600 mb-3">
-                    Esta imagen se mostrará a los usuarios como ejemplo de cómo debe quedar su shipping mark
+                  <p className="text-xs md:text-sm text-slate-600 mb-3 whitespace-pre-line">
+                    {config.shipping_mark_example_description || 'Esta imagen se mostrará a los usuarios como ejemplo de cómo debe quedar su shipping mark'}
                   </p>
                   <img 
                     src={config.shipping_mark_example_image_url} 

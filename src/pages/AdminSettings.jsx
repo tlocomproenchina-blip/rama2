@@ -763,8 +763,18 @@ export default function AdminSettings({ user }) {
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Descripción de la imagen de ejemplo</Label>
+                <Textarea
+                  value={appConfig.shipping_mark_example_description || 'Esta imagen se mostrará a los usuarios como ejemplo de cómo debe quedar su shipping mark'}
+                  onChange={(e) => setAppConfig({ ...appConfig, shipping_mark_example_description: e.target.value })}
+                  placeholder="Escribe el texto que verán los clientes junto a la imagen de ejemplo..."
+                  rows={3}
+                />
                 <p className="text-xs text-slate-500">
-                  Esta imagen se mostrará a los usuarios como ejemplo de cómo debe quedar su shipping mark
+                  Este texto aparecerá en el dashboard del cliente junto a la imagen de ejemplo
                 </p>
               </div>
 
