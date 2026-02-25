@@ -176,6 +176,12 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     // Custom role with role config
     if (customRole && roleConfig) {
       const visiblePages = roleConfig.visible_pages || [];
+      
+      // Special handling for accounting role
+      if (customRole === 'accounting') {
+        return accountingMenuItems.filter(item => visiblePages.includes(item.page));
+      }
+      
       const allMenuItems = [...adminMenuItems, ...employeeMenuItems, ...clientMenuItems];
       const seen = new Set();
       return allMenuItems.filter(item => {
