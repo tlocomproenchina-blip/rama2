@@ -80,8 +80,8 @@ import Profile from './pages/Profile';
 import Rates from './pages/Rates';
 import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
-import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
+import ShippingCalculator from './pages/ShippingCalculator';
 import __Layout from './Layout.jsx';
 
 
@@ -119,8 +119,8 @@ export const PAGES = {
     "Rates": Rates,
     "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
-    "ShippingCalculator": ShippingCalculator,
     "Support": Support,
+    "ShippingCalculator": ShippingCalculator,
 }
 
 export const pagesConfig = {

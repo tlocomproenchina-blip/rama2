@@ -65,8 +65,9 @@ export default function ShippingCalculator({ user }) {
   };
 
   const calculateShipping = () => {
-    if (!config) return;
+    if (!config || !pricingConfig) return;
 
+    // Validations
     const realWeight = parseFloat(weight) || 0;
     let calculatedCbm = 0;
     let volumetricWeight = 0;
@@ -76,50 +77,65 @@ export default function ShippingCalculator({ user }) {
       const l = parseFloat(dimensions.length) || 0;
       const w = parseFloat(dimensions.width) || 0;
       const h = parseFloat(dimensions.height) || 0;
-      calculatedCbm = l && w && h ? (l * w * h) / 1000000 : 0;
+      
+      if (!l || !w || !h) {
+        alert('Por favor ingresa todas las dimensiones (largo, ancho y alto)');
+        return;
+      }
+      
+      calculatedCbm = (l * w * h) / 1000000;
       volumetricWeight = calculatedCbm * 167;
     } else if (inputMode === 'cbm') {
       calculatedCbm = parseFloat(cbm) || 0;
+      
+      if (calculatedCbm <= 0) {
+        alert('Por favor ingresa un valor de CBM válido');
+        return;
+      }
+      
       volumetricWeight = calculatedCbm * 167;
+    }
+
+    // Validate weight for air shipping
+    if (shippingType === 'aereo' && realWeight <= 0 && volumetricWeight <= 0) {
+      alert('Por favor ingresa el peso real o las dimensiones del paquete');
+      return;
     }
 
     // Determine rate based on pricing config
     const isSensitive = cargoCategory === 'sensitive';
     let baseRate = 0;
     let billableWeight = 0;
-    let baseCost = 0;
     let chargedBy = '';
     let rateType = '';
 
     if (shippingType === 'aereo') {
-      baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
+      baseRate = isSensitive ? (pricingConfig.base_rate_high_risk || 0) : (pricingConfig.base_rate_regular || 0);
       rateType = isSensitive ? 'Aéreo Sensible' : 'Aéreo General';
       // For air: charge by the greater of real or volumetric weight, minimum 1 kg
       billableWeight = Math.max(realWeight, volumetricWeight, 1);
-      baseCost = billableWeight * baseRate;
       chargedBy = `${billableWeight.toFixed(2)} kg`;
     } else {
-      baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
+      baseRate = isSensitive ? (pricingConfig.base_rate_high_risk || 0) : (pricingConfig.base_rate_regular || 0);
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
       // For sea: charge by CBM
-      baseCost = calculatedCbm * baseRate;
       billableWeight = calculatedCbm;
       chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
     }
 
-    // Apply profit percentage: baseRate * billableWeight * (1 + profit%)
-    const profitMargin = pricingConfig?.profit_percentage || 0;
-    const shippingCost = baseRate * billableWeight * (1 + profitMargin / 100);
+    // Calculate shipping cost with profit margin
+    const profitMargin = pricingConfig.profit_percentage || 0;
+    const shippingCost = billableWeight * baseRate * (1 + profitMargin / 100);
 
     // Add state shipping cost
     const stateShipping = selectedState?.shipping_rate || 0;
 
     // Add door to door cost
-    const doorToDoor = pricingConfig?.door_to_door_cost || 0;
+    const doorToDoor = pricingConfig.door_to_door_cost || 0;
 
     // Calculate insurance
     const fob = parseFloat(fobValue) || 0;
-    const insuranceCost = includeInsurance && fob > 0 ? fob * (config?.insurance_percentage / 100) : 0;
+    const insuranceCost = includeInsurance && fob > 0 ? fob * ((config.insurance_percentage || 5) / 100) : 0;
 
     const totalCost = shippingCost + stateShipping + doorToDoor + insuranceCost;
 
@@ -130,12 +146,12 @@ export default function ShippingCalculator({ user }) {
       cbm: calculatedCbm,
       billableWeight,
       chargedBy,
-      baseCost,
       shippingCost,
       insuranceCost,
       stateShipping,
       doorToDoor,
       stateName: selectedState?.state_name || null,
+      profitMargin,
       totalCost
     });
   };
@@ -393,14 +409,26 @@ export default function ShippingCalculator({ user }) {
               </div>
             </div>
 
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Peso volumétrico:</span>
-              <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
-            </div>
+            {shippingType === 'aereo' && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-slate-600">Peso volumétrico:</span>
+                <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
+              </div>
+            )}
 
             <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">CBM calculado:</span>
-              <span className="font-semibold">{result.cbm.toFixed(4)}</span>
+              <span className="text-slate-600">{shippingType === 'aereo' ? 'Peso cobrado:' : 'CBM calculado:'}</span>
+              <span className="font-semibold">{result.chargedBy}</span>
+            </div>
+
+            <div className="flex justify-between py-2 border-b bg-blue-50 px-3 rounded">
+              <span className="text-slate-700 font-medium">Costo de envío:</span>
+              <div className="text-right">
+                <span className="font-bold text-blue-700">${result.shippingCost.toFixed(2)}</span>
+                {result.profitMargin > 0 && (
+                  <p className="text-xs text-slate-500">Incluye {result.profitMargin}% margen</p>
+                )}
+              </div>
             </div>
 
             {result.insuranceCost > 0 && (
