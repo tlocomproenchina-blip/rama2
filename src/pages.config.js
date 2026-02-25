@@ -83,6 +83,7 @@ import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import AdminPermissions from './pages/AdminPermissions';
 import AdminRoles from './pages/AdminRoles';
+import AccountingDashboard from './pages/AccountingDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -123,6 +124,7 @@ export const PAGES = {
     "Support": Support,
     "AdminPermissions": AdminPermissions,
     "AdminRoles": AdminRoles,
+    "AccountingDashboard": AccountingDashboard,
 }
 
 export const pagesConfig = {

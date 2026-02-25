@@ -23,8 +23,8 @@ import {
   Tag,
   TrendingUp,
   CheckCircle2,
-  Mail } from
-'lucide-react';
+  Mail
+} from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
 import { cacheManager } from '@/components/CacheManager';
@@ -159,6 +159,13 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
   { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck }];
+
+  const accountingMenuItems = [
+  { name: 'Dashboard', page: 'AccountingDashboard', icon: LayoutDashboard },
+  { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
+  { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
+  { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle },
+  { name: 'Reportes', page: 'AdminReports', icon: BarChart3 }];
 
 
   const getMenuItems = () => {

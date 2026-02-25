@@ -82,8 +82,10 @@ export default function Layout({ children, currentPageName }) {
         if (roleConfigs.length > 0) {
           const visiblePages = roleConfigs[0].visible_pages || [];
           
-          // Redirect to first visible dashboard page
-          if (visiblePages.includes('AdminDashboard')) {
+          // Redirect to specialized dashboard for accounting role
+          if (currentUser.custom_role === 'accounting') {
+            navigate(createPageUrl('AccountingDashboard'));
+          } else if (visiblePages.includes('AdminDashboard')) {
             navigate(createPageUrl('AdminDashboard'));
           } else if (visiblePages.includes('EmployeeDashboard')) {
             navigate(createPageUrl('EmployeeDashboard'));
