@@ -394,15 +394,24 @@ export default function AdminSettings({ user }) {
               <span className="hidden md:inline">Privacidad</span>
             </TabsTrigger>
           </TabsList>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleClearCache}
-            className="ml-2 border-red-200 text-red-600 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Limpiar Cache
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleClearCache}
+                  className="ml-2 border-red-200 text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Limpiar Cache
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Elimina datos almacenados localmente y recarga la página
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Tab Tarifas */}
