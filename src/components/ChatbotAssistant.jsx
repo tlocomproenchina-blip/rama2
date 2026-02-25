@@ -36,12 +36,17 @@ export default function ChatbotAssistant({ user }) {
     setLoading(true);
 
     try {
-      // Get user data
-      const [packages, consolidations, faqs] = await Promise.all([
+      // Get user data and pricing info
+      const [packages, consolidations, faqs, pricingConfigs, stateConfigs] = await Promise.all([
         base44.entities.Package.filter({ client_email: user.email }),
         base44.entities.Consolidation.filter({ client_email: user.email }),
-        base44.entities.FAQ.filter({ is_active: true })
+        base44.entities.FAQ.filter({ is_active: true }),
+        base44.entities.PricingConfig.filter({ config_key: 'main' }),
+        base44.entities.StateConfig.filter({ is_active: true })
       ]);
+
+      const pricing = pricingConfigs[0] || {};
+      const states = stateConfigs.map(s => `${s.state_name}: $${s.shipping_rate}`).join(', ');
 
       // Build context
       const context = `
@@ -50,6 +55,7 @@ INFORMACIÓN DEL USUARIO:
 - Email: ${user.email}
 - Shipping Mark: ${user.shipping_mark || 'No asignado aún'}
 - Ciudad: ${user.city || 'No especificada'}
+- Estado: ${user.state || 'No especificado'}
 - WhatsApp: ${user.whatsapp || 'No especificado'}
 
 PAQUETES DEL USUARIO (${packages.length} en total):
@@ -57,8 +63,19 @@ ${packages.slice(0, 5).map(p => `- Tracking: ${p.tracking_number}, Estado: ${p.s
 ${packages.length > 5 ? `... y ${packages.length - 5} paquetes más` : ''}
 
 CONSOLIDACIONES DEL USUARIO (${consolidations.length} en total):
-${consolidations.slice(0, 3).map(c => `- Tracking: ${c.consolidation_tracking}, Estado: ${c.status}, Costo: $${c.total_cost}`).join('\n')}
+${consolidations.slice(0, 3).map(c => `- Tracking: ${c.consolidation_tracking}, Estado: ${c.status}, Costo: $${c.total_cost || 'Pendiente'}`).join('\n')}
 ${consolidations.length > 3 ? `... y ${consolidations.length - 3} consolidaciones más` : ''}
+
+TARIFAS Y PRECIOS:
+- Tarifa base regular: $${pricing.base_rate_regular || 690}
+- Tarifa base alto riesgo: $${pricing.base_rate_high_risk || 790}
+- Beneficio: ${pricing.profit_percentage || 10}%
+- Puerta a puerta: $${pricing.door_to_door_cost || 20}
+- Tarifas por estado: ${states}
+
+FÓRMULA DE CÁLCULO:
+Para envíos marítimos: Precio = (Tarifa Base × (1 + %Beneficio/100)) + Tarifa Estado + Puerta a Puerta
+El peso volumétrico se calcula: (Largo × Ancho × Alto en cm) / 6000
 
 PREGUNTAS FRECUENTES:
 ${faqs.map(faq => `P: ${faq.question}\nR: ${faq.answer}`).join('\n\n')}
@@ -66,23 +83,35 @@ ${faqs.map(faq => `P: ${faq.question}\nR: ${faq.answer}`).join('\n\n')}
 
       const prompt = `Eres un asistente virtual de atención al cliente para una empresa de logística y envíos desde China a Venezuela. Tu nombre es "Asistente TLEC".
 
-PERSONALIDAD Y TONO:
-- Sé muy humano, cálido y empático
-- Entiende las emociones del cliente (frustración, preocupación, ansiedad por sus envíos)
-- Usa un lenguaje natural, cercano y amigable
-- Puedes usar emojis ocasionalmente para ser más expresivo
-- Valida los sentimientos del cliente ("Entiendo tu preocupación...", "Es completamente normal sentirse así...")
-- Evita respuestas mecánicas o robotizadas
+PERSONALIDAD Y COMPORTAMIENTO:
+- Actúa como un HUMANO REAL, no como un bot
+- Sé proactivo: si el cliente pide un cálculo, HAZLO tú mismo, no lo envíes a otra herramienta
+- Sé muy cálido, empático y conversacional
+- Usa un lenguaje natural y cercano
+- Puedes usar emojis con moderación para ser expresivo
+- Entiende y valida las emociones del cliente
+- Si alguien está frustrado, reconócelo primero antes de ayudar
 
-REGLAS IMPORTANTES:
-1. SOLO responde sobre:
-   - Información de la cuenta del usuario (sus paquetes, consolidaciones, shipping mark)
-   - Preguntas frecuentes disponibles
-   - Procesos generales de la empresa
-2. Si NO conoces la respuesta o el tema está fuera de tu alcance, di amablemente:
-   "Me encantaría ayudarte con eso, pero creo que el equipo de soporte podrá darte una respuesta más precisa. Te recomiendo crear un ticket de soporte o contactarnos por WhatsApp para que te ayuden directamente 🙏"
-3. Mantén las respuestas concisas pero completas
-4. Si el cliente está frustrado, primero reconoce su emoción antes de dar la respuesta
+CAPACIDADES - LO QUE PUEDES HACER:
+✅ Calcular precios de envío cuando te den dimensiones y peso
+✅ Explicar el estado de sus paquetes y consolidaciones
+✅ Responder preguntas sobre procesos y tiempos
+✅ Dar información de su cuenta (shipping mark, ciudad, etc.)
+✅ Responder todas las preguntas frecuentes
+✅ Hacer cálculos matemáticos necesarios
+
+EJEMPLOS DE CÓMO RESPONDER:
+❌ MAL: "Por favor usa la calculadora de envíos para obtener el precio"
+✅ BIEN: "¡Claro! Déjame calcular eso para ti. Con una caja de 50x50x50 cm y 10kg, el costo sería aproximadamente $X. Esto incluye el envío marítimo más el servicio puerta a puerta 📦"
+
+❌ MAL: "Tu pregunta está fuera de mi alcance"
+✅ BIEN: "Hmm, esa es una excelente pregunta pero no tengo la información exacta en este momento. ¿Te parece si contactamos al equipo de soporte que puede ayudarte mejor con eso? 😊"
+
+IMPORTANTE:
+- Cuando te pidan cálculos de envío, HAZLO TÚ usando las tarifas que tienes
+- Muestra tu trabajo: explica brevemente cómo llegaste al resultado
+- Si falta información (como el peso o dimensiones), pregunta amablemente
+- Sé útil y resuelve problemas, no solo respondas con "no puedo"
 
 CONTEXTO DEL CLIENTE:
 ${context}
@@ -90,7 +119,7 @@ ${context}
 PREGUNTA DEL CLIENTE:
 ${userMessage}
 
-Responde de manera natural, empática y útil:`;
+Responde de manera natural, útil y humana. Si puedes calcular algo, HAZLO:`;
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: prompt
