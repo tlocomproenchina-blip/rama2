@@ -11,8 +11,7 @@ import { Calculator, Plane, Ship, Package, Loader2 } from 'lucide-react';
 export default function ShippingCalculator({ user }) {
   const [config, setConfig] = useState(null);
   const [pricingConfig, setPricingConfig] = useState(null);
-  const [allStates, setAllStates] = useState([]);
-  const [selectedState, setSelectedState] = useState(null);
+  const [userStateConfig, setUserStateConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [shippingType, setShippingType] = useState('aereo');
   const [cargoCategory, setCargoCategory] = useState('general');
@@ -29,10 +28,9 @@ export default function ShippingCalculator({ user }) {
   }, []);
 
   const loadConfig = async () => {
-    const [configs, pricing, states] = await Promise.all([
+    const [configs, pricing] = await Promise.all([
       base44.entities.AppConfig.filter({ config_key: 'main' }),
-      base44.entities.PricingConfig.filter({ config_key: 'main' }),
-      base44.entities.StateConfig.list()
+      base44.entities.PricingConfig.filter({ config_key: 'main' })
     ]);
     
     if (configs.length > 0) {
@@ -48,16 +46,11 @@ export default function ShippingCalculator({ user }) {
     if (pricing.length > 0) {
       setPricingConfig(pricing[0]);
     }
-
-    // Load all active states
-    const activeStates = states.filter(s => s.is_active !== false);
-    setAllStates(activeStates);
     
-    // Set default state from user profile if available
     if (user?.state) {
-      const userState = activeStates.find(s => s.state_code === user.state);
-      if (userState) {
-        setSelectedState(userState);
+      const states = await base44.entities.StateConfig.filter({ state_code: user.state });
+      if (states.length > 0) {
+        setUserStateConfig(states[0]);
       }
     }
     
@@ -65,7 +58,7 @@ export default function ShippingCalculator({ user }) {
   };
 
   const calculateShipping = () => {
-    if (!config || !selectedState) return;
+    if (!config) return;
 
     const realWeight = parseFloat(weight) || 0;
     let calculatedCbm = 0;
@@ -83,33 +76,59 @@ export default function ShippingCalculator({ user }) {
       volumetricWeight = calculatedCbm * 167;
     }
 
-    // Get final price from state based on cargo category
+    // Determine rate based on pricing config
     const isSensitive = cargoCategory === 'sensitive';
-    const finalPrice = isSensitive 
-      ? (selectedState.price_high_risk || 0) 
-      : (selectedState.price_regular || 0);
-    
-    const rateType = shippingType === 'aereo' 
-      ? (isSensitive ? 'Aéreo Sensible' : 'Aéreo General')
-      : (isSensitive ? 'Marítimo Sensible' : 'Marítimo General');
+    let baseRate = 0;
+    let billableWeight = 0;
+    let baseCost = 0;
+    let chargedBy = '';
+    let rateType = '';
 
-    // Formula: precio final * CBM
-    const shippingCost = finalPrice * calculatedCbm;
+    if (shippingType === 'aereo') {
+      baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
+      rateType = isSensitive ? 'Aéreo Sensible' : 'Aéreo General';
+      // For air: charge by the greater of real or volumetric weight, minimum 1 kg
+      billableWeight = Math.max(realWeight, volumetricWeight, 1);
+      baseCost = billableWeight * baseRate;
+      chargedBy = `${billableWeight.toFixed(2)} kg`;
+    } else {
+      baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
+      rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
+      // For sea: charge by CBM
+      baseCost = calculatedCbm * baseRate;
+      billableWeight = calculatedCbm;
+      chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
+    }
+
+    // Apply profit percentage: baseRate * billableWeight * (1 + profit%)
+    const profitMargin = pricingConfig?.profit_percentage || 0;
+    const shippingCost = baseRate * billableWeight * (1 + profitMargin / 100);
+
+    // Add state shipping cost
+    const stateShipping = userStateConfig?.shipping_rate || 0;
+
+    // Add door to door cost
+    const doorToDoor = pricingConfig?.door_to_door_cost || 0;
 
     // Calculate insurance
     const fob = parseFloat(fobValue) || 0;
     const insuranceCost = includeInsurance && fob > 0 ? fob * (config?.insurance_percentage / 100) : 0;
 
-    const totalCost = shippingCost + insuranceCost;
+    const totalCost = shippingCost + stateShipping + doorToDoor + insuranceCost;
 
     setResult({
-      finalPrice,
+      baseRate,
       rateType,
       volumetricWeight,
       cbm: calculatedCbm,
+      billableWeight,
+      chargedBy,
+      baseCost,
       shippingCost,
       insuranceCost,
-      stateName: selectedState?.state_name || null,
+      stateShipping,
+      doorToDoor,
+      stateName: userStateConfig?.state_name || null,
       totalCost
     });
   };
@@ -184,31 +203,6 @@ export default function ShippingCalculator({ user }) {
               <SelectContent>
                 <SelectItem value="general">General</SelectItem>
                 <SelectItem value="sensitive">Sensible</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* State Selection */}
-          <div className="space-y-2">
-            <Label>Estado de Destino</Label>
-            <Select 
-              value={selectedState?.state_code || ''} 
-              onValueChange={(code) => setSelectedState(allStates.find(s => s.state_code === code))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un estado" />
-              </SelectTrigger>
-              <SelectContent>
-                {allStates.map((state) => {
-                  const finalPrice = cargoCategory === 'sensitive' 
-                    ? state.price_high_risk 
-                    : state.price_regular;
-                  return (
-                    <SelectItem key={state.state_code} value={state.state_code}>
-                      {state.state_name} {finalPrice > 0 && `($${finalPrice.toFixed(2)})`}
-                    </SelectItem>
-                  );
-                })}
               </SelectContent>
             </Select>
           </div>
@@ -365,19 +359,17 @@ export default function ShippingCalculator({ user }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Precio final {result.stateName}:</span>
+              <span className="text-slate-600">Tarifa base:</span>
               <div className="text-right">
-                <span className="font-semibold">${result.finalPrice.toFixed(2)}/CBM</span>
+                <span className="font-semibold">${result.baseRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
                 <p className="text-xs text-slate-500">{result.rateType}</p>
               </div>
             </div>
 
-            {shippingType === 'aereo' && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">Peso volumétrico:</span>
-                <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
-              </div>
-            )}
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-slate-600">Peso volumétrico:</span>
+              <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
+            </div>
 
             <div className="flex justify-between py-2 border-b">
               <span className="text-slate-600">CBM calculado:</span>
