@@ -365,7 +365,7 @@ export default function ShippingCalculator({ user }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Tarifa base:</span>
+              <span className="text-slate-600">Precio final {result.stateName}:</span>
               <div className="text-right">
                 <span className="font-semibold">${result.finalPrice.toFixed(2)}/CBM</span>
                 <p className="text-xs text-slate-500">{result.rateType}</p>
