@@ -68,6 +68,8 @@ export default function AdminClients({ user }) {
     loadStateConfigs();
   }, []);
 
+  const canViewClients = (user?.role === 'admin') || (user?.custom_role === 'customer_service');
+
   const loadStateConfigs = async () => {
     try {
       const states = await base44.entities.StateConfig.filter({ is_active: true });
@@ -78,20 +80,30 @@ export default function AdminClients({ user }) {
   };
 
   const loadClients = async () => {
-    const [users, packages] = await Promise.all([
-      base44.entities.User.filter({ role: 'user' }),
-      base44.entities.Package.list()
-    ]);
+    try {
+      const usersPromise = canViewClients
+        ? (user?.role === 'admin'
+            ? base44.entities.User.filter({ role: 'user' })
+            : base44.functions.invoke('listClientsForSupport').then(res => res.data))
+        : Promise.resolve([]);
 
-    // Count packages per client
-    const counts = {};
-    packages.forEach(pkg => {
-      counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1;
-    });
-    setPackagesCount(counts);
+      const results = await Promise.allSettled([
+        usersPromise,
+        base44.entities.Package.list()
+      ]);
 
-    setClients(users);
-    setLoading(false);
+      const users = results[0].status === 'fulfilled' ? results[0].value : [];
+      const packages = results[1].status === 'fulfilled' ? results[1].value : [];
+
+      const counts = {};
+      packages.forEach(pkg => {
+        counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1;
+      });
+      setPackagesCount(counts);
+      setClients(users);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (client) => {
