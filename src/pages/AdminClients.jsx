@@ -62,10 +62,12 @@ export default function AdminClients({ user }) {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [dateFilter, setDateFilter] = useState('all');
+  const [canExport, setCanExport] = useState(false);
 
   useEffect(() => {
     loadClients();
     loadStateConfigs();
+    loadRolePermissions();
   }, []);
 
   const canViewClients = (user?.role === 'admin') || (user?.custom_role === 'customer_service');
@@ -76,6 +78,18 @@ export default function AdminClients({ user }) {
       setStateConfigs(states);
     } catch (error) {
       console.error('Error loading states:', error);
+    }
+  };
+
+  const loadRolePermissions = async () => {
+    try {
+      const roleCode = user?.custom_role || (user?.role === 'admin' ? 'admin' : null);
+      if (!roleCode) { setCanExport(false); return; }
+      const roles = await base44.entities.RoleConfig.filter({ role_code: roleCode, is_active: true });
+      const allowed = roles.length > 0 ? !!(roles[0]?.permissions?.export_data) : (user?.role === 'admin');
+      setCanExport(allowed);
+    } catch (e) {
+      setCanExport(user?.role === 'admin');
     }
   };
 
@@ -469,7 +483,8 @@ Email: ${client.email}`;
             <Download className="h-4 w-4 mr-2" />
             Exportar para Remarketing
           </Button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
