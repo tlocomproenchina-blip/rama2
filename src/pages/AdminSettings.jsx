@@ -247,6 +247,27 @@ export default function AdminSettings({ user }) {
     setSaving(false);
   };
 
+  const handleClearCache = () => {
+    try {
+      // Clear all localStorage
+      localStorage.clear();
+      // Clear sessionStorage
+      sessionStorage.clear();
+      // Clear IndexedDB if available
+      if (indexedDB) {
+        const dbs = indexedDB.databases?.() || [];
+        dbs.forEach(db => {
+          indexedDB.deleteDatabase(db.name);
+        });
+      }
+      toast.success('Cache limpiado correctamente');
+      // Reload page after a short delay
+      setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      toast.error('Error al limpiar cache');
+    }
+  };
+
   const handleLogoUpload = async (file) => {
     if (!file) return;
     setUploadingLogo(true);
