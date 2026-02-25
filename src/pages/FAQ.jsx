@@ -43,9 +43,20 @@ export default function FAQ({ user }) {
     consolidacion: 'bg-orange-100 text-orange-800'
   };
 
+  const normalizeText = (text) => {
+    return text.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\w\s]/g, '');
+  };
+
   const filteredFAQs = faqs.filter(faq => {
-    const matchesSearch = faq.question.toLowerCase().includes(search.toLowerCase()) ||
-                         faq.answer.toLowerCase().includes(search.toLowerCase());
+    const searchNormalized = normalizeText(search);
+    const questionNormalized = normalizeText(faq.question);
+    const answerNormalized = normalizeText(faq.answer);
+    
+    const matchesSearch = questionNormalized.includes(searchNormalized) ||
+                         answerNormalized.includes(searchNormalized);
     const matchesCategory = selectedCategory === 'all' || faq.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
