@@ -261,7 +261,7 @@ export default function AdminSettings({ user }) {
           indexedDB.deleteDatabase(db.name);
         });
       }
-      toast.success('Cache limpiado correctamente');
+      toast.success('✓ Cache limpiado');
       // Reload page after a short delay
       setTimeout(() => window.location.reload(), 500);
     } catch (error) {
