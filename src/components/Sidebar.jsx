@@ -329,8 +329,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                   )}
                 </div>
               </Link>);
-
-          })}
+            });
+          })()}
         </nav>
 
         {/* Logout */}
