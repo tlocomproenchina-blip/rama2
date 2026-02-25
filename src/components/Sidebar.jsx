@@ -274,9 +274,21 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
         {/* Navigation */}
         <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1">
-          {getMenuItems().map((item) => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.page;
+          {(() => {
+            const items = getMenuItems();
+            if (customRole && !roleConfig) {
+              // skeleton while role menu loads to prevent client menu flash
+              return (
+                <div className="space-y-2 animate-pulse">
+                  <div className="h-10 bg-slate-700/40 rounded-xl" />
+                  <div className="h-10 bg-slate-700/40 rounded-xl" />
+                  <div className="h-10 bg-slate-700/40 rounded-xl" />
+                </div>
+              );
+            }
+            return items.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPage === item.page;
             
             // Get badge count for this item
             let badgeCount = null;
