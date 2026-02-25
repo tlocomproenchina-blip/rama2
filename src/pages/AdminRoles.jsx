@@ -26,7 +26,8 @@ const PERMISSION_LABELS = {
   manage_settings: 'Gestionar Configuración',
   invite_users: 'Invitar Usuarios',
   manage_roles: 'Gestionar Roles',
-  delete_records: 'Eliminar Registros'
+  delete_records: 'Eliminar Registros',
+  export_data: 'Exportar Datos'
 };
 
 const PAGE_LABELS = {
