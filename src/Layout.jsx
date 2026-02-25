@@ -72,9 +72,24 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      // Redirect employee to employee dashboard
-      if (currentUser.is_employee && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard' || currentPageName === 'AdminDashboard')) {
-        navigate(createPageUrl('EmployeeDashboard'));
+      // Redirect custom role users to their dashboard
+      if (currentUser.custom_role && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
+        const roleConfigs = await base44.entities.RoleConfig.filter({ 
+          role_code: currentUser.custom_role,
+          is_active: true
+        });
+        
+        if (roleConfigs.length > 0) {
+          const visiblePages = roleConfigs[0].visible_pages || [];
+          
+          // Redirect to first visible dashboard page
+          if (visiblePages.includes('AdminDashboard')) {
+            navigate(createPageUrl('AdminDashboard'));
+          } else if (visiblePages.includes('EmployeeDashboard')) {
+            navigate(createPageUrl('EmployeeDashboard'));
+          }
+        }
+        
         setLoading(false);
         return;
       }

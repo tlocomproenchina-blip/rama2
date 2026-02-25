@@ -129,27 +129,28 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
   const adminMenuItems = [
-  { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard, permission: 'view_packages' },
-  { name: 'Reportes', page: 'AdminReports', icon: BarChart3, permission: 'view_packages' },
-  { name: 'Paquetes', page: 'AdminPackages', icon: Package, permission: 'view_packages' },
-  { name: 'Aprobaciones', page: 'AdminConsolidate', icon: Layers, permission: 'consolidate' },
-  { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2, permission: 'consolidate' },
-  { name: 'Facturas', page: 'AdminInvoices', icon: FileText, permission: 'validate_payments' },
-  { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard, permission: 'validate_payments' },
-  { name: 'Enviar Emails', page: 'AdminEmailCampaigns', icon: Mail, permission: 'general_config' },
-  { name: 'Plantillas Email', page: 'AdminEmailTemplates', icon: FileText, permission: 'general_config' },
-  { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle, permission: 'validate_payments' },
-  { name: 'Promociones', page: 'AdminPromotions', icon: Tag, permission: 'general_config' },
-  { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp, permission: 'general_config' },
-  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck, permission: 'view_packages' },
-  { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator, permission: 'view_packages' },
-  { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck, permission: 'view_packages' },
-  { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle, permission: 'view_packages' },
-  { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle, permission: 'general_config' },
-  { name: 'Clientes', page: 'AdminClients', icon: Users, permission: 'view_packages' },
-  { name: 'Eliminar', page: 'AdminDelete', icon: Trash2, permission: 'view_packages' },
-  { name: 'Administradores', page: 'AdminPermissions', icon: Shield, permission: 'invite_users' },
-  { name: 'Configuración', page: 'AdminSettings', icon: Settings, permission: 'general_config' }];
+  { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
+  { name: 'Reportes', page: 'AdminReports', icon: BarChart3 },
+  { name: 'Paquetes', page: 'AdminPackages', icon: Package },
+  { name: 'Aprobaciones', page: 'AdminConsolidate', icon: Layers },
+  { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2 },
+  { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
+  { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
+  { name: 'Enviar Emails', page: 'AdminEmailCampaigns', icon: Mail },
+  { name: 'Plantillas Email', page: 'AdminEmailTemplates', icon: FileText },
+  { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle },
+  { name: 'Promociones', page: 'AdminPromotions', icon: Tag },
+  { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp },
+  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
+  { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
+  { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
+  { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
+  { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
+  { name: 'Clientes', page: 'AdminClients', icon: Users },
+  { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
+  { name: 'Administradores', page: 'AdminPermissions', icon: Shield },
+  { name: 'Gestión de Roles', page: 'AdminRoles', icon: Shield },
+  { name: 'Configuración', page: 'AdminSettings', icon: Settings }];
 
 
   const employeeMenuItems = [
@@ -162,19 +163,16 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const getMenuItems = () => {
     if (isAdmin) {
-      return adminMenuItems.filter((item) => !item.permission || permissions[item.permission] !== false);
+      return adminMenuItems;
     }
-    if (user?.is_employee && user?.admin_permissions) {
-      return employeeMenuItems.filter(item => {
-        const permissionMap = {
-          'AdminPackages': 'view_packages',
-          'AdminClients': 'view_clients',
-          'AdminConsolidate': 'consolidate'
-        };
-        const requiredPerm = permissionMap[item.page];
-        return !requiredPerm || user.admin_permissions[requiredPerm];
-      });
+    
+    // Custom role with role config
+    if (customRole && roleConfig) {
+      const visiblePages = roleConfig.visible_pages || [];
+      const allMenuItems = [...adminMenuItems, ...employeeMenuItems, ...clientMenuItems];
+      return allMenuItems.filter(item => visiblePages.includes(item.page));
     }
+    
     return clientMenuItems;
   };
 
@@ -245,10 +243,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
             <div className="mt-2 flex items-center gap-2">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
               isAdmin ? 'bg-amber-500/20 text-amber-400' :
-              isEmployee ? 'bg-blue-500/20 text-blue-400' :
+              customRole ? 'bg-blue-500/20 text-blue-400' :
               'bg-emerald-500/20 text-emerald-400'}`
               }>
-                {isAdmin ? 'Administrador' : isEmployee ? 'Empleado' : 'Cliente'}
+                {isAdmin ? 'Administrador' : roleConfig?.role_name || 'Cliente'}
               </span>
             </div>
           </div>
