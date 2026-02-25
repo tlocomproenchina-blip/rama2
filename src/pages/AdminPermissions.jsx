@@ -171,8 +171,8 @@ export default function AdminPermissions({ user }) {
   });
 
   const admins = filteredUsers.filter(u => u.role === 'admin');
-  const employees = filteredUsers.filter(u => u.is_employee && u.role === 'user');
-  const regularUsers = filteredUsers.filter(u => !u.is_employee && u.role === 'user');
+  const employees = filteredUsers.filter(u => (u.is_employee || u.custom_role) && u.role === 'user');
+  const regularUsers = filteredUsers.filter(u => !u.is_employee && !u.custom_role && u.role === 'user');
 
   if (loading) {
     return (
