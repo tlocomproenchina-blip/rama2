@@ -362,36 +362,47 @@ export default function AdminSettings({ user }) {
       </div>
 
       <Tabs defaultValue="tarifas" className="space-y-6">
-        <TabsList className="grid grid-cols-7 w-full">
-          <TabsTrigger value="tarifas" className="flex items-center gap-2 text-xs">
-            <DollarSign className="h-4 w-4" />
-            <span className="hidden md:inline">Tarifas</span>
-          </TabsTrigger>
-          <TabsTrigger value="estados" className="flex items-center gap-2 text-xs">
-            <MapPin className="h-4 w-4" />
-            <span className="hidden md:inline">Estados</span>
-          </TabsTrigger>
-          <TabsTrigger value="envios" className="flex items-center gap-2 text-xs">
-            <Settings className="h-4 w-4" />
-            <span className="hidden md:inline">Envíos</span>
-          </TabsTrigger>
-          <TabsTrigger value="pagos" className="flex items-center gap-2 text-xs">
-            <DollarSign className="h-4 w-4" />
-            <span className="hidden md:inline">Pagos</span>
-          </TabsTrigger>
-          <TabsTrigger value="general" className="flex items-center gap-2 text-xs">
-            <Settings className="h-4 w-4" />
-            <span className="hidden md:inline">General</span>
-          </TabsTrigger>
-          <TabsTrigger value="facturas" className="flex items-center gap-2 text-xs">
-            <FileText className="h-4 w-4" />
-            <span className="hidden md:inline">Facturas</span>
-          </TabsTrigger>
-          <TabsTrigger value="privacidad" className="flex items-center gap-2 text-xs">
-            <ShieldCheck className="h-4 w-4" />
-            <span className="hidden md:inline">Privacidad</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between">
+          <TabsList className="grid grid-cols-7 w-full">
+            <TabsTrigger value="tarifas" className="flex items-center gap-2 text-xs">
+              <DollarSign className="h-4 w-4" />
+              <span className="hidden md:inline">Tarifas</span>
+            </TabsTrigger>
+            <TabsTrigger value="estados" className="flex items-center gap-2 text-xs">
+              <MapPin className="h-4 w-4" />
+              <span className="hidden md:inline">Estados</span>
+            </TabsTrigger>
+            <TabsTrigger value="envios" className="flex items-center gap-2 text-xs">
+              <Settings className="h-4 w-4" />
+              <span className="hidden md:inline">Envíos</span>
+            </TabsTrigger>
+            <TabsTrigger value="pagos" className="flex items-center gap-2 text-xs">
+              <DollarSign className="h-4 w-4" />
+              <span className="hidden md:inline">Pagos</span>
+            </TabsTrigger>
+            <TabsTrigger value="general" className="flex items-center gap-2 text-xs">
+              <Settings className="h-4 w-4" />
+              <span className="hidden md:inline">General</span>
+            </TabsTrigger>
+            <TabsTrigger value="facturas" className="flex items-center gap-2 text-xs">
+              <FileText className="h-4 w-4" />
+              <span className="hidden md:inline">Facturas</span>
+            </TabsTrigger>
+            <TabsTrigger value="privacidad" className="flex items-center gap-2 text-xs">
+              <ShieldCheck className="h-4 w-4" />
+              <span className="hidden md:inline">Privacidad</span>
+            </TabsTrigger>
+          </TabsList>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleClearCache}
+            className="ml-2 border-red-200 text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Limpiar Cache
+          </Button>
+        </div>
 
         {/* Tab Tarifas */}
         <TabsContent value="tarifas">
