@@ -46,6 +46,8 @@ export default function ChatbotAssistant({ user }) {
       ]);
 
       const pricing = pricingConfigs[0] || {};
+      const userStateConfig = stateConfigs.find(s => s.state_code === user.state);
+      const userStateRate = userStateConfig?.shipping_rate || 20;
       const states = stateConfigs.map(s => `${s.state_name}: $${s.shipping_rate}`).join(', ');
 
       // Build context
@@ -56,6 +58,7 @@ INFORMACIÓN DEL USUARIO:
 - Shipping Mark: ${user.shipping_mark || 'No asignado aún'}
 - Ciudad: ${user.city || 'No especificada'}
 - Estado: ${user.state || 'No especificado'}
+- Tarifa de su estado: $${userStateRate}
 - WhatsApp: ${user.whatsapp || 'No especificado'}
 
 PAQUETES DEL USUARIO (${packages.length} en total):
@@ -99,7 +102,9 @@ PERSONALIDAD:
 CÓMO CALCULAR ENVÍOS MARÍTIMOS (IMPORTANTE):
 Usa esta fórmula internamente:
 1. CBM = (largo × ancho × alto en cm) ÷ 1,000,000
-2. Costo = ($${pricing.base_rate_regular} × CBM × 1.${(pricing.profit_percentage || 10).toString().padStart(2, '0')}) + ${user.state ? stateConfigs.find(s => s.state_code === user.state)?.shipping_rate || 20 : 20} + ${pricing.door_to_door_cost}
+2. Costo = ($${pricing.base_rate_regular} × CBM × 1.${(pricing.profit_percentage || 10).toString().padStart(2, '0')}) + $${userStateRate} + $${pricing.door_to_door_cost}
+
+CRÍTICO: Usa $${userStateRate} como tarifa del estado del usuario (${userStateConfig?.state_name || 'no especificado'})
 
 AL RESPONDER:
 - Solo menciona el CBM y el precio final
