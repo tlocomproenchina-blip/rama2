@@ -88,9 +88,29 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       console.error('Error loading notification counts:', error);
     }
   };
+  const [roleConfig, setRoleConfig] = useState(null);
   const isAdmin = user?.role === 'admin';
-  const isEmployee = user?.is_employee === true;
-  const permissions = user?.admin_permissions || {};
+  const customRole = user?.custom_role;
+
+  useEffect(() => {
+    if (customRole) {
+      loadRoleConfig();
+    }
+  }, [customRole]);
+
+  const loadRoleConfig = async () => {
+    try {
+      const configs = await base44.entities.RoleConfig.filter({ 
+        role_code: customRole,
+        is_active: true
+      });
+      if (configs.length > 0) {
+        setRoleConfig(configs[0]);
+      }
+    } catch (error) {
+      console.error('Error loading role config:', error);
+    }
+  };
 
   const clientMenuItems = [
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
