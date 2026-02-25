@@ -100,8 +100,12 @@ export default function Layout({ children, currentPageName }) {
       if (currentUser.role === 'user') {
         if (!currentUser.contract_accepted) {
           setShowContract(true);
+          setLoading(false);
+          return;
         } else if (!currentUser.profile_completed) {
           setShowProfile(true);
+          setLoading(false);
+          return;
         } else {
           // Check for missing fields and redirect to profile
           const missingFields = [];
@@ -114,7 +118,6 @@ export default function Layout({ children, currentPageName }) {
           
           if (missingFields.length > 0 && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
             navigate(createPageUrl('Profile'));
-            setLoading(false);
             return;
           }
         }
