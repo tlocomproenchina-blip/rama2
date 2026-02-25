@@ -83,28 +83,31 @@ export default function ShippingCalculator({ user }) {
       volumetricWeight = calculatedCbm * 167;
     }
 
-    // Determine rate based on config
+    // Determine rate based on pricing config
     const isSensitive = cargoCategory === 'sensitive';
     let baseRate = 0;
     let billableWeight = 0;
+    let baseCost = 0;
     let chargedBy = '';
     let rateType = '';
 
     if (shippingType === 'aereo') {
-      baseRate = isSensitive ? (config?.rate_air_sensitive || 0) : (config?.rate_air_general || 0);
+      baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
       rateType = isSensitive ? 'Aéreo Sensible' : 'Aéreo General';
       // For air: charge by the greater of real or volumetric weight, minimum 1 kg
       billableWeight = Math.max(realWeight, volumetricWeight, 1);
+      baseCost = billableWeight * baseRate;
       chargedBy = `${billableWeight.toFixed(2)} kg`;
     } else {
-      baseRate = isSensitive ? (config?.rate_sea_sensitive || 0) : (config?.rate_sea_general || 0);
+      baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
       // For sea: charge by CBM
+      baseCost = calculatedCbm * baseRate;
       billableWeight = calculatedCbm;
       chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
     }
 
-    // Calculate shipping cost with profit margin
+    // Apply profit percentage: baseRate * billableWeight * (1 + profit%)
     const profitMargin = pricingConfig?.profit_percentage || 0;
     const shippingCost = baseRate * billableWeight * (1 + profitMargin / 100);
 
@@ -123,10 +126,11 @@ export default function ShippingCalculator({ user }) {
     setResult({
       baseRate,
       rateType,
-      volumetricWeight: shippingType === 'aereo' ? volumetricWeight : 0,
+      volumetricWeight,
       cbm: calculatedCbm,
       billableWeight,
       chargedBy,
+      baseCost,
       shippingCost,
       insuranceCost,
       stateShipping,
@@ -389,23 +393,14 @@ export default function ShippingCalculator({ user }) {
               </div>
             </div>
 
-            {shippingType === 'aereo' && result.volumetricWeight > 0 && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">Peso volumétrico:</span>
-                <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
-              </div>
-            )}
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-slate-600">Peso volumétrico:</span>
+              <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
+            </div>
 
-            {result.cbm > 0 && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">CBM calculado:</span>
-                <span className="font-semibold">{result.cbm.toFixed(4)}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between py-2 border-b bg-blue-50 px-4 -mx-4">
-              <span className="text-slate-700 font-medium">Costo de envío:</span>
-              <span className="font-bold text-blue-600">${result.shippingCost.toFixed(2)}</span>
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-slate-600">CBM calculado:</span>
+              <span className="font-semibold">{result.cbm.toFixed(4)}</span>
             </div>
 
             {result.insuranceCost > 0 && (
