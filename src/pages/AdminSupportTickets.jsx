@@ -49,20 +49,30 @@ export default function AdminSupportTickets({ user }) {
     related_tracking: ''
   });
 
+  const isAdmin = user?.role === 'admin';
+
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [allTickets, adminUsers, clientUsers] = await Promise.all([
-      base44.entities.SupportTicket.list('-created_date'),
-      base44.entities.User.filter({ role: 'admin' }),
-      base44.entities.User.filter({ role: 'user' })
-    ]);
-    setTickets(allTickets);
-    setAdmins(adminUsers);
-    setClients(clientUsers);
-    setLoading(false);
+    try {
+      const results = await Promise.allSettled([
+        base44.entities.SupportTicket.list('-created_date'),
+        isAdmin ? base44.entities.User.filter({ role: 'admin' }) : Promise.resolve([user]),
+        isAdmin ? base44.entities.User.filter({ role: 'user' }) : Promise.resolve([])
+      ]);
+
+      const allT = results[0].status === 'fulfilled' ? results[0].value : [];
+      const adminsList = results[1].status === 'fulfilled' ? results[1].value : [user];
+      const clientsList = results[2].status === 'fulfilled' ? results[2].value : [];
+
+      setTickets(allT);
+      setAdmins(adminsList);
+      setClients(clientsList);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateTicket = async () => {
@@ -266,10 +276,12 @@ export default function AdminSupportTickets({ user }) {
           <h1 className="text-2xl font-bold text-slate-800">Gestión de Tickets</h1>
           <p className="text-slate-500">Administra y asigna tickets de soporte</p>
         </div>
-        <Button onClick={() => setShowNewTicket(true)} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Crear Ticket
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setShowNewTicket(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Crear Ticket
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="tickets" className="space-y-6">

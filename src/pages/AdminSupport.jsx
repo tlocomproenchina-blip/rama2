@@ -41,22 +41,30 @@ export default function AdminSupport({ user }) {
     related_tracking: ''
   });
 
+  const isAdmin = user?.role === 'admin';
+
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const [allTickets, allUsers] = await Promise.all([
-      base44.entities.SupportTicket.list('-created_date'),
-      base44.entities.User.filter({ role: 'user' })
-    ]);
+    try {
+      const results = await Promise.allSettled([
+        base44.entities.SupportTicket.list('-created_date'),
+        isAdmin ? base44.entities.User.filter({ role: 'user' }) : Promise.resolve([])
+      ]);
 
-    const clientsMap = {};
-    allUsers.forEach(u => { clientsMap[u.email] = u; });
+      const allT = results[0].status === 'fulfilled' ? results[0].value : [];
+      const users = results[1].status === 'fulfilled' ? results[1].value : [];
 
-    setTickets(allTickets);
-    setClients(clientsMap);
-    setLoading(false);
+      const clientsMap = {};
+      users.forEach(u => { clientsMap[u.email] = u; });
+
+      setTickets(allT);
+      setClients(clientsMap);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSendMessage = async (message) => {
@@ -235,10 +243,12 @@ export default function AdminSupport({ user }) {
           <h1 className="text-2xl font-bold text-slate-800">Gestión de Soporte</h1>
           <p className="text-slate-500">Administra los tickets de soporte de clientes</p>
         </div>
-        <Button onClick={() => setShowNewTicket(true)} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Crear Ticket
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setShowNewTicket(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Crear Ticket
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
