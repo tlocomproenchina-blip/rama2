@@ -96,15 +96,15 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: 'Mi Perfil', page: 'Profile', icon: Users },
-  { name: 'Mis Paquetes', page: 'MyPackages', icon: Package, tourAttr: 'my-packages' },
+  { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
   { name: 'Solicitar Consolidación', page: 'RequestConsolidation', icon: Layers },
   { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
-  { name: 'Mis Facturas', page: 'MyInvoices', icon: FileText, tourAttr: 'invoices' },
+  { name: 'Mis Facturas', page: 'MyInvoices', icon: FileText },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: CreditCard },
   { name: 'Tarifas', page: 'Rates', icon: FileText },
-  { name: 'Ayuda (FAQ)', page: 'FAQ', icon: HelpCircle, tourAttr: 'help' },
+  { name: 'Ayuda (FAQ)', page: 'FAQ', icon: HelpCircle },
   { name: 'Soporte', page: 'Support', icon: MessageCircle }];
 
 
@@ -257,7 +257,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                 key={item.page}
                 to={createPageUrl(item.page)}
                 onClick={onClose}
-                data-tour={item.tourAttr}
                 className={`
                   flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200
                   ${isActive ?
@@ -286,19 +285,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
         {/* Logout */}
         <div className="bg-[#1c3f82] p-4 border-t border-slate-700/50">
-          <Link to={createPageUrl('Profile')} onClick={onClose}>
-            <Button
-              variant="ghost"
-              data-tour="profile"
-              className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700/50 mb-2">
-              <User className="h-5 w-5 mr-3" />
-              Mi Perfil
-            </Button>
-          </Link>
           <Button
             variant="ghost"
             className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700/50"
             onClick={handleLogout}>
+
             <LogOut className="h-5 w-5 mr-3" />
             Cerrar Sesión
           </Button>
