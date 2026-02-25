@@ -85,15 +85,15 @@ export default function Layout({ children, currentPageName }) {
           // Redirect to specialized dashboard for accounting role
           if (currentUser.custom_role === 'accounting') {
             navigate(createPageUrl('AccountingDashboard'));
+            return;
           } else if (visiblePages.includes('AdminDashboard')) {
             navigate(createPageUrl('AdminDashboard'));
+            return;
           } else if (visiblePages.includes('EmployeeDashboard')) {
             navigate(createPageUrl('EmployeeDashboard'));
+            return;
           }
         }
-        
-        setLoading(false);
-        return;
       }
 
       // Check contract and profile for regular users
