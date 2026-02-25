@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HardDrive, Database, Boxes, Cpu, RefreshCw } from "lucide-react";
@@ -24,30 +24,32 @@ export default function ResourceInspector() {
 
   const estimateLocalStorage = () => {
     try {
+      const enc = new TextEncoder();
       let total = 0;
       const len = window.localStorage.length;
       for (let i = 0; i < len; i++) {
         const key = window.localStorage.key(i);
         const val = window.localStorage.getItem(key);
-        total += new Blob([key || ""]).size + new Blob([val || ""]).size;
+        total += (key ? enc.encode(key).length : 0) + (val ? enc.encode(val).length : 0);
       }
       return { keys: len, sizeBytes: total };
-    } catch {
+    } catch (e) {
       return { keys: 0, sizeBytes: 0 };
     }
   };
 
   const estimateSessionStorage = () => {
     try {
+      const enc = new TextEncoder();
       let total = 0;
       const len = window.sessionStorage.length;
       for (let i = 0; i < len; i++) {
         const key = window.sessionStorage.key(i);
         const val = window.sessionStorage.getItem(key);
-        total += new Blob([key || ""]).size + new Blob([val || ""]).size;
+        total += (key ? enc.encode(key).length : 0) + (val ? enc.encode(val).length : 0);
       }
       return { keys: len, sizeBytes: total };
-    } catch {
+    } catch (e) {
       return { keys: 0, sizeBytes: 0 };
     }
   };
@@ -102,18 +104,28 @@ export default function ResourceInspector() {
     }
   };
 
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
+
   const refresh = async () => {
+    if (loading) return;
     setLoading(true);
     try {
-      const [storageEstimate, idbs, cachesList] = await Promise.all([
+      const results = await Promise.allSettled([
         getEstimate(),
         listIndexedDBs(),
         listCaches(),
       ]);
+      const storageEstimate = results[0].status === 'fulfilled' ? results[0].value : null;
+      const idbs = results[1].status === 'fulfilled' ? results[1].value : { supported: false, databases: [] };
+      const cachesList = results[2].status === 'fulfilled' ? results[2].value : { supported: false, items: [] };
       const ls = estimateLocalStorage();
       const ss = estimateSessionStorage();
       const mem = getMemory();
 
+      if (!isMounted.current) return;
       setData({
         storageEstimate,
         localStorage: ls,
@@ -123,7 +135,7 @@ export default function ResourceInspector() {
         memory: mem,
       });
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
