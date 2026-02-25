@@ -23,9 +23,11 @@ import {
   Building2,
   FileText,
   Clock,
-  Trash2
+  Trash2,
+  HardDrive
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ResourceInspector from '@/components/admin/ResourceInspector';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -379,7 +381,7 @@ export default function AdminSettings({ user }) {
 
       <Tabs defaultValue="tarifas" className="space-y-6">
         <div className="flex items-center justify-between">
-          <TabsList className="grid grid-cols-7 w-full">
+          <TabsList className="grid grid-cols-8 w-full">
             <TabsTrigger value="tarifas" className="flex items-center gap-2 text-xs">
               <DollarSign className="h-4 w-4" />
               <span className="hidden md:inline">Tarifas</span>
@@ -407,6 +409,10 @@ export default function AdminSettings({ user }) {
             <TabsTrigger value="privacidad" className="flex items-center gap-2 text-xs">
               <ShieldCheck className="h-4 w-4" />
               <span className="hidden md:inline">Privacidad</span>
+            </TabsTrigger>
+            <TabsTrigger value="recursos" className="flex items-center gap-2 text-xs">
+              <HardDrive className="h-4 w-4" />
+              <span className="hidden md:inline">Recursos</span>
             </TabsTrigger>
           </TabsList>
           <TooltipProvider>
@@ -1416,6 +1422,9 @@ export default function AdminSettings({ user }) {
         </TabsContent>
 
 
+      <TabsContent value="recursos">
+        <ResourceInspector />
+      </TabsContent>
       </Tabs>
     </div>
   );
