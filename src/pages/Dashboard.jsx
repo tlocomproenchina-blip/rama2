@@ -199,7 +199,7 @@ export default function Dashboard({ user, refreshUser }) {
                   Dirección del Warehouse
                 </div>
                 <div className="flex items-start gap-2 md:gap-2.5 lg:gap-3 min-w-0">
-                  <p className="text-slate-700 text-xs md:text-sm lg:text-base break-words flex-1">
+                  <p className="text-slate-700 text-xs md:text-sm lg:text-base break-words flex-1 whitespace-pre-line">
                     {config?.warehouse_address || 'Dirección no configurada'}
                   </p>
                   {config?.warehouse_address && (
