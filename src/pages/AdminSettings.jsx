@@ -248,19 +248,34 @@ export default function AdminSettings({ user }) {
     setSaving(false);
   };
 
-  const handleClearCache = () => {
+  const handleClearCache = async () => {
     try {
       // Clear all localStorage
       localStorage.clear();
       // Clear sessionStorage
       sessionStorage.clear();
-      // Clear IndexedDB if available
-      if (indexedDB) {
-        const dbs = indexedDB.databases?.() || [];
-        dbs.forEach(db => {
-          indexedDB.deleteDatabase(db.name);
+
+      // Clear IndexedDB (wait for deletions to finish)
+      if (typeof indexedDB !== 'undefined') {
+        let dbs = [];
+        const listFn = indexedDB.databases;
+        if (typeof listFn === 'function') {
+          try {
+            dbs = (await listFn.call(indexedDB)) || [];
+          } catch (e) {
+            dbs = [];
+          }
+        }
+        const deleteDb = (name) => new Promise((resolve) => {
+          if (!name) return resolve();
+          const req = indexedDB.deleteDatabase(name);
+          req.onsuccess = () => resolve();
+          req.onerror = () => resolve();
+          req.onblocked = () => resolve();
         });
+        await Promise.all(dbs.map((db) => deleteDb(db.name)));
       }
+
       toast.success('✓ Cache limpiado');
       // Reload page after a short delay
       setTimeout(() => window.location.reload(), 500);
