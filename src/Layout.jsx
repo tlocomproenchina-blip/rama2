@@ -31,12 +31,6 @@ export default function Layout({ children, currentPageName }) {
     loadFavicon();
   }, []);
 
-  useEffect(() => {
-    if (user && currentPageName) {
-      checkPageAccess();
-    }
-  }, [user, currentPageName]);
-
   const loadConfig = async () => {
     try {
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
@@ -63,28 +57,6 @@ export default function Layout({ children, currentPageName }) {
       }
     } catch (error) {
       console.error('Error loading favicon:', error);
-    }
-  };
-
-  const checkPageAccess = async () => {
-    try {
-      // Get user's role
-      const roleKey = user.role_key || user.role || 'user';
-      const roles = await base44.entities.Role.filter({ role_key: roleKey, is_active: true });
-      
-      if (roles.length > 0) {
-        const userRole = roles[0];
-        const allowedPages = userRole.visible_pages || [];
-        
-        // Check if current page is allowed
-        if (allowedPages.length > 0 && !allowedPages.includes(currentPageName)) {
-          // Redirect to first allowed page or dashboard
-          const defaultPage = allowedPages[0] || 'Dashboard';
-          navigate(createPageUrl(defaultPage));
-        }
-      }
-    } catch (error) {
-      console.error('Error checking page access:', error);
     }
   };
 
