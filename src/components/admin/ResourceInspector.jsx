@@ -141,19 +141,19 @@ export default function ResourceInspector() {
 
   return (
     <Card className="border-0 shadow-lg">
-      <CardHeader className="flex-row items-center justify-between">
+      <CardHeader className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2">
           <HardDrive className="h-5 w-5" />
           Recursos del Navegador
         </CardTitle>
-        <Button onClick={refresh} disabled={loading} variant="outline" className="gap-2">
+        <Button onClick={refresh} disabled={loading} variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           {loading ? "Actualizando..." : "Actualizar"}
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Almacenamiento total */}
-        <div className="p-4 rounded-lg border bg-slate-50">
+        <div className="p-3 sm:p-4 rounded-lg border bg-slate-50">
           <div className="flex items-center gap-2 mb-2">
             <HardDrive className="h-4 w-4 text-slate-600" />
             <h3 className="font-semibold text-slate-800">Almacenamiento (estimate)</h3>
@@ -178,7 +178,7 @@ export default function ResourceInspector() {
 
         {/* localStorage / sessionStorage */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="p-4 rounded-lg border">
+          <div className="p-3 sm:p-4 rounded-lg border">
             <div className="flex items-center gap-2 mb-1">
               <Boxes className="h-4 w-4 text-slate-600" />
               <h4 className="font-medium text-slate-800">localStorage</h4>
@@ -186,7 +186,7 @@ export default function ResourceInspector() {
             <p className="text-sm text-slate-700">Claves: <span className="font-medium">{data.localStorage.keys}</span></p>
             <p className="text-sm text-slate-700">Tamaño aprox.: <span className="font-medium">{formatBytes(data.localStorage.sizeBytes)}</span></p>
           </div>
-          <div className="p-4 rounded-lg border">
+          <div className="p-3 sm:p-4 rounded-lg border">
             <div className="flex items-center gap-2 mb-1">
               <Boxes className="h-4 w-4 text-slate-600" />
               <h4 className="font-medium text-slate-800">sessionStorage</h4>
@@ -197,14 +197,14 @@ export default function ResourceInspector() {
         </div>
 
         {/* IndexedDB */}
-        <div className="p-4 rounded-lg border">
+        <div className="p-3 sm:p-4 rounded-lg border">
           <div className="flex items-center gap-2 mb-2">
             <Database className="h-4 w-4 text-slate-600" />
             <h4 className="font-semibold text-slate-800">IndexedDB</h4>
           </div>
           {data.indexedDB.supported ? (
             data.indexedDB.databases.length > 0 ? (
-              <ul className="text-sm text-slate-700 list-disc list-inside space-y-1">
+              <ul className="text-sm text-slate-700 list-disc list-inside space-y-1 max-h-48 overflow-auto pr-1">
                 {data.indexedDB.databases.map((db, idx) => (
                   <li key={`${db.name}-${db.version}-${idx}`}>
                     {db.name} <span className="text-slate-500">(v{db.version})</span>
@@ -220,14 +220,14 @@ export default function ResourceInspector() {
         </div>
 
         {/* Cache Storage */}
-        <div className="p-4 rounded-lg border">
+        <div className="p-3 sm:p-4 rounded-lg border">
           <div className="flex items-center gap-2 mb-2">
             <Boxes className="h-4 w-4 text-slate-600" />
             <h4 className="font-semibold text-slate-800">Cache Storage</h4>
           </div>
           {data.caches.supported ? (
             data.caches.items.length > 0 ? (
-              <ul className="text-sm text-slate-700 list-disc list-inside space-y-1">
+              <ul className="text-sm text-slate-700 list-disc list-inside space-y-1 max-h-48 overflow-auto pr-1">
                 {data.caches.items.map((c) => (
                   <li key={c.name}>
                     {c.name} <span className="text-slate-500">({c.entries} elementos)</span>
@@ -243,7 +243,7 @@ export default function ResourceInspector() {
         </div>
 
         {/* Memoria JS */}
-        <div className="p-4 rounded-lg border">
+        <div className="p-3 sm:p-4 rounded-lg border">
           <div className="flex items-center gap-2 mb-2">
             <Cpu className="h-4 w-4 text-slate-600" />
             <h4 className="font-semibold text-slate-800">Memoria JS</h4>
