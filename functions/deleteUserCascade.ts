@@ -29,11 +29,8 @@ Deno.serve(async (req) => {
     // Resolve target user
     let targetUser = null;
     if (userId) {
-      try {
-        targetUser = await base44.asServiceRole.entities.User.get(userId);
-      } catch (_) {
-        // fallback by email if also provided
-      }
+      const usersById = await base44.asServiceRole.entities.User.filter({ id: userId }, '-created_date', 1);
+      targetUser = usersById && usersById.length > 0 ? usersById[0] : null;
     }
 
     if (!targetUser && email) {
@@ -48,12 +45,19 @@ Deno.serve(async (req) => {
     const targetEmail = targetUser.email;
 
     // Helper to delete records matching a filter; returns count deleted
-    const deleteByFilter = async (entityName, filter, limit = 1000) => {
-      const list = await base44.asServiceRole.entities[entityName].filter(filter, '-created_date', limit);
-      for (const item of list) {
-        await base44.asServiceRole.entities[entityName].delete(item.id);
+    const deleteByFilter = async (entityName, filter, batchSize = 500) => {
+      let total = 0;
+      // Loop until no more records match
+      while (true) {
+        const list = await base44.asServiceRole.entities[entityName].filter(filter, '-created_date', batchSize);
+        if (!list || list.length === 0) break;
+        for (const item of list) {
+          await base44.asServiceRole.entities[entityName].delete(item.id);
+          total += 1;
+        }
+        if (list.length < batchSize) break;
       }
-      return list.length;
+      return total;
     };
 
     // Track results
@@ -78,26 +82,15 @@ Deno.serve(async (req) => {
     // 2) Packages by client email
     results.packages += await deleteByFilter('Package', { client_email: targetEmail });
 
-    // 3) Consolidations by client email (collect ids for invoices)
-    const consolidations = await base44.asServiceRole.entities.Consolidation.filter({ client_email: targetEmail }, '-created_date', 1000);
-
-    // 4) Invoices: first by client_email
+    // 3) Invoices by client email
     results.invoices += await deleteByFilter('Invoice', { client_email: targetEmail });
 
-    //    Then for each consolidation_id (in case invoices were stored without client_email)
-    for (const c of consolidations) {
-      results.invoices += await deleteByFilter('Invoice', { consolidation_id: c.id });
-    }
-
-    // 5) Email logs: recipient_email and sender_email
+    // 4) Email logs: recipient_email and sender_email
     results.emailLogs += await deleteByFilter('EmailLog', { recipient_email: targetEmail });
     results.emailLogs += await deleteByFilter('EmailLog', { sender_email: targetEmail });
 
-    // 6) Delete consolidations last (after invoices)
-    for (const c of consolidations) {
-      await base44.asServiceRole.entities.Consolidation.delete(c.id);
-      results.consolidations += 1;
-    }
+    // 5) Consolidations by client email (after invoices)
+    results.consolidations += await deleteByFilter('Consolidation', { client_email: targetEmail });
 
     // 7) Finally, delete user
     await base44.asServiceRole.entities.User.delete(targetUser.id);
