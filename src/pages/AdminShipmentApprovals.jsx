@@ -571,7 +571,7 @@ export default function AdminShipmentApprovals({ user }) {
                 </button>
               </div>
               <p className="text-xs text-slate-500">
-                Tarifa usada: ${(
+                Tarifa usada: {cargoRisk === 'high' ? 'Precio final alto riesgo' : 'Precio final regular'} — ${(
                   ((cargoRisk === 'high' ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0)) * (1 + ((pricingConfig?.profit_percentage || 0) / 100)))
                   + (stateConfig?.shipping_rate || 0)
                   + (pricingConfig?.door_to_door_cost || 0)

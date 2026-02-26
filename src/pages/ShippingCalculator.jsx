@@ -227,7 +227,7 @@ export default function ShippingCalculator({ user }) {
               </button>
             </div>
             <p className="text-xs text-slate-500">
-              Tarifa usada: ${finalRate.toFixed(2)} {shippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
+              Tarifa usada: {cargoCategory === 'sensitive' ? 'Precio final alto riesgo' : 'Precio final regular'} — ${result ? result.finalRate.toFixed(2) : '0.00'} {shippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
             </p>
           </div>
 
