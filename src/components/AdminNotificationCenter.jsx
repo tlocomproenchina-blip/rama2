@@ -84,7 +84,13 @@ export default function AdminNotificationCenter({ user }) {
         if (!d) return;
         const fromClient = d.created_by && d.created_by !== user.email;
         if (event.type === 'create' && fromClient) {
-          toast.message('📦 Nuevo paquete prealertado', { description: `${d.tracking_number || 'Sin tracking'}` });
+          saveNotification(
+            'Nuevo paquete prealertado',
+            d.tracking_number || 'Sin tracking',
+            'package',
+            'package',
+            d.id || d.tracking_number || 'package'
+          );
         }
       })
     );
