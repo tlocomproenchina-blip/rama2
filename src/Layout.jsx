@@ -211,6 +211,48 @@ export default function Layout({ children, currentPageName }) {
       <style>{`
         [data-sonner-toaster] { display: none !important; }
         body { overflow-x: hidden; }
+
+        /* Mobile responsiveness improvements */
+        @media (max-width: 640px) {
+          /* Make tab lists horizontally scrollable */
+          [role="tablist"] {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto !important;
+            white-space: nowrap !important;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x proximity;
+          }
+          [role="tablist"] > * { flex: 0 0 auto; scroll-snap-align: start; }
+
+          /* Wrap common action rows/buttons instead of overflowing */
+          .header-actions, .actions-row, .btn-row, .toolbar, .filters-row,
+          .flex.justify-between, .flex.items-center.gap-2 {
+            flex-wrap: wrap !important;
+            row-gap: .5rem;
+          }
+
+          /* Ensure complex grids collapse to 1 column on mobile */
+          .grid[class*="grid-cols-"] { grid-template-columns: 1fr !important; }
+
+          /* Tables: enable safe horizontal scroll */
+          table {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            white-space: nowrap;
+          }
+
+          /* Editors/toolbars should never overflow */
+          .ql-toolbar { max-width: 100% !important; overflow: hidden; }
+          .ql-container { max-width: 100% !important; }
+          .ql-toolbar .ql-formats { flex-wrap: wrap; }
+
+          /* Charts/images full width */
+          img, canvas, svg { max-width: 100%; height: auto; }
+          .recharts-wrapper, .recharts-responsive-container { max-width: 100% !important; }
+        }
       `}</style>
       <Toaster position="top-right" richColors />
       <AdminNotificationCenter user={user} />
