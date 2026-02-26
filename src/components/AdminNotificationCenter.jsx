@@ -127,9 +127,21 @@ export default function AdminNotificationCenter({ user }) {
         const d = event?.data;
         if (!d) return;
         if (event.type === 'create') {
-          toast.message('🧾 Nueva factura', { description: d.invoice_number || d.consolidation_tracking || 'Factura generada' });
+          saveNotification(
+            'Nueva factura',
+            d.invoice_number || d.consolidation_tracking || 'Factura generada',
+            'system',
+            'dollar',
+            d.id || d.invoice_number || 'invoice'
+          );
         } else if (event.type === 'update') {
-          toast.message('🧾 Factura actualizada', { description: d.invoice_number || d.consolidation_tracking || 'Actualización de factura' });
+          saveNotification(
+            'Factura actualizada',
+            d.invoice_number || d.consolidation_tracking || 'Actualización de factura',
+            'system',
+            'dollar',
+            d.id || d.invoice_number || 'invoice'
+          );
         }
       })
     );
