@@ -212,12 +212,12 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const clientGroups = [
     { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard'] },
-    { label: 'CUENTA', items: ['Profile'] },
     { label: 'ENVÍOS', items: ['MyPackages','PreAlert','RequestConsolidation','MyConsolidations'] },
     { label: 'PAGOS', items: ['MyInvoices'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator'] },
     { label: 'INFORMACIÓN', items: ['Rates'] },
-    { label: 'SOPORTE', items: ['FAQ','Support'] }
+    { label: 'SOPORTE', items: ['FAQ','Support'] },
+    { label: 'CUENTA', items: ['Profile'] }
   ];
 
   const employeeMenuItems = [
