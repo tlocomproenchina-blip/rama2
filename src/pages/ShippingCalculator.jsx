@@ -115,6 +115,7 @@ export default function ShippingCalculator({ user }) {
     const selectedStateConfig = states.find(s => s.state_code === selectedState);
     const stateShipping = selectedStateConfig?.shipping_rate || 0;
     const { regular: finalRegular, high: finalHigh } = getFinalRatesForState(stateShipping);
+    const doorToDoor = pricingConfig?.door_to_door_cost || 0;
 
     // Elegir el precio final según la categoría de carga
     const finalRate = isSensitive ? finalHigh : finalRegular;
