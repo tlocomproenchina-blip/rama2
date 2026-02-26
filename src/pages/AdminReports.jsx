@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Loader2 
 } from 'lucide-react';
+import Pagination from "@/components/common/Pagination";
 
 export default function AdminReports({ user }) {
   const [loading, setLoading] = useState(true);
