@@ -46,6 +46,30 @@ export default function NotificationCenter({ user }) {
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
+  // Suscripción en tiempo real a nuevas notificaciones del usuario
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const unsubscribe = base44.entities.Notification.subscribe((event) => {
+      const data = event?.data;
+      if (!data || data.user_email !== user.email) return;
+
+      if (event.type === 'create') {
+        setNotifications((prev) => [data, ...prev]);
+        setUnreadCount((prev) => prev + (data.read ? 0 : 1));
+        setLastRefresh(Date.now());
+        toast.message(data.title || 'Nueva notificación', { description: data.message });
+      } else if (event.type === 'update' || event.type === 'delete') {
+        // Mantener sincronizado el panel ante cambios
+        loadNotifications();
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [user?.email, loadNotifications]);
+
   // Marcar como leída
   const markAsRead = async (notificationId) => {
     try {
