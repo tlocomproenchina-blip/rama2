@@ -144,13 +144,7 @@ export default function AdminShipmentApprovals({ user }) {
       volumetricWeight = cbm * 167;
     }
 
-    let billableWeight = 0;
-    if (selectedShippingType === 'maritimo') {
-      volumetricWeight = 0;
-      billableWeight = realWeight;
-    } else {
-      billableWeight = Math.max(realWeight, volumetricWeight);
-    }
+    const billableWeight = Math.max(realWeight, volumetricWeight);
 
     const totalFOB = hasInsurance ? (parseFloat(customFobValue) || 0) : 0;
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
@@ -177,8 +171,11 @@ export default function AdminShipmentApprovals({ user }) {
 
     // Calculate shipping cost using FINAL rate per unit
     let shippingCost = 0;
-    // Usamos SIEMPRE el peso facturable (kg)
-    shippingCost = billableWeight * finalRatePerUnit;
+    if (selectedShippingType === 'aereo') {
+      shippingCost = billableWeight * finalRatePerUnit;
+    } else {
+      shippingCost = cbm * finalRatePerUnit;
+    }
 
     // Consolidation fee: $1 per package
     const consolidationFee = selectedPackages.length * 1;
@@ -578,7 +575,7 @@ export default function AdminShipmentApprovals({ user }) {
                   ((cargoRisk === 'high' ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0)) * (1 + ((pricingConfig?.profit_percentage || 0) / 100)))
                   + (stateConfig?.shipping_rate || 0)
                   + (pricingConfig?.door_to_door_cost || 0)
-                ).toFixed(2)} USD/kg
+                ).toFixed(2)} {selectedShippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
               </p>
             </div>
 
@@ -649,7 +646,7 @@ export default function AdminShipmentApprovals({ user }) {
 
                       <div className="flex justify-between">
                         <span className="text-slate-600">Tarifa Final por unidad:</span>
-                        <span className="font-medium">${calculateValues().finalRatePerUnit.toFixed(2)}/kg</span>
+                        <span className="font-medium">${calculateValues().finalRatePerUnit.toFixed(2)}/{selectedShippingType === 'aereo' ? 'kg' : 'CBM'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-600">Costo Envío:</span>
@@ -670,7 +667,7 @@ export default function AdminShipmentApprovals({ user }) {
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between">
                         <span className="text-slate-600">Unidades facturadas:</span>
-                        <span className="font-medium">{calculateValues().billableWeight.toFixed(2)} kg</span>
+                        <span className="font-medium">{selectedShippingType === 'aereo' ? calculateValues().billableWeight.toFixed(2) + ' kg' : calculateValues().cbm.toFixed(4) + ' CBM'}</span>
                       </div>
                       <div className="flex justify-between items-center mt-1">
                         <span className="text-lg font-bold">Total:</span>

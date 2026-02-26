@@ -79,11 +79,6 @@ export default function ShippingCalculator({ user }) {
       volumetricWeight = calculatedCbm * 167;
     }
 
-    // Para marítimo no usamos peso volumétrico
-    if (shippingType === 'maritimo') {
-      volumetricWeight = 0;
-    }
-
     // Determine rate based on pricing config
     const isSensitive = cargoCategory === 'sensitive';
     let baseRate = 0;
@@ -102,10 +97,10 @@ export default function ShippingCalculator({ user }) {
     } else {
       baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
-      // Marítimo: SIEMPRE por peso real (kg)
-      baseCost = realWeight * baseRate;
-      billableWeight = realWeight;
-      chargedBy = `${realWeight.toFixed(2)} kg`;
+      // For sea: charge by CBM
+      baseCost = calculatedCbm * baseRate;
+      billableWeight = calculatedCbm;
+      chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
     }
 
     // Apply profit percentage to base rate
@@ -120,8 +115,8 @@ export default function ShippingCalculator({ user }) {
     // Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta
     const finalRate = adjustedRate + stateShipping + doorToDoor;
 
-    // Total de Envío = Precio Final × unidades (usamos peso facturable para todos los casos)
-    const units = billableWeight;
+    // Total de Envío = Precio Final × unidades (kg para aéreo o CBM para marítimo)
+    const units = shippingType === 'aereo' ? billableWeight : calculatedCbm;
     const shippingCost = finalRate * units;
 
     // Calculate insurance
@@ -232,7 +227,7 @@ export default function ShippingCalculator({ user }) {
               </button>
             </div>
             <p className="text-xs text-slate-500">
-              Tarifa usada: {cargoCategory === 'sensitive' ? 'Precio final alto riesgo' : 'Precio final regular'} — ${result ? result.finalRate.toFixed(2) : '0.00'} USD/kg
+              Tarifa usada: {cargoCategory === 'sensitive' ? 'Precio final alto riesgo' : 'Precio final regular'} — ${result ? result.finalRate.toFixed(2) : '0.00'} {shippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
             </p>
           </div>
 
@@ -261,10 +256,10 @@ export default function ShippingCalculator({ user }) {
             )}
           </div>
 
-          {/* Input Mode Selection (dimensiones/cbm solo para aéreo) */}
+          {/* Input Mode Selection */}
           <div className="space-y-2">
             <Label>Método de Cálculo</Label>
-            <div className={`grid ${shippingType === 'aereo' ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setInputMode('dimensions')}
@@ -302,8 +297,8 @@ export default function ShippingCalculator({ user }) {
             />
           </div>
 
-          {/* CBM Input (solo relevante para aéreo, oculto en marítimo) */}
-          {inputMode === 'cbm' && shippingType === 'aereo' && (
+          {/* CBM Input */}
+          {inputMode === 'cbm' && (
             <div className="space-y-2">
               <Label>CBM (Metros Cúbicos)</Label>
               <Input
@@ -331,7 +326,7 @@ export default function ShippingCalculator({ user }) {
             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
               <p className="text-sm font-medium text-indigo-800 mb-1">🚢 Envío Marítimo</p>
               <p className="text-sm text-indigo-700">
-               Se calcula y factura por <strong>peso real (kg)</strong>.
+                Se calcula por <strong>volumen en CBM</strong> (metros cúbicos).
               </p>
               <p className="text-xs text-indigo-600 mt-2">
                 Fórmula de <strong>CBM</strong>: (L × A × H) / 1,000,000
@@ -415,24 +410,20 @@ export default function ShippingCalculator({ user }) {
             <div className="flex justify-between py-2 border-b">
               <span className="text-slate-600">Tarifa final:</span>
               <div className="text-right">
-                <span className="font-semibold">${result.finalRate.toFixed(2)}/kg</span>
+                <span className="font-semibold">${result.finalRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
                 <p className="text-xs text-slate-500">{cargoCategory === 'sensitive' ? 'Precio final alto riesgo' : 'Precio final regular'}</p>
               </div>
             </div>
 
-            {shippingType === 'aereo' && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">Peso volumétrico:</span>
-                <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
-              </div>
-            )}
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-slate-600">Peso volumétrico:</span>
+              <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
+            </div>
 
-            {shippingType === 'aereo' ? (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">CBM calculado:</span>
-                <span className="font-semibold">{result.cbm.toFixed(4)}</span>
-              </div>
-            ) : null}
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-slate-600">CBM calculado:</span>
+              <span className="font-semibold">{result.cbm.toFixed(4)}</span>
+            </div>
 
             {result.insuranceCost > 0 && (
               <div className="flex justify-between py-2 border-b">
