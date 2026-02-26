@@ -189,6 +189,8 @@ export default function AdminShipmentApprovals({ user }) {
     const totalFOB = hasInsurance ? (parseFloat(customFobValue) || 0) : 0;
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
 
+    let baseRateCalc = 0;
+
     // Precio final por unidad desde configuración de Estados (Regular/Alto)
     const isHighRisk = cargoRisk === 'high';
     const stateFinalRegular = stateConfig?.final_rate_regular;
@@ -202,6 +204,7 @@ export default function AdminShipmentApprovals({ user }) {
       // Respaldo: cálculo global = base (regular/alto) + profit + envío por estado + puerta a puerta
       const profit = (pricingConfig?.profit_percentage || 0) / 100;
       const baseRate = isHighRisk ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
+      baseRateCalc = baseRate;
       const stateRate = stateConfig?.shipping_rate || 0;
       const doorToDoor = pricingConfig?.door_to_door_cost || 0;
       finalRate = (baseRate * (1 + profit)) + stateRate + doorToDoor;
@@ -223,7 +226,7 @@ export default function AdminShipmentApprovals({ user }) {
       cbm,
       volumetricWeight,
       billableWeight,
-      baseRate,
+      baseRate: baseRateCalc,
       profitPercentage: pricingConfig?.profit_percentage || 0,
       finalRate,
       shippingCost,
@@ -605,7 +608,7 @@ export default function AdminShipmentApprovals({ user }) {
                 </button>
               </div>
               <p className="text-xs text-slate-500">
-                Precio final usado: ${(((cargoRisk === 'high' ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0)) * (1 + (pricingConfig?.profit_percentage || 0)/100) + (stateConfig?.shipping_rate || 0) + (pricingConfig?.door_to_door_cost || 0))).toFixed(2)} {selectedShippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
+                Precio final usado: ${Number(calculateValues().finalRate ?? 0).toFixed(2)} {selectedShippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
               </p>
             </div>
 
