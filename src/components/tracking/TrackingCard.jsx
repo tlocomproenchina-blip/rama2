@@ -3,16 +3,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Clock, Calendar, Plane, Ship, Package, MapPin, CheckCircle2, Edit2 } from 'lucide-react';
+import { ChevronDown, Clock, Calendar, Plane, Ship, Package, MapPin, CheckCircle2, Edit2, Upload, DollarSign } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 
-export default function TrackingCard({ consolidation, user, onStatusChange, onEditDate, getStatusSteps, getProgress, getDaysInTransit, getEstimatedDaysRemaining, getColorClasses }) {
+export default function TrackingCard({ consolidation, user, onStatusChange, onEditDate, getStatusSteps, getProgress, getDaysInTransit, getEstimatedDaysRemaining, getColorClasses, onDataChanged }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const steps = getStatusSteps(consolidation);
   const progress = getProgress(consolidation);
   const daysInTransit = getDaysInTransit(consolidation);
   const daysRemaining = getEstimatedDaysRemaining(consolidation);
+
+  const [paymentAmount, setPaymentAmount] = useState(consolidation.payment_amount || '');
+  const [paymentMethod, setPaymentMethod] = useState(consolidation.payment_method || '');
+  const [paymentProof, setPaymentProof] = useState(consolidation.payment_proof_url || '');
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [uploadingProof, setUploadingProof] = useState(false);
 
   const statusColors = {
     en_transito: 'bg-blue-100 text-blue-700',
@@ -22,16 +31,66 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
   };
 
   const getStatusLabel = (status) => {
-    const labels = {
-      en_transito: '✈️ En Tránsito',
-      pago_validado: '💳 Pago Validado',
-      disponible: '📍 Disponible',
-      entregado: '✅ Entregado'
-    };
-    return labels[status] || status;
+     const labels = {
+       en_transito: '✈️ En Tránsito',
+       pago_validado: '💳 Pago Validado',
+       disponible: '📍 Disponible',
+       entregado: '✅ Entregado'
+     };
+     return labels[status] || status;
+   };
+
+  const handleUploadProof = async (file) => {
+    try {
+      setUploadingProof(true);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setPaymentProof(file_url);
+      await base44.entities.Consolidation.update(consolidation.id, { payment_proof_url: file_url, payment_date: new Date().toISOString() });
+      toast.success('Comprobante subido');
+      onDataChanged && onDataChanged();
+    } catch (e) {
+      toast.error('Error al subir comprobante');
+    } finally {
+      setUploadingProof(false);
+    }
   };
 
-  return (
+  const handleSavePayment = async () => {
+    if (!paymentAmount || !paymentMethod) {
+      toast.error('Ingresa monto y método');
+      return;
+    }
+    setSavingPayment(true);
+    try {
+      await base44.entities.Consolidation.update(consolidation.id, {
+        payment_amount: parseFloat(paymentAmount),
+        payment_method: paymentMethod,
+      });
+      toast.success('Pago guardado');
+      onDataChanged && onDataChanged();
+    } catch (e) {
+      toast.error('Error al guardar pago');
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
+  const handleValidatePayment = async () => {
+    try {
+      await base44.entities.Consolidation.update(consolidation.id, {
+        payment_validated: true,
+        payment_validation_date: new Date().toISOString(),
+        payment_validated_by: user?.email || '',
+        status: 'pago_validado'
+      });
+      toast.success('Pago validado');
+      onDataChanged && onDataChanged();
+    } catch (e) {
+      toast.error('Error al validar pago');
+    }
+  };
+
+   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -53,6 +112,11 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                 <Badge className={statusColors[consolidation.status]}>
                   {getStatusLabel(consolidation.status)}
                 </Badge>
+                {!consolidation.payment_validated && (
+                  <Badge className="bg-slate-800 text-white">
+                    {consolidation.payment_proof_url ? 'Pago por validar' : 'Pendiente pago'}
+                  </Badge>
+                )}
               </div>
               
               <div className="flex flex-wrap items-center gap-2 text-xs lg:text-sm text-slate-600">
@@ -287,8 +351,91 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                   </div>
                 </div>
 
-                {/* Admin Status Control */}
-                {user?.role === 'admin' && consolidation.status === 'en_transito' && (
+                {/* Payment Section */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-amber-900 mb-3">Pago</p>
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Monto</p>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        disabled={consolidation.payment_validated}
+                        className="bg-white"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 mb-1">Método</p>
+                      <Select value={paymentMethod} onValueChange={setPaymentMethod} disabled={consolidation.payment_validated}>
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="Selecciona método" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="binance">Binance</SelectItem>
+                          <SelectItem value="usdt_trc20">USDT (TRC20)</SelectItem>
+                          <SelectItem value="paypal">PayPal</SelectItem>
+                          <SelectItem value="debito_internacional">Débito Internacional</SelectItem>
+                          <SelectItem value="wally">Wally</SelectItem>
+                          <SelectItem value="zinli">Zinli</SelectItem>
+                          <SelectItem value="wise">Wise</SelectItem>
+                          <SelectItem value="skrill">Skrill</SelectItem>
+                          <SelectItem value="pago_movil_usdt">Pago Móvil USDT</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="lg:col-span-2">
+                      <p className="text-xs text-slate-500 mb-1">Comprobante</p>
+                      <div className="flex items-center gap-3">
+                        <input
+                          id={`proof-${consolidation.id}`}
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={(e) => e.target.files?.[0] && handleUploadProof(e.target.files[0])}
+                          disabled={consolidation.payment_validated}
+                        />
+                        <label htmlFor={`proof-${consolidation.id}`}>
+                          <Button type="button" variant="outline" className="gap-2" disabled={uploadingProof || consolidation.payment_validated}>
+                            <Upload className="h-4 w-4" />
+                            {uploadingProof ? 'Subiendo...' : 'Subir comprobante'}
+                          </Button>
+                        </label>
+                        {paymentProof && (
+                          <a href={paymentProof} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">
+                            Ver comprobante
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Button
+                      onClick={handleSavePayment}
+                      disabled={savingPayment || consolidation.payment_validated}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {savingPayment ? 'Guardando...' : 'Guardar pago'}
+                    </Button>
+                    {user?.role === 'admin' && !consolidation.payment_validated && (
+                      <Button
+                        variant="secondary"
+                        onClick={handleValidatePayment}
+                        className="gap-2"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Validar pago
+                      </Button>
+                    )}
+                    {consolidation.payment_validated && (
+                      <Badge className="bg-emerald-100 text-emerald-700">Pago validado</Badge>
+                    )}
+                  </div>
+                </div>
+
+                 {/* Admin Status Control */
+                {user?.role === 'admin' && (consolidation.status === 'en_transito' || consolidation.status === 'pago_validado') && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-sm font-semibold text-blue-900 mb-3">Cambiar Estado</p>
                     <Select onValueChange={(value) => onStatusChange(consolidation, value)}>

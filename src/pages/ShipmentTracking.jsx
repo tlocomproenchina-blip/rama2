@@ -447,6 +447,7 @@ export default function ShipmentTracking({ user }) {
               getDaysInTransit={getDaysInTransit}
               getEstimatedDaysRemaining={getEstimatedDaysRemaining}
               getColorClasses={getColorClasses}
+              onDataChanged={loadData}
             />
           ))}
         </div>
