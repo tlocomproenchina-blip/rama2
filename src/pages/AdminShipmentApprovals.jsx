@@ -665,7 +665,11 @@ export default function AdminShipmentApprovals({ user }) {
                     </div>
                     
                     <div className="border-t pt-2 mt-2">
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Unidades facturadas:</span>
+                        <span className="font-medium">{selectedShippingType === 'aereo' ? calculateValues().billableWeight.toFixed(2) + ' kg' : calculateValues().cbm.toFixed(4) + ' CBM'}</span>
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
                         <span className="text-lg font-bold">Total:</span>
                         <span className="text-lg font-bold text-emerald-600">${calculateValues().totalCost.toFixed(2)}</span>
                       </div>
