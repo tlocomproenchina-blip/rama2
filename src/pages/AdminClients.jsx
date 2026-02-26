@@ -492,22 +492,13 @@ Email: ${client.email}`;
       (client.shipping_mark || '').toLowerCase().includes(searchLower)
     );
 
-    const matchesStatus = 
-      statusFilter === 'all' ? true :
-      statusFilter === 'with_mark' ? hasValidShippingMark(client) :
-      statusFilter === 'without_mark' ? !hasValidShippingMark(client) :
-      statusFilter === 'pending' ? (!hasValidShippingMark(client) && client.profile_completed && !hasIncompleteData(client)) :
-      statusFilter === 'incomplete' ? hasIncompleteData(client) :
-      true;
-
-    // Exact date (YYYY-MM-DD)
+    // Date filters
     let matchesDate = true;
     if (dateFilter) {
       const clientDate = new Date(client.created_date).toISOString().split('T')[0];
       matchesDate = clientDate === dateFilter;
     }
 
-    // Quick date ranges
     let matchesQuick = true;
     if (!dateFilter && quickDate !== 'all') {
       const now = new Date();
@@ -520,26 +511,29 @@ Email: ${client.email}`;
       matchesQuick = new Date(client.created_date) >= threshold;
     }
 
-    // Active / Inactive
-    const matchesActive = activeFilter === 'all' ? true : (
-      activeFilter === 'active' ? (client.is_active !== false) : (client.is_active === false)
-    );
-
-    // With / Without packages
+    // Single exclusive category filter
     const pkgCount = packagesCount[client.email] || 0;
-    const matchesPackages = packageFilter === 'all' ? true : (
-      packageFilter === 'with_packages' ? pkgCount > 0 : pkgCount === 0
-    );
-
-    // WhatsApp presence
-    const matchesWhatsapp = whatsappFilter === 'all' ? true : (
-      whatsappFilter === 'with' ? !!client.whatsapp : !client.whatsapp
-    );
+    const matchesCategory = (() => {
+      switch (exclusiveKey) {
+        case 'with_mark': return hasValidShippingMark(client);
+        case 'without_mark': return !hasValidShippingMark(client);
+        case 'pending': return (!hasValidShippingMark(client) && client.profile_completed && !hasIncompleteData(client));
+        case 'incomplete': return hasIncompleteData(client);
+        case 'active': return client.is_active !== false;
+        case 'inactive': return client.is_active === false;
+        case 'with_packages': return pkgCount > 0;
+        case 'without_packages': return pkgCount === 0;
+        case 'with_whatsapp': return !!client.whatsapp;
+        case 'without_whatsapp': return !client.whatsapp;
+        case 'all':
+        default: return true;
+      }
+    })();
 
     // State
     const matchesState = stateFilter === 'all' ? true : client.state === stateFilter;
 
-    return matchesSearch && matchesStatus && matchesDate && matchesQuick && matchesActive && matchesPackages && matchesWhatsapp && matchesState;
+    return matchesSearch && matchesDate && matchesQuick && matchesCategory && matchesState;
   });
 
   if (loading) {
