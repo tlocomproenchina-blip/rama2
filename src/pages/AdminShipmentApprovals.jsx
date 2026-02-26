@@ -161,28 +161,27 @@ export default function AdminShipmentApprovals({ user }) {
     // Apply profit percentage (Beneficio)
     const profitPercentage = pricingConfig?.profit_percentage || 10;
     const baseWithProfit = baseRate * (1 + profitPercentage / 100);
-    
-    // Calculate shipping cost based on billable weight/CBM
-    let shippingCost = 0;
-    if (selectedShippingType === 'aereo') {
-      shippingCost = billableWeight * baseWithProfit;
-    } else {
-      shippingCost = cbm * baseWithProfit;
-    }
-    
-    // Add state shipping rate (Tarifa Estado)
+
+    // Components of final per-unit rate
     const stateShippingRate = stateConfig?.shipping_rate || 0;
-    
-    // Add door-to-door if applicable (Puerta a Puerta)
     const doorToDoorCost = pricingConfig?.is_door_to_door_optional 
       ? (pricingConfig?.door_to_door_cost || 0)
       : 0;
-    
+    const finalRatePerUnit = baseWithProfit + stateShippingRate + doorToDoorCost;
+
+    // Calculate shipping cost using FINAL rate per unit
+    let shippingCost = 0;
+    if (selectedShippingType === 'aereo') {
+      shippingCost = billableWeight * finalRatePerUnit;
+    } else {
+      shippingCost = cbm * finalRatePerUnit;
+    }
+
     // Consolidation fee: $1 per package
     const consolidationFee = selectedPackages.length * 1;
-    
-    // Formula: Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta + Consolidación
-    const totalCost = shippingCost + stateShippingRate + doorToDoorCost + consolidationFee + insuranceCost;
+
+    // Total = (Precio Final × unidades) + consolidación + seguro
+    const totalCost = shippingCost + consolidationFee + insuranceCost;
 
     return {
       cbm,
@@ -190,6 +189,7 @@ export default function AdminShipmentApprovals({ user }) {
       billableWeight,
       baseRate,
       profitPercentage,
+      finalRatePerUnit,
       shippingCost,
       stateShippingRate,
       doorToDoorCost,
@@ -571,7 +571,11 @@ export default function AdminShipmentApprovals({ user }) {
                 </button>
               </div>
               <p className="text-xs text-slate-500">
-                Tarifa usada: ${cargoRisk === 'high' ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0)} {selectedShippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
+                Tarifa usada: ${(
+                  ((cargoRisk === 'high' ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0)) * (1 + ((pricingConfig?.profit_percentage || 0) / 100)))
+                  + (stateConfig?.shipping_rate || 0)
+                  + (pricingConfig?.door_to_door_cost || 0)
+                ).toFixed(2)} {selectedShippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
               </p>
             </div>
 
@@ -648,16 +652,12 @@ export default function AdminShipmentApprovals({ user }) {
                         <span className="font-medium">${(calculateValues().baseRate * calculateValues().profitPercentage / 100).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
+                        <span className="text-slate-600">Tarifa Final por unidad:</span>
+                        <span className="font-medium">${calculateValues().finalRatePerUnit.toFixed(2)}/{selectedShippingType === 'aereo' ? 'kg' : 'CBM'}</span>
+                      </div>
+                      <div className="flex justify-between">
                         <span className="text-slate-600">Costo Envío:</span>
                         <span className="font-medium">${calculateValues().shippingCost.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Tarifa Estado:</span>
-                        <span className="font-medium">${calculateValues().stateShippingRate.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Puerta a Puerta:</span>
-                        <span className="font-medium">${calculateValues().doorToDoorCost.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-600">Consolidación de carga ({selectedPackages.length} paquetes):</span>
