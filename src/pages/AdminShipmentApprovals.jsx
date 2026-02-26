@@ -54,6 +54,7 @@ export default function AdminShipmentApprovals({ user }) {
   const [directCbm, setDirectCbm] = useState('');
   const [selectedShippingType, setSelectedShippingType] = useState('aereo');
   const [hasInsurance, setHasInsurance] = useState(false);
+  const [cargoRisk, setCargoRisk] = useState('regular'); // 'regular' | 'high'
   const [customFobValue, setCustomFobValue] = useState('');
   const [undoTracking, setUndoTracking] = useState('');
   const [undoing, setUndoing] = useState(false);
@@ -148,12 +149,13 @@ export default function AdminShipmentApprovals({ user }) {
     const totalFOB = hasInsurance ? (parseFloat(customFobValue) || 0) : 0;
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
 
-    // Calculate base shipping cost (Tarifa Base)
+    // Calculate base shipping cost (Tarifa Base) según categoría de carga
     let baseRate = 0;
+    const isHighRisk = cargoRisk === 'high';
     if (selectedShippingType === 'aereo') {
-      baseRate = hasInsurance ? (pricingConfig?.base_rate_high_risk || 790) : (pricingConfig?.base_rate_regular || 690);
+      baseRate = isHighRisk ? (pricingConfig?.base_rate_high_risk || 790) : (pricingConfig?.base_rate_regular || 690);
     } else {
-      baseRate = hasInsurance ? (pricingConfig?.base_rate_high_risk || 790) : (pricingConfig?.base_rate_regular || 690);
+      baseRate = isHighRisk ? (pricingConfig?.base_rate_high_risk || 790) : (pricingConfig?.base_rate_regular || 690);
     }
     
     // Apply profit percentage (Beneficio)
@@ -581,7 +583,7 @@ export default function AdminShipmentApprovals({ user }) {
                 <CardContent className="p-4">
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
                     <DollarSign className="h-5 w-5 text-blue-600" />
-                    Resumen de Costos - {selectedShippingType === 'aereo' ? 'Aéreo' : 'Marítimo'}
+                    Resumen de Costos - {selectedShippingType === 'aereo' ? 'Aéreo' : 'Marítimo'} · {cargoRisk === 'high' ? 'Alto riesgo' : 'Regular'}
                   </h4>
                   
                   {/* Estado del cliente */}
