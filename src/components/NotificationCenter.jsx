@@ -60,17 +60,24 @@ export default function NotificationCenter({ user }) {
   const markAllAsRead = async () => {
     try {
       const unreadNotifications = notifications.filter(n => !n.read);
-      for (const notif of unreadNotifications) {
-        await base44.entities.Notification.update(notif.id, { read: true });
-      }
-      loadNotifications();
-      toast.success('Todas las notificaciones marcadas como leídas');
+      if (unreadNotifications.length === 0) return;
+      // Optimistic UI update
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+      await Promise.all(unreadNotifications.map(n => base44.entities.Notification.update(n.id, { read: true })));
     } catch (error) {
       toast.error('Error actualizando notificaciones');
     }
   };
 
-  // Eliminar notificación
+   // Marcar todas como leídas al abrir el panel
+   useEffect(() => {
+     if (isOpen) {
+       markAllAsRead();
+     }
+   }, [isOpen]);
+
+   // Eliminar notificación
   const deleteNotification = async (notificationId, e) => {
     e.stopPropagation();
     try {
