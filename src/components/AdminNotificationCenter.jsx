@@ -66,7 +66,13 @@ export default function AdminNotificationCenter({ user }) {
         if (!d) return;
         const fromClient = d.created_by && d.created_by !== user.email;
         if ((event.type === 'create' || event.type === 'update') && fromClient) {
-          toast.message('🛒 Solicitud de consolidación', { description: `${d.client_email || 'Cliente'} (${event.type === 'create' ? 'nueva' : 'actualizada'})` });
+          saveNotification(
+            'Solicitud de consolidación',
+            `${d.client_email || 'Cliente'} (${event.type === 'create' ? 'nueva' : 'actualizada'})`,
+            'request',
+            'alert',
+            d.id || 'consolidation_request'
+          );
         }
       })
     );
