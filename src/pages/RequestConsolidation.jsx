@@ -39,7 +39,7 @@ export default function RequestConsolidation({ user }) {
   const loadData = async () => {
     if (!user) return;
     
-    const [pkgs, requests, configs] = await Promise.all([
+    const [pkgs, pendingRequests, approvedRequests, configs] = await Promise.all([
       base44.entities.Package.filter({ 
         client_email: user.email, 
         status: 'recibido'
@@ -48,13 +48,19 @@ export default function RequestConsolidation({ user }) {
         client_email: user.email,
         status: 'pendiente'
       }),
+      base44.entities.ConsolidationRequest.filter({
+        client_email: user.email,
+        status: 'aprobada'
+      }),
       base44.entities.AppConfig.filter({ config_key: 'main' })
     ]);
     
-    // Get IDs of packages in pending requests
+    // Get IDs of packages in pending or approved requests (hidden from selection)
     const packagesInRequests = new Set();
-    requests.forEach(req => {
-      req.package_ids?.forEach(id => packagesInRequests.add(id));
+    ;[pendingRequests, approvedRequests].forEach(list => {
+      (list || []).forEach(req => {
+        req.package_ids?.forEach(id => packagesInRequests.add(id));
+      });
     });
     
     // Filter out packages already in consolidations or pending requests
