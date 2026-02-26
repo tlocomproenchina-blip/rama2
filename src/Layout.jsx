@@ -132,15 +132,9 @@ export default function Layout({ children, currentPageName }) {
       
       setLoading(false);
     } catch (error) {
-      // Not logged in
-      const publicPages = ['Home'];
-      if (publicPages.includes(currentPageName)) {
-        // Allow public access to public pages (no redirect)
-        setLoading(false);
-      } else {
-        base44.auth.redirectToLogin();
-        setLoading(false);
-      }
+      // Not logged in - redirect to login
+      base44.auth.redirectToLogin();
+      setLoading(false);
     }
   };
 
@@ -287,16 +281,14 @@ export default function Layout({ children, currentPageName }) {
               <Menu className="h-5 w-5" />
             </Button>
             <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
-            {user && <NotificationCenter user={user} />}
+            <NotificationCenter user={user} />
           </div>
         </header>
 
         {/* Desktop Notification Center */}
-        {user && (
-          <div className="hidden lg:block fixed top-4 right-4 z-40">
-            <NotificationCenter user={user} />
-          </div>
-        )}
+        <div className="hidden lg:block fixed top-4 right-4 z-40">
+          <NotificationCenter user={user} />
+        </div>
 
         {/* Main Content */}
         <div className="flex-1 overflow-x-hidden w-full">
