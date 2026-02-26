@@ -71,6 +71,7 @@ export default function AdminClients({ user }) {
   const [packageFilter, setPackageFilter] = useState('all');
   const [whatsappFilter, setWhatsappFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
+  const [exclusiveKey, setExclusiveKey] = useState('all');
   const [canExport, setCanExport] = useState(false);
 
   useEffect(() => {
@@ -447,6 +448,7 @@ Email: ${client.email}`;
     setPackageFilter('all');
     setWhatsappFilter('all');
     setStateFilter('all');
+    setExclusiveKey('all');
   };
 
   // Make category filters globally exclusive (one or another)
@@ -455,24 +457,28 @@ Email: ${client.email}`;
     setActiveFilter('all');
     setPackageFilter('all');
     setWhatsappFilter('all');
+    setExclusiveKey(value === 'all' ? 'all' : value);
   };
   const selectActive = (value) => {
     setActiveFilter(value);
     setStatusFilter('all');
     setPackageFilter('all');
     setWhatsappFilter('all');
+    setExclusiveKey(value === 'all' ? 'all' : value);
   };
   const selectPackage = (value) => {
     setPackageFilter(value);
     setStatusFilter('all');
     setActiveFilter('all');
     setWhatsappFilter('all');
+    setExclusiveKey(value === 'all' ? 'all' : value);
   };
   const selectWhatsapp = (value) => {
     setWhatsappFilter(value);
     setStatusFilter('all');
     setActiveFilter('all');
     setPackageFilter('all');
+    setExclusiveKey(value === 'all' ? 'all' : (value === 'with' ? 'with_whatsapp' : 'without_whatsapp'));
   };
 
   const filteredClients = clients.filter(client => {
@@ -692,56 +698,56 @@ Email: ${client.email}`;
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
-                aria-pressed={statusFilter === 'all'}
+                aria-pressed={exclusiveKey === 'all'}
                 size="sm"
                 onClick={() => selectStatus('all')}
-                className={(statusFilter === 'all') ? 'bg-slate-900 text-white border-slate-900' : ''}
+                className={(exclusiveKey === 'all') ? 'bg-slate-900 text-white border-slate-900' : ''}
               >
                 Todos ({clients.length})
               </Button>
               <Button
                 variant="outline"
-                aria-pressed={statusFilter === 'with_mark'}
+                aria-pressed={exclusiveKey === 'with_mark'}
                 size="sm"
                 onClick={() => selectStatus(statusFilter === 'with_mark' ? 'all' : 'with_mark')}
-                className={(statusFilter === 'with_mark') ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
+                className={(exclusiveKey === 'with_mark') ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
               >
                 <CheckCircle className="h-3 w-3 mr-1" /> Con Shipping Mark ({clients.filter(c => hasValidShippingMark(c)).length})
               </Button>
               <Button
                 variant="outline"
-                aria-pressed={statusFilter === 'without_mark'}
+                aria-pressed={exclusiveKey === 'without_mark'}
                 size="sm"
                 onClick={() => selectStatus(statusFilter === 'without_mark' ? 'all' : 'without_mark')}
-                className={(statusFilter === 'without_mark') ? 'bg-amber-100 text-amber-700 border-amber-200' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}
+                className={(exclusiveKey === 'without_mark') ? 'bg-amber-100 text-amber-700 border-amber-200' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}
               >
                 <AlertTriangle className="h-3 w-3 mr-1" /> Sin Shipping Mark ({clients.filter(c => !hasValidShippingMark(c)).length})
               </Button>
               <Button
                 variant="outline"
-                aria-pressed={statusFilter === 'pending'}
+                aria-pressed={exclusiveKey === 'pending'}
                 size="sm"
                 onClick={() => selectStatus(statusFilter === 'pending' ? 'all' : 'pending')}
-                className={(statusFilter === 'pending') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
+                className={(exclusiveKey === 'pending') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
               >
                 <Clock className="h-3 w-3 mr-1" /> Pendientes ({clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c)).length})
               </Button>
               <Button
                 variant="outline"
-                aria-pressed={statusFilter === 'incomplete'}
+                aria-pressed={exclusiveKey === 'incomplete'}
                 size="sm"
                 onClick={() => selectStatus(statusFilter === 'incomplete' ? 'all' : 'incomplete')}
-                className={(statusFilter === 'incomplete') ? 'bg-red-100 text-red-700 border-red-200' : 'border-red-200 text-red-700 hover:bg-red-50'}
+                className={(exclusiveKey === 'incomplete') ? 'bg-red-100 text-red-700 border-red-200' : 'border-red-200 text-red-700 hover:bg-red-50'}
               >
                 <AlertTriangle className="h-3 w-3 mr-1" /> Con Datos Faltantes ({clients.filter(c => hasIncompleteData(c)).length})
               </Button>
               {/* New Filters */}
               <Button
                 variant="outline"
-                aria-pressed={activeFilter === 'active'}
+                aria-pressed={exclusiveKey === 'active'}
                 size="sm"
                 onClick={() => selectActive(activeFilter === 'active' ? 'all' : 'active')}
-                className={(activeFilter === 'active')
+                className={(exclusiveKey === 'active')
                   ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                   : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
               >
@@ -749,10 +755,10 @@ Email: ${client.email}`;
               </Button>
               <Button
                 variant="outline"
-                aria-pressed={activeFilter === 'inactive'}
+                aria-pressed={exclusiveKey === 'inactive'}
                 size="sm"
                 onClick={() => selectActive(activeFilter === 'inactive' ? 'all' : 'inactive')}
-                className={(activeFilter === 'inactive')
+                className={(exclusiveKey === 'inactive')
                   ? 'bg-rose-100 text-rose-700 border-rose-200'
                   : 'border-rose-200 text-rose-700 hover:bg-rose-50'}
               >
@@ -760,10 +766,10 @@ Email: ${client.email}`;
               </Button>
               <Button
                 variant="outline"
-                aria-pressed={packageFilter === 'with_packages'}
+                aria-pressed={exclusiveKey === 'with_packages'}
                 size="sm"
                 onClick={() => selectPackage(packageFilter === 'with_packages' ? 'all' : 'with_packages')}
-                className={(packageFilter === 'with_packages')
+                className={(exclusiveKey === 'with_packages')
                   ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
                   : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'}
               >
@@ -771,10 +777,10 @@ Email: ${client.email}`;
               </Button>
               <Button
                 variant="outline"
-                aria-pressed={packageFilter === 'without_packages'}
+                aria-pressed={exclusiveKey === 'without_packages'}
                 size="sm"
                 onClick={() => selectPackage(packageFilter === 'without_packages' ? 'all' : 'without_packages')}
-                className={(packageFilter === 'without_packages')
+                className={(exclusiveKey === 'without_packages')
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
               >
@@ -782,10 +788,10 @@ Email: ${client.email}`;
               </Button>
               <Button
                 variant="outline"
-                aria-pressed={whatsappFilter === 'with'}
+                aria-pressed={exclusiveKey === 'with_whatsapp'}
                 size="sm"
                 onClick={() => selectWhatsapp(whatsappFilter === 'with' ? 'all' : 'with')}
-                className={(whatsappFilter === 'with')
+                className={(exclusiveKey === 'with_whatsapp')
                   ? 'bg-green-100 text-green-700 border-green-200'
                   : 'border-green-200 text-green-700 hover:bg-green-50'}
               >
@@ -793,10 +799,10 @@ Email: ${client.email}`;
               </Button>
               <Button
                 variant="outline"
-                aria-pressed={whatsappFilter === 'without'}
+                aria-pressed={exclusiveKey === 'without_whatsapp'}
                 size="sm"
                 onClick={() => selectWhatsapp(whatsappFilter === 'without' ? 'all' : 'without')}
-                className={(whatsappFilter === 'without')
+                className={(exclusiveKey === 'without_whatsapp')
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
               >
