@@ -36,6 +36,16 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
         await base44.entities.Package.update(pkgId, { status: 'en_transito' });
       }
 
+      // Update related invoice to 'pagada'
+      const relatedInvoices = await base44.entities.Invoice.filter({ consolidation_id: consolidation.id });
+      if (relatedInvoices && relatedInvoices.length > 0) {
+        await base44.entities.Invoice.update(relatedInvoices[0].id, {
+          status: 'pagada',
+          payment_date: new Date().toISOString(),
+          payment_method: consolidation.payment_method || relatedInvoices[0].payment_method || 'transferencia'
+        });
+      }
+
       // Notify client (async, don't wait)
       base44.integrations.Core.SendEmail({
         to: consolidation.client_email,
@@ -74,6 +84,15 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
         payment_rejection_comment: rejectComment,
         status: 'pendiente_pago'
       });
+
+      // Update related invoice to 'cancelada' (rechazada)
+      const invs = await base44.entities.Invoice.filter({ consolidation_id: rejectModal.consolidation.id });
+      if (invs && invs.length > 0) {
+        await base44.entities.Invoice.update(invs[0].id, {
+          status: 'cancelada',
+          notes: `Pago rechazado: ${rejectComment}`
+        });
+      }
 
       // Notify client (async, don't wait)
       base44.integrations.Core.SendEmail({
