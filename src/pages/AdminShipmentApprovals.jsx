@@ -73,7 +73,29 @@ export default function AdminShipmentApprovals({ user }) {
       base44.entities.PricingConfig.filter({ config_key: 'main' })
     ]);
     
-    setRequests(reqs);
+    // Quitar duplicados entre solicitudes aprobadas del MISMO cliente para la vista de lista
+    const seenPerClient = new Map();
+    const dedupedReqs = reqs.map(r => {
+      const key = r.client_email || 'unknown';
+      if (!seenPerClient.has(key)) seenPerClient.set(key, { pkg: new Set(), trk: new Set() });
+      const sets = seenPerClient.get(key);
+
+      const pkgIds = (r.package_ids || []).filter(id => {
+        if (sets.pkg.has(id)) return false;
+        sets.pkg.add(id);
+        return true;
+      });
+
+      const trackings = (r.tracking_numbers || []).filter(t => {
+        if (sets.trk.has(t)) return false;
+        sets.trk.add(t);
+        return true;
+      });
+
+      return { ...r, package_ids: pkgIds, tracking_numbers: trackings };
+    });
+
+    setRequests(dedupedReqs);
     if (configs.length > 0) setConfig(configs[0]);
     if (pricing.length > 0) setPricingConfig(pricing[0]);
     setLoading(false);
@@ -84,16 +106,34 @@ export default function AdminShipmentApprovals({ user }) {
     setSelectedPackages(request.package_ids || []);
     setSelectedShippingType(request.shipping_type || 'aereo');
     
-    const [pkgs, users, states] = await Promise.all([
+    const [
+      allClientPackages,
+      allApprovedRequestsForClient,
+      allUsers,
+      allStates
+    ] = await Promise.all([
       base44.entities.Package.filter({ 
         client_email: request.client_email,
         status: 'recibido'
       }),
+      base44.entities.ConsolidationRequest.filter({
+        client_email: request.client_email,
+        status: 'aprobada'
+      }),
       base44.entities.User.list(),
       base44.entities.StateConfig.list()
     ]);
-    
-    const filteredPkgs = pkgs.filter(p => !p.consolidation_id);
+
+    // Paquetes ya reclamados por OTRAS solicitudes aprobadas (excluyendo la actual)
+    const packagesInOtherApprovedRequests = allApprovedRequestsForClient
+      .filter(r => r.id !== request.id)
+      .flatMap(r => r.package_ids || []);
+
+    // Mostrar solo paquetes recibidos, no consolidados y no reclamados por otra solicitud aprobada
+    const filteredPkgs = allClientPackages.filter(p =>
+      !p.consolidation_id &&
+      !packagesInOtherApprovedRequests.includes(p.id)
+    );
     setAllPackages(filteredPkgs);
     
     // Get client user data for state
