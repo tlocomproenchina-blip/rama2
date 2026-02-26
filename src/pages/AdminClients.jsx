@@ -65,7 +65,7 @@ export default function AdminClients({ user }) {
     package_image_url: ''
   });
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
   const [quickDate, setQuickDate] = useState('all');
   const [activeFilter, setActiveFilter] = useState('all');
   const [packageFilter, setPackageFilter] = useState('all');
@@ -438,6 +438,17 @@ Email: ${client.email}`;
     return client.shipping_mark && client.shipping_mark.length > 5 && client.shipping_mark !== 'TLEC-';
   };
 
+  const resetAllFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setDateFilter('');
+    setQuickDate('all');
+    setActiveFilter('all');
+    setPackageFilter('all');
+    setWhatsappFilter('all');
+    setStateFilter('all');
+  };
+
   const filteredClients = clients.filter(client => {
     const searchLower = search.toLowerCase();
     const matchesSearch = (
@@ -459,14 +470,14 @@ Email: ${client.email}`;
 
     // Exact date (YYYY-MM-DD)
     let matchesDate = true;
-    if (dateFilter !== 'all') {
+    if (dateFilter) {
       const clientDate = new Date(client.created_date).toISOString().split('T')[0];
       matchesDate = clientDate === dateFilter;
     }
 
     // Quick date ranges
     let matchesQuick = true;
-    if (quickDate !== 'all') {
+    if (!dateFilter && quickDate !== 'all') {
       const now = new Date();
       const startOfToday = new Date();
       startOfToday.setHours(0,0,0,0);
@@ -628,25 +639,25 @@ Email: ${client.email}`;
               <span className="text-sm font-medium text-slate-700">Filtrar por fecha exacta:</span>
               <Input
                 type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
+                value={dateFilter || ''}
+                onChange={(e) => { setDateFilter(e.target.value); setQuickDate('all'); }}
                 className="w-auto"
               />
-              {dateFilter !== 'all' && (
+              {dateFilter && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setDateFilter('all')}
+                  onClick={() => setDateFilter('')}
                 >
                   Limpiar
                 </Button>
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant={quickDate === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setQuickDate('all')}>Todas</Button>
-              <Button variant={quickDate === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setQuickDate('today')}>Hoy</Button>
-              <Button variant={quickDate === '7d' ? 'default' : 'outline'} size="sm" onClick={() => setQuickDate('7d')}>Últimos 7 días</Button>
-              <Button variant={quickDate === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setQuickDate('30d')}>Últimos 30 días</Button>
+              <Button variant={quickDate === 'all' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('all'); setDateFilter(''); }}>Todas</Button>
+              <Button variant={quickDate === 'today' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('today'); setDateFilter(''); }}>Hoy</Button>
+              <Button variant={quickDate === '7d' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('7d'); setDateFilter(''); }}>Últimos 7 días</Button>
+              <Button variant={quickDate === '30d' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('30d'); setDateFilter(''); }}>Últimos 30 días</Button>
             </div>
           </div>
 
@@ -701,6 +712,7 @@ Email: ${client.email}`;
                 ))}
               </SelectContent>
             </Select>
+            <Button variant="outline" size="sm" onClick={resetAllFilters} className="ml-auto">Limpiar filtros</Button>
           </div>
               </CardContent>
               </Card>
