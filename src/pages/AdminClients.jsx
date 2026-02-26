@@ -678,22 +678,70 @@ Email: ${client.email}`;
                 <AlertTriangle className="h-3 w-3 mr-1" /> Con Datos Faltantes ({clients.filter(c => hasIncompleteData(c)).length})
               </Button>
               {/* New Filters */}
-              <Button variant={activeFilter === 'active' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter(activeFilter === 'active' ? 'all' : 'active')} className={activeFilter === 'active' ? '' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={activeFilter === 'active'}
+                size="sm"
+                onClick={() => setActiveFilter(activeFilter === 'active' ? 'all' : 'active')}
+                className={(activeFilter === 'active')
+                  ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
+              >
                 <UserCheck className="h-3 w-3 mr-1" /> Activos ({clients.filter(c => c.is_active !== false).length})
               </Button>
-              <Button variant={activeFilter === 'inactive' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter(activeFilter === 'inactive' ? 'all' : 'inactive')} className={activeFilter === 'inactive' ? '' : 'border-rose-200 text-rose-700 hover:bg-rose-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={activeFilter === 'inactive'}
+                size="sm"
+                onClick={() => setActiveFilter(activeFilter === 'inactive' ? 'all' : 'inactive')}
+                className={(activeFilter === 'inactive')
+                  ? 'bg-rose-100 text-rose-700 border-rose-200'
+                  : 'border-rose-200 text-rose-700 hover:bg-rose-50'}
+              >
                 <UserX className="h-3 w-3 mr-1" /> Inactivos ({clients.filter(c => c.is_active === false).length})
               </Button>
-              <Button variant={packageFilter === 'with_packages' ? 'default' : 'outline'} size="sm" onClick={() => setPackageFilter(packageFilter === 'with_packages' ? 'all' : 'with_packages')} className={packageFilter === 'with_packages' ? '' : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={packageFilter === 'with_packages'}
+                size="sm"
+                onClick={() => setPackageFilter(packageFilter === 'with_packages' ? 'all' : 'with_packages')}
+                className={(packageFilter === 'with_packages')
+                  ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                  : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'}
+              >
                 <Package className="h-3 w-3 mr-1" /> Con Paquetes ({clients.filter(c => (packagesCount[c.email] || 0) > 0).length})
               </Button>
-              <Button variant={packageFilter === 'without_packages' ? 'default' : 'outline'} size="sm" onClick={() => setPackageFilter(packageFilter === 'without_packages' ? 'all' : 'without_packages')} className={packageFilter === 'without_packages' ? '' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={packageFilter === 'without_packages'}
+                size="sm"
+                onClick={() => setPackageFilter(packageFilter === 'without_packages' ? 'all' : 'without_packages')}
+                className={(packageFilter === 'without_packages')
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
+              >
                 <Package className="h-3 w-3 mr-1" /> Sin Paquetes ({clients.filter(c => (packagesCount[c.email] || 0) === 0).length})
               </Button>
-              <Button variant={whatsappFilter === 'with' ? 'default' : 'outline'} size="sm" onClick={() => setWhatsappFilter(whatsappFilter === 'with' ? 'all' : 'with')} className={whatsappFilter === 'with' ? '' : 'border-green-200 text-green-700 hover:bg-green-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={whatsappFilter === 'with'}
+                size="sm"
+                onClick={() => setWhatsappFilter(whatsappFilter === 'with' ? 'all' : 'with')}
+                className={(whatsappFilter === 'with')
+                  ? 'bg-green-100 text-green-700 border-green-200'
+                  : 'border-green-200 text-green-700 hover:bg-green-50'}
+              >
                 <Phone className="h-3 w-3 mr-1" /> Con WhatsApp ({clients.filter(c => !!c.whatsapp).length})
               </Button>
-              <Button variant={whatsappFilter === 'without' ? 'default' : 'outline'} size="sm" onClick={() => setWhatsappFilter(whatsappFilter === 'without' ? 'all' : 'without')} className={whatsappFilter === 'without' ? '' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={whatsappFilter === 'without'}
+                size="sm"
+                onClick={() => setWhatsappFilter(whatsappFilter === 'without' ? 'all' : 'without')}
+                className={(whatsappFilter === 'without')
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
+              >
                 <Phone className="h-3 w-3 mr-1" /> Sin WhatsApp ({clients.filter(c => !c.whatsapp).length})
               </Button>
             </div>
