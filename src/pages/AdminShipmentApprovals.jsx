@@ -137,12 +137,12 @@ export default function AdminShipmentApprovals({ user }) {
     setAllPackages(filteredPkgs);
     
     // Get client user data for state
-    const client = users.find(u => u.email === request.client_email);
+    const client = allUsers.find(u => u.email === request.client_email);
     setClientUser(client);
     
     // Get state config for shipping rate
     if (client?.state) {
-      const state = states.find(s => 
+      const state = allStates.find(s => 
         s.state_code === client.state || 
         s.state_name.toLowerCase() === client.state.toLowerCase()
       );
@@ -189,13 +189,23 @@ export default function AdminShipmentApprovals({ user }) {
     const totalFOB = hasInsurance ? (parseFloat(customFobValue) || 0) : 0;
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
 
-    // Precio final por unidad desde configuración (Regular/Alto)
+    // Precio final por unidad desde configuración de Estados (Regular/Alto)
     const isHighRisk = cargoRisk === 'high';
-    const profit = (pricingConfig?.profit_percentage || 0) / 100;
-    const baseRate = isHighRisk ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
-    const stateRate = stateConfig?.shipping_rate || 0;
-    const doorToDoor = pricingConfig?.door_to_door_cost || 0;
-    const finalRate = (baseRate * (1 + profit)) + stateRate + doorToDoor;
+    const stateFinalRegular = stateConfig?.final_rate_regular;
+    const stateFinalHigh = stateConfig?.final_rate_high;
+    let finalRate;
+
+    // Preferir tarifas finales por estado si están definidas
+    if ((typeof stateFinalRegular === 'number' && stateFinalRegular > 0) || (typeof stateFinalHigh === 'number' && stateFinalHigh > 0)) {
+      finalRate = isHighRisk ? (stateFinalHigh ?? stateFinalRegular ?? 0) : (stateFinalRegular ?? stateFinalHigh ?? 0);
+    } else {
+      // Respaldo: cálculo global = base (regular/alto) + profit + envío por estado + puerta a puerta
+      const profit = (pricingConfig?.profit_percentage || 0) / 100;
+      const baseRate = isHighRisk ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
+      const stateRate = stateConfig?.shipping_rate || 0;
+      const doorToDoor = pricingConfig?.door_to_door_cost || 0;
+      finalRate = (baseRate * (1 + profit)) + stateRate + doorToDoor;
+    }
 
     // Unidades a cobrar
     const units = selectedShippingType === 'aereo' ? billableWeight : cbm;
