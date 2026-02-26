@@ -1097,14 +1097,11 @@ Email: ${client.email}`;
                   : deleteClient?.email}
               </span>
               . Esta acción no se puede deshacer.
-              {packagesCount[deleteClient?.email] > 0 && (
-                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-800 text-sm font-medium">
-                    ⚠️ Este cliente tiene {packagesCount[deleteClient?.email]} paquetes asociados.
-                    No se puede eliminar hasta que se eliminen todos sus paquetes.
-                  </p>
-                </div>
-              )}
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-800 text-sm font-medium">
+                  ⚠️ Se eliminarán en cascada TODOS los datos asociados (paquetes, consolidaciones, facturas, tickets, notificaciones, notas, etc.).
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1114,7 +1111,7 @@ Email: ${client.email}`;
                 e.preventDefault();
                 handleDelete();
               }}
-              disabled={deleting || packagesCount[deleteClient?.email] > 0}
+              disabled={deleting}
               className="bg-red-600 hover:bg-red-700"
             >
               {deleting ? (
