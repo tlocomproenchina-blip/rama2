@@ -111,6 +111,8 @@ CRÍTICO:
 - Usa $${userStateRate} como tarifa del estado del usuario (${userStateConfig?.state_name || 'no especificado'})
 - Si el CBM real es menor a 0.130, DEBES mencionar que se cobra el mínimo de 0.130 CBM
 - La tarifa de estado y puerta a puerta se multiplican por el CBM, NO se suman después
+- SI el cliente pregunta por precio en OTRO estado que NO sea ${userStateConfig?.state_name || 'su estado registrado'}, RECHAZA amablemente diciendo algo como: "Según mis registros, tu estado es ${userStateConfig?.state_name}. Solo puedo darte precios para envíos a tu estado. Para consultas de otros estados, por favor contacta a soporte 😊"
+- NUNCA des precios de otros estados aunque el cliente insista
 
 AL RESPONDER:
 - Solo menciona el CBM y el precio final
