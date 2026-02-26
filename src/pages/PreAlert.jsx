@@ -85,6 +85,10 @@ export default function PreAlert({ user }) {
       newErrors.fob_value = 'Valor FOB requerido para seguro';
     }
 
+    if (formData.has_insurance && !invoiceFile) {
+      newErrors.invoice_file = 'La factura es obligatoria cuando el envío está asegurado';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -355,13 +359,13 @@ export default function PreAlert({ user }) {
                   <div className="space-y-2">
                     <Label className="text-slate-700 font-medium flex items-center gap-2">
                       <Upload className="h-4 w-4" />
-                      Factura (PDF o imagen)
+                      {`Factura (PDF o imagen)${formData.has_insurance ? ' *' : ''}`}
                     </Label>
-                    <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition-colors">
+                    <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${errors.invoice_file ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
                       <input
                         type="file"
                         accept="image/*,.pdf"
-                        onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+                        onChange={(e) => { const f = e.target.files?.[0] || null; setInvoiceFile(f); if (f) setErrors(prev => ({ ...prev, invoice_file: null })); }}
                         className="hidden"
                         id="invoice-upload"
                       />
@@ -379,6 +383,12 @@ export default function PreAlert({ user }) {
                         )}
                       </label>
                     </div>
+                    {errors.invoice_file && (
+                      <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.invoice_file}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
