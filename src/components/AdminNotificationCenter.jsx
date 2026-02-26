@@ -64,6 +64,33 @@ export default function AdminNotificationCenter({ user }) {
       })
     );
 
+    // Actualizaciones en consolidaciones (pagos, estado, etc.)
+    unsubs.push(
+      base44.entities.Consolidation.subscribe((event) => {
+        const d = event?.data;
+        if (!d) return;
+        if (event.type === 'create') {
+          toast.message('📦 Nueva consolidación', { description: d.consolidation_tracking || 'Sin tracking' });
+        } else if (event.type === 'update') {
+          const label = d.payment_proof_url ? 'Comprobante de pago cargado' : `Estado: ${d.status || 'actualizado'}`;
+          toast.message('🚚 Consolidación actualizada', { description: `${d.consolidation_tracking || 'Sin tracking'} • ${label}` });
+        }
+      })
+    );
+
+    // Facturas generadas/actualizadas
+    unsubs.push(
+      base44.entities.Invoice.subscribe((event) => {
+        const d = event?.data;
+        if (!d) return;
+        if (event.type === 'create') {
+          toast.message('🧾 Nueva factura', { description: d.invoice_number || d.consolidation_tracking || 'Factura generada' });
+        } else if (event.type === 'update') {
+          toast.message('🧾 Factura actualizada', { description: d.invoice_number || d.consolidation_tracking || 'Actualización de factura' });
+        }
+      })
+    );
+
     return () => {
       unsubs.forEach((u) => { try { typeof u === 'function' && u(); } catch (_) {} });
     };
