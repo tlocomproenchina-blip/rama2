@@ -149,50 +149,34 @@ export default function AdminShipmentApprovals({ user }) {
     const totalFOB = hasInsurance ? (parseFloat(customFobValue) || 0) : 0;
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
 
-    // Calculate base shipping cost (Tarifa Base) según categoría de carga
-    let baseRate = 0;
+    // Precio final por unidad desde configuración (Regular/Alto)
     const isHighRisk = cargoRisk === 'high';
-    if (selectedShippingType === 'aereo') {
-      baseRate = isHighRisk ? (pricingConfig?.base_rate_high_risk || 790) : (pricingConfig?.base_rate_regular || 690);
-    } else {
-      baseRate = isHighRisk ? (pricingConfig?.base_rate_high_risk || 790) : (pricingConfig?.base_rate_regular || 690);
-    }
-    
-    // Apply profit percentage (Beneficio)
-    const profitPercentage = pricingConfig?.profit_percentage || 10;
-    const baseWithProfit = baseRate * (1 + profitPercentage / 100);
-    
-    // Calculate shipping cost based on billable weight/CBM
-    let shippingCost = 0;
-    if (selectedShippingType === 'aereo') {
-      shippingCost = billableWeight * baseWithProfit;
-    } else {
-      shippingCost = cbm * baseWithProfit;
-    }
-    
-    // Add state shipping rate (Tarifa Estado)
-    const stateShippingRate = stateConfig?.shipping_rate || 0;
-    
-    // Add door-to-door if applicable (Puerta a Puerta)
-    const doorToDoorCost = pricingConfig?.is_door_to_door_optional 
-      ? (pricingConfig?.door_to_door_cost || 0)
-      : 0;
-    
-    // Consolidation fee: $1 per package
+    const profit = (pricingConfig?.profit_percentage || 0) / 100;
+    const baseRate = isHighRisk ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
+    const stateRate = stateConfig?.shipping_rate || 0;
+    const doorToDoor = pricingConfig?.door_to_door_cost || 0;
+    const finalRate = (baseRate * (1 + profit)) + stateRate + doorToDoor;
+
+    // Unidades a cobrar
+    const units = selectedShippingType === 'aereo' ? billableWeight : cbm;
+
+    // Costo de envío usando SOLO el precio final
+    const shippingCost = finalRate * units;
+
+    // Consolidación: $1 por paquete
     const consolidationFee = selectedPackages.length * 1;
-    
-    // Formula: Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta + Consolidación
-    const totalCost = shippingCost + stateShippingRate + doorToDoorCost + consolidationFee + insuranceCost;
+
+    // Total
+    const totalCost = shippingCost + consolidationFee + insuranceCost;
 
     return {
       cbm,
       volumetricWeight,
       billableWeight,
       baseRate,
-      profitPercentage,
+      profitPercentage: pricingConfig?.profit_percentage || 0,
+      finalRate,
       shippingCost,
-      stateShippingRate,
-      doorToDoorCost,
       consolidationFee,
       insuranceCost,
       totalCost
