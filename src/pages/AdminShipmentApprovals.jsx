@@ -627,34 +627,34 @@ export default function AdminShipmentApprovals({ user }) {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-600">CBM:</span>
-                      <span className="font-medium">{calculateValues().cbm.toFixed(4)} m³</span>
+                      <span className="font-medium">{Number(calculateValues().cbm ?? 0).toFixed(4)} m³</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">Peso Volumétrico:</span>
-                      <span className="font-medium">{calculateValues().volumetricWeight.toFixed(2)} kg</span>
+                      <span className="font-medium">{Number(calculateValues().volumetricWeight ?? 0).toFixed(2)} kg</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">Peso Facturable:</span>
-                      <span className="font-medium">{calculateValues().billableWeight.toFixed(2)} kg</span>
+                      <span className="font-medium">{Number(calculateValues().billableWeight ?? 0).toFixed(2)} kg</span>
                     </div>
                     
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between">
                         <span className="text-slate-600">Precio final usado:</span>
-                        <span className="font-medium">${calculateValues().finalRate.toFixed(2)} {selectedShippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}</span>
+                        <span className="font-medium">${Number(calculateValues().finalRate ?? 0).toFixed(2)} {selectedShippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-600">Costo Envío:</span>
-                        <span className="font-medium">${calculateValues().shippingCost.toFixed(2)}</span>
+                        <span className="font-medium">${Number(calculateValues().shippingCost ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-600">Consolidación de carga ({selectedPackages.length} paquetes):</span>
-                        <span className="font-medium">${calculateValues().consolidationFee.toFixed(2)}</span>
+                        <span className="font-medium">${Number(calculateValues().consolidationFee ?? 0).toFixed(2)}</span>
                       </div>
                       {hasInsurance && (
                         <div className="flex justify-between text-emerald-700">
                           <span className="font-medium">Seguro ({config?.insurance_percentage || 5}%):</span>
-                          <span className="font-medium">${calculateValues().insuranceCost.toFixed(2)}</span>
+                          <span className="font-medium">${Number(calculateValues().insuranceCost ?? 0).toFixed(2)}</span>
                         </div>
                       )}
                     </div>
@@ -662,7 +662,7 @@ export default function AdminShipmentApprovals({ user }) {
                     <div className="border-t pt-2 mt-2">
                       <div className="flex justify-between items-center">
                         <span className="text-lg font-bold">Total:</span>
-                        <span className="text-lg font-bold text-emerald-600">${calculateValues().totalCost.toFixed(2)}</span>
+                        <span className="text-lg font-bold text-emerald-600">${Number(calculateValues().totalCost ?? 0).toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
