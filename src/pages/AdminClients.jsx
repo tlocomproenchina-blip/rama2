@@ -93,15 +93,20 @@ export default function AdminClients({ user }) {
 
   const loadRolePermissions = async () => {
     try {
-      const roleCode = user?.custom_role || (user?.role === 'admin' ? 'admin' : null);
+      // Los administradores siempre pueden exportar
+      if (user?.role === 'admin') { setCanExport(true); return; }
+
+      const roleCode = user?.custom_role || null;
       if (!roleCode) { setCanExport(false); return; }
+
       const roles = await base44.entities.RoleConfig.filter({ role_code: roleCode, is_active: true });
-      const allowed = roles.length > 0 ? !!(roles[0]?.permissions?.export_data) : (user?.role === 'admin');
+      const allowed = roles.length > 0 ? !!(roles[0]?.permissions?.export_data) : false;
       setCanExport(allowed);
     } catch (e) {
       setCanExport(user?.role === 'admin');
     }
   };
+
 
   const loadClients = async () => {
     try {
