@@ -545,6 +545,36 @@ export default function AdminShipmentApprovals({ user }) {
               />
             </div>
 
+            {/* Cargo Risk */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Shield className="h-4 w-4" /> Categoría de Carga
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCargoRisk('regular')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    cargoRisk === 'regular' ? 'border-purple-500 bg-purple-50' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-sm font-medium">Regular</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCargoRisk('high')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    cargoRisk === 'high' ? 'border-rose-500 bg-rose-50' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-sm font-medium">Alto riesgo</span>
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Tarifa usada: ${cargoRisk === 'high' ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0)} {selectedShippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
+              </p>
+            </div>
+
             {/* Insurance Controls */}
             <div className="border-t pt-4 space-y-4">
               <div className="flex items-center justify-between">
