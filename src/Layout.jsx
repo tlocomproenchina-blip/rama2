@@ -209,7 +209,7 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden">
       <style>{`
-        [data-sonner-toaster] { display: none !important; }
+        /* toasts visible */
         body { overflow-x: hidden; }
 
         /* Mobile responsiveness improvements */
