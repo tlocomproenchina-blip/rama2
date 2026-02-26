@@ -153,17 +153,9 @@ export default function AdminClients({ user }) {
     setSaving(true);
 
     try {
-      // Validate shipping mark format
-      if (editData.shipping_mark && !editData.shipping_mark.startsWith('TLEC-')) {
-        editData.shipping_mark = `TLEC-${editData.shipping_mark.replace('TLEC-', '')}`;
-      }
-
-      // Validate shipping mark suffix (max 10 chars, alphanumeric)
-      const suffix = editData.shipping_mark.replace('TLEC-', '');
-      if (suffix && (suffix.length > 10 || !/^[A-Za-z0-9]*$/.test(suffix))) {
-        toast.error('El Shipping Mark debe tener máximo 10 caracteres alfanuméricos');
-        setSaving(false);
-        return;
+      // Shipping Mark manual: sin prefijo forzado ni validación de formato
+      if (typeof editData.shipping_mark === 'string') {
+        editData.shipping_mark = editData.shipping_mark.trim();
       }
 
       await base44.entities.User.update(editClient.id, editData);
@@ -441,7 +433,7 @@ Email: ${client.email}`;
   };
 
   const hasValidShippingMark = (client) => {
-    return client.shipping_mark && client.shipping_mark.length > 5 && client.shipping_mark !== 'TLEC-';
+    return !!(client.shipping_mark && client.shipping_mark.trim().length > 0);
   };
 
   const resetAllFilters = () => {
@@ -1221,22 +1213,12 @@ Email: ${client.email}`;
               <Label className="flex items-center gap-2">
                 <Tag className="h-4 w-4" /> Shipping Mark
               </Label>
-              <div className="flex gap-2">
-                <div className="flex items-center px-3 bg-slate-100 rounded-l-lg border border-r-0 border-slate-200 text-slate-600 font-medium">
-                  TLEC-
-                </div>
-                <Input
-                  value={editData.shipping_mark?.replace('TLEC-', '') || ''}
-                  onChange={(e) => {
-                    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
-                    setEditData({ ...editData, shipping_mark: `TLEC-${value}` });
-                  }}
-                  placeholder="XXXXXXXXXX"
-                  maxLength={10}
-                  className="rounded-l-none font-mono"
-                />
-              </div>
-              <p className="text-xs text-slate-500">Máximo 10 caracteres alfanuméricos</p>
+              <Input
+                value={editData.shipping_mark || ''}
+                onChange={(e) => setEditData({ ...editData, shipping_mark: e.target.value })}
+                placeholder="Ingresa el Shipping Mark completo"
+                className="font-mono"
+              />
             </div>
           </div>
 
