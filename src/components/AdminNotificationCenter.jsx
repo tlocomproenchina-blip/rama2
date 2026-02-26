@@ -4,8 +4,22 @@ import { toast } from 'sonner';
 
 export default function AdminNotificationCenter({ user }) {
   useEffect(() => {
-    // Real-time subscriptions disabled to prevent rate limiting
-    // Admin notifications will be created via backend functions when needed
+    if (!user?.email || user?.role !== 'admin') return;
+
+    // Escuchar todas las notificaciones nuevas para admins en vivo
+    const unsubscribe = base44.entities.Notification.subscribe((event) => {
+      const data = event?.data;
+      if (!data) return;
+
+      // Si la notificación está dirigida a este admin, mostrar toast
+      if (event.type === 'create' && data.user_email === user.email) {
+        toast.message(data.title || 'Nueva notificación', { description: data.message });
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, [user]);
 
   const saveNotification = async (title, message, type, icon, referenceId) => {
