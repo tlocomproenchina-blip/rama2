@@ -35,13 +35,25 @@ export default function AdminNotificationCenter({ user }) {
         if (!d) return;
 
         if (event.type === 'create') {
-          // Ticket creado por cliente
-          toast.message('🆘 Nuevo ticket de soporte', { description: d.subject || 'Nuevo mensaje de soporte' });
+          // Crear registro para que la campana muestre contador
+          saveNotification(
+            'Nuevo ticket de soporte',
+            d.subject || 'Nuevo mensaje de soporte',
+            'system',
+            'alert',
+            d.id || d.ticket_number || 'support'
+          );
         } else if (event.type === 'update') {
           // Detectar si el ÚLTIMO mensaje lo envió el cliente
           const lastMsg = Array.isArray(d.messages) && d.messages.length > 0 ? d.messages[d.messages.length - 1] : null;
           if (lastMsg && lastMsg.is_admin === false && lastMsg.sender_email !== user.email) {
-            toast.message('🆘 Nuevo mensaje del cliente', { description: d.subject || 'Actualización en soporte' });
+            saveNotification(
+              'Nuevo mensaje del cliente',
+              d.subject || 'Actualización en soporte',
+              'system',
+              'alert',
+              d.id || d.ticket_number || 'support'
+            );
           }
         }
       })
