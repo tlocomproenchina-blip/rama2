@@ -79,7 +79,7 @@ export default function AdminInsured({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-0 shadow-md bg-gradient-to-br from-emerald-50 to-white">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">

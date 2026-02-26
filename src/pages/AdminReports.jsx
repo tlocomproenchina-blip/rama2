@@ -173,7 +173,7 @@ export default function AdminReports({ user }) {
       </div>
 
       <Tabs defaultValue="clients" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="w-full overflow-x-auto">
           <TabsTrigger value="clients">Top Clientes</TabsTrigger>
           <TabsTrigger value="revenue">Ingresos</TabsTrigger>
           <TabsTrigger value="packages">Paquetes</TabsTrigger>

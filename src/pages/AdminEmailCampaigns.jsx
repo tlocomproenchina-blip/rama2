@@ -352,7 +352,7 @@ export default function AdminEmailCampaigns({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-0 shadow-md">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -562,7 +562,7 @@ export default function AdminEmailCampaigns({ user }) {
                       rows={12}
                       className="font-mono text-sm"
                     />
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
                         onClick={handlePasteHtml}
@@ -680,7 +680,7 @@ export default function AdminEmailCampaigns({ user }) {
                 )}
               </div>
 
-              <div className="flex gap-3">
+              <div className="header-actions flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={() => setPreviewOpen(true)}
                   variant="outline"

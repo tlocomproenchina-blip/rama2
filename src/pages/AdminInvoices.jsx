@@ -485,7 +485,7 @@ export default function AdminInvoices({ user }) {
           <h1 className="text-2xl font-bold text-slate-800">Gestión de Facturas</h1>
           <p className="text-slate-500">Administra facturas y pagos de clientes</p>
         </div>
-        <div className="flex gap-2">
+        <div className="header-actions flex flex-wrap gap-2 w-full sm:w-auto">
           <Button onClick={() => setShowCreateModal(true)} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="h-4 w-4 mr-2" />
             Crear Factura
