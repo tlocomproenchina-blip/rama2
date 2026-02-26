@@ -97,10 +97,10 @@ export default function ShippingCalculator({ user }) {
     } else {
       baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
-      // For sea: charge by real weight (kg)
-      billableWeight = Math.max(realWeight, 0);
-      baseCost = billableWeight * baseRate;
-      chargedBy = `${billableWeight.toFixed(2)} kg`;
+      // For sea: charge by CBM
+      baseCost = calculatedCbm * baseRate;
+      billableWeight = calculatedCbm;
+      chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
     }
 
     // Apply profit percentage to base rate
@@ -115,9 +115,8 @@ export default function ShippingCalculator({ user }) {
     // Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta
     const finalRate = adjustedRate + stateShipping + doorToDoor;
 
-    // Total de Envío = Precio Final × unidades (kg para aéreo o CBM para marítimo)
-    const units = shippingType === 'aereo' ? billableWeight : billableWeight;
-    const shippingCost = finalRate * units;
+    // Total de Envío = Precio Final × CBM (o peso facturable para aéreo)
+    const shippingCost = finalRate * billableWeight;
 
     // Calculate insurance
     const fob = parseFloat(fobValue) || 0;
@@ -128,7 +127,6 @@ export default function ShippingCalculator({ user }) {
     setResult({
       baseRate,
       rateType,
-      finalRate,
       volumetricWeight,
       cbm: calculatedCbm,
       billableWeight,
@@ -206,29 +204,15 @@ export default function ShippingCalculator({ user }) {
           {/* Cargo Category */}
           <div className="space-y-2">
             <Label>Categoría de Carga</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setCargoCategory('general')}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  cargoCategory === 'general' ? 'border-purple-500 bg-purple-50' : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <span className="text-sm font-medium">Regular</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCargoCategory('sensitive')}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  cargoCategory === 'sensitive' ? 'border-rose-500 bg-rose-50' : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <span className="text-sm font-medium">Alto riesgo</span>
-              </button>
-            </div>
-            <p className="text-xs text-slate-500">
-              Tarifa usada: {cargoCategory === 'sensitive' ? 'Precio final alto riesgo' : 'Precio final regular'} — ${result ? result.finalRate.toFixed(2) : '0.00'} 'USD/kg'
-            </p>
+            <Select value={cargoCategory} onValueChange={setCargoCategory}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">General</SelectItem>
+                <SelectItem value="sensitive">Sensible</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* State Selection */}
@@ -408,10 +392,10 @@ export default function ShippingCalculator({ user }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Tarifa final:</span>
+              <span className="text-slate-600">Tarifa base:</span>
               <div className="text-right">
-                <span className="font-semibold">${result.finalRate.toFixed(2)}/'kg'</span>
-                <p className="text-xs text-slate-500">{cargoCategory === 'sensitive' ? 'Precio final alto riesgo' : 'Precio final regular'}</p>
+                <span className="font-semibold">${result.baseRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
+                <p className="text-xs text-slate-500">{result.rateType}</p>
               </div>
             </div>
 

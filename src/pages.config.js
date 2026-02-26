@@ -47,86 +47,86 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
-import FAQ from './pages/FAQ';
 import AccountDisabled from './pages/AccountDisabled';
-import AdminRoles from './pages/AdminRoles';
 import AccountingDashboard from './pages/AccountingDashboard';
-import AdminMarketing from './pages/AdminMarketing';
-import Home from './pages/Home';
-import ShippingCalculator from './pages/ShippingCalculator';
-import Dashboard from './pages/Dashboard';
-import AdminPayments from './pages/AdminPayments';
-import AdminInsured from './pages/AdminInsured';
-import Support from './pages/Support';
-import Profile from './pages/Profile';
-import AdminPromotions from './pages/AdminPromotions';
-import PreAlert from './pages/PreAlert';
-import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
-import AdminFAQ from './pages/AdminFAQ';
-import AdminConsolidate from './pages/AdminConsolidate';
-import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
-import AdminPermissions from './pages/AdminPermissions';
-import MyPackages from './pages/MyPackages';
-import AdminEmailTemplates from './pages/AdminEmailTemplates';
-import RequestConsolidation from './pages/RequestConsolidation';
-import MyConsolidations from './pages/MyConsolidations';
-import Rates from './pages/Rates';
-import AdminDashboard from './pages/AdminDashboard';
-import ShipmentTracking from './pages/ShipmentTracking';
 import AdminClients from './pages/AdminClients';
-import AdminInvoices from './pages/AdminInvoices';
-import AdminSupportTickets from './pages/AdminSupportTickets';
-import MyInvoices from './pages/MyInvoices';
-import AdminSupport from './pages/AdminSupport';
-import AdminPackages from './pages/AdminPackages';
-import AdminSettings from './pages/AdminSettings';
-import ClientPortal from './pages/ClientPortal';
-import AdminReports from './pages/AdminReports';
-import EmployeeDashboard from './pages/EmployeeDashboard';
+import AdminConsolidate from './pages/AdminConsolidate';
+import AdminDashboard from './pages/AdminDashboard';
 import AdminDelete from './pages/AdminDelete';
+import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
+import AdminEmailTemplates from './pages/AdminEmailTemplates';
+import AdminFAQ from './pages/AdminFAQ';
+import AdminInsured from './pages/AdminInsured';
+import AdminInvoices from './pages/AdminInvoices';
+import AdminMarketing from './pages/AdminMarketing';
+import AdminPackages from './pages/AdminPackages';
+import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
+import AdminPayments from './pages/AdminPayments';
+import AdminPermissions from './pages/AdminPermissions';
+import AdminPromotions from './pages/AdminPromotions';
+import AdminReports from './pages/AdminReports';
+import AdminRoles from './pages/AdminRoles';
+import AdminSettings from './pages/AdminSettings';
+import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
+import AdminSupport from './pages/AdminSupport';
+import AdminSupportTickets from './pages/AdminSupportTickets';
+import ClientPortal from './pages/ClientPortal';
+import Dashboard from './pages/Dashboard';
+import EmployeeDashboard from './pages/EmployeeDashboard';
+import FAQ from './pages/FAQ';
+import Home from './pages/Home';
+import MyConsolidations from './pages/MyConsolidations';
+import MyInvoices from './pages/MyInvoices';
+import MyPackages from './pages/MyPackages';
+import PreAlert from './pages/PreAlert';
+import Profile from './pages/Profile';
+import Rates from './pages/Rates';
+import RequestConsolidation from './pages/RequestConsolidation';
+import ShipmentTracking from './pages/ShipmentTracking';
+import ShippingCalculator from './pages/ShippingCalculator';
+import Support from './pages/Support';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "AdminPaymentAlerts": AdminPaymentAlerts,
-    "FAQ": FAQ,
     "AccountDisabled": AccountDisabled,
-    "AdminRoles": AdminRoles,
     "AccountingDashboard": AccountingDashboard,
-    "AdminMarketing": AdminMarketing,
-    "Home": Home,
-    "ShippingCalculator": ShippingCalculator,
-    "Dashboard": Dashboard,
-    "AdminPayments": AdminPayments,
-    "AdminInsured": AdminInsured,
-    "Support": Support,
-    "Profile": Profile,
-    "AdminPromotions": AdminPromotions,
-    "PreAlert": PreAlert,
-    "AdminEmailCampaigns": AdminEmailCampaigns,
-    "AdminFAQ": AdminFAQ,
-    "AdminConsolidate": AdminConsolidate,
-    "AdminShipmentApprovals": AdminShipmentApprovals,
-    "AdminPermissions": AdminPermissions,
-    "MyPackages": MyPackages,
-    "AdminEmailTemplates": AdminEmailTemplates,
-    "RequestConsolidation": RequestConsolidation,
-    "MyConsolidations": MyConsolidations,
-    "Rates": Rates,
-    "AdminDashboard": AdminDashboard,
-    "ShipmentTracking": ShipmentTracking,
     "AdminClients": AdminClients,
-    "AdminInvoices": AdminInvoices,
-    "AdminSupportTickets": AdminSupportTickets,
-    "MyInvoices": MyInvoices,
-    "AdminSupport": AdminSupport,
-    "AdminPackages": AdminPackages,
-    "AdminSettings": AdminSettings,
-    "ClientPortal": ClientPortal,
-    "AdminReports": AdminReports,
-    "EmployeeDashboard": EmployeeDashboard,
+    "AdminConsolidate": AdminConsolidate,
+    "AdminDashboard": AdminDashboard,
     "AdminDelete": AdminDelete,
+    "AdminEmailCampaigns": AdminEmailCampaigns,
+    "AdminEmailTemplates": AdminEmailTemplates,
+    "AdminFAQ": AdminFAQ,
+    "AdminInsured": AdminInsured,
+    "AdminInvoices": AdminInvoices,
+    "AdminMarketing": AdminMarketing,
+    "AdminPackages": AdminPackages,
+    "AdminPaymentAlerts": AdminPaymentAlerts,
+    "AdminPayments": AdminPayments,
+    "AdminPermissions": AdminPermissions,
+    "AdminPromotions": AdminPromotions,
+    "AdminReports": AdminReports,
+    "AdminRoles": AdminRoles,
+    "AdminSettings": AdminSettings,
+    "AdminShipmentApprovals": AdminShipmentApprovals,
+    "AdminSupport": AdminSupport,
+    "AdminSupportTickets": AdminSupportTickets,
+    "ClientPortal": ClientPortal,
+    "Dashboard": Dashboard,
+    "EmployeeDashboard": EmployeeDashboard,
+    "FAQ": FAQ,
+    "Home": Home,
+    "MyConsolidations": MyConsolidations,
+    "MyInvoices": MyInvoices,
+    "MyPackages": MyPackages,
+    "PreAlert": PreAlert,
+    "Profile": Profile,
+    "Rates": Rates,
+    "RequestConsolidation": RequestConsolidation,
+    "ShipmentTracking": ShipmentTracking,
+    "ShippingCalculator": ShippingCalculator,
+    "Support": Support,
 }
 
 export const pagesConfig = {
