@@ -174,6 +174,7 @@ export default function Layout({ children, currentPageName }) {
           if (!currentUser.whatsapp) missingFields.push('whatsapp');
           if (!currentUser.state) missingFields.push('state');
           if (!currentUser.city) missingFields.push('city');
+          if (!currentUser.address) missingFields.push('address');
           
           if (missingFields.length > 0 && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
             navigate(createPageUrl('Profile'));

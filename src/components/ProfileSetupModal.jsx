@@ -48,7 +48,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
     if (!formData.state.trim()) newErrors.state = 'Estado requerido';
     if (!formData.city.trim()) newErrors.city = 'Ciudad requerida';
     if (!formData.whatsapp.trim()) newErrors.whatsapp = 'WhatsApp requerido';
-    // address is optional
+    if (!formData.address.trim()) newErrors.address = 'Dirección requerida';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -225,10 +225,13 @@ export default function ProfileSetupModal({ open, onComplete }) {
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               placeholder="Calle, número, edificio, apartamento, referencias..."
               rows={3}
+              className={errors.address ? 'border-red-300' : ''}
             />
-            <p className="text-xs text-slate-500">
-              Opcional: Útil para entregas a domicilio
-            </p>
+            {errors.address && (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" /> {errors.address}
+              </p>
+            )}
           </div>
         </div>
 
