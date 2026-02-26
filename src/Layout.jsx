@@ -190,6 +190,15 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
+  // If client account is disabled, show only the disabled message (no sidebar or header)
+  if (user?.role === 'user' && user.is_active === false) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        {React.cloneElement(children, { user, refreshUser: loadUser })}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden">
       <style>{`
