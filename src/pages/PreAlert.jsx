@@ -312,7 +312,12 @@ export default function PreAlert({ user }) {
                 <Checkbox
                   id="insurance"
                   checked={formData.has_insurance}
-                  onCheckedChange={(checked) => setFormData({ ...formData, has_insurance: checked })}
+                  onCheckedChange={(checked) => {
+                    setFormData({ ...formData, has_insurance: checked });
+                    if (!checked) {
+                      setErrors(prev => ({ ...prev, fob_value: null, invoice_file: null }));
+                    }
+                  }}
                 />
                 <div className="space-y-1">
                   <Label htmlFor="insurance" className="cursor-pointer font-medium text-slate-700 flex items-center gap-2">
