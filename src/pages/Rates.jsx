@@ -81,6 +81,11 @@ export default function Rates({ user }) {
       volumetricWeight = calculatedCbm * 167;
     }
 
+    // Para marítimo no usamos peso volumétrico
+    if (shippingType === 'maritimo') {
+      volumetricWeight = 0;
+    }
+
     const isSensitive = cargoCategory === 'sensitive';
     let rate = 0;
     let billableWeight = 0;
@@ -97,9 +102,10 @@ export default function Rates({ user }) {
     } else {
       rate = isSensitive ? (config.rate_sea_sensitive || 0) : (config.rate_sea_general || 0);
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
-      baseCost = calculatedCbm * rate;
-      billableWeight = calculatedCbm;
-      chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
+      // Marítimo: SIEMPRE por peso real (kg)
+      baseCost = realWeight * rate;
+      billableWeight = realWeight;
+      chargedBy = `${realWeight.toFixed(2)} kg`;
     }
 
     const fob = parseFloat(fobValue) || 0;
@@ -234,7 +240,7 @@ export default function Rates({ user }) {
                       `$${config?.rate_sea_general?.toFixed(2) || '0.00'}`
                     )}
                   </p>
-                  <p className="text-xs text-slate-500">por CBM</p>
+                  <p className="text-xs text-slate-500">por kilogramo</p>
                 </div>
               </div>
               <p className="text-xs text-slate-500 mt-2">
@@ -256,7 +262,7 @@ export default function Rates({ user }) {
                       `$${config?.rate_sea_sensitive?.toFixed(2) || '0.00'}`
                     )}
                   </p>
-                  <p className="text-xs text-slate-500">por CBM</p>
+                  <p className="text-xs text-slate-500">por kilogramo</p>
                 </div>
               </div>
               <p className="text-xs text-slate-500 mt-2">
@@ -396,11 +402,11 @@ export default function Rates({ user }) {
             </div>
             <div className="flex gap-2">
               <span className="font-semibold min-w-[140px]">CBM:</span>
-              <span>Para envíos marítimos se calcula como (Largo × Ancho × Alto en metros)</span>
+              <span>Se usa para calcular el peso volumétrico en envíos aéreos</span>
             </div>
             <div className="flex gap-2">
               <span className="font-semibold min-w-[140px]">Costo Final:</span>
-              <span>Se cobra según el peso facturable (el mayor entre peso real y volumétrico)</span>
+              <span><strong>Aéreo:</strong> mayor entre peso real y volumétrico (mín. 1 kg). <strong>Marítimo:</strong> siempre por peso real.</span>
             </div>
             <div className="flex gap-2">
               <span className="font-semibold min-w-[140px]">Carga Sensible:</span>
