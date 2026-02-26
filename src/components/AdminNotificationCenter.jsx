@@ -33,9 +33,16 @@ export default function AdminNotificationCenter({ user }) {
       base44.entities.SupportTicket.subscribe((event) => {
         const d = event?.data;
         if (!d) return;
-        const fromClient = d.created_by && d.created_by !== user.email;
-        if ((event.type === 'create' || event.type === 'update') && fromClient) {
-          toast.message('🆘 Soporte', { description: `${d.subject || 'Nuevo mensaje de soporte'} (${event.type === 'create' ? 'nuevo' : 'actualizado'})` });
+
+        if (event.type === 'create') {
+          // Ticket creado por cliente
+          toast.message('🆘 Nuevo ticket de soporte', { description: d.subject || 'Nuevo mensaje de soporte' });
+        } else if (event.type === 'update') {
+          // Detectar si el ÚLTIMO mensaje lo envió el cliente
+          const lastMsg = Array.isArray(d.messages) && d.messages.length > 0 ? d.messages[d.messages.length - 1] : null;
+          if (lastMsg && lastMsg.is_admin === false && lastMsg.sender_email !== user.email) {
+            toast.message('🆘 Nuevo mensaje del cliente', { description: d.subject || 'Actualización en soporte' });
+          }
         }
       })
     );
