@@ -652,6 +652,7 @@ export default function ClientPortal({ user, refreshUser }) {
                   <SelectItem value="envio">Envíos</SelectItem>
                   <SelectItem value="tracking">Tracking</SelectItem>
                   <SelectItem value="consolidacion">Consolidación</SelectItem>
+                  <SelectItem value="actualizar_datos">Actualizar datos</SelectItem>
                   <SelectItem value="otro">Otro</SelectItem>
                 </SelectContent>
               </Select>
