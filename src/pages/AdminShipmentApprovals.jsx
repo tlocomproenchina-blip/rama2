@@ -129,8 +129,12 @@ export default function AdminShipmentApprovals({ user }) {
       .filter(r => r.id !== request.id)
       .flatMap(r => r.package_ids || []);
 
-    // Mostrar solo paquetes recibidos, no consolidados y no reclamados por otra solicitud aprobada
+    // Solo mostrar paquetes que el cliente SÍ solicitó en ESTA solicitud
+    const requestedSet = new Set(request.package_ids || []);
+
+    // Mostrar solo paquetes solicitados, recibidos, no consolidados y no reclamados por otra solicitud aprobada
     const filteredPkgs = allClientPackages.filter(p =>
+      requestedSet.has(p.id) &&
       !p.consolidation_id &&
       !packagesInOtherApprovedRequests.includes(p.id)
     );
@@ -396,7 +400,7 @@ export default function AdminShipmentApprovals({ user }) {
             <CardTitle>
               Paquetes de {selectedRequest.shipping_mark}
               <p className="text-sm font-normal text-slate-500 mt-1">
-                Puedes agregar más paquetes del mismo cliente si es necesario
+                Solo se muestran los paquetes solicitados por el cliente para esta consolidación
               </p>
             </CardTitle>
           </CardHeader>
