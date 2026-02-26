@@ -144,21 +144,37 @@ export default function AdminEmailCampaigns({ user }) {
   };
 
   const getTargetClients = useMemo(() => {
+    const hasIncomplete = (c) => !c.first_name || !c.last_name || !c.whatsapp || !c.state || !c.city;
+
     if (targetType === 'all') return clients;
-    if (targetType === 'with_mark') return clients.filter(c => c.shipping_mark);
-    if (targetType === 'without_mark') return clients.filter(c => !c.shipping_mark);
-    if (targetType === 'incomplete_data') {
-      return clients.filter(c => !c.shipping_mark && (!c.city || !c.whatsapp));
+    if (targetType === 'with_mark') return clients.filter(c => c.shipping_mark && String(c.shipping_mark).trim().length > 0);
+    if (targetType === 'without_mark') return clients.filter(c => !c.shipping_mark || String(c.shipping_mark).trim().length === 0);
+
+    if (targetType === 'pending') {
+      return clients.filter(c => (!c.shipping_mark || String(c.shipping_mark).trim().length === 0) && c.profile_completed && !hasIncomplete(c));
     }
-    if (targetType === 'with_active_packages') {
+
+    if (targetType === 'incomplete_data') {
+      return clients.filter(c => hasIncomplete(c));
+    }
+
+    if (targetType === 'active') return clients.filter(c => c.is_active !== false);
+    if (targetType === 'inactive') return clients.filter(c => c.is_active === false);
+
+    if (targetType === 'with_packages' || targetType === 'without_packages' || targetType === 'with_active_packages') {
       const activeStatuses = ['recibido', 'consolidado', 'en_transito'];
+      const clientsWithAnyPackages = new Set(packages.map(pkg => pkg.client_email));
       const clientsWithActivePackages = new Set(
-        packages
-          .filter(pkg => activeStatuses.includes(pkg.status))
-          .map(pkg => pkg.client_email)
+        packages.filter(pkg => activeStatuses.includes(pkg.status)).map(pkg => pkg.client_email)
       );
+      if (targetType === 'with_packages') return clients.filter(c => clientsWithAnyPackages.has(c.email));
+      if (targetType === 'without_packages') return clients.filter(c => !clientsWithAnyPackages.has(c.email));
       return clients.filter(c => clientsWithActivePackages.has(c.email));
     }
+
+    if (targetType === 'with_whatsapp') return clients.filter(c => !!c.whatsapp);
+    if (targetType === 'without_whatsapp') return clients.filter(c => !c.whatsapp);
+
     if (targetType === 'custom') return clients.filter(c => selectedClients.includes(c.id));
     return [];
   }, [targetType, clients, selectedClients, packages]);
@@ -763,13 +779,34 @@ export default function AdminEmailCampaigns({ user }) {
                       Todos los clientes ({clients.length})
                     </SelectItem>
                     <SelectItem value="with_mark">
-                      Con Shipping Mark ({clients.filter(c => c.shipping_mark).length})
+                      Con Shipping Mark ({clients.filter(c => c.shipping_mark && String(c.shipping_mark).trim().length > 0).length})
                     </SelectItem>
                     <SelectItem value="without_mark">
-                      Sin Shipping Mark ({clients.filter(c => !c.shipping_mark).length})
+                      Sin Shipping Mark ({clients.filter(c => !c.shipping_mark || String(c.shipping_mark).trim().length === 0).length})
+                    </SelectItem>
+                    <SelectItem value="pending">
+                      Pendientes ({clients.filter(c => (!c.shipping_mark || String(c.shipping_mark).trim().length === 0) && c.profile_completed && !(!c.first_name || !c.last_name || !c.whatsapp || !c.state || !c.city)).length})
                     </SelectItem>
                     <SelectItem value="incomplete_data">
-                      Con Datos Incompletos ({clients.filter(c => !c.shipping_mark && (!c.city || !c.whatsapp)).length})
+                      Con Datos Incompletos ({clients.filter(c => !c.first_name || !c.last_name || !c.whatsapp || !c.state || !c.city).length})
+                    </SelectItem>
+                    <SelectItem value="active">
+                      Activos ({clients.filter(c => c.is_active !== false).length})
+                    </SelectItem>
+                    <SelectItem value="inactive">
+                      Inactivos ({clients.filter(c => c.is_active === false).length})
+                    </SelectItem>
+                    <SelectItem value="with_packages">
+                      Con Paquetes ({(() => {
+                        const clientsWithAnyPackages = new Set(packages.map(pkg => pkg.client_email));
+                        return clients.filter(c => clientsWithAnyPackages.has(c.email)).length;
+                      })()})
+                    </SelectItem>
+                    <SelectItem value="without_packages">
+                      Sin Paquetes ({(() => {
+                        const clientsWithAnyPackages = new Set(packages.map(pkg => pkg.client_email));
+                        return clients.filter(c => !clientsWithAnyPackages.has(c.email)).length;
+                      })()})
                     </SelectItem>
                     <SelectItem value="with_active_packages">
                       Con Paquetes Activos ({(() => {
@@ -779,6 +816,12 @@ export default function AdminEmailCampaigns({ user }) {
                         );
                         return clients.filter(c => clientsWithActivePackages.has(c.email)).length;
                       })()})
+                    </SelectItem>
+                    <SelectItem value="with_whatsapp">
+                      Con WhatsApp ({clients.filter(c => !!c.whatsapp).length})
+                    </SelectItem>
+                    <SelectItem value="without_whatsapp">
+                      Sin WhatsApp ({clients.filter(c => !c.whatsapp).length})
                     </SelectItem>
                     <SelectItem value="custom">
                       Selección personalizada
