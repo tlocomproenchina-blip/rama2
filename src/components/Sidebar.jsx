@@ -113,6 +113,27 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     onClose && onClose();
   };
 
+  // Auto-mark notifications as read when entering a page
+  useEffect(() => {
+    if (!user?.email) return;
+    const run = async () => {
+      if (currentPage === 'RequestConsolidation') {
+        await markNotificationsAsRead({ entity_type: 'ConsolidationRequest' });
+        setNotificationCounts(prev => ({ ...prev, requests: 0 }));
+      } else if (currentPage === 'MyPackages' || currentPage === 'AdminPackages') {
+        await markNotificationsAsRead({ entity_type: 'Package' });
+        setNotificationCounts(prev => ({ ...prev, packages: 0 }));
+      } else if (['ShipmentTracking','MyConsolidations','AdminShipmentApprovals','AdminConsolidate'].includes(currentPage)) {
+        await markNotificationsAsRead({ entity_type: 'Consolidation' });
+      } else if (['Dashboard','ClientPortal','AdminDashboard'].includes(currentPage)) {
+        await markNotificationsAsRead({ priority: 'critical' });
+        setNotificationCounts(prev => ({ ...prev, critical: 0 }));
+      }
+      await loadNotificationCounts();
+    };
+    run();
+  }, [currentPage, user?.email]);
+
   const [roleConfig, setRoleConfig] = useState(null);
   const isAdmin = user?.role === 'admin';
   const customRole = user?.custom_role;
