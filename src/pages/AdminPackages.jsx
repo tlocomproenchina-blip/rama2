@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Pagination from "@/components/common/Pagination";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,14 +47,18 @@ export default function AdminPackages({ user }) {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [editImageModal, setEditImageModal] = useState(null);
   const [newImageFile, setNewImageFile] = useState(null);
+  const pageSize = 50;
+  const [page, setPage] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
 
   useEffect(() => {
-    loadPackages();
-  }, []);
+    loadPackages(page);
+  }, [page]);
 
-  const loadPackages = async () => {
-    const pkgs = await base44.entities.Package.list('-created_date');
+  const loadPackages = async (pageIndex = 0) => {
+    const pkgs = await base44.entities.Package.list('-created_date', pageSize, pageIndex * pageSize);
     setPackages(pkgs);
+    setHasNext(pkgs.length === pageSize);
     setLoading(false);
   };
 
@@ -89,7 +94,7 @@ export default function AdminPackages({ user }) {
       toast.success('Paquete marcado como recibido');
       setReceiveModal(null);
       setImageFile(null);
-      loadPackages();
+      loadPackages(page);
     } catch (error) {
       toast.error('Error al procesar');
     }
@@ -113,7 +118,7 @@ export default function AdminPackages({ user }) {
       toast.success('Imagen actualizada');
       setEditImageModal(null);
       setNewImageFile(null);
-      loadPackages();
+      loadPackages(page);
     } catch (error) {
       toast.error('Error al actualizar imagen');
     }
@@ -130,7 +135,7 @@ export default function AdminPackages({ user }) {
     }
     
     toast.success('Estado actualizado y cliente notificado');
-    loadPackages();
+    loadPackages(page);
   };
 
   const handleAdvancedSearch = (filters) => {
@@ -203,7 +208,7 @@ export default function AdminPackages({ user }) {
       setBulkAction('');
       setBulkStatus('');
       setShowBulkConfirm(false);
-      loadPackages();
+      loadPackages(page);
     } catch (error) {
       toast.error('Error al ejecutar acción masiva');
     }
@@ -558,9 +563,11 @@ export default function AdminPackages({ user }) {
             <p className="text-slate-500">No se encontraron paquetes</p>
           </div>
         )}
-      </Card>
+        </Card>
 
-      {/* Receive Modal */}
+        <Pagination page={page} onPrev={() => setPage(p => Math.max(p - 1, 0))} onNext={() => setPage(p => (hasNext ? p + 1 : p))} hasNext={hasNext} />
+
+        {/* Receive Modal */}
       <Dialog open={!!receiveModal} onOpenChange={() => setReceiveModal(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>

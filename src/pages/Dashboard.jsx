@@ -42,10 +42,7 @@ export default function Dashboard({ user, refreshUser }) {
     if (user && user.email) {
       loadData();
     }
-    
-    // Real-time updates disabled to prevent rate limiting
-    // Users can refresh the page manually to see updates
-  }, []);
+  }, [user?.email]);
 
   const loadData = async () => {
     if (!user || !user.email) return;
@@ -102,7 +99,7 @@ export default function Dashboard({ user, refreshUser }) {
     recibidos: packages.filter(p => p.status === 'recibido').length,
     enTransito: consolidations.filter(c => c.status === 'en_transito').length,
     disponibles: consolidations.filter(c => c.status === 'disponible').length,
-  };
+  }; // Calculadas sobre los últimos 50 registros para eficiencia
 
   if (loading) {
     return (

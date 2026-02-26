@@ -18,6 +18,8 @@ import {
 
 export default function AdminReports({ user }) {
   const [loading, setLoading] = useState(true);
+  const [pendingPage, setPendingPage] = useState(0);
+  const pendingPageSize = 50;
   const [topClients, setTopClients] = useState([]);
   const [revenueByMonth, setRevenueByMonth] = useState([]);
   const [packagesByStatus, setPackagesByStatus] = useState([]);
@@ -29,8 +31,7 @@ export default function AdminReports({ user }) {
 
   const loadReportsData = async () => {
     try {
-      const [allUsers, allPackages, allConsolidations, allInvoices] = await Promise.all([
-        base44.entities.User.list(),
+      const [allPackages, allConsolidations, allInvoices] = await Promise.all([
         base44.entities.Package.list(),
         base44.entities.Consolidation.list(),
         base44.entities.Invoice.list()
@@ -57,14 +58,11 @@ export default function AdminReports({ user }) {
         }
       });
 
-      // Agregar nombres de usuario
-      const clientsWithNames = Object.values(clientShipments).map(client => {
-        const userData = allUsers.find(u => u.email === client.email);
-        return {
-          ...client,
-          name: userData?.full_name || userData?.first_name || client.email
-        };
-      });
+      // Construir lista usando email como nombre (evitar User.list())
+      const clientsWithNames = Object.values(clientShipments).map(client => ({
+        ...client,
+        name: client.email
+      }));
 
       const sortedClients = clientsWithNames.sort((a, b) => b.packages - a.packages).slice(0, 10);
       setTopClients(sortedClients);
@@ -125,10 +123,9 @@ export default function AdminReports({ user }) {
       const pendingMap = {};
       pendingInvoices.forEach(invoice => {
         if (!pendingMap[invoice.client_email]) {
-          const userData = allUsers.find(u => u.email === invoice.client_email);
           pendingMap[invoice.client_email] = {
             email: invoice.client_email,
-            name: userData?.full_name || userData?.first_name || invoice.client_email,
+            name: invoice.client_email,
             invoices: [],
             total: 0
           };
@@ -402,7 +399,9 @@ export default function AdminReports({ user }) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {pendingPayments.map((client) => (
+                  {pendingPayments
+                  .slice(pendingPage * pendingPageSize, (pendingPage + 1) * pendingPageSize)
+                  .map((client) => (
                     <div key={client.email} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -443,6 +442,12 @@ export default function AdminReports({ user }) {
                   </div>
                 </div>
               )}
+              <Pagination 
+                page={pendingPage} 
+                onPrev={() => setPendingPage(p => Math.max(p - 1, 0))} 
+                onNext={() => setPendingPage(p => ((pendingPage + 1) * pendingPageSize < pendingPayments.length ? p + 1 : p))} 
+                hasNext={(pendingPage + 1) * pendingPageSize < pendingPayments.length}
+              />
             </CardContent>
           </Card>
         </TabsContent>

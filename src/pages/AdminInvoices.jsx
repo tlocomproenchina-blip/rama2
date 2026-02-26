@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Pagination from "@/components/common/Pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -40,17 +41,20 @@ export default function AdminInvoices({ user }) {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [deconsolidateConfirm, setDeconsolidateConfirm] = useState(null);
   const [deconsolidating, setDeconsolidating] = useState(false);
+  const pageSize = 50;
+  const [page, setPage] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
 
   useEffect(() => {
-    loadInvoices();
+    loadInvoices(page);
     loadConsolidations();
-  }, []);
+  }, [page]);
 
-  const loadInvoices = async () => {
-    const data = await base44.entities.Invoice.list('-invoice_date');
+  const loadInvoices = async (pageIndex = 0) => {
+    const data = await base44.entities.Invoice.list('-invoice_date', pageSize, pageIndex * pageSize);
     setInvoices(data);
-    
-    // Calculate stats
+
+    // Calculate stats from current page (fast client-side)
     const stats = {
       total: data.length,
       paid: data.filter(i => i.status === 'pagada').length,
@@ -58,7 +62,8 @@ export default function AdminInvoices({ user }) {
       revenue: data.filter(i => i.status === 'pagada').reduce((sum, i) => sum + i.total, 0)
     };
     setStats(stats);
-    
+
+    setHasNext(data.length === pageSize);
     setLoading(false);
   };
 
@@ -306,6 +311,9 @@ export default function AdminInvoices({ user }) {
     doc.save(`factura-${invoice.invoice_number}.pdf`);
     toast.success('Factura descargada');
   };
+
+  const goPrev = () => setPage(p => Math.max(p - 1, 0));
+  const goNext = () => setPage(p => (hasNext ? p + 1 : p));
 
   const handleExportAll = () => {
     const csv = ['Número,Cliente,Fecha,Total,Estado,Método de Pago'];
@@ -691,9 +699,11 @@ export default function AdminInvoices({ user }) {
             </div>
           ))}
         </div>
-      )}
+        )}
 
-      {/* Create Invoice Modal */}
+        <Pagination page={page} onPrev={goPrev} onNext={goNext} hasNext={hasNext} />
+
+        {/* Create Invoice Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent>
           <DialogHeader>
