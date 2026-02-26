@@ -47,6 +47,7 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AccountDisabled from './pages/AccountDisabled';
 import AccountingDashboard from './pages/AccountingDashboard';
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
@@ -84,11 +85,11 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AccountDisabled from './pages/AccountDisabled';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AccountDisabled": AccountDisabled,
     "AccountingDashboard": AccountingDashboard,
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
@@ -126,7 +127,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AccountDisabled": AccountDisabled,
 }
 
 export const pagesConfig = {

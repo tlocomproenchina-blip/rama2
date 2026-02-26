@@ -449,6 +449,32 @@ Email: ${client.email}`;
     setStateFilter('all');
   };
 
+  // Make category filters globally exclusive (one or another)
+  const selectStatus = (value) => {
+    setStatusFilter(value);
+    setActiveFilter('all');
+    setPackageFilter('all');
+    setWhatsappFilter('all');
+  };
+  const selectActive = (value) => {
+    setActiveFilter(value);
+    setStatusFilter('all');
+    setPackageFilter('all');
+    setWhatsappFilter('all');
+  };
+  const selectPackage = (value) => {
+    setPackageFilter(value);
+    setStatusFilter('all');
+    setActiveFilter('all');
+    setWhatsappFilter('all');
+  };
+  const selectWhatsapp = (value) => {
+    setWhatsappFilter(value);
+    setStatusFilter('all');
+    setActiveFilter('all');
+    setPackageFilter('all');
+  };
+
   const filteredClients = clients.filter(client => {
     const searchLower = search.toLowerCase();
     const matchesSearch = (
@@ -668,7 +694,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={statusFilter === 'all'}
                 size="sm"
-                onClick={() => setStatusFilter('all')}
+                onClick={() => selectStatus('all')}
                 className={(statusFilter === 'all') ? 'bg-slate-900 text-white border-slate-900' : ''}
               >
                 Todos ({clients.length})
@@ -677,7 +703,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={statusFilter === 'with_mark'}
                 size="sm"
-                onClick={() => setStatusFilter('with_mark')}
+                onClick={() => selectStatus(statusFilter === 'with_mark' ? 'all' : 'with_mark')}
                 className={(statusFilter === 'with_mark') ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
               >
                 <CheckCircle className="h-3 w-3 mr-1" /> Con Shipping Mark ({clients.filter(c => hasValidShippingMark(c)).length})
@@ -686,7 +712,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={statusFilter === 'without_mark'}
                 size="sm"
-                onClick={() => setStatusFilter('without_mark')}
+                onClick={() => selectStatus(statusFilter === 'without_mark' ? 'all' : 'without_mark')}
                 className={(statusFilter === 'without_mark') ? 'bg-amber-100 text-amber-700 border-amber-200' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}
               >
                 <AlertTriangle className="h-3 w-3 mr-1" /> Sin Shipping Mark ({clients.filter(c => !hasValidShippingMark(c)).length})
@@ -695,7 +721,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={statusFilter === 'pending'}
                 size="sm"
-                onClick={() => setStatusFilter('pending')}
+                onClick={() => selectStatus(statusFilter === 'pending' ? 'all' : 'pending')}
                 className={(statusFilter === 'pending') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
               >
                 <Clock className="h-3 w-3 mr-1" /> Pendientes ({clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c)).length})
@@ -704,7 +730,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={statusFilter === 'incomplete'}
                 size="sm"
-                onClick={() => setStatusFilter('incomplete')}
+                onClick={() => selectStatus(statusFilter === 'incomplete' ? 'all' : 'incomplete')}
                 className={(statusFilter === 'incomplete') ? 'bg-red-100 text-red-700 border-red-200' : 'border-red-200 text-red-700 hover:bg-red-50'}
               >
                 <AlertTriangle className="h-3 w-3 mr-1" /> Con Datos Faltantes ({clients.filter(c => hasIncompleteData(c)).length})
@@ -714,7 +740,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={activeFilter === 'active'}
                 size="sm"
-                onClick={() => setActiveFilter(activeFilter === 'active' ? 'all' : 'active')}
+                onClick={() => selectActive(activeFilter === 'active' ? 'all' : 'active')}
                 className={(activeFilter === 'active')
                   ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                   : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
@@ -725,7 +751,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={activeFilter === 'inactive'}
                 size="sm"
-                onClick={() => setActiveFilter(activeFilter === 'inactive' ? 'all' : 'inactive')}
+                onClick={() => selectActive(activeFilter === 'inactive' ? 'all' : 'inactive')}
                 className={(activeFilter === 'inactive')
                   ? 'bg-rose-100 text-rose-700 border-rose-200'
                   : 'border-rose-200 text-rose-700 hover:bg-rose-50'}
@@ -736,7 +762,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={packageFilter === 'with_packages'}
                 size="sm"
-                onClick={() => setPackageFilter(packageFilter === 'with_packages' ? 'all' : 'with_packages')}
+                onClick={() => selectPackage(packageFilter === 'with_packages' ? 'all' : 'with_packages')}
                 className={(packageFilter === 'with_packages')
                   ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
                   : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'}
@@ -747,7 +773,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={packageFilter === 'without_packages'}
                 size="sm"
-                onClick={() => setPackageFilter(packageFilter === 'without_packages' ? 'all' : 'without_packages')}
+                onClick={() => selectPackage(packageFilter === 'without_packages' ? 'all' : 'without_packages')}
                 className={(packageFilter === 'without_packages')
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
@@ -758,7 +784,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={whatsappFilter === 'with'}
                 size="sm"
-                onClick={() => setWhatsappFilter(whatsappFilter === 'with' ? 'all' : 'with')}
+                onClick={() => selectWhatsapp(whatsappFilter === 'with' ? 'all' : 'with')}
                 className={(whatsappFilter === 'with')
                   ? 'bg-green-100 text-green-700 border-green-200'
                   : 'border-green-200 text-green-700 hover:bg-green-50'}
@@ -769,7 +795,7 @@ Email: ${client.email}`;
                 variant="outline"
                 aria-pressed={whatsappFilter === 'without'}
                 size="sm"
-                onClick={() => setWhatsappFilter(whatsappFilter === 'without' ? 'all' : 'without')}
+                onClick={() => selectWhatsapp(whatsappFilter === 'without' ? 'all' : 'without')}
                 className={(whatsappFilter === 'without')
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
