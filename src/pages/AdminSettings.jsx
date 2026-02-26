@@ -507,7 +507,7 @@ export default function AdminSettings({ user }) {
                 </div>
                 <div className="space-y-3">
                   <code className="block p-3 bg-white rounded border text-sm">
-                    Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta
+                    Tarifa base + Beneficio + Tarifa de Envío (estado) + Puerta a Puerta = Precio Final
                   </code>
                   
                   <div className="p-4 bg-white rounded-lg border">
@@ -676,6 +676,7 @@ export default function AdminSettings({ user }) {
                     <tr>
                       <th className="text-left p-3 font-medium text-slate-700">Estado</th>
                       <th className="text-left p-3 font-medium text-slate-700">Tarifa de Envío ($)</th>
+                      <th className="text-left p-3 font-medium text-slate-700">Precio final (Reg/Alto)</th>
                       <th className="text-center p-3 font-medium text-slate-700">Activo</th>
                       <th className="text-center p-3 font-medium text-slate-700">Acciones</th>
                     </tr>
