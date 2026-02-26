@@ -115,8 +115,9 @@ export default function ShippingCalculator({ user }) {
     // Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta
     const finalRate = adjustedRate + stateShipping + doorToDoor;
 
-    // Total de Envío = Precio Final × CBM (o peso facturable para aéreo)
-    const shippingCost = finalRate * billableWeight;
+    // Total de Envío = Precio Final × unidades (kg para aéreo o CBM para marítimo)
+    const units = shippingType === 'aereo' ? billableWeight : calculatedCbm;
+    const shippingCost = finalRate * units;
 
     // Calculate insurance
     const fob = parseFloat(fobValue) || 0;
