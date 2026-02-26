@@ -22,6 +22,53 @@ export default function AdminNotificationCenter({ user }) {
     };
   }, [user]);
 
+  // Escuchar actividades directas del cliente (fallback por si aún no existe la notificación)
+  useEffect(() => {
+    if (!user?.email || user?.role !== 'admin') return;
+
+    const unsubs = [];
+
+    // Tickets de soporte (mensajes del cliente)
+    unsubs.push(
+      base44.entities.SupportTicket.subscribe((event) => {
+        const d = event?.data;
+        if (!d) return;
+        const fromClient = d.created_by && d.created_by !== user.email;
+        if ((event.type === 'create' || event.type === 'update') && fromClient) {
+          toast.message('🆘 Soporte', { description: `${d.subject || 'Nuevo mensaje de soporte'} (${event.type === 'create' ? 'nuevo' : 'actualizado'})` });
+        }
+      })
+    );
+
+    // Solicitudes de consolidación creadas/actualizadas por clientes
+    unsubs.push(
+      base44.entities.ConsolidationRequest.subscribe((event) => {
+        const d = event?.data;
+        if (!d) return;
+        const fromClient = d.created_by && d.created_by !== user.email;
+        if ((event.type === 'create' || event.type === 'update') && fromClient) {
+          toast.message('🛒 Solicitud de consolidación', { description: `${d.client_email || 'Cliente'} (${event.type === 'create' ? 'nueva' : 'actualizada'})` });
+        }
+      })
+    );
+
+    // Prealertas/paquetes registrados por clientes
+    unsubs.push(
+      base44.entities.Package.subscribe((event) => {
+        const d = event?.data;
+        if (!d) return;
+        const fromClient = d.created_by && d.created_by !== user.email;
+        if (event.type === 'create' && fromClient) {
+          toast.message('📦 Nuevo paquete prealertado', { description: `${d.tracking_number || 'Sin tracking'}` });
+        }
+      })
+    );
+
+    return () => {
+      unsubs.forEach((u) => { try { typeof u === 'function' && u(); } catch (_) {} });
+    };
+  }, [user]);
+
   const saveNotification = async (title, message, type, icon, referenceId) => {
     try {
       // Check if notification already exists for this user and reference
