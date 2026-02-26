@@ -676,7 +676,8 @@ export default function AdminSettings({ user }) {
                     <tr>
                       <th className="text-left p-3 font-medium text-slate-700">Estado</th>
                       <th className="text-left p-3 font-medium text-slate-700">Tarifa de Envío ($)</th>
-                      <th className="text-left p-3 font-medium text-slate-700">Precio final (Reg/Alto)</th>
+                      <th className="text-left p-3 font-medium text-slate-700">Precio final Regular ($)</th>
+                      <th className="text-left p-3 font-medium text-slate-700">Precio final Alto riesgo ($)</th>
                       <th className="text-center p-3 font-medium text-slate-700">Activo</th>
                       <th className="text-center p-3 font-medium text-slate-700">Acciones</th>
                     </tr>
@@ -699,24 +700,18 @@ export default function AdminSettings({ user }) {
                           />
                         </td>
                         <td className="p-3">
-                          <div className="text-xs text-slate-700 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-500">Regular:</span>
-                              <span className="font-semibold">${(
-                                ((pricingConfig?.base_rate_regular || 0) * (1 + (pricingConfig?.profit_percentage || 0)/100))
-                                + (state.shipping_rate || 0)
-                                + (pricingConfig?.door_to_door_cost || 0)
-                              ).toFixed(2)}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-500">Alto riesgo:</span>
-                              <span className="font-semibold">${(
-                                ((pricingConfig?.base_rate_high_risk || 0) * (1 + (pricingConfig?.profit_percentage || 0)/100))
-                                + (state.shipping_rate || 0)
-                                + (pricingConfig?.door_to_door_cost || 0)
-                              ).toFixed(2)}</span>
-                            </div>
-                          </div>
+                          <span className="font-semibold">${(
+                            ((pricingConfig?.base_rate_regular || 0) * (1 + (pricingConfig?.profit_percentage || 0)/100))
+                            + (state.shipping_rate || 0)
+                            + (pricingConfig?.door_to_door_cost || 0)
+                          ).toFixed(2)}</span>
+                        </td>
+                        <td className="p-3">
+                          <span className="font-semibold">${(
+                            ((pricingConfig?.base_rate_high_risk || 0) * (1 + (pricingConfig?.profit_percentage || 0)/100))
+                            + (state.shipping_rate || 0)
+                            + (pricingConfig?.door_to_door_cost || 0)
+                          ).toFixed(2)}</span>
                         </td>
                         <td className="p-3 text-center">
                           <Switch
