@@ -88,6 +88,31 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       console.error('Error loading notification counts:', error);
     }
   };
+
+  const markNotificationsAsRead = async (extraFilter = {}) => {
+    try {
+      if (!user?.email) return;
+      const unread = await base44.entities.Notification.filter({ user_email: user.email, read: false, ...extraFilter });
+      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { read: true })));
+    } catch (e) { /* no-op */ }
+  };
+
+  const handleMenuClick = async (page) => {
+    if (page === 'RequestConsolidation') {
+      await markNotificationsAsRead({ entity_type: 'ConsolidationRequest' });
+      setNotificationCounts(prev => ({ ...prev, requests: 0 }));
+    } else if (page === 'MyPackages' || page === 'AdminPackages') {
+      await markNotificationsAsRead({ entity_type: 'Package' });
+      setNotificationCounts(prev => ({ ...prev, packages: 0 }));
+    } else if (page === 'ShipmentTracking' || page === 'MyConsolidations' || page === 'AdminShipmentApprovals') {
+      await markNotificationsAsRead({ entity_type: 'Consolidation' });
+    } else if (page === 'Dashboard' || page === 'ClientPortal' || page === 'AdminDashboard') {
+      await markNotificationsAsRead({ priority: 'critical' });
+      setNotificationCounts(prev => ({ ...prev, critical: 0 }));
+    }
+    onClose && onClose();
+  };
+
   const [roleConfig, setRoleConfig] = useState(null);
   const isAdmin = user?.role === 'admin';
   const customRole = user?.custom_role;
@@ -330,7 +355,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                           <Link
                             key={item.page}
                             to={createPageUrl(item.page)}
-                            onClick={onClose}
+                            onClick={() => handleMenuClick(item.page)}
                             className={`
                               flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200
                               ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
@@ -382,7 +407,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                           <Link
                             key={item.page}
                             to={createPageUrl(item.page)}
-                            onClick={onClose}
+                            onClick={() => handleMenuClick(item.page)}
                             className={`
                               flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200
                               ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
@@ -427,7 +452,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                     <Link
                       key={item.page}
                       to={createPageUrl(item.page)}
-                      onClick={onClose}
+                      onClick={() => handleMenuClick(item.page)}
                       className={`
                         flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200
                         ${isActive ?
