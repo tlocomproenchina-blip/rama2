@@ -49,8 +49,10 @@ export default function NotificationCenter({ user }) {
   // Marcar como leída
   const markAsRead = async (notificationId) => {
     try {
+      // Optimistic UI update
+      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
       await base44.entities.Notification.update(notificationId, { read: true });
-      loadNotifications();
     } catch (error) {
       toast.error('Error actualizando notificación');
     }
@@ -108,6 +110,7 @@ export default function NotificationCenter({ user }) {
       {/* Bell Icon Button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Abrir notificaciones"
         className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}

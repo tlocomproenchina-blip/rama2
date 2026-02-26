@@ -99,12 +99,10 @@ export default function NotificationBell({ user }) {
   };
 
   const handleNotificationClick = async (notif) => {
-    // Mark as read
+    // Mark as read (optimistic)
     if (!notif.read) {
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
       await base44.entities.Notification.update(notif.id, { read: true });
-      setNotifications(notifications.map(n => 
-        n.id === notif.id ? { ...n, read: true } : n
-      ));
     }
 
     // Navigate based on type and reference_id
@@ -131,10 +129,10 @@ export default function NotificationBell({ user }) {
    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
    if (unreadIds.length === 0) return;
 
-   for (const id of unreadIds) {
-     await base44.entities.Notification.update(id, { read: true });
-   }
-   setNotifications(notifications.map(n => ({ ...n, read: true })));
+   // Optimistic UI update
+   setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+
+   await Promise.all(unreadIds.map(id => base44.entities.Notification.update(id, { read: true })));
   };
 
   const deleteNotification = async (notifId, e) => {
@@ -148,7 +146,11 @@ export default function NotificationBell({ user }) {
   return (
     <DropdownMenu open={open} onOpenChange={(isOpen) => {
       setOpen(isOpen);
-      if (isOpen) loadNotifications(); // Refresh when opening
+      if (isOpen) {
+        loadNotifications(); // Refresh when opening
+        // Auto-mark all as read when opening the dropdown to align with sidebar behavior
+        setTimeout(() => markAllAsRead(), 0);
+      }
     }}>
       <DropdownMenuTrigger asChild>
         <Button 
