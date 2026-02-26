@@ -23,6 +23,7 @@ export default function ShippingCalculator({ user }) {
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
+  const MIN_CBM = 0.13;
 
   useEffect(() => {
     loadConfig();
@@ -105,10 +106,11 @@ export default function ShippingCalculator({ user }) {
     } else {
       baseRate = isSensitive ? (pricingConfig?.base_rate_high_risk || 0) : (pricingConfig?.base_rate_regular || 0);
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
-      // For sea: charge by CBM
-      baseCost = calculatedCbm * baseRate;
-      billableWeight = calculatedCbm;
-      chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
+      // For sea: charge by CBM with minimum billable volume
+      const usedCbm = Math.max(calculatedCbm, MIN_CBM);
+      baseCost = usedCbm * baseRate;
+      billableWeight = usedCbm;
+      chargedBy = `${usedCbm.toFixed(4)} CBM${usedCbm > calculatedCbm ? ' (mínimo facturable)' : ''}`;
     }
 
     // Determinar estado y tasas finales (Regular/Alto) desde la sección de Estados
@@ -143,7 +145,9 @@ export default function ShippingCalculator({ user }) {
       stateShipping,
       doorToDoor,
       stateName: selectedStateConfig?.state_name || null,
-      totalCost
+      totalCost,
+      minCbmApplied: shippingType === 'maritimo' && calculatedCbm < MIN_CBM,
+      minCbm: MIN_CBM
     });
   };
 
@@ -414,6 +418,12 @@ export default function ShippingCalculator({ user }) {
               <span className="text-slate-600">CBM calculado:</span>
               <span className="font-semibold">{result.cbm.toFixed(4)}</span>
             </div>
+            {shippingType === 'maritimo' && result.minCbmApplied && (
+              <div className="flex justify-between py-2 border-b bg-amber-50 rounded">
+                <span className="text-slate-700">Mínimo facturable:</span>
+                <span className="font-semibold">{result.minCbm.toFixed(4)} CBM</span>
+              </div>
+            )}
 
             {result.insuranceCost > 0 && (
               <div className="flex justify-between py-2 border-b">
