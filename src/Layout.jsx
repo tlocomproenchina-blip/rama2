@@ -194,7 +194,14 @@ export default function Layout({ children, currentPageName }) {
   if (user?.role === 'user' && user.is_active === false) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        {React.cloneElement(children, { user, refreshUser: loadUser })}
+        <div className="max-w-lg w-full bg-white rounded-xl shadow border p-6 text-center">
+          <div className="text-rose-600 text-2xl mb-2">⛔</div>
+          <h2 className="text-xl font-semibold text-slate-800">Cuenta desactivada</h2>
+          <p className="text-slate-600 mt-1">Tu cuenta ha sido desactivada por el equipo de soporte. Si crees que es un error, por favor contáctanos.</p>
+          <div className="mt-5">
+            <Button onClick={() => base44.auth.logout()} className="bg-blue-600 hover:bg-blue-700">Cerrar sesión</Button>
+          </div>
+        </div>
       </div>
     );
   }
