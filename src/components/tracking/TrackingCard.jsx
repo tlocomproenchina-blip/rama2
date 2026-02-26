@@ -434,8 +434,8 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                   </div>
                 </div>
 
-                 {/* Admin Status Control */
-                {user?.role === 'admin' && (consolidation.status === 'en_transito' || consolidation.status === 'pago_validado') && (
+                 {/* Admin Status Control */}
+                 {user?.role === 'admin' && (consolidation.status === 'en_transito' || consolidation.status === 'pago_validado') && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-sm font-semibold text-blue-900 mb-3">Cambiar Estado</p>
                     <Select onValueChange={(value) => onStatusChange(consolidation, value)}>
