@@ -698,6 +698,26 @@ export default function AdminSettings({ user }) {
                             className="w-32"
                           />
                         </td>
+                        <td className="p-3">
+                          <div className="text-xs text-slate-700 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-500">Regular:</span>
+                              <span className="font-semibold">${(
+                                ((pricingConfig?.base_rate_regular || 0) * (1 + (pricingConfig?.profit_percentage || 0)/100))
+                                + (state.shipping_rate || 0)
+                                + (pricingConfig?.door_to_door_cost || 0)
+                              ).toFixed(2)}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-500">Alto riesgo:</span>
+                              <span className="font-semibold">${(
+                                ((pricingConfig?.base_rate_high_risk || 0) * (1 + (pricingConfig?.profit_percentage || 0)/100))
+                                + (state.shipping_rate || 0)
+                                + (pricingConfig?.door_to_door_cost || 0)
+                              ).toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </td>
                         <td className="p-3 text-center">
                           <Switch
                             checked={state.is_active}
