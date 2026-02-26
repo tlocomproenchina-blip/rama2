@@ -28,13 +28,16 @@ import {
   Plane,
   Ship,
   Download,
-  Filter
+  Filter,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal';
 
@@ -63,6 +66,11 @@ export default function AdminClients({ user }) {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [dateFilter, setDateFilter] = useState('all');
+  const [quickDate, setQuickDate] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [packageFilter, setPackageFilter] = useState('all');
+  const [whatsappFilter, setWhatsappFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
   const [canExport, setCanExport] = useState(false);
 
   useEffect(() => {
@@ -449,13 +457,46 @@ Email: ${client.email}`;
       statusFilter === 'incomplete' ? hasIncompleteData(client) :
       true;
 
+    // Exact date (YYYY-MM-DD)
     let matchesDate = true;
     if (dateFilter !== 'all') {
       const clientDate = new Date(client.created_date).toISOString().split('T')[0];
       matchesDate = clientDate === dateFilter;
     }
 
-    return matchesSearch && matchesStatus && matchesDate;
+    // Quick date ranges
+    let matchesQuick = true;
+    if (quickDate !== 'all') {
+      const now = new Date();
+      const startOfToday = new Date();
+      startOfToday.setHours(0,0,0,0);
+      let threshold = startOfToday;
+      if (quickDate === '7d') threshold = new Date(now.getTime() - 7*24*60*60*1000);
+      if (quickDate === '30d') threshold = new Date(now.getTime() - 30*24*60*60*1000);
+      if (quickDate === 'today') threshold = startOfToday;
+      matchesQuick = new Date(client.created_date) >= threshold;
+    }
+
+    // Active / Inactive
+    const matchesActive = activeFilter === 'all' ? true : (
+      activeFilter === 'active' ? (client.is_active !== false) : (client.is_active === false)
+    );
+
+    // With / Without packages
+    const pkgCount = packagesCount[client.email] || 0;
+    const matchesPackages = packageFilter === 'all' ? true : (
+      packageFilter === 'with_packages' ? pkgCount > 0 : pkgCount === 0
+    );
+
+    // WhatsApp presence
+    const matchesWhatsapp = whatsappFilter === 'all' ? true : (
+      whatsappFilter === 'with' ? !!client.whatsapp : !client.whatsapp
+    );
+
+    // State
+    const matchesState = stateFilter === 'all' ? true : client.state === stateFilter;
+
+    return matchesSearch && matchesStatus && matchesDate && matchesQuick && matchesActive && matchesPackages && matchesWhatsapp && matchesState;
   });
 
   if (loading) {
@@ -582,73 +623,85 @@ Email: ${client.email}`;
           </div>
           
           {/* Date Filter */}
-          <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
-            <span className="text-sm font-medium text-slate-700">Filtrar por fecha:</span>
-            <Input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-auto"
-            />
-            {dateFilter !== 'all' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setDateFilter('all')}
-              >
-                Ver todos
-              </Button>
-            )}
+          <div className="flex flex-col gap-2 p-3 bg-slate-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">Filtrar por fecha exacta:</span>
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-auto"
+              />
+              {dateFilter !== 'all' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDateFilter('all')}
+                >
+                  Limpiar
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant={quickDate === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setQuickDate('all')}>Todas</Button>
+              <Button variant={quickDate === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setQuickDate('today')}>Hoy</Button>
+              <Button variant={quickDate === '7d' ? 'default' : 'outline'} size="sm" onClick={() => setQuickDate('7d')}>Últimos 7 días</Button>
+              <Button variant={quickDate === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setQuickDate('30d')}>Últimos 30 días</Button>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-slate-500" />
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant={statusFilter === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('all')}
-              >
-                Todos ({clients.length})
+              <Button variant={statusFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('all')}>Todos ({clients.length})</Button>
+              <Button variant={statusFilter === 'with_mark' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('with_mark')} className={statusFilter === 'with_mark' ? '' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}>
+                <CheckCircle className="h-3 w-3 mr-1" /> Con Shipping Mark ({clients.filter(c => hasValidShippingMark(c)).length})
               </Button>
-              <Button
-              variant={statusFilter === 'with_mark' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter('with_mark')}
-              className={statusFilter === 'with_mark' ? '' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
-              >
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Con Shipping Mark ({clients.filter(c => hasValidShippingMark(c)).length})
+              <Button variant={statusFilter === 'without_mark' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('without_mark')} className={statusFilter === 'without_mark' ? '' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}>
+                <AlertTriangle className="h-3 w-3 mr-1" /> Sin Shipping Mark ({clients.filter(c => !hasValidShippingMark(c)).length})
               </Button>
-              <Button
-                variant={statusFilter === 'without_mark' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('without_mark')}
-                className={statusFilter === 'without_mark' ? '' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}
-              >
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                Sin Shipping Mark ({clients.filter(c => !hasValidShippingMark(c)).length})
+              <Button variant={statusFilter === 'pending' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('pending')} className={statusFilter === 'pending' ? '' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}>
+                <Clock className="h-3 w-3 mr-1" /> Pendientes ({clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c)).length})
               </Button>
-              <Button
-                variant={statusFilter === 'pending' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('pending')}
-                className={statusFilter === 'pending' ? '' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
-              >
-                <Clock className="h-3 w-3 mr-1" />
-                Pendientes ({clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c)).length})
+              <Button variant={statusFilter === 'incomplete' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('incomplete')} className={statusFilter === 'incomplete' ? '' : 'border-red-200 text-red-700 hover:bg-red-50'}>
+                <AlertTriangle className="h-3 w-3 mr-1" /> Con Datos Faltantes ({clients.filter(c => hasIncompleteData(c)).length})
               </Button>
-              <Button
-                variant={statusFilter === 'incomplete' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('incomplete')}
-                className={statusFilter === 'incomplete' ? '' : 'border-red-200 text-red-700 hover:bg-red-50'}
-              >
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                Con Datos Faltantes ({clients.filter(c => hasIncompleteData(c)).length})
+              {/* New Filters */}
+              <Button variant={activeFilter === 'active' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter(activeFilter === 'active' ? 'all' : 'active')} className={activeFilter === 'active' ? '' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}>
+                <UserCheck className="h-3 w-3 mr-1" /> Activos ({clients.filter(c => c.is_active !== false).length})
               </Button>
-              </div>
-              </div>
+              <Button variant={activeFilter === 'inactive' ? 'default' : 'outline'} size="sm" onClick={() => setActiveFilter(activeFilter === 'inactive' ? 'all' : 'inactive')} className={activeFilter === 'inactive' ? '' : 'border-rose-200 text-rose-700 hover:bg-rose-50'}>
+                <UserX className="h-3 w-3 mr-1" /> Inactivos ({clients.filter(c => c.is_active === false).length})
+              </Button>
+              <Button variant={packageFilter === 'with_packages' ? 'default' : 'outline'} size="sm" onClick={() => setPackageFilter(packageFilter === 'with_packages' ? 'all' : 'with_packages')} className={packageFilter === 'with_packages' ? '' : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'}>
+                <Package className="h-3 w-3 mr-1" /> Con Paquetes ({clients.filter(c => (packagesCount[c.email] || 0) > 0).length})
+              </Button>
+              <Button variant={packageFilter === 'without_packages' ? 'default' : 'outline'} size="sm" onClick={() => setPackageFilter(packageFilter === 'without_packages' ? 'all' : 'without_packages')} className={packageFilter === 'without_packages' ? '' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}>
+                <Package className="h-3 w-3 mr-1" /> Sin Paquetes ({clients.filter(c => (packagesCount[c.email] || 0) === 0).length})
+              </Button>
+              <Button variant={whatsappFilter === 'with' ? 'default' : 'outline'} size="sm" onClick={() => setWhatsappFilter(whatsappFilter === 'with' ? 'all' : 'with')} className={whatsappFilter === 'with' ? '' : 'border-green-200 text-green-700 hover:bg-green-50'}>
+                <Phone className="h-3 w-3 mr-1" /> Con WhatsApp ({clients.filter(c => !!c.whatsapp).length})
+              </Button>
+              <Button variant={whatsappFilter === 'without' ? 'default' : 'outline'} size="sm" onClick={() => setWhatsappFilter(whatsappFilter === 'without' ? 'all' : 'without')} className={whatsappFilter === 'without' ? '' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}>
+                <Phone className="h-3 w-3 mr-1" /> Sin WhatsApp ({clients.filter(c => !c.whatsapp).length})
+              </Button>
+            </div>
+          </div>
+          {/* State Filter */}
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-sm text-slate-600">Estado:</span>
+            <Select value={stateFilter} onValueChange={(v) => setStateFilter(v)}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Todos los estados" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                {stateConfigs.map((s) => (
+                  <SelectItem key={s.state_code} value={s.state_code}>{s.state_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
               </CardContent>
               </Card>
 
