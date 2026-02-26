@@ -206,15 +206,29 @@ export default function ShippingCalculator({ user }) {
           {/* Cargo Category */}
           <div className="space-y-2">
             <Label>Categoría de Carga</Label>
-            <Select value={cargoCategory} onValueChange={setCargoCategory}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="general">General</SelectItem>
-                <SelectItem value="sensitive">Sensible</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setCargoCategory('general')}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  cargoCategory === 'general' ? 'border-purple-500 bg-purple-50' : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <span className="text-sm font-medium">Regular</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCargoCategory('sensitive')}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  cargoCategory === 'sensitive' ? 'border-rose-500 bg-rose-50' : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <span className="text-sm font-medium">Alto riesgo</span>
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
+              Tarifa usada: ${finalRate.toFixed(2)} {shippingType === 'aereo' ? 'USD/kg' : 'USD/CBM'}
+            </p>
           </div>
 
           {/* State Selection */}
