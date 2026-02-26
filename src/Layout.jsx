@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
 import ContractModal from '@/components/ContractModal';
@@ -12,7 +12,7 @@ import WhatsAppSupport from '@/components/WhatsAppSupport';
 import ChatbotAssistant from '@/components/ChatbotAssistant';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { notifyAdmins } from '@/components/NotificationUtils';
-import { Menu, Loader2 } from 'lucide-react';
+import { Menu, Loader2, Home, Package, FileText, MessageCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
 
@@ -24,6 +24,58 @@ export default function Layout({ children, currentPageName }) {
   const [showContract, setShowContract] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Mobile tab navigation mappings
+  const userTabDefaults = {
+    home: 'ClientPortal',
+    packages: 'MyPackages',
+    invoices: 'MyInvoices',
+    support: 'Support',
+  };
+  const adminTabDefaults = {
+    home: 'AdminDashboard',
+    packages: 'AdminPackages',
+    invoices: 'AdminInvoices',
+    support: 'AdminSupport',
+  };
+
+  const getTabKeyForPage = (pageName) => {
+    if (!pageName) return null;
+    const mapUser = {
+      home: ['ClientPortal', 'Home', 'Dashboard'],
+      packages: ['MyPackages', 'PreAlert', 'ShipmentTracking', 'RequestConsolidation', 'MyConsolidations'],
+      invoices: ['MyInvoices'],
+      support: ['Support'],
+    };
+    const mapAdmin = {
+      home: ['AdminDashboard'],
+      packages: ['AdminPackages', 'AdminShipmentApprovals'],
+      invoices: ['AdminInvoices', 'AdminPayments', 'AdminPaymentAlerts'],
+      support: ['AdminSupport', 'AdminSupportTickets'],
+    };
+    const maps = (user?.role === 'admin') ? mapAdmin : mapUser;
+    for (const [key, pages] of Object.entries(maps)) {
+      if (pages.includes(pageName)) return key;
+    }
+    return null;
+  };
+
+  const goToTab = (key) => {
+    const defaults = (user?.role === 'admin') ? adminTabDefaults : userTabDefaults;
+    const storageKey = `tab:lastRoute:${user?.role || 'user'}:${key}`;
+    const saved = sessionStorage.getItem(storageKey);
+    const target = saved || createPageUrl(defaults[key]);
+    navigate(target);
+  };
+
+  // Persist last route per tab (simple stack preservation)
+  useEffect(() => {
+    const key = getTabKeyForPage(currentPageName);
+    if (!key) return;
+    const storageKey = `tab:lastRoute:${user?.role || 'user'}:${key}`;
+    sessionStorage.setItem(storageKey, window.location.pathname + window.location.search);
+  }, [currentPageName, location.key]);
 
   useEffect(() => {
     loadUser();
@@ -209,6 +261,11 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden">
       <style>{`
+        /* Respect safe areas */
+        :root { 
+          --sat: env(safe-area-inset-top); 
+          --sab: env(safe-area-inset-bottom); 
+        }
         /* toasts visible */
         body { overflow-x: hidden; }
 
@@ -270,7 +327,7 @@ export default function Layout({ children, currentPageName }) {
 
       <main className="flex-1 min-h-screen flex flex-col">
         {/* Mobile Header */}
-        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3">
+        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between gap-2">
             <Button 
               variant="ghost" 
@@ -292,11 +349,38 @@ export default function Layout({ children, currentPageName }) {
 
         {/* Main Content */}
         <div className="flex-1 overflow-x-hidden w-full">
-          <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]">
+          <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
             {React.cloneElement(children, { user, refreshUser: loadUser })}
           </div>
         </div>
       </main>
+
+      {/* Mobile Bottom Tab Bar */}
+      {user && (user.role === 'user' || user.role === 'admin') && (
+        <nav
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/75"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          <div className="grid grid-cols-4">
+            <button onClick={() => goToTab('home')} className="flex flex-col items-center justify-center py-2 text-xs">
+              <Home className={`h-5 w-5 ${getTabKeyForPage(currentPageName) === 'home' ? 'text-blue-600' : 'text-slate-500'}`} />
+              <span className={`mt-0.5 ${getTabKeyForPage(currentPageName) === 'home' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>{user?.role === 'admin' ? 'Panel' : 'Inicio'}</span>
+            </button>
+            <button onClick={() => goToTab('packages')} className="flex flex-col items-center justify-center py-2 text-xs">
+              <Package className={`h-5 w-5 ${getTabKeyForPage(currentPageName) === 'packages' ? 'text-blue-600' : 'text-slate-500'}`} />
+              <span className={`mt-0.5 ${getTabKeyForPage(currentPageName) === 'packages' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>Paquetes</span>
+            </button>
+            <button onClick={() => goToTab('invoices')} className="flex flex-col items-center justify-center py-2 text-xs">
+              <FileText className={`h-5 w-5 ${getTabKeyForPage(currentPageName) === 'invoices' ? 'text-blue-600' : 'text-slate-500'}`} />
+              <span className={`mt-0.5 ${getTabKeyForPage(currentPageName) === 'invoices' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>{user?.role === 'admin' ? 'Facturación' : 'Facturas'}</span>
+            </button>
+            <button onClick={() => goToTab('support')} className="flex flex-col items-center justify-center py-2 text-xs">
+              <MessageCircle className={`h-5 w-5 ${getTabKeyForPage(currentPageName) === 'support' ? 'text-blue-600' : 'text-slate-500'}`} />
+              <span className={`mt-0.5 ${getTabKeyForPage(currentPageName) === 'support' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>Soporte</span>
+            </button>
+          </div>
+        </nav>
+      )}
 
       {/* Modals */}
       <ContractModal 
