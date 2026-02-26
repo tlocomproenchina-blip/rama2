@@ -664,17 +664,49 @@ Email: ${client.email}`;
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-slate-500" />
             <div className="flex flex-wrap gap-2">
-              <Button variant={statusFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('all')}>Todos ({clients.length})</Button>
-              <Button variant={statusFilter === 'with_mark' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('with_mark')} className={statusFilter === 'with_mark' ? '' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={statusFilter === 'all'}
+                size="sm"
+                onClick={() => setStatusFilter('all')}
+                className={(statusFilter === 'all') ? 'bg-slate-900 text-white border-slate-900' : ''}
+              >
+                Todos ({clients.length})
+              </Button>
+              <Button
+                variant="outline"
+                aria-pressed={statusFilter === 'with_mark'}
+                size="sm"
+                onClick={() => setStatusFilter('with_mark')}
+                className={(statusFilter === 'with_mark') ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
+              >
                 <CheckCircle className="h-3 w-3 mr-1" /> Con Shipping Mark ({clients.filter(c => hasValidShippingMark(c)).length})
               </Button>
-              <Button variant={statusFilter === 'without_mark' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('without_mark')} className={statusFilter === 'without_mark' ? '' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={statusFilter === 'without_mark'}
+                size="sm"
+                onClick={() => setStatusFilter('without_mark')}
+                className={(statusFilter === 'without_mark') ? 'bg-amber-100 text-amber-700 border-amber-200' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}
+              >
                 <AlertTriangle className="h-3 w-3 mr-1" /> Sin Shipping Mark ({clients.filter(c => !hasValidShippingMark(c)).length})
               </Button>
-              <Button variant={statusFilter === 'pending' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('pending')} className={statusFilter === 'pending' ? '' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={statusFilter === 'pending'}
+                size="sm"
+                onClick={() => setStatusFilter('pending')}
+                className={(statusFilter === 'pending') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
+              >
                 <Clock className="h-3 w-3 mr-1" /> Pendientes ({clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c)).length})
               </Button>
-              <Button variant={statusFilter === 'incomplete' ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter('incomplete')} className={statusFilter === 'incomplete' ? '' : 'border-red-200 text-red-700 hover:bg-red-50'}>
+              <Button
+                variant="outline"
+                aria-pressed={statusFilter === 'incomplete'}
+                size="sm"
+                onClick={() => setStatusFilter('incomplete')}
+                className={(statusFilter === 'incomplete') ? 'bg-red-100 text-red-700 border-red-200' : 'border-red-200 text-red-700 hover:bg-red-50'}
+              >
                 <AlertTriangle className="h-3 w-3 mr-1" /> Con Datos Faltantes ({clients.filter(c => hasIncompleteData(c)).length})
               </Button>
               {/* New Filters */}
