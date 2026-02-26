@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
-import { loadStripe } from '@stripe/stripe-js';
+import PaymentModal from '@/components/PaymentModal';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
@@ -14,6 +14,8 @@ export default function MyInvoices({ user }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [selectedConsolidation, setSelectedConsolidation] = useState(null);
 
   useEffect(() => {
     loadInvoices();
@@ -28,31 +30,11 @@ export default function MyInvoices({ user }) {
   const handlePayOnline = async (invoice) => {
     setProcessingPayment(true);
     try {
-      // Aquí deberías tener una función backend que cree el payment intent de Stripe
-      // Por ahora simularemos el proceso
-      toast.info('Procesando pago...');
-      
-      // Simular delay de procesamiento
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Marcar como pagada
-      await base44.entities.Invoice.update(invoice.id, {
-        status: 'pagada',
-        payment_date: new Date().toISOString(),
-        payment_method: 'stripe',
-        payment_reference: `STRIPE-${Date.now()}`
-      });
-
-      // Actualizar consolidación
-      await base44.entities.Consolidation.update(invoice.consolidation_id, {
-        status: 'en_transito',
-        payment_validated: true
-      });
-
-      toast.success('¡Pago procesado exitosamente!');
-      loadInvoices();
+      const cons = await base44.entities.Consolidation.filter({ id: invoice.consolidation_id });
+      setSelectedConsolidation(cons[0]);
+      setPaymentOpen(true);
     } catch (error) {
-      toast.error('Error al procesar el pago');
+      toast.error('No se pudo abrir el pago');
       console.error(error);
     } finally {
       setProcessingPayment(false);
@@ -187,6 +169,17 @@ export default function MyInvoices({ user }) {
           </Card>
         </div>
       )}
+
+      <PaymentModal
+        open={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        consolidation={selectedConsolidation}
+        onPaymentSubmitted={() => {
+          toast.success('Pago enviado para validación');
+          setPaymentOpen(false);
+          loadInvoices();
+        }}
+      />
     </div>
   );
 }
