@@ -350,7 +350,7 @@ export default function AdminPackages({ user }) {
                 />
               </div>
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
-                <TabsList className="w-full overflow-x-auto">
+                <TabsList className="w-full overflow-x-auto whitespace-nowrap">
                   <TabsTrigger value="all">Todos</TabsTrigger>
                   <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
                   <TabsTrigger value="recibido">Recibido</TabsTrigger>

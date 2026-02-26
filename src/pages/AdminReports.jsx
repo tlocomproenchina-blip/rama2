@@ -160,7 +160,7 @@ export default function AdminReports({ user }) {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-xl">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-white/20 rounded-xl">
             <TrendingUp className="h-8 w-8" />
