@@ -60,6 +60,14 @@ export default function ShippingCalculator({ user }) {
     setLoading(false);
   };
 
+  const getFinalRatesForState = (stateShipping) => {
+    const profit = (pricingConfig?.profit_percentage || 0) / 100;
+    const door = pricingConfig?.door_to_door_cost || 0;
+    const regular = (pricingConfig?.base_rate_regular || 0) * (1 + profit) + (stateShipping || 0) + door;
+    const high = (pricingConfig?.base_rate_high_risk || 0) * (1 + profit) + (stateShipping || 0) + door;
+    return { regular, high };
+  };
+
   const calculateShipping = () => {
     if (!config) return;
 
@@ -103,17 +111,13 @@ export default function ShippingCalculator({ user }) {
       chargedBy = `${calculatedCbm.toFixed(4)} CBM`;
     }
 
-    // Apply profit percentage to base rate
-    const profitMargin = pricingConfig?.profit_percentage || 0;
-    const adjustedRate = baseRate * (1 + profitMargin / 100);
-
-    // Add state shipping cost and door to door to create final rate
+    // Determinar estado y tasas finales (Regular/Alto) desde la sección de Estados
     const selectedStateConfig = states.find(s => s.state_code === selectedState);
     const stateShipping = selectedStateConfig?.shipping_rate || 0;
-    const doorToDoor = pricingConfig?.door_to_door_cost || 0;
+    const { regular: finalRegular, high: finalHigh } = getFinalRatesForState(stateShipping);
 
-    // Precio Final = Tarifa Base × (1 + % Beneficio/100) + Tarifa Estado + Puerta a Puerta
-    const finalRate = adjustedRate + stateShipping + doorToDoor;
+    // Elegir el precio final según la categoría de carga
+    const finalRate = isSensitive ? finalHigh : finalRegular;
 
     // Total de Envío = Precio Final × CBM (o peso facturable para aéreo)
     const shippingCost = finalRate * billableWeight;
