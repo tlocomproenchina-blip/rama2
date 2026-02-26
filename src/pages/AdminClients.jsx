@@ -316,21 +316,12 @@ Email: ${client.email}`;
     setDeleting(true);
 
     try {
-      // Check if client has packages
-      const clientPackages = await base44.entities.Package.filter({ client_email: deleteClient.email });
-      const clientConsolidations = await base44.entities.Consolidation.filter({ client_email: deleteClient.email });
-
-      if (clientPackages.length > 0 || clientConsolidations.length > 0) {
-        toast.error('No se puede eliminar: el cliente tiene paquetes o consolidaciones asociadas');
-        setDeleting(false);
-        setDeleteClient(null);
-        return;
+      const res = await base44.functions.invoke('deleteUserCascade', { email: deleteClient.email });
+      if (res?.data?.success) {
+        toast.success('Cliente y datos asociados eliminados');
+      } else {
+        toast.error(res?.data?.error || 'No se pudo eliminar');
       }
-
-      // Delete user
-      await base44.entities.User.delete(deleteClient.id);
-
-      toast.success('Cliente eliminado exitosamente');
       setDeleteClient(null);
       loadClients();
     } catch (error) {
