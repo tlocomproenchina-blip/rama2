@@ -101,10 +101,22 @@ export default function AdminNotificationCenter({ user }) {
         const d = event?.data;
         if (!d) return;
         if (event.type === 'create') {
-          toast.message('📦 Nueva consolidación', { description: d.consolidation_tracking || 'Sin tracking' });
+          saveNotification(
+            'Nueva consolidación',
+            d.consolidation_tracking || 'Sin tracking',
+            'consolidation',
+            'truck',
+            d.id || d.consolidation_tracking || 'consolidation'
+          );
         } else if (event.type === 'update') {
           const label = d.payment_proof_url ? 'Comprobante de pago cargado' : `Estado: ${d.status || 'actualizado'}`;
-          toast.message('🚚 Consolidación actualizada', { description: `${d.consolidation_tracking || 'Sin tracking'} • ${label}` });
+          saveNotification(
+            'Consolidación actualizada',
+            `${d.consolidation_tracking || 'Sin tracking'} • ${label}`,
+            'consolidation',
+            'truck',
+            d.id || d.consolidation_tracking || 'consolidation'
+          );
         }
       })
     );
