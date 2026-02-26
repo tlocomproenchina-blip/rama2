@@ -643,14 +643,7 @@ export default function AdminShipmentApprovals({ user }) {
                     </div>
                     
                     <div className="border-t pt-2 mt-2">
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Tarifa Base:</span>
-                        <span className="font-medium">${calculateValues().baseRate.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Beneficio ({calculateValues().profitPercentage}%):</span>
-                        <span className="font-medium">${(calculateValues().baseRate * calculateValues().profitPercentage / 100).toFixed(2)}</span>
-                      </div>
+
                       <div className="flex justify-between">
                         <span className="text-slate-600">Tarifa Final por unidad:</span>
                         <span className="font-medium">${calculateValues().finalRatePerUnit.toFixed(2)}/{selectedShippingType === 'aereo' ? 'kg' : 'CBM'}</span>

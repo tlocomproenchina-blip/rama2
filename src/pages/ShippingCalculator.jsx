@@ -127,6 +127,7 @@ export default function ShippingCalculator({ user }) {
     setResult({
       baseRate,
       rateType,
+      finalRate,
       volumetricWeight,
       cbm: calculatedCbm,
       billableWeight,
@@ -392,10 +393,10 @@ export default function ShippingCalculator({ user }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Tarifa base:</span>
+              <span className="text-slate-600">Tarifa final:</span>
               <div className="text-right">
-                <span className="font-semibold">${result.baseRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
-                <p className="text-xs text-slate-500">{result.rateType}</p>
+                <span className="font-semibold">${result.finalRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
+                <p className="text-xs text-slate-500">{cargoCategory === 'sensitive' ? 'Precio final alto riesgo' : 'Precio final regular'}</p>
               </div>
             </div>
 
