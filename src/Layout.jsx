@@ -65,6 +65,13 @@ export default function Layout({ children, currentPageName }) {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
 
+      // Block access for inactive clients
+      if (currentUser.role === 'user' && currentUser.is_active === false) {
+        navigate(createPageUrl('AccountDisabled'));
+        setLoading(false);
+        return;
+      }
+
       // Redirect admin to admin dashboard
       if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
         navigate(createPageUrl('AdminDashboard'));

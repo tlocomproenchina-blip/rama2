@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { toast } from 'sonner';
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal';
 
@@ -330,6 +331,20 @@ Email: ${client.email}`;
       toast.error('Error al eliminar el cliente');
     }
     setDeleting(false);
+  };
+
+  const handleToggleActive = async (client, nextActive) => {
+    try {
+      await base44.entities.User.update(client.id, { is_active: nextActive });
+      setClients(prev => prev.map(c => c.id === client.id ? { ...c, is_active: nextActive } : c));
+      if (!nextActive) {
+        toast.success('Cliente desactivado');
+      } else {
+        toast.success('Cliente activado');
+      }
+    } catch (error) {
+      toast.error('No se pudo actualizar el estado');
+    }
   };
 
   const handleImageUpload = async (file) => {
@@ -705,10 +720,20 @@ Email: ${client.email}`;
                       <Package className="h-3 w-3 mr-1" />
                       {packagesCount[client.email] || 0} paquetes
                     </Badge>
+                    {client.is_active === false && (
+                      <Badge className="bg-red-100 text-red-700 border-red-200">Inactivo</Badge>
+                    )}
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 pr-3 border-r border-slate-200">
+                      <span className="text-xs text-slate-600">Activo</span>
+                      <Switch
+                        checked={client.is_active !== false}
+                        onCheckedChange={(checked) => handleToggleActive(client, checked)}
+                      />
+                    </div>
                     <Button 
                       variant="outline" 
                       size="sm"
