@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * Componente de imagen optimizado para mobile
@@ -18,6 +18,7 @@ export default function OptimizedImage({
 }) {
   const [imageSrc, setImageSrc] = useState(priority ? src : null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (!src) return;
@@ -28,8 +29,9 @@ export default function OptimizedImage({
       return;
     }
 
-    // Usar Intersection Observer para lazy loading
-    const img = new Image();
+    const node = containerRef.current;
+    if (!node) return;
+
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -38,12 +40,10 @@ export default function OptimizedImage({
         }
       });
     }, {
-      rootMargin: '50px' // Comienza a cargar 50px antes de ser visible
+      rootMargin: '100px'
     });
 
-    // Crear un elemento temporal para observar
-    const tempDiv = document.createElement('div');
-    observer.observe(tempDiv);
+    observer.observe(node);
 
     return () => {
       observer.disconnect();
@@ -56,7 +56,7 @@ export default function OptimizedImage({
   };
 
   return (
-    <div className={`relative overflow-hidden ${className || ''}`}>
+    <div ref={containerRef} className={`relative overflow-hidden ${className || ''}`}>
       {!isLoaded && (
         <div className="absolute inset-0 bg-slate-200 animate-pulse" />
       )}

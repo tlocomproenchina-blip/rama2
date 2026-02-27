@@ -29,6 +29,7 @@ const DeliveryTimesWidget = lazy(() => import('@/components/dashboard/DeliveryTi
 
 import { toast } from 'sonner';
 import { HeaderSkeletonLoader } from '@/components/SkeletonLoaders';
+import OptimizedImage from '@/components/OptimizedImage';
 
 export default function Dashboard({ user, refreshUser }) {
   const [packages, setPackages] = useState([]);
@@ -224,10 +225,11 @@ export default function Dashboard({ user, refreshUser }) {
                   <p className="text-xs md:text-sm text-slate-600 mb-3 whitespace-pre-line">
                     {config.shipping_mark_example_description || 'Esta imagen se mostrará a los usuarios como ejemplo de cómo debe quedar su shipping mark'}
                   </p>
-                  <img 
-                    src={config.shipping_mark_example_image_url} 
-                    alt="Ejemplo de Shipping Mark" 
+                  <OptimizedImage
+                    src={config.shipping_mark_example_image_url}
+                    alt="Ejemplo de Shipping Mark"
                     className="w-full max-w-md mx-auto rounded-lg border border-slate-200 shadow-sm"
+                    priority={false}
                   />
                 </div>
               </div>

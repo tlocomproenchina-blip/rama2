@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
 import { cacheManager } from '@/components/CacheManager';
+import OptimizedImage from '@/components/OptimizedImage';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const [config, setConfig] = useState(null);
@@ -291,10 +292,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
             <div className="flex items-center gap-3">
               {config?.app_logo_url ? (
                 <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-white flex items-center justify-center">
-                  <img 
-                    src={config.app_logo_url} 
-                    alt="Logo" 
+                  <OptimizedImage
+                    src={config.app_logo_url}
+                    alt="Logo"
                     className="w-full h-full object-cover"
+                    priority={false}
                   />
                 </div>
               ) : (
