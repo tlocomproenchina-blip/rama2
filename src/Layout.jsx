@@ -354,10 +354,10 @@ export default function Layout({ children, currentPageName }) {
             <Button 
               variant="ghost" 
               size="icon"
-              className="h-10 w-10"
+              className="h-12 w-12 -ml-2 touch-manipulation"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-6 w-6" />
             </Button>
             <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
             <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>

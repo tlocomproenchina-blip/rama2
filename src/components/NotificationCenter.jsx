@@ -133,13 +133,14 @@ export default function NotificationCenter({ user }) {
     <div className="relative">
       {/* Bell Icon Button */}
       <motion.button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Abrir notificaciones"
-        className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
+        className="relative h-11 w-11 -m-1 flex items-center justify-center rounded-xl transition-colors hover:bg-slate-100 active:bg-slate-100/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 touch-manipulation"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
-        <Bell className="h-5 w-5 text-slate-700" />
+        <Bell className="h-6 w-6 text-slate-700" />
         
         {/* Unread Badge - CRITICAL in Red */}
         <AnimatePresence>
