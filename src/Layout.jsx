@@ -15,6 +15,7 @@ import { notifyAdmins } from '@/components/NotificationUtils';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -351,7 +352,9 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <div className="flex-1 overflow-x-hidden w-full">
           <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-            {React.cloneElement(children, { user, refreshUser: loadUser })}
+            <ErrorBoundary>
+              {React.cloneElement(children, { user, refreshUser: loadUser })}
+            </ErrorBoundary>
           </div>
         </div>
       </main>
