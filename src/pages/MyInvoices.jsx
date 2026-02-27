@@ -187,6 +187,36 @@ export default function MyInvoices({ user }) {
         </div>
       )}
 
+      {/* Modal Stripe minimalista */}
+      {stripeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-slate-800">Pagar factura</h3>
+              <Button variant="ghost" onClick={() => setStripeOpen(false)}>Cerrar</Button>
+            </div>
+            <div className="mb-4 text-sm text-slate-600">
+              {selectedInvoice && (
+                <div className="flex justify-between">
+                  <span>Factura #{selectedInvoice.invoice_number}</span>
+                  <span className="font-medium">${selectedInvoice.total.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+            <StripeCheckout 
+              clientSecret={stripeClientSecret} 
+              publishableKey={stripePublishableKey}
+              onSuccess={async () => {
+                toast.success('Pago confirmado');
+                setStripeOpen(false);
+                await loadInvoices();
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal antiguo de pago sigue disponible para otros métodos */}
       <PaymentModal
         open={paymentOpen}
         onClose={() => setPaymentOpen(false)}
