@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Stripe secret key is not set. Please configure STRIPE_SECRET_KEY.' }, { status: 500 });
     }
 
-    const stripe = new Stripe(stripeSecret, { apiVersion: '2024-09-30.acacia' });
+    const stripe = new Stripe(stripeSecret, { apiVersion: '2023-10-16' });
 
     const body = await req.json().catch(() => ({}));
     const { invoice_id, amount, currency = 'usd', description } = body || {};
