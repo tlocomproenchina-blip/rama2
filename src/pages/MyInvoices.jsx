@@ -17,6 +17,10 @@ export default function MyInvoices({ user }) {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedConsolidation, setSelectedConsolidation] = useState(null);
+  const [stripeClientSecret, setStripeClientSecret] = useState('');
+  const [stripePublishableKey, setStripePublishableKey] = useState('');
+  const [stripeOpen, setStripeOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   useEffect(() => {
     loadInvoices();
