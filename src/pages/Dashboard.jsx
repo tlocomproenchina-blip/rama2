@@ -229,6 +229,8 @@ export default function Dashboard({ user, refreshUser }) {
                   <OptimizedImage
                     src={config.shipping_mark_example_image_url}
                     alt="Ejemplo de Shipping Mark"
+                    width={800}
+                    height={600}
                     className="w-full max-w-md mx-auto rounded-lg border border-slate-200 shadow-sm"
                     priority={false}
                   />

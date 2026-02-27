@@ -295,6 +295,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                   <OptimizedImage
                     src={config.app_logo_url}
                     alt="Logo"
+                    width={40}
+                    height={40}
                     className="w-full h-full object-cover"
                     priority={false}
                   />
