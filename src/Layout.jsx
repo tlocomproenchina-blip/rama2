@@ -146,12 +146,15 @@ export default function Layout({ children, currentPageName }) {
           // Redirect to specialized dashboard for accounting role
           if (currentUser.custom_role === 'accounting') {
             navigate(createPageUrl('AccountingDashboard'));
+            setLoading(false);
             return;
           } else if (visiblePages.includes('AdminDashboard')) {
             navigate(createPageUrl('AdminDashboard'));
+            setLoading(false);
             return;
           } else if (visiblePages.includes('EmployeeDashboard')) {
             navigate(createPageUrl('EmployeeDashboard'));
+            setLoading(false);
             return;
           }
         }
@@ -180,6 +183,7 @@ export default function Layout({ children, currentPageName }) {
           
           if (missingFields.length > 0 && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
             navigate(createPageUrl('Profile'));
+            setLoading(false);
             return;
           }
         }
