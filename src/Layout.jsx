@@ -369,6 +369,15 @@ export default function Layout({ children, currentPageName }) {
           <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
         </div>
 
+        {/* Improve mobile tap targets in header */}
+        <style>{`
+          @media (max-width: 640px) {
+            header .h-10.w-10, header .h-9.w-9 { height: 48px !important; width: 48px !important; }
+            header .rounded-lg, header .rounded-md { border-radius: 12px !important; }
+            header svg { width: 24px; height: 24px; }
+          }
+        `}</style>
+
         {/* Main Content */}
         <div className="flex-1 overflow-x-hidden w-full">
           <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
