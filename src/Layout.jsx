@@ -12,7 +12,7 @@ import WhatsAppSupport from '@/components/WhatsAppSupport';
 import ChatbotAssistant from '@/components/ChatbotAssistant';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { notifyAdmins } from '@/components/NotificationUtils';
-import { Menu, Loader2, Home, Package, FileText, MessageCircle } from 'lucide-react';
+import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
 
@@ -356,32 +356,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </main>
 
-      {/* Mobile Bottom Tab Bar */}
-      {user && (user.role === 'user' || user.role === 'admin') && (
-        <nav
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/75"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-        >
-          <div className="grid grid-cols-4">
-            <button onClick={() => goToTab('home')} className="flex flex-col items-center justify-center py-2 text-xs">
-              <Home className={`h-5 w-5 ${getTabKeyForPage(currentPageName) === 'home' ? 'text-blue-600' : 'text-slate-500'}`} />
-              <span className={`mt-0.5 ${getTabKeyForPage(currentPageName) === 'home' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>{user?.role === 'admin' ? 'Panel' : 'Inicio'}</span>
-            </button>
-            <button onClick={() => goToTab('packages')} className="flex flex-col items-center justify-center py-2 text-xs">
-              <Package className={`h-5 w-5 ${getTabKeyForPage(currentPageName) === 'packages' ? 'text-blue-600' : 'text-slate-500'}`} />
-              <span className={`mt-0.5 ${getTabKeyForPage(currentPageName) === 'packages' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>Paquetes</span>
-            </button>
-            <button onClick={() => goToTab('invoices')} className="flex flex-col items-center justify-center py-2 text-xs">
-              <FileText className={`h-5 w-5 ${getTabKeyForPage(currentPageName) === 'invoices' ? 'text-blue-600' : 'text-slate-500'}`} />
-              <span className={`mt-0.5 ${getTabKeyForPage(currentPageName) === 'invoices' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>{user?.role === 'admin' ? 'Facturación' : 'Facturas'}</span>
-            </button>
-            <button onClick={() => goToTab('support')} className="flex flex-col items-center justify-center py-2 text-xs">
-              <MessageCircle className={`h-5 w-5 ${getTabKeyForPage(currentPageName) === 'support' ? 'text-blue-600' : 'text-slate-500'}`} />
-              <span className={`mt-0.5 ${getTabKeyForPage(currentPageName) === 'support' ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>Soporte</span>
-            </button>
-          </div>
-        </nav>
-      )}
+
 
       {/* Modals */}
       <ContractModal 
