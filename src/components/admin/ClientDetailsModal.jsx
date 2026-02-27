@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -122,7 +123,7 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
           <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg mb-4">
             <div>
               <p className="text-xs text-slate-600 font-medium mb-1">Estado</p>
-              <p className="text-sm text-slate-800">{client.state || '—'}</p>
+              <p className="text-sm text-slate-800">{CANONICAL_STATE_NAMES[client.state] || client.state || '—'}</p>
             </div>
             <div>
               <p className="text-xs text-slate-600 font-medium mb-1">Ciudad</p>

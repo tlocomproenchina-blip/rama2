@@ -85,7 +85,9 @@ export default function AdminClients({ user }) {
   const loadStateConfigs = async () => {
     try {
       const states = await base44.entities.StateConfig.filter({ is_active: true });
-      setStateConfigs(states);
+      // Usar nombres canónicos y ordenados
+      const { normalizeStates } = await import('@/components/utils/states');
+      setStateConfigs(normalizeStates(states));
     } catch (error) {
       console.error('Error loading states:', error);
     }
@@ -470,6 +472,8 @@ Email: ${client.email}`;
   };
 
   const filteredClients = clients.filter(client => {
+  // Map stored value (code or name) to code for filtering
+  const clientStateCode = (client.state && client.state.includes(' ')) ? null : client.state;
     const searchLower = search.toLowerCase();
     const matchesSearch = (
       (client.email || '').toLowerCase().includes(searchLower) ||
@@ -519,7 +523,7 @@ Email: ${client.email}`;
     })();
 
     // State
-    const matchesState = stateFilter === 'all' ? true : client.state === stateFilter;
+    const matchesState = stateFilter === 'all' ? true : clientStateCode === stateFilter;
 
     return matchesSearch && matchesDate && matchesQuick && matchesCategory && matchesState;
   });

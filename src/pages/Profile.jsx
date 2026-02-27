@@ -277,12 +277,12 @@ export default function Profile({ user, refreshUser }) {
                     <SelectValue placeholder="Selecciona tu estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    {stateConfigs.map((state) => (
-                      <SelectItem key={state.state_code} value={state.state_code}>
-                        {state.state_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                     {stateConfigs.map((state) => (
+                       <SelectItem key={state.state_code} value={state.state_code}>
+                         {state.state_name}
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
                 </Select>
                 {calculatePricing() && (
                   <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">

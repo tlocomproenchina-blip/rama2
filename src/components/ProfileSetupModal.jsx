@@ -159,11 +159,11 @@ export default function ProfileSetupModal({ open, onComplete }) {
                 <SelectValue placeholder="Selecciona tu estado" />
               </SelectTrigger>
               <SelectContent>
-                {stateConfigs.map((state) => (
-                  <SelectItem key={state.state_code} value={state.state_code}>
-                    {state.state_name}
-                  </SelectItem>
-                ))}
+               {stateConfigs.map((state) => (
+                 <SelectItem key={state.state_code} value={state.state_code}>
+                   {state.state_name}
+                 </SelectItem>
+               ))}
               </SelectContent>
             </Select>
             {errors.state && (
