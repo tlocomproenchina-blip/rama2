@@ -312,7 +312,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
                 'Confirmar Pago'
               )}
             </Button>
-          )
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
