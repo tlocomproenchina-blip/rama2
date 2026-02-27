@@ -1,22 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
-import ContractModal from '@/components/ContractModal';
-import ProfileSetupModal from '@/components/ProfileSetupModal';
-import NotificationCenter from '@/components/NotificationCenter';
-import AdminNotificationCenter from '@/components/AdminNotificationCenter';
+
+
+
+
 import ApiStatusIndicator from '@/components/api/ApiStatusIndicator';
-import WhatsAppSupport from '@/components/WhatsAppSupport';
-import ChatbotAssistant from '@/components/ChatbotAssistant';
-import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+
+
+
 import { notifyAdmins } from '@/components/NotificationUtils';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+
+// Lazy loaded non-critical components
+const NotificationCenter = lazy(() => import('@/components/NotificationCenter'));
+const AdminNotificationCenter = lazy(() => import('@/components/AdminNotificationCenter'));
+const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
+const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
+const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
+const ContractModal = lazy(() => import('@/components/ContractModal'));
+const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -320,11 +329,15 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
       <Toaster position="top-right" richColors />
       <GlobalErrorListener />
-      <AdminNotificationCenter user={user} />
+      <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
       <ApiStatusIndicator />
-      <PWAInstallPrompt />
-      {user?.role === 'user' && <WhatsAppSupport />}
-      {user?.role === 'user' && config?.chatbot_enabled && <ChatbotAssistant user={user} />}
+      <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
+      {user?.role === 'user' && (
+        <Suspense fallback={null}><WhatsAppSupport /></Suspense>
+      )}
+      {user?.role === 'user' && config?.chatbot_enabled && (
+        <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
+      )}
       
       <Sidebar 
         user={user} 
@@ -346,13 +359,13 @@ export default function Layout({ children, currentPageName }) {
               <Menu className="h-5 w-5" />
             </Button>
             <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
-            <NotificationCenter user={user} />
+            <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
           </div>
         </header>
 
         {/* Desktop Notification Center */}
         <div className="hidden lg:block fixed top-4 right-4 z-40">
-          <NotificationCenter user={user} />
+          <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
         </div>
 
         {/* Main Content */}
@@ -368,15 +381,23 @@ export default function Layout({ children, currentPageName }) {
 
 
       {/* Modals */}
-      <ContractModal 
-        open={showContract} 
-        onAccept={handleContractAccept}
-        onReject={handleContractReject}
-      />
-      <ProfileSetupModal 
-        open={showProfile} 
-        onComplete={handleProfileComplete}
-      />
+      {showContract && (
+        <Suspense fallback={null}>
+          <ContractModal 
+            open={true} 
+            onAccept={handleContractAccept}
+            onReject={handleContractReject}
+          />
+        </Suspense>
+      )}
+      {showProfile && (
+        <Suspense fallback={null}>
+          <ProfileSetupModal 
+            open={true} 
+            onComplete={handleProfileComplete}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
