@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,7 @@ export default function Profile({ user, refreshUser }) {
   const loadConfigs = async () => {
     try {
       const states = await base44.entities.StateConfig.filter({ is_active: true });
-      setStateConfigs(states);
+      setStateConfigs(normalizeStates(states));
       
       const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
       if (pricing.length > 0) {
@@ -81,9 +82,7 @@ export default function Profile({ user, refreshUser }) {
     if (!formData.state || !pricingConfig) return null;
     
     // Buscar por código o por nombre (para compatibilidad con datos antiguos)
-    const stateConfig = stateConfigs.find(s => 
-      s.state_code === formData.state || s.state_name === formData.state
-    );
+    const stateConfig = findStateByCodeOrName(stateConfigs, formData.state);
     if (!stateConfig) return null;
 
     const stateRate = stateConfig.shipping_rate || 0;

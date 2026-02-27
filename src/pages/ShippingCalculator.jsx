@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Plane, Ship, Package, Loader2 } from 'lucide-react';
+import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 
 export default function ShippingCalculator({ user }) {
   const [config, setConfig] = useState(null);
@@ -51,10 +52,12 @@ export default function ShippingCalculator({ user }) {
     }
     
     if (allStates.length > 0) {
-      setStates(allStates);
-      // Set default state from user if available
+      const normalized = normalizeStates(allStates);
+      setStates(normalized);
+      // Set default state from user if available (accepts code or name)
       if (user?.state) {
-        setSelectedState(user.state);
+        const match = findStateByCodeOrName(normalized, user.state);
+        if (match) setSelectedState(match.state_code);
       }
     }
     
@@ -114,7 +117,7 @@ export default function ShippingCalculator({ user }) {
     }
 
     // Determinar estado y tasas finales (Regular/Alto) desde la sección de Estados
-    const selectedStateConfig = states.find(s => s.state_code === selectedState);
+    const selectedStateConfig = findStateByCodeOrName(states, selectedState);
     const stateShipping = selectedStateConfig?.shipping_rate || 0;
     const { regular: finalRegular, high: finalHigh } = getFinalRatesForState(stateShipping);
     const doorToDoor = pricingConfig?.door_to_door_cost || 0;
