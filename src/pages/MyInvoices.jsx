@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import PaymentModal from '@/components/PaymentModal';
+import StripeCheckout from '@/components/payments/StripeCheckout';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
