@@ -19,13 +19,14 @@ import {
   Phone
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
-import EditProfileModal from '@/components/EditProfileModal';
+
 import { PackageSkeletonLoader, ListSkeletonLoader, StatsGridSkeletonLoader } from '@/components/SkeletonLoaders';
 
 // Lazy load non-critical widgets
 const ActiveConsolidationsWidget = lazy(() => import('@/components/dashboard/ActiveConsolidationsWidget'));
 const RecentPaymentsWidget = lazy(() => import('@/components/dashboard/RecentPaymentsWidget'));
 const DeliveryTimesWidget = lazy(() => import('@/components/dashboard/DeliveryTimesWidget'));
+const EditProfileModal = lazy(() => import('@/components/EditProfileModal'));
 
 import { toast } from 'sonner';
 import { HeaderSkeletonLoader } from '@/components/SkeletonLoaders';
@@ -430,12 +431,16 @@ export default function Dashboard({ user, refreshUser }) {
       </Card>
 
       {/* Edit Profile Modal */}
-      <EditProfileModal
-        open={showEditProfile}
-        onClose={() => setShowEditProfile(false)}
-        user={user}
-        onUpdate={handleProfileUpdate}
-      />
+      {showEditProfile && (
+        <Suspense fallback={null}>
+          <EditProfileModal
+            open={true}
+            onClose={() => setShowEditProfile(false)}
+            user={user}
+            onUpdate={handleProfileUpdate}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
