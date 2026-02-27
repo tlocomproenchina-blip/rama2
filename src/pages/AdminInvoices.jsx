@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Pagination from "@/components/common/Pagination";
@@ -44,6 +46,7 @@ export default function AdminInvoices({ user }) {
   const pageSize = 50;
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
+  const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
 
   useEffect(() => {
     loadInvoices(page);
@@ -502,6 +505,9 @@ export default function AdminInvoices({ user }) {
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
           </Button>
+          <Button variant="outline" onClick={() => setShowPaymentsSettings(true)}>
+            Métodos de Pago
+          </Button>
         </div>
       </div>
 
@@ -782,6 +788,16 @@ export default function AdminInvoices({ user }) {
               Guardar Cambios
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Métodos de Pago (Admin) */}
+      <Dialog open={showPaymentsSettings} onOpenChange={setShowPaymentsSettings}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Métodos de Pago</DialogTitle>
+          </DialogHeader>
+          <PaymentMethodsSettings onSaved={() => setShowPaymentsSettings(false)} />
         </DialogContent>
       </Dialog>
 
