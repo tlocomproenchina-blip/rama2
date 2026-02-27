@@ -354,7 +354,7 @@ export default function Layout({ children, currentPageName }) {
             <Button 
               variant="ghost" 
               size="icon"
-              className="h-12 w-12 -ml-2 touch-manipulation"
+              className="h-12 w-12 -ml-2 p-0 touch-manipulation select-none active:opacity-80"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-6 w-6" />
