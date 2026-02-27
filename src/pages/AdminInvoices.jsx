@@ -791,14 +791,17 @@ export default function AdminInvoices({ user }) {
       </Dialog>
 
       {/* Métodos de Pago (Admin) */}
-      <Dialog open={showPaymentsSettings} onOpenChange={setShowPaymentsSettings}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Métodos de Pago</DialogTitle>
-          </DialogHeader>
-          <PaymentMethodsSettings onSaved={() => setShowPaymentsSettings(false)} />
-        </DialogContent>
-      </Dialog>
+      {showPaymentsSettings && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow w-full max-w-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold">Métodos de Pago</h3>
+              <button className="text-slate-500" onClick={() => setShowPaymentsSettings(false)}>Cerrar</button>
+            </div>
+            <PaymentMethodsSettings onSaved={() => setShowPaymentsSettings(false)} />
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteInvoice} onOpenChange={() => setDeleteInvoice(null)}>
