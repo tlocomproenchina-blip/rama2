@@ -62,7 +62,15 @@ export default function Profile({ user, refreshUser }) {
   const loadConfigs = async () => {
     try {
       const states = await base44.entities.StateConfig.filter({ is_active: true });
-      setStateConfigs(normalizeStates(states));
+      const normalized = normalizeStates(states);
+      setStateConfigs(normalized);
+      // Alinear el valor del usuario (código o nombre) al código esperado por el Select
+      if (user?.state) {
+        const match = findStateByCodeOrName(normalized, user.state);
+        if (match) {
+          setFormData((prev) => ({ ...prev, state: match.state_code }));
+        }
+      }
       
       const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
       if (pricing.length > 0) {
