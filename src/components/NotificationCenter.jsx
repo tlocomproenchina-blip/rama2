@@ -136,7 +136,7 @@ export default function NotificationCenter({ user }) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Abrir notificaciones"
-        className="relative h-11 w-11 -m-1 flex items-center justify-center rounded-xl transition-colors hover:bg-slate-100 active:bg-slate-100/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 touch-manipulation"
+        className="relative h-12 w-12 p-0 flex items-center justify-center rounded-xl transition-colors hover:bg-slate-100 active:bg-slate-100/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 touch-manipulation select-none"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
@@ -150,7 +150,7 @@ export default function NotificationCenter({ user }) {
               animate={{ scale: 1, backgroundColor: ['#ef4444', '#dc2626'] }}
               exit={{ scale: 0 }}
               transition={{ repeat: Infinity, duration: 1 }}
-              className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+              className="pointer-events-none absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
             >
               {getCriticalCount() > 9 ? '9+' : getCriticalCount()}
             </motion.div>
@@ -159,7 +159,7 @@ export default function NotificationCenter({ user }) {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0 }}
-              className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+              className="pointer-events-none absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </motion.div>
