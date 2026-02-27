@@ -1098,6 +1098,78 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Activación de Métodos */}
+              <div className="p-6 bg-slate-50 rounded-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">Activación de Métodos</h3>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setAppConfig({
+                      ...appConfig,
+                      payments_enable_stripe: true,
+                      payments_enable_binance: true,
+                      payments_enable_usdt_trc20: true,
+                      payments_enable_paypal: true,
+                      payments_enable_wally: true,
+                      payments_enable_zinli: true,
+                      payments_enable_wise: true,
+                      payments_enable_skrill: true,
+                      payments_enable_pago_movil_usdt: true,
+                    })}>Activar todos</Button>
+                    <Button variant="outline" size="sm" onClick={() => setAppConfig({
+                      ...appConfig,
+                      payments_enable_stripe: false,
+                      payments_enable_binance: false,
+                      payments_enable_usdt_trc20: false,
+                      payments_enable_paypal: false,
+                      payments_enable_wally: false,
+                      payments_enable_zinli: false,
+                      payments_enable_wise: false,
+                      payments_enable_skrill: false,
+                      payments_enable_pago_movil_usdt: false,
+                    })}>Desactivar todos</Button>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <span>Stripe</span>
+                    <Switch checked={!!appConfig.payments_enable_stripe} onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_stripe: checked })} />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <span>Binance</span>
+                    <Switch checked={!!appConfig.payments_enable_binance} onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_binance: checked })} />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <span>USDT TRC20</span>
+                    <Switch checked={!!appConfig.payments_enable_usdt_trc20} onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_usdt_trc20: checked })} />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <span>PayPal</span>
+                    <Switch checked={!!appConfig.payments_enable_paypal} onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_paypal: checked })} />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <span>Wally</span>
+                    <Switch checked={!!appConfig.payments_enable_wally} onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_wally: checked })} />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <span>Zinli</span>
+                    <Switch checked={!!appConfig.payments_enable_zinli} onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_zinli: checked })} />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <span>Wise</span>
+                    <Switch checked={!!appConfig.payments_enable_wise} onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_wise: checked })} />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <span>Skrill</span>
+                    <Switch checked={!!appConfig.payments_enable_skrill} onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_skrill: checked })} />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                    <span>Pago Móvil → USDT</span>
+                    <Switch checked={!!appConfig.payments_enable_pago_movil_usdt} onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_pago_movil_usdt: checked })} />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500">Recuerda guardar para aplicar los cambios.</p>
+              </div>
+
               {/* Binance */}
               <div className="p-6 bg-amber-50 rounded-xl space-y-4">
                 <h3 className="font-semibold text-slate-800">Binance</h3>
@@ -1164,25 +1236,16 @@ export default function AdminSettings({ user }) {
                 </div>
               </div>
 
-              {/* Débito Internacional */}
+              {/* Stripe */}
               <div className="p-6 bg-purple-50 rounded-xl space-y-4">
-                <h3 className="font-semibold text-slate-800">Débito Internacional</h3>
-                <div className="space-y-2">
-                  <Label>Datos de la Tarjeta/Cuenta</Label>
-                  <Input
-                    value={appConfig.wallet_debito_internacional || ''}
-                    onChange={(e) => setAppConfig({ ...appConfig, wallet_debito_internacional: e.target.value })}
-                    placeholder="Datos para débito internacional"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Instrucciones Adicionales</Label>
-                  <Textarea
-                    value={appConfig.debito_internacional_instructions || ''}
-                    onChange={(e) => setAppConfig({ ...appConfig, debito_internacional_instructions: e.target.value })}
-                    placeholder="Instrucciones para el cliente"
-                    rows={3}
-                  />
+                <h3 className="font-semibold text-slate-800">Stripe</h3>
+                <div className="p-3 bg-white rounded-lg border">
+                  <p className="text-sm text-slate-600">
+                    Pagos con tarjeta vía Stripe. Activa o desactiva este método en la sección “Activación de Métodos” arriba.
+                  </p>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Usa las claves del modo prueba/producción desde el backend. El cobro se inicia en “Mis Facturas”.
+                  </p>
                 </div>
               </div>
 
