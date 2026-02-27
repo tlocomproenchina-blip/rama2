@@ -37,6 +37,13 @@ export default function ProfileSetupModal({ open, onComplete }) {
       if (pricing.length > 0) {
         setPricingConfig(pricing[0]);
       }
+
+      // Si el usuario ya tiene un valor guardado (código o nombre), alinear al código
+      const me = await base44.auth.me();
+      if (me?.state) {
+        const match = findStateByCodeOrName(states, me.state);
+        if (match) setFormData((prev) => ({ ...prev, state: match.state_code }));
+      }
     } catch (error) {
       console.error('Error loading configs:', error);
     }
