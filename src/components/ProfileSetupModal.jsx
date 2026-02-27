@@ -31,7 +31,8 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const loadConfigs = async () => {
     try {
       const states = await base44.entities.StateConfig.filter({ is_active: true });
-      setStateConfigs(normalizeStates(states));
+      const normalized = normalizeStates(states);
+      setStateConfigs(normalized);
       
       const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
       if (pricing.length > 0) {
@@ -41,7 +42,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
       // Si el usuario ya tiene un valor guardado (código o nombre), alinear al código
       const me = await base44.auth.me();
       if (me?.state) {
-        const match = findStateByCodeOrName(states, me.state);
+        const match = findStateByCodeOrName(normalized, me.state);
         if (match) setFormData((prev) => ({ ...prev, state: match.state_code }));
       }
     } catch (error) {
