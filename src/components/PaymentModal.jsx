@@ -284,10 +284,12 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
                 try {
                   const cfg = await base44.functions.invoke('getStripeConfig');
                   if (cfg.status !== 200 || !cfg.data?.publishableKey) throw new Error('Stripe no está configurado');
-                  const res = await base44.functions.invoke('createStripePaymentIntent', { invoice_id: consolidation.id });
+                  const invs = await base44.entities.Invoice.filter({ consolidation_id: consolidation.id });
+                  if (!invs || invs.length === 0) throw new Error('No se encontró la factura de esta consolidación');
+                  const res = await base44.functions.invoke('createStripePaymentIntent', { invoice_id: invs[0].id });
                   if (res.status !== 200 || !res.data?.client_secret) throw new Error(res.data?.error || 'No se pudo iniciar el pago');
                   // Abrimos el modal de Stripe de la página de facturas vía evento
-                  window.dispatchEvent(new CustomEvent('openStripeForInvoice', { detail: { clientSecret: res.data.client_secret, publishableKey: cfg.data.publishableKey, invoiceId: consolidation.id } }));
+                  window.dispatchEvent(new CustomEvent('openStripeForInvoice', { detail: { clientSecret: res.data.client_secret, publishableKey: cfg.data.publishableKey, invoiceId: invs[0].id } }));
                   onClose();
                 } catch (e) {
                   console.error(e);
