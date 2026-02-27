@@ -35,11 +35,23 @@ export default function MyInvoices({ user }) {
   const handlePayOnline = async (invoice) => {
     setProcessingPayment(true);
     try {
-      const cons = await base44.entities.Consolidation.filter({ id: invoice.consolidation_id });
-      setSelectedConsolidation(cons[0]);
-      setPaymentOpen(true);
+      // 1) Clave publicable de Stripe
+      const cfg = await base44.functions.invoke('getStripeConfig');
+      if (cfg.status !== 200 || !cfg.data?.publishableKey) {
+        throw new Error('Stripe no está configurado correctamente');
+      }
+      setStripePublishableKey(cfg.data.publishableKey);
+
+      // 2) Crear/reusar PaymentIntent para esta factura
+      const res = await base44.functions.invoke('createStripePaymentIntent', { invoice_id: invoice.id });
+      if (res.status !== 200 || !res.data?.client_secret) {
+        throw new Error(res.data?.error || 'No se pudo iniciar el pago');
+      }
+      setStripeClientSecret(res.data.client_secret);
+      setSelectedInvoice(invoice);
+      setStripeOpen(true);
     } catch (error) {
-      toast.error('No se pudo abrir el pago');
+      toast.error(error.message || 'No se pudo abrir Stripe');
       console.error(error);
     } finally {
       setProcessingPayment(false);
