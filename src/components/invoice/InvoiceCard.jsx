@@ -72,7 +72,7 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
               className="flex-1 bg-emerald-600 hover:bg-emerald-700"
             >
               <CreditCard className="h-4 w-4 mr-2" />
-              Pagar Online
+              Pagar con Tarjeta (Stripe)
             </Button>
           )}
           <div className="flex-1">

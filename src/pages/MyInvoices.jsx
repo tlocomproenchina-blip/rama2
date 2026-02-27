@@ -24,6 +24,20 @@ export default function MyInvoices({ user }) {
 
   useEffect(() => {
     loadInvoices();
+
+    // Permite abrir Stripe desde otros componentes (ej: modal de consolidación)
+    const handler = (e) => {
+      const { clientSecret, publishableKey, invoiceId } = e.detail || {};
+      if (clientSecret && publishableKey) {
+        setStripeClientSecret(clientSecret);
+        setStripePublishableKey(publishableKey);
+        const inv = invoices.find(i => i.id === invoiceId);
+        if (inv) setSelectedInvoice(inv);
+        setStripeOpen(true);
+      }
+    };
+    window.addEventListener('openStripeForInvoice', handler);
+    return () => window.removeEventListener('openStripeForInvoice', handler);
   }, []);
 
   const loadInvoices = async () => {
