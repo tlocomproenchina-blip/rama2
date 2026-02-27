@@ -15,6 +15,7 @@ import { notifyAdmins } from '@/components/NotificationUtils';
 import { Menu, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
+import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 export default function Layout({ children, currentPageName }) {
@@ -314,6 +315,7 @@ export default function Layout({ children, currentPageName }) {
         }
       `}</style>
       <Toaster position="top-right" richColors />
+      <GlobalErrorListener />
       <AdminNotificationCenter user={user} />
       <ApiStatusIndicator />
       <PWAInstallPrompt />
