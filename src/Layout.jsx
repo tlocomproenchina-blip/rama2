@@ -7,7 +7,7 @@ import Sidebar from '@/components/Sidebar';
 
 
 
-import ApiStatusIndicator from '@/components/api/ApiStatusIndicator';
+
 
 
 
@@ -26,6 +26,7 @@ const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
 const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
 const ContractModal = lazy(() => import('@/components/ContractModal'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
+const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
