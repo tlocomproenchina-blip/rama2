@@ -68,7 +68,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
       binance: config.binance_instructions,
       usdt_trc20: config.usdt_instructions,
       paypal: config.paypal_instructions,
-      debito_internacional: config.debito_internacional_instructions,
+
       wally: config.wally_instructions,
       zinli: config.zinli_instructions,
       wise: config.wise_instructions,
