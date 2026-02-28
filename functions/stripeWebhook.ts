@@ -79,6 +79,40 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case 'invoice.paid': {
+        const invObj: any = event.data.object;
+        const base44Id = invObj?.metadata?.base44_invoice_id;
+        if (base44Id) {
+          try {
+            await base44.asServiceRole.entities.Invoice.update(base44Id, {
+              status: 'pagada',
+              payment_date: new Date().toISOString(),
+              payment_method: 'stripe_invoice',
+              payment_reference: invObj.id,
+            });
+          } catch (e) {
+            console.error('Failed to update invoice (invoice.paid):', e);
+          }
+        }
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invObj: any = event.data.object;
+        const base44Id = invObj?.metadata?.base44_invoice_id;
+        if (base44Id) {
+          try {
+            await base44.asServiceRole.entities.Invoice.update(base44Id, {
+              // keep status, just record reference
+              payment_reference: invObj.id,
+            });
+          } catch (e) {
+            console.error('Failed to record failed stripe invoice:', e);
+          }
+        }
+        break;
+      }
+
       default: {
         // No-op for other event types
         break;
