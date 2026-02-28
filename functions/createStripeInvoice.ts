@@ -114,12 +114,16 @@ Deno.serve(async (req) => {
     const finalized = await stripe.invoices.finalizeInvoice(stripeInvoice.id);
     const sent = await stripe.invoices.sendInvoice(finalized.id);
 
-    // Store Stripe invoice references on our record
+    // Store Stripe invoice references on our record and sync totals from Stripe
     try {
+      const fresh = await stripe.invoices.retrieve(sent.id);
       await base44.asServiceRole.entities.Invoice.update(inv.id, {
         payment_reference: `stripe:${sent.id}`,
         stripe_invoice_id: sent.id,
-        stripe_hosted_invoice_url: sent.hosted_invoice_url || ''
+        stripe_hosted_invoice_url: sent.hosted_invoice_url || fresh.hosted_invoice_url || '',
+        subtotal: (fresh.subtotal || 0) / 100,
+        tax: (fresh.tax || 0) / 100,
+        total: (fresh.total || 0) / 100
       });
     } catch {}
 
