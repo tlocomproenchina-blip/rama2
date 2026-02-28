@@ -1235,7 +1235,13 @@ export default function AdminSettings({ user }) {
 
               {/* Wally */}
               <div className="p-6 bg-amber-50 rounded-xl space-y-4">
-                <h3 className="font-semibold text-slate-800">Wally</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">Wally</h3>
+                  <Switch
+                    checked={!!appConfig.payments_enable_wally}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_wally: checked })}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Usuario/Teléfono Wally</Label>
                   <Input
