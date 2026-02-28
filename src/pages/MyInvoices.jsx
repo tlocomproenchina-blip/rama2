@@ -25,6 +25,7 @@ export default function MyInvoices({ user }) {
 
   useEffect(() => {
     loadInvoices();
+    base44.entities.AppConfig.filter({ config_key: 'main' }).then(cfgs => setConfig(cfgs[0] || null));
 
     // Permite abrir Stripe desde otros componentes (ej: modal de consolidación)
     const handler = (e) => {
