@@ -90,7 +90,10 @@ Deno.serve(async (req) => {
               payment_method: 'stripe_invoice',
               payment_reference: invObj.id,
               stripe_invoice_id: invObj.id,
-              stripe_hosted_invoice_url: invObj.hosted_invoice_url || undefined
+              stripe_hosted_invoice_url: invObj.hosted_invoice_url || undefined,
+              subtotal: (invObj.subtotal || 0) / 100,
+              tax: (invObj.tax || 0) / 100,
+              total: (invObj.total || 0) / 100
             });
           } catch (e) {
             console.error('Failed to update invoice (invoice.paid):', e);
