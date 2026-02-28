@@ -198,7 +198,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
             {paymentMethod !== 'stripe' && (
               <>
                 <Label className="text-slate-700 font-medium">
-                  {['paypal', 'debito_internacional', 'wally', 'zinli', 'wise', 'skrill', 'pago_movil_usdt'].includes(paymentMethod) 
+                  {['paypal', 'wally', 'zinli', 'wise', 'skrill', 'pago_movil_usdt'].includes(paymentMethod) 
                     ? 'Datos de Pago' 
                     : 'Dirección de Wallet'}
                 </Label>
