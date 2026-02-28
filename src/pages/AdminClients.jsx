@@ -275,6 +275,20 @@ Email: ${client.email}`;
     }
   };
 
+  const handleBackfillStripeCustomers = async () => {
+    setBackfilling(true);
+    try {
+      const res = await base44.functions.invoke('backfillStripeCustomers');
+      const data = res?.data || {};
+      const msg = `Stripe backfill: creados ${data.created || 0}, omitidos ${data.skipped || 0}, fallidos ${data.failed || 0}`;
+      toast.success(msg);
+      await loadClients();
+    } catch (e) {
+      toast.error('Error al ejecutar backfill de Stripe');
+    }
+    setBackfilling(false);
+  };
+
   const handleExportPendingClients = async () => {
     try {
       const pendingClients = clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c));
@@ -597,6 +611,16 @@ Email: ${client.email}`;
           >
             <Download className="h-4 w-4 mr-2" />
             Exportar para Remarketing
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={handleBackfillStripeCustomers}
+            disabled={backfilling}
+            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+            title="Crear clientes en Stripe para todos los usuarios sin uno"
+          >
+            {backfilling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
+            Backfill Stripe
           </Button>
           </div>
         )}
