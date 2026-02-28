@@ -1263,7 +1263,13 @@ export default function AdminSettings({ user }) {
 
               {/* Zinli */}
               <div className="p-6 bg-blue-50 rounded-xl space-y-4">
-                <h3 className="font-semibold text-slate-800">Zinli</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">Zinli</h3>
+                  <Switch
+                    checked={!!appConfig.payments_enable_zinli}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_zinli: checked })}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Usuario/Teléfono Zinli</Label>
                   <Input
