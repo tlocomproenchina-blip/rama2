@@ -1100,7 +1100,13 @@ export default function AdminSettings({ user }) {
             <CardContent className="space-y-6">
               {/* Binance */}
               <div className="p-6 bg-amber-50 rounded-xl space-y-4">
-                <h3 className="font-semibold text-slate-800">Binance</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">Binance</h3>
+                  <Switch
+                    checked={!!appConfig.payments_enable_binance}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_binance: checked })}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Dirección de Wallet</Label>
                   <Input
@@ -1122,7 +1128,13 @@ export default function AdminSettings({ user }) {
 
               {/* USDT TRC20 */}
               <div className="p-6 bg-blue-50 rounded-xl space-y-4">
-                <h3 className="font-semibold text-slate-800">USDT TRC20</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">USDT TRC20</h3>
+                  <Switch
+                    checked={!!appConfig.payments_enable_usdt_trc20}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_usdt_trc20: checked })}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Dirección de Wallet</Label>
                   <Input
@@ -1144,7 +1156,13 @@ export default function AdminSettings({ user }) {
 
               {/* PayPal */}
               <div className="p-6 bg-indigo-50 rounded-xl space-y-4">
-                <h3 className="font-semibold text-slate-800">PayPal</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">PayPal</h3>
+                  <Switch
+                    checked={!!appConfig.payments_enable_paypal}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_paypal: checked })}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Email de PayPal</Label>
                   <Input
@@ -1164,9 +1182,38 @@ export default function AdminSettings({ user }) {
                 </div>
               </div>
 
-              {/* Débito Internacional */}
+              {/* Stripe (Tarjeta) */}
               <div className="p-6 bg-purple-50 rounded-xl space-y-4">
-                <h3 className="font-semibold text-slate-800">Débito Internacional</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">Stripe (Tarjeta)</h3>
+                  <Switch
+                    checked={!!appConfig.payments_enable_stripe}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_stripe: checked })}
+                  />
+                </div>
+                <div className="space-y-2 text-sm text-slate-700">
+                  <p>Stripe se configura con claves en el servidor. No requiere datos aquí.</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const res = await base44.functions.invoke('getStripeConfig');
+                          if (res.status === 200 && res.data?.publishableKey) {
+                            toast.success('Stripe está configurado correctamente');
+                          } else {
+                            toast.error('Falta configurar la clave pública de Stripe');
+                          }
+                        } catch (e) {
+                          toast.error('No se pudo verificar Stripe');
+                        }
+                      }}
+                    >
+                      Probar Stripe
+                    </Button>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label>Datos de la Tarjeta/Cuenta</Label>
                   <Input
