@@ -19,8 +19,8 @@ import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 // Lazy loaded non-critical components
-const NotificationCenter = lazy(() => import('@/components/NotificationCenter'));
-const AdminNotificationCenter = lazy(() => import('@/components/AdminNotificationCenter'));
+const NotificationCenter = lazy(() => import('@/components/NotificationCenter.jsx'));
+const AdminNotificationCenter = lazy(() => import('@/components/AdminNotificationCenter.jsx'));
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
 const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
 const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
