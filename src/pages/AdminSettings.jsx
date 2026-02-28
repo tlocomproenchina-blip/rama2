@@ -1375,7 +1375,13 @@ export default function AdminSettings({ user }) {
 
               {/* Pago Móvil → USDT */}
               <div className="p-6 bg-blue-50 rounded-xl space-y-4">
-                <h3 className="font-semibold text-slate-800">Pago Móvil → USDT</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">Pago Móvil → USDT</h3>
+                  <Switch
+                    checked={!!appConfig.payments_enable_pago_movil_usdt}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_pago_movil_usdt: checked })}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Datos de Pago Móvil/USDT</Label>
                   <Input
