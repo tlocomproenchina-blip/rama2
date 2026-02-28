@@ -21,7 +21,7 @@ export async function generateInvoice(consolidation) {
     : `${consolidation.cbm.toFixed(4)} m³`;
 
   items.push({
-    description: `International Logistics Service – DDP Door to Door (${consolidation.shipping_type === 'aereo' ? 'Air Freight' : 'Sea Freight'})\nOrigin: China\nDestination: Venezuela\nService Mode: ${consolidation.shipping_type === 'aereo' ? 'Air Freight (DDP Door to Door)' : 'Maritime Freight (DDP Door to Door)'}\nCargo Type: General Commercial Goods\nHandling: Consolidated Shipment`,
+    description: `International Logistics Service – DDP Door to Door (${consolidation.shipping_type === 'aereo' ? 'Air Freight' : 'Sea Freight'})\n\nOrigin: China\nDestination: Venezuela\nService Mode: ${consolidation.shipping_type === 'aereo' ? 'Air Freight (DDP)' : 'Maritime Freight (DDP)'}\nCargo Type: General Commercial Goods\nHandling: Consolidated Shipment\nShipment Reference: ${consolidation.consolidation_tracking}`,
     quantity: 1,
     unit_price: consolidation.shipping_cost,
     total: consolidation.shipping_cost,
@@ -85,7 +85,7 @@ export async function generateInvoice(consolidation) {
     tax,
     total,
     status: 'pendiente',
-    notes: `Service Terms – International Logistics (DDP)\n\nThis invoice corresponds to international freight forwarding and logistics services under Delivered Duty Paid (DDP) terms, including transportation, customs clearance, applicable duties and final delivery to destination.\n\nTLEC Cargo LTD acts solely as logistics and freight service provider and does not sell or resell goods transported.\n\nPayments correspond to contracted logistics services and become non-refundable once shipment processing or cargo reservation has commenced.\n\nShipment Reference: CON-561265-OKDPWH-260227`
+    notes: `Service Terms – International Logistics (DDP)\n\nThis invoice corresponds to international freight forwarding and logistics services under Delivered Duty Paid (DDP) terms, including freight transportation, customs clearance, applicable import duties and final delivery to destination.\n\nTLEC Cargo LTD acts solely as logistics and freight service provider and does not sell or resell transported goods.\n\nPayments become non-refundable once cargo processing, consolidation or shipment reservation has commenced.`
   });
 
   console.log('✓ Factura generada:', invoice.invoice_number);
