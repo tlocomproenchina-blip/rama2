@@ -91,8 +91,8 @@ Deno.serve(async (req) => {
       ? `Weight: ${cons?.real_weight_kg ?? inv.items?.[0]?.details?.billable_weight ?? 'N/A'} kg`
       : `Weight / CBM: ${cons?.cbm ?? inv.items?.[0]?.details?.dimensions ?? 'N/A'}`;
     const shipmentId = cons?.consolidation_tracking || inv.consolidation_tracking || '';
-    const serviceMode = shippingType === 'aereo' ? 'Air Freight (DDP Door to Door)' : 'Maritime Freight (DDP Door to Door)';
-    const ddpDetail = `${ddpTitle}\nShipment ID: ${shipmentId}\nOrigin: China\nDestination: Venezuela\nService Mode: ${serviceMode}\nCargo Type: General Commercial Goods\nHandling: Consolidated Shipment\n${weightInfo}`;
+    const serviceMode = shippingType === 'aereo' ? 'Air Freight (DDP)' : 'Maritime Freight (DDP)';
+    const ddpDetail = `${ddpTitle}\n\nOrigin: China\nDestination: Venezuela\nService Mode: ${serviceMode}\nCargo Type: General Commercial Goods\nHandling: Consolidated Shipment\nShipment Reference: ${shipmentId}`;
 
     const footerTerms = `Service Terms – DDP Door to Door Logistics\n\nThis invoice corresponds to international logistics and freight forwarding services under DDP (Delivered Duty Paid) terms. The service includes freight transportation, customs clearance, applicable import duties/taxes, and final delivery to destination.\n\nThe client authorizes TLEC Cargo LTD to manage customs and shipping procedures on their behalf.\n\nOnce shipment processing or cargo reservation has started, payments are non-refundable except in cases of operational cancellation prior to dispatch.\n\nTracking and shipment reference: ${shipmentId}\n\nFor support: tlocomproenchina@gmail.com | +1 502 694 6833${(inv.total || 0) > 2000 ? '\n\nCommercial shipment – non-personal goods – freight forwarding service' : ''}`;
 
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         base44_consolidation_id: inv.consolidation_id || '',
       },
       description: ddpDetail,
-      footer: `Service Terms – International Logistics (DDP)\n\nThis invoice corresponds to international freight forwarding and logistics services under Delivered Duty Paid (DDP) terms, including transportation, customs clearance, applicable duties and final delivery to destination.\n\nTLEC Cargo LTD acts solely as logistics and freight service provider and does not sell or resell goods transported.\n\nPayments correspond to contracted logistics services and become non-refundable once shipment processing or cargo reservation has commenced.\n\nShipment Reference: CON-561265-OKDPWH-260227`,
+      footer: `Service Terms – International Logistics (DDP)\n\nThis invoice corresponds to international freight forwarding and logistics services under Delivered Duty Paid (DDP) terms, including freight transportation, customs clearance, applicable import duties and final delivery to destination.\n\nTLEC Cargo LTD acts solely as logistics and freight service provider and does not sell or resell transported goods.\n\nPayments become non-refundable once cargo processing, consolidation or shipment reservation has commenced.`,
       statement_descriptor: 'TLEC CARGO LTD',
       auto_advance: false
     });
