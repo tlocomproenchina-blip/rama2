@@ -145,6 +145,7 @@ Deno.serve(async (req) => {
         payment_reference: `stripe:${sent.id}`,
         stripe_invoice_id: sent.id,
         stripe_hosted_invoice_url: sent.hosted_invoice_url || fresh.hosted_invoice_url || '',
+        stripe_invoice_pdf_url: fresh.invoice_pdf || '',
         subtotal: (fresh.subtotal || 0) / 100,
         tax: (fresh.tax || 0) / 100,
         total: (fresh.total || 0) / 100

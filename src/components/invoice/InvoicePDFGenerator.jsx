@@ -25,8 +25,17 @@ export default function InvoicePDFGenerator({ invoice }) {
   };
 
   const generatePDF = async () => {
-    setGenerating(true);
     try {
+      // Preferir factura de Stripe para mantener consonancia
+      if (invoice?.stripe_invoice_pdf_url) {
+        window.open(invoice.stripe_invoice_pdf_url, '_blank');
+        return;
+      }
+      if (invoice?.stripe_hosted_invoice_url) {
+        window.open(invoice.stripe_hosted_invoice_url, '_blank');
+        return;
+      }
+      setGenerating(true);
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.width;
       let yPos = 20;
