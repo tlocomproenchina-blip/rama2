@@ -70,15 +70,29 @@ Deno.serve(async (req) => {
       client = refreshed[0];
     }
 
-    // Create invoice items in Stripe
+    // Create draft Stripe invoice first (attach items directly to this invoice)
     const currency = 'usd';
     const items: Array<any> = Array.isArray(inv.items) ? inv.items : [];
 
+    const stripeInvoice = await stripe.invoices.create({
+      customer: client.stripe_customer_id,
+      collection_method: 'send_invoice',
+      days_until_due: dueDays,
+      metadata: {
+        base44_invoice_id: String(inv.id),
+        base44_consolidation_id: inv.consolidation_id || '',
+      },
+      description: inv.consolidation_tracking ? `Consolidación ${inv.consolidation_tracking}` : undefined,
+      auto_advance: false
+    });
+
+    // Attach line items to the draft invoice
     for (const it of items) {
       const amount = Math.round((Number(it.total) || (Number(it.quantity) * Number(it.unit_price) || 0)) * 100);
-      if (amount <= 0) continue;
+      if (!Number.isFinite(amount) || amount <= 0) continue;
       await stripe.invoiceItems.create({
         customer: client.stripe_customer_id,
+        invoice: stripeInvoice.id,
         amount,
         currency,
         description: it.description || 'Servicio',
@@ -89,24 +103,12 @@ Deno.serve(async (req) => {
     if (inv.tax && Number(inv.tax) > 0) {
       await stripe.invoiceItems.create({
         customer: client.stripe_customer_id,
+        invoice: stripeInvoice.id,
         amount: Math.round(Number(inv.tax) * 100),
         currency,
         description: 'Impuestos',
       });
     }
-
-    // Create Stripe invoice
-    const stripeInvoice = await stripe.invoices.create({
-      customer: client.stripe_customer_id,
-      collection_method: 'send_invoice',
-      days_until_due: dueDays,
-      metadata: {
-        base44_invoice_id: String(inv.id),
-        base44_consolidation_id: inv.consolidation_id || '',
-      },
-      description: inv.consolidation_tracking ? `Consolidación ${inv.consolidation_tracking}` : undefined,
-      auto_advance: true,
-    });
 
     // Finalize and send
     const finalized = await stripe.invoices.finalizeInvoice(stripeInvoice.id);
