@@ -21,17 +21,20 @@ export async function generateInvoice(consolidation) {
     : `${consolidation.cbm.toFixed(4)} m³`;
 
   items.push({
-    description: `Envío ${consolidation.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}`,
+    description: `International Logistics Service – DDP Door to Door (${consolidation.shipping_type === 'aereo' ? 'Air Freight' : 'Sea Freight'})`,
     quantity: 1,
     unit_price: consolidation.shipping_cost,
     total: consolidation.shipping_cost,
     details: {
       tracking: consolidation.consolidation_tracking,
+      origin: 'China',
+      destination: 'Venezuela',
       dimensions: dimensionsInfo,
       weight: `${consolidation.real_weight_kg} kg`,
       billable_weight: `${consolidation.billable_weight.toFixed(2)} kg`,
       package_count: packages.length,
-      tracking_numbers: consolidation.tracking_numbers || []
+      tracking_numbers: consolidation.tracking_numbers || [],
+      ddp: 'Includes customs clearance, taxes and final delivery'
     }
   });
 
