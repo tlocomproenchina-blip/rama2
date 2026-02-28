@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const { user_id: targetUserId, force = false } = payload || {};
 
     // Resolve target user: self by default, or specific user if admin
-    let targetUser: any = authedUser;
+    let targetUser = authedUser;
     if (targetUserId && authedUser?.role === 'admin') {
       const users = await base44.asServiceRole.entities.User.filter({ id: targetUserId });
       if (!users || users.length === 0) {
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
     }
 
     return Response.json({ success: true, stripe_customer_id: customer.id });
-  } catch (error: any) {
+  } catch (error) {
     return Response.json({ error: error?.message || 'Internal Server Error' }, { status: 500 });
   }
 });
