@@ -21,7 +21,7 @@ export async function generateInvoice(consolidation) {
     : `${consolidation.cbm.toFixed(4)} m³`;
 
   items.push({
-    description: `International Logistics Service – DDP Door to Door (${consolidation.shipping_type === 'aereo' ? 'Air Freight' : 'Sea Freight'})`,
+    description: `International Logistics Service – DDP Door to Door (${consolidation.shipping_type === 'aereo' ? 'Air Freight' : 'Sea Freight'})\nOrigin: China\nDestination: Venezuela\nService Mode: ${consolidation.shipping_type === 'aereo' ? 'Air Freight (DDP Door to Door)' : 'Maritime Freight (DDP Door to Door)'}\nCargo Type: General Commercial Goods\nHandling: Consolidated Shipment`,
     quantity: 1,
     unit_price: consolidation.shipping_cost,
     total: consolidation.shipping_cost,
