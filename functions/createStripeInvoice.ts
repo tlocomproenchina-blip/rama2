@@ -91,7 +91,8 @@ Deno.serve(async (req) => {
       ? `Weight: ${cons?.real_weight_kg ?? inv.items?.[0]?.details?.billable_weight ?? 'N/A'} kg`
       : `Weight / CBM: ${cons?.cbm ?? inv.items?.[0]?.details?.dimensions ?? 'N/A'}`;
     const shipmentId = cons?.consolidation_tracking || inv.consolidation_tracking || '';
-    const ddpDetail = `${ddpTitle}\nOrigin: China\nDestination: Venezuela\nShipment ID: ${shipmentId}\n${weightInfo}\nService: ${shippingType === 'aereo' ? 'Air' : 'Maritime'} DDP (customs clearance + taxes included)`;
+    const serviceMode = shippingType === 'aereo' ? 'Air Freight (DDP Door to Door)' : 'Maritime Freight (DDP Door to Door)';
+    const ddpDetail = `${ddpTitle}\nShipment ID: ${shipmentId}\nOrigin: China\nDestination: Venezuela\nService Mode: ${serviceMode}\nCargo Type: General Commercial Goods\nHandling: Consolidated Shipment\n${weightInfo}`;
 
     const footerTerms = `Service Terms – DDP Door to Door Logistics\n\nThis invoice corresponds to international logistics and freight forwarding services under DDP (Delivered Duty Paid) terms. The service includes freight transportation, customs clearance, applicable import duties/taxes, and final delivery to destination.\n\nThe client authorizes TLEC Cargo LTD to manage customs and shipping procedures on their behalf.\n\nOnce shipment processing or cargo reservation has started, payments are non-refundable except in cases of operational cancellation prior to dispatch.\n\nTracking and shipment reference: ${shipmentId}\n\nFor support: tlocomproenchina@gmail.com | +1 502 694 6833${(inv.total || 0) > 2000 ? '\n\nCommercial shipment – non-personal goods – freight forwarding service' : ''}`;
 
