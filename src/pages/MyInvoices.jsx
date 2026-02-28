@@ -21,6 +21,7 @@ export default function MyInvoices({ user }) {
   const [stripePublishableKey, setStripePublishableKey] = useState('');
   const [stripeOpen, setStripeOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [config, setConfig] = useState(null);
 
   useEffect(() => {
     loadInvoices();
