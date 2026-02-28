@@ -332,6 +332,26 @@ Email: ${client.email}`;
     setDeleting(false);
   };
 
+  const handleDeleteStripeCustomer = async (client) => {
+    if (!client?.stripe_customer_id) {
+      toast.error('El cliente no tiene cliente Stripe');
+      return;
+    }
+    const ok = window.confirm('¿Borrar cliente en Stripe? Esto no afecta su cuenta en el sistema.');
+    if (!ok) return;
+    try {
+      const res = await base44.functions.invoke('deleteStripeCustomer', { user_id: client.id });
+      if (res?.data?.success) {
+        toast.success('Cliente Stripe eliminado');
+        loadClients();
+      } else {
+        toast.error(res?.data?.error || 'No se pudo eliminar en Stripe');
+      }
+    } catch (e) {
+      toast.error('Error al eliminar en Stripe');
+    }
+  };
+
   const handleToggleActive = async (client, nextActive) => {
     try {
       await base44.entities.User.update(client.id, { is_active: nextActive });
@@ -936,6 +956,16 @@ Email: ${client.email}`;
                       <Edit2 className="h-4 w-4 mr-1" />
                       Editar
                     </Button>
+                    {client.stripe_customer_id && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDeleteStripeCustomer(client)}
+                        className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" /> Stripe
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm"

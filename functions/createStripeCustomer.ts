@@ -4,8 +4,26 @@ import Stripe from 'npm:stripe@14.23.0';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const authedUser = await base44.auth.me();
-    if (!authedUser) {
+
+    // Parse payload first (supports automations)
+    let payload = {};
+    try {
+      payload = await req.json();
+    } catch (_) {
+      payload = {};
+    }
+
+    const isAutomation = !!(payload?.event && payload?.event?.entity_name === 'User');
+
+    // Auth: require user unless it's an automation call
+    let authedUser = null;
+    try {
+      authedUser = await base44.auth.me();
+    } catch (_) {
+      authedUser = null;
+    }
+
+    if (!authedUser && !isAutomation) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -19,37 +37,35 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Stripe secret key not configured' }, { status: 500 });
     }
 
-    const stripe = new Stripe(STRIPE_SECRET_KEY, {
-      apiVersion: '2024-06-20',
-    });
+    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
 
-    let payload = {};
-    try {
-      payload = await req.json();
-    } catch (_) {
-      payload = {};
-    }
+    const { user_id: targetUserIdFromPayload, force = false } = payload || {};
 
-    const { user_id: targetUserId, force = false } = payload || {};
-
-    // Resolve target user: self by default, or specific user if admin
-    let targetUser = authedUser;
-    if (targetUserId && authedUser?.role === 'admin') {
-      const users = await base44.asServiceRole.entities.User.filter({ id: targetUserId });
+    // Resolve target user
+    let targetUser = null;
+    if (isAutomation && payload?.event?.entity_id) {
+      const users = await base44.asServiceRole.entities.User.filter({ id: payload.event.entity_id });
+      if (!users || users.length === 0) {
+        return Response.json({ error: 'Target user not found (automation)' }, { status: 404 });
+      }
+      targetUser = users[0];
+    } else if (targetUserIdFromPayload && authedUser?.role === 'admin') {
+      const users = await base44.asServiceRole.entities.User.filter({ id: targetUserIdFromPayload });
       if (!users || users.length === 0) {
         return Response.json({ error: 'Target user not found' }, { status: 404 });
       }
       targetUser = users[0];
-    } else if (targetUserId && authedUser?.role !== 'admin') {
-      return Response.json({ error: 'Forbidden: Admin access required to create Stripe customer for another user' }, { status: 403 });
+    } else {
+      // Self
+      targetUser = authedUser;
+    }
+
+    if (!targetUser) {
+      return Response.json({ error: 'Target user not resolved' }, { status: 400 });
     }
 
     if (targetUser.stripe_customer_id && !force) {
-      return Response.json({
-        success: true,
-        message: 'Stripe customer already exists',
-        stripe_customer_id: targetUser.stripe_customer_id,
-      });
+      return Response.json({ success: true, message: 'Stripe customer already exists', stripe_customer_id: targetUser.stripe_customer_id });
     }
 
     const fullName = targetUser.full_name || `${targetUser.first_name || ''} ${targetUser.last_name || ''}`.trim();
@@ -69,19 +85,12 @@ Deno.serve(async (req) => {
       },
     });
 
-    // Persist on User entity
-    if (targetUser.id) {
-      if (authedUser.id === targetUser.id) {
-        // The authenticated user updates self via auth.updateMe
-        await base44.auth.updateMe({ stripe_customer_id: customer.id });
-      } else {
-        // Admin updates another user via service role
-        await base44.asServiceRole.entities.User.update(targetUser.id, { stripe_customer_id: customer.id });
-      }
-    }
+    // Persist on User (service role to work for both contexts)
+    await base44.asServiceRole.entities.User.update(targetUser.id, { stripe_customer_id: customer.id });
 
     return Response.json({ success: true, stripe_customer_id: customer.id });
   } catch (error) {
-    return Response.json({ error: error?.message || 'Internal Server Error' }, { status: 500 });
+    const message = (error && typeof error === 'object' && 'message' in error) ? error.message : 'Internal Server Error';
+    return Response.json({ error: String(message) }, { status: 500 });
   }
 });
