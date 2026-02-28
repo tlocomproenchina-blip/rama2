@@ -182,12 +182,29 @@ export default function MyInvoices({ user }) {
         <div className="grid gap-4">
           {filteredInvoices.map(invoice => (
             <InvoiceCard
-              key={invoice.id}
-              invoice={invoice}
-              onPay={handlePayOnline}
-              onDownload={handleDownloadPDF}
-              showPayButton={config?.payments_enable_stripe === true}
-            />
+               key={invoice.id}
+               invoice={invoice}
+               onPay={handlePayOnline}
+               onDownload={handleDownloadPDF}
+               showPayButton={config?.payments_enable_stripe === true}
+               onOtherPay={(inv) => {
+                 setSelectedConsolidation({ id: inv.consolidation_id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
+                 setPaymentOpen(true);
+               }}
+               showOtherMethodsButton={(() => {
+                 const c = config || {};
+                 return (
+                   (c.payments_enable_binance === true && c.wallet_binance) ||
+                   (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) ||
+                   (c.payments_enable_paypal === true && c.wallet_paypal) ||
+                   (c.payments_enable_wally === true && c.wallet_wally) ||
+                   (c.payments_enable_zinli === true && c.wallet_zinli) ||
+                   (c.payments_enable_wise === true && c.wallet_wise) ||
+                   (c.payments_enable_skrill === true && c.wallet_skrill) ||
+                   (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt)
+                 );
+               })()}
+             />
           ))}
         </div>
       )}
