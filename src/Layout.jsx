@@ -129,6 +129,12 @@ export default function Layout({ children, currentPageName }) {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
 
+      // Auto-create Stripe customer if missing
+      if (currentUser && !currentUser.stripe_customer_id) {
+        // Non-blocking call
+        base44.functions.invoke('createStripeCustomer', {});
+      }
+
       // Block access for inactive clients
       if (currentUser.role === 'user' && currentUser.is_active === false) {
         navigate(createPageUrl('AccountDisabled'));
