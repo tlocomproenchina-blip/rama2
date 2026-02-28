@@ -74,6 +74,27 @@ Deno.serve(async (req) => {
     const currency = 'usd';
     const items: Array<any> = Array.isArray(inv.items) ? inv.items : [];
 
+    // Load consolidation for richer Stripe descriptions
+    let cons: any = null;
+    try {
+      if (inv.consolidation_id) {
+        const cl = await base44.asServiceRole.entities.Consolidation.filter({ id: inv.consolidation_id });
+        cons = cl?.[0] || null;
+      }
+    } catch {}
+
+    const shippingType = (cons?.shipping_type) || (inv.items?.[0]?.description?.toLowerCase().includes('aéreo') ? 'aereo' : 'maritimo');
+    const ddpTitle = shippingType === 'aereo' 
+      ? 'International Logistics Service – DDP Door to Door (Air Freight)'
+      : 'International Logistics Service – DDP Door to Door (Sea Freight)';
+    const weightInfo = shippingType === 'aereo'
+      ? `Weight: ${cons?.real_weight_kg ?? inv.items?.[0]?.details?.billable_weight ?? 'N/A'} kg`
+      : `Weight / CBM: ${cons?.cbm ?? inv.items?.[0]?.details?.dimensions ?? 'N/A'}`;
+    const shipmentId = cons?.consolidation_tracking || inv.consolidation_tracking || '';
+    const ddpDetail = `${ddpTitle}\nOrigin: China\nDestination: Venezuela\nShipment ID: ${shipmentId}\n${weightInfo}\nService: ${shippingType === 'aereo' ? 'Air' : 'Maritime'} DDP (customs clearance + taxes included)`;
+
+    const footerTerms = `Service Terms – DDP Door to Door Logistics\n\nThis invoice corresponds to international logistics and freight forwarding services under DDP (Delivered Duty Paid) terms. The service includes freight transportation, customs clearance, applicable import duties/taxes, and final delivery to destination.\n\nThe client authorizes TLEC Cargo LTD to manage customs and shipping procedures on their behalf.\n\nOnce shipment processing or cargo reservation has started, payments are non-refundable except in cases of operational cancellation prior to dispatch.\n\nTracking and shipment reference: ${shipmentId}\n\nFor support: tlocomproenchina@gmail.com | +1 502 694 6833${(inv.total || 0) > 2000 ? '\n\nCommercial shipment – non-personal goods – freight forwarding service' : ''}`;
+
     const stripeInvoice = await stripe.invoices.create({
       customer: client.stripe_customer_id,
       collection_method: 'send_invoice',
