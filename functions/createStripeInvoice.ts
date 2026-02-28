@@ -103,7 +103,9 @@ Deno.serve(async (req) => {
         base44_invoice_id: String(inv.id),
         base44_consolidation_id: inv.consolidation_id || '',
       },
-      description: inv.consolidation_tracking ? `Consolidación ${inv.consolidation_tracking}` : undefined,
+      description: ddpDetail,
+      footer: footerTerms,
+      statement_descriptor: 'TLEC CARGO LTD',
       auto_advance: false
     });
 
