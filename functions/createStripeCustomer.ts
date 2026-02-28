@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       apiVersion: '2024-06-20',
     });
 
-    let payload: any = {};
+    let payload = {};
     try {
       payload = await req.json();
     } catch (_) {
