@@ -112,10 +112,12 @@ Deno.serve(async (req) => {
     const finalized = await stripe.invoices.finalizeInvoice(stripeInvoice.id);
     const sent = await stripe.invoices.sendInvoice(finalized.id);
 
-    // Store a reference (non-breaking): use payment_reference to keep track
+    // Store Stripe invoice references on our record
     try {
       await base44.asServiceRole.entities.Invoice.update(inv.id, {
         payment_reference: `stripe:${sent.id}`,
+        stripe_invoice_id: sent.id,
+        stripe_hosted_invoice_url: sent.hosted_invoice_url || ''
       });
     } catch {}
 

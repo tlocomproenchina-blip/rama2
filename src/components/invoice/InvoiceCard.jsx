@@ -43,6 +43,16 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
                   <DollarSign className="h-3 w-3" />
                   ${invoice.total.toFixed(2)}
                 </span>
+                {invoice.status === 'pendiente' && invoice.stripe_hosted_invoice_url && (
+                  <a
+                    href={invoice.stripe_hosted_invoice_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-dotted text-emerald-700 hover:text-emerald-800"
+                  >
+                    Ver factura de Stripe
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -66,13 +76,12 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          {showPayButton && invoice.status === 'pendiente' && (
-            <Button 
-              onClick={() => onPay(invoice)} 
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              Pagar con Tarjeta (Stripe)
+          {invoice.status === 'pendiente' && invoice.stripe_hosted_invoice_url && (
+            <Button asChild className="flex-1 bg-emerald-600 hover:bg-emerald-700">
+              <a href={invoice.stripe_hosted_invoice_url} target="_blank" rel="noopener noreferrer">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Pagar en Stripe
+              </a>
             </Button>
           )}
           {showOtherMethodsButton && invoice.status === 'pendiente' && (

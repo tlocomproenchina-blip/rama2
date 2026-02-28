@@ -89,6 +89,8 @@ Deno.serve(async (req) => {
               payment_date: new Date().toISOString(),
               payment_method: 'stripe_invoice',
               payment_reference: invObj.id,
+              stripe_invoice_id: invObj.id,
+              stripe_hosted_invoice_url: invObj.hosted_invoice_url || undefined
             });
           } catch (e) {
             console.error('Failed to update invoice (invoice.paid):', e);
