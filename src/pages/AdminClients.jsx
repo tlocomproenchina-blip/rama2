@@ -318,9 +318,18 @@ Email: ${client.email}`;
     setDeleting(true);
 
     try {
+      // Primero intentamos eliminar en Stripe (si existe), pero no bloquea el borrado local
+      if (deleteClient?.stripe_customer_id) {
+        try {
+          await base44.functions.invoke('deleteStripeCustomer', { user_id: deleteClient.id });
+        } catch (_) {
+          // Continuar aunque falle la eliminación en Stripe
+        }
+      }
+
       const res = await base44.functions.invoke('deleteUserCascade', { email: deleteClient.email });
       if (res?.data?.success) {
-        toast.success('Cliente y datos asociados eliminados');
+        toast.success('Cliente, datos asociados y (si aplica) cliente Stripe eliminados');
       } else {
         toast.error(res?.data?.error || 'No se pudo eliminar');
       }
@@ -1125,6 +1134,7 @@ Email: ${client.email}`;
               <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-red-800 text-sm font-medium">
                   ⚠️ Se eliminarán en cascada TODOS los datos asociados (paquetes, consolidaciones, facturas, tickets, notificaciones, notas, etc.).
+                  Además, si existe un cliente en Stripe vinculado, también se eliminará.
                 </p>
               </div>
             </AlertDialogDescription>
