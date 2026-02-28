@@ -26,7 +26,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
         // Filter available payment methods based on configuration (with enable flags)
         const c = configs[0];
         const methods = [];
-        if (c.payments_enable_stripe === true) methods.push({ id: 'stripe', name: 'Tarjeta (Stripe)', color: 'indigo' });
+        // Stripe se maneja con botón externo en facturas
         if (c.payments_enable_binance === true && c.wallet_binance) methods.push({ id: 'binance', name: 'Binance', color: 'amber' });
         if (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) methods.push({ id: 'usdt_trc20', name: 'USDT TRC20', color: 'blue' });
         if (c.payments_enable_paypal === true && c.wallet_paypal) methods.push({ id: 'paypal', name: 'PayPal', color: 'blue' });
