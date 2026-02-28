@@ -417,16 +417,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         const Icon = item.icon;
                         const isActive = currentPage === item.page;
 
-                        // Badges/alerts
-                        let badgeCount = null;
+                        // Badges/alerts (ocultos para clientes; usar solo la campanita)
+                        let badgeCount = 0;
                         let showWarning = false;
-                        if (item.page === 'Dashboard' || item.page === 'ClientPortal') {
-                          showWarning = notificationCounts.critical > 0;
-                        } else if (item.page === 'MyPackages' || item.page === 'AdminPackages') {
-                          badgeCount = notificationCounts.packages;
-                        } else if (item.page === 'RequestConsolidation') {
-                          badgeCount = notificationCounts.requests;
-                        }
 
                         return (
                           <Link
