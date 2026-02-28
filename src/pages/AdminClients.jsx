@@ -31,6 +31,8 @@ import {
   Filter,
   UserCheck,
   UserX
+,
+  CreditCard
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -73,6 +75,7 @@ export default function AdminClients({ user }) {
   const [stateFilter, setStateFilter] = useState('all');
   const [exclusiveKey, setExclusiveKey] = useState('all');
   const [canExport, setCanExport] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
 
   useEffect(() => {
     loadClients();
