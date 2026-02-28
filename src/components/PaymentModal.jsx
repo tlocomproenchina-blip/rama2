@@ -30,7 +30,6 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
         if (c.payments_enable_binance !== false && c.wallet_binance) methods.push({ id: 'binance', name: 'Binance', color: 'amber' });
         if (c.payments_enable_usdt_trc20 !== false && c.wallet_usdt_trc20) methods.push({ id: 'usdt_trc20', name: 'USDT TRC20', color: 'blue' });
         if (c.payments_enable_paypal !== false && c.wallet_paypal) methods.push({ id: 'paypal', name: 'PayPal', color: 'blue' });
-        if (c.payments_enable_debito_internacional !== false && c.wallet_debito_internacional) methods.push({ id: 'debito_internacional', name: 'Débito Internacional', color: 'purple' });
         if (c.payments_enable_wally !== false && c.wallet_wally) methods.push({ id: 'wally', name: 'Wally', color: 'green' });
         if (c.payments_enable_zinli !== false && c.wallet_zinli) methods.push({ id: 'zinli', name: 'Zinli', color: 'pink' });
         if (c.payments_enable_wise !== false && c.wallet_wise) methods.push({ id: 'wise', name: 'Wise', color: 'teal' });
