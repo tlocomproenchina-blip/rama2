@@ -6,7 +6,7 @@ import { FileText, CreditCard, Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 
-export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton = false }) {
+export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false }) {
   const statusColors = {
     pendiente: 'bg-yellow-100 text-yellow-800',
     pagada: 'bg-green-100 text-green-800',
@@ -65,7 +65,7 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {showPayButton && invoice.status === 'pendiente' && (
             <Button 
               onClick={() => onPay(invoice)} 
@@ -75,7 +75,17 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
               Pagar con Tarjeta (Stripe)
             </Button>
           )}
-          <div className="flex-1">
+          {showOtherMethodsButton && invoice.status === 'pendiente' && (
+            <Button 
+              onClick={() => onOtherPay?.(invoice)}
+              variant="outline"
+              className="flex-1"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Otros métodos de pago
+            </Button>
+          )}
+          <div className="flex-1 min-w-40">
             <InvoicePDFGenerator invoice={invoice} />
           </div>
         </div>
