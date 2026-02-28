@@ -1347,7 +1347,13 @@ export default function AdminSettings({ user }) {
 
               {/* Zelle */}
               <div className="p-6 bg-amber-50 rounded-xl space-y-4">
-                <h3 className="font-semibold text-slate-800">Zelle</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-800">Zelle</h3>
+                  <Switch
+                    checked={!!appConfig.payments_enable_zelle}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, payments_enable_zelle: checked })}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Email/Teléfono Zelle</Label>
                   <Input
