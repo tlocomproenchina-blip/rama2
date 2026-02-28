@@ -239,8 +239,18 @@ export default function MyInvoices({ user }) {
             <StripeCheckout 
               clientSecret={stripeClientSecret} 
               publishableKey={stripePublishableKey}
-              onSuccess={async () => {
-                toast.success('Pago confirmado');
+              onSuccess={async (pi) => {
+                try {
+                  const res = await base44.functions.invoke('verifyStripePayment', { payment_intent_id: pi?.id });
+                  if (res.status === 200 && res.data?.success) {
+                    toast.success('Pago confirmado y factura actualizada');
+                  } else {
+                    toast.success('Pago confirmado; sincronizando...');
+                  }
+                } catch (e) {
+                  console.error('Sync error:', e);
+                  toast.success('Pago confirmado');
+                }
                 setStripeOpen(false);
                 await loadInvoices();
               }}
