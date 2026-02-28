@@ -26,15 +26,15 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
         // Filter available payment methods based on configuration (with enable flags)
         const c = configs[0];
         const methods = [];
-        if (c.payments_enable_stripe !== false) methods.push({ id: 'stripe', name: 'Tarjeta (Stripe)', color: 'indigo' });
-        if (c.payments_enable_binance !== false && c.wallet_binance) methods.push({ id: 'binance', name: 'Binance', color: 'amber' });
-        if (c.payments_enable_usdt_trc20 !== false && c.wallet_usdt_trc20) methods.push({ id: 'usdt_trc20', name: 'USDT TRC20', color: 'blue' });
-        if (c.payments_enable_paypal !== false && c.wallet_paypal) methods.push({ id: 'paypal', name: 'PayPal', color: 'blue' });
-        if (c.payments_enable_wally !== false && c.wallet_wally) methods.push({ id: 'wally', name: 'Wally', color: 'green' });
-        if (c.payments_enable_zinli !== false && c.wallet_zinli) methods.push({ id: 'zinli', name: 'Zinli', color: 'pink' });
-        if (c.payments_enable_wise !== false && c.wallet_wise) methods.push({ id: 'wise', name: 'Wise', color: 'teal' });
-        if (c.payments_enable_skrill !== false && c.wallet_skrill) methods.push({ id: 'skrill', name: 'Skrill', color: 'violet' });
-        if (c.payments_enable_pago_movil_usdt !== false && c.wallet_pago_movil_usdt) methods.push({ id: 'pago_movil_usdt', name: 'Pago Móvil → USDT', color: 'orange' });
+        if (c.payments_enable_stripe === true) methods.push({ id: 'stripe', name: 'Tarjeta (Stripe)', color: 'indigo' });
+        if (c.payments_enable_binance === true && c.wallet_binance) methods.push({ id: 'binance', name: 'Binance', color: 'amber' });
+        if (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) methods.push({ id: 'usdt_trc20', name: 'USDT TRC20', color: 'blue' });
+        if (c.payments_enable_paypal === true && c.wallet_paypal) methods.push({ id: 'paypal', name: 'PayPal', color: 'blue' });
+        if (c.payments_enable_wally === true && c.wallet_wally) methods.push({ id: 'wally', name: 'Wally', color: 'green' });
+        if (c.payments_enable_zinli === true && c.wallet_zinli) methods.push({ id: 'zinli', name: 'Zinli', color: 'pink' });
+        if (c.payments_enable_wise === true && c.wallet_wise) methods.push({ id: 'wise', name: 'Wise', color: 'teal' });
+        if (c.payments_enable_skrill === true && c.wallet_skrill) methods.push({ id: 'skrill', name: 'Skrill', color: 'violet' });
+        if (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt) methods.push({ id: 'pago_movil_usdt', name: 'Pago Móvil → USDT', color: 'orange' });
         
         setAvailableMethods(methods);
         if (methods.length > 0) {

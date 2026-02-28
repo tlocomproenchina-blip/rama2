@@ -186,7 +186,7 @@ export default function MyInvoices({ user }) {
               invoice={invoice}
               onPay={handlePayOnline}
               onDownload={handleDownloadPDF}
-              showPayButton={config?.payments_enable_stripe !== false}
+              showPayButton={config?.payments_enable_stripe === true}
             />
           ))}
         </div>
