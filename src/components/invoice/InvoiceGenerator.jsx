@@ -85,7 +85,7 @@ export async function generateInvoice(consolidation) {
     tax,
     total,
     status: 'pendiente',
-    notes: ddpNotes
+    notes: `Service Terms – International Logistics (DDP)\n\nThis invoice corresponds to international freight forwarding and logistics services under Delivered Duty Paid (DDP) terms, including transportation, customs clearance, applicable duties and final delivery to destination.\n\nTLEC Cargo LTD acts solely as logistics and freight service provider and does not sell or resell goods transported.\n\nPayments correspond to contracted logistics services and become non-refundable once shipment processing or cargo reservation has commenced.\n\nShipment Reference: CON-561265-OKDPWH-260227`
   });
 
   console.log('✓ Factura generada:', invoice.invoice_number);

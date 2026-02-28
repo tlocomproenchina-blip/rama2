@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         base44_consolidation_id: inv.consolidation_id || '',
       },
       description: ddpDetail,
-      footer: footerTerms,
+      footer: `Service Terms – International Logistics (DDP)\n\nThis invoice corresponds to international freight forwarding and logistics services under Delivered Duty Paid (DDP) terms, including transportation, customs clearance, applicable duties and final delivery to destination.\n\nTLEC Cargo LTD acts solely as logistics and freight service provider and does not sell or resell goods transported.\n\nPayments correspond to contracted logistics services and become non-refundable once shipment processing or cargo reservation has commenced.\n\nShipment Reference: CON-561265-OKDPWH-260227`,
       statement_descriptor: 'TLEC CARGO LTD',
       auto_advance: false
     });
