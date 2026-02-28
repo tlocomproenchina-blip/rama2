@@ -321,6 +321,56 @@ export default function InvoicePDFGenerator({ invoice }) {
       doc.setTextColor(...statusColor);
       doc.text(`Estado: ${statusText}`, 15, yPos);
 
+      
+      // Payment History
+      if (Array.isArray(invoice.payment_history) && invoice.payment_history.length > 0) {
+        const pageH = doc.internal.pageSize.height;
+        const ensureSpace = (needed) => { if (yPos > pageH - needed) { doc.addPage(); yPos = 20; } };
+        yPos += 10; ensureSpace(40);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(0,0,0);
+        doc.text('Payment History', 15, yPos);
+        yPos += 8;
+
+        // Header row
+        doc.setFontSize(9);
+        doc.text('Payment Method', 15, yPos);
+        doc.text('Date', 80, yPos);
+        doc.text('Amount Paid', 120, yPos);
+        doc.text('Transaction ID', 160, yPos);
+        yPos += 6;
+
+        doc.setFont('helvetica', 'normal');
+        let totalPaid = 0;
+        (invoice.payment_history).forEach((ph) => {
+          ensureSpace(25);
+          const brand = (ph.method_brand || 'Card');
+          const last4 = ph.last4 || '';
+          const method = `${brand.charAt(0).toUpperCase() + brand.slice(1)} •••• ${last4}`;
+          const dateStr = new Date(ph.date || new Date()).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' });
+          const amt = Number(ph.amount_paid || 0);
+          totalPaid += amt;
+          const currency = (ph.currency || 'USD').toUpperCase();
+          const amtStr = `${currency} ${amt.toFixed(2)}`;
+          const txId = ph.payment_intent_id || ph.charge_id || '';
+
+          doc.text(method, 15, yPos);
+          doc.text(dateStr, 80, yPos);
+          doc.text(amtStr, 120, yPos);
+          doc.text(txId, 160, yPos);
+          yPos += 5;
+        });
+
+        yPos += 6; ensureSpace(20);
+        doc.setFont('helvetica', 'bold');
+        const remaining = Math.max(0, (invoice.total || 0) - totalPaid);
+        doc.text(`Total Paid: USD ${totalPaid.toFixed(2)}`, 15, yPos);
+        yPos += 6;
+        doc.text(`Remaining Balance: USD ${remaining.toFixed(2)}`, 15, yPos);
+        doc.setFont('helvetica', 'normal');
+      }
+
       // Footer
       doc.setTextColor(100, 100, 100);
       doc.setFontSize(8);
