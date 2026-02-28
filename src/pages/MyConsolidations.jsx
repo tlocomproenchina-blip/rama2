@@ -33,9 +33,11 @@ export default function MyConsolidations({ user }) {
   const [paymentModal, setPaymentModal] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const [config, setConfig] = useState(null);
 
   useEffect(() => {
     loadConsolidations();
+    base44.entities.AppConfig.filter({ config_key: 'main' }).then(cfgs => setConfig(cfgs[0] || null));
     // REAL-TIME SUBSCRIPTION DISABLED - Preventing rate limit errors
     // Use manual refresh button instead
   }, [user]);
@@ -54,6 +56,22 @@ export default function MyConsolidations({ user }) {
   const isPending = (con) => {
     return con.status === 'pago_pendiente_validacion';
   };
+
+  const hasActivePaymentMethods = React.useMemo(() => {
+    const c = config;
+    if (!c) return false;
+    return (
+      c.payments_enable_stripe === true ||
+      (c.payments_enable_binance === true && c.wallet_binance) ||
+      (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) ||
+      (c.payments_enable_paypal === true && c.wallet_paypal) ||
+      (c.payments_enable_wally === true && c.wallet_wally) ||
+      (c.payments_enable_zinli === true && c.wallet_zinli) ||
+      (c.payments_enable_wise === true && c.wallet_wise) ||
+      (c.payments_enable_skrill === true && c.wallet_skrill) ||
+      (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt)
+    );
+  }, [config]);
 
   const canApproveShipment = (con) => {
     return con.payment_validated && !con.shipment_approved && con.status !== 'en_transito' && con.status !== 'disponible' && con.status !== 'entregado';
@@ -246,7 +264,7 @@ export default function MyConsolidations({ user }) {
 
                     {/* Payment & Approval Section */}
                     <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-slate-100 space-y-3">
-                      {canPay(con) && (
+                      {canPay(con) && hasActivePaymentMethods && (
                         <Button 
                           className="w-full bg-emerald-600 hover:bg-emerald-700"
                           onClick={() => setPaymentModal(con)}
