@@ -31,7 +31,7 @@ export default function InvoicePDFGenerator({ invoice }) {
         window.open(invoice.stripe_invoice_pdf_url, '_blank');
         return;
       }
-      if (invoice?.stripe_hosted_invoice_url) {
+      if (invoice?.stripe_hosted_invoice_url && invoice?.status !== 'pagada') {
         window.open(invoice.stripe_hosted_invoice_url, '_blank');
         return;
       }
