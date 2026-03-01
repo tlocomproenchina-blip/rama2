@@ -188,7 +188,7 @@ export default function ShipmentTracking({ user }) {
   };
 
   const getProgress = (con) => {
-    // Calculate progress based on estimated delivery date
+    // Calculate progress based on estimated delivery date (treat estimated_delivery as local date)
     if (!con.created_date || !con.estimated_delivery) {
       const steps = getStatusSteps(con);
       const completed = steps.filter(s => s.completed).length;
@@ -196,13 +196,12 @@ export default function ShipmentTracking({ user }) {
     }
 
     try {
-      // Parse dates ensuring they're valid
       const createdDate = new Date(con.created_date);
-      const estimatedDeliveryDate = new Date(con.estimated_delivery);
-      
-      // Validate dates
+      const estimatedDeliveryDate = typeof con.estimated_delivery === 'string'
+        ? parse(con.estimated_delivery, 'yyyy-MM-dd', new Date())
+        : new Date(con.estimated_delivery);
+
       if (isNaN(createdDate.getTime()) || isNaN(estimatedDeliveryDate.getTime())) {
-        // Fallback to steps calculation if dates invalid
         const steps = getStatusSteps(con);
         const completed = steps.filter(s => s.completed).length;
         return (completed / steps.length) * 100;
@@ -216,7 +215,6 @@ export default function ShipmentTracking({ user }) {
       const progress = (elapsedDays / totalDays) * 100;
       return Math.min(100, Math.max(0, progress));
     } catch (e) {
-      // Fallback to steps calculation
       const steps = getStatusSteps(con);
       const completed = steps.filter(s => s.completed).length;
       return (completed / steps.length) * 100;
