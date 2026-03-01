@@ -308,14 +308,16 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
             <Button
               onClick={async () => {
                 try {
-                  const cfg = await base44.functions.invoke('getStripeConfig');
-                  if (cfg.status !== 200 || !cfg.data?.publishableKey) throw new Error('Stripe no está configurado');
                   const invs = await base44.entities.Invoice.filter({ consolidation_id: consolidation.id });
                   if (!invs || invs.length === 0) throw new Error('No se encontró la factura de esta consolidación');
-                  const res = await base44.functions.invoke('createStripePaymentIntent', { invoice_id: invs[0].id });
+                  const inv = invs[0];
+                  if (inv.status === 'pagada' || inv.status === 'revision') throw new Error('Esta factura no admite pago con tarjeta en este momento');
+                  const cfg = await base44.functions.invoke('getStripeConfig');
+                  if (cfg.status !== 200 || !cfg.data?.publishableKey) throw new Error('Stripe no está configurado');
+                  const res = await base44.functions.invoke('createStripePaymentIntent', { invoice_id: inv.id });
                   if (res.status !== 200 || !res.data?.client_secret) throw new Error(res.data?.error || 'No se pudo iniciar el pago');
                   // Abrimos el modal de Stripe de la página de facturas vía evento
-                  window.dispatchEvent(new CustomEvent('openStripeForInvoice', { detail: { clientSecret: res.data.client_secret, publishableKey: cfg.data.publishableKey, invoiceId: invs[0].id } }));
+                  window.dispatchEvent(new CustomEvent('openStripeForInvoice', { detail: { clientSecret: res.data.client_secret, publishableKey: cfg.data.publishableKey, invoiceId: inv.id } }));
                   onClose();
                 } catch (e) {
                   console.error(e);
