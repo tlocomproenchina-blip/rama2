@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Clock, Calendar, Plane, Ship, Package, MapPin, CheckCircle2, Edit2, Upload, DollarSign } from 'lucide-react';
+import { ChevronDown, Clock, Calendar, Plane, Ship, Package, MapPin, CheckCircle2, Edit2, Upload, DollarSign, Copy } from 'lucide-react';
 import { format, differenceInDays, parse } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -109,6 +110,14 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                 <span className="text-sm lg:text-base font-mono font-bold text-slate-800 truncate">
                   {consolidation.consolidation_tracking}
                 </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(consolidation.consolidation_tracking); toast.success('Tracking copiado'); }}
+                >
+                  <Copy className="h-4 w-4 text-slate-500" />
+                </Button>
                 <Badge className={statusColors[consolidation.status]}>
                   {getStatusLabel(consolidation.status)}
                 </Badge>
@@ -143,7 +152,12 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
 
             {/* Right Side - Quick Stats */}
             <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
+                <div className="relative h-10 w-10 rounded-full grid place-items-center" style={{ backgroundImage: `conic-gradient(#2563eb ${Math.max(0, Math.min(100, Math.round(progress)))}%, #e2e8f0 0)` }}>
+                  <div className="h-7 w-7 rounded-full bg-white grid place-items-center text-[10px] font-semibold text-slate-700 shadow-sm">
+                    {Math.round(progress)}%
+                  </div>
+                </div>
                 <div className="text-right">
                   <p className="text-xs text-slate-500">Tránsito / Estimado</p>
                   <p className="text-sm lg:text-base font-bold text-slate-800">
@@ -211,49 +225,66 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                 {/* Timeline */}
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-slate-700 mb-3">Etapas de Envío</p>
-                  {steps.map((step, idx) => {
-                    const Icon = step.icon;
-                    return (
-                      <motion.div
-                        key={step.key}
-                        className="flex items-start gap-3"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                      >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          step.completed 
-                            ? `${getColorClasses(step.color).bg} ${getColorClasses(step.color).text}` 
-                            : 'bg-slate-100 text-slate-400'
-                        }`}>
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 pt-0.5">
-                          <p className={`text-sm font-medium ${
-                            step.completed ? 'text-slate-800' : 'text-slate-400'
-                          }`}>
-                            {step.label}
-                          </p>
-                          {step.date && (
-                             <p className="text-xs text-slate-500">
-                               {(() => {
-                                 try {
-                                   const date = typeof step.date === 'string' && step.key === 'delivered'
-                                    ? new Date(step.date)
-                                    : new Date(step.date)
-                                   if (isNaN(date.getTime())) return '-';
-                                   return format(date, 'dd/MM/yyyy HH:mm');
-                                 } catch (e) {
-                                   return '-';
-                                 }
-                               })()}
-                             </p>
-                           )}
-                        </div>
-                        {step.completed && <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />}
-                      </motion.div>
-                    );
-                  })}
+                  <div className="relative pl-2">
+                    <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-200" />
+                    {steps.map((step, idx) => {
+                      const Icon = step.icon;
+                      return (
+                        <motion.div
+                          key={step.key}
+                          className="relative flex items-start gap-3 ml-0.5"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                        >
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className={`z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow ${
+                                  step.completed 
+                                    ? `${getColorClasses(step.color).bg} ${getColorClasses(step.color).text}` 
+                                    : 'bg-slate-100 text-slate-400'
+                                }`}>
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-xs">
+                                  <p className="font-semibold">{step.label}</p>
+                                  {step.date && (
+                                    <p className="text-slate-500">
+                                      {(() => {
+                                        try {
+                                          const date = new Date(step.date);
+                                          if (isNaN(date.getTime())) return '-';
+                                          return format(date, 'dd/MM/yyyy HH:mm');
+                                        } catch (e) { return '-'; }
+                                      })()}
+                                    </p>
+                                  )}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <div className="flex-1 pt-0.5">
+                            <p className={`text-sm font-medium ${step.completed ? 'text-slate-800' : 'text-slate-400'}`}>{step.label}</p>
+                            {step.date && (
+                              <p className="text-xs text-slate-500">
+                                {(() => {
+                                  try {
+                                    const date = new Date(step.date);
+                                    if (isNaN(date.getTime())) return '-';
+                                    return format(date, 'dd/MM/yyyy HH:mm');
+                                  } catch (e) { return '-'; }
+                                })()}
+                              </p>
+                            )}
+                          </div>
+                          {step.completed && <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Route Visualization */}
