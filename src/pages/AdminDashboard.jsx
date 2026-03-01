@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import StatusBadge from '@/components/StatusBadge';
@@ -14,8 +15,13 @@ export default function AdminDashboard({ user }) {
     packages: [],
     consolidations: [],
     users: [],
-    invoices: []
+    invoices: [],
+    notifications: []
   });
+
+  const [invFilter, setInvFilter] = useState('pendiente');
+  const [consFilter, setConsFilter] = useState('todas');
+  const [notifFilter, setNotifFilter] = useState('todas');
 
   useEffect(() => {
     loadData();
@@ -31,6 +37,14 @@ export default function AdminDashboard({ user }) {
       ]);
       
       setData({ packages, consolidations, users, invoices });
+
+      // Cargar notificaciones del admin (resumen)
+      if (user?.email) {
+        try {
+          const notifications = await base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20);
+          setData(prev => ({ ...prev, notifications }));
+        } catch {}
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
     }
@@ -81,6 +95,31 @@ export default function AdminDashboard({ user }) {
     data.packages.slice(0, 5),
     [data.packages]
   );
+
+  const invoicesByFilter = useMemo(() => {
+    let list = data.invoices;
+    if (invFilter === 'pendiente') {
+      list = list.filter(i => i.status === 'pendiente');
+    } else if (invFilter === 'vencida') {
+      const today = new Date();
+      list = list.filter(i => i.status === 'pendiente' && new Date(i.due_date) < today);
+    }
+    return list.slice(0, 5);
+  }, [data.invoices, invFilter]);
+
+  const recentConsolidations = useMemo(() => {
+    let list = data.consolidations;
+    if (consFilter !== 'todas') {
+      list = list.filter(c => c.status === consFilter);
+    }
+    return list.slice(0, 5);
+  }, [data.consolidations, consFilter]);
+
+  const notificationsSummary = useMemo(() => {
+    let list = data.notifications || [];
+    if (notifFilter === 'no_leidas') list = list.filter(n => !n.read);
+    return list.slice(0, 5);
+  }, [data.notifications, notifFilter]);
 
   const urgentActions = useMemo(() => {
     const actions = [];
@@ -347,6 +386,125 @@ export default function AdminDashboard({ user }) {
                   <p className="text-xs text-slate-500">
                     {new Date(pkg.created_date).toLocaleDateString()}
                   </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Facturas Pendientes */}
+      <Card className="shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Facturas
+            </CardTitle>
+            <Tabs value={invFilter} onValueChange={setInvFilter}>
+              <TabsList>
+                <TabsTrigger value="pendiente">Pendientes</TabsTrigger>
+                <TabsTrigger value="vencida">Vencidas</TabsTrigger>
+                <TabsTrigger value="todas">Todas</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {invoicesByFilter.length === 0 ? (
+            <p className="text-sm text-slate-500">No hay facturas</p>
+          ) : (
+            <div className="space-y-3">
+              {invoicesByFilter.map(inv => (
+                <div key={inv.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-800 truncate">{inv.invoice_number} • {inv.client_email}</p>
+                    <p className="text-xs text-slate-500">Fecha: {new Date(inv.invoice_date).toLocaleDateString()} • Vence: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline">${(inv.total || 0).toFixed(2)}</Badge>
+                    <Link to={createPageUrl('AdminInvoices')}>
+                      <Button size="sm" variant="outline">Ver</Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Consolidaciones Recientes */}
+      <Card className="shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5" />
+              Consolidaciones Recientes
+            </CardTitle>
+            <Tabs value={consFilter} onValueChange={setConsFilter}>
+              <TabsList>
+                <TabsTrigger value="todas">Todas</TabsTrigger>
+                <TabsTrigger value="en_transito">En tránsito</TabsTrigger>
+                <TabsTrigger value="disponible">Disponible</TabsTrigger>
+                <TabsTrigger value="entregado">Entregado</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {recentConsolidations.length === 0 ? (
+            <p className="text-sm text-slate-500">No hay consolidaciones</p>
+          ) : (
+            <div className="space-y-3">
+              {recentConsolidations.map(cons => (
+                <div key={cons.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-800 truncate">{cons.consolidation_tracking || 'Sin tracking'} • {cons.client_email}</p>
+                    <p className="text-xs text-slate-500">{new Date(cons.created_date).toLocaleString()}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline">${(cons.total_cost || 0).toFixed(2)}</Badge>
+                    <StatusBadge status={cons.status} size="sm" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Resumen de Notificaciones */}
+      <Card className="shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notificaciones
+            </CardTitle>
+            <Tabs value={notifFilter} onValueChange={setNotifFilter}>
+              <TabsList>
+                <TabsTrigger value="todas">Todas</TabsTrigger>
+                <TabsTrigger value="no_leidas">No leídas</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {(notificationsSummary || []).length === 0 ? (
+            <p className="text-sm text-slate-500">Sin notificaciones</p>
+          ) : (
+            <div className="space-y-3">
+              {notificationsSummary.map(n => (
+                <div key={n.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-800 truncate">{n.title}</p>
+                    <p className="text-xs text-slate-500 truncate">{n.message}</p>
+                  </div>
+                  <div className="text-right">
+                    {!n.read && <Badge className="bg-blue-600">Nuevo</Badge>}
+                    <p className="text-[11px] text-slate-500">{new Date(n.created_date).toLocaleString()}</p>
+                  </div>
                 </div>
               ))}
             </div>
