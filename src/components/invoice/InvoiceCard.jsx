@@ -92,6 +92,7 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
               </a>
             </Button>
           )}
+          {/* Si está pagada o en revisión, nunca mostrar botón de Stripe */}
           {showOtherMethodsButton && invoice.status === 'pendiente' && (
             <Button 
               onClick={() => onOtherPay?.(invoice)}
