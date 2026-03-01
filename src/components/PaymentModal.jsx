@@ -179,6 +179,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
               <DialogDescription className="text-slate-500">
                 Total a pagar: <span className="font-bold text-emerald-600">${consolidation?.total_cost?.toFixed(2)}</span>
               </DialogDescription>
+              <p className="text-xs text-slate-500 mt-1">El pago debe coincidir exactamente con el total; no aceptamos multipagos.</p>
             </div>
           </div>
         </DialogHeader>
