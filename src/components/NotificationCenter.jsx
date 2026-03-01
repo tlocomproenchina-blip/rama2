@@ -25,8 +25,18 @@ export default function NotificationCenter({ user }) {
         '-created_date',
         50
       );
-      setNotifications(data);
-      setUnreadCount(data.filter(n => !n.read).length);
+      // De-dup by (user, reference_id, title, type)
+      const seen = new Set();
+      const deduped = [];
+      for (const n of data) {
+        const key = `${n.user_email}|${n.reference_id || ''}|${n.title || ''}|${n.type || ''}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          deduped.push(n);
+        }
+      }
+      setNotifications(deduped);
+      setUnreadCount(deduped.filter(n => !n.read).length);
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
