@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, Clock, Calendar, Plane, Ship, Package, MapPin, CheckCircle2, Edit2, Upload, DollarSign } from 'lucide-react';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, parse } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { base44 } from '@/api/base44Client';
@@ -13,9 +13,9 @@ import { toast } from 'sonner';
 export default function TrackingCard({ consolidation, user, onStatusChange, onEditDate, getStatusSteps, getProgress, getDaysInTransit, getEstimatedDaysRemaining, getColorClasses, onDataChanged }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const steps = getStatusSteps(consolidation);
-  const progress = getProgress(consolidation);
+  const progress = getProgress({ ...consolidation, estimated_delivery: consolidation.estimated_delivery ? parse(consolidation.estimated_delivery, 'yyyy-MM-dd', new Date()) : null });
   const daysInTransit = getDaysInTransit(consolidation);
-  const daysRemaining = getEstimatedDaysRemaining(consolidation);
+  const daysRemaining = getEstimatedDaysRemaining({ ...consolidation, estimated_delivery: consolidation.estimated_delivery ? parse(consolidation.estimated_delivery, 'yyyy-MM-dd', new Date()) : null });
 
   const [paymentAmount, setPaymentAmount] = useState(consolidation.payment_amount || '');
   const [paymentMethod, setPaymentMethod] = useState(consolidation.payment_method || '');
