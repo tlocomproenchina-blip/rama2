@@ -105,16 +105,36 @@ export default function AdminInvoices({ user }) {
         status: editingInvoice.status,
         notes: editingInvoice.notes
       });
-      // Auto-sync with Stripe when marking as paid
+
+      // Stripe sync behavior (configurable)
       if (editingInvoice.status === 'pagada') {
-        try {
-          const res = await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: editingInvoice.id });
-          if (res?.data && res.data.ok === false) {
-            toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
+        const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+        const cfg = cfgs?.[0] || {};
+        const mode = cfg.payments_stripe_sync_mode || 'auto';
+        const errMode = cfg.payments_stripe_error_mode || 'keep_and_alert';
+
+        const shouldInvoke = mode === 'auto' || (mode === 'confirm' && window.confirm('¿También notificar a Stripe como pagada?'));
+        if (shouldInvoke) {
+          try {
+            const res = await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: editingInvoice.id });
+            if (res?.data && res.data.ok === false) {
+              if (errMode === 'revert' || errMode === 'retry_then_revert') {
+                await base44.entities.Invoice.update(editingInvoice.id, { status: 'pendiente' });
+                toast.error('Stripe no se actualizó; se revirtió la factura a pendiente.');
+              } else {
+                toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
+              }
+            }
+          } catch (e) {
+            if (errMode === 'revert' || errMode === 'retry_then_revert') {
+              await base44.entities.Invoice.update(editingInvoice.id, { status: 'pendiente' });
+              toast.error('Stripe no se actualizó; se revirtió la factura a pendiente.');
+            } else {
+              toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
+            }
           }
-        } catch (e) {
-          // Keep as paid in app and alert discrepancy
-          toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
+        } else if (mode === 'button') {
+          toast.info('Modo botón: usa "Marcar pagada en Stripe" en las acciones de la factura.');
         }
       }
       
@@ -398,12 +418,32 @@ export default function AdminInvoices({ user }) {
         await Promise.all(selectedInvs.map(inv => 
           base44.entities.Invoice.update(inv.id, { status: bulkStatus })
         ));
-        // Auto-sync with Stripe when marking as paid
+
         if (bulkStatus === 'pagada') {
-          await Promise.allSettled(
-            selectedInvs.map(inv => base44.functions.invoke('markStripeInvoicePaid', { invoiceId: inv.id }))
-          );
+          const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+          const cfg = cfgs?.[0] || {};
+          const mode = cfg.payments_stripe_sync_mode || 'auto';
+          const errMode = cfg.payments_stripe_error_mode || 'keep_and_alert';
+
+          const proceed = mode === 'auto' || (mode === 'confirm' && window.confirm('¿También notificar a Stripe las facturas seleccionadas como pagadas?'));
+          if (proceed) {
+            const results = await Promise.allSettled(
+              selectedInvs.map(inv => base44.functions.invoke('markStripeInvoicePaid', { invoiceId: inv.id }))
+            );
+            const failedIds = results.map((r, idx) => ({ r, id: selectedInvs[idx].id }))
+              .filter(x => x.r.status === 'rejected' || (x.r.status === 'fulfilled' && x.r.r?.data && x.r.r.data.ok === false))
+              .map(x => x.id);
+            if ((errMode === 'revert' || errMode === 'retry_then_revert') && failedIds.length) {
+              await Promise.all(failedIds.map(id => base44.entities.Invoice.update(id, { status: 'pendiente' })));
+              toast.error(`Stripe no se actualizó para ${failedIds.length} factura(s); se revirtieron a pendiente.`);
+            } else if (failedIds.length) {
+              toast.warning(`Stripe no se actualizó para ${failedIds.length} factura(s).`);
+            }
+          } else if (mode === 'button') {
+            toast.info('Modo botón: usa la acción "Marcar en Stripe" por factura.');
+          }
         }
+
         toast.success(`${selectedInvoices.length} factura(s) actualizada(s)`);
       }
 
