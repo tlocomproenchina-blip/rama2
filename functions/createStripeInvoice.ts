@@ -134,17 +134,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Finalize and send
+    // Finalize (NO enviar email todavía)
     const finalized = await stripe.invoices.finalizeInvoice(stripeInvoice.id);
-    const sent = await stripe.invoices.sendInvoice(finalized.id);
 
-    // Store Stripe invoice references on our record and sync totals from Stripe
+    // Esperar hasta que Stripe tenga lista la hosted_invoice_url (máx ~60s)
+    let fresh = await stripe.invoices.retrieve(finalized.id);
+    let attempts = 0;
+    while (!fresh.hosted_invoice_url && attempts < 30) {
+      await new Promise((r) => setTimeout(r, 2000)); // 2s
+      fresh = await stripe.invoices.retrieve(finalized.id);
+      attempts++;
+    }
+
+    // Guardar referencias en nuestra factura (aunque no haya URL tras agotar intentos)
     try {
-      const fresh = await stripe.invoices.retrieve(sent.id);
       await base44.asServiceRole.entities.Invoice.update(inv.id, {
-        payment_reference: `stripe:${sent.id}`,
-        stripe_invoice_id: sent.id,
-        stripe_hosted_invoice_url: sent.hosted_invoice_url || fresh.hosted_invoice_url || '',
+        payment_reference: `stripe:${finalized.id}`,
+        stripe_invoice_id: finalized.id,
+        stripe_hosted_invoice_url: fresh.hosted_invoice_url || '',
         stripe_invoice_pdf_url: fresh.invoice_pdf || '',
         subtotal: (fresh.subtotal || 0) / 100,
         tax: (fresh.tax || 0) / 100,
@@ -152,7 +159,15 @@ Deno.serve(async (req) => {
       });
     } catch {}
 
-    return Response.json({ success: true, stripe_invoice_id: sent.id, hosted_invoice_url: sent.hosted_invoice_url });
+    // Enviar el email de Stripe SOLO cuando la URL esté lista (o tras agotar intentos)
+    let sent: any = null;
+    try {
+      sent = await stripe.invoices.sendInvoice(finalized.id);
+    } catch (_) {
+      // Si falló el envío, igualmente retornamos con la URL para que el panel la muestre
+    }
+
+    return Response.json({ success: true, stripe_invoice_id: finalized.id, hosted_invoice_url: fresh.hosted_invoice_url || null, email_sent: !!sent });
   } catch (error) {
     const message = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Internal Server Error';
     return Response.json({ error: String(message) }, { status: 500 });
