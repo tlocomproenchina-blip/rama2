@@ -243,9 +243,10 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
                 type="number"
                 step="0.01"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
+                readOnly
+                className="bg-slate-100 cursor-not-allowed"
               />
+              <p className="text-xs text-slate-500">El monto debe ser exactamente el total. No aceptamos pagos parciales.</p>
             </div>
           )}
 
