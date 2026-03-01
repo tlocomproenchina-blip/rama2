@@ -118,8 +118,8 @@ export default function AdminInvoices({ user }) {
       if (editingInvoice.status === 'pagada' && !editingInvoice.payment_date) updatePayload.payment_date = new Date().toISOString();
       await base44.entities.Invoice.update(editingInvoice.id, updatePayload);
 
-      // Stripe sync behavior (configurable) - solo si el método es Stripe
-      if (editingInvoice.status === 'pagada' && ['stripe','stripe_invoice','stripe_card'].includes((editingInvoice.payment_method || 'stripe_invoice').toLowerCase())) {
+      // Stripe sync behavior (configurable)
+      if (editingInvoice.status === 'pagada') {
         const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
         const cfg = cfgs?.[0] || {};
         const mode = cfg.payments_stripe_sync_mode || 'auto';
