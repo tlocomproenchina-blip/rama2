@@ -22,7 +22,13 @@ class ApiQueueManager {
     this.cache = new Map();
     this.debouncedOperations = new Map();
     this.lastOperationTime = 0;
-    this.MIN_OPERATION_INTERVAL = 1000; // 1 segundo mínimo entre operaciones
+    this.lastWriteTime = 0;
+    this.MAX_CONCURRENT_READS = 3;
+    this.MAX_CONCURRENT_WRITES = 1;
+    this.activeReads = 0;
+    this.activeWrites = 0;
+    this.inflight = new Map();
+    this.MIN_OPERATION_INTERVAL = 250; // 250ms mínimo entre operaciones (mejor latencia)
   }
 
   /**
@@ -80,16 +86,13 @@ class ApiQueueManager {
    * Backoff exponencial: 60s, 120s, 240s, 480s
    */
   async exponentialBackoff(attempt) {
-    const delays = [60000, 120000, 240000, 480000]; // ms
+    const delays = [5000, 10000, 20000, 40000]; // ms (backoff más rápido)
     const delay = delays[Math.min(attempt, delays.length - 1)];
     const seconds = delay / 1000;
     
     console.warn(`[Backoff] Waiting ${seconds}s before retry (attempt ${attempt + 1}/5)`);
     
-    toast.warning(
-      `⏳ Esperando ${seconds}s antes de reintentar... (Intento ${attempt + 1}/5)`,
-      { duration: 5000 }
-    );
+    console.warn(`⏳ Esperando ${seconds}s antes de reintentar... (Intento ${attempt + 1}/5)`);
 
     await new Promise(resolve => setTimeout(resolve, delay));
   }
@@ -157,13 +160,15 @@ class ApiQueueManager {
   /**
    * Añade operación a la cola
    */
-  async enqueue(operation, priority = 'NORMAL') {
+  async enqueue(operation, priority = 'NORMAL', opType = 'read', dedupeKey) {
     return new Promise((resolve, reject) => {
       const queueItem = {
         operation,
         resolve,
         reject,
         priority,
+        opType,
+        dedupeKey,
         timestamp: Date.now()
       };
 
@@ -176,50 +181,79 @@ class ApiQueueManager {
 
       this.processQueue();
     });
+
+    if (dedupeKey) {
+      this.inflight.set(dedupeKey, promise);
+    }
+
+    return promise;
   }
 
   /**
    * Procesa la cola (solo 1 operación a la vez)
    */
   async processQueue() {
-    if (this.processing || this.queue.length === 0) return;
-
+    if (this.processing) return;
     this.processing = true;
 
-    while (this.queue.length > 0) {
-      const item = this.queue.shift();
+    const tryStart = () => {
+      // Iniciar tantas tareas como permita la concurrencia
+      while (true) {
+        // Buscar el primer item que pueda ejecutarse según capacidad
+        const idx = this.queue.findIndex(q =>
+          (q.opType === 'read' && this.activeReads < this.MAX_CONCURRENT_READS) ||
+          (q.opType === 'write' && this.activeWrites < this.MAX_CONCURRENT_WRITES)
+        );
+        if (idx === -1) break;
 
-      try {
-        // Circuit breaker check
-        this.checkCircuitBreaker();
+        const item = this.queue.splice(idx, 1)[0];
+        if (item.opType === 'read') this.activeReads++; else this.activeWrites++;
 
-        // Rate limiting: mínimo 1s entre operaciones
-        const now = Date.now();
-        const timeSinceLastOp = now - this.lastOperationTime;
-        if (timeSinceLastOp < this.MIN_OPERATION_INTERVAL) {
-          await new Promise(resolve => 
-            setTimeout(resolve, this.MIN_OPERATION_INTERVAL - timeSinceLastOp)
-          );
-        }
+        (async () => {
+          try {
+            // Circuit breaker check
+            this.checkCircuitBreaker();
 
-        // Execute
-        const result = await this.executeWithRetry(item.operation);
-        this.lastOperationTime = Date.now();
-        
-        item.resolve(result);
+            // Rate limiting solo para escrituras
+            if (item.opType === 'write') {
+              const now = Date.now();
+              const since = now - this.lastWriteTime;
+              if (since < this.MIN_OPERATION_INTERVAL) {
+                await new Promise(r => setTimeout(r, this.MIN_OPERATION_INTERVAL - since));
+              }
+            }
 
-      } catch (error) {
-        // Circuit breaker error
-        if (error.message?.startsWith('CIRCUIT_BREAKER_OPEN')) {
-          const minutes = error.message.split(':')[1];
-          item.reject(new Error(`Sistema en protección. Reintenta en ${minutes} minutos.`));
-        } else {
-          item.reject(error);
-        }
+            const result = await this.executeWithRetry(item.operation);
+            if (item.dedupeKey) this.inflight.delete(item.dedupeKey);
+            item.resolve(result);
+          } catch (error) {
+            if (item.dedupeKey) this.inflight.delete(item.dedupeKey);
+            if (error.message?.startsWith('CIRCUIT_BREAKER_OPEN')) {
+              const minutes = error.message.split(':')[1];
+              item.reject(new Error(`Sistema en protección. Reintenta en ${minutes} minutos.`));
+            } else {
+              item.reject(error);
+            }
+          } finally {
+            if (item.opType === 'read') {
+              this.activeReads--;
+            } else {
+              this.activeWrites--;
+              this.lastWriteTime = Date.now();
+            }
+            // Intentar iniciar más tareas pendientes
+            tryStart();
+          }
+        })();
       }
-    }
 
-    this.processing = false;
+      // Si no quedan tareas activas ni en cola, finalizar procesamiento
+      if (this.queue.length === 0 && this.activeReads === 0 && this.activeWrites === 0) {
+        this.processing = false;
+      }
+    };
+
+    tryStart();
   }
 
   /**
@@ -258,7 +292,7 @@ class ApiQueueManager {
 
         const result = await this.enqueue(async () => {
           return await base44Client.entities[entityName].list(sortBy, limit);
-        });
+        }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
         return result;
@@ -271,7 +305,7 @@ class ApiQueueManager {
 
         const result = await this.enqueue(async () => {
           return await base44Client.entities[entityName].filter(query, sortBy, limit);
-        });
+        }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
         return result;
@@ -284,7 +318,7 @@ class ApiQueueManager {
 
         const result = await this.enqueue(async () => {
           return await base44Client.entities[entityName].get(id);
-        });
+        }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
         return result;
@@ -298,7 +332,7 @@ class ApiQueueManager {
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].create(data);
-        }, 'HIGH');
+        }, 'HIGH', 'write');
       },
 
       update: async (id, data) => {
@@ -309,7 +343,7 @@ class ApiQueueManager {
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].update(id, data);
-        }, 'HIGH');
+        }, 'HIGH', 'write');
       },
 
       delete: async (id) => {
@@ -320,7 +354,7 @@ class ApiQueueManager {
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].delete(id);
-        }, 'HIGH');
+        }, 'HIGH', 'write');
       },
 
       bulkCreate: async (dataArray) => {
@@ -331,7 +365,7 @@ class ApiQueueManager {
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].bulkCreate(dataArray);
-        }, 'HIGH');
+        }, 'HIGH', 'write');
       },
 
       schema: async () => {
@@ -341,7 +375,7 @@ class ApiQueueManager {
 
         const result = await this.enqueue(async () => {
           return await base44Client.entities[entityName].schema();
-        });
+        }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
         return result;
@@ -361,7 +395,7 @@ class ApiQueueManager {
 
         const result = await this.enqueue(async () => {
           return await base44Client.auth.me();
-        }, 'HIGH');
+        }, 'HIGH', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
         return result;
@@ -372,13 +406,13 @@ class ApiQueueManager {
         
         return await this.enqueue(async () => {
           return await base44Client.auth.updateMe(data);
-        }, 'HIGH');
+        }, 'HIGH', 'write');
       },
 
       isAuthenticated: async () => {
         return await this.enqueue(async () => {
           return await base44Client.auth.isAuthenticated();
-        }, 'HIGH');
+        }, 'HIGH', 'read', 'auth:isAuthenticated');
       },
 
       logout: (redirectUrl) => {
@@ -400,7 +434,7 @@ class ApiQueueManager {
       invoke: async (functionName, params) => {
         return await this.enqueue(async () => {
           return await base44Client.functions.invoke(functionName, params);
-        });
+        }, 'NORMAL', 'write');
       }
     };
   }
@@ -427,7 +461,7 @@ class ApiQueueManager {
       inviteUser: async (email, role) => {
         return await this.enqueue(async () => {
           return await base44Client.users.inviteUser(email, role);
-        }, 'HIGH');
+        }, 'HIGH', 'write');
       }
     };
   }
@@ -454,8 +488,13 @@ class ApiQueueManager {
     return {
       circuitBreakerState: this.circuitBreakerState,
       queueLength: this.queue.length,
+      activeReads: this.activeReads,
+      activeWrites: this.activeWrites,
+      maxReads: this.MAX_CONCURRENT_READS,
+      maxWrites: this.MAX_CONCURRENT_WRITES,
       failureCount: this.failureCount,
       cacheSize: this.cache.size,
+      inflightSize: this.inflight.size,
       circuitOpenUntil: this.circuitOpenUntil ? new Date(this.circuitOpenUntil).toLocaleTimeString('es-ES') : null
     };
   }
