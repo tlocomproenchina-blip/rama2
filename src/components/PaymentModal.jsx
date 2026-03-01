@@ -102,8 +102,9 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
       toast.error('Por favor sube el comprobante de pago');
       return;
     }
-    if (!amount || parseFloat(amount) <= 0) {
-      toast.error('Por favor ingresa el monto pagado');
+    const mustPay = Number(consolidation?.total_cost || 0).toFixed(2);
+    if (!amount || parseFloat(amount) <= 0 || Number(parseFloat(amount).toFixed(2)) !== Number(mustPay)) {
+      toast.error(`El monto debe ser exactamente $${mustPay}`);
       return;
     }
 
