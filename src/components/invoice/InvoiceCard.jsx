@@ -109,7 +109,7 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
           </div>
         </div>
 
-        {invoice.payment_date && (
+        {invoice.status === 'pagada' && invoice.payment_date && (
           <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-100">
             <p className="text-sm text-green-800">
               <strong>Pagada:</strong> {format(new Date(invoice.payment_date), 'dd/MM/yyyy HH:mm')}

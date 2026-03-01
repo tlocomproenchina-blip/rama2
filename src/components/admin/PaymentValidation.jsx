@@ -85,11 +85,11 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
         status: 'pendiente_pago'
       });
 
-      // Update related invoice to 'cancelada' (rechazada)
+      // Reabrir factura para que el cliente pueda volver a pagar
       const invs = await base44.entities.Invoice.filter({ consolidation_id: rejectModal.consolidation.id });
       if (invs && invs.length > 0) {
         await base44.entities.Invoice.update(invs[0].id, {
-          status: 'cancelada',
+          status: 'pendiente',
           notes: `Pago rechazado: ${rejectComment}`
         });
       }
