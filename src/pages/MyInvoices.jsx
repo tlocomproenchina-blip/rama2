@@ -179,6 +179,7 @@ export default function MyInvoices({ user }) {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-16 w-16 text-slate-300 mb-4" />
             <p className="text-slate-500">No tienes facturas aún</p>
+            <p className="text-slate-400 text-sm mt-2">Si recién generaste una consolidación, la factura puede tardar ~15s en aparecer.</p>
           </CardContent>
         </Card>
       ) : (
