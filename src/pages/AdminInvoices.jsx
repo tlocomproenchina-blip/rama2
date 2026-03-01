@@ -751,17 +751,18 @@ export default function AdminInvoices({ user }) {
                   <Edit className="h-4 w-4 mr-1" />
                   Editar
                 </Button>
-                {appConfig?.payments_stripe_sync_mode === 'button' && invoice.status === 'pagada' && (
+                {invoice.status === 'pagada' && (invoice.stripe_invoice_id || invoice.stripe_hosted_invoice_url) && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={async () => {
                       const res = await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: invoice.id });
                       if (res?.data?.ok) toast.success('Stripe actualizado');
+                      else if (res?.data?.skipped) toast.info('No hay factura de Stripe vinculada para esta factura.');
                       else toast.warning('No se pudo actualizar Stripe');
                     }}
                   >
-                    Marcar en Stripe
+                    Forzar pagada en Stripe
                   </Button>
                 )}
                 {invoice.consolidation_id && (
