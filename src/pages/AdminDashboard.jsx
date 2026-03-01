@@ -8,6 +8,7 @@ import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, 
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import StatusBadge from '@/components/StatusBadge';
+import ApiSystemPanel from '@/components/api/ApiSystemPanel';
 
 export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
