@@ -105,6 +105,18 @@ export default function AdminInvoices({ user }) {
         status: editingInvoice.status,
         notes: editingInvoice.notes
       });
+      // Auto-sync with Stripe when marking as paid
+      if (editingInvoice.status === 'pagada') {
+        try {
+          const res = await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: editingInvoice.id });
+          if (res?.data && res.data.ok === false) {
+            toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
+          }
+        } catch (e) {
+          // Keep as paid in app and alert discrepancy
+          toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
+        }
+      }
       
       toast.success('Factura actualizada');
       setShowEditModal(false);
@@ -386,6 +398,12 @@ export default function AdminInvoices({ user }) {
         await Promise.all(selectedInvs.map(inv => 
           base44.entities.Invoice.update(inv.id, { status: bulkStatus })
         ));
+        // Auto-sync with Stripe when marking as paid
+        if (bulkStatus === 'pagada') {
+          await Promise.allSettled(
+            selectedInvs.map(inv => base44.functions.invoke('markStripeInvoicePaid', { invoiceId: inv.id }))
+          );
+        }
         toast.success(`${selectedInvoices.length} factura(s) actualizada(s)`);
       }
 
