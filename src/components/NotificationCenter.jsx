@@ -55,8 +55,13 @@ export default function NotificationCenter({ user }) {
       if (!data || data.user_email !== user.email) return;
 
       if (event.type === 'create') {
-        setNotifications((prev) => [data, ...prev]);
-        setUnreadCount((prev) => prev + (data.read ? 0 : 1));
+        setNotifications((prev) => {
+          const exists = prev.some(n => n.id === data.id);
+          if (!exists && !data.read) {
+            setUnreadCount((c) => c + 1);
+          }
+          return exists ? prev : [data, ...prev];
+        });
         setLastRefresh(Date.now());
         toast.message(data.title || 'Nueva notificación', { description: data.message });
       } else if (event.type === 'update' || event.type === 'delete') {
