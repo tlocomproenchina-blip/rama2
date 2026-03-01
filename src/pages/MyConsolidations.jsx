@@ -25,6 +25,7 @@ import PaymentModal from '@/components/PaymentModal';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
 import { toast } from 'sonner';
+import { format, parse } from 'date-fns';
 
 export default function MyConsolidations({ user }) {
   const [consolidations, setConsolidations] = useState([]);
@@ -221,7 +222,7 @@ export default function MyConsolidations({ user }) {
                             <Calendar className="h-3 w-3 md:h-4 text-slate-400 flex-shrink-0 mt-0.5" />
                             <span className="text-slate-500 flex-shrink-0">Entrega Est.:</span>
                             <span className="font-medium truncate">
-                              {con.estimated_delivery ? new Date(con.estimated_delivery).toLocaleDateString('es-ES') : 'Pendiente'}
+                              {con.estimated_delivery ? format(parse(con.estimated_delivery, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : 'Pendiente'}
                             </span>
                           </div>
                         </div>
