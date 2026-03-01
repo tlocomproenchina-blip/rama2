@@ -45,9 +45,9 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
                   <DollarSign className="h-3 w-3" />
                   ${invoice.total.toFixed(2)}
                 </span>
-                {invoice.status === 'pendiente' && invoice.stripe_hosted_invoice_url && (
+                {(invoice.stripe_invoice_pdf_url || invoice.stripe_hosted_invoice_url) && (
                   <a
-                    href={invoice.stripe_hosted_invoice_url}
+                    href={invoice.stripe_invoice_pdf_url || invoice.stripe_hosted_invoice_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline decoration-dotted text-emerald-700 hover:text-emerald-800"

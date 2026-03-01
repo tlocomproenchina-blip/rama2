@@ -26,12 +26,12 @@ export default function InvoicePDFGenerator({ invoice }) {
 
   const generatePDF = async () => {
     try {
-      // Preferir factura de Stripe cuando NO esté pagada (para evitar enlace "Pagar en línea" en PDF)
-      if (invoice?.stripe_invoice_pdf_url && invoice?.status !== 'pagada') {
+      // Preferir factura de Stripe (PDF directo) cuando exista
+      if (invoice?.stripe_invoice_pdf_url) {
         window.open(invoice.stripe_invoice_pdf_url, '_blank');
         return;
       }
-      if (invoice?.stripe_hosted_invoice_url && invoice?.status !== 'pagada') {
+      if (invoice?.stripe_hosted_invoice_url) {
         window.open(invoice.stripe_hosted_invoice_url, '_blank');
         return;
       }
