@@ -23,6 +23,7 @@ export default function AdminDashboard({ user }) {
   const [invFilter, setInvFilter] = useState('pendiente');
   const [consFilter, setConsFilter] = useState('todas');
   const [notifFilter, setNotifFilter] = useState('todas');
+  const [mainTab, setMainTab] = useState('resumen');
 
   useEffect(() => {
     loadData();
@@ -171,16 +172,28 @@ export default function AdminDashboard({ user }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Panel de Control</h1>
-          <p className="text-slate-500">Resumen de operaciones</p>
+          <p className="text-slate-500">{mainTab === 'api' ? 'Estado del sistema y cola de API' : 'Resumen de operaciones'}</p>
         </div>
-        <Button onClick={loadData} variant="outline" size="sm">
-          Actualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Tabs value={mainTab} onValueChange={setMainTab}>
+            <TabsList>
+              <TabsTrigger value="resumen">Resumen</TabsTrigger>
+              <TabsTrigger value="api">API</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button onClick={loadData} variant="outline" size="sm">
+            Actualizar
+          </Button>
+        </div>
       </div>
 
+      {mainTab === 'api' ? (
+        <ApiSystemPanel />
+      ) : (
+        <>
       {/* Acciones Urgentes */}
       {urgentActions.length > 0 && (
         <Card className="border-l-4 border-l-red-500 shadow-lg">
