@@ -140,6 +140,9 @@ export default function MyInvoices({ user }) {
     inv.consolidation_tracking.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Ocultar facturas "pendiente" hasta que Stripe genere la URL
+  const visibleInvoices = filteredInvoices.filter(inv => inv.status !== 'pendiente' || !!inv.stripe_hosted_invoice_url);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -171,7 +174,7 @@ export default function MyInvoices({ user }) {
         </CardContent>
       </Card>
 
-      {filteredInvoices.length === 0 ? (
+      {visibleInvoices.length === 0 ? (
         <Card className="border-0 shadow-lg">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-16 w-16 text-slate-300 mb-4" />
@@ -180,7 +183,7 @@ export default function MyInvoices({ user }) {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredInvoices.map(invoice => (
+          {visibleInvoices.map(invoice => (
             <InvoiceCard
                key={invoice.id}
                invoice={invoice}
