@@ -589,6 +589,7 @@ export default function AdminShipmentApprovals({ user }) {
                 value={consolidationData.estimated_delivery}
                 onChange={(e) => setConsolidationData({ ...consolidationData, estimated_delivery: e.target.value })}
               />
+              <p className="text-xs text-slate-500">Guardamos la fecha exacta seleccionada (sin desfases).</p>
             </div>
 
             {/* Cargo Risk */}
