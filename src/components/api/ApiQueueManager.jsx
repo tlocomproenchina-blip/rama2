@@ -133,7 +133,7 @@ class ApiQueueManager {
   /**
    * Obtiene del cache si es válido
    */
-  getFromCache(key, ttlMs = 30000) {
+  getFromCache(key, ttlMs = 60000) {
     const cached = this.cache.get(key);
     if (!cached) return null;
 
