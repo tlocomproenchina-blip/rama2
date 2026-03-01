@@ -310,6 +310,8 @@ export default function AdminDashboard({ user }) {
       {/* Pagos Pendientes */}
         </>
       )}
+      {mainTab !== 'api' && (
+        <>
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -557,6 +559,8 @@ export default function AdminDashboard({ user }) {
           </Card>
         </Link>
       </div>
+        </>
+      )}
     </div>
   );
 }
