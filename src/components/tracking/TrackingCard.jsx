@@ -238,7 +238,9 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                              <p className="text-xs text-slate-500">
                                {(() => {
                                  try {
-                                   const date = new Date(step.date);
+                                   const date = typeof step.date === 'string' && step.key === 'delivered'
+                                    ? new Date(step.date)
+                                    : new Date(step.date)
                                    if (isNaN(date.getTime())) return '-';
                                    return format(date, 'dd/MM/yyyy HH:mm');
                                  } catch (e) {
