@@ -21,7 +21,7 @@ import {
   Download
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, parse } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
@@ -85,7 +85,7 @@ export default function ShipmentTracking({ user }) {
     setEditingDate(consolidation);
     try {
       setShippingDate(consolidation.shipping_date ? format(new Date(consolidation.shipping_date), 'yyyy-MM-ddTHH:mm') : '');
-      setEstimatedDate(consolidation.estimated_delivery ? format(new Date(consolidation.estimated_delivery), 'yyyy-MM-dd') : '');
+      setEstimatedDate(consolidation.estimated_delivery || '');
     } catch (e) {
       setShippingDate('');
       setEstimatedDate('');
@@ -112,7 +112,7 @@ export default function ShipmentTracking({ user }) {
         sendNotification({
           to: editingDate.client_email,
           subject: '📅 Fecha de entrega actualizada',
-          body: `La fecha de entrega estimada de tu consolidación ${editingDate.consolidation_tracking} ha sido actualizada.\n\nNueva fecha estimada: ${format(new Date(estimatedDate), 'dd/MM/yyyy')}\n\nIngresa al sistema para más detalles.`,
+          body: `La fecha de entrega estimada de tu consolidación ${editingDate.consolidation_tracking} ha sido actualizada.\n\nNueva fecha estimada: ${format(parse(estimatedDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')}\n\nIngresa al sistema para más detalles.`,
           type: 'consolidation',
           icon: 'alert',
           referenceId: editingDate.id
