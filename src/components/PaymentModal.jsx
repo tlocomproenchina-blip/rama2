@@ -120,6 +120,22 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
         status: 'pago_pendiente_validacion'
       });
 
+      // Cambiar facturas relacionadas a 'revision' (oculta métodos de pago hasta validación)
+      try {
+        const invs = await base44.entities.Invoice.filter({ consolidation_id: consolidation.id });
+        for (const inv of invs) {
+          if (inv.status === 'pendiente') {
+            await base44.entities.Invoice.update(inv.id, {
+              status: 'revision',
+              payment_method: paymentMethod,
+              payment_date: new Date().toISOString()
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Invoice status update error:', e);
+      }
+
       toast.success('¡Gracias! Tu comprobante fue enviado y será verificado en breve.');
 
       // Notify admin (async, don't wait)

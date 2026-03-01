@@ -9,6 +9,7 @@ import InvoicePDFGenerator from './InvoicePDFGenerator';
 export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false }) {
   const statusColors = {
     pendiente: 'bg-yellow-100 text-yellow-800',
+    revision: 'bg-blue-100 text-blue-800',
     pagada: 'bg-green-100 text-green-800',
     vencida: 'bg-red-100 text-red-800',
     cancelada: 'bg-slate-100 text-slate-800'
@@ -16,6 +17,7 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
 
   const statusLabels = {
     pendiente: 'Pendiente',
+    revision: 'En revisión',
     pagada: 'Pagada',
     vencida: 'Vencida',
     cancelada: 'Cancelada'
@@ -75,7 +77,13 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        {invoice.status === 'revision' && (
+          <div className="mb-3 p-3 bg-amber-50 border border-amber-100 rounded-lg text-amber-800 text-sm">
+            Pago enviado. Tu comprobante está en revisión por un administrador.
+          </div>
+        )}
+
+         <div className="flex gap-2 flex-wrap">
           {invoice.status === 'pendiente' && invoice.stripe_hosted_invoice_url && (
             <Button asChild className="flex-1 bg-emerald-600 hover:bg-emerald-700">
               <a href={invoice.stripe_hosted_invoice_url} target="_blank" rel="noopener noreferrer">
