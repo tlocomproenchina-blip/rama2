@@ -4,16 +4,21 @@ import { Badge } from "@/components/ui/badge";
 import { Truck, Calendar, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, parse } from 'date-fns';
 
 export default function DeliveryTimesWidget({ consolidations }) {
   const inTransitConsolidations = consolidations
     .filter(c => c.status === 'en_transito' && c.estimated_delivery)
-    .sort((a, b) => new Date(a.estimated_delivery) - new Date(b.estimated_delivery))
+    .sort((a, b) => {
+      const da = typeof a.estimated_delivery === 'string' ? parse(a.estimated_delivery, 'yyyy-MM-dd', new Date()) : new Date(a.estimated_delivery);
+      const db = typeof b.estimated_delivery === 'string' ? parse(b.estimated_delivery, 'yyyy-MM-dd', new Date()) : new Date(b.estimated_delivery);
+      return da - db;
+    })
     .slice(0, 3);
 
   const getDaysRemaining = (estimatedDate) => {
-    const days = differenceInDays(new Date(estimatedDate), new Date());
+    const target = typeof estimatedDate === 'string' ? parse(estimatedDate, 'yyyy-MM-dd', new Date()) : new Date(estimatedDate);
+    const days = differenceInDays(target, new Date());
     if (days < 0) return { text: 'Retrasado', color: 'text-red-600', bgColor: 'bg-red-50' };
     if (days === 0) return { text: 'Hoy', color: 'text-green-600', bgColor: 'bg-green-50' };
     if (days === 1) return { text: 'Mañana', color: 'text-orange-600', bgColor: 'bg-orange-50' };
@@ -50,7 +55,7 @@ export default function DeliveryTimesWidget({ consolidations }) {
                       </p>
                       <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {format(new Date(consolidation.estimated_delivery), 'dd/MM/yyyy')}
+                        {format(typeof consolidation.estimated_delivery === 'string' ? parse(consolidation.estimated_delivery, 'yyyy-MM-dd', new Date()) : new Date(consolidation.estimated_delivery), 'dd/MM/yyyy')}
                       </p>
                     </div>
                     <div className={`px-3 py-1 rounded-full ${daysInfo.bgColor}`}>
