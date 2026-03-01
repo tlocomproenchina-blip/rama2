@@ -308,6 +308,8 @@ export default function AdminDashboard({ user }) {
       </div>
 
       {/* Pagos Pendientes */}
+        </>
+      )}
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
