@@ -5,6 +5,8 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 export default function PaymentMethodsSettings({ onSaved }) {
   const [config, setConfig] = useState(null);
@@ -64,6 +66,42 @@ export default function PaymentMethodsSettings({ onSaved }) {
   return (
     <Card className="border-0 shadow-none">
       <CardContent className="p-0 space-y-4">
+        <div className="space-y-3 p-3 border rounded-lg">
+          <div className="space-y-1">
+            <Label>Sincronización con Stripe al marcar pagada</Label>
+            <Select value={config?.payments_stripe_sync_mode || 'auto'} onValueChange={(v) => setConfig(c => ({ ...c, payments_stripe_sync_mode: v }))}>
+              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Automático</SelectItem>
+                <SelectItem value="confirm">Pedir confirmación</SelectItem>
+                <SelectItem value="button">Botón separado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Detalles a guardar en Stripe</Label>
+            <Select value={config?.payments_stripe_details_mode || 'none'} onValueChange={(v) => setConfig(c => ({ ...c, payments_stripe_details_mode: v }))}>
+              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ninguno</SelectItem>
+                <SelectItem value="metadata">Metadata</SelectItem>
+                <SelectItem value="description">Descripción</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Comportamiento ante errores de Stripe</Label>
+            <Select value={config?.payments_stripe_error_mode || 'keep_and_alert'} onValueChange={(v) => setConfig(c => ({ ...c, payments_stripe_error_mode: v }))}>
+              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="keep_and_alert">Mantener y alertar</SelectItem>
+                <SelectItem value="revert">Revertir</SelectItem>
+                <SelectItem value="retry_then_revert">Reintentar y revertir</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {fields.map((f) => (
             <div key={f.key} className="flex items-center justify-between p-3 border rounded-lg">

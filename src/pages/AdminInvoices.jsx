@@ -46,11 +46,19 @@ export default function AdminInvoices({ user }) {
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
+  const [appConfig, setAppConfig] = useState(null);
 
   useEffect(() => {
     loadInvoices(page);
     loadConsolidations();
   }, [page]);
+
+  useEffect(() => {
+    (async () => {
+      const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      setAppConfig(cfgs?.[0] || null);
+    })();
+  }, []);
 
   const loadInvoices = async (pageIndex = 0) => {
     const data = await base44.entities.Invoice.list('-invoice_date', pageSize, pageIndex * pageSize);
@@ -739,6 +747,19 @@ export default function AdminInvoices({ user }) {
                   <Edit className="h-4 w-4 mr-1" />
                   Editar
                 </Button>
+                {appConfig?.payments_stripe_sync_mode === 'button' && invoice.status === 'pagada' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const res = await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: invoice.id });
+                      if (res?.data?.ok) toast.success('Stripe actualizado');
+                      else toast.warning('No se pudo actualizar Stripe');
+                    }}
+                  >
+                    Marcar en Stripe
+                  </Button>
+                )}
                 {invoice.consolidation_id && (
                   <Button
                     variant="outline"
