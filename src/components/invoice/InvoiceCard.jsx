@@ -102,6 +102,8 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
               Otros métodos de pago
             </Button>
           )}
+          {/* Oculta acciones cuando está en revisión o pagada */}
+          {(invoice.status === 'revision' || invoice.status === 'pagada') && null}
           <div className="flex-1 min-w-40">
             <InvoicePDFGenerator invoice={invoice} />
           </div>
