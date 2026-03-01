@@ -207,6 +207,7 @@ export default function MyInvoices({ user }) {
                onDownload={handleDownloadPDF}
                showPayButton={config?.payments_enable_stripe === true}
                onOtherPay={(inv) => {
+                 if (inv.status === 'pagada' || inv.status === 'revision') return; // no permitir abrir otros métodos si ya está pagada o en revisión
                  setSelectedConsolidation({ id: inv.consolidation_id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
                  setPaymentOpen(true);
                }}
