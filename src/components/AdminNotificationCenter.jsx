@@ -153,38 +153,11 @@ export default function AdminNotificationCenter({ user }) {
 
   const saveNotification = async (title, message, type, icon, referenceId) => {
     try {
-      // Check if notification already exists for this user and reference
-      if (user?.email && referenceId) {
-        const existing = await base44.entities.Notification.filter({
-          user_email: user.email,
-          reference_id: referenceId,
-          title: title
-        }, '-created_date', 1);
-        
-        // If exists and was created in the last 5 seconds, skip
-        if (existing.length > 0) {
-          const lastNotif = existing[0];
-          const timeDiff = Date.now() - new Date(lastNotif.created_date).getTime();
-          if (timeDiff < 5000) {
-            return; // Skip duplicate
-          }
-        }
-        
-        // Save notification
-        await base44.entities.Notification.create({
-          user_email: user.email,
-          title,
-          message,
-          type,
-          icon,
-          reference_id: referenceId
-        });
-      }
-
-      // Play sound
+      // Solo mostrar en tiempo real; no persistir para evitar duplicados desde múltiples fuentes
+      toast.message(title || 'Nueva notificación', { description: message });
       playSound();
     } catch (error) {
-      console.error('Error saving notification:', error);
+      console.error('Error displaying notification:', error);
     }
   };
 

@@ -8,14 +8,38 @@ export async function getAdmins() {
 export async function sendNotification({ to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
   try {
     await base44.integrations.Core.SendEmail({ to, subject, body });
-    await base44.entities.Notification.create({
-      user_email: to,
-      title: title || subject,
-      message: message || body.split('\n')[0],
-      type,
-      icon,
-      reference_id: referenceId
-    });
+
+    // Evitar duplicados recientes (mismo usuario, título y referencia) en los últimos 60s
+    const _title = title || subject;
+    const _message = message || body.split('\n')[0];
+    let shouldCreate = true;
+    try {
+      if (referenceId) {
+        const existing = await base44.entities.Notification.filter({
+          user_email: to,
+          reference_id: referenceId,
+          title: _title
+        }, '-created_date', 1);
+        if (existing && existing.length > 0) {
+          const last = existing[0];
+          const diffMs = Date.now() - new Date(last.created_date).getTime();
+          if (diffMs < 60000) {
+            shouldCreate = false;
+          }
+        }
+      }
+    } catch {}
+
+    if (shouldCreate) {
+      await base44.entities.Notification.create({
+        user_email: to,
+        title: _title,
+        message: _message,
+        type,
+        icon,
+        reference_id: referenceId
+      });
+    }
 
     // Send push notification
     try {
