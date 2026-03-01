@@ -58,14 +58,26 @@ Deno.serve(async (req) => {
 
         if (base44Id) {
           try {
-            // Update invoice basic paid info
-            await base44.asServiceRole.entities.Invoice.update(base44Id, {
-              status: 'pagada',
-              payment_date: new Date().toISOString(),
-              payment_method: 'stripe',
-              payment_reference: pi.id,
-              stripe_payment_intent_id: pi.id,
-            });
+            // Check current status to avoid overriding 'revision'
+            const currentList = await base44.asServiceRole.entities.Invoice.filter({ id: base44Id });
+            const currentInv: any = currentList && currentList[0] ? currentList[0] : null;
+
+            if (currentInv?.status === 'revision') {
+              // Only record references; keep status as 'revision'
+              await base44.asServiceRole.entities.Invoice.update(base44Id, {
+                payment_reference: pi.id,
+                stripe_payment_intent_id: pi.id,
+              });
+            } else {
+              // Update invoice basic paid info
+              await base44.asServiceRole.entities.Invoice.update(base44Id, {
+                status: 'pagada',
+                payment_date: new Date().toISOString(),
+                payment_method: 'stripe',
+                payment_reference: pi.id,
+                stripe_payment_intent_id: pi.id,
+              });
+            }
 
             // Build payment history record
             let chargeId = pi.latest_charge || (pi.charges?.data?.[0]?.id ?? null);
@@ -132,18 +144,34 @@ Deno.serve(async (req) => {
         const base44Id = invObj?.metadata?.base44_invoice_id;
         if (base44Id) {
           try {
-            await base44.asServiceRole.entities.Invoice.update(base44Id, {
-              status: 'pagada',
-              payment_date: new Date().toISOString(),
-              payment_method: 'stripe_invoice',
-              payment_reference: invObj.id,
-              stripe_invoice_id: invObj.id,
-              stripe_hosted_invoice_url: invObj.hosted_invoice_url || undefined,
-              stripe_invoice_pdf_url: invObj.invoice_pdf || undefined,
-              subtotal: (invObj.subtotal || 0) / 100,
-              tax: (invObj.tax || 0) / 100,
-              total: (invObj.total || 0) / 100
-            });
+            // Respect 'revision' status (no auto-mark as paid)
+            const currList = await base44.asServiceRole.entities.Invoice.filter({ id: base44Id });
+            const currInv: any = currList && currList[0] ? currList[0] : null;
+
+            if (currInv?.status === 'revision') {
+              await base44.asServiceRole.entities.Invoice.update(base44Id, {
+                payment_reference: invObj.id,
+                stripe_invoice_id: invObj.id,
+                stripe_hosted_invoice_url: invObj.hosted_invoice_url || undefined,
+                stripe_invoice_pdf_url: invObj.invoice_pdf || undefined,
+                subtotal: (invObj.subtotal || 0) / 100,
+                tax: (invObj.tax || 0) / 100,
+                total: (invObj.total || 0) / 100
+              });
+            } else {
+              await base44.asServiceRole.entities.Invoice.update(base44Id, {
+                status: 'pagada',
+                payment_date: new Date().toISOString(),
+                payment_method: 'stripe_invoice',
+                payment_reference: invObj.id,
+                stripe_invoice_id: invObj.id,
+                stripe_hosted_invoice_url: invObj.hosted_invoice_url || undefined,
+                stripe_invoice_pdf_url: invObj.invoice_pdf || undefined,
+                subtotal: (invObj.subtotal || 0) / 100,
+                tax: (invObj.tax || 0) / 100,
+                total: (invObj.total || 0) / 100
+              });
+            }
 
             // Enrich with card details from the underlying PaymentIntent and store in payment_history
             if (invObj.payment_intent) {
