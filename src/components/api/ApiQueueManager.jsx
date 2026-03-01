@@ -161,7 +161,12 @@ class ApiQueueManager {
    * Añade operación a la cola
    */
   async enqueue(operation, priority = 'NORMAL', opType = 'read', dedupeKey) {
-    return new Promise((resolve, reject) => {
+    // Dedupe: si hay una llamada idéntica en vuelo, reusar su promesa
+    if (dedupeKey && this.inflight.has(dedupeKey)) {
+      return this.inflight.get(dedupeKey);
+    }
+
+    const promise = new Promise((resolve, reject) => {
       const queueItem = {
         operation,
         resolve,
