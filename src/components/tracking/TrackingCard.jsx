@@ -327,7 +327,9 @@ export default function TrackingCard({ consolidation, user, onStatusChange, onEd
                         {consolidation.estimated_delivery 
                           ? (() => {
                               try {
-                                const date = new Date(consolidation.estimated_delivery);
+                                const date = typeof consolidation.estimated_delivery === 'string'
+                                    ? parse(consolidation.estimated_delivery, 'yyyy-MM-dd', new Date())
+                                    : new Date(consolidation.estimated_delivery);
                                 if (isNaN(date.getTime())) return '-';
                                 return format(date, 'dd/MM');
                               } catch (e) {
