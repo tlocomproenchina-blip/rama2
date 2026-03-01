@@ -46,6 +46,14 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
     if (open) loadConfig();
   }, [open]);
 
+  // Prefijar monto al total de la consolidación (no aceptamos multipagos)
+  useEffect(() => {
+    if (open && consolidation?.total_cost != null) {
+      const v = Number(consolidation.total_cost) || 0;
+      setAmount(v.toFixed(2));
+    }
+  }, [open, consolidation]);
+
   const getWalletAddress = () => {
     if (!config) return '';
     const walletMap = {
