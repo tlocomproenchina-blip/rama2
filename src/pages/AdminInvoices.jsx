@@ -109,13 +109,17 @@ export default function AdminInvoices({ user }) {
 
     setProcessing(true);
     try {
-      await base44.entities.Invoice.update(editingInvoice.id, {
+      const updatePayload = {
         status: editingInvoice.status,
-        notes: editingInvoice.notes
-      });
+        notes: editingInvoice.notes,
+      };
+      if (editingInvoice.payment_method) updatePayload.payment_method = editingInvoice.payment_method;
+      if (editingInvoice.payment_reference) updatePayload.payment_reference = editingInvoice.payment_reference;
+      if (editingInvoice.status === 'pagada' && !editingInvoice.payment_date) updatePayload.payment_date = new Date().toISOString();
+      await base44.entities.Invoice.update(editingInvoice.id, updatePayload);
 
-      // Stripe sync behavior (configurable)
-      if (editingInvoice.status === 'pagada') {
+      // Stripe sync behavior (configurable) - solo si el método es Stripe
+      if (editingInvoice.status === 'pagada' && ['stripe','stripe_invoice','stripe_card'].includes((editingInvoice.payment_method || 'stripe_invoice').toLowerCase())) {
         const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
         const cfg = cfgs?.[0] || {};
         const mode = cfg.payments_stripe_sync_mode || 'auto';
@@ -853,6 +857,39 @@ export default function AdminInvoices({ user }) {
                   value={editingInvoice.notes || ''}
                   onChange={(e) => setEditingInvoice({...editingInvoice, notes: e.target.value})}
                   placeholder="Notas adicionales..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Método de pago</Label>
+                <Select 
+                  value={editingInvoice.payment_method || ''}
+                  onValueChange={(val) => setEditingInvoice({...editingInvoice, payment_method: val})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona método" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="stripe_invoice">Stripe (tarjeta)</SelectItem>
+                    {appConfig?.payments_enable_binance !== false && <SelectItem value="binance">Binance</SelectItem>}
+                    {appConfig?.payments_enable_usdt_trc20 !== false && <SelectItem value="usdt_trc20">USDT TRC20</SelectItem>}
+                    {appConfig?.payments_enable_paypal !== false && <SelectItem value="paypal">PayPal</SelectItem>}
+                    {appConfig?.payments_enable_debito_internacional !== false && <SelectItem value="debito_internacional">Débito Internacional</SelectItem>}
+                    {appConfig?.payments_enable_wally !== false && <SelectItem value="wally">Wally</SelectItem>}
+                    {appConfig?.payments_enable_zinli !== false && <SelectItem value="zinli">Zinli</SelectItem>}
+                    {appConfig?.payments_enable_wise !== false && <SelectItem value="wise">Wise</SelectItem>}
+                    {appConfig?.payments_enable_skrill !== false && <SelectItem value="skrill">Skrill</SelectItem>}
+                    {appConfig?.payments_enable_pago_movil_usdt !== false && <SelectItem value="pago_movil_usdt">Pago Móvil → USDT</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Referencia de pago</Label>
+                <Input
+                  value={editingInvoice.payment_reference || ''}
+                  onChange={(e) => setEditingInvoice({...editingInvoice, payment_reference: e.target.value})}
+                  placeholder="Ej: ID de transacción, voucher, etc."
                 />
               </div>
             </div>
