@@ -18,6 +18,20 @@ async function getStateRate(base44, stateCode) {
   return toNumber(st?.shipping_rate, 0);
 }
 
+async function getDefaultMaritimeProvider(base44) {
+  const list = await base44.asServiceRole.entities.ShippingProvider.filter({ mode: 'maritimo', is_active: true });
+  const defaults = list.filter(p => p.is_default_for_mode);
+  return defaults[0] || list[0] || null;
+}
+
+async function getProviderStateRate(base44, provider, stateCode) {
+  if (!provider || !stateCode) return null;
+  const code = String(stateCode).trim().toLowerCase();
+  const override = (provider.state_overrides || []).find(o => (o.state_code || '').toLowerCase() === code);
+  if (override && typeof override.shipping_rate === 'number') return override.shipping_rate;
+  return null;
+}
+
 function pickStateFromConsolidation(cons) {
   return (
     cons?.destination_state ||
@@ -39,8 +53,8 @@ async function getClientState(base44, email) {
   }
 }
 
-async function ensureOrUpdateAP(base44, cons, providerTotal, breakdown) {
-  const vendorName = 'Proveedor Logística Marítima';
+async function ensureOrUpdateAP(base44, cons, providerTotal, breakdown, vendorName) {
+
   const existing = await base44.asServiceRole.entities.AccountsPayable.filter({
     related_consolidation_id: cons.id,
     category: 'flete_maritimo'
@@ -127,15 +141,27 @@ Deno.serve(async (req) => {
     // Inputs from consolidation/config
     const pricing = await getPricingConfig(base44);
     const isHigh = (cons?.risk_level || 'regular') === 'alto';
-    const baseRate = toNumber(isHigh ? pricing?.base_rate_high_risk : pricing?.base_rate_regular, 0);
     const cbm = toNumber(cons?.cbm, 0);
-    const d2d = toNumber(pricing?.door_to_door_cost, 20);
 
+    const provider = await getDefaultMaritimeProvider(base44);
+
+    // Base rates (provider override -> pricing fallback)
+    const baseRate = toNumber(
+      isHigh ? (provider?.base_rate_high_risk ?? pricing?.base_rate_high_risk) : (provider?.base_rate_regular ?? pricing?.base_rate_regular),
+      0
+    );
+
+    // Door-to-door cost
+    const d2d = toNumber(provider?.door_to_door_cost ?? pricing?.door_to_door_cost, 20);
+
+    // State rate (provider override -> StateConfig)
     let stateCode = pickStateFromConsolidation(cons);
-    if (!stateCode) {
-      stateCode = await getClientState(base44, cons?.client_email);
-    }
-    const stateRate = await getStateRate(base44, stateCode);
+    if (!stateCode) stateCode = await getClientState(base44, cons?.client_email);
+    const providerState = await getProviderStateRate(base44, provider, stateCode);
+    const stateRate = providerState != null ? toNumber(providerState, 0) : await getStateRate(base44, stateCode);
+
+    // Per-tracking (configurable by risk, default 1)
+    const perTracking = toNumber(isHigh ? (provider?.per_tracking_high ?? 1) : (provider?.per_tracking_regular ?? 1), 1);
 
     const trackingCount = Array.isArray(cons?.tracking_numbers)
       ? cons.tracking_numbers.length
@@ -143,8 +169,8 @@ Deno.serve(async (req) => {
         ? cons.package_ids.length
         : 0;
 
-    // Provider formula: (baseRate × CBM) + stateRate + D2D + (1 × #trackings)
-    const providerTotal = toNumber(baseRate * cbm + stateRate + d2d + trackingCount * 1, 0);
+    // Provider formula: (baseRate × CBM) + stateRate + D2D + (perTracking × #trackings)
+    const providerTotal = toNumber(baseRate * cbm + stateRate + d2d + trackingCount * perTracking, 0);
 
     const breakdown = {
       cbm,
@@ -153,7 +179,8 @@ Deno.serve(async (req) => {
       state_code: stateCode || null
     };
 
-    const result = await ensureOrUpdateAP(base44, cons, providerTotal, breakdown);
+    const vendorName = provider?.name || 'Proveedor Logística Marítima';
+    const result = await ensureOrUpdateAP(base44, cons, providerTotal, breakdown, vendorName);
 
     return Response.json({ success: true, provider_total: providerTotal, ...result });
   } catch (error) {
