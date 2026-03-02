@@ -163,7 +163,8 @@ export default function AdminClients({ user }) {
         editData.shipping_mark = editData.shipping_mark.trim();
       }
 
-      await base44.entities.User.update(editClient.id, editData);
+      const waNorm = getDigits(editData.whatsapp || editClient.whatsapp || '');
+      await base44.entities.User.update(editClient.id, { ...editData, whatsapp_normalized: waNorm });
 
       // Notify client about profile changes
       const changedFields = [];
