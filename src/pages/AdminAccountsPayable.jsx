@@ -203,6 +203,7 @@ export default function AdminAccountsPayable({ user }) {
                       </TableHead>
                       <TableHead>Proveedor</TableHead>
                       <TableHead>Descripción</TableHead>
+                      <TableHead>Estado destino</TableHead>
                       <TableHead className="text-right">Original</TableHead>
                       <TableHead className="text-right">Pagado</TableHead>
                       <TableHead className="text-right">Saldo</TableHead>
@@ -212,7 +213,7 @@ export default function AdminAccountsPayable({ user }) {
                   <TableBody>
                     {filtered.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-slate-500">Sin registros</TableCell>
+                        <TableCell colSpan={8} className="text-center text-slate-500">Sin registros</TableCell>
                       </TableRow>
                     ) : (
                       filtered.map(ap => (
@@ -226,6 +227,7 @@ export default function AdminAccountsPayable({ user }) {
                           </TableCell>
                           <TableCell className="font-medium">{ap.vendor_name || 'Proveedor'}</TableCell>
                           <TableCell className="max-w-[360px] truncate">{ap.description}</TableCell>
+                          <TableCell>{ap.state_code ? ap.state_code.split('_').map(s => s.charAt(0).toUpperCase()+s.slice(1)).join(' ') : '—'}</TableCell>
                           <TableCell className="text-right">${(ap.original_amount_due || 0).toFixed(2)}</TableCell>
                           <TableCell className="text-right">${(ap.amount_paid || 0).toFixed(2)}</TableCell>
                           <TableCell className="text-right">${(ap.balance_due || 0).toFixed(2)}</TableCell>

@@ -65,6 +65,7 @@ import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
 import AdminPermissions from './pages/AdminPermissions';
 import AdminPromotions from './pages/AdminPromotions';
+import AdminProviderPayments from './pages/AdminProviderPayments';
 import AdminProviders from './pages/AdminProviders';
 import AdminReports from './pages/AdminReports';
 import AdminRoles from './pages/AdminRoles';
@@ -87,7 +88,6 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminProviderPayments from './pages/AdminProviderPayments';
 import __Layout from './Layout.jsx';
 
 
@@ -110,6 +110,7 @@ export const PAGES = {
     "AdminPayments": AdminPayments,
     "AdminPermissions": AdminPermissions,
     "AdminPromotions": AdminPromotions,
+    "AdminProviderPayments": AdminProviderPayments,
     "AdminProviders": AdminProviders,
     "AdminReports": AdminReports,
     "AdminRoles": AdminRoles,
@@ -132,7 +133,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminProviderPayments": AdminProviderPayments,
 }
 
 export const pagesConfig = {
