@@ -73,6 +73,7 @@ import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
+import BusinessDashboard from './pages/BusinessDashboard';
 import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
@@ -88,7 +89,7 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import BusinessDashboard from './pages/BusinessDashboard';
+import AdminKnowledgeBase from './pages/AdminKnowledgeBase';
 import __Layout from './Layout.jsx';
 
 
@@ -119,6 +120,7 @@ export const PAGES = {
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
+    "BusinessDashboard": BusinessDashboard,
     "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
     "EmployeeDashboard": EmployeeDashboard,
@@ -134,7 +136,7 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "BusinessDashboard": BusinessDashboard,
+    "AdminKnowledgeBase": AdminKnowledgeBase,
 }
 
 export const pagesConfig = {
