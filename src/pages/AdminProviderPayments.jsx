@@ -256,12 +256,16 @@ export default function AdminProviderPayments({ user }) {
                         <TableCell className="text-right">${(ap.amount_paid||0).toFixed(2)}</TableCell>
                         <TableCell className="text-right">${balanceFor(ap).toFixed(2)}</TableCell>
                         <TableCell className="text-right">
-                          <Input
-                            type="number" step="0.01"
-                            value={allocations[ap.id] ?? ''}
-                            onChange={e => setAllocations({ ...allocations, [ap.id]: e.target.value })}
-                            placeholder="0.00"
-                          />
+                          {balanceFor(ap) <= 0 ? (
+                            <span className="text-slate-400">—</span>
+                          ) : (
+                            <Input
+                              type="number" step="0.01"
+                              value={allocations[ap.id] ?? ''}
+                              onChange={e => setAllocations({ ...allocations, [ap.id]: e.target.value })}
+                              placeholder="0.00"
+                            />
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
