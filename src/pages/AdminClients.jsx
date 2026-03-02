@@ -507,6 +507,12 @@ Email: ${client.email}`;
     return !!(client.shipping_mark && client.shipping_mark.trim().length > 0);
   };
 
+  // Flexible search helpers: ignore accents, case, spaces and symbols; numeric-only for phones
+  const removeDiacritics = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normalizeText = (str) => removeDiacritics(str).toLowerCase().trim();
+  const normalizeAlnum = (str) => normalizeText(str).replace(/[^a-z0-9]/g, '');
+  const getDigits = (str) => (str || '').replace(/\D/g, '');
+
   const resetAllFilters = () => {
     setSearch('');
     setStatusFilter('all');
@@ -552,15 +558,24 @@ Email: ${client.email}`;
   const filteredClients = clients.filter(client => {
   // Map stored value (code or name) to code for filtering
   const clientStateCode = (client.state && client.state.includes(' ')) ? null : client.state;
-    const searchLower = search.toLowerCase();
-    const matchesSearch = (
-      (client.email || '').toLowerCase().includes(searchLower) ||
-      (client.first_name || '').toLowerCase().includes(searchLower) ||
-      (client.last_name || '').toLowerCase().includes(searchLower) ||
-      (client.city || '').toLowerCase().includes(searchLower) ||
-      (client.whatsapp || '').toLowerCase().includes(searchLower) ||
-      (client.shipping_mark || '').toLowerCase().includes(searchLower)
-    );
+    // Normalized search: text (accent/case-insensitive), alphanumeric (no spaces/symbols), and digits-only
+    const qText = normalizeText(search);
+    const qAlnum = normalizeAlnum(search);
+    const qDigits = getDigits(search);
+
+    const email = normalizeText(client.email || '');
+    const first = normalizeText(client.first_name || '');
+    const last = normalizeText(client.last_name || '');
+    const full = `${first} ${last}`.trim();
+    const cityNorm = normalizeText(client.city || '');
+    const whatsappDigits = getDigits(client.whatsapp || '');
+    const shippingMarkNorm = normalizeAlnum(client.shipping_mark || '');
+
+    const matchesText = qText === '' || email.includes(qText) || first.includes(qText) || last.includes(qText) || full.includes(qText) || cityNorm.includes(qText);
+    const matchesDigits = qDigits !== '' && whatsappDigits.includes(qDigits);
+    const matchesAlnum = qAlnum !== '' && shippingMarkNorm.includes(qAlnum);
+
+    const matchesSearch = matchesText || matchesDigits || matchesAlnum;
 
     // Date filters
     let matchesDate = true;
