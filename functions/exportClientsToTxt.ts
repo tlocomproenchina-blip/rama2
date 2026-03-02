@@ -12,10 +12,13 @@ Deno.serve(async (req) => {
         // Obtener todos los clientes
         const clients = await base44.asServiceRole.entities.User.filter({ role: 'user' });
 
+        // Filtrar solo clientes con estado registrado
+        const clientsWithState = clients.filter(c => typeof c.state === 'string' && c.state.trim() !== '');
+
         // Generar el contenido del archivo
         let content = '';
         
-        for (const client of clients) {
+        for (const client of clientsWithState) {
             const firstName = client.first_name || '';
             const lastName = client.last_name || '';
             const fullName = `${firstName} ${lastName}`.trim();
