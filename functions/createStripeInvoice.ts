@@ -92,7 +92,32 @@ Deno.serve(async (req) => {
       : `Weight / CBM: ${cons?.cbm ?? inv.items?.[0]?.details?.dimensions ?? 'N/A'}`;
     const shipmentId = cons?.consolidation_tracking || inv.consolidation_tracking || '';
     const serviceMode = shippingType === 'aereo' ? 'Air Freight (DDP)' : 'Maritime Freight (DDP)';
-    const ddpDetail = `${ddpTitle}\n\nOrigin: China\nDestination: Venezuela\nService Mode: ${serviceMode}\nCargo Type: General Commercial Goods\nHandling: Consolidated Shipment\nShipment Reference: ${shipmentId}`;
+
+    // Enrich destination with Venezuelan state and cargo risk from AccountsPayable linked to this consolidation
+    let destinationState = '';
+    let cargoTypeLabel = 'General';
+    try {
+      if (inv.consolidation_id) {
+        const aps = await base44.asServiceRole.entities.AccountsPayable.filter({ related_consolidation_id: inv.consolidation_id });
+        if (aps && aps.length > 0) {
+          const ap = aps[0];
+          const code = ap.state_code || '';
+          if (code) {
+            try {
+              const st = await base44.asServiceRole.entities.StateConfig.filter({ state_code: code });
+              if (st && st[0]?.state_name) destinationState = st[0].state_name;
+            } catch {}
+            if (!destinationState) {
+              destinationState = String(code).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+            }
+          }
+          if ((ap.risk_level || '').toLowerCase() === 'alto') cargoTypeLabel = 'High Risk';
+        }
+      }
+    } catch {}
+
+    const destinationLine = `Destination: Venezuela${destinationState ? ' – ' + destinationState : ''}`;
+    const ddpDetail = `${ddpTitle}\n\nOrigin: China\n${destinationLine}\nService Mode: ${serviceMode}\nCargo Type: ${cargoTypeLabel}\nHandling: Consolidated Shipment\nShipment Reference: ${shipmentId}`;
 
     const footerTerms = `Service Terms – DDP Door to Door Logistics\n\nThis invoice corresponds to international logistics and freight forwarding services under DDP (Delivered Duty Paid) terms. The service includes freight transportation, customs clearance, applicable import duties/taxes, and final delivery to destination.\n\nThe client authorizes TLEC Cargo LTD to manage customs and shipping procedures on their behalf.\n\nOnce shipment processing or cargo reservation has started, payments are non-refundable except in cases of operational cancellation prior to dispatch.\n\nTracking and shipment reference: ${shipmentId}\n\nFor support: tlocomproenchina@gmail.com | +1 502 694 6833${(inv.total || 0) > 2000 ? '\n\nCommercial shipment – non-personal goods – freight forwarding service' : ''}`;
 
