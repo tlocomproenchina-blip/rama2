@@ -517,6 +517,12 @@ export default function AdminInvoices({ user }) {
       // Delete the invoice
       await base44.entities.Invoice.delete(deconsolidateConfirm.id);
 
+      // Delete related Accounts Payable records
+      const aps = await base44.entities.AccountsPayable.filter({ related_consolidation_id: cons.id });
+      if (aps && aps.length > 0) {
+        await Promise.all(aps.map(ap => base44.entities.AccountsPayable.delete(ap.id)));
+      }
+
       // Notify client
       const { sendNotification } = await import('@/components/NotificationUtils');
       sendNotification({
