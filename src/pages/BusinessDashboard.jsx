@@ -137,7 +137,8 @@ export default function BusinessDashboard() {
     const inRangeAps = aps.filter((a) => inRange(a.created_date, startDate, endDate));
     const groups = inRangeAps.reduce((acc, a) => {
       const key = a.status || 'otros';
-      const amount = Number(a.balance_due ?? (a.original_amount_due || 0) - (a.amount_paid || 0) || 0);
+      const base = a.balance_due ?? ((a.original_amount_due ?? 0) - (a.amount_paid ?? 0));
+      const amount = Number(base ?? 0);
       acc[key] = (acc[key] || 0) + Math.max(amount, 0);
       return acc;
     }, {});
