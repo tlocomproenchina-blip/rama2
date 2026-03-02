@@ -217,6 +217,13 @@ export default function AdminAccountsPayable({ user }) {
                     ) : (
                       filtered.map(ap => (
                         <TableRow key={ap.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.includes(ap.id)}
+                              onCheckedChange={(v) => handleSelect(ap.id, !!v)}
+                              aria-label="Seleccionar AP"
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">{ap.vendor_name || 'Proveedor'}</TableCell>
                           <TableCell className="max-w-[360px] truncate">{ap.description}</TableCell>
                           <TableCell className="text-right">${(ap.original_amount_due || 0).toFixed(2)}</TableCell>
