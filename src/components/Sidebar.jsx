@@ -23,7 +23,8 @@ import {
   Tag,
   TrendingUp,
   CheckCircle2,
-  Mail
+  Mail,
+  Wallet
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -184,6 +185,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2 },
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
+  { name: 'Cuentas por Pagar', page: 'AdminAccountsPayable', icon: Wallet },
   { name: 'Enviar Emails', page: 'AdminEmailCampaigns', icon: Mail },
   { name: 'Plantillas Email', page: 'AdminEmailTemplates', icon: FileText },
   { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle },
@@ -203,7 +205,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const adminGroups = [
     { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
-    { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments'] },
+    { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAccountsPayable'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
