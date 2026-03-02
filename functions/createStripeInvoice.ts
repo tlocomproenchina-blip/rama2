@@ -49,39 +49,59 @@ Deno.serve(async (req) => {
     }
     const inv = invoices[0];
 
-    // Load app config for due days (optional)
+    // Parallel fetch app config and user
     let dueDays = 7;
-    try {
-      const cfg = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
-      if (cfg && cfg[0]?.invoice_overdue_days) dueDays = cfg[0].invoice_overdue_days;
-    } catch {}
+    const [cfg, users] = await Promise.all([
+      base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }).catch(() => []),
+      base44.asServiceRole.entities.User.filter({ email: inv.client_email })
+    ]);
+    if (cfg && cfg[0]?.invoice_overdue_days) dueDays = cfg[0].invoice_overdue_days;
 
-    // Resolve user by email
-    const users = await base44.asServiceRole.entities.User.filter({ email: inv.client_email });
     if (!users || users.length === 0) {
       return Response.json({ error: 'Client user not found' }, { status: 404 });
     }
     let client = users[0];
 
-    // Ensure Stripe customer exists
+    // Ensure Stripe customer exists (use function result when available to avoid refetch)
     if (!client.stripe_customer_id) {
-      await base44.asServiceRole.functions.invoke('createStripeCustomer', { user_id: client.id });
-      const refreshed = await base44.asServiceRole.entities.User.filter({ id: client.id });
-      client = refreshed[0];
+      const resp = await base44.asServiceRole.functions.invoke('createStripeCustomer', { user_id: client.id });
+      const maybeId = resp?.data?.stripe_customer_id || resp?.data?.customer_id || resp?.data?.id;
+      if (maybeId) {
+        client = { ...client, stripe_customer_id: String(maybeId) };
+      } else {
+        const refreshed = await base44.asServiceRole.entities.User.filter({ id: client.id });
+        client = refreshed[0];
+      }
     }
 
     // Create draft Stripe invoice first (attach items directly to this invoice)
     const currency = 'usd';
     const items: Array<any> = Array.isArray(inv.items) ? inv.items : [];
 
-    // Load consolidation for richer Stripe descriptions
+    // Load consolidation and related AP/state in parallel
     let cons: any = null;
-    try {
-      if (inv.consolidation_id) {
-        const cl = await base44.asServiceRole.entities.Consolidation.filter({ id: inv.consolidation_id });
-        cons = cl?.[0] || null;
+    let destinationState = '';
+    let cargoTypeLabel = 'General';
+    if (inv.consolidation_id) {
+      const [consArr, aps] = await Promise.all([
+        base44.asServiceRole.entities.Consolidation.filter({ id: inv.consolidation_id }).catch(() => []),
+        base44.asServiceRole.entities.AccountsPayable.filter({ related_consolidation_id: inv.consolidation_id }).catch(() => [])
+      ]);
+      cons = consArr?.[0] || null;
+      if (aps && aps.length > 0) {
+        const ap = aps[0];
+        const code = ap.state_code || '';
+        if (code) {
+          const st = await base44.asServiceRole.entities.StateConfig.filter({ state_code: code }).catch(() => []);
+          if (st && st[0]?.state_name) {
+            destinationState = st[0].state_name;
+          } else {
+            destinationState = String(code).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+          }
+        }
+        if ((ap.risk_level || '').toLowerCase() === 'alto') cargoTypeLabel = 'High Risk';
       }
-    } catch {}
+    }
 
     const shippingType = (cons?.shipping_type) || (inv.items?.[0]?.description?.toLowerCase().includes('aéreo') ? 'aereo' : 'maritimo');
     const ddpTitle = shippingType === 'aereo' 
@@ -93,28 +113,7 @@ Deno.serve(async (req) => {
     const shipmentId = cons?.consolidation_tracking || inv.consolidation_tracking || '';
     const serviceMode = shippingType === 'aereo' ? 'Air Freight (DDP)' : 'Maritime Freight (DDP)';
 
-    // Enrich destination with Venezuelan state and cargo risk from AccountsPayable linked to this consolidation
-    let destinationState = '';
-    let cargoTypeLabel = 'General';
-    try {
-      if (inv.consolidation_id) {
-        const aps = await base44.asServiceRole.entities.AccountsPayable.filter({ related_consolidation_id: inv.consolidation_id });
-        if (aps && aps.length > 0) {
-          const ap = aps[0];
-          const code = ap.state_code || '';
-          if (code) {
-            try {
-              const st = await base44.asServiceRole.entities.StateConfig.filter({ state_code: code });
-              if (st && st[0]?.state_name) destinationState = st[0].state_name;
-            } catch {}
-            if (!destinationState) {
-              destinationState = String(code).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-            }
-          }
-          if ((ap.risk_level || '').toLowerCase() === 'alto') cargoTypeLabel = 'High Risk';
-        }
-      }
-    } catch {}
+    // (moved above for parallelization)
 
     const destinationLine = `Destination: Venezuela${destinationState ? ' – ' + destinationState : ''}`;
     const ddpDetail = `${ddpTitle}\n\nOrigin: China\n${destinationLine}\nService Mode: ${serviceMode}\nCargo Type: ${cargoTypeLabel}\nHandling: Consolidated Shipment\nShipment Reference: ${shipmentId}`;

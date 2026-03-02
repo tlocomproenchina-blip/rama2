@@ -17,16 +17,20 @@ export default function AdminAccountsPayable({ user }) {
   const [loading, setLoading] = useState(true);
   const [aps, setAps] = useState([]);
   const [filter, setFilter] = useState('todas');
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [page]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const list = await base44.entities.AccountsPayable.list('-created_date', 300);
+      const list = await base44.entities.AccountsPayable.list('-created_date', pageSize, page * pageSize);
       setAps(list);
+      setHasMore(list.length === pageSize);
     } catch (e) {
       console.error('Error loading AP:', e);
     }
@@ -188,9 +192,16 @@ export default function AdminAccountsPayable({ user }) {
           <p className="text-slate-500">Gestión de AP generadas por consolidaciones</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadData}>
+          <Button variant="outline" size="sm" onClick={() => { setPage(0); loadData(); }}>
             <RefreshCcw className="h-4 w-4 mr-2" /> Refrescar
           </Button>
+          <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>
+            Prev
+          </Button>
+          <Button variant="outline" size="sm" disabled={!hasMore && aps.length < pageSize} onClick={() => setPage(p => p + 1)}>
+            Next
+          </Button>
+          <span className="text-xs text-slate-500">Página {page + 1}</span>
         </div>
       </div>
 
