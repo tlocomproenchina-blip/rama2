@@ -234,8 +234,12 @@ export default function AdminAccountsPayable({ user }) {
                     Seleccionados: <strong>{selectedIds.length}</strong> • Saldo total: <strong>${selectedBalanceTotal.toFixed(2)}</strong>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => openPayModal('partial')}>Abonar</Button>
-                    <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => openPayModal('full')}>Pagar</Button>
+                    {selectedBalanceTotal > 0 && (
+                      <>
+                        <Button variant="outline" onClick={() => openPayModal('partial')}>Abonar</Button>
+                        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => openPayModal('full')}>Pagar</Button>
+                      </>
+                    )}
                     <Button variant="ghost" onClick={() => setSelectedIds([])}>Limpiar</Button>
                   </div>
                 </div>
