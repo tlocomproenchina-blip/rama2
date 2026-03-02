@@ -77,32 +77,83 @@ export default function AdminAccountsPayable({ user }) {
       setProcessing(true);
       const nowIso = new Date().toISOString();
       const sel = aps.filter(a => selectedIds.includes(a.id));
-      await Promise.all(sel.map(async (ap) => {
+
+      // Calcular montos aplicados por AP (plan)
+      const plans = sel.map((ap) => {
         const original = Number(ap.original_amount_due || 0);
         const already = Number(ap.amount_paid || 0);
         const balance = Math.max(original - already, 0);
         const amount = payMode === 'full' ? balance : Math.min(Number(payAmount || 0), balance);
-        if (amount <= 0) return;
-        const newPaid = already + amount;
-        const newBalance = Math.max(original - newPaid, 0);
-        const newStatus = newBalance === 0 ? 'pagado' : (newPaid > 0 ? 'parcial' : 'pendiente');
+        return { ap, amount, original, already, balance };
+      }).filter(p => p.amount > 0);
 
-        await base44.entities.AccountsPayable.update(ap.id, {
-          amount_paid: newPaid,
-          balance_due: newBalance,
-          status: newStatus,
+      if (plans.length === 0) return;
+
+      // Agrupar por proveedor
+      const groups = plans.reduce((acc, p) => {
+        const key = p.ap.vendor_name || 'Proveedor';
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(p);
+        return acc;
+      }, {});
+
+      // Procesar por proveedor: crear ProviderPayment, actualizar APs y ledger de ambos
+      await Promise.all(Object.entries(groups).map(async ([providerName, items]) => {
+        const total = items.reduce((s, it) => s + it.amount, 0);
+        // Intentar obtener provider_id (opcional)
+        let providerId = null;
+        try {
+          const provs = await base44.entities.ShippingProvider.filter({ name: providerName });
+          providerId = provs[0]?.id || null;
+        } catch {}
+
+        // Crear ProviderPayment
+        const pp = await base44.entities.ProviderPayment.create({
+          provider_id: providerId || undefined,
+          provider_name: providerName,
           payment_date: nowIso,
-          payment_reference: payReference || ap.payment_reference || ''
-        });
-        await base44.entities.AccountsPayableLedger.create({
-          ap_id: ap.id,
-          transaction_type: 'abono',
-          amount,
-          transaction_date: nowIso,
           method: payMethod,
           reference: payReference || '',
-          description: payMode === 'full' ? 'Pago total' : 'Pago parcial',
-          created_by: user?.email || 'system'
+          total_amount: total,
+          notes: payMode === 'full' ? 'Pago total desde AP' : 'Pago parcial desde AP',
+          allocations: items.map(it => ({ ap_id: it.ap.id, amount: it.amount }))
+        });
+
+        // Actualizar APs + Ledger (referenciando el ProviderPayment creado)
+        await Promise.all(items.map(async (it) => {
+          const newPaid = it.already + it.amount;
+          const newBalance = Math.max(it.original - newPaid, 0);
+          const newStatus = newBalance === 0 ? 'pagado' : (newPaid > 0 ? 'parcial' : 'pendiente');
+
+          await base44.entities.AccountsPayable.update(it.ap.id, {
+            amount_paid: newPaid,
+            balance_due: newBalance,
+            status: newStatus,
+            payment_date: nowIso,
+            payment_reference: payReference || it.ap.payment_reference || ''
+          });
+          await base44.entities.AccountsPayableLedger.create({
+            ap_id: it.ap.id,
+            transaction_type: 'abono',
+            amount: it.amount,
+            transaction_date: nowIso,
+            method: payMethod,
+            reference: payReference ? `${payReference} | PP:${pp.id}` : `PP:${pp.id}`,
+            description: payMode === 'full' ? 'Pago total' : 'Pago parcial',
+            created_by: user?.email || 'system'
+          });
+        }));
+
+        // Registrar en ledger de proveedor
+        await base44.entities.ProviderPaymentLedger.create({
+          provider_id: providerId || undefined,
+          provider_name: providerName,
+          transaction_type: 'pago',
+          amount: total,
+          transaction_date: nowIso,
+          method: payMethod,
+          reference: payReference || `PP:${pp.id}`,
+          description: `Pago desde Cuentas por Pagar (${items.length} AP)`
         });
       }));
 
