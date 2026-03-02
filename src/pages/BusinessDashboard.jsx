@@ -1,180 +1,195 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Card } from "@/components/ui/card";
+import { format, subDays, subMonths, subYears, parseISO } from "date-fns";
+import es from "date-fns/locale/es";
+import { DollarSign, FileText, Wallet, PieChart as PieChartIcon, CalendarRange } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import MetricCard from "@/components/dashboard/MetricCard";
-import DateRangeSelector from "@/components/dashboard/DateRangeSelector";
-import InvoicesVsPayments from "@/components/dashboard/charts/InvoicesVsPayments";
-import ApStatusChart from "@/components/dashboard/charts/ApStatusChart";
-import { Loader2, FileText, DollarSign, Wallet } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
-function formatCurrency(n) {
+import DateRangeTabs from "@/components/dashboard/DateRangeTabs";
+import StatCard from "@/components/dashboard/StatCard";
+import RevenueTrendChart from "@/components/dashboard/RevenueTrendChart";
+import APStatusPie from "@/components/dashboard/APStatusPie";
+
+function inRange(dateStr, start, end) {
+  if (!dateStr) return false;
+  const d = typeof dateStr === 'string' ? parseISO(dateStr) : new Date(dateStr);
+  return d >= start && d <= end;
+}
+
+function toUSD(n) {
   const v = Number(n || 0);
-  return v.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+  return v.toLocaleString('es-ES', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 }
 
-function startOfRange(mode) {
-  const now = new Date();
-  if (mode === "week") {
-    const d = new Date(now);
-    d.setDate(now.getDate() - 6);
-    d.setHours(0,0,0,0);
-    return d;
-  }
-  if (mode === "year") {
-    return new Date(now.getFullYear(), 0, 1);
-  }
-  // month default
-  return new Date(now.getFullYear(), now.getMonth(), 1);
-}
-
-function daysBetween(start, end) {
-  const ms = 24*60*60*1000;
-  const arr = [];
-  const d = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-  while (d <= end) {
-    arr.push(new Date(d));
-    d.setDate(d.getDate() + 1);
-  }
-  return arr;
-}
-
-export default function BusinessDashboard({ user }) {
-  const [range, setRange] = useState("month");
+export default function BusinessDashboard() {
+  const [range, setRange] = useState('month'); // week | month | year
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState([]);
   const [aps, setAps] = useState([]);
-
-  const start = startOfRange(range);
-  const end = new Date();
 
   useEffect(() => {
     let mounted = true;
     async function load() {
       setLoading(true);
       try {
-        const [inv, pay] = await Promise.all([
-          base44.entities.Invoice.list('-created_date', 1000),
-          base44.entities.AccountsPayable.list('-created_date', 1000),
+        const [inv, ap] = await Promise.all([
+          base44.entities.Invoice.list('-created_date', 800),
+          base44.entities.AccountsPayable.list('-created_date', 800),
         ]);
-        if (!mounted) return;
-        setInvoices(inv || []);
-        setAps(pay || []);
+        if (mounted) {
+          setInvoices(inv || []);
+          setAps(ap || []);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
     }
     load();
     return () => { mounted = false; };
+  }, []);
+
+  const { startDate, endDate, label } = useMemo(() => {
+    const end = new Date();
+    let start;
+    if (range === 'week') start = subDays(end, 6);
+    else if (range === 'month') start = subMonths(end, 1);
+    else start = subYears(end, 1);
+    return { startDate: start, endDate: end, label: `${format(start, 'dd MMM', { locale: es })} – ${format(end, 'dd MMM', { locale: es })}` };
   }, [range]);
 
-  const inRange = (dateStr, fallbackStr) => {
-    const s = dateStr || fallbackStr;
-    if (!s) return false;
-    const d = new Date(s);
-    return d >= start && d <= end;
-  };
-
   const filteredInvoices = useMemo(() => {
-    return invoices.filter((i) => inRange(i.invoice_date, i.created_date));
-  }, [invoices, range]);
+    return invoices.filter((inv) => inRange(inv.invoice_date || inv.created_date, startDate, endDate));
+  }, [invoices, startDate, endDate]);
 
-  const totalIssued = useMemo(() => {
-    return filteredInvoices.reduce((sum, i) => sum + Number(i.total || 0), 0);
-  }, [filteredInvoices]);
-
-  const paymentsReceived = useMemo(() => {
+  const paymentsInRange = useMemo(() => {
+    // Sum from payment_history entries in range; fallback to full total if payment_date in range
     let sum = 0;
-    for (const inv of filteredInvoices) {
-      if (Array.isArray(inv.payment_history)) {
-        for (const p of inv.payment_history) {
-          if (inRange(p.date)) sum += Number(p.amount_paid || 0);
-        }
-      }
-      if ((!inv.payment_history || inv.payment_history.length === 0) && inv.status === 'pagada' && inRange(inv.payment_date)) {
+    for (const inv of invoices) {
+      const ph = Array.isArray(inv.payment_history) ? inv.payment_history : [];
+      const inHist = ph.filter((p) => inRange(p.date, startDate, endDate));
+      if (inHist.length > 0) {
+        sum += inHist.reduce((s, p) => s + Number(p.amount_paid || 0), 0);
+      } else if (inRange(inv.payment_date, startDate, endDate) && (inv.status === 'pagada' || inv.status === 'paid')) {
         sum += Number(inv.total || 0);
       }
     }
     return sum;
+  }, [invoices, startDate, endDate]);
+
+  const totalInvoiced = useMemo(() => {
+    return filteredInvoices.reduce((s, inv) => s + Number(inv.total || 0), 0);
   }, [filteredInvoices]);
 
-  const pendingBalance = Math.max(0, totalIssued - paymentsReceived);
-
-  const byDay = useMemo(() => {
-    const labels = daysBetween(start, end).map((d) => d.toISOString().slice(5,10));
-    const map = Object.fromEntries(labels.map((l) => [l, { label: l, emitidas: 0, pagos: 0 }]));
+  const outstanding = useMemo(() => {
+    let sum = 0;
     for (const inv of filteredInvoices) {
-      const key = (inv.invoice_date || inv.created_date) ? new Date(inv.invoice_date || inv.created_date).toISOString().slice(5,10) : null;
-      if (key && map[key]) map[key].emitidas += Number(inv.total || 0);
-      if (Array.isArray(inv.payment_history)) {
-        for (const p of inv.payment_history) {
-          if (inRange(p.date)) {
-            const k = new Date(p.date).toISOString().slice(5,10);
-            if (map[k]) map[k].pagos += Number(p.amount_paid || 0);
-          }
-        }
-      } else if (inv.status === 'pagada' && inRange(inv.payment_date)) {
-        const k = new Date(inv.payment_date).toISOString().slice(5,10);
-        if (map[k]) map[k].pagos += Number(inv.total || 0);
+      const paid = (Array.isArray(inv.payment_history) ? inv.payment_history : []).reduce((s, p) => s + Number(p.amount_paid || 0), 0);
+      const remaining = Math.max(Number(inv.total || 0) - paid, 0);
+      // If status is pagada, remaining should be 0
+      sum += (inv.status === 'pagada' ? 0 : remaining);
+    }
+    return sum;
+  }, [filteredInvoices]);
+
+  const trendData = useMemo(() => {
+    // Build daily buckets
+    const map = new Map();
+    const dayKey = (d) => format(d, 'yyyy-MM-dd');
+    // Initialize days within range
+    for (let d = new Date(startDate); d <= endDate; d = new Date(d.getTime() + 86400000)) {
+      map.set(dayKey(d), { date: format(d, 'dd/MM'), invoiced: 0, paid: 0 });
+    }
+    for (const inv of filteredInvoices) {
+      const d = typeof inv.invoice_date === 'string' ? parseISO(inv.invoice_date) : (inv.invoice_date ? new Date(inv.invoice_date) : new Date(inv.created_date));
+      const key = dayKey(d);
+      if (map.has(key)) {
+        const row = map.get(key);
+        row.invoiced += Number(inv.total || 0);
       }
     }
-    return Object.values(map);
-  }, [filteredInvoices, range]);
-
-  const apSummary = useMemo(() => {
-    const initial = { pendiente: { monto: 0, count: 0 }, parcial: { monto: 0, count: 0 }, pagado: { monto: 0, count: 0 }, vencido: { monto: 0, count: 0 }, disputa: { monto: 0, count: 0 } };
-    for (const ap of aps) {
-      if (!inRange(ap.created_date)) continue;
-      const st = ap.status || 'pendiente';
-      const key = initial[st] ? st : 'pendiente';
-      const bal = Number(ap.balance_due ?? Math.max(Number(ap.original_amount_due || 0) - Number(ap.amount_paid || 0), 0));
-      initial[key].monto += bal;
-      initial[key].count += 1;
+    for (const inv of invoices) {
+      const ph = Array.isArray(inv.payment_history) ? inv.payment_history : [];
+      for (const p of ph) {
+        const pd = typeof p.date === 'string' ? parseISO(p.date) : new Date(p.date);
+        if (pd >= startDate && pd <= endDate) {
+          const key = dayKey(pd);
+          if (map.has(key)) {
+            const row = map.get(key);
+            row.paid += Number(p.amount_paid || 0);
+          }
+        }
+      }
+      if (inRange(inv.payment_date, startDate, endDate) && (inv.status === 'pagada' || inv.status === 'paid')) {
+        const pd = typeof inv.payment_date === 'string' ? parseISO(inv.payment_date) : new Date(inv.payment_date);
+        const key = dayKey(pd);
+        if (map.has(key)) {
+          const row = map.get(key);
+          row.paid += Number(inv.total || 0);
+        }
+      }
     }
-    return initial;
-  }, [aps, range]);
+    return Array.from(map.values());
+  }, [filteredInvoices, invoices, startDate, endDate]);
 
-  if (user && user.role && user.role !== 'admin') {
+  const apPieData = useMemo(() => {
+    const inRangeAps = aps.filter((a) => inRange(a.created_date, startDate, endDate));
+    const groups = inRangeAps.reduce((acc, a) => {
+      const key = a.status || 'otros';
+      const amount = Number(a.balance_due ?? (a.original_amount_due || 0) - (a.amount_paid || 0) || 0);
+      acc[key] = (acc[key] || 0) + Math.max(amount, 0);
+      return acc;
+    }, {});
+    return Object.entries(groups).map(([name, value]) => ({ name, value }));
+  }, [aps, startDate, endDate]);
+
+  if (loading) {
     return (
-      <div className="min-h-[50vh] grid place-items-center text-center">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Acceso restringido</h1>
-          <p className="text-slate-600 mt-1">Este panel está disponible solo para administradores.</p>
-        </div>
+      <div className="min-h-[50vh] flex items-center justify-center text-slate-500">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" /> Cargando métricas...
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800">Dashboard de Negocio</h1>
-          <p className="text-slate-500">Métricas clave con filtros por fecha</p>
+          <p className="text-slate-500">Rango: {label}</p>
         </div>
-        <DateRangeSelector value={range} onChange={setRange} />
+        <div className="flex items-center gap-2">
+          <DateRangeTabs value={range} onChange={setRange} />
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="gap-2">
+            <CalendarRange className="h-4 w-4" /> Actualizar
+          </Button>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="py-16 text-slate-500 flex items-center justify-center"><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Cargando...</div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <MetricCard title="Facturas Emitidas" value={formatCurrency(totalIssued)} icon={FileText} />
-            <MetricCard title="Pagos Recibidos" value={formatCurrency(paymentsReceived)} icon={DollarSign} />
-            <MetricCard title="Saldo Pendiente" value={formatCurrency(pendingBalance)} icon={Wallet} />
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard title="Total Facturado" value={toUSD(totalInvoiced)} subtitle="Facturas emitidas en el rango" Icon={FileText} colorClass="text-blue-600" />
+        <StatCard title="Pagos Recibidos" value={toUSD(paymentsInRange)} subtitle="Pagos registrados en el rango" Icon={DollarSign} colorClass="text-emerald-600" />
+        <StatCard title="Saldo Pendiente" value={toUSD(outstanding)} subtitle="De facturas del rango aún por pagar" Icon={Wallet} colorClass="text-amber-600" />
+      </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2">
-              <InvoicesVsPayments data={byDay} />
-            </div>
-            <div className="lg:col-span-1">
-              <ApStatusChart data={apSummary} />
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <RevenueTrendChart data={trendData} />
+        </div>
+        <div>
+          <APStatusPie data={apPieData} />
+        </div>
+      </div>
+
+      <Card className="bg-white/80 border">
+        <CardContent className="p-4 text-sm text-slate-600">
+          <div className="flex flex-wrap gap-4">
+            <div>Facturas consideradas: <strong>{filteredInvoices.length}</strong></div>
+            <div>AP consideradas: <strong>{aps.filter(a => inRange(a.created_date, startDate, endDate)).length}</strong></div>
           </div>
-        </>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
