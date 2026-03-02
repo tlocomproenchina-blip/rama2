@@ -27,7 +27,7 @@ export default function WhatsAppSupport() {
   }
 
   const handleWhatsAppClick = () => {
-    const url = base44.agents.getWhatsAppConnectURL('support_general');
+    const url = base44.agents.getWhatsAppConnectURL('tlec_assistant');
     window.open(url, '_blank');
   };
 
