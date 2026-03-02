@@ -298,8 +298,19 @@ function RecentProviderPayments({ providerId }) {
       const provs = await base44.entities.ShippingProvider.list();
       const prov = provs.find(p => p.id === providerId);
       if (!prov) { setItems([]); setLoading(false); return; }
-      const list = await base44.entities.ProviderPayment.filter({ provider_name: prov.name }, '-created_date', 10);
-      setItems(list);
+
+      // Buscar por provider_id y también por provider_name (para pagos creados desde AP)
+      const [byId, byName] = await Promise.all([
+        base44.entities.ProviderPayment.filter({ provider_id: prov.id }, '-created_date', 10),
+        base44.entities.ProviderPayment.filter({ provider_name: prov.name }, '-created_date', 10)
+      ]);
+
+      // Unificar y ordenar por created_date desc, quitando duplicados
+      const map = new Map();
+      [...byId, ...byName].forEach(pp => { if (pp) map.set(pp.id, pp); });
+      const combined = Array.from(map.values()).sort((a,b) => new Date(b.created_date) - new Date(a.created_date));
+
+      setItems(combined.slice(0, 10));
     } catch (e) { console.error(e); }
     setLoading(false);
   };
