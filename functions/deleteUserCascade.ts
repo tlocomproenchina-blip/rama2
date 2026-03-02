@@ -70,6 +70,10 @@ Deno.serve(async (req) => {
       consolidations: 0,
       invoices: 0,
       emailLogs: 0,
+      accountsPayable: 0,
+      apLedgers: 0,
+      providerPayments: 0,
+      providerPaymentLedgers: 0,
       userDeleted: false,
     };
 
@@ -90,6 +94,31 @@ Deno.serve(async (req) => {
     results.emailLogs += await deleteByFilter('EmailLog', { sender_email: targetEmail });
 
     // 5) Consolidations by client email (after invoices)
+    // Eliminar AP y pagos de proveedor asociados a consolidaciones del cliente
+    const clientCons = await base44.asServiceRole.entities.Consolidation.filter({ client_email: targetEmail });
+    for (const cons of clientCons) {
+      const aps = await base44.asServiceRole.entities.AccountsPayable.filter({ related_consolidation_id: cons.id });
+      for (const ap of aps) {
+        const apLs = await base44.asServiceRole.entities.AccountsPayableLedger.filter({ ap_id: ap.id });
+        for (const l of apLs) { await base44.asServiceRole.entities.AccountsPayableLedger.delete(l.id); results.apLedgers += 1; }
+
+        const pps = await base44.asServiceRole.entities.ProviderPayment.filter({ provider_name: ap.vendor_name });
+        for (const pp of pps) {
+          const allocs = Array.isArray(pp.allocations) ? pp.allocations : [];
+          if (allocs.some(a => a.ap_id === ap.id)) {
+            const refKey = pp.reference || `PP:${pp.id}`;
+            const ppl = await base44.asServiceRole.entities.ProviderPaymentLedger.filter({ provider_name: pp.provider_name, transaction_type: 'pago', reference: refKey });
+            for (const row of ppl) { await base44.asServiceRole.entities.ProviderPaymentLedger.delete(row.id); results.providerPaymentLedgers += 1; }
+            await base44.asServiceRole.entities.ProviderPayment.delete(pp.id);
+            results.providerPayments += 1;
+          }
+        }
+
+        await base44.asServiceRole.entities.AccountsPayable.delete(ap.id);
+        results.accountsPayable += 1;
+      }
+    }
+
     results.consolidations += await deleteByFilter('Consolidation', { client_email: targetEmail });
 
     // 7) Finally, delete user

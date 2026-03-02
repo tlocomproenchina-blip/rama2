@@ -53,13 +53,56 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Invoice.delete(invoice.id);
     }
 
+    // Eliminar AP y Pagos de Proveedor sincronizados relacionados a la consolidación
+    let apDeleted = 0;
+    let apLedgerDeleted = 0;
+    let providerPaymentsDeleted = 0;
+    let providerLedgersDeleted = 0;
+
+    const apsRel = await base44.asServiceRole.entities.AccountsPayable.filter({ related_consolidation_id: consolidation.id });
+    for (const ap of apsRel) {
+      // Borrar ledger de AP
+      const apLs = await base44.asServiceRole.entities.AccountsPayableLedger.filter({ ap_id: ap.id });
+      for (const l of apLs) {
+        await base44.asServiceRole.entities.AccountsPayableLedger.delete(l.id);
+        apLedgerDeleted += 1;
+      }
+
+      // Buscar ProviderPayments que asignaron este AP
+      const pps = await base44.asServiceRole.entities.ProviderPayment.filter({ provider_name: ap.vendor_name });
+      for (const pp of pps) {
+        const allocs = Array.isArray(pp.allocations) ? pp.allocations : [];
+        if (allocs.some(a => a.ap_id === ap.id)) {
+          const refKey = pp.reference || `PP:${pp.id}`;
+          const ppl = await base44.asServiceRole.entities.ProviderPaymentLedger.filter({
+            provider_name: pp.provider_name,
+            transaction_type: 'pago',
+            reference: refKey
+          });
+          for (const row of ppl) {
+            await base44.asServiceRole.entities.ProviderPaymentLedger.delete(row.id);
+            providerLedgersDeleted += 1;
+          }
+          await base44.asServiceRole.entities.ProviderPayment.delete(pp.id);
+          providerPaymentsDeleted += 1;
+        }
+      }
+
+      await base44.asServiceRole.entities.AccountsPayable.delete(ap.id);
+      apDeleted += 1;
+    }
+
     // Eliminar la consolidación
     await base44.asServiceRole.entities.Consolidation.delete(consolidation.id);
 
     return Response.json({ 
       success: true,
       message: 'Consolidación deshecha exitosamente',
-      packages_restored: consolidation.package_ids?.length || 0
+      packages_restored: consolidation.package_ids?.length || 0,
+      ap_deleted: apDeleted,
+      ap_ledger_deleted: apLedgerDeleted,
+      provider_payments_deleted: providerPaymentsDeleted,
+      provider_ledgers_deleted: providerLedgersDeleted
     });
 
   } catch (error) {
