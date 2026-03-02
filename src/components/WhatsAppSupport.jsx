@@ -22,14 +22,13 @@ export default function WhatsAppSupport() {
     setLoading(false);
   };
 
-  if (loading || !config || !config.whatsapp_enabled || !config.whatsapp_number) {
+  if (loading || !config || !config.whatsapp_enabled) {
     return null;
   }
 
   const handleWhatsAppClick = () => {
-    const message = encodeURIComponent(config.whatsapp_message || 'Hola, necesito ayuda');
-    const whatsappUrl = `https://wa.me/${config.whatsapp_number}?text=${message}`;
-    window.open(whatsappUrl, '_blank');
+    const url = base44.agents.getWhatsAppConnectURL('support_general');
+    window.open(url, '_blank');
   };
 
   return (
