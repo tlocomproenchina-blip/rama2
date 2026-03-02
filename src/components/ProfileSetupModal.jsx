@@ -86,12 +86,33 @@ export default function ProfileSetupModal({ open, onComplete }) {
     };
   };
 
+  // Normalizador de WhatsApp a dígitos
+  const getDigits = (s) => (s || '').replace(/\D/g, '');
+
   const handleSubmit = async () => {
     if (!validate()) return;
-    
+
+    // Verificar duplicados por WhatsApp (normalizado)
+    try {
+      const me = await base44.auth.me();
+      const { data } = await base44.functions.invoke('checkWhatsappUnique', {
+        whatsapp: formData.whatsapp,
+        current_user_id: me?.id
+      });
+      if (!data?.unique) {
+        setErrors((prev) => ({ ...prev, whatsapp: 'Ya existe un cliente registrado con ese WhatsApp' }));
+        toast.error('Ese número de WhatsApp ya está registrado');
+        return;
+      }
+    } catch (e) {
+      // Si el endpoint falla, no bloquear el flujo por error de red; pero mostrar mensaje
+      console.error('checkWhatsappUnique error', e);
+    }
+
     setSaving(true);
     try {
-      await onComplete(formData);
+      const payload = { ...formData, whatsapp_normalized: getDigits(formData.whatsapp) };
+      await onComplete(payload);
     } catch (error) {
       console.error('Error saving profile:', error);
     }
