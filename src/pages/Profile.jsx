@@ -88,7 +88,7 @@ export default function Profile({ user, refreshUser }) {
 
   const calculatePricing = () => {
     if (!formData.state || !pricingConfig) return null;
-    
+
     // Buscar por código o por nombre (para compatibilidad con datos antiguos)
     const stateConfig = findStateByCodeOrName(stateConfigs, formData.state);
     if (!stateConfig) return null;
@@ -109,6 +109,9 @@ export default function Profile({ user, refreshUser }) {
       stateName: stateConfig.state_name
     };
   };
+
+  // Normalizador de WhatsApp a dígitos
+  const getDigits = (s) => (s || '').replace(/\D/g, '');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -139,10 +142,25 @@ export default function Profile({ user, refreshUser }) {
       return;
     }
 
+    // Verificar duplicados por WhatsApp (normalizado), permitiendo el propio usuario
+    try {
+      const { data } = await base44.functions.invoke('checkWhatsappUnique', {
+        whatsapp: formData.whatsapp,
+        current_user_id: user?.id
+      });
+      if (!data?.unique) {
+        toast.error('Ese número de WhatsApp ya está registrado por otro cliente');
+        return;
+      }
+    } catch (e) {
+      console.error('checkWhatsappUnique error', e);
+      // Continuar para no bloquear por errores transitorios
+    }
+
     setSaving(true);
     
     try {
-       await base44.auth.updateMe(formData);
+       await base44.auth.updateMe({ ...formData, whatsapp_normalized: getDigits(formData.whatsapp) });
 
        setShowSuccess(true);
        setTimeout(() => setShowSuccess(false), 3000);
