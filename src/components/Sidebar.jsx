@@ -186,6 +186,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
   { name: 'Cuentas por Pagar', page: 'AdminAccountsPayable', icon: Wallet },
+  { name: 'Pagos Proveedores', page: 'AdminProviderPayments', icon: CreditCard },
   { name: 'Proveedores', page: 'AdminProviders', icon: Users },
   { name: 'Enviar Emails', page: 'AdminEmailCampaigns', icon: Mail },
   { name: 'Plantillas Email', page: 'AdminEmailTemplates', icon: FileText },
@@ -206,7 +207,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const adminGroups = [
     { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
-    { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAccountsPayable','AdminProviders'] },
+    { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
