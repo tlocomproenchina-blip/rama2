@@ -169,8 +169,8 @@ Deno.serve(async (req) => {
         ? cons.package_ids.length
         : 0;
 
-    // Provider formula: (baseRate × CBM) + stateRate + D2D + (perTracking × #trackings)
-    const providerTotal = toNumber(baseRate * cbm + stateRate + d2d + trackingCount * perTracking, 0);
+    // Provider formula: baseRate + stateRate + D2D + (perTracking × #trackings)
+    const providerTotal = toNumber(baseRate + stateRate + d2d + trackingCount * perTracking, 0);
 
     const breakdown = {
       cbm,
