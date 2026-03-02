@@ -492,43 +492,6 @@ export default function AdminDashboard({ user }) {
         </CardContent>
       </Card>
 
-      {/* Resumen de Notificaciones */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notificaciones
-            </CardTitle>
-            <Tabs value={notifFilter} onValueChange={setNotifFilter}>
-              <TabsList>
-                <TabsTrigger value="todas">Todas</TabsTrigger>
-                <TabsTrigger value="no_leidas">No leídas</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {(notificationsSummary || []).length === 0 ? (
-            <p className="text-sm text-slate-500">Sin notificaciones</p>
-          ) : (
-            <div className="space-y-3">
-              {notificationsSummary.map(n => (
-                <div key={n.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-800 truncate">{n.title}</p>
-                    <p className="text-xs text-slate-500 truncate">{n.message}</p>
-                  </div>
-                  <div className="text-right">
-                    {!n.read && <Badge className="bg-blue-600">Nuevo</Badge>}
-                    <p className="text-[11px] text-slate-500">{new Date(n.created_date).toLocaleString()}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Links Rápidos */}
       <div className="grid md:grid-cols-3 gap-4">
