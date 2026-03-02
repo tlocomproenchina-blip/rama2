@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Bell, Loader2, Check, Trash2, ArrowRight } from 'lucide-react';
+import { Bell, Loader2, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -291,19 +291,6 @@ export default function NotificationCenter({ user }) {
               )}
             </div>
 
-            {/* Footer */}
-            {notifications.length > 10 && (
-              <div className="p-3 border-t border-slate-200 text-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-blue-600 hover:text-blue-700"
-                >
-                  Ver todas las notificaciones
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              </div>
-            )}
 
             {/* Last Refresh */}
             <div className="px-4 py-2 text-xs text-slate-400 text-center border-t border-slate-200">
