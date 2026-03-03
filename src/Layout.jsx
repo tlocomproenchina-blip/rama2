@@ -24,7 +24,7 @@ const AdminNotificationCenter = lazy(() => import('@/components/AdminNotificatio
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
 const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
 const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
-const ContractModal = lazy(() => import('@/components/ContractModal'));
+const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
