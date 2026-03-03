@@ -27,7 +27,6 @@ const ActiveConsolidationsWidget = lazy(() => import('@/components/dashboard/Act
 const RecentPaymentsWidget = lazy(() => import('@/components/dashboard/RecentPaymentsWidget'));
 const DeliveryTimesWidget = lazy(() => import('@/components/dashboard/DeliveryTimesWidget'));
 const EditProfileModal = lazy(() => import('@/components/EditProfileModal'));
-const AdvancedAnalytics = lazy(() => import('@/components/dashboard/AdvancedAnalytics.jsx'));
 
 import { toast } from 'sonner';
 import { HeaderSkeletonLoader } from '@/components/SkeletonLoaders';
@@ -353,13 +352,6 @@ export default function Dashboard({ user, refreshUser }) {
             <RecentPaymentsWidget invoices={invoices} />
             <DeliveryTimesWidget consolidations={consolidations} />
           </div>
-        </Suspense>
-      )}
-
-      {/* Advanced Analytics (curves) */}
-      {hasShippingMark && (
-        <Suspense fallback={<div className="h-64 bg-slate-200 rounded-lg animate-pulse" />}>
-          <AdvancedAnalytics userEmail={user?.email} />
         </Suspense>
       )}
 
