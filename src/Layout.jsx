@@ -289,8 +289,9 @@ export default function Layout({ children, currentPageName }) {
           --sat: env(safe-area-inset-top); 
           --sab: env(safe-area-inset-bottom); 
         }
+        html, body, #root { height: 100%; min-height: 100svh; }
         /* toasts visible */
-        body { overflow-x: hidden; }
+        body { overflow-x: hidden; -webkit-text-size-adjust: 100%; }
 
         /* Mobile responsiveness improvements */
         @media (max-width: 640px) {
