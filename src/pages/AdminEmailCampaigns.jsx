@@ -736,12 +736,12 @@ export default function AdminEmailCampaigns({ user }) {
                 </Button>
               </div>
 
-              {/* Estado de la cola de envos */}
+              {/* Estado de la cola de envíos */}
               <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600">
                 <div className="flex items-center justify-between">
                   <span>
                     En cola: <span className="font-semibold text-slate-800">{queueStats.pending}</span>
-                    <span className="text-slate-500">  b7 lote {queueStats.batchSize} / {Math.round(queueStats.intervalMs/1000)}s</span>
+                    <span className="text-slate-500"> • lote {queueStats.batchSize} / {Math.round(queueStats.intervalMs/1000)}s</span>
                   </span>
                   <span>
                     Enviados por cola: <span className="font-semibold text-slate-800">{queueStats.sent}</span>
