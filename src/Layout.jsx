@@ -27,6 +27,7 @@ const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
 const ContractModal = lazy(() => import('@/components/ContractModal'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
+const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -262,6 +263,19 @@ export default function Layout({ children, currentPageName }) {
           <p className="mt-4 text-slate-600">Cargando...</p>
         </div>
       </div>
+    );
+  }
+
+  // Maintenance mode: block non-admin users with a friendly screen
+  if (config?.maintenance_mode && user?.role !== 'admin') {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <div className="text-center text-slate-600">Cargando...</div>
+        </div>
+      }>
+        <MaintenanceScreen message={config?.maintenance_message} />
+      </Suspense>
     );
   }
 
