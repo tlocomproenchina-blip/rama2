@@ -285,7 +285,8 @@ export default function AdminEmailCampaigns({ user }) {
           const personalizedSubject = replaceEmailVariables(emailData.subject, client);
           const personalizedBody = replaceEmailVariables(emailBody, client);
 
-          await sendNotification({
+          // Encolar inmediatamente (no esperar por cada envío)
+          sendNotification({
             from_name: emailData.fromName,
             to: client.email,
             subject: personalizedSubject,
@@ -295,10 +296,10 @@ export default function AdminEmailCampaigns({ user }) {
             type: 'system',
             icon: 'info',
             referenceId: client.id
-          });
+          }).catch(() => {});
 
-          // Log the email (marcado como enviado/encolado)
-          await base44.entities.EmailLog.create({
+          // Registrar en historial sin bloquear
+          base44.entities.EmailLog.create({
             recipient_email: client.email,
             recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
             sender_email: user.email,
@@ -308,7 +309,7 @@ export default function AdminEmailCampaigns({ user }) {
             source: 'manual',
             status: 'sent',
             sent_date: new Date().toISOString()
-          });
+          }).catch(() => {});
 
           results.success++;
         } catch (error) {
