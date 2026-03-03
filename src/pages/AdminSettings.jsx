@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
+import ReportsSettings from '@/components/admin/ReportsSettings';
 import { createPageUrl } from '@/utils';
 
 const VENEZUELAN_STATES = [
@@ -405,7 +406,7 @@ export default function AdminSettings({ user }) {
 
       <Tabs defaultValue="tarifas" className="space-y-6">
         <div className="flex items-center justify-between">
-          <TabsList className="grid grid-cols-8 w-full">
+          <TabsList className="grid grid-cols-9 w-full">
             <TabsTrigger value="tarifas" className="flex items-center gap-2 text-xs">
               <DollarSign className="h-4 w-4" />
               <span className="hidden md:inline">Tarifas</span>
@@ -433,6 +434,10 @@ export default function AdminSettings({ user }) {
             <TabsTrigger value="privacidad" className="flex items-center gap-2 text-xs">
               <ShieldCheck className="h-4 w-4" />
               <span className="hidden md:inline">Privacidad</span>
+            </TabsTrigger>
+            <TabsTrigger value="reportes" className="flex items-center gap-2 text-xs">
+              <FileText className="h-4 w-4" />
+              <span className="hidden md:inline">Reportes</span>
             </TabsTrigger>
             <TabsTrigger value="recursos" className="flex items-center gap-2 text-xs">
               <HardDrive className="h-4 w-4" />
@@ -1580,6 +1585,10 @@ export default function AdminSettings({ user }) {
           </Card>
         </TabsContent>
 
+
+      <TabsContent value="reportes">
+        <ReportsSettings />
+      </TabsContent>
 
       <TabsContent value="recursos">
         <ResourceInspector />
