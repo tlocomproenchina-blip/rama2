@@ -178,7 +178,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
   const adminMenuItems = [
-  { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
+  { name: 'Dashboard', page: 'AdminDashboard', icon: LayoutDashboard },
   { name: 'Dashboard Avanzado', page: 'AdvancedDashboard', icon: TrendingUp },
   { name: 'Reportes', page: 'AdminReports', icon: BarChart3 },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
