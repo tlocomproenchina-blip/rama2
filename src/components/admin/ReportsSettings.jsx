@@ -118,8 +118,14 @@ export default function ReportsSettings() {
   };
 
   const remove = async (r) => {
-    await base44.entities.ReportRecipient.delete(r.id);
-    setRecipients(prev => prev.filter(x => x.id !== r.id));
+    try {
+      await base44.entities.ReportRecipient.delete(r.id);
+      setRecipients(prev => prev.filter(x => x.id !== r.id));
+      toast.success('Destinatario eliminado');
+    } catch (e) {
+      console.error(e);
+      toast.error('No se pudo eliminar el destinatario');
+    }
   };
 
   const handleDeleteUser = async (r) => {
