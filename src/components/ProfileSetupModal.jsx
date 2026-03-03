@@ -133,7 +133,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const pricingInfo = calculatePricing();
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto overscroll-contain sm:max-h-[80vh]" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-h-[80vh]" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-amber-50 rounded-xl">
@@ -188,18 +188,35 @@ export default function ProfileSetupModal({ open, onComplete }) {
             <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
-            <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
-              <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
-                <SelectValue placeholder="Selecciona tu estado" />
-              </SelectTrigger>
-              <SelectContent position="popper" avoidCollisions={false} className="z-[60]">
-               {stateConfigs.map((state) => (
-                 <SelectItem key={state.state_code} value={state.state_code}>
-                   {state.state_name}
-                 </SelectItem>
-               ))}
-              </SelectContent>
-            </Select>
+            {/* Mobile native select */}
+            <div className="sm:hidden">
+              <select
+                id="state"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                className={`w-full rounded-md border bg-white px-3 py-2 text-sm ${errors.state ? 'border-red-300' : 'border-slate-300'}`}
+              >
+                <option value="" disabled>Selecciona tu estado</option>
+                {stateConfigs.map((s) => (
+                  <option key={s.state_code} value={s.state_code}>{s.state_name}</option>
+                ))}
+              </select>
+            </div>
+            {/* Desktop Select */}
+            <div className="hidden sm:block">
+              <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
+                <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
+                  <SelectValue placeholder="Selecciona tu estado" />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                 {stateConfigs.map((state) => (
+                   <SelectItem key={state.state_code} value={state.state_code}>
+                     {state.state_name}
+                   </SelectItem>
+                 ))}
+                </SelectContent>
+              </Select>
+            </div>
             {errors.state && (
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" /> {errors.state}
