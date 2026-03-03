@@ -63,6 +63,8 @@ export default function AdminEmailCampaigns({ user }) {
   const [queueStats, setQueueStats] = useState({ pending: 0, sent: 0, batchSize: 50, intervalMs: 60000 });
   const [sendBaseline, setSendBaseline] = useState(null);
   const [sendTotal, setSendTotal] = useState(0);
+  const [sendBaseline, setSendBaseline] = useState(null);
+  const [sendTotal, setSendTotal] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -270,6 +272,8 @@ export default function AdminEmailCampaigns({ user }) {
 
     setSendBaseline(queueStats.sent || 0);
     setSendTotal(getTargetClients.length);
+    setSendBaseline(queueStats.sent || 0);
+    setSendTotal(getTargetClients.length);
     setSending(true);
     const results = { success: 0, failed: 0, errors: [] };
 
@@ -334,11 +338,14 @@ export default function AdminEmailCampaigns({ user }) {
       } else {
         toast.warning(`${results.success} enviados, ${results.failed} fallidos`);
       }
-    } catch (error) {
+      } catch (error) {
       toast.error('Error al enviar emails');
-    }
-    setSending(false);
-  };
+      }
+      // reset baseline counters after finishing
+      setSendBaseline(null);
+      setSendTotal(0);
+      setSending(false);
+      };
 
 
 
