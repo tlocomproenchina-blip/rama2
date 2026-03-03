@@ -365,7 +365,7 @@ export default function Layout({ children, currentPageName }) {
 
       <main className="flex-1 min-h-[100svh] lg:h-screen flex flex-col overflow-hidden" role="main">
         {/* Mobile Header */}
-        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 will-change-transform" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between gap-2">
             <Button 
               variant="ghost" 
