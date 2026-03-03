@@ -112,6 +112,17 @@ export default function Profile({ user, refreshUser }) {
 
   // Normalizador de WhatsApp a dígitos
   const getDigits = (s) => (s || '').replace(/\D/g, '');
+  
+  // Permitir solo dígitos y un '+' opcional al inicio
+  const sanitizeWhatsApp = (v) => {
+    let s = String(v || '').replace(/[^\d+]/g, '');
+    if (s.startsWith('+')) {
+      s = '+' + s.slice(1).replace(/[+]/g, '');
+    } else {
+      s = s.replace(/[+]/g, '');
+    }
+    return s;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -280,8 +291,10 @@ export default function Profile({ user, refreshUser }) {
                 <Input
                   id="whatsapp"
                   value={formData.whatsapp}
-                  onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, whatsapp: sanitizeWhatsApp(e.target.value) })}
                   placeholder="+58 414 1234567"
+                  inputMode="tel"
+                  pattern="^\\+?\\d*$"
                   disabled={isFieldDisabled('whatsapp')}
                   required
                 />
