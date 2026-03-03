@@ -127,7 +127,10 @@ export default function Layout({ children, currentPageName }) {
 
   const loadUser = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await Promise.race([
+        base44.auth.me(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), 8000))
+      ]);
       setUser(currentUser);
 
       // Auto-create Stripe customer if missing
