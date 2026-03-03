@@ -266,8 +266,6 @@ export default function AdminEmailCampaigns({ user }) {
       return;
     }
 
-    setSendBaseline(queueStats.sent || 0);
-    setSendTotal(getTargetClients.length);
     setSending(true);
     const results = { success: 0, failed: 0, errors: [] };
 
