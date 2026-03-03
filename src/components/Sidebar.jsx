@@ -204,8 +204,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
 { name: 'Administradores', page: 'AdminPermissions', icon: Shield },
   { name: 'Gestión de Roles', page: 'AdminRoles', icon: Shield },
-  { name: 'Configuración', page: 'AdminSettings', icon: Settings },
-  { name: 'Borrar Caché', page: 'ClearCache', icon: Trash2 }];
+  { name: 'Configuración', page: 'AdminSettings', icon: Settings }];
 
 
   const adminGroups = [
@@ -215,7 +214,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
     { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
-    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings','ClearCache'] }
+    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
   ];
 
   const clientGroups = [

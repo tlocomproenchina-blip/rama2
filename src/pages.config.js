@@ -70,11 +70,13 @@ import AdminProviderPayments from './pages/AdminProviderPayments';
 import AdminProviders from './pages/AdminProviders';
 import AdminReports from './pages/AdminReports';
 import AdminRoles from './pages/AdminRoles';
+import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
-import AdvancedDashboard from './pages/AdvancedDashboard';
+import AdminSupportTickets from './pages/AdminSupportTickets';
 import BusinessDashboard from './pages/BusinessDashboard';
 import ClientPortal from './pages/ClientPortal';
+import Dashboard from './pages/Dashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
@@ -88,10 +90,7 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import Dashboard from './pages/Dashboard';
-import AdminSupportTickets from './pages/AdminSupportTickets';
-import AdminSettings from './pages/AdminSettings';
-import ClearCache from './pages/ClearCache';
+import AdvancedDashboard from './pages/AdvancedDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -119,11 +118,13 @@ export const PAGES = {
     "AdminProviders": AdminProviders,
     "AdminReports": AdminReports,
     "AdminRoles": AdminRoles,
+    "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
-    "AdvancedDashboard": AdvancedDashboard,
+    "AdminSupportTickets": AdminSupportTickets,
     "BusinessDashboard": BusinessDashboard,
     "ClientPortal": ClientPortal,
+    "Dashboard": Dashboard,
     "EmployeeDashboard": EmployeeDashboard,
     "FAQ": FAQ,
     "Home": Home,
@@ -137,10 +138,7 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "Dashboard": Dashboard,
-    "AdminSupportTickets": AdminSupportTickets,
-    "AdminSettings": AdminSettings,
-    "ClearCache": ClearCache,
+    "AdvancedDashboard": AdvancedDashboard,
 }
 
 export const pagesConfig = {
