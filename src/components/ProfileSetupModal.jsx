@@ -133,7 +133,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const pricingInfo = calculatePricing();
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-h-[80vh]" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto overscroll-contain sm:max-h-[80vh]" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-amber-50 rounded-xl">
@@ -192,7 +192,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
               <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
                 <SelectValue placeholder="Selecciona tu estado" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" avoidCollisions={false} className="z-[60]">
                {stateConfigs.map((state) => (
                  <SelectItem key={state.state_code} value={state.state_code}>
                    {state.state_name}

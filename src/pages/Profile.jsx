@@ -316,7 +316,7 @@ export default function Profile({ user, refreshUser }) {
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona tu estado" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" avoidCollisions={false} className="z-[60]">
                      {stateConfigs.map((state) => (
                        <SelectItem key={state.state_code} value={state.state_code}>
                          {state.state_name}
