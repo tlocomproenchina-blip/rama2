@@ -387,7 +387,7 @@ export default function Layout({ children, currentPageName }) {
         `}</style>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full min-h-[70svh]">
           <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
             <ErrorBoundary>
               {React.cloneElement(children, { user, refreshUser: loadUser })}
