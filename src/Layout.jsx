@@ -282,7 +282,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col lg:flex-row overflow-hidden">
+    <div className="min-h-[100svh] lg:h-screen bg-slate-50 flex flex-col lg:flex-row overflow-hidden">
       <style>{`
         /* Respect safe areas */
         :root { 
@@ -346,7 +346,7 @@ export default function Layout({ children, currentPageName }) {
         <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
       )}
       
-      <div className="h-screen overflow-y-auto shrink-0">
+      <div className="min-h-[100svh] lg:h-screen overflow-y-auto shrink-0">
         <Sidebar 
           user={user} 
           currentPage={currentPageName}
@@ -355,7 +355,7 @@ export default function Layout({ children, currentPageName }) {
         />
       </div>
 
-      <main className="flex-1 h-screen flex flex-col overflow-hidden">
+      <main className="flex-1 min-h-[100svh] lg:h-screen flex flex-col overflow-hidden">
         {/* Mobile Header */}
         <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between gap-2">
