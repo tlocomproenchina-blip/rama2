@@ -124,7 +124,17 @@ export default function Profile({ user, refreshUser }) {
     return s;
   };
 
+  // Cierra overlays de Radix (Select/Popover) antes de desmontar/cerrar
+  const closeRadixOverlays = () => {
+    try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); } catch {}
+  };
+
+  useEffect(() => {
+    return () => { closeRadixOverlays(); };
+  }, []);
+
   const handleSubmit = async (e) => {
+    closeRadixOverlays();
     e.preventDefault();
     
     // Validaciones
