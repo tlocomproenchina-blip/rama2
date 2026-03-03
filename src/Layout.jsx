@@ -108,64 +108,27 @@ export default function Layout({ children, currentPageName }) {
     loadFavicon();
   }, []);
 
-  // One-time deep cache cleanup in preview/iframe or when ?clear=1
+  // Limpieza de cachés y temporales (una sola vez o con ?clear=1)
   useEffect(() => {
-    const run = async () => {
+    const flag = localStorage.getItem('b44_cleared_once');
+    const qs = new URLSearchParams(window.location.search);
+    const shouldClear = qs.get('clear') === '1' || !flag;
+    if (!shouldClear) return;
+    (async () => {
+      try { if (base44?.reset) base44.reset(); } catch (_) {}
+      try { cacheManager.clear(); } catch (_) {}
+      try { sessionStorage.clear(); } catch (_) {}
       try {
-        const params = new URLSearchParams(window.location.search);
-        const shouldClear = (typeof window !== 'undefined' && window.top !== window.self) || params.get('clear') === '1';
-        const alreadyCleared = localStorage.getItem('__b44_cleared__');
-        if (shouldClear && !alreadyCleared) {
-          localStorage.setItem('__b44_cleared__', '1');
-
-          // Clear ApiQueueManager internals
-          try { base44.cache?.clear?.(); } catch (_) {}
-          try { base44.inflight?.clear?.(); } catch (_) {}
-          try { base44.queue = []; base44.processing = false; base44.activeReads = 0; base44.activeWrites = 0; base44.failureCount = 0; base44.circuitBreakerState = 'CLOSED'; } catch (_) {}
-
-          // Clear app caches and storage
-          try { cacheManager?.clear?.(); } catch (_) {}
-          try {
-            // Clear session storage completely
-            sessionStorage.clear();
-            // Remove our app localStorage keys (preserve __b44_cleared__ flag)
-            Object.keys(localStorage).forEach(k => {
-              if (k.startsWith('tlec_cache_') || k.startsWith('tab:lastRoute:')) {
-                localStorage.removeItem(k);
-              }
-            });
-          } catch (_) {}
-
-          // Clear Cache Storage
-          try {
-            if ('caches' in window) {
-              const keys = await caches.keys();
-              await Promise.all(keys.map(k => caches.delete(k)));
-            }
-          } catch (_) {}
-
-          // Unregister service workers
-          try {
-            if ('serviceWorker' in navigator) {
-              const regs = await navigator.serviceWorker.getRegistrations();
-              await Promise.all(regs.map(r => r.unregister()));
-            }
-          } catch (_) {}
-
-          // Delete IndexedDB databases (if supported)
-          try {
-            const dbs = await (indexedDB?.databases?.() || []);
-            for (const db of dbs) {
-              if (db?.name) { try { indexedDB.deleteDatabase(db.name); } catch (_) {} }
-            }
-          } catch (_) {}
-
-          // Reload app
-          window.location.reload();
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
         }
       } catch (_) {}
-    };
-    run();
+      localStorage.setItem('b44_cleared_once', String(Date.now()));
+      const url = new URL(window.location.href);
+      url.searchParams.delete('clear');
+      window.location.replace(url.pathname + (url.search || '') + (url.hash || ''));
+    })();
   }, []);
 
   const loadConfig = async () => {
