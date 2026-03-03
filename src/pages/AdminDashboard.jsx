@@ -20,27 +20,42 @@ export default function AdminDashboard({ user }) {
     notifications: []
   });
 
+  // Paginación (cargar bajo demanda)
+  const [packagesLimit, setPackagesLimit] = useState(10);
+  const [consolidationsLimit, setConsolidationsLimit] = useState(10);
+  const [invoicesLimit, setInvoicesLimit] = useState(10);
+  const [hasMorePackages, setHasMorePackages] = useState(false);
+  const [hasMoreConsolidations, setHasMoreConsolidations] = useState(false);
+  const [hasMoreInvoices, setHasMoreInvoices] = useState(false);
+
   const [invFilter, setInvFilter] = useState('pendiente');
   const [consFilter, setConsFilter] = useState('todas');
   const [notifFilter, setNotifFilter] = useState('todas');
   const [mainTab, setMainTab] = useState('resumen');
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (mainTab === 'resumen') {
+      loadData();
+    }
+  }, [mainTab, packagesLimit, consolidationsLimit, invoicesLimit]);
 
   const loadData = async () => {
     try {
+      // Cargar solo lo necesario para la pestaña Resumen y respetar los límites
       const [packages, consolidations, users, invoices] = await Promise.all([
-        base44.entities.Package.list('-created_date', 100),
-        base44.entities.Consolidation.list('-created_date', 100),
+        base44.entities.Package.list('-created_date', packagesLimit),
+        base44.entities.Consolidation.list('-created_date', consolidationsLimit),
         base44.entities.User.filter({ role: 'user' }),
-        base44.entities.Invoice.list('-created_date', 50)
+        base44.entities.Invoice.list('-created_date', invoicesLimit)
       ]);
+
+      setHasMorePackages(packages.length === packagesLimit);
+      setHasMoreConsolidations(consolidations.length === consolidationsLimit);
+      setHasMoreInvoices(invoices.length === invoicesLimit);
       
       setData({ packages, consolidations, users, invoices });
 
-      // Cargar notificaciones del admin (resumen)
+      // Cargar notificaciones del admin (solo si estamos en resumen)
       if (user?.email) {
         try {
           const notifications = await base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20);
@@ -93,10 +108,7 @@ export default function AdminDashboard({ user }) {
     };
   }, [data]);
 
-  const recentPackages = useMemo(() => 
-    data.packages.slice(0, 5),
-    [data.packages]
-  );
+  const recentPackages = useMemo(() => data.packages, [data.packages]);
 
   const invoicesByFilter = useMemo(() => {
     let list = data.invoices;
@@ -106,7 +118,7 @@ export default function AdminDashboard({ user }) {
       const today = new Date();
       list = list.filter(i => i.status === 'pendiente' && new Date(i.due_date) < today);
     }
-    return list.slice(0, 5);
+    return list;
   }, [data.invoices, invFilter]);
 
   const recentConsolidations = useMemo(() => {
@@ -114,7 +126,7 @@ export default function AdminDashboard({ user }) {
     if (consFilter !== 'todas') {
       list = list.filter(c => c.status === consFilter);
     }
-    return list.slice(0, 5);
+    return list;
   }, [data.consolidations, consFilter]);
 
   const notificationsSummary = useMemo(() => {
@@ -386,27 +398,34 @@ export default function AdminDashboard({ user }) {
           {recentPackages.length === 0 ? (
             <p className="text-center text-slate-500 py-8">No hay paquetes</p>
           ) : (
-            <div className="space-y-3">
-              {recentPackages.map((pkg) => (
-                <div key={pkg.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3">
-                      <p className="font-medium text-slate-800">{pkg.tracking_number}</p>
-                      <StatusBadge status={pkg.status} size="sm" />
+            <>
+              <div className="space-y-3">
+                {recentPackages.map((pkg) => (
+                  <div key={pkg.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <p className="font-medium text-slate-800">{pkg.tracking_number}</p>
+                        <StatusBadge status={pkg.status} size="sm" />
+                      </div>
+                      <div className="flex items-center gap-4 mt-1">
+                        <p className="text-sm text-slate-600">{pkg.client_email}</p>
+                        <Badge variant="outline" className="text-xs">
+                          {pkg.shipping_type === 'aereo' ? '✈️ Aéreo' : '🚢 Marítimo'}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4 mt-1">
-                      <p className="text-sm text-slate-600">{pkg.client_email}</p>
-                      <Badge variant="outline" className="text-xs">
-                        {pkg.shipping_type === 'aereo' ? '✈️ Aéreo' : '🚢 Marítimo'}
-                      </Badge>
-                    </div>
+                    <p className="text-xs text-slate-500">
+                      {new Date(pkg.created_date).toLocaleDateString()}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-500">
-                    {new Date(pkg.created_date).toLocaleDateString()}
-                  </p>
+                ))}
+              </div>
+              {hasMorePackages && (
+                <div className="mt-4 text-center">
+                  <Button variant="outline" size="sm" onClick={() => setPackagesLimit((v) => v + 10)}>Cargar más</Button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -432,22 +451,29 @@ export default function AdminDashboard({ user }) {
           {invoicesByFilter.length === 0 ? (
             <p className="text-sm text-slate-500">No hay facturas</p>
           ) : (
-            <div className="space-y-3">
-              {invoicesByFilter.map(inv => (
-                <div key={inv.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-800 truncate">{inv.invoice_number} • {inv.client_email}</p>
-                    <p className="text-xs text-slate-500">Fecha: {new Date(inv.invoice_date).toLocaleDateString()} • Vence: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</p>
+            <>
+              <div className="space-y-3">
+                {invoicesByFilter.map(inv => (
+                  <div key={inv.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-800 truncate">{inv.invoice_number} • {inv.client_email}</p>
+                      <p className="text-xs text-slate-500">Fecha: {new Date(inv.invoice_date).toLocaleDateString()} • Vence: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline">${(inv.total || 0).toFixed(2)}</Badge>
+                      <Link to={createPageUrl('AdminInvoices')}>
+                        <Button size="sm" variant="outline">Ver</Button>
+                      </Link>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline">${(inv.total || 0).toFixed(2)}</Badge>
-                    <Link to={createPageUrl('AdminInvoices')}>
-                      <Button size="sm" variant="outline">Ver</Button>
-                    </Link>
-                  </div>
+                ))}
+              </div>
+              {hasMoreInvoices && (
+                <div className="mt-4 text-center">
+                  <Button variant="outline" size="sm" onClick={() => setInvoicesLimit((v) => v + 10)}>Cargar más</Button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -474,20 +500,27 @@ export default function AdminDashboard({ user }) {
           {recentConsolidations.length === 0 ? (
             <p className="text-sm text-slate-500">No hay consolidaciones</p>
           ) : (
-            <div className="space-y-3">
-              {recentConsolidations.map(cons => (
-                <div key={cons.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-800 truncate">{cons.consolidation_tracking || 'Sin tracking'} • {cons.client_email}</p>
-                    <p className="text-xs text-slate-500">{new Date(cons.created_date).toLocaleString()}</p>
+            <>
+              <div className="space-y-3">
+                {recentConsolidations.map(cons => (
+                  <div key={cons.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-800 truncate">{cons.consolidation_tracking || 'Sin tracking'} • {cons.client_email}</p>
+                      <p className="text-xs text-slate-500">{new Date(cons.created_date).toLocaleString()}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline">${(cons.total_cost || 0).toFixed(2)}</Badge>
+                      <StatusBadge status={cons.status} size="sm" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline">${(cons.total_cost || 0).toFixed(2)}</Badge>
-                    <StatusBadge status={cons.status} size="sm" />
-                  </div>
+                ))}
+              </div>
+              {hasMoreConsolidations && (
+                <div className="mt-4 text-center">
+                  <Button variant="outline" size="sm" onClick={() => setConsolidationsLimit((v) => v + 10)}>Cargar más</Button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
