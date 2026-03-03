@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 function htmlTemplate({
-  appName = 'TLEC Logistics',
+  appName = 'TLEC CARGO',
   nuevaDireccion = '{nueva_direccion}',
   fechaVigencia = '{fecha_vigencia}',
   enlaceDireccion = '{enlace_direccion}'
