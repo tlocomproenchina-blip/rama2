@@ -39,6 +39,17 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Watchdog: if loading hangs (e.g., auth blocked in preview/iframe), show login prompt
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (loading) {
+        setAuthRequired(true);
+        setLoading(false);
+      }
+    }, 12000);
+    return () => clearTimeout(t);
+  }, [loading]);
+
   // Mobile tab navigation mappings
   const userTabDefaults = {
     home: 'ClientPortal',
