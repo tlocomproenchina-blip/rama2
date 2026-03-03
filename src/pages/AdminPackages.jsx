@@ -364,6 +364,17 @@ export default function AdminPackages({ user }) {
                   <TabsTrigger value="entregado">Entregado</TabsTrigger>
                 </TabsList>
               </Tabs>
+
+              <Select value={reportedFilter} onValueChange={setReportedFilter}>
+                <SelectTrigger className="w-full lg:w-48 bg-white">
+                  <SelectValue placeholder="Reporte" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="reported">Reportados</SelectItem>
+                  <SelectItem value="unreported">No reportados</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button
               onClick={handleExportPreAlerta}
@@ -430,6 +441,27 @@ export default function AdminPackages({ user }) {
                   onClick={() => setSelectedPackages([])}
                 >
                   Cancelar
+                </Button>
+
+                <Button 
+                  variant="outline"
+                  onClick={handleCopySelectedByMark}
+                  className="gap-2"
+                >
+                  <Copy className="h-4 w-4" /> Copiar por Mark
+                </Button>
+
+                <Button 
+                  variant="outline"
+                  onClick={() => handleMarkReported(true)}
+                >
+                  Marcar reportados
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleMarkReported(false)}
+                >
+                  Quitar reporte
                 </Button>
               </div>
             </div>
