@@ -379,17 +379,19 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
       <Toaster position="top-right" richColors />
       <GlobalErrorListener />
-      {user && (
-        <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
-      )}
-      <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
-      <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
-      {user?.role === 'user' && (
-        <Suspense fallback={null}><WhatsAppSupport /></Suspense>
-      )}
-      {user?.role === 'user' && config?.chatbot_enabled && (
-        <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
-      )}
+      <ErrorBoundary>
+        {user && (
+          <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
+        )}
+        <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
+        <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
+        {user?.role === 'user' && (
+          <Suspense fallback={null}><WhatsAppSupport /></Suspense>
+        )}
+        {user?.role === 'user' && config?.chatbot_enabled && (
+          <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
+        )}
+      </ErrorBoundary>
       
       <div className="h-screen overflow-y-auto shrink-0">
         <Sidebar 
