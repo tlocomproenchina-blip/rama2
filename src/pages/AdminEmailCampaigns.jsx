@@ -63,8 +63,6 @@ export default function AdminEmailCampaigns({ user }) {
   const [queueStats, setQueueStats] = useState({ pending: 0, sent: 0, batchSize: 50, intervalMs: 60000 });
   const [sendBaseline, setSendBaseline] = useState(null);
   const [sendTotal, setSendTotal] = useState(0);
-  const [sendBaseline, setSendBaseline] = useState(null);
-  const [sendTotal, setSendTotal] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -270,8 +268,6 @@ export default function AdminEmailCampaigns({ user }) {
       return;
     }
 
-    setSendBaseline(queueStats.sent || 0);
-    setSendTotal(getTargetClients.length);
     setSendBaseline(queueStats.sent || 0);
     setSendTotal(getTargetClients.length);
     setSending(true);
