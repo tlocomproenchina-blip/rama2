@@ -61,6 +61,8 @@ export default function AdminEmailCampaigns({ user }) {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [queueStats, setQueueStats] = useState({ pending: 0, sent: 0, batchSize: 50, intervalMs: 60000 });
+  const [sendBaseline, setSendBaseline] = useState(null);
+  const [sendTotal, setSendTotal] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -266,6 +268,8 @@ export default function AdminEmailCampaigns({ user }) {
       return;
     }
 
+    setSendBaseline(queueStats.sent || 0);
+    setSendTotal(getTargetClients.length);
     setSending(true);
     const results = { success: 0, failed: 0, errors: [] };
 
@@ -741,7 +745,7 @@ export default function AdminEmailCampaigns({ user }) {
               <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-600">
                 <div className="flex items-center justify-between">
                   <span>
-                    En cola: <span className="font-semibold text-slate-800">{queueStats.pending}</span>
+                    En cola: <span className="font-semibold text-slate-800">{sendBaseline !== null ? Math.max(sendTotal - Math.max(0, queueStats.sent - sendBaseline), 0) : queueStats.pending}</span>
                     <span className="text-slate-500"> • lote {queueStats.batchSize} / {Math.round(queueStats.intervalMs/1000)}s</span>
                   </span>
                   <span>
