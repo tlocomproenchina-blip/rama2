@@ -61,8 +61,6 @@ export default function AdminEmailCampaigns({ user }) {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [queueStats, setQueueStats] = useState({ pending: 0, sent: 0, batchSize: 50, intervalMs: 60000 });
-  const [sendBaseline, setSendBaseline] = useState(null);
-  const [sendTotal, setSendTotal] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => {
