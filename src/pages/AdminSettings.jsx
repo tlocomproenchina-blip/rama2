@@ -754,6 +754,32 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Modo Mantenimiento */}
+              <div className="p-6 bg-rose-50 rounded-xl border border-rose-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-slate-800 text-lg">Modo mantenimiento</h3>
+                    <p className="text-sm text-slate-600">Cierra la app para clientes y muestra un aviso de mantenimiento. Los administradores seguirán teniendo acceso.</p>
+                  </div>
+                  <Switch
+                    checked={!!appConfig.maintenance_mode}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, maintenance_mode: checked })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Mensaje mostrado</Label>
+                  <Textarea
+                    value={appConfig.maintenance_message || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, maintenance_message: e.target.value })}
+                    rows={2}
+                    placeholder="Estamos en mantenimiento. Por favor, intenta más tarde."
+                  />
+                </div>
+                <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                  {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Guardar configuración
+                </Button>
+              </div>
               <div className="space-y-2">
                 <Label>Nombre de la aplicación</Label>
                 <Input

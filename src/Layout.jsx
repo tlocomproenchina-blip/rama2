@@ -208,7 +208,17 @@ export default function Layout({ children, currentPageName }) {
       
       setLoading(false);
     } catch (error) {
-      // Not logged in - redirect to login
+      // Not logged in - if maintenance is ON, show maintenance instead of redirecting
+      try {
+        const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+        const cfg = configs[0];
+        if (cfg?.maintenance_mode) {
+          setConfig(cfg);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+      } catch (_) {}
       base44.auth.redirectToLogin();
       setLoading(false);
     }
