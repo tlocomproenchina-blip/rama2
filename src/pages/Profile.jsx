@@ -93,15 +93,15 @@ export default function Profile({ user, refreshUser }) {
     const stateConfig = findStateByCodeOrName(stateConfigs, formData.state);
     if (!stateConfig) return null;
 
-    const stateRate = Number(stateConfig.shipping_rate ?? 0);
-    const doorToDoor = Number(pricingConfig.door_to_door_cost ?? 0);
-    const benefitPercent = Number(pricingConfig.profit_percentage ?? 0);
+    const stateRate = stateConfig.shipping_rate || 0;
+    const doorToDoor = pricingConfig.door_to_door_cost || 0;
+    const benefitPercent = pricingConfig.profit_percentage || 0;
 
-    const regularBase = Number(pricingConfig.base_rate_regular ?? 0);
-    const regularPrice = regularBase * (1 + benefitPercent / 100) + stateRate + doorToDoor;
+    const regularBase = pricingConfig.base_rate_regular || 0;
+    const regularPrice = (regularBase * (1 + benefitPercent / 100)) + stateRate + doorToDoor;
 
-    const highRiskBase = Number(pricingConfig.base_rate_high_risk ?? 0);
-    const highRiskPrice = highRiskBase * (1 + benefitPercent / 100) + stateRate + doorToDoor;
+    const highRiskBase = pricingConfig.base_rate_high_risk || 0;
+    const highRiskPrice = (highRiskBase * (1 + benefitPercent / 100)) + stateRate + doorToDoor;
 
     return {
       regular: regularPrice.toFixed(2),
@@ -186,8 +186,6 @@ export default function Profile({ user, refreshUser }) {
     // Si no hay campos faltantes, deshabilitar por configuración global
     return profileUpdatesDisabled;
   };
-
-  const pricing = calculatePricing();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -312,15 +310,15 @@ export default function Profile({ user, refreshUser }) {
                      ))}
                    </SelectContent>
                 </Select>
-                {pricing && (
+                {calculatePricing() && (
                   <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 mb-2">
                       <DollarSign className="h-4 w-4 text-blue-600" />
-                      <p className="text-sm font-semibold text-blue-900">Precios de envío para {pricing.stateName}</p>
+                      <p className="text-sm font-semibold text-blue-900">Precios de envío para {calculatePricing().stateName}</p>
                     </div>
                     <div className="space-y-1 text-xs text-blue-800">
-                      <p>• Carga Regular: <span className="font-bold">${pricing.regular}</span></p>
-                      <p>• Carga Alto Riesgo: <span className="font-bold">${pricing.highRisk}</span></p>
+                      <p>• Carga Regular: <span className="font-bold">${calculatePricing().regular}</span></p>
+                      <p>• Carga Alto Riesgo: <span className="font-bold">${calculatePricing().highRisk}</span></p>
                     </div>
                   </div>
                 )}
