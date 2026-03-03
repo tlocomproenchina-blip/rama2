@@ -102,7 +102,7 @@ export default function AdminSupportTickets({ user }) {
       messages: [firstMessage]
     });
 
-    // Notify client
+    // Notify client (in-app); email is now handled by automation on SupportTicket create
     base44.entities.Notification.create({
       user_email: newTicket.client_email,
       title: '🎫 Nuevo Ticket de Soporte',
@@ -110,12 +110,6 @@ export default function AdminSupportTickets({ user }) {
       type: 'general',
       icon: 'alert',
       reference_id: ticketNumber
-    }).catch(err => console.error(err));
-
-    base44.integrations.Core.SendEmail({
-      to: newTicket.client_email,
-      subject: `Nuevo Ticket de Soporte - ${ticketNumber}`,
-      body: `Hola,\n\nSe ha creado un ticket de soporte para ti:\n\nAsunto: ${newTicket.subject}\nMensaje: ${newTicket.message}\n\nPuedes responder en tu panel de soporte.`
     }).catch(err => console.error(err));
 
     toast.success('Ticket creado exitosamente');
