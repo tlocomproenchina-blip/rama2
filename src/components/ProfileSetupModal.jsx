@@ -122,7 +122,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const pricingInfo = calculatePricing();
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-h-[80vh]" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-amber-50 rounded-xl">
@@ -139,7 +139,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 pb-24">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name" className="text-slate-700">Nombre</Label>
@@ -264,7 +264,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="sticky bottom-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t border-slate-200 px-4 py-3">
           <Button
             onClick={handleSubmit}
             disabled={saving}
