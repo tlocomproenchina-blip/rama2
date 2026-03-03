@@ -90,6 +90,7 @@ import Dashboard from './pages/Dashboard';
 import AdminSupportTickets from './pages/AdminSupportTickets';
 import AdminSettings from './pages/AdminSettings';
 import Profile from './pages/Profile';
+import OperationsDashboard from './pages/OperationsDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -137,6 +138,7 @@ export const PAGES = {
     "AdminSupportTickets": AdminSupportTickets,
     "AdminSettings": AdminSettings,
     "Profile": Profile,
+    "OperationsDashboard": OperationsDashboard,
 }
 
 export const pagesConfig = {
