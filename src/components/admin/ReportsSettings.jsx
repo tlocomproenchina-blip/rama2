@@ -64,12 +64,20 @@ export default function ReportsSettings() {
     try {
       const res = await base44.functions.invoke('sendDailyNewClientsReport', {});
       if (res.status === 200) {
-        const url = res?.data?.signed_url;
-        toast.success(`Reporte enviado a ${res.data?.recipients?.length || 0} destinatario(s).`);
-        if (url) {
-          // Offer quick open
-          window.open(url, '_blank');
+        const data = res.data || {};
+        const sent = data.recipients?.length || 0;
+        const skipped = data.skipped?.length || 0;
+        if (sent === 0) {
+          if (skipped > 0) {
+            toast.info(`Sin destinatarios válidos (omitidos ${skipped}). Añade emails de usuarios registrados.`);
+          } else {
+            toast.info('No hay destinatarios activos.');
+          }
+          return;
         }
+        const url = data.signed_url;
+        toast.success(`Reporte enviado a ${sent} destinatario(s).`);
+        if (url) { window.open(url, '_blank'); }
       } else {
         toast.error('No se pudo enviar el reporte');
       }
