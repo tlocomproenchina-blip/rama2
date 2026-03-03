@@ -8,6 +8,7 @@ import KpiCard from "@/components/analytics/KpiCard.jsx";
 import VolumeChart from "@/components/analytics/VolumeChart.jsx";
 import CostsChart from "@/components/analytics/CostsChart.jsx";
 import TicketsSummary from "@/components/analytics/TicketsSummary.jsx";
+import SparkKpiCard from "@/components/analytics/SparkKpiCard.jsx";
 import { format, parseISO, isAfter, isBefore } from "date-fns";
 
 export default function AdminAnalytics({ user }) {
@@ -78,6 +79,36 @@ export default function AdminAnalytics({ user }) {
   const openTickets = filteredTickets.filter(t => t.status === 'abierto' || t.status === 'en_proceso').length;
   const closedTickets = filteredTickets.filter(t => t.status === 'resuelto' || t.status === 'cerrado').length;
 
+  const sparkSeries = useMemo(() => {
+    const map = new Map();
+    (filteredConsolidations || []).forEach(c => {
+      const d = c.shipping_date ? parseISO(c.shipping_date) : (c.created_date ? parseISO(c.created_date) : null);
+      if (!d) return;
+      const key = format(d, 'yyyy-MM');
+      const prev = map.get(key) || { period: key, count: 0, cbm: 0, total_cost: 0, sum_days: 0, delivered_count: 0 };
+      prev.count += 1;
+      prev.cbm += Number(c.cbm) || 0;
+      prev.total_cost += Number(c.total_cost) || 0;
+      if (c.status === 'entregado' && c.shipping_date) {
+        const ship = parseISO(c.shipping_date);
+        const deliveredAt = c.delivered_date ? parseISO(c.delivered_date) : (c.updated_date ? parseISO(c.updated_date) : null);
+        if (deliveredAt) {
+          const diffDays = (deliveredAt - ship) / (1000*60*60*24);
+          prev.sum_days += Math.max(0, diffDays);
+          prev.delivered_count += 1;
+        }
+      }
+      map.set(key, prev);
+    });
+    const rows = Array.from(map.values()).sort((a,b) => a.period.localeCompare(b.period));
+    return {
+      shipments: rows.map(r => ({ period: r.period, value: r.count })),
+      cbm: rows.map(r => ({ period: r.period, value: Number(r.cbm.toFixed(2)) })),
+      cost: rows.map(r => ({ period: r.period, value: Number(r.total_cost.toFixed(2)) })),
+      delivery: rows.map(r => ({ period: r.period, value: r.delivered_count ? Number((r.sum_days / r.delivered_count).toFixed(1)) : 0 }))
+    };
+  }, [filteredConsolidations]);
+
   const handleApplyFilters = (next) => setFilters(next);
 
   if (user && user.role !== 'admin') {
@@ -116,12 +147,12 @@ export default function AdminAnalytics({ user }) {
         <div className="flex items-center justify-center py-16 text-slate-500"><Loader2 className="h-5 w-5 mr-2 animate-spin"/>Cargando métricas…</div>
       ) : (
         <>
-          {/* KPIs */}
+          {/* KPIs con Sparklines */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <KpiCard icon={TrendingUp} label="Consolidaciones" value={totalShipments} suffix="" />
-            <KpiCard icon={TrendingUp} label="Volumen (CBM)" value={totalCbm} suffix=" cbm" />
-            <KpiCard icon={DollarSign} label="Costo Total" value={totalCost} prefix="$" />
-            <KpiCard icon={Clock} label="Tiempo Promedio Entrega" value={Number(avgDeliveryDays.toFixed(1))} suffix=" días" />
+            <SparkKpiCard icon={TrendingUp} label="Consolidaciones" value={totalShipments} sparkData={sparkSeries.shipments} color="#6366f1" />
+            <SparkKpiCard icon={TrendingUp} label="Volumen (CBM)" value={Number(totalCbm.toFixed(2))} suffix=" cbm" sparkData={sparkSeries.cbm} color="#10b981" />
+            <SparkKpiCard icon={DollarSign} label="Costo Total" value={Number(totalCost.toFixed(2))} prefix="$" sparkData={sparkSeries.cost} color="#0ea5e9" />
+            <SparkKpiCard icon={Clock} label="Tiempo Promedio Entrega" value={Number(avgDeliveryDays.toFixed(1))} suffix=" días" sparkData={sparkSeries.delivery} color="#f59e0b" />
           </div>
 
           {/* Charts */}

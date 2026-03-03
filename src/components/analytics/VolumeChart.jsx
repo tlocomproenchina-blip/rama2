@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Brush } from "recharts";
 import { format, parseISO } from "date-fns";
 
 function groupByMonth(items) {
@@ -20,7 +20,7 @@ function groupByMonth(items) {
 export default function VolumeChart({ consolidations }) {
   const data = useMemo(() => groupByMonth(consolidations || []), [consolidations]);
   return (
-    <Card className="border-0 shadow-sm">
+    <Card className="border-0 rounded-2xl shadow-sm bg-gradient-to-br from-white to-slate-50">
       <CardHeader>
         <CardTitle>Volumen y Count por Mes</CardTitle>
       </CardHeader>
@@ -39,6 +39,7 @@ export default function VolumeChart({ consolidations }) {
             <YAxis yAxisId="right" orientation="right" />
             <Tooltip />
             <Legend />
+            <Brush dataKey="period" height={20} stroke="#94a3b8" travellerWidth={8} />
             <Area yAxisId="right" type="monotone" dataKey="cbm" name="CBM" stroke="#10b981" strokeWidth={3} fill="url(#volCbm)" animationDuration={700} />
             <Line yAxisId="left" type="monotone" dataKey="count" name="Consolidaciones" stroke="#6366f1" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={700} />
           </ComposedChart>

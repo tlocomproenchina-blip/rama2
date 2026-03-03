@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Brush } from "recharts";
 import { format, parseISO } from "date-fns";
 
 function groupCostsByMonth(items) {
@@ -21,7 +21,7 @@ function groupCostsByMonth(items) {
 export default function CostsChart({ consolidations }) {
   const data = useMemo(() => groupCostsByMonth(consolidations || []), [consolidations]);
   return (
-    <Card className="border-0 shadow-sm">
+    <Card className="border-0 rounded-2xl shadow-sm bg-gradient-to-br from-white to-slate-50">
       <CardHeader>
         <CardTitle>Costos por Mes</CardTitle>
       </CardHeader>
@@ -47,6 +47,7 @@ export default function CostsChart({ consolidations }) {
             <YAxis />
             <Tooltip formatter={(v)=>`$${new Intl.NumberFormat().format(v)}`}/>
             <Legend />
+            <Brush dataKey="period" height={20} stroke="#94a3b8" travellerWidth={8} />
             <Area type="monotone" dataKey="total_cost" name="Total" stroke="#6366f1" strokeWidth={3} fill="url(#colorA)" dot={{ r: 2 }} activeDot={{ r: 4 }} animationDuration={800} />
             <Area type="monotone" dataKey="shipping_cost" name="Flete" stroke="#10b981" strokeWidth={3} fill="url(#colorB)" dot={{ r: 2 }} activeDot={{ r: 4 }} animationDuration={800} />
             <Area type="monotone" dataKey="insurance_cost" name="Seguro" stroke="#f59e0b" strokeWidth={3} fill="url(#colorC)" dot={{ r: 2 }} activeDot={{ r: 4 }} animationDuration={800} />
