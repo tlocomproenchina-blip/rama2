@@ -2,15 +2,15 @@ import React, { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, DollarSign, Clock, AlertCircle, CheckCircle2, RefreshCcw } from "lucide-react";
-import DateServiceFilters from "@/components/analytics/DateServiceFilters";
-import KpiCard from "@/components/analytics/KpiCard";
-import VolumeChart from "@/components/analytics/VolumeChart";
-import CostsChart from "@/components/analytics/CostsChart";
-import TicketsSummary from "@/components/analytics/TicketsSummary";
+import { Loader2, TrendingUp, DollarSign, Clock, RefreshCcw } from "lucide-react";
+import DateServiceFilters from "@/components/analytics/DateServiceFilters.jsx";
+import KpiCard from "@/components/analytics/KpiCard.jsx";
+import VolumeChart from "@/components/analytics/VolumeChart.jsx";
+import CostsChart from "@/components/analytics/CostsChart.jsx";
+import TicketsSummary from "@/components/analytics/TicketsSummary.jsx";
 import { format, parseISO, isAfter, isBefore } from "date-fns";
 
-export default function AdminAnalytics() {
+export default function AdminAnalytics({ user }) {
   const [loading, setLoading] = useState(true);
   const [consolidations, setConsolidations] = useState([]);
   const [tickets, setTickets] = useState([]);
@@ -79,6 +79,12 @@ export default function AdminAnalytics() {
   const closedTickets = filteredTickets.filter(t => t.status === 'resuelto' || t.status === 'cerrado').length;
 
   const handleApplyFilters = (next) => setFilters(next);
+
+  if (user && user.role !== 'admin') {
+    return (
+      <div className="p-6 text-center text-slate-600">Solo administradores pueden ver este panel.</div>
+    );
+  }
 
   return (
     <div className="space-y-4 md:space-y-6 lg:space-y-8">
