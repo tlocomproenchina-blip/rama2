@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
+import { createPageUrl } from '@/utils';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -115,6 +116,10 @@ export default function AdminSettings({ user }) {
   const [uploadingInvoiceLogo, setUploadingInvoiceLogo] = useState(false);
   const [uploadingShippingMarkExample, setUploadingShippingMarkExample] = useState(false);
   const [uploadingWhatsAppIcon, setUploadingWhatsAppIcon] = useState(false);
+
+  // Cache clear countdown
+  const [clearing, setClearing] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(10);
 
   useEffect(() => {
     loadAllConfigs();
@@ -254,39 +259,55 @@ export default function AdminSettings({ user }) {
   };
 
   const handleClearCache = async () => {
-    try {
-      // Clear all localStorage
-      localStorage.clear();
-      // Clear sessionStorage
-      sessionStorage.clear();
+    if (clearing) return;
+    setClearing(true);
+    setSecondsLeft(10);
+    let counter = 10;
 
-      // Clear IndexedDB (wait for deletions to finish)
-      if (typeof indexedDB !== 'undefined') {
-        let dbs = [];
-        const listFn = indexedDB.databases;
-        if (typeof listFn === 'function') {
-          try {
-            dbs = (await listFn.call(indexedDB)) || [];
-          } catch (e) {
-            dbs = [];
+    const timer = setInterval(async () => {
+      counter -= 1;
+      setSecondsLeft(counter);
+
+      if (counter <= 0) {
+        clearInterval(timer);
+        try {
+          // Clear all localStorage
+          localStorage.clear();
+          // Clear sessionStorage
+          sessionStorage.clear();
+
+          // Clear IndexedDB (wait for deletions to finish)
+          if (typeof indexedDB !== 'undefined') {
+            let dbs = [];
+            const listFn = indexedDB.databases;
+            if (typeof listFn === 'function') {
+              try {
+                dbs = (await listFn.call(indexedDB)) || [];
+              } catch (e) {
+                dbs = [];
+              }
+            }
+            const deleteDb = (name) => new Promise((resolve) => {
+              if (!name) return resolve();
+              const req = indexedDB.deleteDatabase(name);
+              req.onsuccess = () => resolve();
+              req.onerror = () => resolve();
+              req.onblocked = () => resolve();
+            });
+            await Promise.all(dbs.map((db) => deleteDb(db.name)));
           }
-        }
-        const deleteDb = (name) => new Promise((resolve) => {
-          if (!name) return resolve();
-          const req = indexedDB.deleteDatabase(name);
-          req.onsuccess = () => resolve();
-          req.onerror = () => resolve();
-          req.onblocked = () => resolve();
-        });
-        await Promise.all(dbs.map((db) => deleteDb(db.name)));
-      }
 
-      toast.success('✓ Cache limpiado');
-      // Reload page after a short delay
-      setTimeout(() => window.location.reload(), 500);
-    } catch (error) {
-      toast.error('Error al limpiar cache');
-    }
+          toast.success('✓ Cache limpia');
+        } catch (error) {
+          toast.error('Error al limpiar cache');
+        } finally {
+          // Ir al dashboard del administrador tras limpiar
+          setTimeout(() => {
+            window.location.href = createPageUrl('AdminDashboard');
+          }, 700);
+        }
+      }
+    }, 1000);
   };
 
   const handleLogoUpload = async (file) => {
@@ -425,10 +446,11 @@ export default function AdminSettings({ user }) {
                   variant="outline" 
                   size="sm"
                   onClick={handleClearCache}
+                  disabled={clearing}
                   className="ml-2 border-red-200 text-red-600 hover:bg-red-50"
                 >
                   <Trash2 className="h-4 w-4 mr-1" />
-                  Limpiar Cache
+                  {clearing ? `Limpiar Cache (${secondsLeft}s)` : 'Limpiar Cache'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
