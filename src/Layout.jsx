@@ -353,12 +353,14 @@ export default function Layout({ children, currentPageName }) {
       )}
       
       <div className="min-h-[100svh] lg:h-screen overflow-y-auto shrink-0">
-        <Sidebar 
-          user={user} 
-          currentPage={currentPageName}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
+        <ErrorBoundary>
+          <Sidebar 
+            user={user} 
+            currentPage={currentPageName}
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+        </ErrorBoundary>
       </div>
 
       <main className="flex-1 min-h-[100svh] lg:h-screen flex flex-col overflow-hidden">
