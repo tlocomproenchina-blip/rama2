@@ -282,7 +282,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden">
+    <div className="h-screen bg-slate-50 flex flex-col lg:flex-row overflow-hidden">
       <style>{`
         /* Respect safe areas */
         :root { 
@@ -346,14 +346,16 @@ export default function Layout({ children, currentPageName }) {
         <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
       )}
       
-      <Sidebar 
-        user={user} 
-        currentPage={currentPageName}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <div className="h-screen overflow-y-auto shrink-0">
+        <Sidebar 
+          user={user} 
+          currentPage={currentPageName}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
 
-      <main className="flex-1 min-h-screen flex flex-col">
+      <main className="flex-1 h-screen flex flex-col overflow-hidden">
         {/* Mobile Header */}
         <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between gap-2">
@@ -385,7 +387,7 @@ export default function Layout({ children, currentPageName }) {
         `}</style>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-x-hidden w-full">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full">
           <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
             <ErrorBoundary>
               {React.cloneElement(children, { user, refreshUser: loadUser })}
