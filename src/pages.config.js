@@ -74,7 +74,6 @@ import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
-import AdvancedDashboard from './pages/AdvancedDashboard';
 import BusinessDashboard from './pages/BusinessDashboard';
 import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
@@ -91,6 +90,7 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
+import AdvancedDashboard from './pages/AdvancedDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -122,7 +122,6 @@ export const PAGES = {
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
-    "AdvancedDashboard": AdvancedDashboard,
     "BusinessDashboard": BusinessDashboard,
     "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
@@ -139,6 +138,7 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
+    "AdvancedDashboard": AdvancedDashboard,
 }
 
 export const pagesConfig = {

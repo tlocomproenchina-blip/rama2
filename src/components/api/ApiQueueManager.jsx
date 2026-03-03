@@ -487,34 +487,6 @@ class ApiQueueManager {
   }
 
   /**
-   * Limpia colas, caches y estados (usar para depuración)
-   */
-  reset() {
-    try {
-      this.queue = [];
-      this.processing = false;
-      this.circuitBreakerState = 'CLOSED';
-      this.failureCount = 0;
-      this.circuitOpenUntil = null;
-      this.activeReads = 0;
-      this.activeWrites = 0;
-      if (this.inflight?.clear) this.inflight.clear();
-      if (this.cache?.clear) this.cache.clear();
-      try {
-        if (this.debouncedOperations) {
-          this.debouncedOperations.forEach((v) => { try { clearTimeout(v.timeout); } catch (_) {} });
-          this.debouncedOperations.clear();
-        }
-      } catch (_) {}
-      this.lastOperationTime = 0;
-      this.lastWriteTime = 0;
-      console.info('[ApiQueueManager] Reset completo');
-    } catch (e) {
-      console.warn('[ApiQueueManager] Reset error:', e);
-    }
-  }
-
-  /**
    * Estado del sistema
    */
   getSystemStatus() {

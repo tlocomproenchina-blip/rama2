@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,14 +231,13 @@ export default function AdminSupportTickets({ user }) {
     urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600' }
   };
 
-  // Filter tickets (null-safe)
+  // Filter tickets
   const filteredTickets = tickets.filter(ticket => {
-    const q = (search || '').toLowerCase();
-    const tNum = (ticket.ticket_number || '').toLowerCase();
-    const subj = (ticket.subject || '').toLowerCase();
-    const email = (ticket.client_email || '').toLowerCase();
-    const searchMatch = q === '' || tNum.includes(q) || subj.includes(q) || email.includes(q);
-
+    const searchMatch = 
+      ticket.ticket_number.toLowerCase().includes(search.toLowerCase()) ||
+      ticket.subject.toLowerCase().includes(search.toLowerCase()) ||
+      ticket.client_email.toLowerCase().includes(search.toLowerCase());
+    
     const statusMatch = filterStatus === 'all' || ticket.status === filterStatus;
     const priorityMatch = filterPriority === 'all' || ticket.priority === filterPriority;
     const assignedMatch = 
@@ -600,12 +599,12 @@ export default function AdminSupportTickets({ user }) {
                   <SelectContent>
                     {clients
                       .filter(client => {
-                        const searchLower = (clientSearch || '').toLowerCase();
+                        const searchLower = clientSearch.toLowerCase();
                         return (
                           !clientSearch ||
                           (client.first_name || '').toLowerCase().includes(searchLower) ||
                           (client.last_name || '').toLowerCase().includes(searchLower) ||
-                          (client.email || '').toLowerCase().includes(searchLower)
+                          client.email.toLowerCase().includes(searchLower)
                         );
                       })
                       .map((client) => (

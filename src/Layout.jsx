@@ -3,7 +3,6 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
-import { cacheManager } from '@/components/CacheManager';
 
 
 
@@ -20,8 +19,8 @@ import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 // Lazy loaded non-critical components
-const NotificationCenter = lazy(() => import('@/components/NotificationCenter'));
-const AdminNotificationCenter = lazy(() => import('@/components/AdminNotificationCenter'));
+const NotificationCenter = lazy(() => import('@/components/NotificationCenter.jsx'));
+const AdminNotificationCenter = lazy(() => import('@/components/AdminNotificationCenter.jsx'));
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
 const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
 const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
@@ -36,20 +35,8 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showContract, setShowContract] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [authRequired, setAuthRequired] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Watchdog: if loading hangs (e.g., auth blocked in preview/iframe), show login prompt
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (loading) {
-        setAuthRequired(true);
-        setLoading(false);
-      }
-    }, 12000);
-    return () => clearTimeout(t);
-  }, [loading]);
 
   // Mobile tab navigation mappings
   const userTabDefaults = {
@@ -108,29 +95,6 @@ export default function Layout({ children, currentPageName }) {
     loadFavicon();
   }, []);
 
-  // Limpieza de cachés y temporales (una sola vez o con ?clear=1)
-  useEffect(() => {
-    const flag = localStorage.getItem('b44_cleared_once');
-    const qs = new URLSearchParams(window.location.search);
-    const shouldClear = qs.get('clear') === '1' || !flag;
-    if (!shouldClear) return;
-    (async () => {
-      try { if (base44?.reset) base44.reset(); } catch (_) {}
-      try { cacheManager.clear(); } catch (_) {}
-      try { sessionStorage.clear(); } catch (_) {}
-      try {
-        if ('caches' in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map(k => caches.delete(k)));
-        }
-      } catch (_) {}
-      localStorage.setItem('b44_cleared_once', String(Date.now()));
-      const url = new URL(window.location.href);
-      url.searchParams.delete('clear');
-      window.location.replace(url.pathname + (url.search || '') + (url.hash || ''));
-    })();
-  }, []);
-
   const loadConfig = async () => {
     try {
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
@@ -162,10 +126,7 @@ export default function Layout({ children, currentPageName }) {
 
   const loadUser = async () => {
     try {
-      const currentUser = await Promise.race([
-        base44.auth.me(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('auth_timeout')), 8000))
-      ]);
+      const currentUser = await base44.auth.me();
       setUser(currentUser);
 
       // Auto-create Stripe customer if missing
@@ -246,21 +207,8 @@ export default function Layout({ children, currentPageName }) {
       
       setLoading(false);
     } catch (error) {
-      // Not logged in - show login prompt when inside iframe or on small screens to avoid blank preview; otherwise redirect
-      const path = window.location.pathname || '';
-      if (path.includes('/login')) {
-        setLoading(false);
-        return; // already on login, don't chain redirects
-      }
-      const isSmallScreen = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
-      const isInIframe = typeof window !== 'undefined' && window.top !== window.self; // preview/iframe environments
-      if (isSmallScreen || isInIframe) {
-        setAuthRequired(true);
-        setLoading(false);
-        return;
-      }
-      const nextUrl = createPageUrl('AdminDashboard');
-      base44.auth.redirectToLogin(nextUrl);
+      // Not logged in - redirect to login
+      base44.auth.redirectToLogin();
       setLoading(false);
     }
   };
@@ -333,21 +281,6 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Mobile login prompt (prevents blank screen if redirect is blocked in preview/iframe)
-  if (authRequired) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-sm w-full bg-white rounded-xl shadow border p-6 text-center">
-          <h2 className="text-lg font-semibold text-slate-800">Inicia sesión para continuar</h2>
-          <p className="text-slate-600 mt-1 text-sm">Pulsa el botón para iniciar sesión y volver a la app.</p>
-          <div className="mt-5">
-            <Button onClick={() => base44.auth.redirectToLogin(window.location.href)} className="bg-blue-600 hover:bg-blue-700 w-full">Iniciar sesión</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-screen bg-slate-50 flex flex-col lg:flex-row overflow-hidden">
       <style>{`
@@ -403,19 +336,15 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
       <Toaster position="top-right" richColors />
       <GlobalErrorListener />
-      <ErrorBoundary>
-        {user && (
-          <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
-        )}
-        <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
-        <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
-        {user?.role === 'user' && (
-          <Suspense fallback={null}><WhatsAppSupport /></Suspense>
-        )}
-        {user?.role === 'user' && config?.chatbot_enabled && (
-          <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
-        )}
-      </ErrorBoundary>
+      <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
+      <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
+      <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
+      {user?.role === 'user' && (
+        <Suspense fallback={null}><WhatsAppSupport /></Suspense>
+      )}
+      {user?.role === 'user' && config?.chatbot_enabled && (
+        <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
+      )}
       
       <div className="h-screen overflow-y-auto shrink-0">
         <Sidebar 
@@ -439,17 +368,13 @@ export default function Layout({ children, currentPageName }) {
               <Menu className="h-6 w-6" />
             </Button>
             <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
-            {user && (
-              <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
-            )}
+            <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
           </div>
         </header>
 
         {/* Desktop Notification Center */}
         <div className="hidden lg:block fixed top-4 right-4 z-40">
-          {user && (
-            <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
-          )}
+          <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
         </div>
 
         {/* Improve mobile tap targets in header */}
