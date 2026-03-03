@@ -256,7 +256,7 @@ export default function Layout({ children, currentPageName }) {
 
   if (loading) {
     return (
-      <div className="min-h-[100svh] bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
           <p className="mt-4 text-slate-600">Cargando...</p>
@@ -282,16 +282,15 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className="min-h-[100svh] lg:h-screen bg-slate-50 flex flex-col lg:flex-row overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden">
       <style>{`
         /* Respect safe areas */
         :root { 
           --sat: env(safe-area-inset-top); 
           --sab: env(safe-area-inset-bottom); 
         }
-        html, body, #root { height: 100%; min-height: 100svh; }
         /* toasts visible */
-        body { overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+        body { overflow-x: hidden; }
 
         /* Mobile responsiveness improvements */
         @media (max-width: 640px) {
@@ -340,32 +339,23 @@ export default function Layout({ children, currentPageName }) {
       <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
       <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
-      {/* Avoid rendering floating widgets until user and config are loaded to prevent mobile layout jank */}
-      {user?.role === 'user' && config && (
-        <>
-          {config.whatsapp_enabled && (
-            <Suspense fallback={null}><WhatsAppSupport /></Suspense>
-          )}
-          {config.chatbot_enabled && (
-            <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
-          )}
-        </>
+      {user?.role === 'user' && (
+        <Suspense fallback={null}><WhatsAppSupport /></Suspense>
+      )}
+      {user?.role === 'user' && config?.chatbot_enabled && (
+        <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
       )}
       
-      <div className="min-h-[100svh] lg:h-screen overflow-y-auto shrink-0">
-        <ErrorBoundary>
-          <Sidebar 
-            user={user} 
-            currentPage={currentPageName}
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-          />
-        </ErrorBoundary>
-      </div>
+      <Sidebar 
+        user={user} 
+        currentPage={currentPageName}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      <main className="flex-1 min-h-[100svh] lg:h-screen flex flex-col overflow-hidden" role="main">
+      <main className="flex-1 min-h-screen flex flex-col">
         {/* Mobile Header */}
-        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 will-change-transform" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between gap-2">
             <Button 
               variant="ghost" 
@@ -395,7 +385,7 @@ export default function Layout({ children, currentPageName }) {
         `}</style>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full min-h-[70svh]">
+        <div className="flex-1 overflow-x-hidden w-full">
           <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
             <ErrorBoundary>
               {React.cloneElement(children, { user, refreshUser: loadUser })}

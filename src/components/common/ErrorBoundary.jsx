@@ -14,8 +14,6 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Persist error details so "Copiar detalles" no esté vacío
-    this.setState({ hasError: true, error, errorInfo });
     // Log to console
     console.error('[ErrorBoundary] Captured error:', error, errorInfo);
     // Track via analytics (safe, minimal payload)

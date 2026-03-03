@@ -178,8 +178,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
   const adminMenuItems = [
-  { name: 'Dashboard', page: 'AdminDashboard', icon: LayoutDashboard },
-  { name: 'Dashboard Avanzado', page: 'AdvancedDashboard', icon: TrendingUp },
+  { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
   { name: 'Reportes', page: 'AdminReports', icon: BarChart3 },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
   { name: 'Aprobaciones', page: 'AdminConsolidate', icon: Layers },
@@ -208,7 +207,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
   const adminGroups = [
-    { label: 'PRINCIPAL', items: ['AdminDashboard','AdvancedDashboard','AdminReports'] },
+    { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
     { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing'] },

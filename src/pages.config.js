@@ -74,7 +74,6 @@ import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
-import AdvancedDashboard from './pages/AdvancedDashboard';
 import BusinessDashboard from './pages/BusinessDashboard';
 import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
@@ -122,7 +121,6 @@ export const PAGES = {
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
-    "AdvancedDashboard": AdvancedDashboard,
     "BusinessDashboard": BusinessDashboard,
     "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
