@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   Settings, 
   Save,
@@ -59,6 +60,8 @@ const VENEZUELAN_STATES = [
 export default function AdminSettings({ user }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [countdown, setCountdown] = useState(3);
   
   // Pricing Config
   const [pricingConfig, setPricingConfig] = useState({
@@ -422,10 +425,15 @@ export default function AdminSettings({ user }) {
                   variant="outline" 
                   size="sm"
                   onClick={handleClearCache}
+                  disabled={clearing}
                   className="ml-2 border-red-200 text-red-600 hover:bg-red-50"
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Limpiar Cache
+                  {clearing ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-1" />
+                  )}
+                  {clearing ? ` Limpiando... ${countdown}s` : 'Limpiar Cache'}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -1525,6 +1533,19 @@ export default function AdminSettings({ user }) {
         <ResourceInspector />
       </TabsContent>
       </Tabs>
+
+      <Dialog open={clearing} onOpenChange={() => {}}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Limpiando caché</DialogTitle>
+            <DialogDescription>Tu sesión se recargará en {countdown}s</DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <p className="text-sm text-slate-600">Eliminando almacenamiento local y bases de datos…</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
