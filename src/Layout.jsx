@@ -35,6 +35,7 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showContract, setShowContract] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [authRequired, setAuthRequired] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -207,11 +208,17 @@ export default function Layout({ children, currentPageName }) {
       
       setLoading(false);
     } catch (error) {
-      // Not logged in - redirect to login (avoid redirect loops)
+      // Not logged in - show login prompt on small screens to avoid blank preview; otherwise redirect
       const path = window.location.pathname || '';
       if (path.includes('/login')) {
         setLoading(false);
         return; // already on login, don't chain redirects
+      }
+      const isSmallScreen = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+      if (isSmallScreen) {
+        setAuthRequired(true);
+        setLoading(false);
+        return;
       }
       const nextUrl = createPageUrl('AdminDashboard');
       base44.auth.redirectToLogin(nextUrl);
@@ -281,6 +288,21 @@ export default function Layout({ children, currentPageName }) {
           <p className="text-slate-600 mt-1">Tu cuenta ha sido desactivada por el equipo de soporte. Si crees que es un error, por favor contáctanos.</p>
           <div className="mt-5">
             <Button onClick={() => base44.auth.logout()} className="bg-blue-600 hover:bg-blue-700">Cerrar sesión</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mobile login prompt (prevents blank screen if redirect is blocked in preview/iframe)
+  if (authRequired) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-sm w-full bg-white rounded-xl shadow border p-6 text-center">
+          <h2 className="text-lg font-semibold text-slate-800">Inicia sesión para continuar</h2>
+          <p className="text-slate-600 mt-1 text-sm">Pulsa el botón para iniciar sesión y volver a la app.</p>
+          <div className="mt-5">
+            <Button onClick={() => base44.auth.redirectToLogin(window.location.href)} className="bg-blue-600 hover:bg-blue-700 w-full">Iniciar sesión</Button>
           </div>
         </div>
       </div>
