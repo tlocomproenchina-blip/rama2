@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   Settings, 
   Save,
@@ -60,8 +59,6 @@ const VENEZUELAN_STATES = [
 export default function AdminSettings({ user }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [clearing, setClearing] = useState(false);
-  const [countdown, setCountdown] = useState(3);
   
   // Pricing Config
   const [pricingConfig, setPricingConfig] = useState({
@@ -254,13 +251,7 @@ export default function AdminSettings({ user }) {
   };
 
   const handleClearCache = async () => {
-    setClearing(true);
-    setCountdown(3);
-    const tick = setInterval(() => {
-      setCountdown((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-
-    const clearCaches = async () => {
+    try {
       // Clear all localStorage
       localStorage.clear();
       // Clear sessionStorage
@@ -286,17 +277,11 @@ export default function AdminSettings({ user }) {
         });
         await Promise.all(dbs.map((db) => deleteDb(db.name)));
       }
-    };
 
-    try {
-      await Promise.all([clearCaches(), new Promise((r) => setTimeout(r, 3000))]);
-      clearInterval(tick);
       toast.success('✓ Cache limpiado');
-      setClearing(false);
-      setTimeout(() => window.location.reload(), 700);
+      // Reload page after a short delay
+      setTimeout(() => window.location.reload(), 500);
     } catch (error) {
-      clearInterval(tick);
-      setClearing(false);
       toast.error('Error al limpiar cache');
     }
   };
@@ -437,15 +422,10 @@ export default function AdminSettings({ user }) {
                   variant="outline" 
                   size="sm"
                   onClick={handleClearCache}
-                  disabled={clearing}
                   className="ml-2 border-red-200 text-red-600 hover:bg-red-50"
                 >
-                  {clearing ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4 mr-1" />
-                  )}
-                  {clearing ? ` Limpiando... ${countdown}s` : 'Limpiar Cache'}
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Limpiar Cache
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -1545,19 +1525,6 @@ export default function AdminSettings({ user }) {
         <ResourceInspector />
       </TabsContent>
       </Tabs>
-
-      <Dialog open={clearing} onOpenChange={() => {}}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Limpiando caché</DialogTitle>
-            <DialogDescription>Tu sesión se recargará en {countdown}s</DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-            <p className="text-sm text-slate-600">Eliminando almacenamiento local y bases de datos…</p>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
