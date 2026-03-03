@@ -580,7 +580,7 @@ export default function AdminPackages({ user }) {
                         </Badge>
                       )}
                       {pkg.reported ? (
-                        <Flag className="h-4 w-4 text-rose-600" title="Reportado" />
+                        <Flag className="h-4 w-4 text-green-600" title="Reportado" />
                       ) : (
                         <FlagOff className="h-4 w-4 text-slate-300" title="No reportado" />
                       )}
