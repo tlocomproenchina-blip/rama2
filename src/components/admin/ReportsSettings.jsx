@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Trash2, Send, Plus, Loader2, UserMinus } from 'lucide-react';
+import { Trash2, Send, Plus, Loader2, UserMinus, Search, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ReportsSettings() {
@@ -19,6 +19,10 @@ export default function ReportsSettings() {
   const [sending, setSending] = useState(false);
   const [adding, setAdding] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [userResults, setUserResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [addingFromUser, setAddingFromUser] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -27,19 +31,6 @@ export default function ReportsSettings() {
   const loadRecipients = async () => {
     setLoading(true);
     const list = await base44.entities.ReportRecipient.list();
-    // Seed default if empty
-    if (list.length === 0) {
-      try {
-        await base44.entities.ReportRecipient.create({ email: 'tleccargo@gmail.com', active: true, name: 'TLEC' });
-        const seeded = await base44.entities.ReportRecipient.list();
-        setRecipients(seeded);
-      } catch (_) {
-        setRecipients(list);
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
     setRecipients(list);
     setLoading(false);
   };
@@ -79,6 +70,45 @@ export default function ReportsSettings() {
       toast.error('No se pudo invitar/agregar el destinatario');
     } finally {
       setInviting(false);
+    }
+  };
+
+  const searchUsers = async () => {
+    const term = userSearch.trim().toLowerCase();
+    if (!term) { setUserResults([]); return; }
+    setSearching(true);
+    try {
+      const list = await base44.entities.User.list('-created_date', 200);
+      const results = list.filter(u => {
+        const email = String(u.email || '').toLowerCase();
+        const name = String(u.full_name || `${u.first_name || ''} ${u.last_name || ''}`).toLowerCase();
+        return email.includes(term) || name.includes(term);
+      });
+      setUserResults(results.slice(0, 20));
+    } catch (e) {
+      console.error(e);
+      toast.error('No se pudo buscar usuarios');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const addFromUser = async (u) => {
+    setAddingFromUser(true);
+    try {
+      if (recipients.some(r => r.email === u.email)) {
+        toast.info('Ese email ya está en la lista');
+        return;
+      }
+      const name = String(u.full_name || `${u.first_name || ''} ${u.last_name || ''}`).trim();
+      await base44.entities.ReportRecipient.create({ email: u.email, name, active: true });
+      await loadRecipients();
+      toast.success('Agregado desde usuarios registrados');
+    } catch (e) {
+      console.error(e);
+      toast.error('No se pudo agregar');
+    } finally {
+      setAddingFromUser(false);
     }
   };
 
@@ -176,6 +206,49 @@ export default function ReportsSettings() {
           <Button onClick={sendNow} variant="outline" disabled={sending} className="gap-2">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Enviar ahora
           </Button>
+        </div>
+
+        {/* Agregar desde usuarios registrados */}
+        <div className="mt-4 p-4 border rounded-lg bg-white">
+          <div className="flex flex-col sm:flex-row gap-3 items-end">
+            <div className="flex-1 w-full">
+              <Label>Buscar usuarios registrados (nombre o email)</Label>
+              <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Buscar..." />
+            </div>
+            <Button onClick={searchUsers} disabled={searching} className="gap-2">
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Buscar
+            </Button>
+          </div>
+          {userResults.length > 0 && (
+            <div className="mt-3">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="text-left p-2">Email</th>
+                    <th className="text-left p-2">Nombre</th>
+                    <th className="text-center p-2">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userResults.map((u) => {
+                    const name = (u.full_name || `${u.first_name || ''} ${u.last_name || ''}`).trim();
+                    const exists = recipients.some(r => r.email === u.email);
+                    return (
+                      <tr key={u.id} className="border-t">
+                        <td className="p-2 font-medium">{u.email}</td>
+                        <td className="p-2 text-slate-600">{name || '-'}</td>
+                        <td className="p-2 text-center">
+                          <Button size="sm" variant="outline" disabled={exists || addingFromUser} onClick={() => addFromUser(u)} className="gap-1">
+                            <UserPlus className="h-4 w-4" /> {exists ? 'Ya agregado' : 'Agregar'}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="border rounded-lg overflow-hidden">
