@@ -16,10 +16,17 @@ import {
   Shield,
   Image as ImageIcon,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
 
 export default function MyPackages({ user }) {
@@ -28,6 +35,11 @@ export default function MyPackages({ user }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedImage, setSelectedImage] = useState(null);
+  const [editModal, setEditModal] = useState(null);
+  const [editForm, setEditForm] = useState({ tracking_number: '', description: '', shipping_type: 'aereo' });
+  const [saving, setSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadPackages();
@@ -57,6 +69,44 @@ export default function MyPackages({ user }) {
   };
 
 
+
+  // Edit/Delete handlers
+  const openEdit = (pkg) => {
+    setEditModal(pkg);
+    setEditForm({
+      tracking_number: pkg.tracking_number || '',
+      description: pkg.description || '',
+      shipping_type: pkg.shipping_type || 'aereo'
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editModal) return;
+    const tn = (editForm.tracking_number || '').trim();
+    if (!tn) { toast.error('Ingresa el tracking'); return; }
+    setSaving(true);
+    await base44.entities.Package.update(editModal.id, {
+      tracking_number: tn,
+      description: editForm.description || '',
+      shipping_type: editForm.shipping_type || 'aereo'
+    });
+    setSaving(false);
+    setEditModal(null);
+    toast.success('Paquete actualizado');
+    loadPackages();
+  };
+
+  const openDelete = (pkg) => setDeleteConfirm(pkg);
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    await base44.entities.Package.delete(deleteConfirm.id);
+    setDeleting(false);
+    setDeleteConfirm(null);
+    toast.success('Paquete eliminado');
+    loadPackages();
+  };
 
   const filteredPackages = useMemo(() => {
     return packages.filter(pkg => {
@@ -189,6 +239,26 @@ export default function MyPackages({ user }) {
                       </Button>
                     )}
                     <StatusBadge status={pkg.status} />
+                    {pkg.status === 'pre_alerta' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEdit(pkg)}
+                          className="text-slate-600 text-xs"
+                        >
+                          <Pencil className="h-3 w-3 mr-1" /> Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openDelete(pkg)}
+                          className="text-red-600 border-red-200 text-xs"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" /> Eliminar
+                        </Button>
+                      </>
+                    )}
                   </div>
 
                   {/* Date */}
@@ -221,6 +291,82 @@ export default function MyPackages({ user }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Package Modal */}
+      <Dialog open={!!editModal} onOpenChange={() => setEditModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base md:text-lg">Editar Paquete</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Tracking</Label>
+              <Input
+                value={editForm.tracking_number}
+                onChange={(e) => setEditForm({ ...editForm, tracking_number: e.target.value })}
+                placeholder="Número de tracking"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Descripción</Label>
+              <Textarea
+                rows={3}
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                placeholder="Detalles opcionales"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Tipo de envío</Label>
+              <Select
+                value={editForm.shipping_type}
+                onValueChange={(v) => setEditForm({ ...editForm, shipping_type: v })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecciona tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="aereo">Aéreo</SelectItem>
+                  <SelectItem value="maritimo">Marítimo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditModal(null)}>Cancelar</Button>
+            <Button onClick={saveEdit} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar paquete</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará el registro de tu pre-alerta. ¿Deseas continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
