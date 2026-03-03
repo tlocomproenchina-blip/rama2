@@ -208,14 +208,15 @@ export default function Layout({ children, currentPageName }) {
       
       setLoading(false);
     } catch (error) {
-      // Not logged in - show login prompt on small screens to avoid blank preview; otherwise redirect
+      // Not logged in - show login prompt when inside iframe or on small screens to avoid blank preview; otherwise redirect
       const path = window.location.pathname || '';
       if (path.includes('/login')) {
         setLoading(false);
         return; // already on login, don't chain redirects
       }
       const isSmallScreen = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
-      if (isSmallScreen) {
+      const isInIframe = typeof window !== 'undefined' && window.top !== window.self; // preview/iframe environments
+      if (isSmallScreen || isInIframe) {
         setAuthRequired(true);
         setLoading(false);
         return;
