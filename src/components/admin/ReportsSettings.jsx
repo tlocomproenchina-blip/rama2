@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Trash2, Send, Plus, Loader2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Trash2, Send, Plus, Loader2, UserMinus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ReportsSettings() {
@@ -18,6 +19,8 @@ export default function ReportsSettings() {
   const [sending, setSending] = useState(false);
   const [adding, setAdding] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { loadRecipients(); }, []);
 
@@ -87,6 +90,23 @@ export default function ReportsSettings() {
   const remove = async (r) => {
     await base44.entities.ReportRecipient.delete(r.id);
     setRecipients(prev => prev.filter(x => x.id !== r.id));
+  };
+
+  const handleDeleteUser = async (r) => {
+    setDeleting(true);
+    try {
+      const res = await base44.functions.invoke('deleteUserCascade', { email: r.email });
+      // Eliminar también de la lista de destinatarios si existe
+      await base44.entities.ReportRecipient.delete(r.id).catch(() => {});
+      setRecipients(prev => prev.filter(x => x.id !== r.id));
+      toast.success('Usuario eliminado correctamente');
+    } catch (e) {
+      console.error(e);
+      toast.error('No se pudo eliminar el usuario');
+    } finally {
+      setDeleting(false);
+      setUserToDelete(null);
+    }
   };
 
   const sendNow = async () => {
@@ -182,9 +202,14 @@ export default function ReportsSettings() {
                       <Switch checked={!!r.active} onCheckedChange={(v) => toggleActive(r, v)} />
                     </td>
                     <td className="p-3 text-center">
-                      <Button variant="ghost" size="icon" onClick={() => remove(r)}>
-                        <Trash2 className="h-4 w-4 text-slate-500" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => remove(r)}>
+                          <Trash2 className="h-4 w-4 text-slate-500" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setUserToDelete(r)} title="Eliminar usuario">
+                          <UserMinus className="h-4 w-4 text-rose-500" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
