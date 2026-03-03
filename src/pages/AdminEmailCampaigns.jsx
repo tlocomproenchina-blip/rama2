@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
+import { sendNotification, getEmailQueueStats } from '@/components/NotificationUtils';
 
 export default function AdminEmailCampaigns({ user }) {
   const [clients, setClients] = useState([]);
@@ -59,6 +60,17 @@ export default function AdminEmailCampaigns({ user }) {
   const [emailStats, setEmailStats] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [queueStats, setQueueStats] = useState({ pending: 0, sent: 0, batchSize: 50, intervalMs: 60000 });
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        const stats = getEmailQueueStats?.();
+        if (stats) setQueueStats(stats);
+      } catch {}
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -272,15 +284,20 @@ export default function AdminEmailCampaigns({ user }) {
           // Reemplazar variables en el asunto y cuerpo
           const personalizedSubject = replaceEmailVariables(emailData.subject, client);
           const personalizedBody = replaceEmailVariables(emailBody, client);
-          
-          await base44.integrations.Core.SendEmail({
+
+          await sendNotification({
             from_name: emailData.fromName,
             to: client.email,
             subject: personalizedSubject,
-            body: personalizedBody
+            body: personalizedBody,
+            title: personalizedSubject,
+            message: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 140),
+            type: 'system',
+            icon: 'info',
+            referenceId: client.id
           });
-          
-          // Log the email
+
+          // Log the email (marcado como enviado/encolado)
           await base44.entities.EmailLog.create({
             recipient_email: client.email,
             recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
@@ -292,7 +309,7 @@ export default function AdminEmailCampaigns({ user }) {
             status: 'sent',
             sent_date: new Date().toISOString()
           });
-          
+
           results.success++;
         } catch (error) {
           results.failed++;

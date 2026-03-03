@@ -5,6 +5,16 @@ const EMAIL_BATCH_SIZE = 50;
 const EMAIL_BATCH_INTERVAL_MS = 60000;
 let emailQueue = [];
 let queueTimer = null;
+let emailSentCounter = 0;
+
+export function getEmailQueueStats() {
+  return {
+    pending: emailQueue.length,
+    sent: emailSentCounter,
+    batchSize: EMAIL_BATCH_SIZE,
+    intervalMs: EMAIL_BATCH_INTERVAL_MS
+  };
+}
 
 async function processAfterSend({ to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
   // Evitar duplicados recientes (mismo usuario, título y referencia) en los últimos 60s
@@ -58,9 +68,10 @@ async function flushEmailQueue() {
   for (const item of batch) {
     try {
       await base44.enqueue(async () => {
-        return await base44.integrations.Core.SendEmail({ to: item.to, subject: item.subject, body: item.body });
+        return await base44.integrations.Core.SendEmail({ from_name: item.from_name, to: item.to, subject: item.subject, body: item.body });
       }, 'HIGH', 'write');
       await processAfterSend(item);
+      emailSentCounter++;
       item.resolve && item.resolve(true);
     } catch (error) {
       console.error('Notification error:', error);
@@ -80,10 +91,10 @@ export async function getAdmins() {
   return allUsers.filter(u => u.role === 'admin');
 }
 
-export async function sendNotification({ to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
+export async function sendNotification({ from_name, to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
   ensureQueueTimer();
   return new Promise((resolve, reject) => {
-    emailQueue.push({ to, subject, body, title, message, type, icon, referenceId, resolve, reject });
+    emailQueue.push({ from_name, to, subject, body, title, message, type, icon, referenceId, resolve, reject });
   });
 }
 
