@@ -47,9 +47,9 @@ export default function CostsChart({ consolidations }) {
             <YAxis />
             <Tooltip formatter={(v)=>`$${new Intl.NumberFormat().format(v)}`}/>
             <Legend />
-            <Area type="monotone" dataKey="total_cost" name="Total" stroke="#6366f1" fill="url(#colorA)" />
-            <Area type="monotone" dataKey="shipping_cost" name="Flete" stroke="#10b981" fill="url(#colorB)" />
-            <Area type="monotone" dataKey="insurance_cost" name="Seguro" stroke="#f59e0b" fill="url(#colorC)" />
+            <Area type="monotone" dataKey="total_cost" name="Total" stroke="#6366f1" strokeWidth={3} fill="url(#colorA)" dot={{ r: 2 }} activeDot={{ r: 4 }} animationDuration={800} />
+            <Area type="monotone" dataKey="shipping_cost" name="Flete" stroke="#10b981" strokeWidth={3} fill="url(#colorB)" dot={{ r: 2 }} activeDot={{ r: 4 }} animationDuration={800} />
+            <Area type="monotone" dataKey="insurance_cost" name="Seguro" stroke="#f59e0b" strokeWidth={3} fill="url(#colorC)" dot={{ r: 2 }} activeDot={{ r: 4 }} animationDuration={800} />
           </AreaChart>
         </ResponsiveContainer>
       </CardContent>

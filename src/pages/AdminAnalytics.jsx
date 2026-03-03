@@ -89,7 +89,10 @@ export default function AdminAnalytics({ user }) {
   return (
     <div className="space-y-4 md:space-y-6 lg:space-y-8">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Analytics Operativo</h1>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Analytics Operativo</h1>
+          <p className="text-slate-500 text-sm">Resumen visual de consolidaciones, costos y reclamos</p>
+        </div>
         <Button variant="outline" size="sm" onClick={async () => {
           setLoading(true);
           try {
@@ -103,7 +106,7 @@ export default function AdminAnalytics({ user }) {
         }} className="gap-2"><RefreshCcw className="h-4 w-4"/>Actualizar</Button>
       </div>
 
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-sm rounded-2xl bg-white/70 backdrop-blur">
         <CardContent className="p-4">
           <DateServiceFilters value={filters} onApply={handleApplyFilters} />
         </CardContent>
