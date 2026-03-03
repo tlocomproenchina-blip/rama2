@@ -21,7 +21,8 @@ import {
   Download,
   Copy,
   Flag,
-  FlagOff
+  FlagOff,
+  MessageSquare
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -318,6 +319,35 @@ export default function AdminPackages({ user }) {
     }
   };
 
+  const handleCreateTicket = async (pkg) => {
+    try {
+      const ticketNumber = `TKT-${Date.now()}`;
+      const firstMessage = {
+        sender_email: user.email,
+        sender_name: user.full_name || 'Administrador',
+        message: `Ticket creado desde Paquetes para el tracking ${pkg.tracking_number}`,
+        timestamp: new Date().toISOString(),
+        is_admin: true
+      };
+
+      await base44.entities.SupportTicket.create({
+        ticket_number: ticketNumber,
+        client_email: pkg.client_email,
+        subject: `Soporte - Tracking ${pkg.tracking_number}`,
+        category: 'tracking',
+        priority: 'media',
+        related_tracking: pkg.tracking_number,
+        status: 'abierto',
+        assigned_to: user.email,
+        messages: [firstMessage]
+      });
+
+      toast.success('Ticket creado correctamente');
+    } catch (e) {
+      toast.error('No se pudo crear el ticket');
+    }
+  };
+
   const filteredPackages = packages.filter(pkg => {
     // Basic search
     const matchesSearch = 
@@ -571,6 +601,15 @@ export default function AdminPackages({ user }) {
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleCreateTicket(pkg)}
+                        className="gap-1"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        Ticket
+                      </Button>
                       {pkg.status === 'pre_alerta' && (
                         <Button 
                           size="sm" 
