@@ -17,7 +17,7 @@ export function replaceEmailVariables(text, client, extraData = {}) {
     '{email}': client.email || '',
     '{whatsapp}': client.whatsapp || '',
     '{ciudad}': client.city || '',
-    '{shipping_mark}': client.shipping_mark || '',
+    '{shipping_mark}': client.shipping_mark || 'Pendiente asignacion',
     
     // Paquetes
     '{tracking}': extraData.tracking || '',
