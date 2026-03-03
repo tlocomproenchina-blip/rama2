@@ -233,10 +233,14 @@ export default function AdminSupportTickets({ user }) {
 
   // Filter tickets
   const filteredTickets = tickets.filter(ticket => {
-    const searchMatch = 
-      ticket.ticket_number.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.subject.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.client_email.toLowerCase().includes(search.toLowerCase());
+    const searchLower = (search || '').toLowerCase();
+    const tNum = (ticket.ticket_number || '').toLowerCase();
+    const subj = (ticket.subject || '').toLowerCase();
+    const email = (ticket.client_email || '').toLowerCase();
+    const searchMatch =
+      tNum.includes(searchLower) ||
+      subj.includes(searchLower) ||
+      email.includes(searchLower);
     
     const statusMatch = filterStatus === 'all' || ticket.status === filterStatus;
     const priorityMatch = filterPriority === 'all' || ticket.priority === filterPriority;
@@ -599,12 +603,12 @@ export default function AdminSupportTickets({ user }) {
                   <SelectContent>
                     {clients
                       .filter(client => {
-                        const searchLower = clientSearch.toLowerCase();
+                        const searchLower = (clientSearch || '').toLowerCase();
                         return (
                           !clientSearch ||
                           (client.first_name || '').toLowerCase().includes(searchLower) ||
                           (client.last_name || '').toLowerCase().includes(searchLower) ||
-                          client.email.toLowerCase().includes(searchLower)
+                          (client.email || '').toLowerCase().includes(searchLower)
                         );
                       })
                       .map((client) => (
