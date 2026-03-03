@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Pagination from "@/components/common/Pagination";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Package, 
@@ -52,6 +53,9 @@ export default function AdminPackages({ user }) {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [editImageModal, setEditImageModal] = useState(null);
   const [newImageFile, setNewImageFile] = useState(null);
+  const [ticketModal, setTicketModal] = useState(null);
+  const [ticketMessage, setTicketMessage] = useState('');
+  const [ticketProcessing, setTicketProcessing] = useState(false);
   const pageSize = 50;
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
@@ -319,33 +323,43 @@ export default function AdminPackages({ user }) {
     }
   };
 
-  const handleCreateTicket = async (pkg) => {
+  const handleCreateTicket = (pkg) => {
+    setTicketModal(pkg);
+    setTicketMessage('');
+  };
+
+  const confirmCreateTicket = async () => {
+    if (!ticketModal) return;
     try {
+      setTicketProcessing(true);
       const ticketNumber = `TKT-${Date.now()}`;
       const firstMessage = {
         sender_email: user.email,
         sender_name: user.full_name || 'Administrador',
-        message: `Ticket creado desde Paquetes para el tracking ${pkg.tracking_number}`,
+        message: ticketMessage?.trim() || `Ticket creado desde Paquetes para el tracking ${ticketModal.tracking_number}`,
         timestamp: new Date().toISOString(),
         is_admin: true
       };
 
       await base44.entities.SupportTicket.create({
         ticket_number: ticketNumber,
-        client_email: pkg.client_email,
-        subject: `Soporte - Tracking ${pkg.tracking_number}`,
+        client_email: ticketModal.client_email,
+        subject: `Soporte - Tracking ${ticketModal.tracking_number}`,
         category: 'tracking',
         priority: 'media',
-        related_tracking: pkg.tracking_number,
+        related_tracking: ticketModal.tracking_number,
         status: 'abierto',
         assigned_to: user.email,
         messages: [firstMessage]
       });
 
       toast.success('Ticket creado correctamente');
+      setTicketModal(null);
+      setTicketMessage('');
     } catch (e) {
       toast.error('No se pudo crear el ticket');
     }
+    setTicketProcessing(false);
   };
 
   const filteredPackages = packages.filter(pkg => {
@@ -818,7 +832,32 @@ export default function AdminPackages({ user }) {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Action Confirmation */}
+      {/* Create Ticket Modal */}
+      <Dialog open={!!ticketModal} onOpenChange={() => { setTicketModal(null); setTicketMessage(''); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Crear Ticket</DialogTitle>
+            <DialogDescription>
+              Cliente: {ticketModal?.client_email} • Tracking: {ticketModal?.tracking_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label>Mensaje (opcional)</Label>
+            <Textarea rows={4} placeholder="Escribe un mensaje para el cliente..." value={ticketMessage} onChange={(e) => setTicketMessage(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setTicketModal(null); setTicketMessage(''); }} disabled={ticketProcessing}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmCreateTicket} disabled={ticketProcessing} className="bg-blue-600 hover:bg-blue-700">
+              {ticketProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MessageSquare className="h-4 w-4 mr-2" />}
+              Crear Ticket
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+       {/* Bulk Action Confirmation */}
       <AlertDialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
