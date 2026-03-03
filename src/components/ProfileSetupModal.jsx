@@ -264,7 +264,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
           </div>
         </div>
 
-        <DialogFooter className="sticky bottom-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t border-slate-200 px-4 py-3">
+        <DialogFooter className="sticky bottom-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t border-slate-200">
           <Button
             onClick={handleSubmit}
             disabled={saving}
