@@ -43,6 +43,11 @@ Deno.serve(async (req) => {
       return cd >= start && cd <= end;
     });
 
+    // Build recipient allowlist: only app users can receive emails
+    const userEmailSet = new Set((allUsers || []).map(u => String(u.email || '').toLowerCase()));
+    const validEmails = (emails || []).filter(e => userEmailSet.has(String(e).toLowerCase()));
+    const skippedEmails = (emails || []).filter(e => !userEmailSet.has(String(e).toLowerCase()));
+
     // Build rows for Excel
     const headers = [
       'Email', 'Nombre', 'Registrado (Caracas)', 'WhatsApp', 'Telefono', 'Estado', 'Ciudad', 'Direccion', 'ShippingMark'
@@ -92,19 +97,19 @@ Deno.serve(async (req) => {
     const dateLabel = new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', day: '2-digit', month: 'short', year: 'numeric' }).format(yesterday);
     const subject = `Reporte diario de nuevos clientes - ${dateLabel}`;
     const total = rows.length;
-    const body = `Hola,\n\nAdjunto el reporte de clientes registrados ayer (${dateLabel}).\n\nCantidad: ${total}\nDescargar Excel (válido 7 días): ${signed_url}\n\nSaludos,\nTLEC Logistics`;
+    const body = `Hola,\n\nAdjunto el reporte de clientes registrados ayer (${dateLabel}).\n\nCantidad: ${total}\nDescargar Excel (válido 7 días): ${signed_url}\n\nSaludos,\nTLEC CARGO`;
 
-    // Send to each recipient
-    for (const to of emails) {
+    // Send only to in-app users (platform restriction)
+    for (const to of validEmails) {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to,
         subject,
         body,
-        from_name: 'TLEC Logistics'
+        from_name: 'TLEC CARGO'
       });
     }
 
-    return Response.json({ ok: true, recipients: emails, count: total, signed_url }, { status: 200 });
+    return Response.json({ ok: true, recipients: validEmails, skipped: skippedEmails, count: total, signed_url }, { status: 200 });
   } catch (error) {
     return Response.json({ error: error?.message || 'Internal error' }, { status: 500 });
   }
