@@ -98,7 +98,8 @@ export default function AdminSettings({ user }) {
       whatsapp_message: '',
       whatsapp_icon_url: '',
       maintenance_mode: false,
-      maintenance_message: 'Estamos realizando mantenimiento. Por favor, inténtalo más tarde.'
+      maintenance_message: 'Estamos realizando mantenimiento. Por favor, inténtalo más tarde.',
+      maintenance_image_url: ''
    });
 
   // Privacy Config
@@ -774,6 +775,15 @@ export default function AdminSettings({ user }) {
                     rows={2}
                     placeholder="Estamos en mantenimiento. Por favor, intenta más tarde."
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Imagen (opcional)</Label>
+                  <Input
+                    value={appConfig.maintenance_image_url || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, maintenance_image_url: e.target.value })}
+                    placeholder="Pega aquí la URL de la imagen de mantenimiento"
+                  />
+                  <p className="text-xs text-slate-500">Sugerencia: usa una imagen 16:9 para mejor apariencia.</p>
                 </div>
                 <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}

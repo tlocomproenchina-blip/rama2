@@ -284,7 +284,7 @@ export default function Layout({ children, currentPageName }) {
           <div className="text-center text-slate-600">Cargando...</div>
         </div>
       }>
-        <MaintenanceScreen message={config?.maintenance_message} imageUrl={config?.maintenance_image_url || "__MAINT_IMAGE_URL__"} />
+        <MaintenanceScreen message={config?.maintenance_message} imageUrl={config?.maintenance_image_url || "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/95348d1e0_generated_image.png"} />
       </Suspense>
     );
   }
