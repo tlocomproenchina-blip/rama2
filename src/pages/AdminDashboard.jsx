@@ -184,6 +184,11 @@ export default function AdminDashboard({ user }) {
               <TabsTrigger value="api">API</TabsTrigger>
             </TabsList>
           </Tabs>
+          <Link to={createPageUrl('OperationsDashboard')}>
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Eye className="h-4 w-4 mr-2" /> Ver Ops Dashboard
+            </Button>
+          </Link>
           <Button onClick={loadData} variant="outline" size="sm">
             Actualizar
           </Button>
