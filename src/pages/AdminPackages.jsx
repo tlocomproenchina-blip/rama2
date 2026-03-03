@@ -18,7 +18,8 @@ import {
   Ship,
   Shield,
   Trash2,
-  Download
+  Download,
+  Copy
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -34,6 +35,7 @@ export default function AdminPackages({ user }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [reportedFilter, setReportedFilter] = useState('all');
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [receiveModal, setReceiveModal] = useState(null);
   const [imageFile, setImageFile] = useState(null);
@@ -278,6 +280,42 @@ export default function AdminPackages({ user }) {
     }
   };
 
+  const handleCopySelectedByMark = async () => {
+    try {
+      const selectedPkgs = packages.filter(p => selectedPackages.includes(p.id));
+      if (selectedPkgs.length === 0) { toast.error('Selecciona al menos un paquete'); return; }
+      const groups = new Map();
+      selectedPkgs.forEach(p => {
+        const mark = (p.shipping_mark || 'N/A').trim();
+        if (!groups.has(mark)) groups.set(mark, []);
+        groups.get(mark).push(p);
+      });
+      const marks = Array.from(groups.keys()).sort();
+      let content = '';
+      marks.forEach((mark, idx) => {
+        content += `Shipping Mark\n${mark}\nTracking Number\n`;
+        groups.get(mark).forEach(pkg => { content += `${pkg.tracking_number}\n`; });
+        if (idx < marks.length - 1) content += `\n`;
+      });
+      await navigator.clipboard.writeText(content.trim());
+      toast.success(`Copiado ${selectedPkgs.length} tracking(s) en ${marks.length} grupo(s)`);
+    } catch (_) {
+      toast.error('No se pudo copiar');
+    }
+  };
+
+  const handleMarkReported = async (flag) => {
+    if (selectedPackages.length === 0) { toast.error('Selecciona al menos un paquete'); return; }
+    try {
+      const selectedPkgs = packages.filter(p => selectedPackages.includes(p.id));
+      await Promise.all(selectedPkgs.map(p => base44.entities.Package.update(p.id, { reported: flag })));
+      toast.success(flag ? 'Marcados como reportados' : 'Reporte removido');
+      loadPackages(page);
+    } catch (e) {
+      toast.error('No se pudo actualizar');
+    }
+  };
+
   const filteredPackages = packages.filter(pkg => {
     // Basic search
     const matchesSearch = 
@@ -285,6 +323,7 @@ export default function AdminPackages({ user }) {
       (pkg.shipping_mark || '').toLowerCase().includes(search.toLowerCase()) ||
       (pkg.client_email || '').toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || pkg.status === statusFilter;
+    const matchesReported = reportedFilter === 'all' || (reportedFilter === 'reported' ? pkg.reported === true : pkg.reported !== true);
 
     // Advanced filters
     if (advancedFilters) {
@@ -314,7 +353,7 @@ export default function AdminPackages({ user }) {
       }
     }
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesReported;
   });
 
   if (loading) {
@@ -364,6 +403,17 @@ export default function AdminPackages({ user }) {
                   <TabsTrigger value="entregado">Entregado</TabsTrigger>
                 </TabsList>
               </Tabs>
+
+              <Select value={reportedFilter} onValueChange={setReportedFilter}>
+                <SelectTrigger className="w-full lg:w-48 bg-white">
+                  <SelectValue placeholder="Reporte" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="reported">Reportados</SelectItem>
+                  <SelectItem value="unreported">No reportados</SelectItem>
+                </SelectContent>
+              </Select>
 
               <Select value={reportedFilter} onValueChange={setReportedFilter}>
                 <SelectTrigger className="w-full lg:w-48 bg-white">
@@ -441,6 +491,27 @@ export default function AdminPackages({ user }) {
                   onClick={() => setSelectedPackages([])}
                 >
                   Cancelar
+                </Button>
+
+                <Button 
+                  variant="outline"
+                  onClick={handleCopySelectedByMark}
+                  className="gap-2"
+                >
+                  <Copy className="h-4 w-4" /> Copiar por Mark
+                </Button>
+
+                <Button 
+                  variant="outline"
+                  onClick={() => handleMarkReported(true)}
+                >
+                  Marcar reportados
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleMarkReported(false)}
+                >
+                  Quitar reporte
                 </Button>
 
                 <Button 
