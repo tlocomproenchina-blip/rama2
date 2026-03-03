@@ -340,11 +340,16 @@ export default function Layout({ children, currentPageName }) {
       <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
       <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
-      {user?.role === 'user' && (
-        <Suspense fallback={null}><WhatsAppSupport /></Suspense>
-      )}
-      {user?.role === 'user' && config?.chatbot_enabled && (
-        <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
+      {/* Avoid rendering floating widgets until user and config are loaded to prevent mobile layout jank */}
+      {user?.role === 'user' && config && (
+        <>
+          {config.whatsapp_enabled && (
+            <Suspense fallback={null}><WhatsAppSupport /></Suspense>
+          )}
+          {config.chatbot_enabled && (
+            <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
+          )}
+        </>
       )}
       
       <div className="min-h-[100svh] lg:h-screen overflow-y-auto shrink-0">
