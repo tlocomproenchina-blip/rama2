@@ -377,7 +377,7 @@ export default function Layout({ children, currentPageName }) {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <main className="flex-1 min-h-screen flex flex-col">
+      <main className={`flex-1 min-h-screen flex flex-col ${user?.role === 'admin' ? 'lg:ml-72 lg:h-screen lg:overflow-y-auto' : ''}`}>
         {/* Mobile Header */}
         <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between gap-2">
