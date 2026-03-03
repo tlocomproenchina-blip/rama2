@@ -1,10 +1,10 @@
 import React, { useMemo, useId } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ResponsiveContainer, AreaChart, Area, LineChart, Line, XAxis, YAxis } from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from "recharts";
 
 export default function SparkKpiCard({ icon: Icon, label, value, prefix = "", suffix = "", sparkData = [], color = "#6366f1" }) {
-  const id = useId();
-  const gradientId = useMemo(() => `spark-${id.replace(/[:]/g, '')}`,[id]);
+  const reactId = useId();
+  const gradientId = useMemo(() => `spark-${String(reactId).replace(/[:]/g, '')}`,[reactId]);
   const display = typeof value === 'number' ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value) : value;
   const data = sparkData && sparkData.length ? sparkData : [{ period: '—', value: 0 }];
 
