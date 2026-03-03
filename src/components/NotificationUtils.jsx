@@ -1,4 +1,79 @@
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/components/api/ApiQueueManager';
+
+// Email sending queue (batch 50 every 60s)
+const EMAIL_BATCH_SIZE = 50;
+const EMAIL_BATCH_INTERVAL_MS = 60000;
+let emailQueue = [];
+let queueTimer = null;
+
+async function processAfterSend({ to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
+  // Evitar duplicados recientes (mismo usuario, título y referencia) en los últimos 60s
+  const _title = title || subject;
+  const _message = message || body.split('\n')[0];
+  let shouldCreate = true;
+  try {
+    if (referenceId) {
+      const existing = await base44.entities.Notification.filter({
+        user_email: to,
+        reference_id: referenceId,
+        title: _title
+      }, '-created_date', 1);
+      if (existing && existing.length > 0) {
+        const last = existing[0];
+        const diffMs = Date.now() - new Date(last.created_date).getTime();
+        if (diffMs < 60000) {
+          shouldCreate = false;
+        }
+      }
+    }
+  } catch {}
+
+  if (shouldCreate) {
+    await base44.entities.Notification.create({
+      user_email: to,
+      title: _title,
+      message: _message,
+      type,
+      icon,
+      reference_id: referenceId
+    });
+  }
+
+  // Send push notification
+  try {
+    await base44.functions.invoke('sendPushNotification', {
+      userEmail: to,
+      title: title || subject,
+      body: message || body.split('\n')[0],
+      url: '/'
+    });
+  } catch {
+    console.log('Push notification not sent (user may not be subscribed)');
+  }
+}
+
+async function flushEmailQueue() {
+  if (emailQueue.length === 0) return;
+  const batch = emailQueue.splice(0, EMAIL_BATCH_SIZE);
+  for (const item of batch) {
+    try {
+      await base44.enqueue(async () => {
+        return await base44.integrations.Core.SendEmail({ to: item.to, subject: item.subject, body: item.body });
+      }, 'HIGH', 'write');
+      await processAfterSend(item);
+      item.resolve && item.resolve(true);
+    } catch (error) {
+      console.error('Notification error:', error);
+      item.reject && item.reject(error);
+    }
+  }
+}
+
+function ensureQueueTimer() {
+  if (!queueTimer) {
+    queueTimer = setInterval(flushEmailQueue, EMAIL_BATCH_INTERVAL_MS);
+  }
+}
 
 export async function getAdmins() {
   const allUsers = await base44.entities.User.list();
@@ -6,55 +81,10 @@ export async function getAdmins() {
 }
 
 export async function sendNotification({ to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
-  try {
-    await base44.integrations.Core.SendEmail({ to, subject, body });
-
-    // Evitar duplicados recientes (mismo usuario, título y referencia) en los últimos 60s
-    const _title = title || subject;
-    const _message = message || body.split('\n')[0];
-    let shouldCreate = true;
-    try {
-      if (referenceId) {
-        const existing = await base44.entities.Notification.filter({
-          user_email: to,
-          reference_id: referenceId,
-          title: _title
-        }, '-created_date', 1);
-        if (existing && existing.length > 0) {
-          const last = existing[0];
-          const diffMs = Date.now() - new Date(last.created_date).getTime();
-          if (diffMs < 60000) {
-            shouldCreate = false;
-          }
-        }
-      }
-    } catch {}
-
-    if (shouldCreate) {
-      await base44.entities.Notification.create({
-        user_email: to,
-        title: _title,
-        message: _message,
-        type,
-        icon,
-        reference_id: referenceId
-      });
-    }
-
-    // Send push notification
-    try {
-      await base44.functions.invoke('sendPushNotification', {
-        userEmail: to,
-        title: title || subject,
-        body: message || body.split('\n')[0],
-        url: '/'
-      });
-    } catch (pushError) {
-      console.log('Push notification not sent (user may not be subscribed)');
-    }
-  } catch (error) {
-    console.error('Notification error:', error);
-  }
+  ensureQueueTimer();
+  return new Promise((resolve, reject) => {
+    emailQueue.push({ to, subject, body, title, message, type, icon, referenceId, resolve, reject });
+  });
 }
 
 export async function notifyAdmins({ subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
