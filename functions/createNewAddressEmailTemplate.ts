@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
       record = await base44.asServiceRole.entities.EmailTemplate.update(existing[0].id, {
         name,
         description,
-        category: 'envios',
+        category: 'general',
         subject,
         body,
         variables: ['nueva_direccion', 'fecha_vigencia', 'enlace_direccion', 'cliente_nombre']
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
       record = await base44.asServiceRole.entities.EmailTemplate.create({
         name,
         description,
-        category: 'envios',
+        category: 'general',
         subject,
         body,
         variables: ['nueva_direccion', 'fecha_vigencia', 'enlace_direccion', 'cliente_nombre'],
