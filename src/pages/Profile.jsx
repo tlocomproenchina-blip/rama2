@@ -308,40 +308,22 @@ export default function Profile({ user, refreshUser }) {
                   <MapPin className="h-4 w-4" />
                   Estado *
                 </Label>
-                {/* Mobile native select */}
-                <div className="sm:hidden">
-                  <select
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    disabled={isFieldDisabled('state')}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="" disabled>Selecciona tu estado</option>
-                    {stateConfigs.map((s) => (
-                      <option key={s.state_code} value={s.state_code}>{s.state_name}</option>
-                    ))}
-                  </select>
-                </div>
-                {/* Desktop Select */}
-                <div className="hidden sm:block">
-                  <Select 
-                    value={formData.state}
-                    onValueChange={(value) => setFormData({ ...formData, state: value })}
-                    disabled={isFieldDisabled('state')}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona tu estado" />
-                    </SelectTrigger>
-                    <SelectContent position="popper">
-                       {stateConfigs.map((state) => (
-                         <SelectItem key={state.state_code} value={state.state_code}>
-                           {state.state_name}
-                         </SelectItem>
-                       ))}
-                     </SelectContent>
-                  </Select>
-                </div>
+                <Select 
+                  value={formData.state}
+                  onValueChange={(value) => setFormData({ ...formData, state: value })}
+                  disabled={isFieldDisabled('state')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona tu estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     {stateConfigs.map((state) => (
+                       <SelectItem key={state.state_code} value={state.state_code}>
+                         {state.state_name}
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                </Select>
                 {pricingInfo && (
                   <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 mb-2">
