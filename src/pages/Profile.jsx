@@ -187,6 +187,8 @@ export default function Profile({ user, refreshUser }) {
     return profileUpdatesDisabled;
   };
 
+  const pricing = calculatePricing();
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -310,15 +312,15 @@ export default function Profile({ user, refreshUser }) {
                      ))}
                    </SelectContent>
                 </Select>
-                {calculatePricing() && (
+                {pricing && (
                   <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 mb-2">
                       <DollarSign className="h-4 w-4 text-blue-600" />
-                      <p className="text-sm font-semibold text-blue-900">Precios de envío para {calculatePricing().stateName}</p>
+                      <p className="text-sm font-semibold text-blue-900">Precios de envío para {pricing.stateName}</p>
                     </div>
                     <div className="space-y-1 text-xs text-blue-800">
-                      <p>• Carga Regular: <span className="font-bold">${calculatePricing().regular}</span></p>
-                      <p>• Carga Alto Riesgo: <span className="font-bold">${calculatePricing().highRisk}</span></p>
+                      <p>• Carga Regular: <span className="font-bold">${pricing.regular}</span></p>
+                      <p>• Carga Alto Riesgo: <span className="font-bold">${pricing.highRisk}</span></p>
                     </div>
                   </div>
                 )}
