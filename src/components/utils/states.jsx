@@ -30,10 +30,16 @@ export function normalizeStates(states) {
   if (!Array.isArray(states)) return [];
   const mapped = states.map((s) => ({
     ...s,
-    state_name: CANONICAL_STATE_NAMES[s.state_code] || s.state_name || s.state_code,
+    // Ensure both code and name are present to avoid runtime crashes
+    state_code: s.state_code || (s.state_name ? String(s.state_name).toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') : ''),
+    state_name: CANONICAL_STATE_NAMES[s.state_code] || s.state_name || s.state_code || '',
   }));
-  // sort by name
-  return mapped.sort((a, b) => a.state_name.localeCompare(b.state_name, 'es', { sensitivity: 'base' }));
+  // sort by name (robust if name missing)
+  return mapped.sort((a, b) => {
+    const nameA = String(a.state_name || a.state_code || '').toLowerCase();
+    const nameB = String(b.state_name || b.state_code || '').toLowerCase();
+    return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+  });
 }
 
 export function findStateByCodeOrName(states, value) {
