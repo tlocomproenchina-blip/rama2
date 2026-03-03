@@ -3,8 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import FiltersBar from '@/components/dashboard/FiltersBar';
-import KeyMetrics from '@/components/dashboard/KeyMetrics';
 import { Button } from "@/components/ui/button";
 import { 
   Package, 
@@ -41,30 +39,11 @@ export default function Dashboard({ user, refreshUser }) {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [supportTickets, setSupportTickets] = useState([]);
-  const [filters, setFilters] = useState(() => {
-    const t = new Date();
-    const s = new Date(t.getTime() - 29 * 24 * 60 * 60 * 1000);
-    return { startDate: s.toISOString().slice(0,10), endDate: t.toISOString().slice(0,10), serviceType: 'todos' };
-  });
 
   useEffect(() => {
     if (user && user.email) {
       loadData();
     }
-  }, [user?.email]);
-
-  // Cargar tickets de soporte del usuario (para métricas de reclamos)
-  useEffect(() => {
-    if (!user?.email) return;
-    (async () => {
-      try {
-        const tix = await base44.entities.SupportTicket.filter({ client_email: user.email });
-        setSupportTickets(tix);
-      } catch (e) {
-        console.error('Error loading support tickets:', e);
-      }
-    })();
   }, [user?.email]);
 
   const loadData = async () => {
@@ -185,10 +164,6 @@ export default function Dashboard({ user, refreshUser }) {
       </div>
 
 
-
-      {/* Filtros y Métricas Clave */}
-      <FiltersBar filters={filters} onChange={setFilters} />
-      <KeyMetrics consolidations={consolidations} supportTickets={supportTickets} filters={filters} />
 
       {/* Shipping Mark Card */}
       {hasShippingMark ? (

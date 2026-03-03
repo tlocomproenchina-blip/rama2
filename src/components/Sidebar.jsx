@@ -24,8 +24,7 @@ import {
   TrendingUp,
   CheckCircle2,
   Mail,
-  Wallet,
-  LifeBuoy
+  Wallet
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -180,7 +179,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const adminMenuItems = [
   { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
-  { name: 'Dashboard Avanzado', page: 'BusinessDashboard', icon: LifeBuoy },
   { name: 'Reportes', page: 'AdminReports', icon: BarChart3 },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
   { name: 'Aprobaciones', page: 'AdminConsolidate', icon: Layers },
@@ -209,7 +207,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
   const adminGroups = [
-    { label: 'PRINCIPAL', items: ['AdminDashboard','BusinessDashboard','AdminReports'] },
+    { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
     { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing'] },

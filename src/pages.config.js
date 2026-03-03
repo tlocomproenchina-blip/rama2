@@ -69,13 +69,10 @@ import AdminProviderPayments from './pages/AdminProviderPayments';
 import AdminProviders from './pages/AdminProviders';
 import AdminReports from './pages/AdminReports';
 import AdminRoles from './pages/AdminRoles';
-import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
-import AdminSupportTickets from './pages/AdminSupportTickets';
 import BusinessDashboard from './pages/BusinessDashboard';
 import ClientPortal from './pages/ClientPortal';
-import Dashboard from './pages/Dashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
@@ -83,13 +80,16 @@ import MyConsolidations from './pages/MyConsolidations';
 import MyInvoices from './pages/MyInvoices';
 import MyPackages from './pages/MyPackages';
 import PreAlert from './pages/PreAlert';
-import Profile from './pages/Profile';
 import Rates from './pages/Rates';
 import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import AdminDashboard from './pages/AdminDashboard';
+import Dashboard from './pages/Dashboard';
+import AdminSupportTickets from './pages/AdminSupportTickets';
+import AdminSettings from './pages/AdminSettings';
+import Profile from './pages/Profile';
 import __Layout from './Layout.jsx';
 
 
@@ -116,13 +116,10 @@ export const PAGES = {
     "AdminProviders": AdminProviders,
     "AdminReports": AdminReports,
     "AdminRoles": AdminRoles,
-    "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
-    "AdminSupportTickets": AdminSupportTickets,
     "BusinessDashboard": BusinessDashboard,
     "ClientPortal": ClientPortal,
-    "Dashboard": Dashboard,
     "EmployeeDashboard": EmployeeDashboard,
     "FAQ": FAQ,
     "Home": Home,
@@ -130,13 +127,16 @@ export const PAGES = {
     "MyInvoices": MyInvoices,
     "MyPackages": MyPackages,
     "PreAlert": PreAlert,
-    "Profile": Profile,
     "Rates": Rates,
     "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
     "AdminDashboard": AdminDashboard,
+    "Dashboard": Dashboard,
+    "AdminSupportTickets": AdminSupportTickets,
+    "AdminSettings": AdminSettings,
+    "Profile": Profile,
 }
 
 export const pagesConfig = {
