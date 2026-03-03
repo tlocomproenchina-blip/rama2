@@ -19,8 +19,8 @@ import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 // Lazy loaded non-critical components
-const NotificationCenter = lazy(() => import('@/components/NotificationCenter.jsx'));
-const AdminNotificationCenter = lazy(() => import('@/components/AdminNotificationCenter.jsx'));
+const NotificationCenter = lazy(() => import('@/components/NotificationCenter'));
+const AdminNotificationCenter = lazy(() => import('@/components/AdminNotificationCenter'));
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
 const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
 const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
@@ -380,7 +380,9 @@ export default function Layout({ children, currentPageName }) {
       <Toaster position="top-right" richColors />
       <GlobalErrorListener />
       {user && (
-        <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
+        {user && (
+  <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
+)}
       )}
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
       <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
@@ -414,7 +416,9 @@ export default function Layout({ children, currentPageName }) {
             </Button>
             <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
             {user && (
-              <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
+              {user && (
+  <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
+)}
             )}
           </div>
         </header>
@@ -422,7 +426,9 @@ export default function Layout({ children, currentPageName }) {
         {/* Desktop Notification Center */}
         <div className="hidden lg:block fixed top-4 right-4 z-40">
           {user && (
-            <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
+            {user && (
+  <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
+)}
           )}
         </div>
 
