@@ -19,7 +19,9 @@ import {
   Shield,
   Trash2,
   Download,
-  Copy
+  Copy,
+  Flag,
+  FlagOff
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -546,6 +548,11 @@ export default function AdminPackages({ user }) {
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                           <Shield className="h-3 w-3" />
                         </Badge>
+                      )}
+                      {pkg.reported ? (
+                        <Flag className="h-4 w-4 text-rose-600" title="Reportado" />
+                      ) : (
+                        <FlagOff className="h-4 w-4 text-slate-300" title="No reportado" />
                       )}
                     </div>
                   </td>
