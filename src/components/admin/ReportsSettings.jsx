@@ -11,9 +11,13 @@ import { toast } from 'sonner';
 export default function ReportsSettings() {
   const [recipients, setRecipients] = useState([]);
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => { loadRecipients(); }, []);
 
@@ -47,6 +51,32 @@ export default function ReportsSettings() {
     await loadRecipients();
     setAdding(false);
     toast.success('Destinatario agregado');
+  };
+
+  const inviteAndAddRecipient = async () => {
+    if (!validEmail(email)) { toast.error('Ingresa un email válido'); return; }
+    if (!firstName.trim() || !lastName.trim()) { toast.error('Nombre y apellido son obligatorios'); return; }
+    setInviting(true);
+    try {
+      await base44.users.inviteUser(email, 'user');
+      const users = await base44.entities.User.filter({ email });
+      if (users.length > 0) {
+        await base44.entities.User.update(users[0].id, {
+          first_name: firstName,
+          last_name: lastName,
+          phone
+        });
+      }
+      await base44.entities.ReportRecipient.create({ email, name: `${firstName} ${lastName}`.trim(), active: true });
+      setEmail(''); setFirstName(''); setLastName(''); setPhone('');
+      await loadRecipients();
+      toast.success('Usuario invitado y agregado como destinatario');
+    } catch (e) {
+      console.error(e);
+      toast.error('No se pudo invitar/agregar el destinatario');
+    } finally {
+      setInviting(false);
+    }
   };
 
   const toggleActive = async (r, active) => {
@@ -103,8 +133,25 @@ export default function ReportsSettings() {
             <Label>Email del destinatario</Label>
             <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
+            <div>
+              <Label>Nombre</Label>
+              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Nombre" />
+            </div>
+            <div>
+              <Label>Apellido</Label>
+              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Apellido" />
+            </div>
+            <div>
+              <Label>Teléfono</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+58 412 1234567" />
+            </div>
+          </div>
           <Button onClick={addRecipient} disabled={adding} className="gap-2">
             {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Agregar
+          </Button>
+          <Button onClick={inviteAndAddRecipient} variant="secondary" disabled={inviting} className="gap-2">
+            {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Invitar y agregar
           </Button>
           <Button onClick={sendNow} variant="outline" disabled={sending} className="gap-2">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Enviar ahora
