@@ -379,7 +379,9 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
       <Toaster position="top-right" richColors />
       <GlobalErrorListener />
-      <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
+      {user && (
+        <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
+      )}
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
       <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
       {user?.role === 'user' && (
@@ -411,13 +413,17 @@ export default function Layout({ children, currentPageName }) {
               <Menu className="h-6 w-6" />
             </Button>
             <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
-            <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
+            {user && (
+              <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
+            )}
           </div>
         </header>
 
         {/* Desktop Notification Center */}
         <div className="hidden lg:block fixed top-4 right-4 z-40">
-          <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
+          {user && (
+            <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
+          )}
         </div>
 
         {/* Improve mobile tap targets in header */}
