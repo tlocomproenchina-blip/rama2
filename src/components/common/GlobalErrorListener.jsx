@@ -15,11 +15,54 @@ export default function GlobalErrorListener() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
+    const hash = (str) => { let h = 5381; for (let i=0;i<str.length;i++) h=((h<<5)+h) ^ str.charCodeAt(i); return (h>>>0).toString(36); };
+
+    const persist = async (payload) => {
+      try {
+        const signature = [payload.type, payload.message, payload.stack || '', payload.source || '', payload.url || ''].join('|');
+        const fingerprint = hash(signature);
+        const errorId = `ERR-${fingerprint}`;
+        // Anti-spam (5s)
+        const now = Date.now();
+        const last = Number(sessionStorage.getItem('lastErrorPersisted') || '0');
+        if (now - last < 5000) return;
+        sessionStorage.setItem('lastErrorPersisted', String(now));
+
+        const existing = await base44.entities.ErrorLog.filter({ fingerprint }, '-updated_date', 1);
+        if (existing.length) {
+          await base44.entities.ErrorLog.update(existing[0].id, {
+            count: (existing[0].count || 0) + 1,
+            last_seen: new Date().toISOString(),
+            message: payload.message
+          });
+        } else {
+          const me = await base44.auth.me().catch(() => null);
+          await base44.entities.ErrorLog.create({
+            fingerprint,
+            message: payload.message,
+            name: payload.name || 'Error',
+            stack: payload.stack || null,
+            component_stack: null,
+            url: payload.url || null,
+            user_agent: payload.userAgent || null,
+            user_email: me?.email || null,
+            severity: payload.type === 'error' ? 'error' : 'warn',
+            count: 1,
+            first_seen: new Date().toISOString(),
+            last_seen: new Date().toISOString()
+          });
+        }
+
+        setErrorInfo(prev => ({ ...(prev || {}), errorId }));
+      } catch (e) { console.warn('[GlobalErrorListener] persist failed', e); }
+    };
+
     const handleWindowError = (event) => {
       const { message, filename, lineno, colno, error } = event;
       const details = {
         type: 'error',
         message: String(message || error?.message || 'Unknown error'),
+        name: String(error?.name || 'Error'),
         source: filename || null,
         line: lineno || null,
         column: colno || null,
@@ -32,6 +75,7 @@ export default function GlobalErrorListener() {
         base44.analytics.track({ eventName: 'global_error', properties: details });
       } catch (_) {}
       setErrorInfo(details);
+      persist(details);
     };
 
     const handleUnhandledRejection = (event) => {
@@ -39,6 +83,7 @@ export default function GlobalErrorListener() {
       const details = {
         type: 'unhandledrejection',
         message: String(reason?.message || reason || 'Unhandled promise rejection'),
+        name: String(reason?.name || 'PromiseRejection'),
         stack: reason?.stack ? String(reason.stack).slice(0, 1500) : null,
         url: typeof window !== 'undefined' ? window.location.href : null,
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
@@ -48,6 +93,7 @@ export default function GlobalErrorListener() {
         base44.analytics.track({ eventName: 'global_error', properties: details });
       } catch (_) {}
       setErrorInfo(details);
+      persist(details);
     };
 
     window.addEventListener('error', handleWindowError);
@@ -61,7 +107,7 @@ export default function GlobalErrorListener() {
   if (!errorInfo) return null;
 
   const copyDetails = () => {
-    const text = `Tipo: ${errorInfo.type}\nMensaje: ${errorInfo.message}\nFuente: ${errorInfo.source || ''}\nLinea: ${errorInfo.line || ''}:${errorInfo.column || ''}\nURL: ${typeof window !== 'undefined' ? window.location.href : ''}\nUserAgent: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}\nStack: ${errorInfo.stack || ''}`;
+    const text = `ID: ${errorInfo.errorId || ''}\nTipo: ${errorInfo.type}\nMensaje: ${errorInfo.message}\nFuente: ${errorInfo.source || ''}\nLinea: ${errorInfo.line || ''}:${errorInfo.column || ''}\nURL: ${typeof window !== 'undefined' ? window.location.href : ''}\nUserAgent: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}\nStack: ${errorInfo.stack || ''}`;
     navigator.clipboard.writeText(text);
   };
 
@@ -135,6 +181,9 @@ export default function GlobalErrorListener() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">Se detectó un error en la aplicación</p>
               <p className="text-xs text-amber-800 truncate">{errorInfo.message}</p>
+              {errorInfo.errorId && (
+                <p className="text-[10px] text-amber-700 mt-0.5">ID: {errorInfo.errorId}</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={copyDetails}>
