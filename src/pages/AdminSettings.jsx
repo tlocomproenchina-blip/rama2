@@ -254,7 +254,13 @@ export default function AdminSettings({ user }) {
   };
 
   const handleClearCache = async () => {
-    try {
+    setClearing(true);
+    setCountdown(3);
+    const tick = setInterval(() => {
+      setCountdown((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+
+    const clearCaches = async () => {
       // Clear all localStorage
       localStorage.clear();
       // Clear sessionStorage
@@ -280,11 +286,17 @@ export default function AdminSettings({ user }) {
         });
         await Promise.all(dbs.map((db) => deleteDb(db.name)));
       }
+    };
 
+    try {
+      await Promise.all([clearCaches(), new Promise((r) => setTimeout(r, 3000))]);
+      clearInterval(tick);
       toast.success('✓ Cache limpiado');
-      // Reload page after a short delay
-      setTimeout(() => window.location.reload(), 500);
+      setClearing(false);
+      setTimeout(() => window.location.reload(), 700);
     } catch (error) {
+      clearInterval(tick);
+      setClearing(false);
       toast.error('Error al limpiar cache');
     }
   };
