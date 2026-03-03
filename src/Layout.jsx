@@ -207,8 +207,14 @@ export default function Layout({ children, currentPageName }) {
       
       setLoading(false);
     } catch (error) {
-      // Not logged in - redirect to login
-      base44.auth.redirectToLogin();
+      // Not logged in - redirect to login (avoid redirect loops)
+      const path = window.location.pathname || '';
+      if (path.includes('/login')) {
+        setLoading(false);
+        return; // already on login, don't chain redirects
+      }
+      const nextUrl = createPageUrl('AdminDashboard');
+      base44.auth.redirectToLogin(nextUrl);
       setLoading(false);
     }
   };
