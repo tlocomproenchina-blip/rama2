@@ -93,15 +93,15 @@ export default function Profile({ user, refreshUser }) {
     const stateConfig = findStateByCodeOrName(stateConfigs, formData.state);
     if (!stateConfig) return null;
 
-    const stateRate = stateConfig.shipping_rate || 0;
-    const doorToDoor = pricingConfig.door_to_door_cost || 0;
-    const benefitPercent = pricingConfig.profit_percentage || 0;
+    const stateRate = Number(stateConfig.shipping_rate ?? 0);
+    const doorToDoor = Number(pricingConfig.door_to_door_cost ?? 0);
+    const benefitPercent = Number(pricingConfig.profit_percentage ?? 0);
 
-    const regularBase = pricingConfig.base_rate_regular || 0;
-    const regularPrice = (regularBase * (1 + benefitPercent / 100)) + stateRate + doorToDoor;
+    const regularBase = Number(pricingConfig.base_rate_regular ?? 0);
+    const regularPrice = regularBase * (1 + benefitPercent / 100) + stateRate + doorToDoor;
 
-    const highRiskBase = pricingConfig.base_rate_high_risk || 0;
-    const highRiskPrice = (highRiskBase * (1 + benefitPercent / 100)) + stateRate + doorToDoor;
+    const highRiskBase = Number(pricingConfig.base_rate_high_risk ?? 0);
+    const highRiskPrice = highRiskBase * (1 + benefitPercent / 100) + stateRate + doorToDoor;
 
     return {
       regular: regularPrice.toFixed(2),
