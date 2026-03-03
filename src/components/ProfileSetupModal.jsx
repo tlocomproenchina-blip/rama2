@@ -119,6 +119,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
     setSaving(false);
   };
 
+  const pricingInfo = calculatePricing();
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent className="max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>

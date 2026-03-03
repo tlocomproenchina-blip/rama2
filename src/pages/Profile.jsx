@@ -187,6 +187,7 @@ export default function Profile({ user, refreshUser }) {
     return profileUpdatesDisabled;
   };
 
+  const pricingInfo = calculatePricing();
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
