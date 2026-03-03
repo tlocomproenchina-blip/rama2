@@ -96,6 +96,13 @@ export default function Layout({ children, currentPageName }) {
     loadFavicon();
   }, []);
 
+  // Close any open Radix overlays (Select/Popover/Dropdown) on route change to avoid iOS removeChild crashes
+  useEffect(() => {
+    try {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    } catch {}
+  }, [location.pathname, location.key]);
+
   const loadConfig = async () => {
     try {
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
