@@ -4,7 +4,7 @@ import KpiCard from "../components/dashboard/KpiCard";
 import FiltersBar from "../components/dashboard/FiltersBar";
 import ShipmentsOverTime from "../components/dashboard/charts/ShipmentsOverTime";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Package, DollarSign, Timer, AlertCircle, Truck } from "lucide-react";
+import { Loader2, Package, DollarSign, Timer, AlertCircle, Truck, Wallet, TrendingUp } from "lucide-react";
 
 function toDate(d) {
   if (!d) return null;
@@ -43,6 +43,8 @@ export default function AdvancedDashboard() {
   const [consolidations, setConsolidations] = useState([]);
   const [packages, setPackages] = useState([]);
   const [tickets, setTickets] = useState([]);
+  const [providerPayments, setProviderPayments] = useState([]);
+  const [pricingConfig, setPricingConfig] = useState(null);
 
   const [filters, setFilters] = useState({ startDate: "", endDate: "", serviceType: "all" });
   const [applied, setApplied] = useState(filters);
@@ -51,14 +53,18 @@ export default function AdvancedDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [cons, pkgs, tks] = await Promise.all([
+      const [cons, pkgs, tks, pays, pricing] = await Promise.all([
         base44.entities.Consolidation.list(),
         base44.entities.Package.list(),
         base44.entities.SupportTicket.list(),
+        base44.entities.ProviderPayment.list(),
+        base44.entities.PricingConfig.filter({ config_key: 'main' }),
       ]);
       setConsolidations(cons || []);
       setPackages(pkgs || []);
       setTickets(tks || []);
+      setProviderPayments(pays || []);
+      setPricingConfig((pricing && pricing[0]) || null);
     } catch (e) {
       setError(e?.message || 'Error al cargar datos');
     }
@@ -90,14 +96,22 @@ export default function AdvancedDashboard() {
       return dateOk;
     });
 
-    return { cons, pkgs, tks };
-  }, [consolidations, packages, tickets, applied]);
+    const pays = (providerPayments || []).filter(p => {
+      const d = toDate(p.payment_date);
+      const dateOk = !applied.startDate && !applied.endDate ? true : inRange(d, applied.startDate, applied.endDate);
+      return dateOk;
+    });
+
+    return { cons, pkgs, tks, pays };
+  }, [consolidations, packages, tickets, providerPayments, applied]);
 
   const metrics = useMemo(() => {
-    const { cons, pkgs, tks } = filtered;
+    const { cons, pkgs, tks, pays } = filtered;
 
     const totalCBM = cons.reduce((sum, c) => sum + (Number(c.cbm) || 0), 0);
-    const totalCosts = cons.reduce((sum, c) => sum + (Number(c.shipping_cost) || 0) + (Number(c.insurance_cost) || 0), 0);
+    const sumShipping = cons.reduce((sum, c) => sum + (Number(c.shipping_cost) || 0), 0);
+    const sumInsurance = cons.reduce((sum, c) => sum + (Number(c.insurance_cost) || 0), 0);
+    const totalRevenue = sumShipping + sumInsurance;
 
     // Promedio estimado (si existen ambas fechas)
     const withEta = cons.filter(c => c.shipping_date && c.estimated_delivery);
@@ -114,16 +128,22 @@ export default function AdvancedDashboard() {
     const openTickets = tks.filter(t => t.status === 'abierto' || t.status === 'en_proceso').length;
     const closedTickets = tks.filter(t => t.status === 'resuelto' || t.status === 'cerrado').length;
 
+    const providerPaymentsTotal = (pays || []).reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0);
+    const profitPct = Number(pricingConfig?.profit_percentage) || 10;
+    const profit = sumShipping * (profitPct / 100) + sumInsurance;
+
     return {
       consolidationsCount: cons.length,
       packagesCount: pkgs.length,
       totalCBM,
-      totalCosts,
+      totalRevenue,
+      providerPaymentsTotal,
+      profit,
       avgEtaDays,
       openTickets,
       closedTickets,
     };
-  }, [filtered]);
+  }, [filtered, pricingConfig]);
 
   const chartData = useMemo(() => {
     const consBy = groupByWeek(filtered.cons, (c) => toDate(c.shipping_date));
@@ -174,7 +194,9 @@ export default function AdvancedDashboard() {
         <KpiCard title="Consolidaciones" value={metrics.consolidationsCount} subtitle={applied.serviceType === 'all' ? 'Todos los servicios' : (applied.serviceType === 'aereo' ? 'Aéreo' : 'Marítimo')} icon={Truck} accent="indigo" />
         <KpiCard title="Paquetes" value={metrics.packagesCount} subtitle="Recibidos en período" icon={Package} accent="emerald" />
         <KpiCard title="CBM Total" value={metrics.totalCBM.toFixed(2)} subtitle="Volumen consolidado" icon={Package} accent="purple" />
-        <KpiCard title="Costos Totales (USD)" value={metrics.totalCosts.toFixed(2)} subtitle="Flete + Seguro" icon={DollarSign} accent="amber" />
+        <KpiCard title="Ingresos Totales (USD)" value={metrics.totalRevenue.toFixed(2)} subtitle="Flete + Seguro" icon={DollarSign} accent="amber" />
+        <KpiCard title="Pagos a Proveedores (USD)" value={metrics.providerPaymentsTotal.toFixed(2)} subtitle="Periodo seleccionado" icon={Wallet} accent="rose" />
+        <KpiCard title="Beneficios (USD)" value={metrics.profit.toFixed(2)} subtitle="10% Flete + Seguros" icon={TrendingUp} accent="emerald" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
