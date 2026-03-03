@@ -184,11 +184,6 @@ export default function AdminDashboard({ user }) {
               <TabsTrigger value="api">API</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Link to={createPageUrl('AdminAnalytics')}>
-            <Button size="sm" className="gap-2">
-              <TrendingUp className="h-4 w-4"/> Reporte avanzado
-            </Button>
-          </Link>
           <Button onClick={loadData} variant="outline" size="sm">
             Actualizar
           </Button>
