@@ -55,13 +55,15 @@ Deno.serve(async (req) => {
     XLSX.utils.book_append_sheet(wb, ws, 'Clientes 24h');
 
     const xlsxBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-    const blob = new Blob([xlsxBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
     const dateTag = toYYYYMMDD(now);
     const fileName = `nuevos_clientes_${dateTag}_2200.xlsx`;
 
+    // Create a File object for upload (better metadata compatibility)
+    const file = new File([xlsxBuffer], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
     // Upload privately and create signed URL
-    const uploadRes = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file: blob });
+    const uploadRes = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
     const fileUri = uploadRes?.file_uri;
 
     const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
