@@ -217,6 +217,23 @@ export default function ReportsSettings() {
             </table>
           )}
         </div>
+      {/* Confirmación de borrado de usuario */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar usuario</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Seguro que deseas eliminar al usuario "{userToDelete?.email}" y todos sus datos relacionados? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={deleting} onClick={() => handleDeleteUser(userToDelete)} className="bg-rose-600 hover:bg-rose-700">
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Eliminar definitivamente'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </CardContent>
     </Card>
   );
