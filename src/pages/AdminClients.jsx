@@ -76,11 +76,14 @@ export default function AdminClients({ user }) {
   const [exclusiveKey, setExclusiveKey] = useState('all');
   const [canExport, setCanExport] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportHistory, setExportHistory] = useState([]);
 
   useEffect(() => {
     loadClients();
     loadStateConfigs();
     loadRolePermissions();
+    loadExportHistory();
   }, []);
 
   const canViewClients = (user?.role === 'admin') || (user?.custom_role === 'customer_service');
@@ -112,8 +115,17 @@ export default function AdminClients({ user }) {
     }
   };
 
+  const loadExportHistory = async () => {
+    try {
+      const items = await base44.entities.ClientExportHistory.filter({}, '-created_date', 30);
+      setExportHistory(items || []);
+    } catch (e) {
+      setExportHistory([]);
+    }
+  };
 
-  const loadClients = async () => {
+
+   const loadClients = async () => {
     try {
       const usersPromise = canViewClients
         ? (user?.role === 'admin'
@@ -234,6 +246,51 @@ Email: ${client.email}`;
     
     navigator.clipboard.writeText(info);
     toast.success('Información copiada al portapapeles');
+  };
+
+  const handleGenerateDailyClientsReport = async () => {
+    try {
+      setExportLoading(true);
+      const res = await base44.functions.invoke('generateClientsReport');
+      const data = res?.data;
+      const headers = res?.headers || {};
+      let filename = 'clientes_nuevos.csv';
+      const cd = headers['content-disposition'] || headers['Content-Disposition'];
+      if (cd) {
+        const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(cd);
+        const name = decodeURIComponent(m?.[1] || m?.[2] || '');
+        if (name) filename = name;
+      }
+      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Reporte generado');
+      await loadExportHistory();
+    } catch (e) {
+      toast.error('No se pudo generar el reporte');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const handleDownloadHistoryItem = async (item) => {
+    try {
+      const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: item.file_uri, expires_in: 300 });
+      const a = document.createElement('a');
+      a.href = signed_url;
+      a.download = item.filename || 'clientes_nuevos.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      toast.error('No se pudo descargar el archivo');
+    }
   };
 
   const handleExportClients = async () => {
@@ -907,9 +964,38 @@ Email: ${client.email}`;
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" onClick={resetAllFilters} className="ml-auto">Limpiar filtros</Button>
-          </div>
-              </CardContent>
-              </Card>
+            </div>
+
+            {/* Export History (last 30) */}
+            <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+             <div className="flex items-center justify-between mb-2">
+               <div className="text-sm font-medium text-slate-700">Historial de exportaciones (últimos 30)</div>
+               <div className="text-xs text-slate-500">Ventana: 8:00am ↔ 8:00am (America/Caracas)</div>
+             </div>
+             {exportHistory.length === 0 ? (
+               <div className="text-sm text-slate-500">Aún no hay exportaciones.</div>
+             ) : (
+               <div className="space-y-2">
+                 {exportHistory.map((item) => (
+                   <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-white rounded-md border">
+                     <div className="min-w-0">
+                       <div className="text-sm font-medium text-slate-800 truncate">{item.filename}</div>
+                       <div className="text-xs text-slate-500 truncate">
+                         Registros: {item.record_count || 0} ·
+                         {' '}Desde {new Date(item.from_iso).toLocaleString('es-VE', { timeZone: 'America/Caracas' })}
+                         {' '}hasta {new Date(item.to_iso).toLocaleString('es-VE', { timeZone: 'America/Caracas' })}
+                       </div>
+                     </div>
+                     <Button size="sm" variant="outline" onClick={() => handleDownloadHistoryItem(item)}>
+                       <Download className="h-4 w-4 mr-1" /> Descargar
+                     </Button>
+                   </div>
+                 ))}
+               </div>
+             )}
+            </div>
+               </CardContent>
+               </Card>
 
       {/* Clients List */}
       {filteredClients.length === 0 ? (
