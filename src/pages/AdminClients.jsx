@@ -432,36 +432,6 @@ Email: ${client.email}`;
       setExportLoading(false);
     }
   };
-    try {
-      if (filteredClients.length === 0) {
-        toast.error('No hay clientes para exportar');
-        return;
-      }
-      const lines = [];
-      filteredClients.forEach((client, index) => {
-        const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim();
-        lines.push(`Nombre: ${fullName}`);
-        lines.push(`Estado: ${client.state || ''}`);
-        lines.push(`Ciudad: ${client.city || ''}`);
-        lines.push(`Direccion: ${client.address || ''}`);
-        lines.push(`WhatsApp: ${client.whatsapp || ''}`);
-        lines.push(`Email: ${client.email}`);
-        lines.push(`Codigo asignado: ${client.shipping_mark || ''}`);
-        if (index < filteredClients.length - 1) lines.push('');
-      });
-      const txtContent = lines.join('\n');
-      const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `clientes-filtrados-${new Date().toISOString().split('T')[0]}.txt`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success(`${filteredClients.length} clientes exportados a TXT`);
-    } catch (error) {
-      toast.error('Error al exportar datos');
-    }
-  };
 
    const handleDelete = async () => {
     if (!deleteClient) return;
