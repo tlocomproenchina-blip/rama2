@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, MapPin, Phone, Save, Loader2, DollarSign, CheckCircle2 } from 'lucide-react';
+import { User, MapPin, Phone, Save, Loader2, DollarSign, CheckCircle2, Trash2, AlertTriangle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Profile({ user, refreshUser }) {
@@ -25,6 +26,42 @@ export default function Profile({ user, refreshUser }) {
   const [pricingConfig, setPricingConfig] = useState(null);
   const [appConfig, setAppConfig] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [requesting, setRequesting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  const daysRemaining = (() => {
+    if (!user?.deletion_requested_at) return 7;
+    const start = new Date(user.deletion_requested_at).getTime();
+    const now = Date.now();
+    const msLeft = (start + 7*24*60*60*1000) - now;
+    return Math.max(0, Math.ceil(msLeft / (24*60*60*1000)));
+  })();
+
+  const handleRequestDeletion = async () => {
+    setRequesting(true);
+    try {
+      await base44.functions.invoke('requestAccountDeletion', { reason: deleteReason });
+      toast.success('Solicitud enviada. Puedes cancelarla en los próximos 7 días.');
+      setShowDeleteModal(false);
+      setDeleteReason('');
+      if (refreshUser) await refreshUser();
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const handleCancelDeletion = async () => {
+    setCancelling(true);
+    try {
+      await base44.functions.invoke('cancelAccountDeletion', {});
+      toast.success('Solicitud cancelada.');
+      if (refreshUser) await refreshUser();
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const getMissingFields = () => {
     const missing = [];
@@ -430,6 +467,84 @@ export default function Profile({ user, refreshUser }) {
           </p>
         </CardContent>
       </Card>
+
+      {/* Eliminar Cuenta */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-rose-700">
+            <Trash2 className="h-5 w-5" />
+            Eliminar cuenta
+          </CardTitle>
+          <CardDescription>Eliminar tu cuenta y datos tras 7 días de gracia.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {user?.deletion_requested ? (
+            <div className="p-4 border rounded-lg bg-rose-50 border-rose-200">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-rose-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-rose-800 font-medium">
+                    Solicitud de eliminación en curso
+                  </p>
+                  <p className="text-sm text-rose-700 mt-1 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Tu cuenta se eliminará en {daysRemaining} días si no cancelas.
+                  </p>
+                  {user?.deletion_reason && (
+                    <p className="text-xs text-rose-700 mt-2">
+                      Motivo: {user.deletion_reason}
+                    </p>
+                  )}
+                  <div className="mt-3">
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelDeletion}
+                      disabled={cancelling}
+                      className="border-rose-300 text-rose-700 hover:bg-rose-100"
+                    >
+                      {cancelling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                      Cancelar solicitud
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-slate-600">
+                Esta acción inicia un proceso de eliminación con 7 días de gracia. Podrás cancelarlo antes de que venza.
+              </p>
+              <Button variant="destructive" onClick={() => setShowDeleteModal(true)} className="bg-rose-600 hover:bg-rose-700">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Solicitar eliminación de cuenta
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogDescription>
+              Tu cuenta y datos se eliminarán después de 7 días. Puedes cancelar en cualquier momento antes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reason">Motivo (opcional)</Label>
+            <Textarea id="reason" value={deleteReason} onChange={(e)=>setDeleteReason(e.target.value)} placeholder="Cuéntanos por qué deseas eliminar tu cuenta" rows={3} />
+          </div>
+          <DialogFooter className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
+            <Button className="bg-rose-600 hover:bg-rose-700" onClick={handleRequestDeletion} disabled={requesting}>
+              {requesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Confirmar solicitud
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
