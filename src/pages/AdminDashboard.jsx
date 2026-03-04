@@ -105,6 +105,8 @@ export default function AdminDashboard({ user }) {
     ]
   }), [pkgsR, consR]);
 
+  const rangeLabel = range === 'today' ? 'Hoy' : range === '7d' ? '7 días' : range === '30d' ? '30 días' : 'Todo el tiempo';
+
   const recentActivity = React.useMemo(() => {
     const items = [];
     pkgsR.slice(0, 100).forEach(p => items.push({
@@ -258,16 +260,8 @@ export default function AdminDashboard({ user }) {
             <Button variant={range === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setRange('today')}>Hoy</Button>
             <Button variant={range === '7d' ? 'default' : 'outline'} size="sm" onClick={() => setRange('7d')}>7 días</Button>
             <Button variant={range === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setRange('30d')}>30 días</Button>
+            <Button variant={range === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setRange('all')}>Todo el tiempo</Button>
           </div>
-          <Tabs value={mainTab} onValueChange={setMainTab}>
-            <TabsList>
-              <TabsTrigger value="resumen">Resumen</TabsTrigger>
-              <TabsTrigger value="api">API</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button onClick={loadData} variant="outline" size="sm">
-            Actualizar
-          </Button>
         </div>
       </div>
 
@@ -328,7 +322,7 @@ export default function AdminDashboard({ user }) {
       {/* Estado general de envíos + Actividad */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {(appConfig?.admin_dashboard_prefs?.showStatusPie ?? true) && (
-          <PieChartCard title={`Estado general de envíos (${range === 'today' ? 'Hoy' : range})`} data={rangeStats.shipmentsPie} />
+          <PieChartCard title={`Estado general de envíos (${rangeLabel})`} data={rangeStats.shipmentsPie} />
         )}
         {(appConfig?.admin_dashboard_prefs?.showRecent ?? true) && (
           <RecentActivity items={recentActivity} />
