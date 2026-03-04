@@ -49,8 +49,12 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Best-effort auth (automation may have no user)
-    try { await base44.auth.me(); } catch (_) {}
+    // Auth: allow scheduler (no user), restrict manual runs to admin
+    let user = null;
+    try { user = await base44.auth.me(); } catch (_) {}
+    if (user && user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
 
     const { startISO, endISO, endLocalY, endLocalM, endLocalD } = getCaracasWindow(new Date());
 
