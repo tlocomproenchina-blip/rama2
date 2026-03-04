@@ -261,7 +261,7 @@ Email: ${client.email}`;
         const name = decodeURIComponent(m?.[1] || m?.[2] || '');
         if (name) filename = name;
       }
-      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -704,7 +704,7 @@ Email: ${client.email}`;
               title="Genera y descarga CSV con clientes nuevos de 8am a 8am (America/Caracas)"
             >
               {exportLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-              Exportar 8am–8am (Excel CSV)
+              Exportar 8am–8am (Excel XLSX)
             </Button>
             <Button 
               onClick={handleExportFilteredClients}
