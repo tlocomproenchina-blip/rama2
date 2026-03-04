@@ -77,6 +77,7 @@ export default function AdminClients({ user }) {
   const [canExport, setCanExport] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [selectionExportLoading, setSelectionExportLoading] = useState(false);
   const [exportHistory, setExportHistory] = useState([]);
 
   useEffect(() => {
@@ -290,6 +291,50 @@ Email: ${client.email}`;
       a.remove();
     } catch (e) {
       toast.error('No se pudo descargar el archivo');
+    }
+  };
+
+  const handleExportFilteredClientsXlsx = async () => {
+    try {
+      setSelectionExportLoading(true);
+      const rows = filteredClients.map(c => ({
+        first_name: c.first_name || '',
+        last_name: c.last_name || '',
+        state: c.state || '',
+        city: c.city || '',
+        address: c.address || '',
+        whatsapp: c.whatsapp || '',
+        email: c.email || ''
+      }));
+      if (rows.length === 0) {
+        toast.error('No hay clientes para exportar');
+        setSelectionExportLoading(false);
+        return;
+      }
+      const res = await base44.functions.invoke('exportFilteredClientsXlsx', { rows });
+      const data = res?.data;
+      const headers = res?.headers || {};
+      let filename = 'clientes_filtrados.xlsx';
+      const cd = headers['content-disposition'] || headers['Content-Disposition'];
+      if (cd) {
+        const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(cd);
+        const name = decodeURIComponent(m?.[1] || m?.[2] || '');
+        if (name) filename = name;
+      }
+      const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Exportados ${rows.length} clientes a Excel`);
+    } catch (e) {
+      toast.error('No se pudo exportar a Excel');
+    } finally {
+      setSelectionExportLoading(false);
     }
   };
 
@@ -707,12 +752,13 @@ Email: ${client.email}`;
               Exportar 8am–8am (Excel XLSX)
             </Button>
             <Button 
-              onClick={handleExportFilteredClients}
+              onClick={handleExportFilteredClientsXlsx}
+              disabled={selectionExportLoading}
               className="bg-blue-600 hover:bg-blue-700"
-              title="Exporta los clientes según los filtros actuales"
+              title="Exporta los clientes filtrados a Excel (.xlsx)"
             >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Selección (TXT)
+              {selectionExportLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Exportar Selección (Excel)
             </Button>
             <Button 
               onClick={handleExportClients}
