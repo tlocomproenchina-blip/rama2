@@ -4,11 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell } from 'lucide-react';
+import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell, UserCheck, UserX } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import StatusBadge from '@/components/StatusBadge';
 import ApiSystemPanel from '@/components/api/ApiSystemPanel';
+import KeyStat from '@/components/dashboard/KeyStat';
+import PieChartCard from '@/components/dashboard/PieChartCard';
+import RecentActivity from '@/components/dashboard/RecentActivity';
+import DashboardCustomizer from '@/components/dashboard/DashboardCustomizer';
 
 export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
@@ -27,6 +31,9 @@ export default function AdminDashboard({ user }) {
   const [hasMorePackages, setHasMorePackages] = useState(false);
   const [hasMoreConsolidations, setHasMoreConsolidations] = useState(false);
   const [hasMoreInvoices, setHasMoreInvoices] = useState(false);
+  const [range, setRange] = useState('7d');
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const [appConfig, setAppConfig] = useState(null);
 
   const [invFilter, setInvFilter] = useState('pendiente');
   const [consFilter, setConsFilter] = useState('todas');
@@ -42,11 +49,12 @@ export default function AdminDashboard({ user }) {
   const loadData = async () => {
     try {
       // Cargar solo lo necesario para la pestaña Resumen y respetar los límites
-      const [packages, consolidations, users, invoices] = await Promise.all([
+      const [packages, consolidations, users, invoices, cfg] = await Promise.all([
         base44.entities.Package.list('-created_date', packagesLimit),
         base44.entities.Consolidation.list('-created_date', consolidationsLimit),
         base44.entities.User.filter({ role: 'user' }),
-        base44.entities.Invoice.list('-created_date', invoicesLimit)
+        base44.entities.Invoice.list('-created_date', invoicesLimit),
+        base44.entities.AppConfig.filter({ config_key: 'main' })
       ]);
 
       setHasMorePackages(packages.length === packagesLimit);
@@ -54,6 +62,7 @@ export default function AdminDashboard({ user }) {
       setHasMoreInvoices(invoices.length === invoicesLimit);
       
       setData({ packages, consolidations, users, invoices });
+      if (Array.isArray(cfg) && cfg.length > 0) setAppConfig(cfg[0]);
 
       // Cargar notificaciones del admin (solo si estamos en resumen)
       if (user?.email) {
@@ -67,6 +76,51 @@ export default function AdminDashboard({ user }) {
     }
     setLoading(false);
   };
+
+  const filterByRange = (arr, r) => {
+    if (!Array.isArray(arr)) return [];
+    const now = new Date();
+    const start = new Date();
+    if (r === 'today') { start.setHours(0,0,0,0); }
+    else if (r === '7d') { start.setTime(now.getTime() - 7*24*60*60*1000); }
+    else if (r === '30d') { start.setTime(now.getTime() - 30*24*60*60*1000); }
+    else { start.setTime(0); }
+    return arr.filter(it => new Date(it.created_date) >= start);
+  };
+
+  const pkgsR = React.useMemo(() => filterByRange(data.packages, range), [data.packages, range]);
+  const consR = React.useMemo(() => filterByRange(data.consolidations, range), [data.consolidations, range]);
+
+  const clientsActive = React.useMemo(() => data.users.filter(u => u.is_active !== false).length, [data.users]);
+  const clientsInactive = React.useMemo(() => data.users.filter(u => u.is_active === false).length, [data.users]);
+
+  const rangeStats = React.useMemo(() => ({
+    packagesReceived: pkgsR.filter(p => p.status === 'recibido').length,
+    packagesInTransit: pkgsR.filter(p => p.status === 'en_transito').length,
+    shipmentsPie: [
+      { name: 'En tránsito', value: consR.filter(c => c.status === 'en_transito').length },
+      { name: 'Disponible', value: consR.filter(c => c.status === 'disponible').length },
+      { name: 'Entregado', value: consR.filter(c => c.status === 'entregado').length },
+      { name: 'Pago validado', value: consR.filter(c => c.payment_validated).length }
+    ]
+  }), [pkgsR, consR]);
+
+  const recentActivity = React.useMemo(() => {
+    const items = [];
+    pkgsR.slice(0, 100).forEach(p => items.push({
+      type: 'package',
+      title: `Paquete ${p.tracking_number}`,
+      description: p.client_email,
+      date: p.created_date
+    }));
+    consR.slice(0, 100).forEach(c => items.push({
+      type: 'consolidation',
+      title: `Consolidación ${c.consolidation_tracking || ''}`.trim(),
+      description: c.status,
+      date: c.created_date
+    }));
+    return items.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
+  }, [pkgsR, consR]);
 
   const stats = useMemo(() => {
     const today = new Date();
@@ -189,7 +243,22 @@ export default function AdminDashboard({ user }) {
           <h1 className="text-3xl font-bold text-slate-800">Panel de Control</h1>
           <p className="text-slate-500">{mainTab === 'api' ? 'Estado del sistema y cola de API' : 'Resumen de operaciones'}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Tabs value={mainTab} onValueChange={setMainTab}>
+            <TabsList>
+              <TabsTrigger value="resumen">Resumen</TabsTrigger>
+              <TabsTrigger value="api">API</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-2">
+            <Button onClick={loadData} variant="outline" size="sm">Actualizar</Button>
+            <Button onClick={() => setShowCustomizer(true)} size="sm" className="bg-slate-800 hover:bg-slate-900 text-white">Personalizar</Button>
+          </div>
+          <div className="ml-auto flex items-center gap-1">
+            <Button variant={range === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setRange('today')}>Hoy</Button>
+            <Button variant={range === '7d' ? 'default' : 'outline'} size="sm" onClick={() => setRange('7d')}>7 días</Button>
+            <Button variant={range === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setRange('30d')}>30 días</Button>
+          </div>
           <Tabs value={mainTab} onValueChange={setMainTab}>
             <TabsList>
               <TabsTrigger value="resumen">Resumen</TabsTrigger>
@@ -237,6 +306,34 @@ export default function AdminDashboard({ user }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Métricas Clave (personalizables) */}
+      {((appConfig?.admin_dashboard_prefs || {}).showClients !== false || (appConfig?.admin_dashboard_prefs || {}).showPackages !== false) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {(appConfig?.admin_dashboard_prefs?.showClients ?? true) && (
+            <KeyStat title="Clientes activos" value={clientsActive} icon={UserCheck} accent="bg-emerald-100 text-emerald-700" />
+          )}
+          {(appConfig?.admin_dashboard_prefs?.showClients ?? true) && (
+            <KeyStat title="Clientes inactivos" value={clientsInactive} icon={UserX} accent="bg-rose-100 text-rose-700" />
+          )}
+          {(appConfig?.admin_dashboard_prefs?.showPackages ?? true) && (
+            <KeyStat title="Paquetes en tránsito" value={rangeStats.packagesInTransit} icon={Truck} accent="bg-indigo-100 text-indigo-700" />
+          )}
+          {(appConfig?.admin_dashboard_prefs?.showPackages ?? true) && (
+            <KeyStat title="Paquetes recibidos" value={rangeStats.packagesReceived} icon={Package} accent="bg-blue-100 text-blue-700" />
+          )}
+        </div>
+      )}
+
+      {/* Estado general de envíos + Actividad */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {(appConfig?.admin_dashboard_prefs?.showStatusPie ?? true) && (
+          <PieChartCard title={`Estado general de envíos (${range === 'today' ? 'Hoy' : range})`} data={rangeStats.shipmentsPie} />
+        )}
+        {(appConfig?.admin_dashboard_prefs?.showRecent ?? true) && (
+          <RecentActivity items={recentActivity} />
+        )}
+      </div>
 
       {/* Métricas Principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -557,6 +654,20 @@ export default function AdminDashboard({ user }) {
       </div>
         </>
       )}
+      <DashboardCustomizer 
+        open={showCustomizer} 
+        onOpenChange={setShowCustomizer}
+        prefs={appConfig?.admin_dashboard_prefs}
+        onSave={async (p) => {
+          try {
+            if (appConfig?.id) {
+              await base44.entities.AppConfig.update(appConfig.id, { admin_dashboard_prefs: p });
+              setAppConfig(prev => ({ ...(prev || {}), admin_dashboard_prefs: p }));
+            }
+          } catch (e) {}
+          setShowCustomizer(false);
+        }}
+      />
     </div>
   );
 }
