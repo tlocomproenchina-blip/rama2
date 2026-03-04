@@ -291,6 +291,14 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         flex flex-col
       `}>
+        <style>{`
+          /* Admin-only thin scrollbar for sidebar nav */
+          .b44-admin-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,.6) transparent; }
+          .b44-admin-scrollbar::-webkit-scrollbar { width: 8px; }
+          .b44-admin-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(148,163,184,.6); border-radius: 8px; }
+          .b44-admin-scrollbar:hover::-webkit-scrollbar-thumb { background-color: rgba(148,163,184,.8); }
+        `}</style>
+
         {/* Header */}
         <div className="bg-[#1c3f82] p-6 border-b border-slate-700/50">
           <div className="flex items-center justify-between">
@@ -349,7 +357,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1">
+        <nav className={`bg-[#1c3f82] p-4 flex-1 ${isAdmin ? 'overflow-y-auto b44-admin-scrollbar' : 'overflow-y-visible'} space-y-1`}>
           {customRole && !roleConfig ? (
             <div className="space-y-2 animate-pulse">
               <div className="h-10 bg-slate-700/40 rounded-xl" />
