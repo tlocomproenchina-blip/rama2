@@ -38,6 +38,7 @@ export default function Layout({ children, currentPageName }) {
   const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const isAdminPanel = user?.role === 'admin';
 
   // Mobile tab navigation mappings
   const userTabDefaults = {
