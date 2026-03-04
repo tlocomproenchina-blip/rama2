@@ -73,7 +73,7 @@ export default function AdminDashboard({ user }) {
   const handleGenerateNow = async () => {
     try {
       setGeneratingNow(true);
-      const res = await base44.functions.invoke('generateDailyNewClientsExcel', {});
+      const res = await base44.functions.invoke('generateDailyNewClientsExcel', { filter: 'today' });
       const link = res?.data?.file_url;
       const count = res?.data?.count ?? 0;
       toast.success(`Excel generado: ${count} registros`);

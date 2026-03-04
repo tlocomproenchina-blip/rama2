@@ -38,6 +38,14 @@ function getCaracasWindow(now = new Date()) {
   return { startISO: startUTC.toISOString(), endISO: endUTC.toISOString(), endLocalY: endY, endLocalM: endM, endLocalD: endD };
 }
 
+// Caracas "today" window: [today 00:00, tomorrow 00:00)
+function getCaracasTodayWindow(now = new Date()) {
+  const p = partsInCaracas(now);
+  const startUTC = dateAtCaracasUTC(p.y, p.m, p.d, 0, 0, 0);
+  const endUTC = dateAtCaracasUTC(p.y, p.m, p.d + 1, 0, 0, 0);
+  return { startISO: startUTC.toISOString(), endISO: endUTC.toISOString(), endLocalY: p.y, endLocalM: p.m, endLocalD: p.d };
+}
+
 function toYYYYMMDD(date) {
   const y = date.getUTCFullYear();
   const m = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -56,7 +64,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const { startISO, endISO, endLocalY, endLocalM, endLocalD } = getCaracasWindow(new Date());
+    let payload = {};
+    try { payload = await req.json(); } catch (_) {}
+    const filter = payload?.filter || 'last24h';
+
+    let startISO, endISO, endLocalY, endLocalM, endLocalD;
+    if (filter === 'today') {
+      ({ startISO, endISO, endLocalY, endLocalM, endLocalD } = getCaracasTodayWindow(new Date()));
+    } else {
+      ({ startISO, endISO, endLocalY, endLocalM, endLocalD } = getCaracasWindow(new Date()));
+    }
 
     // Fetch admins (recipients)
     const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
@@ -95,7 +112,9 @@ Deno.serve(async (req) => {
     const xlsxBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
 
     const dateTag = `${endLocalY}${String(endLocalM).padStart(2,'0')}${String(endLocalD).padStart(2,'0')}`;
-    const fileName = `nuevos_clientes_${dateTag}_2200.xlsx`;
+    const fileName = (filter === 'today')
+      ? `nuevos_clientes_${dateTag}_hoy.xlsx`
+      : `nuevos_clientes_${dateTag}_2200.xlsx`;
 
     // Create a File object for upload (better metadata compatibility)
     const file = new File([xlsxBuffer], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -112,8 +131,12 @@ Deno.serve(async (req) => {
     const link = signed?.signed_url;
 
     // Send email to all admins
-    const subject = `Nuevos clientes (últimas 24h) - ${dateTag} 22:00 Caracas`;
-    const body = `Hola equipo,\n\nSe generó el Excel con los clientes registrados en las últimas 24 horas (ventana 22:00→22:00 America/Caracas).\nRegistros: ${rows.length}.\n\nDescarga segura (expira en 7 días):\n${link}\n\nSaludos,\nSistema TLEC`;
+    const subject = (filter === 'today')
+      ? `Nuevos clientes (hoy) - ${dateTag} Caracas`
+      : `Nuevos clientes (últimas 24h) - ${dateTag} 22:00 Caracas`;
+    const body = (filter === 'today')
+      ? `Hola equipo,\n\nSe generó el Excel con los clientes registrados HOY (America/Caracas).\nRegistros: ${rows.length}.\n\nDescarga segura (expira en 7 días):\n${link}\n\nSaludos,\nSistema TLEC`
+      : `Hola equipo,\n\nSe generó el Excel con los clientes registrados en las últimas 24 horas (ventana 22:00→22:00 America/Caracas).\nRegistros: ${rows.length}.\n\nDescarga segura (expira en 7 días):\n${link}\n\nSaludos,\nSistema TLEC`;
 
     await Promise.all(
       recipients.map(to => base44.asServiceRole.integrations.Core.SendEmail({
