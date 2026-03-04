@@ -394,6 +394,49 @@ Email: ${client.email}`;
         toast.error('No hay clientes para exportar');
         return;
       }
+      setExportLoading(true);
+      // Mapeo mínimo de campos requeridos por el XLSX
+      const rows = filteredClients.map(c => ({
+        state: c.state || '',
+        city: c.city || '',
+        address: c.address || '',
+        first_name: c.first_name || '',
+        last_name: c.last_name || '',
+        whatsapp: c.whatsapp || '',
+        email: c.email || ''
+      }));
+
+      const res = await base44.functions.invoke('generateClientsSelectionXlsx', { rows });
+      const data = res?.data;
+      const headers = res?.headers || {};
+      let filename = 'clientes_seleccion.xlsx';
+      const cd = headers['content-disposition'] || headers['Content-Disposition'];
+      if (cd) {
+        const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(cd);
+        const name = decodeURIComponent(m?.[1] || m?.[2] || '');
+        if (name) filename = name;
+      }
+      const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Exportados ${rows.length} clientes a Excel`);
+    } catch (error) {
+      toast.error('Error al exportar selección');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+    try {
+      if (filteredClients.length === 0) {
+        toast.error('No hay clientes para exportar');
+        return;
+      }
       const lines = [];
       filteredClients.forEach((client, index) => {
         const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim();
@@ -707,12 +750,13 @@ Email: ${client.email}`;
               Exportar 8am–8am (Excel XLSX)
             </Button>
             <Button 
-              onClick={handleExportFilteredClients}
-              className="bg-blue-600 hover:bg-blue-700"
-              title="Exporta los clientes según los filtros actuales"
+             onClick={handleExportFilteredClients}
+             disabled={exportLoading}
+             className="bg-blue-600 hover:bg-blue-700"
+             title="Exporta los clientes filtrados en Excel con formato"
             >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Selección (TXT)
+             {exportLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+             Exportar Selección (Excel XLSX)
             </Button>
             <Button 
               onClick={handleExportClients}
