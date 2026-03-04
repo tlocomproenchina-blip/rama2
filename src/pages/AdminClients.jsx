@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -78,6 +79,8 @@ export default function AdminClients({ user }) {
   const [backfilling, setBackfilling] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [exportHistory, setExportHistory] = useState([]);
+  const latestExport = React.useMemo(() => exportHistory[0] || null, [exportHistory]);
+  const olderExports = React.useMemo(() => exportHistory.slice(1), [exportHistory]);
 
   useEffect(() => {
     loadClients();
@@ -975,33 +978,72 @@ Email: ${client.email}`;
             <Button variant="outline" size="sm" onClick={resetAllFilters} className="ml-auto">Limpiar filtros</Button>
             </div>
 
-            {/* Export History (last 30) */}
+            {/* Export History (latest + collapsible rest) */}
             <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-             <div className="flex items-center justify-between mb-2">
-               <div className="text-sm font-medium text-slate-700">Historial de exportaciones (últimos 30)</div>
-               <div className="text-xs text-slate-500">Ventana: 8:00am ↔ 8:00am (America/Caracas)</div>
-             </div>
-             {exportHistory.length === 0 ? (
-               <div className="text-sm text-slate-500">Aún no hay exportaciones.</div>
-             ) : (
-               <div className="space-y-2">
-                 {exportHistory.map((item) => (
-                   <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-white rounded-md border">
-                     <div className="min-w-0">
-                       <div className="text-sm font-medium text-slate-800 truncate">{item.filename}</div>
-                       <div className="text-xs text-slate-500 truncate">
-                         Registros: {item.record_count || 0} ·
-                         {' '}Desde {new Date(item.from_iso).toLocaleString('es-VE', { timeZone: 'America/Caracas' })}
-                         {' '}hasta {new Date(item.to_iso).toLocaleString('es-VE', { timeZone: 'America/Caracas' })}
-                       </div>
-                     </div>
-                     <Button size="sm" variant="outline" onClick={() => handleDownloadHistoryItem(item)}>
-                       <Download className="h-4 w-4 mr-1" /> Descargar
-                     </Button>
-                   </div>
-                 ))}
-               </div>
-             )}
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-slate-700">Historial de exportaciones</div>
+                <div className="text-xs text-slate-500">Ventana: 8:00am ↔ 8:00am (America/Caracas)</div>
+              </div>
+              {(!latestExport) ? (
+                <div className="text-sm text-slate-500">Aún no hay exportaciones.</div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Último generado */}
+                  <div className="p-3 bg-white rounded-md border shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-slate-800 truncate">{latestExport.filename}</div>
+                        <div className="text-xs text-slate-500 truncate">
+                          Registros: {latestExport.record_count || 0} · Desde {new Date(latestExport.from_iso).toLocaleString('es-VE', { timeZone: 'America/Caracas' })} hasta {new Date(latestExport.to_iso).toLocaleString('es-VE', { timeZone: 'America/Caracas' })}
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {latestExport.triggered_by ? (
+                            <>Manual • {new Date(latestExport.created_date).toLocaleString('es-VE', { timeZone: 'America/Caracas' })}</>
+                          ) : (
+                            <>Automático</>
+                          )}
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => handleDownloadHistoryItem(latestExport)}>
+                        <Download className="h-4 w-4 mr-1" /> Descargar
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Resto en desplegable */}
+                  {olderExports.length > 0 && (
+                    <Accordion type="single" collapsible>
+                      <AccordionItem value="older">
+                        <AccordionTrigger className="text-sm">Ver exportaciones anteriores ({olderExports.length})</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-2 mt-2">
+                            {olderExports.map((item) => (
+                              <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-white rounded-md border">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium text-slate-800 truncate">{item.filename}</div>
+                                  <div className="text-xs text-slate-500 truncate">
+                                    Registros: {item.record_count || 0} · Desde {new Date(item.from_iso).toLocaleString('es-VE', { timeZone: 'America/Caracas' })} hasta {new Date(item.to_iso).toLocaleString('es-VE', { timeZone: 'America/Caracas' })}
+                                  </div>
+                                  <div className="text-xs text-slate-500 mt-0.5">
+                                    {item.triggered_by ? (
+                                      <>Manual • {new Date(item.created_date).toLocaleString('es-VE', { timeZone: 'America/Caracas' })}</>
+                                    ) : (
+                                      <>Automático</>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button size="sm" variant="outline" onClick={() => handleDownloadHistoryItem(item)}>
+                                  <Download className="h-4 w-4 mr-1" /> Descargar
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+                </div>
+              )}
             </div>
                </CardContent>
                </Card>
