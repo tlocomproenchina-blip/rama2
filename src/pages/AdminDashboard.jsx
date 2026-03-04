@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell, Download } from 'lucide-react';
+import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import StatusBadge from '@/components/StatusBadge';
@@ -32,7 +32,6 @@ export default function AdminDashboard({ user }) {
   const [consFilter, setConsFilter] = useState('todas');
   const [notifFilter, setNotifFilter] = useState('todas');
   const [mainTab, setMainTab] = useState('resumen');
-  const [genLoading, setGenLoading] = useState(false);
 
   useEffect(() => {
     if (mainTab === 'resumen') {
@@ -67,22 +66,6 @@ export default function AdminDashboard({ user }) {
       console.error('Error loading dashboard:', error);
     }
     setLoading(false);
-  };
-
-  const handleGenerateReport = async () => {
-    setGenLoading(true);
-    try {
-      const { data } = await base44.functions.invoke('generateDailyClientsXlsx', {});
-      if (data?.signed_url) {
-        window.open(data.signed_url, '_blank', 'noopener');
-      } else {
-        alert('Reporte generado, pero no se recibió un enlace de descarga.');
-      }
-    } catch (e) {
-      console.error('Error generando reporte:', e);
-      alert('No se pudo generar el reporte.');
-    }
-    setGenLoading(false);
   };
 
   const stats = useMemo(() => {
@@ -213,9 +196,6 @@ export default function AdminDashboard({ user }) {
               <TabsTrigger value="api">API</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button onClick={handleGenerateReport} size="sm" className="gap-2">
-            {genLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Generar Excel (24h)
-          </Button>
           <Button onClick={loadData} variant="outline" size="sm">
             Actualizar
           </Button>

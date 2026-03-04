@@ -52,6 +52,7 @@ import AccountingDashboard from './pages/AccountingDashboard';
 import AdminAccountsPayable from './pages/AdminAccountsPayable';
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
+import AdminDashboard from './pages/AdminDashboard';
 import AdminDelete from './pages/AdminDelete';
 import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
 import AdminEmailTemplates from './pages/AdminEmailTemplates';
@@ -69,6 +70,7 @@ import AdminProviderPayments from './pages/AdminProviderPayments';
 import AdminProviders from './pages/AdminProviders';
 import AdminReports from './pages/AdminReports';
 import AdminRoles from './pages/AdminRoles';
+import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
@@ -88,8 +90,6 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminSettings from './pages/AdminSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -99,6 +99,7 @@ export const PAGES = {
     "AdminAccountsPayable": AdminAccountsPayable,
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
+    "AdminDashboard": AdminDashboard,
     "AdminDelete": AdminDelete,
     "AdminEmailCampaigns": AdminEmailCampaigns,
     "AdminEmailTemplates": AdminEmailTemplates,
@@ -116,6 +117,7 @@ export const PAGES = {
     "AdminProviders": AdminProviders,
     "AdminReports": AdminReports,
     "AdminRoles": AdminRoles,
+    "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
@@ -135,8 +137,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminDashboard": AdminDashboard,
-    "AdminSettings": AdminSettings,
 }
 
 export const pagesConfig = {
