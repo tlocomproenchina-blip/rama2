@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell } from 'lucide-react';
+import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell, FileSpreadsheet } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import StatusBadge from '@/components/StatusBadge';
 import ApiSystemPanel from '@/components/api/ApiSystemPanel';
+import { toast } from 'sonner';
 
 export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
@@ -32,6 +33,7 @@ export default function AdminDashboard({ user }) {
   const [consFilter, setConsFilter] = useState('todas');
   const [notifFilter, setNotifFilter] = useState('todas');
   const [mainTab, setMainTab] = useState('resumen');
+  const [generatingNow, setGeneratingNow] = useState(false);
 
   useEffect(() => {
     if (mainTab === 'resumen') {
@@ -66,6 +68,22 @@ export default function AdminDashboard({ user }) {
       console.error('Error loading dashboard:', error);
     }
     setLoading(false);
+  };
+
+  const handleGenerateNow = async () => {
+    try {
+      setGeneratingNow(true);
+      const res = await base44.functions.invoke('generateDailyNewClientsExcel', {});
+      const link = res?.data?.file_url;
+      const count = res?.data?.count ?? 0;
+      toast.success(`Excel generado: ${count} registros`);
+      if (link) window.open(link, '_blank');
+    } catch (e) {
+      toast.error('No se pudo generar el Excel');
+      console.error(e);
+    } finally {
+      setGeneratingNow(false);
+    }
   };
 
   const stats = useMemo(() => {
@@ -196,6 +214,10 @@ export default function AdminDashboard({ user }) {
               <TabsTrigger value="api">API</TabsTrigger>
             </TabsList>
           </Tabs>
+          <Button onClick={handleGenerateNow} size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white" disabled={generatingNow}>
+            <FileSpreadsheet className="h-4 w-4" />
+            {generatingNow ? 'Generando…' : 'Generar Excel ahora'}
+          </Button>
           <Button onClick={loadData} variant="outline" size="sm">
             Actualizar
           </Button>
