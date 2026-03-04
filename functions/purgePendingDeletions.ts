@@ -74,7 +74,20 @@ Deno.serve(async (req) => {
         for (const c of cons) { await base44.asServiceRole.entities.Consolidation.delete(c.id); entry.counts.consolidations += 1; }
       }
 
-      // 5) Finally, delete user
+      // 5) Log purge audit then delete user
+      const purgedAt = new Date().toISOString();
+      try {
+        await base44.asServiceRole.entities.DeletionAudit.create({
+          user_email: u.email,
+          action: 'purge',
+          performed_by: 'system',
+          performed_by_role: 'system',
+          at: purgedAt,
+          reason: 'grace_period_expired',
+          details: { requested_at: u.deletion_requested_at, user_id: u.id }
+        });
+      } catch (_) { /* no-op */ }
+
       await base44.asServiceRole.entities.User.delete(u.id);
 
       results.purged += 1;
