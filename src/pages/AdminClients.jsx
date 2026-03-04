@@ -698,30 +698,39 @@ Email: ${client.email}`;
         {canExport && (
           <div className="flex gap-2">
             <Button 
-            onClick={handleExportFilteredClients}
-            className="bg-blue-600 hover:bg-blue-700"
-            title="Exporta los clientes según los filtros actuales"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Exportar Selección (TXT)
-          </Button>
-          <Button 
-            onClick={handleExportClients}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Exportar para Remarketing
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={handleBackfillStripeCustomers}
-            disabled={backfilling}
-            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-            title="Crear clientes en Stripe para todos los usuarios sin uno"
-          >
-            {backfilling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
-            Backfill Stripe
-          </Button>
+              onClick={handleGenerateDailyClientsReport}
+              disabled={exportLoading}
+              className="bg-emerald-600 hover:bg-emerald-700"
+              title="Genera y descarga CSV con clientes nuevos de 8am a 8am (America/Caracas)"
+            >
+              {exportLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Exportar 8am–8am (Excel CSV)
+            </Button>
+            <Button 
+              onClick={handleExportFilteredClients}
+              className="bg-blue-600 hover:bg-blue-700"
+              title="Exporta los clientes según los filtros actuales"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Selección (TXT)
+            </Button>
+            <Button 
+              onClick={handleExportClients}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar para Remarketing
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleBackfillStripeCustomers}
+              disabled={backfilling}
+              className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+              title="Crear clientes en Stripe para todos los usuarios sin uno"
+            >
+              {backfilling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
+              Backfill Stripe
+            </Button>
           </div>
         )}
       </div>
