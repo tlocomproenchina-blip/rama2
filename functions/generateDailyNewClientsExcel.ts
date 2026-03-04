@@ -83,7 +83,8 @@ Deno.serve(async (req) => {
     // Prefer date-range filter; platform typically supports $gte/$lt
     let newUsers = await base44.asServiceRole.entities.User.filter({
       role: 'user',
-      created_date: { $gte: startISO, $lt: endISO }
+      created_date_gte: startISO,
+      created_date_lt: endISO
     }, '-created_date');
 
     // Ensure array
