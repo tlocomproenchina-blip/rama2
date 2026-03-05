@@ -49,7 +49,6 @@
  */
 import AccountDisabled from './pages/AccountDisabled';
 import AccountingDashboard from './pages/AccountingDashboard';
-import AdminAccountDeletions from './pages/AdminAccountDeletions';
 import AdminAccountsPayable from './pages/AdminAccountsPayable';
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
@@ -97,7 +96,6 @@ import __Layout from './Layout.jsx';
 export const PAGES = {
     "AccountDisabled": AccountDisabled,
     "AccountingDashboard": AccountingDashboard,
-    "AdminAccountDeletions": AdminAccountDeletions,
     "AdminAccountsPayable": AdminAccountsPayable,
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
