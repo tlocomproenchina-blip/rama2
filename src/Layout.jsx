@@ -138,6 +138,23 @@ export default function Layout({ children, currentPageName }) {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
 
+      // Handle referral code in URL (e.g., ?ref=TLEC-XXXXXX)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const ref = params.get('ref');
+        if (ref) {
+          await base44.functions.invoke('setReferralByCode', { code: ref });
+        }
+      } catch (_) {}
+
+      // Auto-generate referral_code for approved clients if missing
+      if (currentUser && currentUser.role === 'user' && !currentUser.referral_code) {
+        const prefix = 'TLEC-';
+        const rand = Array.from({ length: 8 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+        const code = (prefix + rand).toUpperCase();
+        try { await base44.auth.updateMe({ referral_code: code }); } catch (_) {}
+      }
+
       // Auto-create Stripe customer if missing
       if (currentUser && !currentUser.stripe_customer_id) {
         // Non-blocking call
