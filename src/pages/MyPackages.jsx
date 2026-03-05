@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
+import PullToRefresh from "@/components/common/PullToRefresh";
 
 export default function MyPackages({ user }) {
   const [packages, setPackages] = useState([]);
@@ -128,6 +129,7 @@ export default function MyPackages({ user }) {
 
   return (
     <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
+      <PullToRefresh onRefresh={loadPackages} />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
         <div>
