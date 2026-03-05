@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.EmailTemplate.create({
           name,
           description: 'Plantilla del sistema',
-          category: 'system',
+          category: 'general',
           subject,
           body,
           is_default: true,
