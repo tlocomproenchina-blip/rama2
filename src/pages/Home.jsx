@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { base44 } from '@/components/api/ApiQueueManager';
 import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight } from 'lucide-react';
 
 export default function Home({ user }) {
@@ -16,6 +15,16 @@ export default function Home({ user }) {
     meta.name = 'description';
     meta.content = 'Transporte puerta a puerta desde China a Venezuela: consolidación, tarifas claras y soporte experto.';
     document.head.appendChild(meta);
+  }, []);
+
+  const [states, setStates] = React.useState([]);
+  const [selectedCode, setSelectedCode] = React.useState('');
+
+  React.useEffect(() => {
+    (async () => {
+      const list = await base44.entities.StateConfig.filter({ is_active: true });
+      setStates(list);
+    })();
   }, []);
 
   const handlePreAlertClick = async () => {
