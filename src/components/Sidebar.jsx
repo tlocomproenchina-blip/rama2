@@ -24,7 +24,8 @@ import {
   TrendingUp,
   CheckCircle2,
   Mail,
-  Wallet
+  Wallet,
+  Gift
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
