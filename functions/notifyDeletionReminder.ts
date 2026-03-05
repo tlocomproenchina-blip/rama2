@@ -27,13 +27,16 @@ Deno.serve(async (req) => {
       const notReminded = !u.deletion_reminder_sent_at;
 
       if (isDay6orMore && notYetDay7 && notReminded) {
-        // Send email
+        // Send email using template if available
         try {
-          await base44.integrations.Core.SendEmail({
-            to: u.email,
-            subject: 'Recordatorio: tu cuenta se eliminará en 24 horas',
-            body: `Hola,\n\nSolicitaste eliminar tu cuenta hace ${Math.floor(ageMs / DAY)} días. Si no cancelas la solicitud en las próximas 24 horas, tu cuenta será eliminada automáticamente.\n\nPara cancelar, inicia sesión y dirígete a Perfil → Eliminar cuenta.\n\nGracias.`,
-          });
+          const days = Math.floor(ageMs / DAY);
+          const tmpl = (await base44.asServiceRole.entities.EmailTemplate.filter({ name: 'AccountDeletionReminder' }))?.[0];
+          const subject = tmpl?.subject || 'Recordatorio: tu cuenta se eliminará en 24 horas';
+          const raw = tmpl?.body || 'Hola {user_name},\n\nSolicitaste eliminar tu cuenta hace {days_left} días. Si no cancelas en 24 horas, tu cuenta será eliminada.\n\nPara cancelar, inicia sesión y ve a Perfil → Eliminar cuenta.';
+          const body = raw
+            .replace(/{user_name}/g, u.full_name || u.email)
+            .replace(/{days_left}/g, String(days));
+          await base44.integrations.Core.SendEmail({ to: u.email, subject, body });
         } catch (_) { /* no-op */ }
 
         // Mark as reminded

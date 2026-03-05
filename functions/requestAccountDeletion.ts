@@ -34,13 +34,16 @@ Deno.serve(async (req) => {
       details: { user_id: user.id }
     });
 
-    // Email confirmation to user
+    // Email via template if available
     try {
-      await base44.integrations.Core.SendEmail({
-        to: user.email,
-        subject: 'Confirmación de solicitud de eliminación de cuenta',
-        body: `Hola ${user.full_name || ''},\n\nHemos recibido tu solicitud para eliminar tu cuenta. Tu cuenta se eliminará automáticamente en 7 días (${new Date(Date.now() + 7*24*60*60*1000).toLocaleDateString()}) a menos que la canceles desde tu Perfil.\n\nSi cambias de opinión, puedes cancelar la solicitud en cualquier momento antes del plazo.\n\nGracias.`,
-      });
+      const deletionDate = new Date(Date.now() + 7*24*60*60*1000);
+      const tmpl = (await base44.asServiceRole.entities.EmailTemplate.filter({ name: 'AccountDeletionConfirmation' }))?.[0];
+      const subject = tmpl?.subject || 'Confirmación de solicitud de eliminación de cuenta';
+      const raw = tmpl?.body || `Hola {user_name},\n\nHemos recibido tu solicitud para eliminar tu cuenta. Tu cuenta se eliminará automáticamente en 7 días ({deletion_date}) a menos que la canceles desde tu Perfil.\n\nSi cambias de opinión, puedes cancelar la solicitud en cualquier momento antes del plazo.\n\nGracias.`;
+      const body = raw
+        .replace(/{user_name}/g, user.full_name || user.email)
+        .replace(/{deletion_date}/g, deletionDate.toLocaleDateString());
+      await base44.integrations.Core.SendEmail({ to: user.email, subject, body });
     } catch (_) { /* no-op */ }
 
     return Response.json({ success: true, deletion_requested_at: nowIso });

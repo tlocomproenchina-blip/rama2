@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Search, Loader2, Clock, Undo2, Eye } from 'lucide-react';
+import { Trash2, Search, Loader2, Clock, Undo2, Eye, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminAccountDeletions() {
@@ -16,6 +16,13 @@ export default function AdminAccountDeletions() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [audits, setAudits] = useState([]);
   const [cancellingId, setCancellingId] = useState(null);
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [purgeTarget, setPurgeTarget] = useState(null);
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [sortAsc, setSortAsc] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [maxDays, setMaxDays] = useState('');
 
   useEffect(() => { load(); }, []);
 
@@ -28,11 +35,23 @@ export default function AdminAccountDeletions() {
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
-    return users.filter(u =>
+    let arr = users.filter(u =>
       (u.email || '').toLowerCase().includes(q) ||
       (u.full_name || '').toLowerCase().includes(q)
     );
-  }, [users, query]);
+    if (startDate) arr = arr.filter(u => u.deletion_requested_at && new Date(u.deletion_requested_at) >= new Date(startDate));
+    if (endDate) arr = arr.filter(u => u.deletion_requested_at && new Date(u.deletion_requested_at) <= new Date(endDate + 'T23:59:59'));
+    if (maxDays !== '' && maxDays !== null) arr = arr.filter(u => {
+      const dr = daysRemaining(u);
+      return typeof dr === 'number' ? dr <= Number(maxDays) : false;
+    });
+    arr.sort((a,b) => {
+      const ad = a.deletion_requested_at ? Date.parse(a.deletion_requested_at) : 0;
+      const bd = b.deletion_requested_at ? Date.parse(b.deletion_requested_at) : 0;
+      return sortAsc ? ad - bd : bd - ad;
+    });
+    return arr;
+  }, [users, query, startDate, endDate, maxDays, sortAsc]);
 
   const daysRemaining = (u) => {
     const start = u?.deletion_requested_at ? Date.parse(u.deletion_requested_at) : null;
@@ -46,6 +65,36 @@ export default function AdminAccountDeletions() {
     setAuditsOpen(true);
     const logs = await base44.entities.DeletionAudit.filter({ user_email: u.email }, '-at', 200);
     setAudits(logs || []);
+  };
+
+  const exportCsv = () => {
+    const headers = ['email','full_name','requested_at','days_remaining'];
+    const rows = filtered.map(u => [
+      u.email,
+      (u.full_name || '').replace(/,/g,' '),
+      u.deletion_requested_at || '',
+      daysRemaining(u)
+    ]);
+    const csv = [headers.join(','), ...rows.map(r=>r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'solicitudes_eliminacion.csv';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  };
+
+  const adminPurge = async () => {
+    if (!purgeTarget) return;
+    try {
+      await base44.functions.invoke('purgeUserNow', { user_id: purgeTarget.id, reason: 'Purgado manual desde panel' });
+      toast.success('Purga completada');
+      setPurgeOpen(false);
+      setConfirmEmail('');
+      setPurgeTarget(null);
+      await load();
+    } catch (e) {
+      toast.error('No se pudo purgar');
+    }
   };
 
   const adminCancel = async (u) => {
@@ -83,7 +132,15 @@ export default function AdminAccountDeletions() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Solicitudes pendientes ({users.length})</span>
-            <Button variant="outline" onClick={load}>Refrescar</Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setSortAsc(s => !s)}>
+                Orden: {sortAsc ? 'Antiguas primero' : 'Recientes primero'}
+              </Button>
+              <Button variant="outline" onClick={exportCsv} className="gap-2">
+                <Download className="h-4 w-4" /> Exportar CSV
+              </Button>
+              <Button variant="outline" onClick={load}>Refrescar</Button>
+            </div>
           </CardTitle>
           <CardDescription>Usa la búsqueda para localizar por email o nombre.</CardDescription>
         </CardHeader>
@@ -91,6 +148,21 @@ export default function AdminAccountDeletions() {
           <div className="mb-4 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input className="pl-10" placeholder="Buscar usuario..." value={query} onChange={(e)=>setQuery(e.target.value)} />
+          </div>
+
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Desde</label>
+              <Input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Hasta</label>
+              <Input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Días restantes ≤</label>
+              <Input type="number" min="0" value={maxDays} onChange={e=>setMaxDays(e.target.value)} placeholder="e.g. 2" />
+            </div>
           </div>
 
           {filtered.length === 0 ? (
@@ -118,6 +190,14 @@ export default function AdminAccountDeletions() {
                       <TableCell className="text-right space-x-2">
                         <Button variant="outline" size="sm" onClick={()=>openAudits(u)}>
                           <Eye className="h-4 w-4 mr-1" /> Historial
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="bg-red-700 hover:bg-red-800"
+                          onClick={()=>{ setPurgeTarget(u); setPurgeOpen(true); setConfirmEmail(''); }}
+                        >
+                          Purgar ahora
                         </Button>
                         <Button 
                           variant="destructive" 
