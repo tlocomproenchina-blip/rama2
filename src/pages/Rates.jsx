@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import StateRateList from "@/components/rates/StateRateList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,8 +13,7 @@ import {
   Package,
   ShieldCheck,
   DollarSign,
-  Calculator,
-  List
+  Calculator
 } from 'lucide-react';
 
 export default function Rates({ user }) {
@@ -33,9 +30,6 @@ export default function Rates({ user }) {
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
-  const [showStateList, setShowStateList] = useState(false);
-  const [allStates, setAllStates] = useState([]);
-  const [listLoading, setListLoading] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -67,17 +61,6 @@ export default function Rates({ user }) {
     }
     
     setLoading(false);
-  };
-
-  const loadAllStates = async () => {
-    try {
-      setListLoading(true);
-      const states = await base44.entities.StateConfig.list();
-      states.sort((a,b)=> (a.state_name||'').localeCompare(b.state_name||''));
-      setAllStates(states);
-    } finally {
-      setListLoading(false);
-    }
   };
 
   const calculateShipping = () => {
@@ -151,27 +134,6 @@ export default function Rates({ user }) {
         <h1 className="text-3xl font-bold text-slate-800 mb-2">Tarifas de Envío</h1>
         <p className="text-slate-500">Conoce nuestras tarifas competitivas para tu carga</p>
       </div>
-
-      <div className="flex justify-center">
-        <Button variant="outline" className="gap-2" onClick={() => { setShowStateList(true); if (allStates.length === 0) loadAllStates(); }}>
-          <List className="h-4 w-4" /> Ver lista por estado
-        </Button>
-      </div>
-
-      <Dialog open={showStateList} onOpenChange={setShowStateList}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Lista de precios por estado</DialogTitle>
-          </DialogHeader>
-          {listLoading ? (
-            <div className="flex items-center justify-center h-40">
-              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-            </div>
-          ) : (
-            <StateRateList states={allStates} pricingConfig={pricingConfig} appConfig={config} />
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Shipping Rates */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

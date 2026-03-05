@@ -38,7 +38,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import EditProfileModal from '@/components/EditProfileModal';
-import PullToRefresh from "@/components/common/PullToRefresh";
 
 export default function ClientPortal({ user, refreshUser }) {
   const navigate = useNavigate();
@@ -185,7 +184,6 @@ export default function ClientPortal({ user, refreshUser }) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <PullToRefresh onRefresh={loadData} />
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
