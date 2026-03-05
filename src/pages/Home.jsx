@@ -17,25 +17,7 @@ export default function Home({ user }) {
     document.head.appendChild(meta);
   }, []);
 
-  const [states, setStates] = React.useState([]);
-  const [selectedCode, setSelectedCode] = React.useState('');
 
-  React.useEffect(() => {
-    (async () => {
-      const list = await base44.entities.StateConfig.filter({ is_active: true });
-      setStates(list);
-    })();
-  }, []);
-
-  const [states, setStates] = React.useState([]);
-  const [selectedCode, setSelectedCode] = React.useState('');
-
-  React.useEffect(() => {
-    (async () => {
-      const list = await base44.entities.StateConfig.filter({ is_active: true });
-      setStates(list);
-    })();
-  }, []);
 
   const [states, setStates] = React.useState([]);
   const [selectedCode, setSelectedCode] = React.useState('');
