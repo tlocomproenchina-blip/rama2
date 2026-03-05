@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Gift, Copy, Link2, Users, TrendingUp, DollarSign, Share2, Loader2 } from "lucide-react";
+import { Gift, Copy, Link2, Users, TrendingUp, DollarSign, Share2, Loader2, Info, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 
 export default function MyReferrals() {
@@ -14,6 +14,8 @@ export default function MyReferrals() {
   const [referred, setReferred] = useState([]);
   const [rewards, setRewards] = useState([]);
   const [credits, setCredits] = useState([]);
+  const [settings, setSettings] = useState(null);
+  const [nextResetDate, setNextResetDate] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -25,6 +27,17 @@ export default function MyReferrals() {
         setReferred(data?.referredUsers || []);
         setRewards(data?.rewards || []);
         setCredits(data?.credits || []);
+        // Cargar ajustes públicos del programa de referidos (sin datos administrativos)
+        const settingsList = await base44.entities.ReferralSettings.filter({ config_key: 'main' });
+        setSettings(settingsList[0] || null);
+        // Calcular próximo reinicio mensual (1er día del próximo mes)
+        try {
+          const now = new Date();
+          const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          setNextResetDate(next.toLocaleDateString());
+        } catch (_) {
+          setNextResetDate('');
+        }
       } catch (e) {
         toast.error('No se pudieron cargar tus datos de referidos');
       }
@@ -50,6 +63,23 @@ export default function MyReferrals() {
       .reduce((s, c) => s + (Number(c.amount_usd)||0), 0);
   }, [credits]);
   const appliedCredits = useMemo(() => credits.filter(c => c.status === 'applied').reduce((s, c) => s + (Number(c.amount_usd)||0), 0), [credits]);
+
+  const isAgent = useMemo(() => {
+    if (!settings || !me) return false;
+    const codes = settings.agent_role_codes || ['agente', 'agent'];
+    return !!me.custom_role && codes.includes(me.custom_role);
+  }, [settings, me]);
+
+  const earnPerCbm = useMemo(() => {
+    if (!settings) return 0;
+    const base = Number(settings.referrer_credit_per_cbm ?? 0);
+    const agent = Number(settings.agent_referrer_credit_per_cbm ?? base);
+    return isAgent ? agent : base;
+  }, [settings, isAgent]);
+
+  const expirationDays = settings?.credit_expiration_days ?? 60;
+  const maxApplyPercent = settings?.max_credit_apply_percent;
+  const maxApplyUsd = settings?.max_credit_apply_usd;
 
   const copyLink = async () => {
     try {
@@ -84,6 +114,44 @@ export default function MyReferrals() {
           <Button variant="outline" onClick={() => window.location.reload()}>Actualizar</Button>
         </div>
       </div>
+
+      {/* Cómo funciona */}
+      <Card className="border-0 shadow-md">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Info className="h-4 w-4 text-sky-600" />
+            ¿Cómo funciona?
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 space-y-2 text-sm text-slate-700">
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Comparte tu enlace con amigos y clientes.</li>
+            <li>Cuando tus referidos envían y se factura su carga, generas créditos.</li>
+            <li>
+              Ganas $ {earnPerCbm.toFixed(2)} por cada CBM de sus envíos
+              {isAgent && (<Badge className="ml-1 bg-indigo-100 text-indigo-700 border-indigo-200">Tarifa agente</Badge>)}.
+            </li>
+            <li>Tus créditos vencen en {expirationDays} días.</li>
+            {typeof maxApplyPercent === 'number' && (
+              <li>
+                Puedes aplicar hasta {(maxApplyPercent * 100).toFixed(0)}% del subtotal
+                {typeof maxApplyUsd === 'number' && maxApplyUsd > 0 && (
+                  <span> (tope $</span>
+                )}
+                {typeof maxApplyUsd === 'number' && maxApplyUsd > 0 && (
+                  <>{maxApplyUsd.toFixed(2)}<span>)</span></>
+                )}
+              </li>
+            )}
+          </ul>
+          {nextResetDate && (
+            <div className="mt-3 flex items-center gap-2 text-slate-600">
+              <CalendarDays className="h-4 w-4 text-amber-600" />
+              <span className="text-xs">Próximo reinicio: <span className="font-medium text-slate-800">{nextResetDate}</span></span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Enlace de referidos */}
       <Card className="border-0 shadow-md">
