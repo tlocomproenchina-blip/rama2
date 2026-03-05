@@ -21,14 +21,10 @@ export default function MyReferrals() {
       try {
         const user = await base44.auth.me();
         setMe(user);
-        const [ru, rw, cr] = await Promise.all([
-          base44.entities.User.filter({ referred_by_user_id: user.id }, '-created_date', 200),
-          base44.entities.ReferralCbmReward.filter({ referrer_user_id: user.id }, '-created_date', 200),
-          base44.entities.CreditsLedger.filter({ user_id: user.id }, '-created_date', 200)
-        ]);
-        setReferred(ru || []);
-        setRewards(rw || []);
-        setCredits(cr || []);
+        const { data } = await base44.functions.invoke('getMyReferralData', {});
+        setReferred(data?.referredUsers || []);
+        setRewards(data?.rewards || []);
+        setCredits(data?.credits || []);
       } catch (e) {
         toast.error('No se pudieron cargar tus datos de referidos');
       }
