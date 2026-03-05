@@ -25,7 +25,8 @@ import {
   FileText,
   Clock,
   Trash2,
-  HardDrive
+  HardDrive,
+  List
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
@@ -482,94 +483,23 @@ export default function AdminSettings({ user }) {
         {/* Tab Tarifas */}
         <TabsContent value="tarifas">
           <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle>Configuración de Precios</CardTitle>
-              <CardDescription>
-                Gestiona las tarifas base y porcentajes de beneficio del sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Tarifa base Regular ($)</Label>
-                  <Input
-                    type="number"
-                    value={pricingConfig.base_rate_regular}
-                    onChange={(e) => setPricingConfig({ ...pricingConfig, base_rate_regular: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Tarifa base Alto Riesgo ($)</Label>
-                  <Input
-                    type="number"
-                    value={pricingConfig.base_rate_high_risk}
-                    onChange={(e) => setPricingConfig({ ...pricingConfig, base_rate_high_risk: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Porcentaje de beneficio (%)</Label>
-                  <Input
-                    type="number"
-                    value={pricingConfig.profit_percentage}
-                    onChange={(e) => setPricingConfig({ ...pricingConfig, profit_percentage: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Costo puerta a puerta ($)</Label>
-                  <Input
-                    type="number"
-                    value={pricingConfig.door_to_door_cost}
-                    onChange={(e) => setPricingConfig({ ...pricingConfig, door_to_door_cost: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-slate-800">¿Puerta a puerta opcional?</p>
-                  <p className="text-sm text-slate-500">Permite al cliente elegir si desea servicio puerta a puerta</p>
-                </div>
-                <Switch
-                  checked={pricingConfig.is_door_to_door_optional}
-                  onCheckedChange={(checked) => setPricingConfig({ ...pricingConfig, is_door_to_door_optional: checked })}
-                />
-              </div>
-
-              <Button onClick={handleSavePricing} disabled={saving} className="w-full">
-                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar configuración
-              </Button>
-
-              {/* Fórmula de Cálculo */}
-              <div className="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Calculator className="h-5 w-5 text-blue-600" />
-                  <h3 className="font-semibold text-slate-800">Fórmula de Cálculo</h3>
-                </div>
-                <div className="space-y-3">
-                  <code className="block p-3 bg-white rounded border text-sm">
-                    Tarifa base + Beneficio + Tarifa de Envío (estado) + Puerta a Puerta = Precio Final
-                  </code>
-                  
-                  <div className="p-4 bg-white rounded-lg border">
-                    <p className="text-sm font-medium text-slate-700 mb-2">Ejemplo de Cálculo</p>
-                    <div className="space-y-1 text-sm text-slate-600">
-                      <p>Tarifa Base Regular: ${pricingConfig.base_rate_regular}</p>
-                      <p>Porcentaje de Beneficio: {pricingConfig.profit_percentage}%</p>
-                      <p>Tarifa Estado (ejemplo): $50</p>
-                      <p>Puerta a Puerta: ${pricingConfig.door_to_door_cost}</p>
-                      <div className="mt-3 pt-3 border-t border-slate-200">
-                        <p className="font-bold text-blue-600 text-lg">Precio Final: ${calculateExample()}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
+...
           </Card>
+
+          <Dialog open={showStateList} onOpenChange={setShowStateList}>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Lista de precios por estado</DialogTitle>
+              </DialogHeader>
+              {listLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                </div>
+              ) : (
+                <StateRateList states={allStates} pricingConfig={pricingConfig} appConfig={appConfig} />
+              )}
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Tab Tipos de Envío */}
