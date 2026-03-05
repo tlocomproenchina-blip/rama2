@@ -223,7 +223,7 @@ export default function ShippingCalculator({ user }) {
                 </div>
                 <p className="text-sm text-slate-500">15-20 días</p>
               </button>
-            )}}
+            )}
 
             {config?.shipping_type_sea_enabled !== false && (
               <button
@@ -240,9 +240,9 @@ export default function ShippingCalculator({ user }) {
                 </div>
                 <p className="text-sm text-slate-500">75-90 días</p>
               </button>
-            )}}
+            )}
           </div>
-          )}}
+          )}
 
             {/* Cargo Category */}
           {step === 2 && (
@@ -258,7 +258,7 @@ export default function ShippingCalculator({ user }) {
               </SelectContent>
             </Select>
           </div>
-          )}}
+          )}
 
             {/* Input Mode Selection */}
           {step === 1 && (
@@ -314,7 +314,7 @@ export default function ShippingCalculator({ user }) {
                 placeholder="0.0000"
               />
             </div>
-          )}}
+          )}
 
           {/* Info Box */}
           {shippingType === 'aereo' ? (
@@ -327,7 +327,7 @@ export default function ShippingCalculator({ user }) {
                 Fórmula de <strong>peso volumétrico</strong>: CBM × 167 kg/m³
               </p>
             </div>
-          )} : (
+          ) : (
             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
               <p className="text-sm font-medium text-indigo-800 mb-1">🚢 Envío Marítimo</p>
               <p className="text-sm text-indigo-700">
@@ -337,7 +337,7 @@ export default function ShippingCalculator({ user }) {
                 Fórmula de <strong>CBM</strong>: (L × A × H) / 1,000,000
               </p>
             </div>
-          )}}
+          )}
 
           {/* Dimensions */}
           {inputMode === 'dimensions' && (
@@ -364,9 +364,9 @@ export default function ShippingCalculator({ user }) {
                 />
               </div>
             </div>
-          )}}
+          )}
 
-           )}}
+           )}
 
             {/* Insurance */}
           {step === 2 && (
@@ -394,24 +394,24 @@ export default function ShippingCalculator({ user }) {
                     placeholder="0.00"
                   />
                 </div>
-              )}}
+              )}
             </div>
           </div>
-          )}}
+          )}
 
             {/* Calculate Button */}
           <div className="flex justify-between gap-2">
             {step > 1 && (
               <Button variant="outline" onClick={() => setStep(step - 1)}>Atrás</Button>
-            )}}
+            )}
             {step === 1 && (
               <Button onClick={() => setStep(2)} className="ml-auto">Siguiente</Button>
-            )}}
+            )}
             {step === 2 && (
               <Button onClick={() => { calculateShipping(); setStep(3); }} className="ml-auto bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white">
                 Calcular y ver resultado
               </Button>
-            )}}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -454,7 +454,7 @@ export default function ShippingCalculator({ user }) {
                       <TableCell>{(config?.insurance_percentage || 0)}% de FOB</TableCell>
                       <TableCell className="text-right">${result.insuranceCost.toFixed(2)}</TableCell>
                     </TableRow>
-                  )}}
+                  )}
                   <TableRow>
                     <TableCell className="font-semibold">Total</TableCell>
                     <TableCell></TableCell>
@@ -468,7 +468,7 @@ export default function ShippingCalculator({ user }) {
               <div>CBM calculado: {result.cbm.toFixed(4)}</div>
               {shippingType === 'maritimo' && result.minCbmApplied && (
                 <div className="col-span-2 text-amber-700">Se aplicó mínimo facturable de {result.minCbm.toFixed(4)} CBM</div>
-              )}}
+              )}
               {result.stateName && (<div className="col-span-2">Estado: {result.stateName}</div>)}
             </div>
             <div className="flex justify-between mt-4">
