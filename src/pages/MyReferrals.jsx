@@ -27,17 +27,17 @@ export default function MyReferrals() {
         setReferred(data?.referredUsers || []);
         setRewards(data?.rewards || []);
         setCredits(data?.credits || []);
-        // Cargar ajustes públicos del programa de referidos (sin datos administrativos)
-        const settingsList = await base44.entities.ReferralSettings.filter({ config_key: 'main' });
+        // Cargar ajustes públicos del programa de referidos (elige registro correcto y fusiona con defaults)
         let rawSettings = null;
-        if (settingsList.length > 0) {
-          rawSettings = settingsList[0];
-        } else {
-          try {
-            const anyList = await base44.entities.ReferralSettings.list();
-            if (anyList.length > 0) rawSettings = anyList[0];
-          } catch (_) {}
-        }
+        try {
+          const all = await base44.entities.ReferralSettings.filter({});
+          if (Array.isArray(all) && all.length) {
+            const mains = all.filter(s => s.config_key === 'main' && (s.enabled ?? true));
+            const enabled = all.filter(s => (s.enabled ?? true));
+            const byUpdated = [...all].sort((a,b) => new Date(b.updated_date || 0) - new Date(a.updated_date || 0));
+            rawSettings = mains[0] || enabled[0] || byUpdated[0] || null;
+          }
+        } catch (_) {}
         try {
           const schema = await base44.entities.ReferralSettings.schema();
           const defaults = {
@@ -49,15 +49,18 @@ export default function MyReferrals() {
             agent_role_codes: schema.properties?.agent_role_codes?.default ?? ['agente','agent'],
           };
           const merged = { ...defaults, ...(rawSettings || {}) };
-          // Normalizar tipos numéricos y arrays
-          merged.referrer_credit_per_cbm = Number(merged.referrer_credit_per_cbm ?? defaults.referrer_credit_per_cbm);
-          merged.agent_referrer_credit_per_cbm = Number(merged.agent_referrer_credit_per_cbm ?? merged.referrer_credit_per_cbm);
+          // Normalizar tipos numéricos y arrays y evitar 0 no deseado
+          merged.referrer_credit_per_cbm = Number(merged.referrer_credit_per_cbm);
+          if (!merged.referrer_credit_per_cbm || merged.referrer_credit_per_cbm < 0) merged.referrer_credit_per_cbm = Number(defaults.referrer_credit_per_cbm);
+          merged.agent_referrer_credit_per_cbm = Number(merged.agent_referrer_credit_per_cbm);
+          if (!merged.agent_referrer_credit_per_cbm || merged.agent_referrer_credit_per_cbm < 0) merged.agent_referrer_credit_per_cbm = merged.referrer_credit_per_cbm;
           if (typeof merged.max_credit_apply_percent === 'string') merged.max_credit_apply_percent = Number(merged.max_credit_apply_percent);
           if (typeof merged.max_credit_apply_usd === 'string') merged.max_credit_apply_usd = Number(merged.max_credit_apply_usd);
           if (!Array.isArray(merged.agent_role_codes) && typeof merged.agent_role_codes === 'string') merged.agent_role_codes = [merged.agent_role_codes];
           setSettings(merged);
         } catch (_) {
-          setSettings(rawSettings || null);
+          // Último recurso: usar valores seguros por defecto
+          setSettings({ referrer_credit_per_cbm: 15, agent_referrer_credit_per_cbm: 25, credit_expiration_days: 60, agent_role_codes: ['agente','agent'] });
         }
         // Calcular próximo reinicio mensual (1er día del próximo mes)
         try {
