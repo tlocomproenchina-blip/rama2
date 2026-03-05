@@ -29,29 +29,35 @@ export default function MyReferrals() {
         setCredits(data?.credits || []);
         // Cargar ajustes públicos del programa de referidos (sin datos administrativos)
         const settingsList = await base44.entities.ReferralSettings.filter({ config_key: 'main' });
+        let rawSettings = null;
         if (settingsList.length > 0) {
-          setSettings(settingsList[0]);
+          rawSettings = settingsList[0];
         } else {
-          // Fallback: si no existe con config_key=main, usa cualquier registro existente; si tampoco hay, usa defaults del esquema
           try {
             const anyList = await base44.entities.ReferralSettings.list();
-            if (anyList.length > 0) {
-              setSettings(anyList[0]);
-            } else {
-              const schema = await base44.entities.ReferralSettings.schema();
-              const defaults = {
-                referrer_credit_per_cbm: schema.properties?.referrer_credit_per_cbm?.default ?? 0,
-                agent_referrer_credit_per_cbm: schema.properties?.agent_referrer_credit_per_cbm?.default ?? (schema.properties?.referrer_credit_per_cbm?.default ?? 0),
-                credit_expiration_days: schema.properties?.credit_expiration_days?.default ?? 60,
-                max_credit_apply_percent: schema.properties?.max_credit_apply_percent?.default,
-                max_credit_apply_usd: schema.properties?.max_credit_apply_usd?.default,
-                agent_role_codes: schema.properties?.agent_role_codes?.default ?? ['agente','agent'],
-              };
-              setSettings(defaults);
-            }
-          } catch (_) {
-            setSettings(null);
-          }
+            if (anyList.length > 0) rawSettings = anyList[0];
+          } catch (_) {}
+        }
+        try {
+          const schema = await base44.entities.ReferralSettings.schema();
+          const defaults = {
+            referrer_credit_per_cbm: schema.properties?.referrer_credit_per_cbm?.default ?? 0,
+            agent_referrer_credit_per_cbm: schema.properties?.agent_referrer_credit_per_cbm?.default ?? (schema.properties?.referrer_credit_per_cbm?.default ?? 0),
+            credit_expiration_days: schema.properties?.credit_expiration_days?.default ?? 60,
+            max_credit_apply_percent: schema.properties?.max_credit_apply_percent?.default,
+            max_credit_apply_usd: schema.properties?.max_credit_apply_usd?.default,
+            agent_role_codes: schema.properties?.agent_role_codes?.default ?? ['agente','agent'],
+          };
+          const merged = { ...defaults, ...(rawSettings || {}) };
+          // Normalizar tipos numéricos y arrays
+          merged.referrer_credit_per_cbm = Number(merged.referrer_credit_per_cbm ?? defaults.referrer_credit_per_cbm);
+          merged.agent_referrer_credit_per_cbm = Number(merged.agent_referrer_credit_per_cbm ?? merged.referrer_credit_per_cbm);
+          if (typeof merged.max_credit_apply_percent === 'string') merged.max_credit_apply_percent = Number(merged.max_credit_apply_percent);
+          if (typeof merged.max_credit_apply_usd === 'string') merged.max_credit_apply_usd = Number(merged.max_credit_apply_usd);
+          if (!Array.isArray(merged.agent_role_codes) && typeof merged.agent_role_codes === 'string') merged.agent_role_codes = [merged.agent_role_codes];
+          setSettings(merged);
+        } catch (_) {
+          setSettings(rawSettings || null);
         }
         // Calcular próximo reinicio mensual (1er día del próximo mes)
         try {
