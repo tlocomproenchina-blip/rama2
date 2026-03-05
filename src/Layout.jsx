@@ -40,6 +40,7 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
   const showBackButton = ['ShippingCalculator', 'Rates'].includes(currentPageName);
+  const showBackButton = ['ShippingCalculator', 'Rates'].includes(currentPageName);
 
   // Mobile tab navigation mappings
   const userTabDefaults = {
