@@ -32,18 +32,23 @@ export default function MyReferrals() {
         if (settingsList.length > 0) {
           setSettings(settingsList[0]);
         } else {
-          // Si no hay registro creado, usa los valores por defecto del esquema (público)
+          // Fallback: si no existe con config_key=main, usa cualquier registro existente; si tampoco hay, usa defaults del esquema
           try {
-            const schema = await base44.entities.ReferralSettings.schema();
-            const defaults = {
-              referrer_credit_per_cbm: schema.properties?.referrer_credit_per_cbm?.default ?? 0,
-              agent_referrer_credit_per_cbm: schema.properties?.agent_referrer_credit_per_cbm?.default ?? (schema.properties?.referrer_credit_per_cbm?.default ?? 0),
-              credit_expiration_days: schema.properties?.credit_expiration_days?.default ?? 60,
-              max_credit_apply_percent: schema.properties?.max_credit_apply_percent?.default,
-              max_credit_apply_usd: schema.properties?.max_credit_apply_usd?.default,
-              agent_role_codes: schema.properties?.agent_role_codes?.default ?? ['agente','agent'],
-            };
-            setSettings(defaults);
+            const anyList = await base44.entities.ReferralSettings.list();
+            if (anyList.length > 0) {
+              setSettings(anyList[0]);
+            } else {
+              const schema = await base44.entities.ReferralSettings.schema();
+              const defaults = {
+                referrer_credit_per_cbm: schema.properties?.referrer_credit_per_cbm?.default ?? 0,
+                agent_referrer_credit_per_cbm: schema.properties?.agent_referrer_credit_per_cbm?.default ?? (schema.properties?.referrer_credit_per_cbm?.default ?? 0),
+                credit_expiration_days: schema.properties?.credit_expiration_days?.default ?? 60,
+                max_credit_apply_percent: schema.properties?.max_credit_apply_percent?.default,
+                max_credit_apply_usd: schema.properties?.max_credit_apply_usd?.default,
+                agent_role_codes: schema.properties?.agent_role_codes?.default ?? ['agente','agent'],
+              };
+              setSettings(defaults);
+            }
           } catch (_) {
             setSettings(null);
           }
