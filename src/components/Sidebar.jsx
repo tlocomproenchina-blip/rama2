@@ -166,6 +166,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: 'Mi Perfil', page: 'Profile', icon: Users },
+  { name: 'Mis Referidos', page: 'MyReferrals', icon: Gift },
   { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
   { name: 'Solicitar Consolidación', page: 'RequestConsolidation', icon: Layers },
@@ -225,7 +226,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator'] },
     { label: 'INFORMACIÓN', items: ['Rates'] },
     { label: 'SOPORTE', items: ['FAQ','Support'] },
-    { label: 'CUENTA', items: ['Profile'] }
+    { label: 'CUENTA', items: ['Profile','MyReferrals'] }
   ];
 
   const employeeMenuItems = [

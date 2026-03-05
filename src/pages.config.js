@@ -68,29 +68,30 @@ import AdminPermissions from './pages/AdminPermissions';
 import AdminPromotions from './pages/AdminPromotions';
 import AdminProviderPayments from './pages/AdminProviderPayments';
 import AdminProviders from './pages/AdminProviders';
+import AdminReferrals from './pages/AdminReferrals';
 import AdminReports from './pages/AdminReports';
 import AdminRoles from './pages/AdminRoles';
+import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
 import BusinessDashboard from './pages/BusinessDashboard';
+import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
 import MyInvoices from './pages/MyInvoices';
+import MyPackages from './pages/MyPackages';
 import PreAlert from './pages/PreAlert';
+import Profile from './pages/Profile';
+import Rates from './pages/Rates';
 import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminSettings from './pages/AdminSettings';
-import Rates from './pages/Rates';
-import ClientPortal from './pages/ClientPortal';
-import MyPackages from './pages/MyPackages';
-import Profile from './pages/Profile';
-import AdminReferrals from './pages/AdminReferrals';
+import MyReferrals from './pages/MyReferrals';
 import __Layout from './Layout.jsx';
 
 
@@ -116,29 +117,30 @@ export const PAGES = {
     "AdminPromotions": AdminPromotions,
     "AdminProviderPayments": AdminProviderPayments,
     "AdminProviders": AdminProviders,
+    "AdminReferrals": AdminReferrals,
     "AdminReports": AdminReports,
     "AdminRoles": AdminRoles,
+    "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
     "BusinessDashboard": BusinessDashboard,
+    "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
     "EmployeeDashboard": EmployeeDashboard,
     "FAQ": FAQ,
     "Home": Home,
     "MyConsolidations": MyConsolidations,
     "MyInvoices": MyInvoices,
+    "MyPackages": MyPackages,
     "PreAlert": PreAlert,
+    "Profile": Profile,
+    "Rates": Rates,
     "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminSettings": AdminSettings,
-    "Rates": Rates,
-    "ClientPortal": ClientPortal,
-    "MyPackages": MyPackages,
-    "Profile": Profile,
-    "AdminReferrals": AdminReferrals,
+    "MyReferrals": MyReferrals,
 }
 
 export const pagesConfig = {
