@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
+import StateRateList from '@/components/rates/StateRateList';
 import { createPageUrl } from '@/utils';
 
 const VENEZUELAN_STATES = [
@@ -121,6 +123,11 @@ export default function AdminSettings({ user }) {
   const [clearing, setClearing] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(10);
 
+  // Modal lista por estado
+  const [showStateList, setShowStateList] = useState(false);
+  const [allStates, setAllStates] = useState([]);
+  const [listLoading, setListLoading] = useState(false);
+
   useEffect(() => {
     loadAllConfigs();
   }, []);
@@ -165,6 +172,18 @@ export default function AdminSettings({ user }) {
       toast.error('Error al cargar configuración');
     }
     setLoading(false);
+  };
+
+  // Cargar todos los estados para la lista de precios finales
+  const loadAllStates = async () => {
+    try {
+      setListLoading(true);
+      const states = await base44.entities.StateConfig.list();
+      states.sort((a,b)=> (a.state_name||'').localeCompare(b.state_name||''));
+      setAllStates(states);
+    } finally {
+      setListLoading(false);
+    }
   };
 
   const handleSavePricing = async () => {
