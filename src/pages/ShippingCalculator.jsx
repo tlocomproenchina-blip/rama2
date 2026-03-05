@@ -287,16 +287,18 @@ export default function ShippingCalculator({ user }) {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Peso Real (kg)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  placeholder="1.0"
-                />
-              </div>
+              {shippingType === 'aereo' && (
+                <div className="space-y-2">
+                  <Label>Peso Real (kg)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder="1.0"
+                  />
+                </div>
+              )}
 
               {inputMode === 'cbm' && (
                 <div className="space-y-2">
