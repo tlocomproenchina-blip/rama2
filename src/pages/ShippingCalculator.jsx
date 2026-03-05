@@ -74,7 +74,7 @@ export default function ShippingCalculator({ user }) {
   };
 
   const calculateShipping = () => {
-    if (!config) return;
+    if (!config || !selectedState) return;
 
     const realWeight = parseFloat(weight) || 0;
     let calculatedCbm = 0;
@@ -195,7 +195,8 @@ export default function ShippingCalculator({ user }) {
         </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg">
+        {selectedState ? (
+          <Card className="border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="text-lg">Calculadora</CardTitle>
         </CardHeader>
@@ -379,9 +380,14 @@ export default function ShippingCalculator({ user }) {
 
         </CardContent>
       </Card>
+      ) : (
+        <div className="p-4 text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-lg">
+          Selecciona un estado para continuar con la calculadora.
+        </div>
+      )}
 
       {/* Results */}
-      {result && (
+      {selectedState && result && (
         <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-white">
           <CardHeader>
             <CardTitle>Detalles del Envío</CardTitle>
