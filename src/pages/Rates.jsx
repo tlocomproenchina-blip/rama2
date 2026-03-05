@@ -15,7 +15,8 @@ import {
   Package,
   ShieldCheck,
   DollarSign,
-  Calculator
+  Calculator,
+  List
 } from 'lucide-react';
 
 export default function Rates({ user }) {
@@ -66,6 +67,17 @@ export default function Rates({ user }) {
     }
     
     setLoading(false);
+  };
+
+  const loadAllStates = async () => {
+    try {
+      setListLoading(true);
+      const states = await base44.entities.StateConfig.list();
+      states.sort((a,b)=> (a.state_name||'').localeCompare(b.state_name||''));
+      setAllStates(states);
+    } finally {
+      setListLoading(false);
+    }
   };
 
   const calculateShipping = () => {
