@@ -75,6 +75,8 @@ import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
+import Blog from './pages/Blog';
+import BlogPost from './pages/BlogPost';
 import BusinessDashboard from './pages/BusinessDashboard';
 import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
@@ -92,8 +94,6 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import Blog from './pages/Blog';
-import BlogPost from './pages/BlogPost';
 import __Layout from './Layout.jsx';
 
 
@@ -126,6 +126,8 @@ export const PAGES = {
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
+    "Blog": Blog,
+    "BlogPost": BlogPost,
     "BusinessDashboard": BusinessDashboard,
     "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
@@ -143,8 +145,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "Blog": Blog,
-    "BlogPost": BlogPost,
 }
 
 export const pagesConfig = {
