@@ -90,6 +90,7 @@ import Rates from './pages/Rates';
 import ClientPortal from './pages/ClientPortal';
 import MyPackages from './pages/MyPackages';
 import Profile from './pages/Profile';
+import AdminReferrals from './pages/AdminReferrals';
 import __Layout from './Layout.jsx';
 
 
@@ -137,6 +138,7 @@ export const PAGES = {
     "ClientPortal": ClientPortal,
     "MyPackages": MyPackages,
     "Profile": Profile,
+    "AdminReferrals": AdminReferrals,
 }
 
 export const pagesConfig = {
