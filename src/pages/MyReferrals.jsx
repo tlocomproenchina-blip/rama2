@@ -29,7 +29,25 @@ export default function MyReferrals() {
         setCredits(data?.credits || []);
         // Cargar ajustes públicos del programa de referidos (sin datos administrativos)
         const settingsList = await base44.entities.ReferralSettings.filter({ config_key: 'main' });
-        setSettings(settingsList[0] || null);
+        if (settingsList.length > 0) {
+          setSettings(settingsList[0]);
+        } else {
+          // Si no hay registro creado, usa los valores por defecto del esquema (público)
+          try {
+            const schema = await base44.entities.ReferralSettings.schema();
+            const defaults = {
+              referrer_credit_per_cbm: schema.properties?.referrer_credit_per_cbm?.default ?? 0,
+              agent_referrer_credit_per_cbm: schema.properties?.agent_referrer_credit_per_cbm?.default ?? (schema.properties?.referrer_credit_per_cbm?.default ?? 0),
+              credit_expiration_days: schema.properties?.credit_expiration_days?.default ?? 60,
+              max_credit_apply_percent: schema.properties?.max_credit_apply_percent?.default,
+              max_credit_apply_usd: schema.properties?.max_credit_apply_usd?.default,
+              agent_role_codes: schema.properties?.agent_role_codes?.default ?? ['agente','agent'],
+            };
+            setSettings(defaults);
+          } catch (_) {
+            setSettings(null);
+          }
+        }
         // Calcular próximo reinicio mensual (1er día del próximo mes)
         try {
           const now = new Date();
@@ -128,7 +146,7 @@ export default function MyReferrals() {
             <li>Comparte tu enlace con amigos y clientes.</li>
             <li>Cuando tus referidos envían y se factura su carga, generas créditos.</li>
             <li>
-              Ganas $ {earnPerCbm.toFixed(2)} por cada CBM de sus envíos
+              Ganas $ {earnPerCbm.toFixed(2)} por cada CBM totalizado de tus referidos
               {isAgent && (<Badge className="ml-1 bg-indigo-100 text-indigo-700 border-indigo-200">Tarifa agente</Badge>)}.
             </li>
             <li>Tus créditos vencen en {expirationDays} días.</li>
