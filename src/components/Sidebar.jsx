@@ -24,8 +24,7 @@ import {
   TrendingUp,
   CheckCircle2,
   Mail,
-  Wallet,
-  Gift
+  Wallet
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -200,7 +199,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
   { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
   { name: 'Clientes', page: 'AdminClients', icon: Users },
-  { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
   { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
 { name: 'Administradores', page: 'AdminPermissions', icon: Shield },
@@ -215,7 +213,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
     { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
-    { label: 'GESTIÓN', items: ['AdminClients','AdminReferrals','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
+    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
   ];
 
   const clientGroups = [
