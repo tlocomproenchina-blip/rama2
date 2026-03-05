@@ -434,7 +434,7 @@ export default function ShippingCalculator({ user }) {
                   </TableRow>
                   <TableRow>
                     <TableCell className="font-medium">Costo de envío</TableCell>
-                    <TableCell>{result.finalRate.toFixed(2)} × {result.billableWeight.toFixed( shippingType === 'aereo' ? 2 : 4 )}</TableCell>
+                    <TableCell>{result.finalRate.toFixed(2)} × {result.billableWeight.toFixed(shippingType === 'aereo' ? 2 : 4)}</TableCell>
                     <TableCell className="text-right">${result.shippingCost.toFixed(2)}</TableCell>
                   </TableRow>
                   {result.insuranceCost > 0 && (
@@ -458,7 +458,9 @@ export default function ShippingCalculator({ user }) {
               {shippingType === 'maritimo' && result.minCbmApplied && (
                 <div className="col-span-2 text-amber-700">Se aplicó mínimo facturable de {result.minCbm.toFixed(4)} CBM</div>
               )}
-              {result.stateName && (<div className="col-span-2">Estado: {result.stateName}</div>)}
+              {result.stateName && (
+                <div className="col-span-2">Estado: {result.stateName}</div>
+              )}
             </div>
             <div className="flex justify-between mt-4">
               <Button variant="outline" onClick={() => setStep(2)}>Editar opciones</Button>
