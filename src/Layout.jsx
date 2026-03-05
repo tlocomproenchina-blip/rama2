@@ -168,15 +168,15 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      // Redirect admin to admin dashboard
-      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
+      // Redirect admin to admin dashboard (except when on Home)
+      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard')) {
         navigate(createPageUrl('AdminDashboard'));
         setLoading(false);
         return;
       }
 
-      // Redirect custom role users to their dashboard
-      if (currentUser.custom_role && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
+      // Redirect custom role users to their dashboard (except when on Home)
+      if (currentUser.custom_role && (!currentPageName || currentPageName === 'Dashboard')) {
         const roleConfigs = await base44.entities.RoleConfig.filter({ 
           role_code: currentUser.custom_role,
           is_active: true
