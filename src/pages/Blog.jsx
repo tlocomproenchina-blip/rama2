@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom'; // SEO público
 import { createPageUrl } from '@/utils';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

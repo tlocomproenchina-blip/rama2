@@ -1,21 +1,28 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight } from 'lucide-react';
 
 export default function Home({ user }) {
-  // Si hay sesión, mantenemos el acceso a los paneles
+  const navigate = useNavigate();
+  // Redirige si hay sesión; si no, configura metas SEO
   React.useEffect(() => {
-    if (!user) {
-      document.title = 'Envíos China → Venezuela | TLEC Logistics';
-      const meta = document.querySelector('meta[name="description"]') || document.createElement('meta');
-      meta.name = 'description';
-      meta.content = 'Transporte puerta a puerta desde China a Venezuela: consolidación, tarifas claras y soporte experto.';
-      document.head.appendChild(meta);
+    if (user) {
+      if (user.role === 'admin' || user.role === 'employee') {
+        navigate(createPageUrl('AdminDashboard'));
+      } else {
+        navigate(createPageUrl('Dashboard'));
+      }
+      return;
     }
-  }, [user]);
+    document.title = 'Envíos China → Venezuela | TLEC Logistics';
+    const meta = document.querySelector('meta[name="description"]') || document.createElement('meta');
+    meta.name = 'description';
+    meta.content = 'Transporte puerta a puerta desde China a Venezuela: consolidación, tarifas claras y soporte experto.';
+    document.head.appendChild(meta);
+  }, [user, navigate]);
 
   if (user) {
     return (

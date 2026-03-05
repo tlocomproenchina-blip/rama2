@@ -1,5 +1,5 @@
 import React from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 } from '@/components/api/ApiQueueManager'; // Página pública para SEO
 
 export default function BlogPost() {
   const [post, setPost] = React.useState(null);
