@@ -242,9 +242,9 @@ export default function ShippingCalculator({ user }) {
               </button>
             )}
           </div>
-          )
+          )}
 
-           {/* Cargo Category */}
+            {/* Cargo Category */}
           {step === 2 && (
           <div className="space-y-2">
             <Label>Categoría de Carga</Label>
@@ -258,9 +258,9 @@ export default function ShippingCalculator({ user }) {
               </SelectContent>
             </Select>
           </div>
-          )
+          )}
 
-           {/* Input Mode Selection */}
+            {/* Input Mode Selection */}
           {step === 1 && (
           <div className="space-y-2">
             <Label>Método de Cálculo</Label>
@@ -366,9 +366,9 @@ export default function ShippingCalculator({ user }) {
             </div>
           )}
 
-          )
+           )}
 
-          {/* Insurance */}
+            {/* Insurance */}
           {step === 2 && (
           <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
             <Checkbox
@@ -397,9 +397,9 @@ export default function ShippingCalculator({ user }) {
               )}
             </div>
           </div>
-          )
+          )}
 
-           {/* Calculate Button */}
+            {/* Calculate Button */}
           <div className="flex justify-between gap-2">
             {step > 1 && (
               <Button variant="outline" onClick={() => setStep(step - 1)}>Atrás</Button>
