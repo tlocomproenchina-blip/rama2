@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Plane, Ship, Package, Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 
 export default function ShippingCalculator({ user }) {
@@ -24,6 +25,7 @@ export default function ShippingCalculator({ user }) {
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
+  const [step, setStep] = useState(1);
   const MIN_CBM = 0.13;
 
   useEffect(() => {
@@ -170,14 +172,41 @@ export default function ShippingCalculator({ user }) {
           Calculadora de Envíos
         </h1>
         <p className="text-slate-500">Calcula el costo estimado de tu envío</p>
-      </div>
+        </div>
 
-      <Card className="border-0 shadow-lg">
+        {/* Estado de destino (fijo) */}
+        <Card className="border-0 shadow bg-white">
+        <CardContent className="p-4">
+          <div className="grid gap-3 sm:grid-cols-[240px_1fr] items-center">
+            <div className="text-sm text-slate-600">Estado de destino</div>
+            <Select value={selectedState} onValueChange={setSelectedState}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un estado" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {states.map((s) => (
+                  <SelectItem key={s.state_code} value={s.state_code}>{s.state_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-lg">Tipo de Envío</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Calculadora</CardTitle>
+            <div className="flex gap-2">
+              <div className={`px-2.5 py-1 rounded-full text-xs ${step===1?'bg-blue-600 text-white':'bg-slate-100 text-slate-600'}`}>1. Datos</div>
+              <div className={`px-2.5 py-1 rounded-full text-xs ${step===2?'bg-blue-600 text-white':'bg-slate-100 text-slate-600'}`}>2. Opciones</div>
+              <div className={`px-2.5 py-1 rounded-full text-xs ${step===3?'bg-blue-600 text-white':'bg-slate-100 text-slate-600'}`}>3. Resultado</div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Shipping Type */}
+          {step === 2 && (
           <div className={`grid ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
             {config?.shipping_type_air_enabled !== false && (
               <button
@@ -213,8 +242,10 @@ export default function ShippingCalculator({ user }) {
               </button>
             )}
           </div>
+          )
 
-          {/* Cargo Category */}
+           {/* Cargo Category */}
+          {step === 2 && (
           <div className="space-y-2">
             <Label>Categoría de Carga</Label>
             <Select value={cargoCategory} onValueChange={setCargoCategory}>
@@ -227,33 +258,10 @@ export default function ShippingCalculator({ user }) {
               </SelectContent>
             </Select>
           </div>
+          )
 
-          {/* State Selection */}
-          <div className="space-y-2">
-            <Label>Estado de Destino</Label>
-            {user?.role === 'admin' ? (
-              <Select value={selectedState} onValueChange={setSelectedState}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {states.map((state) => (
-                    <SelectItem key={state.state_code} value={state.state_code}>
-                      {state.state_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input
-                value={states.find(s => s.state_code === selectedState)?.state_name || 'No configurado'}
-                disabled
-                className="bg-slate-50"
-              />
-            )}
-          </div>
-
-          {/* Input Mode Selection */}
+           {/* Input Mode Selection */}
+          {step === 1 && (
           <div className="space-y-2">
             <Label>Método de Cálculo</Label>
             <div className="grid grid-cols-2 gap-2">
@@ -358,7 +366,10 @@ export default function ShippingCalculator({ user }) {
             </div>
           )}
 
+          )
+
           {/* Insurance */}
+          {step === 2 && (
           <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
             <Checkbox
               id="insurance"
@@ -386,58 +397,83 @@ export default function ShippingCalculator({ user }) {
               )}
             </div>
           </div>
+          )
 
-          {/* Calculate Button */}
-          <Button
-            onClick={calculateShipping}
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white py-6 text-lg"
-          >
-            Calcular Envío
-          </Button>
+           {/* Calculate Button */}
+          <div className="flex justify-between gap-2">
+            {step > 1 && (
+              <Button variant="outline" onClick={() => setStep(step - 1)}>Atrás</Button>
+            )}
+            {step === 1 && (
+              <Button onClick={() => setStep(2)} className="ml-auto">Siguiente</Button>
+            )}
+            {step === 2 && (
+              <Button onClick={() => { calculateShipping(); setStep(3); }} className="ml-auto bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white">
+                Calcular y ver resultado
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Results */}
-      {result && (
+      {step === 3 && result && (
         <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-white">
           <CardHeader>
             <CardTitle>Detalles del Envío</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Precio final usado:</span>
-              <div className="text-right">
-                <span className="font-semibold">${result.finalRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</span>
-                <p className="text-xs text-slate-500">{result.rateType}</p>
-              </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Concepto</TableHead>
+                    <TableHead>Cálculo</TableHead>
+                    <TableHead className="text-right">Monto</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">Tarifa aplicada</TableCell>
+                    <TableCell>{result.rateType}</TableCell>
+                    <TableCell className="text-right">${result.finalRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Unidad facturable</TableCell>
+                    <TableCell>{result.chargedBy}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Costo de envío</TableCell>
+                    <TableCell>{result.finalRate.toFixed(2)} × {result.billableWeight.toFixed( shippingType === 'aereo' ? 2 : 4 )}</TableCell>
+                    <TableCell className="text-right">${result.shippingCost.toFixed(2)}</TableCell>
+                  </TableRow>
+                  {result.insuranceCost > 0 && (
+                    <TableRow>
+                      <TableCell className="font-medium">Seguro</TableCell>
+                      <TableCell>{(config?.insurance_percentage || 0)}% de FOB</TableCell>
+                      <TableCell className="text-right">${result.insuranceCost.toFixed(2)}</TableCell>
+                    </TableRow>
+                  )}
+                  <TableRow>
+                    <TableCell className="font-semibold">Total</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-right font-bold text-emerald-600">${result.totalCost.toFixed(2)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
-
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">Peso volumétrico:</span>
-              <span className="font-semibold">{result.volumetricWeight.toFixed(2)} kg</span>
+            <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+              <div>Peso volumétrico: {result.volumetricWeight.toFixed(2)} kg</div>
+              <div>CBM calculado: {result.cbm.toFixed(4)}</div>
+              {shippingType === 'maritimo' && result.minCbmApplied && (
+                <div className="col-span-2 text-amber-700">Se aplicó mínimo facturable de {result.minCbm.toFixed(4)} CBM</div>
+              )}
+              {result.stateName && (<div className="col-span-2">Estado: {result.stateName}</div>)}
             </div>
-
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-slate-600">CBM calculado:</span>
-              <span className="font-semibold">{result.cbm.toFixed(4)}</span>
-            </div>
-            {shippingType === 'maritimo' && result.minCbmApplied && (
-              <div className="flex justify-between py-2 border-b bg-amber-50 rounded">
-                <span className="text-slate-700">Mínimo facturable:</span>
-                <span className="font-semibold">{result.minCbm.toFixed(4)} CBM</span>
-              </div>
-            )}
-
-            {result.insuranceCost > 0 && (
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-slate-600">Seguro:</span>
-                <span className="font-semibold">${result.insuranceCost.toFixed(2)}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between py-3 bg-emerald-50 rounded-lg px-4 mt-4">
-              <span className="text-lg font-bold text-slate-800">Total envío:</span>
-              <span className="text-2xl font-bold text-emerald-600">${result.totalCost.toFixed(2)}</span>
+            <div className="flex justify-between mt-4">
+              <Button variant="outline" onClick={() => setStep(2)}>Editar opciones</Button>
+              <Button onClick={() => setStep(1)} variant="ghost">Nuevo cálculo</Button>
             </div>
           </CardContent>
         </Card>
