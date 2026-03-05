@@ -261,6 +261,7 @@ export default function Rates({ user }) {
                     ) : (
                       `$${config?.rate_sea_general?.toFixed(2) || '0.00'}`
                     )
+                  }
                   </p>
                   <p className="text-xs text-slate-500">por CBM</p>
                 </div>
@@ -285,6 +286,7 @@ export default function Rates({ user }) {
                     ) : (
                       `$${config?.rate_sea_sensitive?.toFixed(2) || '0.00'}`
                     )
+                  }
                   </p>
                   <p className="text-xs text-slate-500">por CBM</p>
                 </div>
