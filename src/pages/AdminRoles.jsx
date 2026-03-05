@@ -80,9 +80,18 @@ export default function AdminRoles({ user }) {
       await ensureAgentRoles();
       allRoles = await base44.entities.RoleConfig.list();
 
-      setRoles(allRoles);
-      if (allRoles.length > 0) {
-        setSelectedRole(allRoles[0]);
+      // Hide duplicate alias: if both 'agente' and 'agent' exist, prefer showing only 'agente'
+      const deduped = (() => {
+        const hasAgente = allRoles.some(r => r.role_code === 'agente');
+        const hasAgent = allRoles.some(r => r.role_code === 'agent');
+        if (hasAgente && hasAgent) {
+          return allRoles.filter(r => r.role_code !== 'agent');
+        }
+        return allRoles;
+      })();
+      setRoles(deduped);
+      if (deduped.length > 0) {
+        setSelectedRole(deduped[0]);
       }
     } catch (error) {
       console.error('Error loading roles:', error);
@@ -177,24 +186,17 @@ export default function AdminRoles({ user }) {
   };
 
   const ensureAgentRoles = async () => {
-    // Create 'agent' and 'agente' roles if missing
     const existing = await base44.entities.RoleConfig.list();
     const codes = new Set(existing.map(r => r.role_code));
-    const toCreate = [];
-
-    const baseAgent = {
-      role_name: 'Agente',
-      description: 'Rol de agente para programa de referidos',
-      is_active: true,
-      permissions: { view_dashboard: true, view_clients: true, view_reports: true },
-      visible_pages: ['AdminDashboard', 'AdminClients', 'AdminReports']
-    };
-
-    if (!codes.has('agent')) toCreate.push({ role_code: 'agent', ...baseAgent });
-    if (!codes.has('agente')) toCreate.push({ role_code: 'agente', ...baseAgent });
-
-    for (const role of toCreate) {
-      await base44.entities.RoleConfig.create(role);
+    if (!codes.has('agente')) {
+      await base44.entities.RoleConfig.create({
+        role_code: 'agente',
+        role_name: 'Agente',
+        description: 'Rol de agente para programa de referidos',
+        is_active: true,
+        permissions: { view_dashboard: true, view_clients: true, view_reports: true },
+        visible_pages: ['AdminDashboard', 'AdminClients', 'AdminReports']
+      });
     }
   };
 
