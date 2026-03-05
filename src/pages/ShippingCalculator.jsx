@@ -248,8 +248,6 @@ export default function ShippingCalculator({ user }) {
             </div>
 
           {/* Step 1 - Data Inputs */}
-          {step === 1 && (
-            <>
               <div className="space-y-2">
                 <Label>Método de Cálculo</Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -351,8 +349,7 @@ export default function ShippingCalculator({ user }) {
                   </div>
                 </div>
               )}
-            </>
-          )}
+
 
           {/* Seguro */}
           <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
