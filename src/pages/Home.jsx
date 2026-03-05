@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight } from 'lucide-react';
 
@@ -15,7 +16,13 @@ export default function Home({ user }) {
     document.head.appendChild(meta);
   }, []);
 
-
+  const handlePreAlertClick = async () => {
+    if (user) {
+      window.location.href = createPageUrl('PreAlert');
+    } else {
+      await base44.auth.redirectToLogin(createPageUrl('PreAlert'));
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -26,7 +33,7 @@ export default function Home({ user }) {
           <p className="mt-4 text-lg text-slate-600">Consolidamos, aseguramos y entregamos puerta a puerta. Transparente, rápido y con soporte en español.</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-            <Link to={createPageUrl('PreAlert')}><Button variant="outline">Crear pre‑alerta</Button></Link>
+            <Button variant="outline" onClick={handlePreAlertClick}>Crear pre‑alerta</Button>
             <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
           </div>
         </div>
