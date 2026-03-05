@@ -103,10 +103,23 @@ export default function MyReferrals() {
   }, [settings, me]);
 
   const earnPerCbm = useMemo(() => {
-    if (!settings) return 0;
-    const base = Number(settings.referrer_credit_per_cbm ?? 0);
-    const agent = Number(settings.agent_referrer_credit_per_cbm ?? base);
-    return isAgent ? agent : base;
+    const num = (v) => {
+      if (v === null || v === undefined) return NaN;
+      const s = typeof v === 'string' ? v.replace(',', '.') : v;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    };
+    const base = num(settings?.referrer_credit_per_cbm);
+    const agent = num(settings?.agent_referrer_credit_per_cbm);
+
+    // Selecciona según rol con degradación inteligente
+    let chosen = isAgent ? (agent > 0 ? agent : base) : (base > 0 ? base : agent);
+
+    // Último recurso a defaults seguros si sigue inválido/<=0
+    if (!Number.isFinite(chosen) || chosen <= 0) {
+      chosen = isAgent ? 25 : 15;
+    }
+    return chosen;
   }, [settings, isAgent]);
 
   const expirationDays = settings?.credit_expiration_days ?? 60;
