@@ -186,7 +186,7 @@ export default function ShippingCalculator({ user }) {
               <SelectContent className="max-h-60">
                 {states.map((s) => (
                   <SelectItem key={s.state_code} value={s.state_code}>{s.state_name}</SelectItem>
-                )})}
+                ))}
               </SelectContent>
             </Select>
           </div>
