@@ -5,10 +5,14 @@ function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() +
 async function getSettings(base44) {
   const rows = await base44.asServiceRole.entities.ReferralSettings.filter({ config_key: 'main' });
   const s = rows[0] || {};
+  const roleCodes = Array.isArray(s.agent_role_codes) ? s.agent_role_codes.map(x => String(x).toLowerCase()) : ['agente','agent'];
   return {
     enabled: s.enabled !== false,
     creditPerCbm: typeof s.referrer_credit_per_cbm === 'number' ? s.referrer_credit_per_cbm : 15,
     creditExpirationDays: typeof s.credit_expiration_days === 'number' ? s.credit_expiration_days : 60,
+    agentEnabled: s.agent_enabled !== false,
+    agentCreditPerCbm: typeof s.agent_referrer_credit_per_cbm === 'number' ? s.agent_referrer_credit_per_cbm : 25,
+    agentRoleCodes: roleCodes,
   };
 }
 
@@ -30,6 +34,12 @@ async function findUserByEmail(base44, email) {
 
 async function getActiveRewardByInvoice(base44, invoiceId) {
   const rows = await base44.asServiceRole.entities.ReferralCbmReward.filter({ invoice_id: invoiceId, status: 'active' });
+  return rows[0] || null;
+}
+
+async function getUserById(base44, userId) {
+  if (!userId) return null;
+  const rows = await base44.asServiceRole.entities.User.filter({ id: userId });
   return rows[0] || null;
 }
 
@@ -126,7 +136,12 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'no cbm to reward' });
     }
 
-    const rewardUsd = cbm * settings.creditPerCbm;
+    // Determine rate based on referrer role (agent vs regular)
+    const refUser = await getUserById(base44, referrerId);
+    const roleVal = String(refUser?.custom_role || refUser?.role || '').toLowerCase();
+    const isAgent = settings.agentEnabled && roleVal && settings.agentRoleCodes.includes(roleVal);
+    const rate = isAgent ? settings.agentCreditPerCbm : settings.creditPerCbm;
+    const rewardUsd = cbm * rate;
 
     // If there is an active reward, check for CBM change and adjust
     if (activeReward) {

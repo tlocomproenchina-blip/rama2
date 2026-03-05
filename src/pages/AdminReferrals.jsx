@@ -38,7 +38,7 @@ export default function AdminReferrals() {
         setRewards(r || []);
         setCredits(c || []);
         if (s && s.length > 0) setSettings(s[0]);
-        else setSettings({ config_key: 'main', enabled: true, referrer_credit_per_cbm: 15, credit_expiration_days: 60, max_credit_apply_percent: 0.3, min_invoice_subtotal_usd: 95 });
+        else setSettings({ config_key: 'main', enabled: true, referrer_credit_per_cbm: 15, credit_expiration_days: 60, max_credit_apply_percent: 0.3, min_invoice_subtotal_usd: 95, agent_enabled: true, agent_referrer_credit_per_cbm: 25, agent_role_codes: ['agente','agent'] });
       } catch (e) {
         toast.error('No se pudieron cargar datos de referidos');
       }
@@ -269,6 +269,21 @@ export default function AdminReferrals() {
           <div>
             <Label>$ por CBM (referidor)</Label>
             <Input type="number" value={settings?.referrer_credit_per_cbm ?? 15} onChange={(e)=> setSettings({ ...settings, referrer_credit_per_cbm: Number(e.target.value) })} />
+          </div>
+          <div>
+            <Label>$ por CBM (Agente)</Label>
+            <Input type="number" value={settings?.agent_referrer_credit_per_cbm ?? 25} onChange={(e)=> setSettings({ ...settings, agent_referrer_credit_per_cbm: Number(e.target.value) })} />
+          </div>
+          <div>
+            <Label>Roles de Agente (separados por coma)</Label>
+            <Input
+              value={(Array.isArray(settings?.agent_role_codes) ? settings.agent_role_codes : []).join(',')}
+              onChange={(e)=> {
+                const arr = e.target.value.split(',').map(x => x.trim()).filter(Boolean);
+                setSettings({ ...settings, agent_role_codes: arr });
+              }}
+              placeholder="agente, agent"
+            />
           </div>
           <div>
             <Label>% máx. aplicar por factura</Label>
