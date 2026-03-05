@@ -97,13 +97,16 @@ export default function Layout({ children, currentPageName }) {
     loadFavicon();
   }, []);
 
-  // Capture referral code in URL before redirecting to login
+  // Capture referral code in URL before redirecting to login and after returning
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get('ref');
-    if (ref) {
-      try { localStorage.setItem('pending_referral_code', ref); } catch {}
-    }
+    const applyOrSave = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref');
+      if (ref) {
+        try { localStorage.setItem('pending_referral_code', ref); } catch {}
+      }
+    };
+    applyOrSave();
   }, []);
 
   // Close any open Radix overlays (Select/Popover/Dropdown) on route change to avoid iOS removeChild crashes

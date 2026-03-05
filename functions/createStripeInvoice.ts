@@ -77,6 +77,9 @@ Deno.serve(async (req) => {
     // Create draft Stripe invoice first (attach items directly to this invoice)
     const currency = 'usd';
     const items: Array<any> = Array.isArray(inv.items) ? inv.items : [];
+    let itemsSubtotalCents = 0;
+    let taxCents = 0;
+    let appliedReferralCents = 0;
 
     // Load consolidation and related AP/state in parallel
     let cons: any = null;
@@ -145,18 +148,37 @@ Deno.serve(async (req) => {
         currency,
         description: it.description || 'Servicio',
       });
+      itemsSubtotalCents += amount;
     }
 
     // Add tax line if any
     if (inv.tax && Number(inv.tax) > 0) {
+      taxCents = Math.round(Number(inv.tax) * 100);
       await stripe.invoiceItems.create({
         customer: client.stripe_customer_id,
         invoice: stripeInvoice.id,
-        amount: Math.round(Number(inv.tax) * 100),
+        amount: taxCents,
         currency,
         description: 'Impuestos',
       });
     }
+
+    // Apply referral credit (automatic discount on next invoice)
+    try {
+      const creditBalanceCents = Math.round(Number(client.referral_credit_balance || 0) * 100);
+      const maxApplicableCents = Math.max(0, itemsSubtotalCents + taxCents);
+      const toApply = Math.min(creditBalanceCents, maxApplicableCents);
+      if (toApply > 0) {
+        await stripe.invoiceItems.create({
+          customer: client.stripe_customer_id,
+          invoice: stripeInvoice.id,
+          amount: -toApply,
+          currency,
+          description: 'Crédito por referidos',
+        });
+        appliedReferralCents = toApply;
+      }
+    } catch {}
 
     // Finalize (NO enviar email todavía)
     const finalized = await stripe.invoices.finalizeInvoice(stripeInvoice.id);
@@ -181,6 +203,24 @@ Deno.serve(async (req) => {
         tax: (fresh.tax || 0) / 100,
         total: (fresh.total || 0) / 100
       });
+    } catch {}
+
+    // If referral credit was applied, update user's balance and log event
+    try {
+      if (appliedReferralCents > 0) {
+        const newBalance = Math.max(0, (Math.round(Number(client.referral_credit_balance || 0) * 100) - appliedReferralCents)) / 100;
+        await base44.asServiceRole.entities.User.update(client.id, { referral_credit_balance: newBalance });
+        try {
+          await base44.asServiceRole.entities.ReferralEvent.create({
+            referrer_email: client.email,
+            referee_email: '',
+            referral_code: client.referred_by_code || '',
+            amount: appliedReferralCents / 100,
+            event_type: 'redeemed',
+            invoice_id: String(inv.id)
+          });
+        } catch {}
+      }
     } catch {}
 
     // Enviar el email de Stripe SOLO cuando la URL esté lista (o tras agotar intentos)

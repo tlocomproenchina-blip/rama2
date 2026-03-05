@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, MapPin, Phone, Save, Loader2, DollarSign, CheckCircle2 } from 'lucide-react';
+import { User, MapPin, Phone, Save, Loader2, DollarSign, CheckCircle2, Gift, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Profile({ user, refreshUser }) {
@@ -25,6 +25,10 @@ export default function Profile({ user, refreshUser }) {
   const [pricingConfig, setPricingConfig] = useState(null);
   const [appConfig, setAppConfig] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [referralCode, setReferralCode] = useState(user?.referral_code || '');
+  const [genLoading, setGenLoading] = useState(false);
+  const [applyCode, setApplyCode] = useState('');
+  const [applyLoading, setApplyLoading] = useState(false);
 
   const getMissingFields = () => {
     const missing = [];
@@ -56,6 +60,7 @@ export default function Profile({ user, refreshUser }) {
         city: user.city || '',
         address: user.address || ''
       });
+      setReferralCode(user.referral_code || referralCode);
     }
   }, [user?.id]);
 
@@ -425,9 +430,82 @@ export default function Profile({ user, refreshUser }) {
               <p className="text-sm font-medium text-slate-700 font-mono">{user.shipping_mark}</p>
             </div>
           )}
+          <div>
+            <Label className="text-xs text-slate-500">Crédito por referidos</Label>
+            <p className="text-sm font-medium text-emerald-700">${(user?.referral_credit_balance || 0).toFixed ? (user?.referral_credit_balance || 0).toFixed(2) : Number(user?.referral_credit_balance || 0).toFixed(2)} USD</p>
+          </div>
           <p className="text-xs text-slate-500 italic">
             Para cambiar tu email o shipping mark, contacta con soporte
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Programa de Referidos */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5 text-emerald-600" /> Programa de Referidos</CardTitle>
+          <CardDescription>Comparte tu código y ambos reciben crédito para su próxima factura</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Generar / mostrar código */}
+          <div className="flex flex-col md:flex-row md:items-center gap-2">
+            <Input readOnly value={referralCode ? referralCode : 'Sin código aún'} className="md:w-48 font-mono" />
+            <Button
+              onClick={async () => {
+                if (referralCode) return;
+                setGenLoading(true);
+                try {
+                  const { data } = await base44.functions.invoke('generateReferralCode', {});
+                  if (data?.code) { setReferralCode(data.code); toast.success('Código generado'); if (refreshUser) await refreshUser(); }
+                } catch { toast.error('No se pudo generar el código'); }
+                setGenLoading(false);
+              }}
+              disabled={genLoading || !!referralCode}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {genLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {referralCode ? 'Generado' : 'Generar código'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!referralCode) { toast.error('Genera tu código primero'); return; }
+                const link = `${window.location.origin}/?ref=${referralCode}`;
+                navigator.clipboard.writeText(link);
+                toast.success('Enlace copiado');
+              }}
+            >
+              <Copy className="h-4 w-4 mr-2" /> Copiar enlace
+            </Button>
+          </div>
+
+          {/* Aplicar código si no se usó */}
+          {!user?.referred_by_code && (
+            <div className="flex flex-col md:flex-row md:items-center gap-2">
+              <Input value={applyCode} onChange={(e) => setApplyCode(e.target.value)} placeholder="Código de referido" className="md:w-56 uppercase" />
+              <Button
+                onClick={async () => {
+                  if (!applyCode) { toast.error('Ingresa un código'); return; }
+                  setApplyLoading(true);
+                  try {
+                    const { data } = await base44.functions.invoke('applyReferral', { code: applyCode });
+                    if (data?.success) { toast.success('Crédito aplicado'); setApplyCode(''); if (refreshUser) await refreshUser(); }
+                    else toast.error(data?.error || 'No se pudo aplicar');
+                  } catch (e) { toast.error('No se pudo aplicar'); }
+                  setApplyLoading(false);
+                }}
+                disabled={applyLoading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {applyLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Aplicar código
+              </Button>
+            </div>
+          )}
+
+          {user?.referred_by_code && (
+            <p className="text-xs text-slate-500">Usaste el código <span className="font-mono">{user.referred_by_code}</span>.</p>
+          )}
         </CardContent>
       </Card>
     </div>
