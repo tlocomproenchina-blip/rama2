@@ -68,17 +68,19 @@ export default function AdminRoles({ user }) {
 
   const loadRoles = async () => {
     try {
-      const allRoles = await base44.entities.RoleConfig.list();
-      
+      let allRoles = await base44.entities.RoleConfig.list();
+
       // Create default roles if they don't exist
       if (allRoles.length === 0) {
         await createDefaultRoles();
-        const newRoles = await base44.entities.RoleConfig.list();
-        setRoles(newRoles);
-      } else {
-        setRoles(allRoles);
+        allRoles = await base44.entities.RoleConfig.list();
       }
-      
+
+      // Ensure agent/agente roles exist
+      await ensureAgentRoles();
+      allRoles = await base44.entities.RoleConfig.list();
+
+      setRoles(allRoles);
       if (allRoles.length > 0) {
         setSelectedRole(allRoles[0]);
       }
@@ -170,6 +172,28 @@ export default function AdminRoles({ user }) {
     ];
 
     for (const role of defaultRoles) {
+      await base44.entities.RoleConfig.create(role);
+    }
+  };
+
+  const ensureAgentRoles = async () => {
+    // Create 'agent' and 'agente' roles if missing
+    const existing = await base44.entities.RoleConfig.list();
+    const codes = new Set(existing.map(r => r.role_code));
+    const toCreate = [];
+
+    const baseAgent = {
+      role_name: 'Agente',
+      description: 'Rol de agente para programa de referidos',
+      is_active: true,
+      permissions: { view_dashboard: true, view_clients: true, view_reports: true },
+      visible_pages: ['AdminDashboard', 'AdminClients', 'AdminReports']
+    };
+
+    if (!codes.has('agent')) toCreate.push({ role_code: 'agent', ...baseAgent });
+    if (!codes.has('agente')) toCreate.push({ role_code: 'agente', ...baseAgent });
+
+    for (const role of toCreate) {
       await base44.entities.RoleConfig.create(role);
     }
   };

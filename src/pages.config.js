@@ -84,6 +84,7 @@ import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
 import MyInvoices from './pages/MyInvoices';
 import MyPackages from './pages/MyPackages';
+import MyReferrals from './pages/MyReferrals';
 import PreAlert from './pages/PreAlert';
 import Profile from './pages/Profile';
 import Rates from './pages/Rates';
@@ -91,7 +92,6 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import MyReferrals from './pages/MyReferrals';
 import __Layout from './Layout.jsx';
 
 
@@ -133,6 +133,7 @@ export const PAGES = {
     "MyConsolidations": MyConsolidations,
     "MyInvoices": MyInvoices,
     "MyPackages": MyPackages,
+    "MyReferrals": MyReferrals,
     "PreAlert": PreAlert,
     "Profile": Profile,
     "Rates": Rates,
@@ -140,7 +141,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "MyReferrals": MyReferrals,
 }
 
 export const pagesConfig = {
