@@ -205,201 +205,190 @@ export default function ShippingCalculator({ user }) {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Shipping Type */}
+          {/* Shipping Type - Step 2 */}
           {step === 2 && (
-          <div className={`grid ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
-            {config?.shipping_type_air_enabled !== false && (
-              <button
-                onClick={() => setShippingType('aereo')}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  shippingType === 'aereo'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <Plane className={`h-5 w-5 ${shippingType === 'aereo' ? 'text-blue-600' : 'text-slate-400'}`} />
-                  <span className="font-semibold text-slate-800">Aéreo</span>
-                </div>
-                <p className="text-sm text-slate-500">15-20 días</p>
-              </button>
-            )}
+            <div className={`grid ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+              {config?.shipping_type_air_enabled !== false && (
+                <button
+                  onClick={() => setShippingType('aereo')}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    shippingType === 'aereo' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Plane className={`h-5 w-5 ${shippingType === 'aereo' ? 'text-blue-600' : 'text-slate-400'}`} />
+                    <span className="font-semibold text-slate-800">Aéreo</span>
+                  </div>
+                  <p className="text-sm text-slate-500">15-20 días</p>
+                </button>
+              )}
 
-            {config?.shipping_type_sea_enabled !== false && (
-              <button
-                onClick={() => setShippingType('maritimo')}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  shippingType === 'maritimo'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <Ship className={`h-5 w-5 ${shippingType === 'maritimo' ? 'text-blue-600' : 'text-slate-400'}`} />
-                  <span className="font-semibold text-slate-800">Marítimo</span>
-                </div>
-                <p className="text-sm text-slate-500">75-90 días</p>
-              </button>
-            )}
-          </div>
+              {config?.shipping_type_sea_enabled !== false && (
+                <button
+                  onClick={() => setShippingType('maritimo')}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    shippingType === 'maritimo' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Ship className={`h-5 w-5 ${shippingType === 'maritimo' ? 'text-blue-600' : 'text-slate-400'}`} />
+                    <span className="font-semibold text-slate-800">Marítimo</span>
+                  </div>
+                  <p className="text-sm text-slate-500">75-90 días</p>
+                </button>
+              )}
+            </div>
           )}
 
-            {/* Cargo Category */}
+          {/* Cargo Category - Step 2 */}
           {step === 2 && (
-          <div className="space-y-2">
-            <Label>Categoría de Carga</Label>
-            <Select value={cargoCategory} onValueChange={setCargoCategory}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="general">General</SelectItem>
-                <SelectItem value="sensitive">Sensible</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <Label>Categoría de Carga</Label>
+              <Select value={cargoCategory} onValueChange={setCargoCategory}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="sensitive">Sensible</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
-            {/* Input Mode Selection */}
+          {/* Step 1 - Data Inputs */}
           {step === 1 && (
-          <div className="space-y-2">
-            <Label>Método de Cálculo</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setInputMode('dimensions')}
-                className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                  inputMode === 'dimensions'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                }`}
-              >
-                Por Dimensiones
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode('cbm')}
-                className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                  inputMode === 'cbm'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
-                }`}
-              >
-                Por CBM
-              </button>
-            </div>
-          </div>
+            <>
+              <div className="space-y-2">
+                <Label>Método de Cálculo</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setInputMode('dimensions')}
+                    className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                      inputMode === 'dimensions'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                    }`}
+                  >
+                    Por Dimensiones
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInputMode('cbm')}
+                    className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                      inputMode === 'cbm'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                    }`}
+                  >
+                    Por CBM
+                  </button>
+                </div>
+              </div>
 
-          {/* Weight Input - Always visible */}
-          <div className="space-y-2">
-            <Label>Peso Real (kg)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              placeholder="1.0"
-            />
-          </div>
-
-          {/* CBM Input */}
-          {inputMode === 'cbm' && (
-            <div className="space-y-2">
-              <Label>CBM (Metros Cúbicos)</Label>
-              <Input
-                type="number"
-                step="0.0001"
-                value={cbm}
-                onChange={(e) => setCbm(e.target.value)}
-                placeholder="0.0000"
-              />
-            </div>
-          )}
-
-          {/* Info Box */}
-          {shippingType === 'aereo' ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-blue-800 mb-1">📦 Envío Aéreo</p>
-              <p className="text-sm text-blue-700">
-                Se calcula por <strong>peso real</strong> y por <strong>volumen</strong>, y se factura el <strong>que sea mayor</strong>. Mínimo 1 kg.
-              </p>
-              <p className="text-xs text-blue-600 mt-2">
-                Fórmula de <strong>peso volumétrico</strong>: CBM × 167 kg/m³
-              </p>
-            </div>
-          ) : (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-indigo-800 mb-1">🚢 Envío Marítimo</p>
-              <p className="text-sm text-indigo-700">
-                Se calcula por <strong>volumen en CBM</strong> (metros cúbicos).
-              </p>
-              <p className="text-xs text-indigo-600 mt-2">
-                Fórmula de <strong>CBM</strong>: (L × A × H) / 1,000,000
-              </p>
-            </div>
-          )}
-
-          {/* Dimensions */}
-          {inputMode === 'dimensions' && (
-            <div className="space-y-2">
-              <Label>Dimensiones (cm)</Label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label>Peso Real (kg)</Label>
                 <Input
                   type="number"
-                  placeholder="Largo"
-                  value={dimensions.length}
-                  onChange={(e) => setDimensions({ ...dimensions, length: e.target.value })}
-                />
-                <Input
-                  type="number"
-                  placeholder="Ancho"
-                  value={dimensions.width}
-                  onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
-                />
-                <Input
-                  type="number"
-                  placeholder="Alto"
-                  value={dimensions.height}
-                  onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
+                  step="0.01"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="1.0"
                 />
               </div>
-            </div>
-          )}
 
-           )}
-
-            {/* Insurance */}
-          {step === 2 && (
-          <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-            <Checkbox
-              id="insurance"
-              checked={includeInsurance}
-              onCheckedChange={setIncludeInsurance}
-            />
-            <div className="flex-1 space-y-3">
-              <div>
-                <label htmlFor="insurance" className="font-medium text-slate-800 cursor-pointer">
-                  Asegurar Carga ({config?.insurance_percentage || 5}% del valor FOB)
-                </label>
-                <p className="text-sm text-slate-500">Protege tu envío contra daños o pérdidas</p>
-              </div>
-              {includeInsurance && (
+              {inputMode === 'cbm' && (
                 <div className="space-y-2">
-                  <Label>Valor FOB (USD)</Label>
+                  <Label>CBM (Metros Cúbicos)</Label>
                   <Input
                     type="number"
-                    step="0.01"
-                    value={fobValue}
-                    onChange={(e) => setFobValue(e.target.value)}
-                    placeholder="0.00"
+                    step="0.0001"
+                    value={cbm}
+                    onChange={(e) => setCbm(e.target.value)}
+                    placeholder="0.0000"
                   />
                 </div>
               )}
-            </div>
-          </div>
+
+              {shippingType === 'aereo' ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm font-medium text-blue-800 mb-1">📦 Envío Aéreo</p>
+                  <p className="text-sm text-blue-700">
+                    Se calcula por <strong>peso real</strong> y por <strong>volumen</strong>, y se factura el <strong>que sea mayor</strong>. Mínimo 1 kg.
+                  </p>
+                  <p className="text-xs text-blue-600 mt-2">
+                    Fórmula de <strong>peso volumétrico</strong>: CBM × 167 kg/m³
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                  <p className="text-sm font-medium text-indigo-800 mb-1">🚢 Envío Marítimo</p>
+                  <p className="text-sm text-indigo-700">
+                    Se calcula por <strong>volumen en CBM</strong> (metros cúbicos).
+                  </p>
+                  <p className="text-xs text-indigo-600 mt-2">
+                    Fórmula de <strong>CBM</strong>: (L × A × H) / 1,000,000
+                  </p>
+                </div>
+              )}
+
+              {inputMode === 'dimensions' && (
+                <div className="space-y-2">
+                  <Label>Dimensiones (cm)</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input
+                      type="number"
+                      placeholder="Largo"
+                      value={dimensions.length}
+                      onChange={(e) => setDimensions({ ...dimensions, length: e.target.value })}
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Ancho"
+                      value={dimensions.width}
+                      onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Alto"
+                      value={dimensions.height}
+                      onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-            {/* Calculate Button */}
+          {/* Insurance - Step 2 */}
+          {step === 2 && (
+            <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+              <Checkbox id="insurance" checked={includeInsurance} onCheckedChange={setIncludeInsurance} />
+              <div className="flex-1 space-y-3">
+                <div>
+                  <label htmlFor="insurance" className="font-medium text-slate-800 cursor-pointer">
+                    Asegurar Carga ({config?.insurance_percentage || 5}% del valor FOB)
+                  </label>
+                  <p className="text-sm text-slate-500">Protege tu envío contra daños o pérdidas</p>
+                </div>
+                {includeInsurance && (
+                  <div className="space-y-2">
+                    <Label>Valor FOB (USD)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={fobValue}
+                      onChange={(e) => setFobValue(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
           <div className="flex justify-between gap-2">
             {step > 1 && (
               <Button variant="outline" onClick={() => setStep(step - 1)}>Atrás</Button>
