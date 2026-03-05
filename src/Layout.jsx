@@ -244,8 +244,15 @@ export default function Layout({ children, currentPageName }) {
           return;
         }
       } catch (_) {}
-      base44.auth.redirectToLogin();
-      setLoading(false);
+      // Permitir rutas públicas sin autenticación
+      const publicPages = ['Home', 'Blog', 'BlogPost'];
+      if (publicPages.includes(currentPageName)) {
+        setUser(null);
+        setLoading(false);
+      } else {
+        base44.auth.redirectToLogin();
+        setLoading(false);
+      }
     }
   };
 
