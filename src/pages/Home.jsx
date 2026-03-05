@@ -3,7 +3,6 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
-import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight } from 'lucide-react';
@@ -18,19 +17,7 @@ export default function Home({ user }) {
     document.head.appendChild(meta);
   }, []);
 
-  const [states, setStates] = React.useState([]);
-  const [selectedCode, setSelectedCode] = React.useState('');
 
-  React.useEffect(() => {
-    (async () => {
-      try {
-        const list = await base44.entities.StateConfig.filter({ is_active: true });
-        setStates(list);
-      } catch (e) {
-        console.error('Error cargando estados', e);
-      }
-    })();
-  }, []);
 
   const [states, setStates] = React.useState([]);
   const [selectedCode, setSelectedCode] = React.useState('');
