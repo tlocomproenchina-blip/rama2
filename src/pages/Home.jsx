@@ -27,6 +27,16 @@ export default function Home({ user }) {
     })();
   }, []);
 
+  const [states, setStates] = React.useState([]);
+  const [selectedCode, setSelectedCode] = React.useState('');
+
+  React.useEffect(() => {
+    (async () => {
+      const list = await base44.entities.StateConfig.filter({ is_active: true });
+      setStates(list);
+    })();
+  }, []);
+
   const handlePreAlertClick = async () => {
     if (user) {
       window.location.href = createPageUrl('PreAlert');
