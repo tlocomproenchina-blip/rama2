@@ -30,18 +30,20 @@ export default function Rates({ user }) {
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
+  const [states, setStates] = useState([]);
+  const [selectedCode, setSelectedCode] = useState('');
 
   useEffect(() => {
     loadConfig();
   }, []);
 
   const loadConfig = async () => {
-    const [configs, pricing, states] = await Promise.all([
+    const [configs, pricing, statesList] = await Promise.all([
       base44.entities.AppConfig.filter({ config_key: 'main' }),
       base44.entities.PricingConfig.filter({ config_key: 'main' }),
-      user?.state ? base44.entities.StateConfig.filter({ state_code: user.state }) : Promise.resolve([])
+      base44.entities.StateConfig.filter({ is_active: true })
     ]);
-    
+
     if (configs.length > 0) {
       setConfig(configs[0]);
       // Set default shipping type to first enabled option
@@ -51,15 +53,19 @@ export default function Rates({ user }) {
         setShippingType('maritimo');
       }
     }
-    
+
     if (pricing.length > 0) {
       setPricingConfig(pricing[0]);
     }
-    
-    if (states.length > 0) {
-      setStateConfig(states[0]);
+
+    setStates(statesList);
+    if (statesList.length > 0) {
+      const defaultCode = (user?.state && statesList.some(s => s.state_code === user.state)) ? user.state : statesList[0].state_code;
+      setSelectedCode(defaultCode);
+      const sel = statesList.find(s => s.state_code === defaultCode);
+      setStateConfig(sel || null);
     }
-    
+
     setLoading(false);
   };
 
@@ -133,9 +139,29 @@ export default function Rates({ user }) {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-slate-800 mb-2">Tarifas de Envío</h1>
         <p className="text-slate-500">Conoce nuestras tarifas competitivas para tu carga</p>
-      </div>
+        </div>
 
-      {/* Shipping Rates */}
+        {/* Selector de Estado */}
+        <div className="flex justify-center">
+        <div className="w-full max-w-sm">
+          <Select value={selectedCode} onValueChange={(v) => {
+            setSelectedCode(v);
+            const sel = states.find(s => s.state_code === v);
+            setStateConfig(sel || null);
+          }}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecciona tu estado" />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              {states.map((s) => (
+                <SelectItem key={s.id} value={s.state_code}>{s.state_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        </div>
+
+        {/* Shipping Rates */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Air Shipping */}
         {config?.shipping_type_air_enabled !== false && (
@@ -228,11 +254,13 @@ export default function Rates({ user }) {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-indigo-600">
-                    {stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + pricingConfig.door_to_door_cost).toFixed(2)}`
+                    {stateConfig?.final_rate_regular > 0 ? (
+                      `$${Number(stateConfig.final_rate_regular).toFixed(2)}`
+                    ) : stateConfig && pricingConfig ? (
+                      `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + (stateConfig.shipping_rate || 0) + (pricingConfig.door_to_door_cost || 0)).toFixed(2)}`
                     ) : (
                       `$${config?.rate_sea_general?.toFixed(2) || '0.00'}`
-                    )}
+                    )
                   </p>
                   <p className="text-xs text-slate-500">por CBM</p>
                 </div>
@@ -250,11 +278,13 @@ export default function Rates({ user }) {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-amber-600">
-                    {stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + pricingConfig.door_to_door_cost).toFixed(2)}`
+                    {stateConfig?.final_rate_high > 0 ? (
+                      `$${Number(stateConfig.final_rate_high).toFixed(2)}`
+                    ) : stateConfig && pricingConfig ? (
+                      `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + (stateConfig.shipping_rate || 0) + (pricingConfig.door_to_door_cost || 0)).toFixed(2)}`
                     ) : (
                       `$${config?.rate_sea_sensitive?.toFixed(2) || '0.00'}`
-                    )}
+                    )
                   </p>
                   <p className="text-xs text-slate-500">por CBM</p>
                 </div>
