@@ -12,7 +12,7 @@ import Sidebar from '@/components/Sidebar';
 
 
 import { notifyAdmins } from '@/components/NotificationUtils';
-import { Menu, Loader2 } from 'lucide-react';
+import { Menu, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Toaster } from 'sonner';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
@@ -39,6 +39,7 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
+  const showBackButton = ['ShippingCalculator', 'Rates'].includes(currentPageName);
 
   // Mobile tab navigation mappings
   const userTabDefaults = {
@@ -445,6 +446,13 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <div className="flex-1 overflow-x-hidden w-full">
           <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
+            {showBackButton && (
+              <div className="mb-3">
+                <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
+                  <ArrowLeft className="h-4 w-4" /> Atrás
+                </Button>
+              </div>
+            )}
             <ErrorBoundary>
               {React.cloneElement(children, { user, refreshUser: loadUser })}
             </ErrorBoundary>
