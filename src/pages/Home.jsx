@@ -17,13 +17,19 @@ export default function Home({ user }) {
     document.head.appendChild(meta);
   }, []);
 
+  const [states, setStates] = React.useState([]);
+  const [selectedCode, setSelectedCode] = React.useState('');
 
-
-
-
-
-
-
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const list = await base44.entities.StateConfig.filter({ is_active: true });
+        setStates(list);
+      } catch (e) {
+        console.error('Error cargando estados', e);
+      }
+    })();
+  }, []);
 
   const handlePreAlertClick = async () => {
     if (user) {
