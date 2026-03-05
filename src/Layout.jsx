@@ -97,6 +97,15 @@ export default function Layout({ children, currentPageName }) {
     loadFavicon();
   }, []);
 
+  // Capture referral code in URL before redirecting to login
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      try { localStorage.setItem('pending_referral_code', ref); } catch {}
+    }
+  }, []);
+
   // Close any open Radix overlays (Select/Popover/Dropdown) on route change to avoid iOS removeChild crashes
   useEffect(() => {
     try {
@@ -137,6 +146,26 @@ export default function Layout({ children, currentPageName }) {
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
+
+      // Apply referral if present and not yet used
+      try {
+        if (currentUser?.role === 'user' && !currentUser?.referred_by_code) {
+          const params = new URLSearchParams(window.location.search);
+          const urlRef = params.get('ref');
+          const lsRef = (() => { try { return localStorage.getItem('pending_referral_code'); } catch { return null; } })();
+          const code = (urlRef || lsRef || '').toUpperCase();
+          if (code && code !== (currentUser.referral_code || '').toUpperCase()) {
+            await base44.functions.invoke('applyReferral', { code });
+            try { localStorage.removeItem('pending_referral_code'); } catch {}
+            // Clean ref param from URL
+            try {
+              const u = new URL(window.location.href);
+              u.searchParams.delete('ref');
+              window.history.replaceState({}, '', u.toString());
+            } catch {}
+          }
+        }
+      } catch (_) {}
 
       // Auto-create Stripe customer if missing
       if (currentUser && !currentUser.stripe_customer_id) {
@@ -227,7 +256,7 @@ export default function Layout({ children, currentPageName }) {
           return;
         }
       } catch (_) {}
-      base44.auth.redirectToLogin();
+      base44.auth.redirectToLogin(window.location.href);
       setLoading(false);
     }
   };
