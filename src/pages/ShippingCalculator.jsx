@@ -25,7 +25,6 @@ export default function ShippingCalculator({ user }) {
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
-  const [step, setStep] = useState(1);
   const MIN_CBM = 0.13;
 
   useEffect(() => {
@@ -156,6 +155,9 @@ export default function ShippingCalculator({ user }) {
     });
   };
 
+  // Auto-calculate when inputs change
+  useEffect(() => { calculateShipping(); }, [shippingType, cargoCategory, includeInsurance, fobValue, inputMode, weight, dimensions.length, dimensions.width, dimensions.height, cbm, selectedState, pricingConfig, config]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -195,19 +197,11 @@ export default function ShippingCalculator({ user }) {
 
         <Card className="border-0 shadow-lg">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Calculadora</CardTitle>
-            <div className="flex gap-2">
-              <div className={`px-2.5 py-1 rounded-full text-xs ${step===1?'bg-blue-600 text-white':'bg-slate-100 text-slate-600'}`}>1. Datos</div>
-              <div className={`px-2.5 py-1 rounded-full text-xs ${step===2?'bg-blue-600 text-white':'bg-slate-100 text-slate-600'}`}>2. Opciones</div>
-              <div className={`px-2.5 py-1 rounded-full text-xs ${step===3?'bg-blue-600 text-white':'bg-slate-100 text-slate-600'}`}>3. Resultado</div>
-            </div>
-          </div>
+          <CardTitle className="text-lg">Calculadora</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Shipping Type - Step 2 */}
-          {step === 2 && (
-            <div className={`grid ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
+          {/* Tipo de Envío */}
+          <div className={`grid ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
               {config?.shipping_type_air_enabled !== false && (
                 <button
                   onClick={() => setShippingType('aereo')}
@@ -238,11 +232,9 @@ export default function ShippingCalculator({ user }) {
                 </button>
               )}
             </div>
-          )}
 
-          {/* Cargo Category - Step 2 */}
-          {step === 2 && (
-            <div className="space-y-2">
+          {/* Categoría de Carga */}
+          <div className="space-y-2">
               <Label>Categoría de Carga</Label>
               <Select value={cargoCategory} onValueChange={setCargoCategory}>
                 <SelectTrigger>
@@ -254,7 +246,6 @@ export default function ShippingCalculator({ user }) {
                 </SelectContent>
               </Select>
             </div>
-          )}
 
           {/* Step 1 - Data Inputs */}
           {step === 1 && (
@@ -363,52 +354,37 @@ export default function ShippingCalculator({ user }) {
             </>
           )}
 
-          {/* Insurance - Step 2 */}
-          {step === 2 && (
-            <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-              <Checkbox id="insurance" checked={includeInsurance} onCheckedChange={setIncludeInsurance} />
-              <div className="flex-1 space-y-3">
-                <div>
-                  <label htmlFor="insurance" className="font-medium text-slate-800 cursor-pointer">
-                    Asegurar Carga ({config?.insurance_percentage || 5}% del valor FOB)
-                  </label>
-                  <p className="text-sm text-slate-500">Protege tu envío contra daños o pérdidas</p>
-                </div>
-                {includeInsurance && (
-                  <div className="space-y-2">
-                    <Label>Valor FOB (USD)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={fobValue}
-                      onChange={(e) => setFobValue(e.target.value)}
-                      placeholder="0.00"
-                    />
-                  </div>
-                )}
+          {/* Seguro */}
+          <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+            <Checkbox id="insurance" checked={includeInsurance} onCheckedChange={setIncludeInsurance} />
+            <div className="flex-1 space-y-3">
+              <div>
+                <label htmlFor="insurance" className="font-medium text-slate-800 cursor-pointer">
+                  Asegurar Carga ({config?.insurance_percentage || 5}% del valor FOB)
+                </label>
+                <p className="text-sm text-slate-500">Protege tu envío contra daños o pérdidas</p>
               </div>
+              {includeInsurance && (
+                <div className="space-y-2">
+                  <Label>Valor FOB (USD)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={fobValue}
+                    onChange={(e) => setFobValue(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between gap-2">
-            {step > 1 && (
-              <Button variant="outline" onClick={() => setStep(step - 1)}>Atrás</Button>
-            )}
-            {step === 1 && (
-              <Button onClick={() => setStep(2)} className="ml-auto">Siguiente</Button>
-            )}
-            {step === 2 && (
-              <Button onClick={() => { calculateShipping(); setStep(3); }} className="ml-auto bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white">
-                Calcular y ver resultado
-              </Button>
-            )}
           </div>
+
+
         </CardContent>
       </Card>
 
       {/* Results */}
-      {step === 3 && result && (
+      {result && (
         <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-white">
           <CardHeader>
             <CardTitle>Detalles del Envío</CardTitle>
@@ -463,10 +439,6 @@ export default function ShippingCalculator({ user }) {
               {result.stateName && (
                 <div className="col-span-2">Estado: {result.stateName}</div>
               )}
-            </div>
-            <div className="flex justify-between mt-4">
-              <Button variant="outline" onClick={() => setStep(2)}>Editar opciones</Button>
-              <Button onClick={() => setStep(1)} variant="ghost">Nuevo cálculo</Button>
             </div>
           </CardContent>
         </Card>
