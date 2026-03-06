@@ -50,6 +50,7 @@
 import AccountDisabled from './pages/AccountDisabled';
 import AccountingDashboard from './pages/AccountingDashboard';
 import AdminAccountsPayable from './pages/AdminAccountsPayable';
+import AdminBlog from './pages/AdminBlog';
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
@@ -94,7 +95,6 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminBlog from './pages/AdminBlog';
 import __Layout from './Layout.jsx';
 
 
@@ -102,6 +102,7 @@ export const PAGES = {
     "AccountDisabled": AccountDisabled,
     "AccountingDashboard": AccountingDashboard,
     "AdminAccountsPayable": AdminAccountsPayable,
+    "AdminBlog": AdminBlog,
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
@@ -146,7 +147,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminBlog": AdminBlog,
 }
 
 export const pagesConfig = {

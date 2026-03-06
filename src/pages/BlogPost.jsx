@@ -24,7 +24,7 @@ export default function BlogPost() {
         setPost(data);
         setStatus('ready');
 
-        document.title = (data.seo_title || data.title) + ' | TLEC Logistics';
+        document.title = (data.seo_title || data.title) + ' | TLEC CARGO';
         const meta = document.querySelector('meta[name="description"]') || document.createElement('meta');
         meta.name = 'description';
         meta.content = data.seo_description || data.excerpt || '';

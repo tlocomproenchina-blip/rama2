@@ -317,7 +317,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
               )}
               <div>
                 <h1 className="text-lg font-bold text-white">
-                  {config?.app_name || 'TLEC Logistics'}
+                  {config?.app_name || 'TLEC CARGO'}
                 </h1>
                 <p className="text-xs text-slate-400">
                   {config?.app_tagline || 'Sistema de Envíos'}

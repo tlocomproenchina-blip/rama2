@@ -103,7 +103,7 @@ Evita plagio, reescribe con tus palabras y verifica coherencia factual.`;
       seo_title: title,
       seo_description: data.seo_description || (data.excerpt || ''),
       status: 'draft',
-      author_name: 'TLEC Logistics',
+      author_name: 'TLEC CARGO',
       reading_time_minutes: Math.max(1, Math.round(((data.content_markdown || '').split(/\s+/).filter(Boolean).length) / 200))
     };
 
