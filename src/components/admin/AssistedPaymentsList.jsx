@@ -56,11 +56,40 @@ export default function AssistedPaymentsList() {
 
   const sendPaymentInstructions = async (req) => {
     if (!config) { toast.error('Config no cargada'); return; }
-    const method = window.prompt('Método de pago (binance, usdt_trc20, paypal, debito_internacional, wally, zinli, wise, skrill, pago_movil_usdt):');
-    if (!method) return;
-    const enabledKey = `payments_enable_${method}`;
-    if (config[enabledKey] === false) { toast.error('Método no habilitado'); return; }
 
+    // Lista de métodos disponibles y sus etiquetas legibles
+    const methodsCatalog = [
+      { code: 'binance', label: 'Binance' },
+      { code: 'usdt_trc20', label: 'USDT (TRC20)' },
+      { code: 'paypal', label: 'PayPal' },
+      { code: 'debito_internacional', label: 'Débito Internacional' },
+      { code: 'wally', label: 'Wally' },
+      { code: 'zinli', label: 'Zinli' },
+      { code: 'wise', label: 'Wise' },
+      { code: 'skrill', label: 'Skrill' },
+      { code: 'pago_movil_usdt', label: 'Pago Móvil USDT' },
+    ];
+
+    // Solo los métodos habilitados en configuración (cualquier valor distinto de false se considera activo)
+    const active = methodsCatalog.filter(m => config[`payments_enable_${m.code}`] !== false);
+    if (active.length === 0) { toast.error('No hay métodos de pago activos'); return; }
+
+    const amountStr = (req.total_amount || 0).toFixed(2);
+    const optionsStr = active.map((m, i) => `${i+1}) ${m.label} (${m.code})`).join('\n');
+    const answer = window.prompt(
+      `Selecciona el método de pago (escribe número o código):\n${optionsStr}\n\nMonto a pagar: $${amountStr} ${req.currency || 'USD'}`
+    );
+    if (!answer) return;
+
+    // Permitir elegir por código o por número
+    let selected = active.find(m => m.code.toLowerCase() === answer.trim().toLowerCase());
+    if (!selected) {
+      const idx = parseInt(answer, 10);
+      if (!Number.isNaN(idx) && idx >= 1 && idx <= active.length) selected = active[idx - 1];
+    }
+    if (!selected) { toast.error('Selección inválida'); return; }
+
+    const method = selected.code;
     const wallet = config[`wallet_${method}`] || '';
     const instr = config[`${method}_instructions`] || config.payments_assisted_instructions || '';
 
@@ -69,7 +98,7 @@ export default function AssistedPaymentsList() {
       `\nHemos aprobado tu solicitud de Pago Asistido y te compartimos las instrucciones para completar el pago.`,
       `\n\nResumen de la solicitud:`,
       `• Plataforma: ${req.provider?.toUpperCase() || '-'}\n• Enlace: ${req.link_url}\n• Monto base: $${(req.amount||0).toFixed(2)} ${req.currency||'USD'}\n• Comisión: $${(req.fee_amount||0).toFixed(2)} (${req.fee_percentage||0}%)\n• Total a pagar: $${(req.total_amount||0).toFixed(2)} ${req.currency||'USD'}`,
-      `\n\nMétodo seleccionado: ${method.replace(/_/g,' ').toUpperCase()}`,
+      `\n\nMétodo seleccionado: ${selected.label.toUpperCase()}`,
       wallet ? `\n• Cuenta/Wallet: ${wallet}` : '',
       instr ? `\n• Instrucciones: ${instr}` : '',
       `\n\nTras realizar el pago, por favor responde a este correo con la referencia y (si es posible) un enlace al comprobante.`,
