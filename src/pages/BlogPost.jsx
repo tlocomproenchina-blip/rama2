@@ -14,10 +14,10 @@ export default function BlogPost() {
       try {
         let data = null;
         if (slug) {
-          const res = await base44.entities.BlogPost.filter({ slug }, '-published_at', 1);
+          const res = await base44.entities.BlogPost.filter({ slug, status: 'published' }, '-published_at', 1);
           data = res[0] || null;
         } else if (id) {
-          const res = await base44.entities.BlogPost.filter({ id }, undefined, 1);
+          const res = await base44.entities.BlogPost.filter({ id, status: 'published' }, undefined, 1);
           data = res[0] || null;
         }
         if (!data) { setStatus('not_found'); return; }
