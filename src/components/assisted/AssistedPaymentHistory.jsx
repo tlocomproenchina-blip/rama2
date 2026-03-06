@@ -35,6 +35,7 @@ export default function AssistedPaymentHistory({ user }) {
   }, [user?.email]);
 
   return (
+    <>
     <Card className="mt-8">
       <CardHeader>
         <CardTitle>Mis solicitudes de Pago Asistido</CardTitle>
@@ -108,5 +109,6 @@ export default function AssistedPaymentHistory({ user }) {
         })();
       }}
     />
+    </>
   );
 }
