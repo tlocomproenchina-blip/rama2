@@ -25,8 +25,7 @@ import {
   CheckCircle2,
   Mail,
   Wallet,
-  Gift,
-  ShoppingCart
+  Gift
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
