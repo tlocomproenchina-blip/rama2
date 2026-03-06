@@ -29,6 +29,9 @@ class ApiQueueManager {
     this.activeWrites = 0;
     this.inflight = new Map();
     this.MIN_OPERATION_INTERVAL = 250; // 250ms mínimo entre operaciones (mejor latencia)
+    this.backoffDelays = [5000, 10000, 20000, 40000];
+    this.circuitBreakerThreshold = 3;
+    this.circuitOpenMinutes = 20;
   }
 
   /**
@@ -55,9 +58,9 @@ class ApiQueueManager {
     this.failureCount++;
     console.error(`[Rate Limit] Error count: ${this.failureCount}/3`);
 
-    if (this.failureCount >= 3) {
+    if (this.failureCount >= this.circuitBreakerThreshold) {
       this.circuitBreakerState = 'OPEN';
-      this.circuitOpenUntil = Date.now() + (20 * 60 * 1000); // 20 minutos
+      this.circuitOpenUntil = Date.now() + (this.circuitOpenMinutes * 60 * 1000);
       const openUntilTime = new Date(this.circuitOpenUntil).toLocaleTimeString('es-ES');
       
       toast.error(
@@ -83,17 +86,17 @@ class ApiQueueManager {
   }
 
   /**
-   * Backoff exponencial: 60s, 120s, 240s, 480s
+   * Backoff exponencial con jitter y soporte de Retry-After
    */
-  async exponentialBackoff(attempt) {
-    const delays = [5000, 10000, 20000, 40000]; // ms (backoff más rápido)
-    const delay = delays[Math.min(attempt, delays.length - 1)];
-    const seconds = delay / 1000;
-    
+  async exponentialBackoff(attempt, retryAfterSec) {
+    let delay = this.backoffDelays[Math.min(attempt, this.backoffDelays.length - 1)];
+    if (retryAfterSec && Number.isFinite(Number(retryAfterSec))) {
+      delay = Math.max(delay, Number(retryAfterSec) * 1000);
+    }
+    const jitter = Math.floor(delay * (0.1 + Math.random() * 0.1)); // 10-20%
+    delay += jitter;
+    const seconds = Math.round(delay / 100) / 10;
     console.warn(`[Backoff] Waiting ${seconds}s before retry (attempt ${attempt + 1}/5)`);
-    
-    console.warn(`⏳ Esperando ${seconds}s antes de reintentar... (Intento ${attempt + 1}/5)`);
-
     await new Promise(resolve => setTimeout(resolve, delay));
   }
 
@@ -110,10 +113,11 @@ class ApiQueueManager {
         const isRateLimit = error?.message?.includes('429') || 
                            error?.message?.includes('Rate limit') ||
                            error?.response?.status === 429;
+        const retryAfter = error?.response?.headers?.['retry-after'] || error?.response?.headers?.['Retry-After'];
 
         if (isRateLimit && attempt < maxRetries - 1) {
           this.registerRateLimitError();
-          await this.exponentialBackoff(attempt);
+          await this.exponentialBackoff(attempt, retryAfter);
           continue;
         }
 
@@ -436,10 +440,11 @@ class ApiQueueManager {
    */
   get functions() {
     return {
-      invoke: async (functionName, params) => {
+      invoke: async (functionName, params, options = {}) => {
+        const { priority = 'NORMAL', opType = 'write', dedupeKey } = options;
         return await this.enqueue(async () => {
           return await base44Client.functions.invoke(functionName, params);
-        }, 'NORMAL', 'write');
+        }, priority, opType, dedupeKey);
       }
     };
   }
@@ -487,6 +492,29 @@ class ApiQueueManager {
   }
 
   /**
+   * Ajustes dinámicos de tasa y concurrencia
+   */
+  setTuning({ maxReads, maxWrites, minIntervalMs, backoffDelays, circuitBreakerThreshold, circuitOpenMinutes } = {}) {
+    if (Number.isFinite(maxReads)) this.MAX_CONCURRENT_READS = Math.max(1, Math.min(32, maxReads));
+    if (Number.isFinite(maxWrites)) this.MAX_CONCURRENT_WRITES = Math.max(1, Math.min(16, maxWrites));
+    if (Number.isFinite(minIntervalMs)) this.MIN_OPERATION_INTERVAL = Math.max(0, Math.min(2000, minIntervalMs));
+    if (Array.isArray(backoffDelays) && backoffDelays.length) this.backoffDelays = backoffDelays.map(d => Math.max(100, Number(d) || 1000));
+    if (Number.isFinite(circuitBreakerThreshold)) this.circuitBreakerThreshold = Math.max(1, circuitBreakerThreshold);
+    if (Number.isFinite(circuitOpenMinutes)) this.circuitOpenMinutes = Math.max(1, circuitOpenMinutes);
+  }
+
+  getTuning() {
+    return {
+      maxReads: this.MAX_CONCURRENT_READS,
+      maxWrites: this.MAX_CONCURRENT_WRITES,
+      minIntervalMs: this.MIN_OPERATION_INTERVAL,
+      backoffDelays: this.backoffDelays,
+      circuitBreakerThreshold: this.circuitBreakerThreshold,
+      circuitOpenMinutes: this.circuitOpenMinutes
+    };
+  }
+
+  /**
    * Estado del sistema
    */
   getSystemStatus() {
@@ -511,5 +539,7 @@ const apiQueue = new ApiQueueManager();
 // Export como base44 compatible
 export const base44 = apiQueue;
 
-// Export sistema de estado
+// Export sistema de estado y tuning
 export const getApiStatus = () => apiQueue.getSystemStatus();
+export const setApiTuning = (opts) => apiQueue.setTuning(opts);
+export const getApiTuning = () => apiQueue.getTuning();
