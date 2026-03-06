@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'; // SEO público
 import { createPageUrl } from '@/utils';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 export default function Blog() {
   React.useEffect(() => {
@@ -27,6 +28,11 @@ export default function Blog() {
   return (
     <div className="min-h-[60vh]">
       <div className="mx-auto max-w-6xl">
+        <div className="mb-3">
+          <Button variant="ghost" onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.href = createPageUrl('Home'); }} className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Atrás
+          </Button>
+        </div>
         <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">Blog: China → Venezuela</h1>
         {isLoading ? (
           <p className="text-slate-600">Cargando artículos…</p>
