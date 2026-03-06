@@ -388,6 +388,10 @@ class ApiQueueManager {
 
         this.saveToCache(cacheKey, result);
         return result;
+      },
+
+      subscribe: (callback) => {
+        try { return base44Client.entities[entityName].subscribe(callback); } catch { return () => {}; }
       }
     };
   }
