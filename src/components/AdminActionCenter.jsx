@@ -16,6 +16,25 @@ export default function AdminActionCenter() {
     invoices_overdue: 0,
   });
   const [loading, setLoading] = React.useState(true);
+  const [newCounts, setNewCounts] = React.useState({
+    assisted_pending: 0,
+    assisted_invoiced: 0,
+    cons_requests: 0,
+    pay_validations: 0,
+    tickets_open: 0,
+    invoices_pending: 0,
+    invoices_overdue: 0,
+  });
+  const [lastSeen, setLastSeen] = React.useState({});
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const u = await base44.auth.me();
+        setLastSeen(u?.admin_action_seen || {});
+      } catch (_) {}
+    })();
+  }, []);
   const navigate = useNavigate();
 
   const load = React.useCallback(async () => {
@@ -42,10 +61,27 @@ export default function AdminActionCenter() {
         invoices_pending: invPend?.length || 0,
         invoices_overdue: invOver?.length || 0,
       });
+
+      const getNew = (arr, key) => {
+        const ts = lastSeen?.[key];
+        if (!arr) return 0;
+        if (!ts) return arr.length;
+        const t = new Date(ts).getTime();
+        return arr.filter((r) => new Date(r.created_date).getTime() > t).length;
+      };
+      setNewCounts({
+        assisted_pending: getNew(aprPend, 'assisted_pending'),
+        assisted_invoiced: getNew(aprProc, 'assisted_invoiced'),
+        cons_requests: getNew(consReq, 'cons_requests'),
+        pay_validations: getNew(payValidations, 'pay_validations'),
+        tickets_open: getNew([...(tOpen || []), ...(tProc || [])], 'tickets_open'),
+        invoices_pending: getNew(invPend, 'invoices_pending'),
+        invoices_overdue: getNew(invOver, 'invoices_overdue'),
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lastSeen]);
 
   React.useEffect(() => {
     load();
@@ -60,11 +96,17 @@ export default function AdminActionCenter() {
     return () => { unsubs.forEach((u) => { try { u(); } catch (_) {} }); };
   }, [load]);
 
+  const markSeen = async (key) => {
+    const next = { ...(lastSeen || {}), [key]: new Date().toISOString() };
+    setLastSeen(next);
+    try { await base44.auth.updateMe({ admin_action_seen: next }); } catch (_) {}
+  };
+
   const items = [
     {
       key: "assisted_pending",
       label: "Pagos asistidos (pendientes)",
-      count: counts.assisted_pending,
+      count: newCounts.assisted_pending,
       color: "bg-amber-100 text-amber-800 border-amber-200",
       icon: Link2,
       go: () => navigate(createPageUrl("AdminAssistedPayments")),
@@ -72,7 +114,7 @@ export default function AdminActionCenter() {
     {
       key: "assisted_invoiced",
       label: "Pagos asistidos (factura enviada)",
-      count: counts.assisted_invoiced,
+      count: newCounts.assisted_invoiced,
       color: "bg-blue-100 text-blue-800 border-blue-200",
       icon: QrCode,
       go: () => navigate(createPageUrl("AdminAssistedPayments")),
@@ -80,31 +122,31 @@ export default function AdminActionCenter() {
     {
       key: "cons_requests",
       label: "Solicitudes de consolidación",
-      count: counts.cons_requests,
+      count: newCounts.cons_requests,
       color: "bg-indigo-100 text-indigo-800 border-indigo-200",
       icon: CheckCircle2,
-      go: () => navigate(createPageUrl("AdminShipmentApprovals")),
+      go: () => { markSeen("cons_requests"); navigate(createPageUrl("AdminShipmentApprovals")); },
     },
     {
       key: "pay_validations",
       label: "Validaciones de pago",
-      count: counts.pay_validations,
+      count: newCounts.pay_validations,
       color: "bg-emerald-100 text-emerald-800 border-emerald-200",
       icon: CreditCard,
-      go: () => navigate(createPageUrl("AdminPayments")),
+      go: () => { markSeen("pay_validations"); navigate(createPageUrl("AdminPayments")); },
     },
     {
       key: "tickets_open",
       label: "Tickets de soporte",
-      count: counts.tickets_open,
+      count: newCounts.tickets_open,
       color: "bg-purple-100 text-purple-800 border-purple-200",
       icon: HelpCircle,
-      go: () => navigate(createPageUrl("AdminSupportTickets")),
+      go: () => { markSeen("tickets_open"); navigate(createPageUrl("AdminSupportTickets")); },
     },
     {
       key: "invoices_pending",
       label: "Facturas pendientes",
-      count: counts.invoices_pending,
+      count: newCounts.invoices_pending,
       color: "bg-slate-100 text-slate-800 border-slate-200",
       icon: FileText,
       go: () => navigate(createPageUrl("AdminInvoices")),
@@ -112,10 +154,10 @@ export default function AdminActionCenter() {
     {
       key: "invoices_overdue",
       label: "Facturas vencidas",
-      count: counts.invoices_overdue,
+      count: newCounts.invoices_overdue,
       color: "bg-rose-100 text-rose-800 border-rose-200",
       icon: AlertCircle,
-      go: () => navigate(createPageUrl("AdminInvoices")),
+      go: () => { markSeen("invoices_overdue"); navigate(createPageUrl("AdminInvoices")); }
     },
   ];
 
