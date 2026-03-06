@@ -40,7 +40,7 @@ export default function AssistedPaymentHistory({ user }) {
                     <td className="py-2 pr-4">{r.link_url ? <a href={r.link_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Abrir</a> : '—'}</td>
                     <td className="py-2 pr-4">${(r.amount||0).toFixed(2)}</td>
                     <td className="py-2 pr-4">${(r.fee_amount||0).toFixed(2)}</td>
-                    <td className="py-2 pr-4">{r.status === 'en_proceso' && r.invoice_id ? 'Pendiente de pago' : r.status}</td>
+                    <td className="py-2 pr-4">{r.status === 'en_proceso' && r.invoice_id ? 'Pago pendiente' : r.status}</td>
                     <td className="py-2">{r.invoice_id ? 'Generada' : '—'}</td>
                   </tr>
                 ))}

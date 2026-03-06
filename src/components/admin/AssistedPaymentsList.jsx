@@ -133,7 +133,14 @@ export default function AssistedPaymentsList() {
                             Rechazar
                           </Button>
                         </div>
-                        <div className="text-xs text-slate-500 mt-1 capitalize">{r.status.replace('_',' ')}</div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          {r.status === 'en_proceso' && r.invoice_id ? 'Pago pendiente' : ({
+                            pendiente: 'Pendiente',
+                            en_proceso: 'En proceso',
+                            pagado: 'Pagado',
+                            rechazado: 'Rechazado',
+                          }[r.status] || r.status)}
+                        </div>
                       </td>
                       <td className="py-2">
                         {r.image_url ? (
