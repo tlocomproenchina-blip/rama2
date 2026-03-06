@@ -7,7 +7,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 
 const statusConfig = {
   pendiente: { label: 'Pendiente', className: 'bg-amber-100 text-amber-800' },
-  en_proceso: { label: 'En proceso', className: 'bg-blue-100 text-blue-800' },
+  en_proceso: { label: 'Pendiente por pagar', className: 'bg-blue-100 text-blue-800' },
   pagado: { label: 'Pagado', className: 'bg-emerald-100 text-emerald-800' },
   rechazado: { label: 'Rechazado', className: 'bg-rose-100 text-rose-800' },
 };
@@ -79,10 +79,14 @@ export default function AssistedPaymentHistory({ user }) {
                       <td className="py-2 pr-4 font-semibold">${(it.total_amount || 0).toFixed(2)} {it.currency || 'USD'}</td>
                       <td className="py-2 pr-4"><Badge className={s.className}>{s.label}</Badge></td>
                       <td className="py-2">
-                        {it.status === 'en_proceso' && it.payment_method && it.payment_method !== 'debito_internacional' ? (
-                          <Button size="sm" onClick={() => { setSelectedReq(it); setPayOpen(true); }}>
-                            Pagar / Subir comprobante
-                          </Button>
+                        {it.status === 'en_proceso' ? (
+                          it.payment_method && it.payment_method !== 'debito_internacional' ? (
+                            <Button size="sm" onClick={() => { setSelectedReq(it); setPayOpen(true); }}>
+                              Pagar / Subir comprobante
+                            </Button>
+                          ) : (
+                            <span className="text-amber-600 text-xs">Esperando instrucciones de pago</span>
+                          )
                         ) : (
                           <span className="text-slate-400 text-xs">—</span>
                         )}
