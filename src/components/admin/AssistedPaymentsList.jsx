@@ -150,6 +150,30 @@ export default function AssistedPaymentsList() {
     const wallet = config[`wallet_${method}`] || '';
     const instr = config[`${method}_instructions`] || config.payments_assisted_instructions || '';
 
+    // Ensure a local invoice exists so the client sees it in "Mis Facturas"
+    try {
+      const invs = await base44.entities.Invoice.filter({ consolidation_id: `assisted:${req.id}` });
+      if (!invs || invs.length === 0) {
+        const nowIso = new Date().toISOString();
+        const dueIso = new Date(Date.now() + (((config?.invoice_overdue_days || 7)) * 24 * 60 * 60 * 1000)).toISOString();
+        await base44.entities.Invoice.create({
+          invoice_number: `AP-${req.id}-${Math.floor(Date.now()/1000)}`,
+          client_email: req.client_email,
+          consolidation_id: `assisted:${req.id}`,
+          consolidation_tracking: `ASST-${String(req.id).slice(-6)}`,
+          invoice_date: nowIso,
+          due_date: dueIso,
+          items: [{ description: 'Pago Asistido', quantity: 1, unit_price: Number(req.total_amount || 0), total: Number(req.total_amount || 0) }],
+          subtotal: Number(req.total_amount || 0),
+          tax: 0,
+          total: Number(req.total_amount || 0),
+          status: 'pendiente',
+          payment_method: method,
+          notes: `assisted_request_id:${req.id}`
+        });
+      }
+    } catch (e) { console.error('Invoice create error', e); }
+
     const body = [
       `Hola,`,
       `\nHemos aprobado tu solicitud de Pago Asistido y te compartimos las instrucciones para completar el pago.`,
