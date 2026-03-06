@@ -100,7 +100,6 @@ export default function AssistedPaymentsList() {
                     <th className="py-2 pr-4">Comisión</th>
                     <th className="py-2 pr-4">Total</th>
                     <th className="py-2 pr-4">Estado</th>
-                    <th className="py-2 pr-4">Soporte</th>
                     <th className="py-2">Factura</th>
                   </tr>
                 </thead>
@@ -110,7 +109,18 @@ export default function AssistedPaymentsList() {
                       <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.created_date).toLocaleString()}</td>
                       <td className="py-2 pr-4">{r.client_email}</td>
                       <td className="py-2 pr-4 uppercase">{r.provider}</td>
-                      <td className="py-2 pr-4">{r.link_url ? <a href={r.link_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Abrir</a> : '—'}</td>
+                      <td className="py-2 pr-4">
+                        <div className="flex items-center gap-3">
+                          {r.link_url ? (
+                            <a href={r.link_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Abrir</a>
+                          ) : '—'}
+                          {r.image_url && (
+                            <a href={r.image_url} target="_blank" rel="noreferrer" title="Ver QR">
+                              <img src={r.image_url} alt="QR" className="h-10 w-10 object-cover rounded border" />
+                            </a>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-2 pr-4">${(r.amount||0).toFixed(2)}</td>
                       <td className="py-2 pr-4">${(r.fee_amount||0).toFixed(2)} ({r.fee_percentage || 0}%)</td>
                       <td className="py-2 pr-4 font-semibold">${(r.total_amount||0).toFixed(2)}</td>
@@ -142,11 +152,7 @@ export default function AssistedPaymentsList() {
                           }[r.status] || r.status)}
                         </div>
                       </td>
-                      <td className="py-2">
-                        {r.image_url ? (
-                          <a href={r.image_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Ver</a>
-                        ) : '—'}
-                      </td>
+                      
                       <td className="py-2">{r.invoice_id ? r.invoice_id : '—'}</td>
                     </tr>
                   ))}
