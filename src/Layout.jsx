@@ -99,14 +99,14 @@ export default function Layout({ children, currentPageName }) {
     loadFavicon();
   }, []);
 
-  // Ajuste de rate-limit y concurrencia (modo alto rendimiento)
+  // Ajuste de rate-limit y concurrencia (modo 300+ usuarios concurrentes)
   useEffect(() => {
     setApiTuning({
-      maxReads: 28,
-      maxWrites: 8,
-      minIntervalMs: 60,
-      backoffDelays: [1000, 2000, 4000, 8000],
-      circuitBreakerThreshold: 10,
+      maxReads: 48,
+      maxWrites: 16,
+      minIntervalMs: 40,
+      backoffDelays: [500, 1000, 2000, 4000, 8000],
+      circuitBreakerThreshold: 20,
       circuitOpenMinutes: 1
     });
   }, []);

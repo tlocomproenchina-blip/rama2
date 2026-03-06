@@ -19,8 +19,8 @@ export default function ApiStatusIndicator() {
       // Solo mostrar si hay problemas relevantes en alta carga
       setShow(
         currentStatus.circuitBreakerState === 'OPEN' ||
-        currentStatus.queueLength > 25 ||
-        currentStatus.failureCount > 5
+        currentStatus.queueLength > 80 ||
+        currentStatus.failureCount > 10
       );
     };
 

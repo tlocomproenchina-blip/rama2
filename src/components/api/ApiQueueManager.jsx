@@ -453,7 +453,24 @@ class ApiQueueManager {
    * Integrations wrapper
    */
   get integrations() {
-    return base44Client.integrations;
+    const self = this;
+    return new Proxy({}, {
+      get(_, pkg) {
+        return new Proxy({}, {
+          get(_, method) {
+            return async (params) => {
+              const name = String(method);
+              const opType = /upload|send|generate|create|extract|invoke/i.test(name) ? 'write' : 'read';
+              const fn = base44Client.integrations?.[pkg]?.[method];
+              if (typeof fn !== 'function') {
+                throw new Error(`Integration method not found: ${String(pkg)}.${name}`);
+              }
+              return await self.enqueue(async () => await fn(params), 'NORMAL', opType);
+            };
+          }
+        });
+      }
+    });
   }
 
   /**
