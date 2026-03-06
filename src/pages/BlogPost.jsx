@@ -1,5 +1,8 @@
 import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager'; // Página pública para SEO
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import { createPageUrl } from '@/utils'
 
 export default function BlogPost() {
   const [post, setPost] = React.useState(null);
@@ -46,17 +49,24 @@ export default function BlogPost() {
   if (status === 'error') return <div className="text-slate-600">Error al cargar el artículo.</div>;
 
   return (
-    <article className="prose prose-slate max-w-3xl">
-      {post.cover_image_url && (
-        <img src={post.cover_image_url} alt={post.title} className="w-full rounded-xl border mb-6" />
-      )}
-      <h1>{post.title}</h1>
-      {post.excerpt && <p className="lead">{post.excerpt}</p>}
-      <div className="text-sm text-slate-500 mt-2">
-        {post.published_at ? new Date(post.published_at).toLocaleDateString() : ''}
-        {post.author_name ? ` • ${post.author_name}` : ''}
+    <div className="max-w-3xl">
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => { if (window.history.length > 1) window.history.back(); else window.location.href = createPageUrl('Blog'); }} className="gap-2">
+          <ArrowLeft className="h-4 w-4" /> Atrás
+        </Button>
       </div>
-      <div className="mt-6 whitespace-pre-wrap">{post.content}</div>
-    </article>
+      <article className="prose prose-slate">
+        {post.cover_image_url && (
+          <img src={post.cover_image_url} alt={post.title} className="w-full rounded-xl border mb-6" />
+        )}
+        <h1>{post.title}</h1>
+        {post.excerpt && <p className="lead">{post.excerpt}</p>}
+        <div className="text-sm text-slate-500 mt-2">
+          {post.published_at ? new Date(post.published_at).toLocaleDateString() : ''}
+          {post.author_name ? ` • ${post.author_name}` : ''}
+        </div>
+        <div className="mt-6 whitespace-pre-wrap">{post.content}</div>
+      </article>
+    </div>
   );
 }
