@@ -68,7 +68,7 @@ export default function Home({ user }) {
             <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
           </div>
         </div>
-        <img src="https://images.unsplash.com/photo-1541462608143-67571c6738dd?q=80&w=1600&auto=format&fit=crop" alt="Carga marítima" className="absolute right-0 top-0 h-full w-[55%] object-cover hidden md:block rounded-l-2xl" />
+        <img src="https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?q=80&w=1600&auto=format&fit=crop" alt="Buque de carga" className="absolute right-0 top-0 h-full w-[55%] object-cover hidden md:block rounded-l-2xl" />
       </section>
 
       {/* Beneficios */}
