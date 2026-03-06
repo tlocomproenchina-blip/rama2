@@ -55,8 +55,10 @@ export default function Home({ user }) {
               <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
             </div>
             {!user && (
-              <div className="mt-2">
-                <Button variant="ghost" onClick={handleLoginClick} className="px-3">Iniciar sesión</Button>
+              <div className="mt-3">
+                <Button onClick={handleLoginClick} className="w-full md:w-auto bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
+                  Iniciar sesión
+                </Button>
               </div>
             )}
           </div>
