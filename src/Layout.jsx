@@ -256,7 +256,14 @@ export default function Layout({ children, currentPageName }) {
           return;
         }
       } catch (_) {}
-      // Siempre requerir login: no mostrar páginas públicas si no está autenticado
+      // Allow specific public pages without login
+      const publicPages = ['Home', 'ShippingCalculator', 'Blog'];
+      if (publicPages.includes(currentPageName)) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      // Otherwise require login
       base44.auth.redirectToLogin();
       setLoading(false);
     }

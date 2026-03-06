@@ -50,6 +50,7 @@
 import AccountDisabled from './pages/AccountDisabled';
 import AccountingDashboard from './pages/AccountingDashboard';
 import AdminAccountsPayable from './pages/AdminAccountsPayable';
+import AdminAssistedPayments from './pages/AdminAssistedPayments';
 import AdminBlog from './pages/AdminBlog';
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
@@ -76,6 +77,7 @@ import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
+import AssistedPayment from './pages/AssistedPayment';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import BusinessDashboard from './pages/BusinessDashboard';
@@ -94,10 +96,8 @@ import Rates from './pages/Rates';
 import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
-import Support from './pages/Support';
 import ShoppingAssistant from './pages/ShoppingAssistant';
-import AssistedPayment from './pages/AssistedPayment';
-import AdminAssistedPayments from './pages/AdminAssistedPayments';
+import Support from './pages/Support';
 import __Layout from './Layout.jsx';
 
 
@@ -105,6 +105,7 @@ export const PAGES = {
     "AccountDisabled": AccountDisabled,
     "AccountingDashboard": AccountingDashboard,
     "AdminAccountsPayable": AdminAccountsPayable,
+    "AdminAssistedPayments": AdminAssistedPayments,
     "AdminBlog": AdminBlog,
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
@@ -131,6 +132,7 @@ export const PAGES = {
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
+    "AssistedPayment": AssistedPayment,
     "Blog": Blog,
     "BlogPost": BlogPost,
     "BusinessDashboard": BusinessDashboard,
@@ -149,10 +151,8 @@ export const PAGES = {
     "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
-    "Support": Support,
     "ShoppingAssistant": ShoppingAssistant,
-    "AssistedPayment": AssistedPayment,
-    "AdminAssistedPayments": AdminAssistedPayments,
+    "Support": Support,
 }
 
 export const pagesConfig = {
