@@ -1,18 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
 export default function AdminNotificationCenter({ user }) {
-  const shownRef = useRef(new Map());
-  const lastStatusRef = useRef(new Map());
-  const shouldNotify = (key, ttlMs = 60000) => {
-    const now = Date.now();
-    const last = shownRef.current.get(key) || 0;
-    if (now - last < ttlMs) return false;
-    shownRef.current.set(key, now);
-    return true;
-  };
-
   useEffect(() => {
     if (!user?.email || user?.role !== 'admin') return;
 
@@ -136,30 +126,21 @@ export default function AdminNotificationCenter({ user }) {
       base44.entities.Invoice.subscribe((event) => {
         const d = event?.data;
         if (!d) return;
-        const keyId = d.id || d.invoice_number || 'invoice';
         if (event.type === 'create') {
-          lastStatusRef.current.set(keyId, d.status);
           saveNotification(
             'Nueva factura',
             d.invoice_number || d.consolidation_tracking || 'Factura generada',
             'system',
             'dollar',
-            keyId,
-            { dedupeKey: `invoice:create:${keyId}`, sound: true }
+            d.id || d.invoice_number || 'invoice'
           );
         } else if (event.type === 'update') {
-          const prev = lastStatusRef.current.get(keyId);
-          const curr = d.status;
-          if (prev === curr) return; // evitar bucles cuando no cambia el estado
-          lastStatusRef.current.set(keyId, curr);
-          const play = curr === 'pagada';
           saveNotification(
             'Factura actualizada',
             d.invoice_number || d.consolidation_tracking || 'Actualización de factura',
             'system',
             'dollar',
-            keyId,
-            { dedupeKey: `invoice:update:${keyId}:${curr}`, sound: play }
+            d.id || d.invoice_number || 'invoice'
           );
         }
       })
@@ -170,12 +151,11 @@ export default function AdminNotificationCenter({ user }) {
     };
   }, [user]);
 
-  const saveNotification = async (title, message, type, icon, referenceId, opts = {}) => {
-    const { sound = true, dedupeKey } = opts;
+  const saveNotification = async (title, message, type, icon, referenceId) => {
     try {
-      if (dedupeKey && !shouldNotify(dedupeKey, 60000)) return;
+      // Solo mostrar en tiempo real; no persistir para evitar duplicados desde múltiples fuentes
       toast.message(title || 'Nueva notificación', { description: message });
-      if (sound) playSound();
+      playSound();
     } catch (error) {
       console.error('Error displaying notification:', error);
     }

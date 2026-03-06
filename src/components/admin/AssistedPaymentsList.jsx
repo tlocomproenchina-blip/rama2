@@ -52,32 +52,12 @@ export default function AssistedPaymentsList() {
       setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'en_proceso' } : r));
       toast.success('Solicitud aprobada');
 
-      // Crear (si no existe) una factura local para que el cliente la vea en "Mis Facturas"
-      try {
-        const invs = await base44.entities.Invoice.filter({ consolidation_id: `assisted:${req.id}` });
-        if (!invs || invs.length === 0) {
-          const total = Number(req.total_amount || 0);
-          const nowIso = new Date().toISOString();
-          const overdueDays = Number(config?.invoice_overdue_days || 7);
-          const dueIso = new Date(Date.now() + (overdueDays * 24 * 60 * 60 * 1000)).toISOString();
-          await base44.entities.Invoice.create({
-            invoice_number: `AP-${req.id}-${Math.floor(Date.now()/1000)}`,
-            client_email: req.client_email,
-            consolidation_id: `assisted:${req.id}`,
-            consolidation_tracking: `ASST-${String(req.id).slice(-6)}`,
-            invoice_date: nowIso,
-            due_date: dueIso,
-            items: [{ description: 'Pago Asistido', quantity: 1, unit_price: total, total }],
-            subtotal: total,
-            tax: 0,
-            total,
-            status: 'pendiente',
-            notes: `assisted_request_id:${req.id}`
-          });
-        }
-      } catch (e) { console.error('No se pudo crear la factura local', e); }
-
-
+      // Ofrecer enviar método de pago inmediatamente para reducir pasos
+      const amountStr = (req.total_amount || 0).toFixed(2);
+      const confirmSend = window.confirm(`¿Deseas enviar ahora las instrucciones de pago al cliente?\n\nTotal a pagar: $${amountStr} ${req.currency || 'USD'}`);
+      if (confirmSend) {
+        await sendPaymentInstructions(req);
+      }
     } catch (e) { toast.error('No se pudo aprobar'); }
   };
 
@@ -169,30 +149,6 @@ export default function AssistedPaymentsList() {
     const method = selected.code;
     const wallet = config[`wallet_${method}`] || '';
     const instr = config[`${method}_instructions`] || config.payments_assisted_instructions || '';
-
-    // Ensure a local invoice exists so the client sees it in "Mis Facturas"
-    try {
-      const invs = await base44.entities.Invoice.filter({ consolidation_id: `assisted:${req.id}` });
-      if (!invs || invs.length === 0) {
-        const nowIso = new Date().toISOString();
-        const dueIso = new Date(Date.now() + (((config?.invoice_overdue_days || 7)) * 24 * 60 * 60 * 1000)).toISOString();
-        await base44.entities.Invoice.create({
-          invoice_number: `AP-${req.id}-${Math.floor(Date.now()/1000)}`,
-          client_email: req.client_email,
-          consolidation_id: `assisted:${req.id}`,
-          consolidation_tracking: `ASST-${String(req.id).slice(-6)}`,
-          invoice_date: nowIso,
-          due_date: dueIso,
-          items: [{ description: 'Pago Asistido', quantity: 1, unit_price: Number(req.total_amount || 0), total: Number(req.total_amount || 0) }],
-          subtotal: Number(req.total_amount || 0),
-          tax: 0,
-          total: Number(req.total_amount || 0),
-          status: 'pendiente',
-          payment_method: method,
-          notes: `assisted_request_id:${req.id}`
-        });
-      }
-    } catch (e) { console.error('Invoice create error', e); }
 
     const body = [
       `Hola,`,

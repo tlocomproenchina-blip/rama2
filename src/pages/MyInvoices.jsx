@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import PaymentModal from '@/components/PaymentModal';
 import StripeCheckout from '@/components/payments/StripeCheckout';
-import AssistedPaymentPayModal from '@/components/assisted/AssistedPaymentPayModal';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
@@ -18,8 +17,6 @@ export default function MyInvoices({ user }) {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedConsolidation, setSelectedConsolidation] = useState(null);
-  const [assistedPayOpen, setAssistedPayOpen] = useState(false);
-  const [assistedReq, setAssistedReq] = useState(null);
   const [stripeClientSecret, setStripeClientSecret] = useState('');
   const [stripePublishableKey, setStripePublishableKey] = useState('');
   const [stripeOpen, setStripeOpen] = useState(false);
@@ -209,26 +206,11 @@ export default function MyInvoices({ user }) {
                onPay={handlePayOnline}
                onDownload={handleDownloadPDF}
                showPayButton={config?.payments_enable_stripe === true}
-               onOtherPay={async (inv) => {
-                  if (inv.status === 'pagada' || inv.status === 'revision') return;
-                  if (inv.consolidation_id?.startsWith('assisted:')) {
-                    const reqId = inv.consolidation_id.split(':')[1];
-                    try {
-                      const res = await base44.entities.AssistedPaymentRequest.filter({ id: reqId });
-                      if (res && res[0]) {
-                        setAssistedReq(res[0]);
-                        setAssistedPayOpen(true);
-                      } else {
-                        toast.error('No se encontró la solicitud asociada');
-                      }
-                    } catch (e) {
-                      toast.error('No se pudo abrir el pago asistido');
-                    }
-                  } else {
-                    setSelectedConsolidation({ id: inv.consolidation_id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
-                    setPaymentOpen(true);
-                  }
-                }}
+               onOtherPay={(inv) => {
+                 if (inv.status === 'pagada' || inv.status === 'revision') return; // no permitir abrir otros métodos si ya está pagada o en revisión
+                 setSelectedConsolidation({ id: inv.consolidation_id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
+                 setPaymentOpen(true);
+               }}
                showOtherMethodsButton={(() => {
                  const c = config || {};
                  return (
@@ -305,17 +287,6 @@ export default function MyInvoices({ user }) {
         onPaymentSubmitted={() => {
           toast.success('Pago enviado para validación');
           setPaymentOpen(false);
-          loadInvoices();
-        }}
-      />
-
-      <AssistedPaymentPayModal
-        open={assistedPayOpen}
-        onClose={() => setAssistedPayOpen(false)}
-        request={assistedReq}
-        onSubmitted={() => {
-          toast.success('Pago enviado para validación');
-          setAssistedPayOpen(false);
           loadInvoices();
         }}
       />

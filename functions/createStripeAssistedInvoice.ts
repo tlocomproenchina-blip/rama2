@@ -108,37 +108,6 @@ Deno.serve(async (req) => {
     const finalized = await stripe.invoices.finalizeInvoice(stripeInvoice.id);
     const fresh = await stripe.invoices.retrieve(finalized.id);
 
-    // Create or update local Invoice record for the client (so it appears in "Mis Facturas")
-    try {
-      const existing = await base44.asServiceRole.entities.Invoice.filter({ consolidation_id: `assisted:${ap.id}` });
-      const nowIso = new Date().toISOString();
-      const dueIso = new Date(Date.now() + (daysUntilDue * 24 * 60 * 60 * 1000)).toISOString();
-      if (!existing || existing.length === 0) {
-        await base44.asServiceRole.entities.Invoice.create({
-          invoice_number: `AP-${ap.id}-${Math.floor(Date.now()/1000)}`,
-          client_email: ap.client_email,
-          consolidation_id: `assisted:${ap.id}`,
-          consolidation_tracking: `ASST-${String(ap.id).slice(-6)}`,
-          invoice_date: nowIso,
-          due_date: dueIso,
-          items: [{ description: 'Pago Asistido', quantity: 1, unit_price: total, total }],
-          subtotal: total,
-          tax: 0,
-          total,
-          status: 'pendiente',
-          stripe_invoice_id: finalized.id,
-          stripe_hosted_invoice_url: fresh.hosted_invoice_url || null,
-          notes: `assisted_request_id:${ap.id}`
-        });
-      } else {
-        const inv = existing[0];
-        await base44.asServiceRole.entities.Invoice.update(inv.id, {
-          stripe_invoice_id: finalized.id,
-          stripe_hosted_invoice_url: fresh.hosted_invoice_url || null
-        });
-      }
-    } catch (_) {}
-
     // Update request notes
     try {
       const note = `Stripe invoice creada (${finalized.id})${fresh.hosted_invoice_url ? ` • URL: ${fresh.hosted_invoice_url}` : ''}`;
