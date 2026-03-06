@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import { Input } from "@/components/ui/input";
@@ -61,25 +61,38 @@ export default function AdminInvoices({ user }) {
   }, []);
 
   const loadInvoices = async (pageIndex = 0) => {
-    const data = await base44.entities.Invoice.list('-invoice_date', pageSize, pageIndex * pageSize);
-    setInvoices(data);
+    try {
+      const data = await base44.entities.Invoice.list('-invoice_date', pageSize, pageIndex * pageSize);
+      setInvoices(data);
 
-    // Calculate stats from current page (fast client-side)
-    const stats = {
-      total: data.length,
-      paid: data.filter(i => i.status === 'pagada').length,
-      pending: data.filter(i => i.status === 'pendiente').length,
-      revenue: data.filter(i => i.status === 'pagada').reduce((sum, i) => sum + i.total, 0)
-    };
-    setStats(stats);
+      // Calculate stats from current page (fast client-side)
+      const stats = {
+        total: data.length,
+        paid: data.filter(i => i.status === 'pagada').length,
+        pending: data.filter(i => i.status === 'pendiente').length,
+        revenue: data.filter(i => i.status === 'pagada').reduce((sum, i) => sum + i.total, 0)
+      };
+      setStats(stats);
 
-    setHasNext(data.length === pageSize);
-    setLoading(false);
+      setHasNext(data.length === pageSize);
+    } catch (error) {
+      if (String(error?.message || '').includes('CIRCUIT_BREAKER_OPEN')) {
+        toast.error(error.message);
+      } else if (String(error?.message || '').includes('Rate limit')) {
+        toast.error('Demasiadas solicitudes. Reintentaremos automáticamente.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadConsolidations = async () => {
-    const data = await base44.entities.Consolidation.list('-created_date');
-    setConsolidations(data);
+    try {
+      const data = await base44.entities.Consolidation.list('-created_date');
+      setConsolidations(data);
+    } catch (error) {
+      // Silencioso para no interrumpir la vista
+    }
   };
 
   const handleCreateInvoice = async () => {

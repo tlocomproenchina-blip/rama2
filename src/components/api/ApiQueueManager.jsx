@@ -290,26 +290,26 @@ class ApiQueueManager {
    */
   createEntityWrapper(entityName) {
     return {
-      list: async (sortBy, limit) => {
-        const cacheKey = this.getCacheKey(entityName, 'list', { sortBy, limit });
+      list: async (sortBy, limit, skip) => {
+        const cacheKey = this.getCacheKey(entityName, 'list', { sortBy, limit, skip });
         const cached = this.getFromCache(cacheKey);
         if (cached) return cached;
 
         const result = await this.enqueue(async () => {
-          return await base44Client.entities[entityName].list(sortBy, limit);
+          return await base44Client.entities[entityName].list(sortBy, limit, skip);
         }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
         return result;
       },
 
-      filter: async (query, sortBy, limit) => {
-        const cacheKey = this.getCacheKey(entityName, 'filter', { query, sortBy, limit });
+      filter: async (query, sortBy, limit, skip) => {
+        const cacheKey = this.getCacheKey(entityName, 'filter', { query, sortBy, limit, skip });
         const cached = this.getFromCache(cacheKey);
         if (cached) return cached;
 
         const result = await this.enqueue(async () => {
-          return await base44Client.entities[entityName].filter(query, sortBy, limit);
+          return await base44Client.entities[entityName].filter(query, sortBy, limit, skip);
         }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
