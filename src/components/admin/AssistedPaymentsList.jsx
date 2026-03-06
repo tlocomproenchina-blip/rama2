@@ -162,11 +162,12 @@ export default function AssistedPaymentsList() {
                     <th className="py-2 pr-4">Fecha</th>
                     <th className="py-2 pr-4">Cliente</th>
                     <th className="py-2 pr-4">Plataforma</th>
+                    <th className="py-2 pr-4">Enlace</th>
                     <th className="py-2 pr-4">Monto</th>
                     <th className="py-2 pr-4">Comisión</th>
                     <th className="py-2 pr-4">Total</th>
                     <th className="py-2 pr-4">Estado</th>
-                    <th className="py-2 pr-4">Soporte</th>
+                    <th className="py-2 pr-4">Imagen</th>
                     <th className="py-2">Acciones</th>
                   </tr>
                 </thead>
@@ -176,6 +177,13 @@ export default function AssistedPaymentsList() {
                       <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.created_date).toLocaleString()}</td>
                       <td className="py-2 pr-4">{r.client_email}</td>
                       <td className="py-2 pr-4 uppercase">{r.provider}</td>
+                      <td className="py-2 pr-4 max-w-[280px]">
+                        {r.link_url ? (
+                          <a href={r.link_url} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all inline-block truncate max-w-[260px]">
+                            {r.link_url}
+                          </a>
+                        ) : '—'}
+                      </td>
                       <td className="py-2 pr-4">${(r.amount||0).toFixed(2)}</td>
                       <td className="py-2 pr-4">${(r.fee_amount||0).toFixed(2)} ({r.fee_percentage || 0}%)</td>
                       <td className="py-2 pr-4 font-semibold">${(r.total_amount||0).toFixed(2)}</td>
@@ -192,9 +200,11 @@ export default function AssistedPaymentsList() {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="py-2">
+                      <td className="py-2 pr-4">
                         {r.image_url ? (
-                          <a href={r.image_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Ver</a>
+                          <a href={r.image_url} target="_blank" rel="noreferrer" title="Abrir imagen en nueva pestaña">
+                            <img src={r.image_url} alt="Soporte" className="h-10 w-10 object-cover rounded border" />
+                          </a>
                         ) : '—'}
                       </td>
                       <td className="py-2 pr-2">
