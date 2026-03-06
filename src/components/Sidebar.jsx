@@ -111,8 +111,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       if (!user?.role) return;
 
       const [
-        reqs,
-        pkgsRecibidos,
+        reqsPend,
+        reqsAprob,
         invPend,
         invRev,
         consAll,
@@ -121,7 +121,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         ticketsOpen
       ] = await Promise.all([
         base44.entities.ConsolidationRequest.filter({ status: 'pendiente' }),
-        base44.entities.Package.filter({ status: 'recibido' }),
+        base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }),
         base44.entities.Invoice.filter({ status: 'pendiente' }),
         base44.entities.Invoice.filter({ status: 'revision' }),
         base44.entities.Consolidation.filter({ payment_validated: false }),
@@ -130,12 +130,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         base44.entities.SupportTicket.filter({ status: 'abierto' })
       ]);
 
-      const consolidateCount = (pkgsRecibidos || []).filter(p => !p.consolidation_id).length;
       const consNeedValidation = (consAll || []).filter(c => !!c.payment_proof_url && !c.payment_validated).length;
 
       setPendingCounts({
-        approvals: (reqs || []).length,
-        consolidate: consolidateCount,
+        approvals: (reqsPend || []).length,
+        consolidate: (reqsAprob || []).length,
         invoices: (invPend || []).length,
         validatePayments: (invRev || []).length + consNeedValidation,
         assisted: (assistedReqs || []).length,
@@ -220,6 +219,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       }
 
       await loadNotificationCounts();
+      await loadPendingCounts();
     };
     run();
   }, [currentPage, user?.email]);
