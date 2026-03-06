@@ -195,6 +195,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle },
   { name: 'Promociones', page: 'AdminPromotions', icon: Tag },
   { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp },
+  { name: 'Blog', page: 'AdminBlog', icon: FileText },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
@@ -213,7 +214,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
     { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
-    { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing'] },
+    { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
     { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
     { label: 'GESTIÓN', items: ['AdminClients','AdminReferrals','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
