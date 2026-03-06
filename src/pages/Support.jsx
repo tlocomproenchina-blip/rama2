@@ -34,6 +34,25 @@ export default function Support({ user }) {
   });
   const [creating, setCreating] = useState(false);
 
+  // Requiere autenticación para usar Soporte
+  if (!user) {
+    return (
+      <div className="max-w-xl mx-auto">
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle>Inicia sesión para usar Soporte</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-slate-600">Necesitas una cuenta para crear y ver tus tickets.</p>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => base44.auth.redirectToLogin()}>
+              Iniciar sesión
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   useEffect(() => {
     if (user?.email) {
       loadTickets();
