@@ -40,6 +40,7 @@ export default function AssistedPaymentForm({ user }) {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setImageUrl(file_url);
+      if (link) setLink('');
       toast.success('QR cargado');
     } catch (e) {
       toast.error('No se pudo cargar el QR');
@@ -56,8 +57,8 @@ export default function AssistedPaymentForm({ user }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!link || !amount) {
-      toast.error('Completa el enlace y el monto');
+    if ((!link && !imageUrl) || !amount) {
+      toast.error('Ingresa enlace o sube un QR, y el monto');
       return;
     }
     const { feeAmt, total } = calc();
@@ -105,7 +106,7 @@ export default function AssistedPaymentForm({ user }) {
           )}
 
           <div className="space-y-2">
-            <Label>Enlace (Alibaba / WeChat / Alipay)</Label>
+            <Label>Enlace (si no subes QR)</Label>
             <Input
               value={link}
               onChange={(e) => { setLink(e.target.value); setProvider(autoDetectProvider(e.target.value)); }}
@@ -138,8 +139,8 @@ export default function AssistedPaymentForm({ user }) {
           </div>
 
           <div className="space-y-2">
-            <Label>QR WeChat o Alipay (opcional)</Label>
-            <Input type="file" accept="image/*" onChange={handleFile} disabled={!enabled} />
+            <Label>QR WeChat o Alipay (si no colocas enlace)</Label>
+            <Input type="file" accept="image/*" onChange={handleFile} disabled={!enabled || !!link} />
             {imageUrl && (
               <img src={imageUrl} alt="QR" className="mt-2 h-28 w-auto rounded-md border object-cover" />
             )}
