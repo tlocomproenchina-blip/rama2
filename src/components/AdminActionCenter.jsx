@@ -109,7 +109,7 @@ export default function AdminActionCenter() {
       count: newCounts.assisted_pending,
       color: "bg-amber-100 text-amber-800 border-amber-200",
       icon: Link2,
-      go: () => navigate(createPageUrl("AdminAssistedPayments")),
+      go: () => { markSeen("assisted_pending"); navigate(createPageUrl("AdminAssistedPayments")); },
     },
     {
       key: "assisted_invoiced",
@@ -117,7 +117,7 @@ export default function AdminActionCenter() {
       count: newCounts.assisted_invoiced,
       color: "bg-blue-100 text-blue-800 border-blue-200",
       icon: QrCode,
-      go: () => navigate(createPageUrl("AdminAssistedPayments")),
+      go: () => { markSeen("assisted_invoiced"); navigate(createPageUrl("AdminAssistedPayments")); },
     },
     {
       key: "cons_requests",
@@ -149,7 +149,7 @@ export default function AdminActionCenter() {
       count: newCounts.invoices_pending,
       color: "bg-slate-100 text-slate-800 border-slate-200",
       icon: FileText,
-      go: () => navigate(createPageUrl("AdminInvoices")),
+      go: () => { markSeen("invoices_pending"); navigate(createPageUrl("AdminInvoices")); },
     },
     {
       key: "invoices_overdue",
