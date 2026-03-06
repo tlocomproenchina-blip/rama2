@@ -1,8 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import AssistedPaymentPayModal from './AssistedPaymentPayModal';
 import { base44 } from '@/components/api/ApiQueueManager';
 
 const statusConfig = {
@@ -15,8 +13,6 @@ const statusConfig = {
 export default function AssistedPaymentHistory({ user }) {
   const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
-  const [payOpen, setPayOpen] = React.useState(false);
-  const [selectedReq, setSelectedReq] = React.useState(null);
 
   React.useEffect(() => {
     let active = true;
@@ -35,7 +31,6 @@ export default function AssistedPaymentHistory({ user }) {
   }, [user?.email]);
 
   return (
-    <>
     <Card className="mt-8">
       <CardHeader>
         <CardTitle>Mis solicitudes de Pago Asistido</CardTitle>
@@ -57,7 +52,6 @@ export default function AssistedPaymentHistory({ user }) {
                   <th className="py-2 pr-4">Comisión</th>
                   <th className="py-2 pr-4">Total</th>
                   <th className="py-2 pr-4">Estatus</th>
-                  <th className="py-2">Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -78,16 +72,7 @@ export default function AssistedPaymentHistory({ user }) {
                       <td className="py-2 pr-4">${(it.fee_amount || 0).toFixed(2)} ({it.fee_percentage || 0}%)</td>
                       <td className="py-2 pr-4 font-semibold">${(it.total_amount || 0).toFixed(2)} {it.currency || 'USD'}</td>
                       <td className="py-2 pr-4"><Badge className={s.className}>{s.label}</Badge></td>
-                      <td className="py-2">
-                        {it.status === 'en_proceso' && it.payment_method && it.payment_method !== 'debito_internacional' ? (
-                          <Button size="sm" onClick={() => { setSelectedReq(it); setPayOpen(true); }}>
-                            Pagar / Subir comprobante
-                          </Button>
-                        ) : (
-                          <span className="text-slate-400 text-xs">—</span>
-                        )}
-                      </td>
-                      </tr>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -96,19 +81,5 @@ export default function AssistedPaymentHistory({ user }) {
         )}
       </CardContent>
     </Card>
-
-    <AssistedPaymentPayModal 
-      open={payOpen}
-      onClose={() => setPayOpen(false)}
-      request={selectedReq}
-      onSubmitted={() => {
-        // Refresh list
-        (async () => {
-          const res = await base44.entities.AssistedPaymentRequest.filter({ client_email: user.email }, '-created_date', 100);
-          setItems(res || []);
-        })();
-      }}
-    />
-    </>
   );
 }

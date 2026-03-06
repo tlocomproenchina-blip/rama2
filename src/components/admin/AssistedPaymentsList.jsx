@@ -137,15 +137,6 @@ export default function AssistedPaymentsList() {
       return;
     }
 
-    // Guardar método seleccionado en la solicitud para mostrar al cliente
-    try {
-      await base44.entities.AssistedPaymentRequest.update(req.id, {
-        payment_method: selected.code,
-        payment_method_label: selected.label
-      });
-      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, payment_method: selected.code, payment_method_label: selected.label } : r));
-    } catch {}
-
     const method = selected.code;
     const wallet = config[`wallet_${method}`] || '';
     const instr = config[`${method}_instructions`] || config.payments_assisted_instructions || '';
