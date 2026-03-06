@@ -36,6 +36,7 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showContract, setShowContract] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [isInstalledApp, setIsInstalledApp] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
@@ -96,6 +97,16 @@ export default function Layout({ children, currentPageName }) {
     loadUser();
     loadConfig();
     loadFavicon();
+  }, []);
+
+  // Detect if running as installed PWA (standalone)
+  useEffect(() => {
+    try {
+      const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (window.navigator && window.navigator.standalone === true);
+      setIsInstalledApp(!!isStandalone);
+    } catch (_) {
+      setIsInstalledApp(false);
+    }
   }, []);
 
   // Close any open Radix overlays (Select/Popover/Dropdown) on route change to avoid iOS removeChild crashes
@@ -245,14 +256,20 @@ export default function Layout({ children, currentPageName }) {
           return;
         }
       } catch (_) {}
-      // Permitir rutas públicas sin autenticación
-      const publicPages = ['Home', 'Blog', 'BlogPost'];
-      if (publicPages.includes(currentPageName)) {
-        setUser(null);
-        setLoading(false);
-      } else {
+      // En modo app instalada (PWA), siempre requerir login (no páginas públicas)
+      if (isInstalledApp) {
         base44.auth.redirectToLogin();
         setLoading(false);
+      } else {
+        // Permitir rutas públicas solo cuando NO es app instalada
+        const publicPages = ['Home', 'Blog', 'BlogPost'];
+        if (publicPages.includes(currentPageName)) {
+          setUser(null);
+          setLoading(false);
+        } else {
+          base44.auth.redirectToLogin();
+          setLoading(false);
+        }
       }
     }
   };
