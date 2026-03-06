@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     ];
     const body = lines.join('\n');
 
-    // Send individually to each recipient
+    // Send individually to each recipient + crear notificación en app
     const results = [];
     for (const to of emails) {
       const res = await base44.integrations.Core.SendEmail({
@@ -73,6 +73,19 @@ Deno.serve(async (req) => {
         subject,
         body,
       });
+      try {
+        await base44.asServiceRole.entities.AppNotification.create({
+          user_email: to,
+          title: '📦 Nueva prealerta registrada',
+          message: `${data?.client_email || 'Cliente'} • ${data?.tracking_number || 'Sin tracking'}`,
+          type: 'package',
+          category: 'OPERATIONAL',
+          priority: 'HIGH',
+          reference_id: data?.id || data?.tracking_number || undefined,
+          resource_type: 'Package',
+          icon: 'package'
+        });
+      } catch (_) {}
       results.push({ to, status: 'sent', res });
     }
 

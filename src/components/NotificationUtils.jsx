@@ -23,7 +23,7 @@ async function processAfterSend({ to, subject, body, title, message, type = 'gen
   let shouldCreate = true;
   try {
     if (referenceId) {
-      const existing = await base44.entities.Notification.filter({
+      const existing = await base44.entities.AppNotification.filter({
         user_email: to,
         reference_id: referenceId,
         title: _title
@@ -39,11 +39,20 @@ async function processAfterSend({ to, subject, body, title, message, type = 'gen
   } catch {}
 
   if (shouldCreate) {
-    await base44.entities.Notification.create({
+    const categoryMap = {
+      package: 'OPERATIONAL',
+      consolidation: 'OPERATIONAL',
+      request: 'OPERATIONAL',
+      system: 'SYSTEM',
+      general: 'SYSTEM'
+    };
+    await base44.entities.AppNotification.create({
       user_email: to,
       title: _title,
       message: _message,
       type,
+      category: categoryMap[type] || 'SYSTEM',
+      priority: 'INFO',
       icon,
       reference_id: referenceId
     });

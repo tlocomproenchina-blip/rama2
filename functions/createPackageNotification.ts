@@ -30,14 +30,15 @@ Deno.serve(async (req) => {
       ? `Tu paquete ${pkg.tracking_number} ha sido registrado con seguro.`
       : `Tu paquete ${pkg.tracking_number} requiere atención.`;
 
-    await base44.asServiceRole.entities.Notification.create({
+    await base44.asServiceRole.entities.AppNotification.create({
       user_email: pkg.client_email,
       title: criticalTitle,
       message: criticalMessage,
       type: 'package',
-      priority: 'critical',
+      category: 'OPERATIONAL',
+      priority: 'CRITICAL',
       reference_id: pkg.id,
-      entity_type: 'Package',
+      resource_type: 'Package',
       icon: 'alert'
     });
 
@@ -46,14 +47,15 @@ Deno.serve(async (req) => {
     const admins = users.filter(u => u.role === 'admin');
 
     for (const admin of admins) {
-      await base44.asServiceRole.entities.Notification.create({
+      await base44.asServiceRole.entities.AppNotification.create({
         user_email: admin.email,
         title: criticalTitle,
         message: `${pkg.client_email} - ${pkg.tracking_number}`,
         type: 'package',
-        priority: 'critical',
+        category: 'OPERATIONAL',
+        priority: 'CRITICAL',
         reference_id: pkg.id,
-        entity_type: 'Package',
+        resource_type: 'Package',
         icon: 'alert'
       });
     }

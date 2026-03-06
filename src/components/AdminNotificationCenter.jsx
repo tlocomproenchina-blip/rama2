@@ -7,7 +7,7 @@ export default function AdminNotificationCenter({ user }) {
     if (!user?.email || user?.role !== 'admin') return;
 
     // Escuchar todas las notificaciones nuevas para admins en vivo
-    const unsubscribe = base44.entities.Notification.subscribe((event) => {
+    const unsubscribe = base44.entities.AppNotification.subscribe((event) => {
       const data = event?.data;
       if (!data) return;
 
