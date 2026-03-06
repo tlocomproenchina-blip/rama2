@@ -173,6 +173,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
   { name: 'Mis Facturas', page: 'MyInvoices', icon: FileText },
   { name: 'Pago Asistido', page: 'AssistedPayment', icon: CreditCard },
+  { name: 'Mis Pagos Asistidos', page: 'MyAssistedPayments', icon: CreditCard },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: CreditCard },
   { name: 'Tarifas', page: 'Rates', icon: FileText },
@@ -227,7 +228,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const clientGroups = [
     { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard'] },
     { label: 'ENVÍOS', items: ['MyPackages','PreAlert','RequestConsolidation','MyConsolidations'] },
-    { label: 'PAGOS', items: ['MyInvoices','AssistedPayment'] },
+    { label: 'PAGOS', items: ['MyInvoices','AssistedPayment','MyAssistedPayments'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator'] },
     { label: 'INFORMACIÓN', items: ['Rates'] },
     { label: 'SOPORTE', items: ['FAQ','Support'] },
