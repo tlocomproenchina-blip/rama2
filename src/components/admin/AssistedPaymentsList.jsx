@@ -45,6 +45,81 @@ export default function AssistedPaymentsList() {
     } catch (e) { toast.error('No se pudo actualizar'); }
   };
 
+  // Acciones administrativas
+  const approveRequest = async (req) => {
+    try {
+      await base44.entities.AssistedPaymentRequest.update(req.id, { status: 'en_proceso' });
+      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'en_proceso' } : r));
+      toast.success('Solicitud aprobada');
+    } catch (e) { toast.error('No se pudo aprobar'); }
+  };
+
+  const sendPaymentInstructions = async (req) => {
+    if (!config) { toast.error('Config no cargada'); return; }
+    const method = window.prompt('Método de pago (binance, usdt_trc20, paypal, debito_internacional, wally, zinli, wise, skrill, pago_movil_usdt):');
+    if (!method) return;
+    const enabledKey = `payments_enable_${method}`;
+    if (config[enabledKey] === false) { toast.error('Método no habilitado'); return; }
+
+    const wallet = config[`wallet_${method}`] || '';
+    const instr = config[`${method}_instructions`] || config.payments_assisted_instructions || '';
+
+    const body = [
+      `Hola,`,
+      `\nHemos aprobado tu solicitud de Pago Asistido y te compartimos las instrucciones para completar el pago.`,
+      `\n\nResumen de la solicitud:`,
+      `• Plataforma: ${req.provider?.toUpperCase() || '-'}\n• Enlace: ${req.link_url}\n• Monto base: $${(req.amount||0).toFixed(2)} ${req.currency||'USD'}\n• Comisión: $${(req.fee_amount||0).toFixed(2)} (${req.fee_percentage||0}%)\n• Total a pagar: $${(req.total_amount||0).toFixed(2)} ${req.currency||'USD'}`,
+      `\n\nMétodo seleccionado: ${method.replace(/_/g,' ').toUpperCase()}`,
+      wallet ? `\n• Cuenta/Wallet: ${wallet}` : '',
+      instr ? `\n• Instrucciones: ${instr}` : '',
+      `\n\nTras realizar el pago, por favor responde a este correo con la referencia y (si es posible) un enlace al comprobante.`,
+      `\n\nGracias.\nEquipo TLEC CARGO`
+    ].filter(Boolean).join('\n');
+
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: req.client_email,
+        subject: 'Instrucciones de Pago Asistido',
+        body
+      });
+      // Anotar en el registro
+      const note = `Instrucciones enviadas por ${method} el ${new Date().toLocaleString()}`;
+      const admin_comment = [req.admin_comment, note].filter(Boolean).join(' | ');
+      await base44.entities.AssistedPaymentRequest.update(req.id, { admin_comment });
+      toast.success('Instrucciones enviadas');
+    } catch (e) { toast.error('No se pudo enviar el correo'); }
+  };
+
+  const confirmPaid = async (req) => {
+    const reference = window.prompt('Referencia / comprobante (texto o número)');
+    if (!reference) return;
+    const proofUrl = window.prompt('URL del comprobante (opcional)') || '';
+    const newComment = [req.admin_comment, proofUrl ? `Comprobante: ${proofUrl}` : null].filter(Boolean).join(' | ');
+
+    try {
+      await base44.entities.AssistedPaymentRequest.update(req.id, { status: 'pagado', reference: reference.trim(), admin_comment: newComment });
+      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'pagado', reference: reference.trim(), admin_comment: newComment } : r));
+
+      const body = [
+        `Hola,`,
+        `\nTe confirmamos que TLEC CARGO ha realizado tu Pago Asistido.`,
+        `\n\nResumen:`,
+        `• Plataforma: ${req.provider?.toUpperCase() || '-'}\n• Enlace: ${req.link_url}\n• Total pagado: $${(req.total_amount||0).toFixed(2)} ${req.currency||'USD'}`,
+        `• Referencia: ${reference.trim()}`,
+        proofUrl ? `• Comprobante: ${proofUrl}` : '',
+        `\n\nGracias por confiar en nosotros.`,
+        `\n\nEquipo TLEC CARGO`
+      ].filter(Boolean).join('\n');
+
+      await base44.integrations.Core.SendEmail({
+        to: req.client_email,
+        subject: 'Confirmación de Pago Asistido',
+        body
+      });
+      toast.success('Pago confirmado y correo enviado');
+    } catch (e) { toast.error('No se pudo confirmar el pago'); }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
