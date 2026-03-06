@@ -51,16 +51,14 @@ export default function Home({ user }) {
           <div className="mt-6">
             <div className="flex flex-wrap gap-3">
               <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-              <Button variant="outline" onClick={handleRegisterClick}>Registrarse</Button>
+              {!user && (
+                <>
+                  <Button variant="outline" onClick={handleRegisterClick}>Registrarse</Button>
+                  <Button variant="outline" onClick={handleLoginClick}>Iniciar sesión</Button>
+                </>
+              )}
               <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
             </div>
-            {!user && (
-              <div className="mt-3">
-                <Button onClick={handleLoginClick} className="w-full md:w-auto bg-slate-900 text-white hover:bg-slate-800 shadow-sm">
-                  Iniciar sesión
-                </Button>
-              </div>
-            )}
           </div>
         </div>
         <img src="https://images.unsplash.com/photo-1541462608143-67571c6738dd?q=80&w=1600&auto=format&fit=crop" alt="Carga marítima" className="absolute right-0 top-0 h-full w-[55%] object-cover hidden md:block rounded-l-2xl" />
