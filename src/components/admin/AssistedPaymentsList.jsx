@@ -77,12 +77,7 @@ export default function AssistedPaymentsList() {
         }
       } catch (e) { console.error('No se pudo crear la factura local', e); }
 
-      // Ofrecer enviar método de pago inmediatamente para reducir pasos
-      const amountStr = (req.total_amount || 0).toFixed(2);
-      const confirmSend = window.confirm(`¿Deseas enviar ahora las instrucciones de pago al cliente?\n\nTotal a pagar: $${amountStr} ${req.currency || 'USD'}`);
-      if (confirmSend) {
-        await sendPaymentInstructions(req);
-      }
+
     } catch (e) { toast.error('No se pudo aprobar'); }
   };
 
