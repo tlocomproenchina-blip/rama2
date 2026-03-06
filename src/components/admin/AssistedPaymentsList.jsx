@@ -96,6 +96,21 @@ export default function AssistedPaymentsList() {
     }
     if (!selected) { toast.error('Selección inválida'); return; }
 
+    // Si es Débito/Crédito, crear factura Stripe y enviar enlace automáticamente
+    if (selected.code === 'debito_internacional') {
+      try {
+        const resp = await base44.functions.invoke('createStripeAssistedInvoice', { assisted_request_id: req.id });
+        const url = resp?.data?.hosted_invoice_url;
+        toast.success('Factura Stripe creada y enviada');
+        if (url) {
+          console.log('Stripe invoice URL:', url);
+        }
+      } catch (e) {
+        toast.error('No se pudo crear la factura en Stripe');
+      }
+      return;
+    }
+
     const method = selected.code;
     const wallet = config[`wallet_${method}`] || '';
     const instr = config[`${method}_instructions`] || config.payments_assisted_instructions || '';
