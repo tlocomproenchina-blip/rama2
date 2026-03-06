@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
+import { base44, setApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
@@ -97,6 +97,18 @@ export default function Layout({ children, currentPageName }) {
     loadUser();
     loadConfig();
     loadFavicon();
+  }, []);
+
+  // Ajuste de rate-limit y concurrencia (tuning seguro por defecto)
+  useEffect(() => {
+    setApiTuning({
+      maxReads: 16,          // de 8 → 16
+      maxWrites: 4,          // de 2 → 4
+      minIntervalMs: 120,    // 250ms → 120ms entre escrituras
+      backoffDelays: [3000, 6000, 12000, 24000], // backoff más rápido
+      circuitBreakerThreshold: 5, // 3 → 5 (menos falsos positivos)
+      circuitOpenMinutes: 3       // 20 → 3 (se recupera antes)
+    });
   }, []);
 
   // Detect if running as installed PWA (standalone)

@@ -23,8 +23,8 @@ class ApiQueueManager {
     this.debouncedOperations = new Map();
     this.lastOperationTime = 0;
     this.lastWriteTime = 0;
-    this.MAX_CONCURRENT_READS = 8;
-    this.MAX_CONCURRENT_WRITES = 2;
+    this.MAX_CONCURRENT_READS = 12;
+    this.MAX_CONCURRENT_WRITES = 3;
     this.activeReads = 0;
     this.activeWrites = 0;
     this.inflight = new Map();
