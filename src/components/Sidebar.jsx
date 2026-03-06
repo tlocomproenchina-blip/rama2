@@ -198,7 +198,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Promociones', page: 'AdminPromotions', icon: Tag },
   { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp },
   { name: 'Blog', page: 'AdminBlog', icon: FileText },
-  { name: 'Asistente de Compras', page: 'ShoppingAssistant', icon: ShoppingCart },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
