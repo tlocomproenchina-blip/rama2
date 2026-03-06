@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/components/api/ApiQueueManager';
 
 export default function AssistedPaymentHistory({ user }) {
   const [items, setItems] = React.useState([]);

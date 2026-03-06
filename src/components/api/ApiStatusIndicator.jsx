@@ -16,11 +16,11 @@ export default function ApiStatusIndicator() {
       const currentStatus = getApiStatus();
       setStatus(currentStatus);
       
-      // Solo mostrar si hay problemas
+      // Solo mostrar si hay problemas relevantes en alta carga
       setShow(
         currentStatus.circuitBreakerState === 'OPEN' ||
-        currentStatus.queueLength > 5 ||
-        currentStatus.failureCount > 0
+        currentStatus.queueLength > 25 ||
+        currentStatus.failureCount > 5
       );
     };
 
@@ -81,7 +81,7 @@ export default function ApiStatusIndicator() {
                       <p>• {status.queueLength} operaciones en cola</p>
                     )}
                     {status.failureCount > 0 && (
-                      <p>• {status.failureCount}/3 errores detectados</p>
+                      <p>• {status.failureCount} errores recientes</p>
                     )}
                   </div>
                   <p className="text-xs text-yellow-700 mt-2">

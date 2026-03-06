@@ -99,15 +99,15 @@ export default function Layout({ children, currentPageName }) {
     loadFavicon();
   }, []);
 
-  // Ajuste de rate-limit y concurrencia (tuning seguro por defecto)
+  // Ajuste de rate-limit y concurrencia (modo alto rendimiento)
   useEffect(() => {
     setApiTuning({
-      maxReads: 16,          // de 8 → 16
-      maxWrites: 4,          // de 2 → 4
-      minIntervalMs: 120,    // 250ms → 120ms entre escrituras
-      backoffDelays: [3000, 6000, 12000, 24000], // backoff más rápido
-      circuitBreakerThreshold: 5, // 3 → 5 (menos falsos positivos)
-      circuitOpenMinutes: 3       // 20 → 3 (se recupera antes)
+      maxReads: 28,
+      maxWrites: 8,
+      minIntervalMs: 60,
+      backoffDelays: [1000, 2000, 4000, 8000],
+      circuitBreakerThreshold: 10,
+      circuitOpenMinutes: 1
     });
   }, []);
 

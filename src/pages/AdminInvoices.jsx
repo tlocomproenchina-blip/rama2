@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import { Input } from "@/components/ui/input";
