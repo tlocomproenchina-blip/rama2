@@ -45,158 +45,6 @@ export default function AssistedPaymentsList() {
     } catch (e) { toast.error('No se pudo actualizar'); }
   };
 
-  // Acciones administrativas
-  const approveRequest = async (req) => {
-    try {
-      await base44.entities.AssistedPaymentRequest.update(req.id, { status: 'en_proceso' });
-      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'en_proceso' } : r));
-      toast.success('Solicitud aprobada');
-
-      // Ofrecer enviar método de pago inmediatamente para reducir pasos
-      const amountStr = (req.total_amount || 0).toFixed(2);
-      const confirmSend = window.confirm(`¿Deseas enviar ahora las instrucciones de pago al cliente?\n\nTotal a pagar: $${amountStr} ${req.currency || 'USD'}`);
-      if (confirmSend) {
-        await sendPaymentInstructions(req);
-      }
-    } catch (e) { toast.error('No se pudo aprobar'); }
-  };
-
-  const cancelApproval = async (req) => {
-    try {
-      // 1) Cancelar/voidear factura Stripe (si existiera) y notificar por email
-      try {
-        const resp = await base44.functions.invoke('cancelStripeAssistedInvoice', { assisted_request_id: req.id });
-        if (resp?.data?.paid) {
-          toast.warning('La factura ya estaba pagada en Stripe; no se puede cancelar');
-        } else {
-          toast.success('Factura cancelada y cliente notificado');
-        }
-      } catch (_) {
-        // Continuar aunque falle Stripe; igual revertimos el estado
-      }
-
-      // 2) Revertir estado a Pendiente
-      await base44.entities.AssistedPaymentRequest.update(req.id, { status: 'pendiente' });
-      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'pendiente' } : r));
-
-      // 3) Dejar trazabilidad en comentario
-      const note = `Aprobación cancelada el ${new Date().toLocaleString()}`;
-      const admin_comment = [req.admin_comment, note].filter(Boolean).join(' | ');
-      try { await base44.entities.AssistedPaymentRequest.update(req.id, { admin_comment }); } catch {}
-      toast.success('Solicitud regresó a Pendiente');
-    } catch (e) { toast.error('No se pudo cancelar'); }
-  };
-
-  const sendPaymentInstructions = async (req) => {
-    if (!config) { toast.error('Config no cargada'); return; }
-
-    // Lista de métodos disponibles y sus etiquetas legibles
-    const methodsCatalog = [
-      { code: 'binance', label: 'Binance' },
-      { code: 'usdt_trc20', label: 'USDT (TRC20)' },
-      { code: 'paypal', label: 'PayPal' },
-      { code: 'debito_internacional', label: 'Débito Internacional' },
-      { code: 'wally', label: 'Wally' },
-      { code: 'zinli', label: 'Zinli' },
-      { code: 'wise', label: 'Wise' },
-      { code: 'skrill', label: 'Skrill' },
-      { code: 'pago_movil_usdt', label: 'Pago Móvil USDT' },
-    ];
-
-    // Solo los métodos habilitados en configuración (cualquier valor distinto de false se considera activo)
-    const active = methodsCatalog.filter(m => config[`payments_enable_${m.code}`] !== false);
-    if (active.length === 0) { toast.error('No hay métodos de pago activos'); return; }
-
-    const amountStr = (req.total_amount || 0).toFixed(2);
-    const optionsStr = active.map((m, i) => `${i+1}) ${m.label} (${m.code})`).join('\n');
-    const answer = window.prompt(
-      `Selecciona el método de pago (escribe número o código):\n${optionsStr}\n\nMonto a pagar: $${amountStr} ${req.currency || 'USD'}`
-    );
-    if (!answer) return;
-
-    // Permitir elegir por código o por número
-    let selected = active.find(m => m.code.toLowerCase() === answer.trim().toLowerCase());
-    if (!selected) {
-      const idx = parseInt(answer, 10);
-      if (!Number.isNaN(idx) && idx >= 1 && idx <= active.length) selected = active[idx - 1];
-    }
-    if (!selected) { toast.error('Selección inválida'); return; }
-
-    // Si es Débito/Crédito, crear factura Stripe y enviar enlace automáticamente
-    if (selected.code === 'debito_internacional') {
-      try {
-        const resp = await base44.functions.invoke('createStripeAssistedInvoice', { assisted_request_id: req.id });
-        const url = resp?.data?.hosted_invoice_url;
-        toast.success('Factura Stripe creada y enviada');
-        if (url) {
-          console.log('Stripe invoice URL:', url);
-        }
-      } catch (e) {
-        toast.error('No se pudo crear la factura en Stripe');
-      }
-      return;
-    }
-
-    const method = selected.code;
-    const wallet = config[`wallet_${method}`] || '';
-    const instr = config[`${method}_instructions`] || config.payments_assisted_instructions || '';
-
-    const body = [
-      `Hola,`,
-      `\nHemos aprobado tu solicitud de Pago Asistido y te compartimos las instrucciones para completar el pago.`,
-      `\n\nResumen de la solicitud:`,
-      `• Plataforma: ${req.provider?.toUpperCase() || '-'}\n• Enlace: ${req.link_url}\n• Monto base: $${(req.amount||0).toFixed(2)} ${req.currency||'USD'}\n• Comisión: $${(req.fee_amount||0).toFixed(2)} (${req.fee_percentage||0}%)\n• Total a pagar: $${(req.total_amount||0).toFixed(2)} ${req.currency||'USD'}`,
-      `\n\nMétodo seleccionado: ${selected.label.toUpperCase()}`,
-      wallet ? `\n• Cuenta/Wallet: ${wallet}` : '',
-      instr ? `\n• Instrucciones: ${instr}` : '',
-      `\n\nTras realizar el pago, por favor responde a este correo con la referencia y (si es posible) un enlace al comprobante.`,
-      `\n\nGracias.\nEquipo TLEC CARGO`
-    ].filter(Boolean).join('\n');
-
-    try {
-      await base44.integrations.Core.SendEmail({
-        to: req.client_email,
-        subject: 'Instrucciones de Pago Asistido',
-        body
-      });
-      // Anotar en el registro
-      const note = `Instrucciones enviadas por ${method} el ${new Date().toLocaleString()}`;
-      const admin_comment = [req.admin_comment, note].filter(Boolean).join(' | ');
-      await base44.entities.AssistedPaymentRequest.update(req.id, { admin_comment });
-      toast.success('Instrucciones enviadas');
-    } catch (e) { toast.error('No se pudo enviar el correo'); }
-  };
-
-  const confirmPaid = async (req) => {
-    const reference = window.prompt('Referencia / comprobante (texto o número)');
-    if (!reference) return;
-    const proofUrl = window.prompt('URL del comprobante (opcional)') || '';
-    const newComment = [req.admin_comment, proofUrl ? `Comprobante: ${proofUrl}` : null].filter(Boolean).join(' | ');
-
-    try {
-      await base44.entities.AssistedPaymentRequest.update(req.id, { status: 'pagado', reference: reference.trim(), admin_comment: newComment });
-      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'pagado', reference: reference.trim(), admin_comment: newComment } : r));
-
-      const body = [
-        `Hola,`,
-        `\nTe confirmamos que TLEC CARGO ha realizado tu Pago Asistido.`,
-        `\n\nResumen:`,
-        `• Plataforma: ${req.provider?.toUpperCase() || '-'}\n• Enlace: ${req.link_url}\n• Total pagado: $${(req.total_amount||0).toFixed(2)} ${req.currency||'USD'}`,
-        `• Referencia: ${reference.trim()}`,
-        proofUrl ? `• Comprobante: ${proofUrl}` : '',
-        `\n\nGracias por confiar en nosotros.`,
-        `\n\nEquipo TLEC CARGO`
-      ].filter(Boolean).join('\n');
-
-      await base44.integrations.Core.SendEmail({
-        to: req.client_email,
-        subject: 'Confirmación de Pago Asistido',
-        body
-      });
-      toast.success('Pago confirmado y correo enviado');
-    } catch (e) { toast.error('No se pudo confirmar el pago'); }
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -239,13 +87,11 @@ export default function AssistedPaymentsList() {
                     <th className="py-2 pr-4">Fecha</th>
                     <th className="py-2 pr-4">Cliente</th>
                     <th className="py-2 pr-4">Plataforma</th>
-                    <th className="py-2 pr-4">Enlace</th>
                     <th className="py-2 pr-4">Monto</th>
                     <th className="py-2 pr-4">Comisión</th>
                     <th className="py-2 pr-4">Total</th>
                     <th className="py-2 pr-4">Estado</th>
-                    <th className="py-2 pr-4">Imagen</th>
-                    <th className="py-2">Acciones</th>
+                    <th className="py-2">Soporte</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -254,13 +100,6 @@ export default function AssistedPaymentsList() {
                       <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.created_date).toLocaleString()}</td>
                       <td className="py-2 pr-4">{r.client_email}</td>
                       <td className="py-2 pr-4 uppercase">{r.provider}</td>
-                      <td className="py-2 pr-4 max-w-[280px]">
-                        {r.link_url ? (
-                          <a href={r.link_url} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all inline-block truncate max-w-[260px]">
-                            {r.link_url}
-                          </a>
-                        ) : '—'}
-                      </td>
                       <td className="py-2 pr-4">${(r.amount||0).toFixed(2)}</td>
                       <td className="py-2 pr-4">${(r.fee_amount||0).toFixed(2)} ({r.fee_percentage || 0}%)</td>
                       <td className="py-2 pr-4 font-semibold">${(r.total_amount||0).toFixed(2)}</td>
@@ -277,22 +116,10 @@ export default function AssistedPaymentsList() {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="py-2 pr-4">
+                      <td className="py-2">
                         {r.image_url ? (
-                          <a href={r.image_url} target="_blank" rel="noreferrer" title="Abrir imagen en nueva pestaña">
-                            <img src={r.image_url} alt="Soporte" className="h-10 w-10 object-cover rounded border" />
-                          </a>
+                          <a href={r.image_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Ver</a>
                         ) : '—'}
-                      </td>
-                      <td className="py-2 pr-2">
-                        <div className="flex flex-wrap gap-2">
-                          {r.status === 'en_proceso' ? (
-                            <Button size="sm" variant="destructive" onClick={() => cancelApproval(r)}>Cancelar factura</Button>
-                          ) : (
-                            <Button size="sm" variant="outline" onClick={() => approveRequest(r)}>Aprobar</Button>
-                          )}
-                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => confirmPaid(r)}>Confirmar pago</Button>
-                        </div>
                       </td>
                     </tr>
                   ))}

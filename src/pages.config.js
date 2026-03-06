@@ -96,6 +96,7 @@ import Rates from './pages/Rates';
 import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
+import ShoppingAssistant from './pages/ShoppingAssistant';
 import Support from './pages/Support';
 import __Layout from './Layout.jsx';
 
@@ -150,6 +151,7 @@ export const PAGES = {
     "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
+    "ShoppingAssistant": ShoppingAssistant,
     "Support": Support,
 }
 
