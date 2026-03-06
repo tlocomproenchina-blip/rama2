@@ -43,6 +43,7 @@ export default function Home({ user }) {
     <div className="min-h-screen">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-2xl border bg-white p-8 md:p-12">
+        <img aria-hidden="true" src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/460a4f069_ChatGPTImage6mar202617_06_35.png" alt="" className="absolute inset-0 h-full w-full object-cover blur-md md:blur-lg opacity-40 md:opacity-50 scale-105 pointer-events-none select-none z-0" />
         <div className="relative z-10 max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">Logística China → Venezuela, sin fricción</h1>
           <p className="mt-4 text-lg text-slate-600">Consolidamos, aseguramos y entregamos puerta a puerta. Transparente, rápido y con soporte en español.</p>
