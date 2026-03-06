@@ -73,13 +73,25 @@ Evita plagio, reescribe con tus palabras y verifica coherencia factual.`;
       slug = `${slugBase}-${today.getTime()}`;
     }
 
-    // Optional cover image generation
+    // Cover image generation (required: retry + fallback)
     let coverUrl = '';
-    const coverPrompt = data.cover_image_prompt || `Logística internacional China a Venezuela, contenedores, carga aérea y marítima, estilo fotorrealista, luz suave`;
+    const basePrompt = data.cover_image_prompt || `Logística internacional China a Venezuela, contenedores, carga aérea y marítima, estilo fotorrealista, luz suave`;
     try {
-      const img = await base44.asServiceRole.integrations.Core.GenerateImage({ prompt: coverPrompt });
+      const img = await base44.asServiceRole.integrations.Core.GenerateImage({ prompt: basePrompt });
       coverUrl = img?.url || '';
-    } catch (_) { /* optional */ }
+      if (!coverUrl) {
+        const alt = await base44.asServiceRole.integrations.Core.GenerateImage({ prompt: `Imagen representativa: ${title}. Estilo fotorrealista, iluminación suave, sin texto.` });
+        coverUrl = alt?.url || '';
+      }
+    } catch (_) {
+      try {
+        const alt = await base44.asServiceRole.integrations.Core.GenerateImage({ prompt: `Imagen representativa: ${title}. Estilo fotorrealista, iluminación suave, sin texto.` });
+        coverUrl = alt?.url || '';
+      } catch (_) { /* ignore */ }
+    }
+    if (!coverUrl) {
+      coverUrl = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80';
+    }
 
     const postPayload = {
       title,
@@ -88,7 +100,7 @@ Evita plagio, reescribe con tus palabras y verifica coherencia factual.`;
       content: data.content_markdown || '',
       cover_image_url: coverUrl,
       tags: Array.isArray(data.tags) ? data.tags : [],
-      seo_title: data.seo_title || title,
+      seo_title: title,
       seo_description: data.seo_description || (data.excerpt || ''),
       status: 'draft',
       author_name: 'TLEC Logistics',
