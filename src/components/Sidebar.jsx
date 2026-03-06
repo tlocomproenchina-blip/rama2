@@ -107,6 +107,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   };
 
   const loadPendingCounts = async () => {
+    // Cooldown to avoid bursts on rapid navigation
+    const now = Date.now();
+    if (window.__pendingCountsCooldown && (now - window.__pendingCountsCooldown) < 4000) return;
+    window.__pendingCountsCooldown = now;
     try {
       if (!user?.role) return;
 
