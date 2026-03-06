@@ -35,10 +35,13 @@ export default function Support({ user }) {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    loadTickets();
-  }, []);
+    if (user?.email) {
+      loadTickets();
+    }
+  }, [user?.email]);
 
   const loadTickets = async () => {
+    if (!user?.email) return;
     const allTickets = await base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date');
     setTickets(allTickets);
     setLoading(false);
