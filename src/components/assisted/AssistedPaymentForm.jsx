@@ -49,7 +49,7 @@ export default function AssistedPaymentForm({ user }) {
   const calc = () => {
     const amt = Number(amount || 0);
     const p = Number(percent || 0);
-    const feeAmt = Math.round((amt * p) ) / 100; // percent
+    const feeAmt = Math.round(amt * (p / 100) * 100) / 100; // comisión = monto * (porcentaje/100), redondeado a 2 decimales
     const total = Math.round((amt + feeAmt) * 100) / 100;
     return { feeAmt, total };
   };
