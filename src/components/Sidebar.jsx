@@ -25,7 +25,8 @@ import {
   CheckCircle2,
   Mail,
   Wallet,
-  Gift
+  Gift,
+  ShoppingCart
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -175,6 +176,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: CreditCard },
   { name: 'Tarifas', page: 'Rates', icon: FileText },
+  { name: 'Asistente de Compras', page: 'ShoppingAssistant', icon: ShoppingCart },
   { name: 'Ayuda (FAQ)', page: 'FAQ', icon: HelpCircle },
   { name: 'Soporte', page: 'Support', icon: MessageCircle }];
 
@@ -196,6 +198,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Promociones', page: 'AdminPromotions', icon: Tag },
   { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp },
   { name: 'Blog', page: 'AdminBlog', icon: FileText },
+  { name: 'Asistente de Compras', page: 'ShoppingAssistant', icon: ShoppingCart },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
@@ -214,14 +217,14 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
     { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
-    { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog'] },
+    { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog','ShoppingAssistant'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
     { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
     { label: 'GESTIÓN', items: ['AdminClients','AdminReferrals','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
   ];
 
   const clientGroups = [
-    { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard'] },
+    { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard','ShoppingAssistant'] },
     { label: 'ENVÍOS', items: ['MyPackages','PreAlert','RequestConsolidation','MyConsolidations'] },
     { label: 'PAGOS', items: ['MyInvoices'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator'] },
