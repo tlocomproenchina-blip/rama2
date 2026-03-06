@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight } from 'lucide-react';
+import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function Home({ user }) {
   // Metadatos SEO para Home (pública)
@@ -17,10 +17,9 @@ export default function Home({ user }) {
     document.head.appendChild(meta);
   }, []);
 
-
-
   const [states, setStates] = React.useState([]);
   const [selectedCode, setSelectedCode] = React.useState('');
+  const [authLoading, setAuthLoading] = React.useState(false);
 
   React.useEffect(() => {
     (async () => {
@@ -33,6 +32,11 @@ export default function Home({ user }) {
     })();
   }, []);
 
+  const handleAuthClick = () => {
+    try { setAuthLoading(true); } catch {}
+    base44.auth.redirectToLogin();
+  };
+
 
 
   return (
@@ -44,8 +48,23 @@ export default function Home({ user }) {
           <p className="mt-4 text-lg text-slate-600">Consolidamos, aseguramos y entregamos puerta a puerta. Transparente, rápido y con soporte en español.</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-            <Button variant="outline" onClick={() => base44.auth.redirectToLogin()}>Registrarse</Button>
-            <Button variant="secondary" onClick={() => base44.auth.redirectToLogin()}>Iniciar sesión</Button>
+            <Button
+              variant="outline"
+              onClick={handleAuthClick}
+              disabled={authLoading}
+              className="transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
+              Registrarse
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleAuthClick}
+              disabled={authLoading}
+              className="gap-2 transition-transform hover:scale-[1.03] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
+              {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Iniciar sesión
+            </Button>
             <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
           </div>
         </div>
