@@ -67,6 +67,11 @@ export default function Layout({ children, currentPageName }) {
       circuitOpenMinutes: Number(cfg.circuit_open_minutes) || undefined,
     };
     setApiTuning(tuned);
+    // Aplicar modo de degradación UI
+    try {
+      const mode = cfg.ui_degradation_mode || 'off';
+      document.documentElement.setAttribute('data-degrade', mode);
+    } catch {}
   };
 
   const getTabKeyForPage = (pageName) => {
@@ -556,7 +561,17 @@ export default function Layout({ children, currentPageName }) {
           }
         `}</style>
 
-        {/* Main Content */}
+        {/* Reglas de degradación UI (activadas por data-degrade en <html>) */}
+        <style>{`
+          [data-degrade="light"] * { transition-duration: 0ms !important; }
+          [data-degrade="aggressive"] *, [data-degrade="aggressive"] *::before, [data-degrade="aggressive"] *::after {
+            animation: none !important;
+            transition: none !important;
+            filter: none !important;
+          }
+        `}</style>
+
+         {/* Main Content */}
         <div className="flex-1 overflow-x-hidden w-full">
           <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
             {showBackButton && (
