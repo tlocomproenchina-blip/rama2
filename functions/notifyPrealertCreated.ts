@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     }
 
     // Load branding/app name
-    let appName = 'TLEC Logistics';
+    let appName = 'TLEC CARGO';
     try {
       const cfg = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
       if (cfg?.length) appName = cfg[0].app_name || appName;

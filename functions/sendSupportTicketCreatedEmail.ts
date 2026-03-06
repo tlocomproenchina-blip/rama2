@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       'Gracias.',
     ].join('\n');
 
-    await base44.integrations.Core.SendEmail({ to, subject, body });
+    await base44.integrations.Core.SendEmail({ from_name: 'TLEC CARGO', to, subject, body });
 
     return Response.json({ success: true });
   } catch (error) {

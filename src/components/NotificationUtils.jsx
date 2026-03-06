@@ -68,7 +68,7 @@ async function flushEmailQueue() {
   for (const item of batch) {
     try {
       await base44.enqueue(async () => {
-        return await base44.integrations.Core.SendEmail({ from_name: item.from_name, to: item.to, subject: item.subject, body: item.body });
+        return await base44.integrations.Core.SendEmail({ from_name: item.from_name || 'TLEC CARGO', to: item.to, subject: item.subject, body: item.body });
       }, 'HIGH', 'write');
       await processAfterSend(item);
       emailSentCounter++;
