@@ -67,6 +67,7 @@ export default function Support({ user }) {
   };
 
   const handleCreateTicket = async () => {
+    if (!user?.email) { base44.auth.redirectToLogin(); return; }
     if (!newTicket.subject.trim() || !newTicket.message.trim()) {
       toast.error('Por favor completa todos los campos');
       return;
@@ -136,6 +137,7 @@ export default function Support({ user }) {
   };
 
   const handleSendMessage = async (message) => {
+    if (!user?.email) { base44.auth.redirectToLogin(); return; }
     const newMessage = {
       sender_email: user.email,
       sender_name: user.full_name || user.email,
