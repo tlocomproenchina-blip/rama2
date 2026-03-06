@@ -77,9 +77,6 @@ import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
-import AssistedPayment from './pages/AssistedPayment';
-import Blog from './pages/Blog';
-import BlogPost from './pages/BlogPost';
 import BusinessDashboard from './pages/BusinessDashboard';
 import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
@@ -87,7 +84,6 @@ import EmployeeDashboard from './pages/EmployeeDashboard';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
-import MyInvoices from './pages/MyInvoices';
 import MyPackages from './pages/MyPackages';
 import MyReferrals from './pages/MyReferrals';
 import PreAlert from './pages/PreAlert';
@@ -96,8 +92,12 @@ import Rates from './pages/Rates';
 import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
-import ShoppingAssistant from './pages/ShoppingAssistant';
 import Support from './pages/Support';
+import MyInvoices from './pages/MyInvoices';
+import Blog from './pages/Blog';
+import BlogPost from './pages/BlogPost';
+import AssistedPayment from './pages/AssistedPayment';
+import ShoppingAssistant from './pages/ShoppingAssistant';
 import __Layout from './Layout.jsx';
 
 
@@ -132,9 +132,6 @@ export const PAGES = {
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
-    "AssistedPayment": AssistedPayment,
-    "Blog": Blog,
-    "BlogPost": BlogPost,
     "BusinessDashboard": BusinessDashboard,
     "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
@@ -142,7 +139,6 @@ export const PAGES = {
     "FAQ": FAQ,
     "Home": Home,
     "MyConsolidations": MyConsolidations,
-    "MyInvoices": MyInvoices,
     "MyPackages": MyPackages,
     "MyReferrals": MyReferrals,
     "PreAlert": PreAlert,
@@ -151,8 +147,12 @@ export const PAGES = {
     "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
-    "ShoppingAssistant": ShoppingAssistant,
     "Support": Support,
+    "MyInvoices": MyInvoices,
+    "Blog": Blog,
+    "BlogPost": BlogPost,
+    "AssistedPayment": AssistedPayment,
+    "ShoppingAssistant": ShoppingAssistant,
 }
 
 export const pagesConfig = {
