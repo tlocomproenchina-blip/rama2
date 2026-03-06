@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,17 +115,25 @@ export default function AssistedPaymentsList() {
                       <td className="py-2 pr-4">${(r.fee_amount||0).toFixed(2)} ({r.fee_percentage || 0}%)</td>
                       <td className="py-2 pr-4 font-semibold">${(r.total_amount||0).toFixed(2)}</td>
                       <td className="py-2 pr-4">
-                        <Select value={r.status} onValueChange={(v) => updateStatus(r, v)}>
-                          <SelectTrigger className="w-36">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pendiente">Pendiente</SelectItem>
-                            <SelectItem value="en_proceso">En proceso</SelectItem>
-                            <SelectItem value="pagado">Pagado</SelectItem>
-                            <SelectItem value="rechazado">Rechazado</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            onClick={() => updateStatus(r, 'en_proceso')}
+                            disabled={r.status === 'en_proceso' || r.status === 'pagado' || r.status === 'rechazado'}
+                          >
+                            Aprobar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => updateStatus(r, 'rechazado')}
+                            disabled={r.status === 'rechazado' || r.status === 'pagado'}
+                          >
+                            Rechazar
+                          </Button>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1 capitalize">{r.status.replace('_',' ')}</div>
                       </td>
                       <td className="py-2">
                         {r.image_url ? (
