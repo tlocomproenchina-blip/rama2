@@ -73,7 +73,7 @@ export default function NotificationBell({ user }) {
   const loadNotifications = async () => {
     if (!user) return;
     try {
-      const notifs = await base44.entities.Notification.filter(
+      const notifs = await base44.entities.AppNotification.filter(
         { user_email: user.email },
         '-created_date',
         50 // Reduced from 100 to 50 to lighten the load
@@ -102,7 +102,7 @@ export default function NotificationBell({ user }) {
     // Mark as read (optimistic)
     if (!notif.read) {
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
-      await base44.entities.Notification.update(notif.id, { read: true });
+      await base44.entities.AppNotification.update(notif.id, { read: true });
     }
 
     // Navigate based on type and reference_id
@@ -132,12 +132,12 @@ export default function NotificationBell({ user }) {
    // Optimistic UI update
    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
-   await Promise.all(unreadIds.map(id => base44.entities.Notification.update(id, { read: true })));
+   await Promise.all(unreadIds.map(id => base44.entities.AppNotification.update(id, { read: true })));
   };
 
   const deleteNotification = async (notifId, e) => {
    e.stopPropagation();
-   await base44.entities.Notification.delete(notifId);
+   await base44.entities.AppNotification.delete(notifId);
    setNotifications(notifications.filter(n => n.id !== notifId));
   };
 

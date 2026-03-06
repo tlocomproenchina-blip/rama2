@@ -20,7 +20,7 @@ export default function NotificationCenter({ user }) {
     
     try {
       setLoading(true);
-      const data = await base44.entities.Notification.filter(
+      const data = await base44.entities.AppNotification.filter(
         { user_email: user.email },
         '-created_date',
         50
@@ -60,7 +60,7 @@ export default function NotificationCenter({ user }) {
   useEffect(() => {
     if (!user?.email) return;
 
-    const unsubscribe = base44.entities.Notification.subscribe((event) => {
+    const unsubscribe = base44.entities.AppNotification.subscribe((event) => {
       const data = event?.data;
       if (!data || data.user_email !== user.email) return;
 
@@ -91,7 +91,7 @@ export default function NotificationCenter({ user }) {
       // Optimistic UI update
       setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
-      await base44.entities.Notification.update(notificationId, { read: true });
+      await base44.entities.AppNotification.update(notificationId, { read: true });
     } catch (error) {
       toast.error('Error actualizando notificación');
     }
@@ -105,7 +105,7 @@ export default function NotificationCenter({ user }) {
       // Optimistic UI update
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
-      await Promise.all(unreadNotifications.map(n => base44.entities.Notification.update(n.id, { read: true })));
+      await Promise.all(unreadNotifications.map(n => base44.entities.AppNotification.update(n.id, { read: true })));
     } catch (error) {
       toast.error('Error actualizando notificaciones');
     }
@@ -122,7 +122,7 @@ export default function NotificationCenter({ user }) {
   const deleteNotification = async (notificationId, e) => {
     e.stopPropagation();
     try {
-      await base44.entities.Notification.delete(notificationId);
+      await base44.entities.AppNotification.delete(notificationId);
       loadNotifications();
       toast.success('Notificación eliminada');
     } catch (error) {
@@ -131,17 +131,19 @@ export default function NotificationCenter({ user }) {
   };
 
   const getPriorityColor = (priority) => {
+    const p = (priority || 'medium').toString().toLowerCase();
     const colors = {
       critical: 'bg-red-100 text-red-800 border-red-300',
       high: 'bg-orange-100 text-orange-800 border-orange-300',
-      medium: 'bg-blue-100 text-blue-800 border-blue-300',
-      low: 'bg-slate-100 text-slate-800 border-slate-300'
+      medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      low: 'bg-blue-100 text-blue-800 border-blue-300',
+      info: 'bg-slate-100 text-slate-800 border-slate-300'
     };
-    return colors[priority] || colors.medium;
+    return colors[p] || colors.medium;
   };
 
   const getCriticalCount = () => {
-    return notifications.filter(n => n.priority === 'critical' && !n.read).length;
+    return notifications.filter(n => (n.priority || '').toString().toLowerCase() === 'critical' && !n.read).length;
   };
 
   return (
