@@ -243,7 +243,7 @@ export default function NotificationCenter({ user }) {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${
-                        notif.priority === 'critical' ? 'bg-red-50 border-l-4 border-l-red-500' :
+                        ((notif.priority || '').toString().toLowerCase() === 'critical') ? 'bg-red-50 border-l-4 border-l-red-500' :
                         !notif.read ? 'bg-blue-50' : ''
                       }`}
                       onClick={() => markAsRead(notif.id)}
