@@ -395,7 +395,9 @@ export default function Layout({ children, currentPageName }) {
       <GlobalErrorListener />
       <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
-      <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
+      {user && (
+        <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
+      )}
       {user?.role === 'user' && (
         <Suspense fallback={null}><WhatsAppSupport /></Suspense>
       )}
