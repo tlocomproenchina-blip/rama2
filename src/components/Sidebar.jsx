@@ -176,7 +176,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: CreditCard },
   { name: 'Tarifas', page: 'Rates', icon: FileText },
-  { name: 'Asistente de Compras', page: 'ShoppingAssistant', icon: ShoppingCart },
   { name: 'Ayuda (FAQ)', page: 'FAQ', icon: HelpCircle },
   { name: 'Soporte', page: 'Support', icon: MessageCircle }];
 
