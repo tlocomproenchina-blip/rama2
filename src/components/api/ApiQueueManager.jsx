@@ -512,8 +512,8 @@ class ApiQueueManager {
    * Ajustes dinámicos de tasa y concurrencia
    */
   setTuning({ maxReads, maxWrites, minIntervalMs, backoffDelays, circuitBreakerThreshold, circuitOpenMinutes } = {}) {
-    if (Number.isFinite(maxReads)) this.MAX_CONCURRENT_READS = Math.max(1, Math.min(32, maxReads));
-    if (Number.isFinite(maxWrites)) this.MAX_CONCURRENT_WRITES = Math.max(1, Math.min(16, maxWrites));
+    if (Number.isFinite(maxReads)) this.MAX_CONCURRENT_READS = Math.max(1, Math.min(64, maxReads));
+    if (Number.isFinite(maxWrites)) this.MAX_CONCURRENT_WRITES = Math.max(1, Math.min(32, maxWrites));
     if (Number.isFinite(minIntervalMs)) this.MIN_OPERATION_INTERVAL = Math.max(0, Math.min(2000, minIntervalMs));
     if (Array.isArray(backoffDelays) && backoffDelays.length) this.backoffDelays = backoffDelays.map(d => Math.max(100, Number(d) || 1000));
     if (Number.isFinite(circuitBreakerThreshold)) this.circuitBreakerThreshold = Math.max(1, circuitBreakerThreshold);
@@ -530,6 +530,10 @@ class ApiQueueManager {
       circuitOpenMinutes: this.circuitOpenMinutes
     };
   }
+
+  /**
+   * Suscripción dummy para compatibilidad en layout (proxy a entities.subscribe)
+   */
 
   /**
    * Estado del sistema

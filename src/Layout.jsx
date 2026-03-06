@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { base44, setApiTuning } from '@/components/api/ApiQueueManager';
+import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
@@ -56,6 +56,19 @@ export default function Layout({ children, currentPageName }) {
     support: 'AdminSupport',
   };
 
+  const applyTuning = (cfg) => {
+    if (!cfg) return;
+    const tuned = {
+      maxReads: Number(cfg.max_reads) || undefined,
+      maxWrites: Number(cfg.max_writes) || undefined,
+      minIntervalMs: Number(cfg.min_interval_ms) || undefined,
+      backoffDelays: Array.isArray(cfg.backoff_delays) ? cfg.backoff_delays : undefined,
+      circuitBreakerThreshold: Number(cfg.circuit_breaker_threshold) || undefined,
+      circuitOpenMinutes: Number(cfg.circuit_open_minutes) || undefined,
+    };
+    setApiTuning(tuned);
+  };
+
   const getTabKeyForPage = (pageName) => {
     if (!pageName) return null;
     const mapUser = {
@@ -99,7 +112,55 @@ export default function Layout({ children, currentPageName }) {
     loadFavicon();
   }, []);
 
-  // Ajuste de rate-limit y concurrencia (modo 300+ usuarios concurrentes)
+  // Publicar métricas de cliente → RuntimeMetrics (muestreo para evitar exceso de escrituras)
+  useEffect(() => {
+    if (!user) return;
+
+    const email = user?.email || '';
+    const sampleBucket = Array.from(email).reduce((s, c) => s + c.charCodeAt(0), 0) % 3; // 0..2
+    if (sampleBucket !== 0) return; // 33% de los clientes reportan métricas
+
+    let stopped = false;
+    const sendOnce = async () => {
+      try {
+        const status = getApiStatus();
+        const tuning = getApiTuning();
+        await base44.entities.RuntimeMetrics.create({
+          client_email: user?.email,
+          role: user?.role,
+          page_name: currentPageName,
+          queue_length: status.queueLength,
+          active_reads: status.activeReads,
+          active_writes: status.activeWrites,
+          max_reads: tuning.maxReads,
+          max_writes: tuning.maxWrites,
+          failure_count: status.failureCount,
+          circuit_state: status.circuitBreakerState,
+          cache_size: status.cacheSize,
+          inflight_size: status.inflightSize,
+          device_cores: (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : undefined,
+          is_mobile: (typeof navigator !== 'undefined') ? /Mobi|Android/i.test(navigator.userAgent) : false,
+        });
+      } catch (e) {
+        console.warn('Metrics push skipped:', e?.message);
+      }
+    };
+
+    // Intervalo con jitter
+    const baseInterval = 12000; // 12s
+    const jitter = Math.floor(Math.random() * 4000); // 0-4s
+    const firstDelay = Math.floor(Math.random() * 5000);
+
+    const timers = [];
+    timers.push(setTimeout(async () => {
+      if (!stopped) await sendOnce();
+      timers.push(setInterval(sendOnce, baseInterval + jitter));
+    }, firstDelay));
+
+    return () => { stopped = true; timers.forEach(t => clearInterval(t)); };
+  }, [user, currentPageName]);
+
+  // Ajuste inicial + suscripción a RuntimeTuning para autoescalado
   useEffect(() => {
     setApiTuning({
       maxReads: 48,
@@ -109,6 +170,26 @@ export default function Layout({ children, currentPageName }) {
       circuitBreakerThreshold: 20,
       circuitOpenMinutes: 1
     });
+
+    // Cargar tuning actual desde la entidad
+    (async () => {
+      try {
+        const rows = await base44.entities.RuntimeTuning.filter({ config_key: 'global' }, '-updated_date', 1);
+        if (rows && rows[0]) applyTuning(rows[0]);
+      } catch {}
+    })();
+
+    // Suscribirse a cambios en tiempo real
+    let unsubscribe = null;
+    try {
+      unsubscribe = base44.entities.RuntimeTuning.subscribe((event) => {
+        if ((event.type === 'create' || event.type === 'update') && event.data?.config_key === 'global') {
+          applyTuning(event.data);
+        }
+      });
+    } catch {}
+
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, []);
 
   // Detect if running as installed PWA (standalone)
