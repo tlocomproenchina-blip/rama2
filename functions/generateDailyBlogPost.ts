@@ -110,7 +110,7 @@ Evita plagio, reescribe con tus palabras y verifica coherencia factual.`;
 
     const created = await base44.asServiceRole.entities.BlogPost.create(postPayload);
 
-    return Response.json({ success: true, id: created.id, slug: created.slug, status: created.status });
+    return Response.json({ success: true, id: created.id, slug: created.slug, status: created.status, published_at: created.published_at });
   } catch (error) {
     return Response.json({ error: error.message || String(error) }, { status: 500 });
   }
