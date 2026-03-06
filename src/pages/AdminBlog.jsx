@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PostEditor from '@/components/blog/PostEditor';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, UploadCloud, Globe, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, UploadCloud, Globe, FileText, Wand2 } from 'lucide-react';
 
 export default function AdminBlog({ user }) {
   const qc = useQueryClient();
@@ -17,6 +17,9 @@ export default function AdminBlog({ user }) {
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [openAgent, setOpenAgent] = useState(false);
+  const [topic, setTopic] = useState('');
+  const [generating, setGenerating] = useState(false);
 
   if (!user || user.role !== 'admin') {
     return (
@@ -93,6 +96,26 @@ export default function AdminBlog({ user }) {
     qc.invalidateQueries({ queryKey: ['admin-blog-posts'] });
   };
 
+  const generateWithAgent = async () => {
+    setGenerating(true);
+    try {
+      const payload = topic.trim() ? { topic: topic.trim() } : {};
+      const { data } = await base44.functions.invoke('generateDailyBlogPost', payload);
+      if (data?.success) {
+        toast.success('Borrador generado con el agente');
+        setOpenAgent(false);
+        setTopic('');
+        qc.invalidateQueries({ queryKey: ['admin-blog-posts'] });
+      } else {
+        toast.error('No se pudo generar el borrador');
+      }
+    } catch (e) {
+      toast.error('Error al generar con el agente');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -100,8 +123,11 @@ export default function AdminBlog({ user }) {
           <h1 className="text-2xl font-bold">Blog (Admin)</h1>
           <p className="text-slate-500 text-sm">Crear, editar y publicar artículos</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <Input placeholder="Buscar…" value={search} onChange={(e) => setSearch(e.target.value)} className="w-48" />
+          <Button variant="outline" onClick={() => setOpenAgent(true)} className="gap-2">
+            <Wand2 className="h-4 w-4" /> Generar con Agente
+          </Button>
           <Button onClick={() => { setEditing(null); setOpen(true); }} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="h-4 w-4 mr-1" /> Nuevo
           </Button>
@@ -156,6 +182,28 @@ export default function AdminBlog({ user }) {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={openAgent} onOpenChange={setOpenAgent}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Generar con Agente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">Opcional: sugiere un tema para la investigación (ES/EN/中文). Si lo dejas vacío, el agente elegirá uno relevante.</p>
+            <Input
+              placeholder="Tema (opcional)"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setOpenAgent(false)} disabled={generating}>Cancelar</Button>
+              <Button onClick={generateWithAgent} disabled={generating} className="bg-indigo-600 hover:bg-indigo-700">
+                {generating ? 'Generando…' : 'Generar'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl">
