@@ -166,7 +166,8 @@ export default function AssistedPaymentsList() {
                     <th className="py-2 pr-4">Comisión</th>
                     <th className="py-2 pr-4">Total</th>
                     <th className="py-2 pr-4">Estado</th>
-                    <th className="py-2">Soporte</th>
+                    <th className="py-2 pr-4">Soporte</th>
+                    <th className="py-2">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -195,6 +196,13 @@ export default function AssistedPaymentsList() {
                         {r.image_url ? (
                           <a href={r.image_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Ver</a>
                         ) : '—'}
+                      </td>
+                      <td className="py-2 pr-2">
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="outline" onClick={() => approveRequest(r)}>Aprobar</Button>
+                          <Button size="sm" variant="outline" onClick={() => sendPaymentInstructions(r)}>Enviar método</Button>
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => confirmPaid(r)}>Confirmar pago</Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
