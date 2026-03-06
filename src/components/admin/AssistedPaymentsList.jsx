@@ -51,6 +51,13 @@ export default function AssistedPaymentsList() {
       await base44.entities.AssistedPaymentRequest.update(req.id, { status: 'en_proceso' });
       setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'en_proceso' } : r));
       toast.success('Solicitud aprobada');
+
+      // Ofrecer enviar método de pago inmediatamente para reducir pasos
+      const amountStr = (req.total_amount || 0).toFixed(2);
+      const confirmSend = window.confirm(`¿Deseas enviar ahora las instrucciones de pago al cliente?\n\nTotal a pagar: $${amountStr} ${req.currency || 'USD'}`);
+      if (confirmSend) {
+        await sendPaymentInstructions(req);
+      }
     } catch (e) { toast.error('No se pudo aprobar'); }
   };
 
@@ -239,7 +246,6 @@ export default function AssistedPaymentsList() {
                       <td className="py-2 pr-2">
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" variant="outline" onClick={() => approveRequest(r)}>Aprobar</Button>
-                          <Button size="sm" variant="outline" onClick={() => sendPaymentInstructions(r)}>Enviar método</Button>
                           <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => confirmPaid(r)}>Confirmar pago</Button>
                         </div>
                       </td>
