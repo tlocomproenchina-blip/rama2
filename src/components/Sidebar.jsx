@@ -25,8 +25,7 @@ import {
   CheckCircle2,
   Mail,
   Wallet,
-  Gift,
-  ShoppingCart
+  Gift
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -219,14 +218,14 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
     { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAssistedPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
-    { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog','ShoppingAssistant'] },
+    { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
     { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
     { label: 'GESTIÓN', items: ['AdminClients','AdminReferrals','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
   ];
 
   const clientGroups = [
-    { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard','ShoppingAssistant'] },
+    { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard'] },
     { label: 'ENVÍOS', items: ['MyPackages','PreAlert','RequestConsolidation','MyConsolidations'] },
     { label: 'PAGOS', items: ['MyInvoices','AssistedPayment'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator'] },
