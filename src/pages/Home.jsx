@@ -33,12 +33,12 @@ export default function Home({ user }) {
     })();
   }, []);
 
-  const handlePreAlertClick = async () => {
-    if (user) {
-      window.location.href = createPageUrl('PreAlert');
-    } else {
-      await base44.auth.redirectToLogin(createPageUrl('PreAlert'));
-    }
+  const handleRegisterClick = async () => {
+    await base44.auth.redirectToLogin(createPageUrl('ClientPortal'));
+  };
+
+  const handleLoginClick = async () => {
+    await base44.auth.redirectToLogin(createPageUrl('ClientPortal'));
   };
 
   return (
@@ -48,10 +48,17 @@ export default function Home({ user }) {
         <div className="max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">Logística China → Venezuela, sin fricción</h1>
           <p className="mt-4 text-lg text-slate-600">Consolidamos, aseguramos y entregamos puerta a puerta. Transparente, rápido y con soporte en español.</p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-            <Button variant="outline" onClick={handlePreAlertClick}>Crear pre‑alerta</Button>
-            <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
+          <div className="mt-6">
+            <div className="flex flex-wrap gap-3">
+              <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+              <Button variant="outline" onClick={handleRegisterClick}>Registrarse</Button>
+              <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
+            </div>
+            {!user && (
+              <div className="mt-2">
+                <Button variant="ghost" onClick={handleLoginClick} className="px-3">Iniciar sesión</Button>
+              </div>
+            )}
           </div>
         </div>
         <img src="https://images.unsplash.com/photo-1541462608143-67571c6738dd?q=80&w=1600&auto=format&fit=crop" alt="Carga marítima" className="absolute right-0 top-0 h-full w-[55%] object-cover hidden md:block rounded-l-2xl" />
