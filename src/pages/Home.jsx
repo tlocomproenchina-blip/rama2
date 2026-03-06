@@ -33,7 +33,7 @@ export default function Home({ user }) {
   }, []);
 
   const handleAuthClick = () => {
-    try { setAuthLoading(true); } catch {}
+    try {setAuthLoading(true);} catch {}
     base44.auth.redirectToLogin();
   };
 
@@ -52,36 +52,36 @@ export default function Home({ user }) {
               variant="outline"
               onClick={handleAuthClick}
               disabled={authLoading}
-              className="transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-            >
+              className="transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+
               Registrarse
             </Button>
             <Button
               variant="secondary"
               onClick={handleAuthClick}
               disabled={authLoading}
-              className="gap-2 transition-transform hover:scale-[1.03] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-            >
+              className="gap-2 transition-transform hover:scale-[1.03] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+
               {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Iniciar sesión
             </Button>
             <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
           </div>
         </div>
-        <img src="https://images.unsplash.com/photo-1541462608143-67571c6738dd?q=80&w=1600&auto=format&fit=crop" alt="Carga marítima" className="absolute right-0 top-0 h-full w-[55%] object-cover hidden md:block rounded-l-2xl" />
+        <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/460a4f069_ChatGPTImage6mar202617_06_35.png" alt="Carga marítima" className="absolute right-0 top-0 h-full w-[55%] object-cover hidden md:block rounded-l-2xl" />
       </section>
 
       {/* Beneficios */}
       <section className="mt-10 grid gap-4 md:grid-cols-3">
-        {[{icon: Ship, title: 'Marítimo y Aéreo', desc: 'Rutas optimizadas desde puertos y aeropuertos clave en China.'}, {icon: Package, title: 'Consolidación inteligente', desc: 'Ahorra con consolidación y embalaje seguro.'}, {icon: ShieldCheck, title: 'Seguro y trazabilidad', desc: 'Cobertura y tracking en cada hito.'}].map((b, i) => (
-          <Card key={i}>
+        {[{ icon: Ship, title: 'Marítimo y Aéreo', desc: 'Rutas optimizadas desde puertos y aeropuertos clave en China.' }, { icon: Package, title: 'Consolidación inteligente', desc: 'Ahorra con consolidación y embalaje seguro.' }, { icon: ShieldCheck, title: 'Seguro y trazabilidad', desc: 'Cobertura y tracking en cada hito.' }].map((b, i) =>
+        <Card key={i}>
             <CardHeader className="flex flex-row items-center gap-3">
               <b.icon className="h-6 w-6 text-blue-600" />
               <CardTitle className="text-lg">{b.title}</CardTitle>
             </CardHeader>
             <CardContent className="text-slate-600">{b.desc}</CardContent>
           </Card>
-        ))}
+        )}
       </section>
 
       {/* Proceso */}
@@ -107,15 +107,15 @@ export default function Home({ user }) {
       <section className="mt-12">
         <h2 className="text-2xl font-bold mb-4">Servicios</h2>
         <div className="grid gap-4 md:grid-cols-4">
-          {[{icon: Ship, title: 'Marítimo (FCL/LCL)', desc: 'Optimización por CBM y salidas regulares.'}, {icon: Plane, title: 'Aéreo', desc: 'Para cargas urgentes y sensibles.'}, {icon: ShieldCheck, title: 'Seguro', desc: 'Cobertura para tu mercancía.'}, {icon: Package, title: 'Puerta a puerta', desc: 'Entrega final en tu destino.'}].map((s, i) => (
-            <Card key={i}>
+          {[{ icon: Ship, title: 'Marítimo (FCL/LCL)', desc: 'Optimización por CBM y salidas regulares.' }, { icon: Plane, title: 'Aéreo', desc: 'Para cargas urgentes y sensibles.' }, { icon: ShieldCheck, title: 'Seguro', desc: 'Cobertura para tu mercancía.' }, { icon: Package, title: 'Puerta a puerta', desc: 'Entrega final en tu destino.' }].map((s, i) =>
+          <Card key={i}>
               <CardHeader className="flex flex-row items-center gap-3">
                 <s.icon className="h-6 w-6 text-blue-600" />
                 <CardTitle className="text-lg">{s.title}</CardTitle>
               </CardHeader>
               <CardContent className="text-slate-600">{s.desc}</CardContent>
             </Card>
-          ))}
+          )}
         </div>
       </section>
 
@@ -130,9 +130,9 @@ export default function Home({ user }) {
                 <SelectValue placeholder="Selecciona tu estado" />
               </SelectTrigger>
               <SelectContent className="max-h-60">
-                {states.map((s) => (
-                  <SelectItem key={s.id} value={s.state_code}>{s.state_name}</SelectItem>
-                ))}
+                {states.map((s) =>
+                <SelectItem key={s.id} value={s.state_code}>{s.state_name}</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -143,7 +143,7 @@ export default function Home({ user }) {
         </div>
 
         {selectedCode && (() => {
-          const s = states.find(x => x.state_code === selectedCode);
+          const s = states.find((x) => x.state_code === selectedCode);
           const reg = s?.final_rate_regular;
           const high = s?.final_rate_high;
           return (
@@ -158,16 +158,16 @@ export default function Home({ user }) {
                     {reg && reg > 0 ? `$${Number(reg).toLocaleString('en-US')}` : 'Consultar'}
                     <span className="text-sm font-medium ml-2 opacity-90">regular</span>
                   </div>
-                  {high && high > 0 && (
-                    <div className="text-sm bg-white/15 px-3 py-1 rounded-full">
+                  {high && high > 0 &&
+                  <div className="text-sm bg-white/15 px-3 py-1 rounded-full">
                       Alto riesgo: <b>${Number(high).toLocaleString('en-US')}</b>
                     </div>
-                  )}
+                  }
                 </div>
               </div>
               <div className="mt-2 text-white/90 text-sm">Tiempo estimado marítimo: 90 días</div>
-            </div>
-          );
+            </div>);
+
         })()}
       </section>
 
@@ -175,14 +175,14 @@ export default function Home({ user }) {
       <section className="mt-12">
         <h2 className="text-2xl font-bold mb-4">Testimonios</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          {[{q:'Excelente manejo de consolidaciones, ahorré en CBM y llegó antes de lo previsto.',a:'Carlos R.'},{q:'Atención clara y soporte por WhatsApp en todo momento.',a:'Mariana P.'}].map((t, i) => (
-            <Card key={i}>
+          {[{ q: 'Excelente manejo de consolidaciones, ahorré en CBM y llegó antes de lo previsto.', a: 'Carlos R.' }, { q: 'Atención clara y soporte por WhatsApp en todo momento.', a: 'Mariana P.' }].map((t, i) =>
+          <Card key={i}>
               <CardContent className="pt-6">
                 <p className="text-slate-800">“{t.q}”</p>
                 <p className="mt-3 text-sm text-slate-500">— {t.a}</p>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
       </section>
 
@@ -217,6 +217,6 @@ export default function Home({ user }) {
           <Link to={createPageUrl('Support')}><Button variant="outline">Hablar con soporte</Button></Link>
         </div>
       </section>
-    </div>
-  );
+    </div>);
+
 }
