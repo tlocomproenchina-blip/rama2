@@ -40,9 +40,9 @@ export default function AssistedPaymentForm({ user }) {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setImageUrl(file_url);
-      toast.success('Imagen cargada');
+      toast.success('QR cargado');
     } catch (e) {
-      toast.error('No se pudo cargar la imagen');
+      toast.error('No se pudo cargar el QR');
     }
   };
 
@@ -138,10 +138,10 @@ export default function AssistedPaymentForm({ user }) {
           </div>
 
           <div className="space-y-2">
-            <Label>Imagen (opcional)</Label>
+            <Label>QR WeChat o Alipay (opcional)</Label>
             <Input type="file" accept="image/*" onChange={handleFile} disabled={!enabled} />
             {imageUrl && (
-              <img src={imageUrl} alt="Soporte" className="mt-2 h-28 w-auto rounded-md border object-cover" />
+              <img src={imageUrl} alt="QR" className="mt-2 h-28 w-auto rounded-md border object-cover" />
             )}
           </div>
 
