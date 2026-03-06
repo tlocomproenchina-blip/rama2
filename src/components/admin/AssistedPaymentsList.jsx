@@ -61,6 +61,18 @@ export default function AssistedPaymentsList() {
     } catch (e) { toast.error('No se pudo aprobar'); }
   };
 
+  const cancelApproval = async (req) => {
+    try {
+      await base44.entities.AssistedPaymentRequest.update(req.id, { status: 'pendiente' });
+      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'pendiente' } : r));
+      // Dejar trazabilidad en comentario
+      const note = `Aprobación cancelada el ${new Date().toLocaleString()}`;
+      const admin_comment = [req.admin_comment, note].filter(Boolean).join(' | ');
+      try { await base44.entities.AssistedPaymentRequest.update(req.id, { admin_comment }); } catch {}
+      toast.success('Solicitud regresó a Pendiente');
+    } catch (e) { toast.error('No se pudo cancelar'); }
+  };
+
   const sendPaymentInstructions = async (req) => {
     if (!config) { toast.error('Config no cargada'); return; }
 
@@ -260,7 +272,11 @@ export default function AssistedPaymentsList() {
                       </td>
                       <td className="py-2 pr-2">
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" onClick={() => approveRequest(r)}>Aprobar</Button>
+                          {r.status === 'en_proceso' ? (
+                            <Button size="sm" variant="destructive" onClick={() => cancelApproval(r)}>Cancelar</Button>
+                          ) : (
+                            <Button size="sm" variant="outline" onClick={() => approveRequest(r)}>Aprobar</Button>
+                          )}
                           <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => confirmPaid(r)}>Confirmar pago</Button>
                         </div>
                       </td>
