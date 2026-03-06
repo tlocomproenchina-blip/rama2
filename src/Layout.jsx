@@ -416,27 +416,29 @@ export default function Layout({ children, currentPageName }) {
 
       <main className={`flex-1 min-h-screen flex flex-col ${isAdminPanel ? 'lg:h-screen lg:overflow-y-auto' : ''}`}>
         {/* Mobile Header */}
+        {user && (
         <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between gap-2">
-            {user && (
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-12 w-12 -ml-2 p-0 touch-manipulation select-none active:opacity-80"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
-            )}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-12 w-12 -ml-2 p-0 touch-manipulation select-none active:opacity-80"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
             <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC Logistics'}</h1>
             <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
           </div>
         </header>
+        )}
 
         {/* Desktop Notification Center */}
+        {user && (
         <div className="hidden lg:block fixed top-4 right-4 z-40">
           <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
         </div>
+        )}
 
         {/* Improve mobile tap targets in header */}
         <style>{`
