@@ -256,21 +256,9 @@ export default function Layout({ children, currentPageName }) {
           return;
         }
       } catch (_) {}
-      // En modo app instalada (PWA), siempre requerir login (no páginas públicas)
-      if (isInstalledApp) {
-        base44.auth.redirectToLogin();
-        setLoading(false);
-      } else {
-        // Permitir rutas públicas solo cuando NO es app instalada
-        const publicPages = ['Home', 'Blog', 'BlogPost'];
-        if (publicPages.includes(currentPageName)) {
-          setUser(null);
-          setLoading(false);
-        } else {
-          base44.auth.redirectToLogin();
-          setLoading(false);
-        }
-      }
+      // Siempre requerir login: no mostrar páginas públicas si no está autenticado
+      base44.auth.redirectToLogin();
+      setLoading(false);
     }
   };
 
