@@ -68,7 +68,7 @@ export default function Home({ user }) {
             <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
           </div>
         </div>
-        <img src="https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?q=80&w=2000&auto=format&fit=crop" alt="Buque de carga" className="absolute inset-0 h-full w-full object-cover z-0" style={{ objectPosition: 'center right' }} />
+        <img src="https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?q=80&w=2000&auto=format&fit=crop" alt="Buque de carga" className="absolute inset-0 h-full w-full object-cover z-0" style={{ objectPosition: 'center' }} />
         <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/90 via-white/60 to-transparent" />
       </section>
 
