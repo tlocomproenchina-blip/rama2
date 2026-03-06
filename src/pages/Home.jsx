@@ -43,7 +43,7 @@ export default function Home({ user }) {
     <div className="min-h-screen">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-2xl border bg-white p-8 md:p-12">
-        <div className="relative z-10 max-w-3xl">
+        <div className="max-w-3xl">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">Logística China → Venezuela, sin fricción</h1>
           <p className="mt-4 text-lg text-slate-600">Consolidamos, aseguramos y entregamos puerta a puerta. Transparente, rápido y con soporte en español.</p>
           <div className="mt-6 flex flex-wrap gap-3">
@@ -68,8 +68,7 @@ export default function Home({ user }) {
             <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
           </div>
         </div>
-        <img src="https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?q=80&w=2000&auto=format&fit=crop" alt="Buque de carga" className="absolute inset-0 h-full w-full object-cover z-0" style={{ objectPosition: 'center' }} />
-        <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/90 via-white/60 to-transparent" />
+        <img src="https://images.unsplash.com/photo-1541462608143-67571c6738dd?q=80&w=1600&auto=format&fit=crop" alt="Carga marítima" className="absolute right-0 top-0 h-full w-[55%] object-cover hidden md:block rounded-l-2xl" />
       </section>
 
       {/* Beneficios */}
