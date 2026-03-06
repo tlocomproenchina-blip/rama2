@@ -40,12 +40,26 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     requests: 0
   });
 
+  const [pendingCounts, setPendingCounts] = useState({
+    approvals: 0,
+    consolidate: 0,
+    invoices: 0,
+    validatePayments: 0,
+    assisted: 0,
+    accountsPayable: 0,
+    support: 0
+  });
+
   useEffect(() => {
     loadConfig();
     loadNotificationCounts();
+    loadPendingCounts();
     
-    // Poll for notification counts every 180 seconds
-    const interval = setInterval(loadNotificationCounts, 180000);
+    // Poll for counts every 180 seconds
+    const interval = setInterval(() => {
+      loadNotificationCounts();
+      loadPendingCounts();
+    }, 180000);
     return () => clearInterval(interval);
   }, []);
 
@@ -92,6 +106,47 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     }
   };
 
+  const loadPendingCounts = async () => {
+    try {
+      if (!user?.role) return;
+
+      const [
+        reqs,
+        pkgsRecibidos,
+        invPend,
+        invRev,
+        consAll,
+        assistedReqs,
+        apPend,
+        ticketsOpen
+      ] = await Promise.all([
+        base44.entities.ConsolidationRequest.filter({ status: 'pendiente' }),
+        base44.entities.Package.filter({ status: 'recibido' }),
+        base44.entities.Invoice.filter({ status: 'pendiente' }),
+        base44.entities.Invoice.filter({ status: 'revision' }),
+        base44.entities.Consolidation.filter({ payment_validated: false }),
+        base44.entities.AssistedPaymentRequest.filter({ status: 'pendiente' }),
+        base44.entities.AccountsPayable.filter({ status: 'pendiente' }),
+        base44.entities.SupportTicket.filter({ status: 'abierto' })
+      ]);
+
+      const consolidateCount = (pkgsRecibidos || []).filter(p => !p.consolidation_id).length;
+      const consNeedValidation = (consAll || []).filter(c => !!c.payment_proof_url && !c.payment_validated).length;
+
+      setPendingCounts({
+        approvals: (reqs || []).length,
+        consolidate: consolidateCount,
+        invoices: (invPend || []).length,
+        validatePayments: (invRev || []).length + consNeedValidation,
+        assisted: (assistedReqs || []).length,
+        accountsPayable: (apPend || []).length,
+        support: (ticketsOpen || []).length
+      });
+    } catch (error) {
+      console.error('Error loading pending counts:', error);
+    }
+  };
+
   const markNotificationsAsRead = async (extraFilter = {}) => {
     try {
       if (!user?.email) return;
@@ -112,6 +167,20 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     } else if (page === 'Dashboard' || page === 'ClientPortal' || page === 'AdminDashboard') {
       await markNotificationsAsRead({ priority: 'critical' });
       setNotificationCounts(prev => ({ ...prev, critical: 0 }));
+    } else if (page === 'AdminConsolidate') {
+      setPendingCounts(prev => ({ ...prev, approvals: 0 }));
+    } else if (page === 'AdminShipmentApprovals') {
+      setPendingCounts(prev => ({ ...prev, consolidate: 0 }));
+    } else if (page === 'AdminInvoices') {
+      setPendingCounts(prev => ({ ...prev, invoices: 0 }));
+    } else if (page === 'AdminPayments') {
+      setPendingCounts(prev => ({ ...prev, validatePayments: 0 }));
+    } else if (page === 'AdminAssistedPayments') {
+      setPendingCounts(prev => ({ ...prev, assisted: 0 }));
+    } else if (page === 'AdminAccountsPayable') {
+      setPendingCounts(prev => ({ ...prev, accountsPayable: 0 }));
+    } else if (page === 'AdminSupportTickets') {
+      setPendingCounts(prev => ({ ...prev, support: 0 }));
     }
     onClose && onClose();
   };
@@ -132,6 +201,24 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         await markNotificationsAsRead({ priority: 'critical' });
         setNotificationCounts(prev => ({ ...prev, critical: 0 }));
       }
+
+      // Clear module badges on visit
+      if (currentPage === 'AdminConsolidate') {
+        setPendingCounts(prev => ({ ...prev, approvals: 0 }));
+      } else if (currentPage === 'AdminShipmentApprovals') {
+        setPendingCounts(prev => ({ ...prev, consolidate: 0 }));
+      } else if (currentPage === 'AdminInvoices') {
+        setPendingCounts(prev => ({ ...prev, invoices: 0 }));
+      } else if (currentPage === 'AdminPayments') {
+        setPendingCounts(prev => ({ ...prev, validatePayments: 0 }));
+      } else if (currentPage === 'AdminAssistedPayments') {
+        setPendingCounts(prev => ({ ...prev, assisted: 0 }));
+      } else if (currentPage === 'AdminAccountsPayable') {
+        setPendingCounts(prev => ({ ...prev, accountsPayable: 0 }));
+      } else if (currentPage === 'AdminSupportTickets') {
+        setPendingCounts(prev => ({ ...prev, support: 0 }));
+      }
+
       await loadNotificationCounts();
     };
     run();
@@ -379,7 +466,21 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         // Badges/alerts
                         let badgeCount = null;
                         let showWarning = false;
-                        if (item.page === 'Dashboard' || item.page === 'ClientPortal') {
+                        if (item.page === 'AdminConsolidate') {
+                          badgeCount = pendingCounts.approvals;
+                        } else if (item.page === 'AdminShipmentApprovals') {
+                          badgeCount = pendingCounts.consolidate;
+                        } else if (item.page === 'AdminInvoices') {
+                          badgeCount = pendingCounts.invoices;
+                        } else if (item.page === 'AdminPayments') {
+                          badgeCount = pendingCounts.validatePayments;
+                        } else if (item.page === 'AdminAssistedPayments') {
+                          badgeCount = pendingCounts.assisted;
+                        } else if (item.page === 'AdminAccountsPayable') {
+                          badgeCount = pendingCounts.accountsPayable;
+                        } else if (item.page === 'AdminSupportTickets') {
+                          badgeCount = pendingCounts.support;
+                        } else if (item.page === 'Dashboard' || item.page === 'ClientPortal') {
                           showWarning = notificationCounts.critical > 0;
                         } else if (item.page === 'MyPackages' || item.page === 'AdminPackages') {
                           badgeCount = notificationCounts.packages;
