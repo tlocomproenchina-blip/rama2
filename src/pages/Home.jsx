@@ -69,7 +69,7 @@ export default function Home({ user }) {
           </div>
         </div>
         <img src="https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?q=80&w=2000&auto=format&fit=crop" alt="Buque de carga" className="absolute inset-0 h-full w-full object-cover z-0" style={{ objectPosition: 'center right' }} />
-        <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/50 via-white/10 to-transparent" />
+        <div className="absolute inset-0 z-0 bg-gradient-to-r from-white/90 via-white/60 to-transparent" />
       </section>
 
       {/* Beneficios */}
