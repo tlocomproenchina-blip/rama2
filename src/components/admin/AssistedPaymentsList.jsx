@@ -63,9 +63,23 @@ export default function AssistedPaymentsList() {
 
   const cancelApproval = async (req) => {
     try {
+      // 1) Cancelar/voidear factura Stripe (si existiera) y notificar por email
+      try {
+        const resp = await base44.functions.invoke('cancelStripeAssistedInvoice', { assisted_request_id: req.id });
+        if (resp?.data?.paid) {
+          toast.warning('La factura ya estaba pagada en Stripe; no se puede cancelar');
+        } else {
+          toast.success('Factura cancelada y cliente notificado');
+        }
+      } catch (_) {
+        // Continuar aunque falle Stripe; igual revertimos el estado
+      }
+
+      // 2) Revertir estado a Pendiente
       await base44.entities.AssistedPaymentRequest.update(req.id, { status: 'pendiente' });
       setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'pendiente' } : r));
-      // Dejar trazabilidad en comentario
+
+      // 3) Dejar trazabilidad en comentario
       const note = `Aprobación cancelada el ${new Date().toLocaleString()}`;
       const admin_comment = [req.admin_comment, note].filter(Boolean).join(' | ');
       try { await base44.entities.AssistedPaymentRequest.update(req.id, { admin_comment }); } catch {}
@@ -273,7 +287,7 @@ export default function AssistedPaymentsList() {
                       <td className="py-2 pr-2">
                         <div className="flex flex-wrap gap-2">
                           {r.status === 'en_proceso' ? (
-                            <Button size="sm" variant="destructive" onClick={() => cancelApproval(r)}>Cancelar</Button>
+                            <Button size="sm" variant="destructive" onClick={() => cancelApproval(r)}>Cancelar factura</Button>
                           ) : (
                             <Button size="sm" variant="outline" onClick={() => approveRequest(r)}>Aprobar</Button>
                           )}
