@@ -109,11 +109,11 @@ export default function AssistedPaymentForm({ user }) {
             <Label>Enlace (si no subes QR)</Label>
             <Input
               value={link}
-              onChange={(e) => { setLink(e.target.value); setProvider(autoDetectProvider(e.target.value)); }}
-              placeholder="Pega aquí el enlace del producto"
+              onChange={(e) => { const v = e.target.value; setLink(v); setProvider(autoDetectProvider(v)); if (v) setImageUrl(''); }}
+              placeholder="Pega aquí el enlace del producto (si no subes QR)"
               type="url"
-              required
-              disabled={!enabled}
+              required={!imageUrl}
+              disabled={!enabled || !!imageUrl}
             />
           </div>
 
