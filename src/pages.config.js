@@ -60,6 +60,7 @@ import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
 import AdminEmailTemplates from './pages/AdminEmailTemplates';
 import AdminFAQ from './pages/AdminFAQ';
 import AdminInsured from './pages/AdminInsured';
+import AdminInvoices from './pages/AdminInvoices';
 import AdminKnowledgeBase from './pages/AdminKnowledgeBase';
 import AdminMarketing from './pages/AdminMarketing';
 import AdminPackages from './pages/AdminPackages';
@@ -96,7 +97,6 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import AdminInvoices from './pages/AdminInvoices';
 import __Layout from './Layout.jsx';
 
 
@@ -114,6 +114,7 @@ export const PAGES = {
     "AdminEmailTemplates": AdminEmailTemplates,
     "AdminFAQ": AdminFAQ,
     "AdminInsured": AdminInsured,
+    "AdminInvoices": AdminInvoices,
     "AdminKnowledgeBase": AdminKnowledgeBase,
     "AdminMarketing": AdminMarketing,
     "AdminPackages": AdminPackages,
@@ -150,7 +151,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "AdminInvoices": AdminInvoices,
 }
 
 export const pagesConfig = {

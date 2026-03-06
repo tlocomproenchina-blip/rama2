@@ -28,7 +28,6 @@ const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
-const AdminActionCenter = lazy(() => import('@/components/AdminActionCenter.jsx'));
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -474,11 +473,6 @@ export default function Layout({ children, currentPageName }) {
                 </Button>
               </div>
             )}
-
-            {isAdminPanel && (
-              <Suspense fallback={null}><AdminActionCenter /></Suspense>
-            )}
-
             <ErrorBoundary>
               {React.cloneElement(children, { user, refreshUser: loadUser })}
             </ErrorBoundary>
