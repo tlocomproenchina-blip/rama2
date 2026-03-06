@@ -806,15 +806,7 @@ Email: ${client.email}`;
       {/* Search & Filters */}
       <Card className="border-0 shadow-md">
         <CardContent className="p-4 space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Buscar por nombre, email, ciudad, WhatsApp o Shipping Mark..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+
           
           {/* Date Filter */}
           <div className="flex flex-col gap-2 p-3 bg-slate-50 rounded-lg">
@@ -1047,6 +1039,17 @@ Email: ${client.email}`;
             </div>
                </CardContent>
                </Card>
+
+      {/* Quick Search (moved below filters) */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Input
+          placeholder="Buscar por nombre, email, ciudad, WhatsApp o Shipping Mark..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10"
+        />
+      </div>
 
       {/* Clients List */}
       {filteredClients.length === 0 ? (
