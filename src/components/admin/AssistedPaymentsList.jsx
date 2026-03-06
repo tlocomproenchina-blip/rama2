@@ -40,6 +40,14 @@ export default function AssistedPaymentsList() {
 
   const updateStatus = async (req, status) => {
     try {
+      if (status === 'en_proceso' && !req.invoice_id) {
+        const res = await base44.functions.invoke('createAssistedPaymentInvoice', { request_id: req.id });
+        const invId = res?.data?.invoice_id;
+        await base44.entities.AssistedPaymentRequest.update(req.id, { status, invoice_id: invId });
+        setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status, invoice_id: invId } : r));
+        toast.success('Factura generada y enviada al cliente');
+        return;
+      }
       await base44.entities.AssistedPaymentRequest.update(req.id, { status });
       setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status } : r));
     } catch (e) { toast.error('No se pudo actualizar'); }
@@ -87,11 +95,13 @@ export default function AssistedPaymentsList() {
                     <th className="py-2 pr-4">Fecha</th>
                     <th className="py-2 pr-4">Cliente</th>
                     <th className="py-2 pr-4">Plataforma</th>
+                    <th className="py-2 pr-4">Enlace</th>
                     <th className="py-2 pr-4">Monto</th>
                     <th className="py-2 pr-4">Comisión</th>
                     <th className="py-2 pr-4">Total</th>
                     <th className="py-2 pr-4">Estado</th>
-                    <th className="py-2">Soporte</th>
+                    <th className="py-2 pr-4">Soporte</th>
+                    <th className="py-2">Factura</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -100,6 +110,7 @@ export default function AssistedPaymentsList() {
                       <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.created_date).toLocaleString()}</td>
                       <td className="py-2 pr-4">{r.client_email}</td>
                       <td className="py-2 pr-4 uppercase">{r.provider}</td>
+                      <td className="py-2 pr-4">{r.link_url ? <a href={r.link_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Abrir</a> : '—'}</td>
                       <td className="py-2 pr-4">${(r.amount||0).toFixed(2)}</td>
                       <td className="py-2 pr-4">${(r.fee_amount||0).toFixed(2)} ({r.fee_percentage || 0}%)</td>
                       <td className="py-2 pr-4 font-semibold">${(r.total_amount||0).toFixed(2)}</td>
@@ -121,6 +132,7 @@ export default function AssistedPaymentsList() {
                           <a href={r.image_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Ver</a>
                         ) : '—'}
                       </td>
+                      <td className="py-2">{r.invoice_id ? r.invoice_id : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
