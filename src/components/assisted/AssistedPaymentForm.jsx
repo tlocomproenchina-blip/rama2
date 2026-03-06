@@ -17,7 +17,6 @@ export default function AssistedPaymentForm({ user }) {
   const [submitting, setSubmitting] = React.useState(false);
 
   const percent = Number(config?.payments_assisted_fee_percentage ?? 5);
-  const fee = amount ? Math.round((Number(amount) * percent) * 100) / 10000 : 0; // fix: incorrect; we'll compute correctly below
 
   React.useEffect(() => {
     (async () => {

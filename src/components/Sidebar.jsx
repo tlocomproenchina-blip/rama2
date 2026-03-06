@@ -190,6 +190,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2 },
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
+  { name: 'Pagos Asistidos', page: 'AdminAssistedPayments', icon: CreditCard },
   { name: 'Cuentas por Pagar', page: 'AdminAccountsPayable', icon: Wallet },
   { name: 'Pagos Proveedores', page: 'AdminProviderPayments', icon: CreditCard },
   { name: 'Proveedores', page: 'AdminProviders', icon: Users },
