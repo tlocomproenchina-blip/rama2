@@ -173,6 +173,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Solicitar Consolidación', page: 'RequestConsolidation', icon: Layers },
   { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
   { name: 'Mis Facturas', page: 'MyInvoices', icon: FileText },
+  { name: 'Pago Asistido', page: 'AssistedPayment', icon: CreditCard },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: CreditCard },
   { name: 'Tarifas', page: 'Rates', icon: FileText },
@@ -215,7 +216,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const adminGroups = [
     { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
-    { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
+    { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAssistedPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog','ShoppingAssistant'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
@@ -226,7 +227,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const clientGroups = [
     { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard','ShoppingAssistant'] },
     { label: 'ENVÍOS', items: ['MyPackages','PreAlert','RequestConsolidation','MyConsolidations'] },
-    { label: 'PAGOS', items: ['MyInvoices'] },
+    { label: 'PAGOS', items: ['MyInvoices','AssistedPayment'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator'] },
     { label: 'INFORMACIÓN', items: ['Rates'] },
     { label: 'SOPORTE', items: ['FAQ','Support'] },

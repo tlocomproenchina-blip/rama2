@@ -96,6 +96,8 @@ import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import ShoppingAssistant from './pages/ShoppingAssistant';
+import AssistedPayment from './pages/AssistedPayment';
+import AdminAssistedPayments from './pages/AdminAssistedPayments';
 import __Layout from './Layout.jsx';
 
 
@@ -149,6 +151,8 @@ export const PAGES = {
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
     "ShoppingAssistant": ShoppingAssistant,
+    "AssistedPayment": AssistedPayment,
+    "AdminAssistedPayments": AdminAssistedPayments,
 }
 
 export const pagesConfig = {
