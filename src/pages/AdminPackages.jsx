@@ -23,7 +23,8 @@ import {
   Copy,
   Flag,
   FlagOff,
-  MessageSquare
+  MessageSquare,
+  Undo2
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -56,6 +57,8 @@ export default function AdminPackages({ user }) {
   const [ticketModal, setTicketModal] = useState(null);
   const [ticketMessage, setTicketMessage] = useState('');
   const [ticketProcessing, setTicketProcessing] = useState(false);
+  const [cancelReceptionModal, setCancelReceptionModal] = useState(null);
+  const [cancelProcessing, setCancelProcessing] = useState(false);
   const pageSize = 50;
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
