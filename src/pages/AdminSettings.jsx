@@ -29,6 +29,7 @@ import {
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
 import { createPageUrl } from '@/utils';
+import PushNotificationManager from '@/components/PushNotificationManager';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
