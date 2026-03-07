@@ -169,8 +169,8 @@ export default function Layout({ children, currentPageName }) {
       maxReads: 160,
       maxWrites: 60,
       minIntervalMs: 40,
-      backoffDelays: [500, 1000, 2000, 4000, 8000],
-      circuitBreakerThreshold: 100,
+      backoffDelays: [5000, 10000, 20000, 40000, 80000],
+      circuitBreakerThreshold: 150,
       circuitOpenMinutes: 1
     });
 
@@ -182,8 +182,8 @@ export default function Layout({ children, currentPageName }) {
           max_reads: 160,
           max_writes: 60,
           min_interval_ms: 40,
-          backoff_delays: [500, 1000, 2000, 4000, 8000],
-          circuit_breaker_threshold: 100,
+          backoff_delays: [5000, 10000, 20000, 40000, 80000],
+          circuit_breaker_threshold: 150,
           circuit_open_minutes: 1,
           ui_degradation_mode: 'off',
         };

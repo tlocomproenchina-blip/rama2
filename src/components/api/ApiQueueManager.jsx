@@ -29,8 +29,8 @@ class ApiQueueManager {
     this.activeWrites = 0;
     this.inflight = new Map();
     this.MIN_OPERATION_INTERVAL = 250; // 250ms mínimo entre operaciones (mejor latencia)
-    this.backoffDelays = [5000, 10000, 20000, 40000];
-    this.circuitBreakerThreshold = 3;
+    this.backoffDelays = [5000, 10000, 20000, 40000, 80000];
+    this.circuitBreakerThreshold = 100;
     this.circuitOpenMinutes = 20;
     this.OPERATION_TIMEOUT_MS = 45000; // 45s seguridad contra cuelgues
   }
@@ -527,8 +527,8 @@ class ApiQueueManager {
    * Ajustes dinámicos de tasa y concurrencia
    */
   setTuning({ maxReads, maxWrites, minIntervalMs, backoffDelays, circuitBreakerThreshold, circuitOpenMinutes } = {}) {
-    if (Number.isFinite(maxReads)) this.MAX_CONCURRENT_READS = Math.max(1, Math.min(64, maxReads));
-    if (Number.isFinite(maxWrites)) this.MAX_CONCURRENT_WRITES = Math.max(1, Math.min(32, maxWrites));
+    if (Number.isFinite(maxReads)) this.MAX_CONCURRENT_READS = Math.max(1, Math.min(160, maxReads));
+    if (Number.isFinite(maxWrites)) this.MAX_CONCURRENT_WRITES = Math.max(1, Math.min(60, maxWrites));
     if (Number.isFinite(minIntervalMs)) this.MIN_OPERATION_INTERVAL = Math.max(0, Math.min(2000, minIntervalMs));
     if (Array.isArray(backoffDelays) && backoffDelays.length) this.backoffDelays = backoffDelays.map(d => Math.max(100, Number(d) || 1000));
     if (Number.isFinite(circuitBreakerThreshold)) this.circuitBreakerThreshold = Math.max(1, circuitBreakerThreshold);
