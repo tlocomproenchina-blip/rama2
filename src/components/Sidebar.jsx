@@ -148,6 +148,14 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     return unsubscribe;
   }, [user?.email]);
 
+  // Auto-marcar como leídas al entrar a la página correspondiente
+  useEffect(() => {
+    if (!user?.email || !currentPage) return;
+    if (notifCounts[currentPage] > 0) {
+      markAsReadForPage(currentPage);
+    }
+  }, [currentPage, user?.email, notifCounts]);
+
   const clientMenuItems = [
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
@@ -445,9 +453,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         <span className="font-medium">{item.name}</span>
                       </div>
                       {notifCounts[item.page] > 0 && (
-                        <span className="ml-auto inline-flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-semibold min-w-5 h-5 px-1">
-                          {Math.min(notifCounts[item.page], 99)}
-                        </span>
+                        <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
                       )}
                     </Link>
                   );
