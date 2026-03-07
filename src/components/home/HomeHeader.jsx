@@ -24,9 +24,12 @@ export default function HomeHeader({ onLogin }) {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Mobile: primary login button */}
+          <Button onClick={onLogin} className="sm:hidden bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600 text-white">Iniciar sesión</Button>
+          {/* Desktop: ghost login + quote button */}
           <Button variant="ghost" onClick={onLogin} className="hidden sm:inline-flex">Iniciar sesión</Button>
           <Link to={createPageUrl('ShippingCalculator')}>
-            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600">Cotizar</Button>
+            <Button className="hidden sm:inline-flex bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600">Cotizar</Button>
           </Link>
         </div>
       </div>
