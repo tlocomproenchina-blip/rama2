@@ -1,11 +1,11 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function RatesTeaser({ states, selectedCode, setSelectedCode }) {
-  const s = React.useMemo(() => states.find((x) => x.state_code === selectedCode), [states, selectedCode]);
+  const s = useMemo(() => states.find((x) => x.state_code === selectedCode), [states, selectedCode]);
   const reg = s?.final_rate_regular;
   const high = s?.final_rate_high;
 
