@@ -9,20 +9,20 @@ export default function FAQTeaser() {
       <h2 className="text-2xl font-bold mb-4 text-white">Preguntas frecuentes</h2>
       <div className="space-y-4">
         <div>
-          <div className="font-medium text-slate-800">¿Cuánto tarda el envío marítimo vs aéreo?</div>
-          <p className="text-slate-600">Marítimo suele tardar más pero reduce costo/CBM; aéreo es más rápido para cargas urgentes.</p>
+          <div className="font-medium text-white">¿Cuánto tarda el envío marítimo vs aéreo?</div>
+          <p className="text-white/80">Marítimo suele tardar más pero reduce costo/CBM; aéreo es más rápido para cargas urgentes.</p>
         </div>
         <div>
-          <div className="font-medium text-slate-800">¿Puedo consolidar paquetes de diferentes proveedores?</div>
-          <p className="text-slate-600">Sí, consolidamos en nuestro almacén de China para optimizar volumen y seguridad.</p>
+          <div className="font-medium text-white">¿Puedo consolidar paquetes de diferentes proveedores?</div>
+          <p className="text-white/80">Sí, consolidamos en nuestro almacén de China para optimizar volumen y seguridad.</p>
         </div>
         <div>
-          <div className="font-medium text-slate-800">¿Qué documentación necesito?</div>
-          <p className="text-slate-600">Factura/comercial y datos del destinatario; te asesoramos en requisitos aduaneros.</p>
+          <div className="font-medium text-white">¿Qué documentación necesito?</div>
+          <p className="text-white/80">Factura/comercial y datos del destinatario; te asesoramos en requisitos aduaneros.</p>
         </div>
       </div>
       <div className="mt-4">
-        <Link to={createPageUrl('FAQ')}><Button variant="ghost">Ver más preguntas</Button></Link>
+        <Link to={createPageUrl('FAQ')}><Button variant="outline" className="bg-white/10 text-white border-white/30 hover:bg-white/20">Ver más preguntas</Button></Link>
       </div>
     </section>
   );

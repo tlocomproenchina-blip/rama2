@@ -12,7 +12,7 @@ export default function RatesTeaser({ states, selectedCode, setSelectedCode }) {
   return (
     <section className="mt-12 rounded-2xl border bg-gradient-to-br from-[#0B1F3A] to-[#173B6A] p-6 md:p-8 text-white">
       <h2 className="text-2xl font-bold mb-2 text-white">Tarifas transparentes</h2>
-      <p className="text-slate-600">Calcula tu envío en minutos y compara marítimo vs aéreo según tiempos y presupuesto.</p>
+      <p className="text-white/85">Calcula tu envío en minutos y compara marítimo vs aéreo según tiempos y presupuesto.</p>
       <div className="mt-4 grid gap-3 md:grid-cols-[320px_auto] items-start">
         <div>
           <Select value={selectedCode} onValueChange={setSelectedCode}>
@@ -28,7 +28,7 @@ export default function RatesTeaser({ states, selectedCode, setSelectedCode }) {
         </div>
         <div className="flex flex-wrap gap-3">
           <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Calcular ahora</Button></Link>
-          <Link to={createPageUrl('Rates')}><Button variant="outline">Ver tarifas y condiciones</Button></Link>
+          <Link to={createPageUrl('Rates')}><Button variant="outline" className="bg-white/10 text-white border-white/30 hover:bg-white/20">Ver tarifas y condiciones</Button></Link>
         </div>
       </div>
 
