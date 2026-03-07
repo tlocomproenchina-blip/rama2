@@ -97,6 +97,7 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
+import AdminKPIDashboard from './pages/AdminKPIDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -151,6 +152,7 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
+    "AdminKPIDashboard": AdminKPIDashboard,
 }
 
 export const pagesConfig = {
