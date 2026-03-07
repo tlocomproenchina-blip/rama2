@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight, Loader2 } from 'lucide-react';
+import PublicHeader from '@/components/landing/PublicHeader.jsx';
+import ModeCompare from '@/components/landing/ModeCompare.jsx';
+import RFQSticky from '@/components/landing/RFQSticky.jsx';
 import HomeHeroVideo from '@/components/landing/HomeHeroVideo.jsx';
 
 export default function Home({ user }) {
@@ -42,6 +45,7 @@ export default function Home({ user }) {
 
   return (
     <div className="min-h-screen">
+      { !user && <PublicHeader /> }
       {/* Hero */}
       <HomeHeroVideo onAuthClick={handleAuthClick} authLoading={authLoading} />
 
@@ -93,7 +97,9 @@ export default function Home({ user }) {
         </div>
       </section>
 
-      {/* Tarifas */}
+      <ModeCompare />
+
+       {/* Tarifas */}
       <section className="mt-12 rounded-2xl border bg-white p-6 md:p-8">
         <h2 className="text-2xl font-bold mb-2">Tarifas transparentes</h2>
         <p className="text-slate-600">Calcula tu envío en minutos y compara marítimo vs aéreo según tiempos y presupuesto.</p>
@@ -191,6 +197,7 @@ export default function Home({ user }) {
           <Link to={createPageUrl('Support')}><Button variant="outline">Hablar con soporte</Button></Link>
         </div>
       </section>
+      <RFQSticky />
     </div>);
 
 }
