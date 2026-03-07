@@ -25,19 +25,13 @@ export default function useAttentionFlags({ user }) {
   }, [isAdmin, email]);
 
   const [flags, setFlags] = React.useState({});
+  const [latestByKey, setLatestByKey] = React.useState({});
 
-  // Inicializa "visto" en el primer render para evitar puntos iniciales
-  React.useEffect(() => {
-    watches.forEach(w => {
-      const k = `attentionSeen:${w.key}`;
-      if (!sessionStorage.getItem(k)) {
-        sessionStorage.setItem(k, String(Date.now()));
-      }
-    });
-  }, [watches]);
+  // Inicialización diferida: establecemos "visto" en el primer poll usando el latestMs
 
   const poll = React.useCallback(async () => {
     const next = {};
+    const latestMap = {};
 
     await Promise.all(watches.map(async (w) => {
       try {
@@ -48,17 +42,27 @@ export default function useAttentionFlags({ user }) {
           rows = await base44.entities[w.entity].list('-updated_date', 1);
         }
         const latest = Array.isArray(rows) ? rows[0] : undefined;
-        if (!latest) { next[w.key] = false; return; }
+        if (!latest) { next[w.key] = false; latestMap[w.key] = 0; return; }
         const latestDate = latest.updated_date || latest.created_date;
         const latestMs = latestDate ? new Date(latestDate).getTime() : 0;
-        const seenMs = Number(sessionStorage.getItem(`attentionSeen:${w.key}`)) || Date.now();
+        latestMap[w.key] = latestMs;
+
+        let seenStr = sessionStorage.getItem(`attentionSeen:${w.key}`);
+        let seenMs = Number(seenStr);
+        if (!seenStr || !Number.isFinite(seenMs)) {
+          // Primera vez: fijamos visto al último timestamp conocido del servidor para evitar falsos positivos
+          sessionStorage.setItem(`attentionSeen:${w.key}`, String(latestMs));
+          seenMs = latestMs;
+        }
         next[w.key] = latestMs > seenMs;
       } catch (_e) {
         // En caso de error en una fuente, no encendemos el punto para evitar falsos positivos
         next[w.key] = false;
+        latestMap[w.key] = 0;
       }
     }));
 
+    setLatestByKey(latestMap);
     setFlags(next);
   }, [watches]);
 
@@ -72,9 +76,10 @@ export default function useAttentionFlags({ user }) {
 
   const markSeen = React.useCallback((pageKey) => {
     if (!pageKey) return;
-    sessionStorage.setItem(`attentionSeen:${pageKey}`, String(Date.now()));
+    const latestMs = Number(latestByKey[pageKey]) || Date.now();
+    sessionStorage.setItem(`attentionSeen:${pageKey}`, String(latestMs));
     setFlags(prev => ({ ...prev, [pageKey]: false }));
-  }, []);
+  }, [latestByKey]);
 
   return [flags, markSeen];
 }
