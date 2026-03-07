@@ -75,6 +75,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const customRole = user?.custom_role;
   const isClient = user?.role === 'user' && !customRole;
 
+  // Notifications UI disabled - keep placeholders harmless
+  const showWarning = false;
+  const badgeCount = 0;
+
   useEffect(() => {
     if (customRole) {
       loadRoleConfig();
