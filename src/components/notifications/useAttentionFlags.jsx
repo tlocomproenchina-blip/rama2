@@ -16,12 +16,8 @@ export default function useAttentionFlags({ user }) {
         { key: 'AdminPayments', entity: 'Consolidation' },
       ];
     }
-    // Básico para clientes (opcional): paquetes, facturas y soporte propios
-    return [
-      { key: 'Support', entity: 'SupportTicket', query: email ? { client_email: email } : null },
-      { key: 'MyPackages', entity: 'Package', query: email ? { client_email: email } : null },
-      { key: 'MyInvoices', entity: 'Invoice', query: email ? { client_email: email } : null },
-    ];
+    // Deshabilitado para clientes
+    return [];
   }, [isAdmin, email]);
 
   const [flags, setFlags] = React.useState({});
@@ -64,11 +60,12 @@ export default function useAttentionFlags({ user }) {
 
   React.useEffect(() => {
     let mounted = true;
+    if (watches.length === 0) { setFlags({}); return () => { mounted = false; }; }
     const run = async () => { if (mounted) await poll(); };
     run();
     const id = setInterval(run, 10000); // 10s
     return () => { mounted = false; clearInterval(id); };
-  }, [poll]);
+  }, [poll, watches.length]);
 
   const markSeen = React.useCallback((pageKey) => {
     if (!pageKey) return;

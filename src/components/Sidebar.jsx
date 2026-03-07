@@ -331,7 +331,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                             <div className="flex items-center gap-3">
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
-                                                              {flags[item.page] && (
+                                                              {(!isClient) && flags[item.page] && (
                                                                 <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
                                                               )}
                                                             </div>
@@ -370,7 +370,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                             <div className="flex items-center gap-3">
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
-                                                              {flags[item.page] && (
+                                                              {(!isClient) && flags[item.page] && (
                                                                 <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
                                                               )}
                                                             </div>
