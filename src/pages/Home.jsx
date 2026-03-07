@@ -3,9 +3,20 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+
+// New Home sections
+import HomeHeader from '@/components/home/HomeHeader';
+import Hero from '@/components/home/Hero';
+import Features from '@/components/home/Features';
+import Process from '@/components/home/Process';
+import Services from '@/components/home/Services';
+import Pricing from '@/components/home/Pricing';
+import Testimonials from '@/components/home/Testimonials';
+import FAQSection from '@/components/home/FAQSection';
+import CTA from '@/components/home/CTA';
+import HomeFooter from '@/components/home/HomeFooter';
 
 export default function Home({ user }) {
   // Metadatos SEO para Home (pública)
