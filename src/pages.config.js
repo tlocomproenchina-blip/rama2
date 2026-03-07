@@ -85,6 +85,7 @@ import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import FAQ from './pages/FAQ';
+import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
 import MyInvoices from './pages/MyInvoices';
 import MyPackages from './pages/MyPackages';
@@ -96,7 +97,6 @@ import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
-import Home from './pages/Home';
 import __Layout from './Layout.jsx';
 
 
@@ -139,6 +139,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "EmployeeDashboard": EmployeeDashboard,
     "FAQ": FAQ,
+    "Home": Home,
     "MyConsolidations": MyConsolidations,
     "MyInvoices": MyInvoices,
     "MyPackages": MyPackages,
@@ -150,7 +151,6 @@ export const PAGES = {
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
-    "Home": Home,
 }
 
 export const pagesConfig = {

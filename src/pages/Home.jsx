@@ -7,13 +7,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight, Loader2 } from 'lucide-react';
 import HomeHeroVideo from '@/components/landing/HomeHeroVideo.jsx';
-import Benefits from '@/components/landing/Benefits.jsx';
-import Process from '@/components/landing/Process.jsx';
-import Services from '@/components/landing/Services.jsx';
-import RatesTeaser from '@/components/landing/RatesTeaser.jsx';
-import Testimonials from '@/components/landing/Testimonials.jsx';
-import FAQTeaser from '@/components/landing/FAQTeaser.jsx';
-import FinalCTA from '@/components/landing/FinalCTA.jsx';
 
 export default function Home({ user }) {
   // Metadatos SEO para Home (pública)
@@ -53,25 +46,151 @@ export default function Home({ user }) {
       <HomeHeroVideo onAuthClick={handleAuthClick} authLoading={authLoading} />
 
       {/* Beneficios */}
-      <Benefits />
+      <section className="mt-10 grid gap-4 md:grid-cols-3">
+        {[{ icon: Ship, title: 'Marítimo y Aéreo', desc: 'Rutas optimizadas desde puertos y aeropuertos clave en China.' }, { icon: Package, title: 'Consolidación inteligente', desc: 'Ahorra con consolidación y embalaje seguro.' }, { icon: ShieldCheck, title: 'Seguro y trazabilidad', desc: 'Cobertura y tracking en cada hito.' }].map((b, i) =>
+        <Card key={i}>
+            <CardHeader className="flex flex-row items-center gap-3">
+              <b.icon className="h-6 w-6 text-blue-600" />
+              <CardTitle className="text-lg">{b.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-slate-600">{b.desc}</CardContent>
+          </Card>
+        )}
+      </section>
 
       {/* Proceso */}
-      <Process />
+      <section className="mt-12 rounded-2xl border bg-white p-6 md:p-8">
+        <h2 className="text-2xl font-bold mb-4">Cómo funciona</h2>
+        <div className="grid gap-6 md:grid-cols-3">
+          <div>
+            <div className="flex items-center gap-2 font-medium"><MapPin className="h-5 w-5 text-blue-600" /> Dirección en China</div>
+            <p className="text-slate-600 mt-1">Recibe tus compras en nuestro almacén y reporta con pre‑alerta.</p>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 font-medium"><Package className="h-5 w-5 text-blue-600" /> Consolidación</div>
+            <p className="text-slate-600 mt-1">Unimos paquetes, optimizamos volumen (CBM) y embalamos.</p>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 font-medium"><Clock className="h-5 w-5 text-blue-600" /> Envío y entrega</div>
+            <p className="text-slate-600 mt-1">Marítimo o aéreo según tu prioridad de tiempo y costo.</p>
+          </div>
+        </div>
+      </section>
 
       {/* Servicios */}
-      <Services />
+      <section className="mt-12">
+        <h2 className="text-2xl font-bold mb-4">Servicios</h2>
+        <div className="grid gap-4 md:grid-cols-4">
+          {[{ icon: Ship, title: 'Marítimo (FCL/LCL)', desc: 'Optimización por CBM y salidas regulares.' }, { icon: Plane, title: 'Aéreo', desc: 'Para cargas urgentes y sensibles.' }, { icon: ShieldCheck, title: 'Seguro', desc: 'Cobertura para tu mercancía.' }, { icon: Package, title: 'Puerta a puerta', desc: 'Entrega final en tu destino.' }].map((s, i) =>
+          <Card key={i}>
+              <CardHeader className="flex flex-row items-center gap-3">
+                <s.icon className="h-6 w-6 text-blue-600" />
+                <CardTitle className="text-lg">{s.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-slate-600">{s.desc}</CardContent>
+            </Card>
+          )}
+        </div>
+      </section>
 
       {/* Tarifas */}
-      <RatesTeaser states={states} selectedCode={selectedCode} setSelectedCode={setSelectedCode} />
+      <section className="mt-12 rounded-2xl border bg-white p-6 md:p-8">
+        <h2 className="text-2xl font-bold mb-2">Tarifas transparentes</h2>
+        <p className="text-slate-600">Calcula tu envío en minutos y compara marítimo vs aéreo según tiempos y presupuesto.</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-[300px_auto] items-start">
+          <div>
+            <Select value={selectedCode} onValueChange={setSelectedCode}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecciona tu estado" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {states.map((s) =>
+                <SelectItem key={s.id} value={s.state_code}>{s.state_name}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Calcular ahora</Button></Link>
+            <Link to={createPageUrl('Rates')}><Button variant="outline">Ver tarifas y condiciones</Button></Link>
+          </div>
+        </div>
+
+        {selectedCode && (() => {
+          const s = states.find((x) => x.state_code === selectedCode);
+          const reg = s?.final_rate_regular;
+          const high = s?.final_rate_high;
+          return (
+            <div className="mt-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <div className="uppercase text-xs/5 tracking-wider opacity-80">Tarifa final por unidad</div>
+                  <div className="text-2xl font-bold">{s?.state_name || selectedCode}</div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-3xl font-extrabold">
+                    {reg && reg > 0 ? `$${Number(reg).toLocaleString('en-US')}` : 'Consultar'}
+                    <span className="text-sm font-medium ml-2 opacity-90">regular</span>
+                  </div>
+                  {high && high > 0 &&
+                  <div className="text-sm bg-white/15 px-3 py-1 rounded-full">
+                      Alto riesgo: <b>${Number(high).toLocaleString('en-US')}</b>
+                    </div>
+                  }
+                </div>
+              </div>
+              <div className="mt-2 text-white/90 text-sm">Tiempo estimado marítimo: 90 días</div>
+            </div>);
+
+        })()}
+      </section>
 
       {/* Testimonios */}
-      <Testimonials />
+      <section className="mt-12">
+        <h2 className="text-2xl font-bold mb-4">Testimonios</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          {[{ q: 'Excelente manejo de consolidaciones, ahorré en CBM y llegó antes de lo previsto.', a: 'Carlos R.' }, { q: 'Atención clara y soporte por WhatsApp en todo momento.', a: 'Mariana P.' }].map((t, i) =>
+          <Card key={i}>
+              <CardContent className="pt-6">
+                <p className="text-slate-800">“{t.q}”</p>
+                <p className="mt-3 text-sm text-slate-500">— {t.a}</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </section>
 
       {/* FAQ */}
-      <FAQTeaser />
+      <section className="mt-12 rounded-2xl border bg-white p-6 md:p-8">
+        <h2 className="text-2xl font-bold mb-4">Preguntas frecuentes</h2>
+        <div className="space-y-4">
+          <div>
+            <div className="font-medium">¿Cuánto tarda el envío marítimo vs aéreo?</div>
+            <p className="text-slate-600">Marítimo suele tardar más pero reduce costo/CBM; aéreo es más rápido para cargas urgentes.</p>
+          </div>
+          <div>
+            <div className="font-medium">¿Puedo consolidar paquetes de diferentes proveedores?</div>
+            <p className="text-slate-600">Sí, consolidamos en nuestro almacén de China para optimizar volumen y seguridad.</p>
+          </div>
+          <div>
+            <div className="font-medium">¿Qué documentación necesito?</div>
+            <p className="text-slate-600">Factura/comercial y datos del destinatario; te asesoramos en requisitos aduaneros.</p>
+          </div>
+        </div>
+        <div className="mt-4">
+          <Link to={createPageUrl('FAQ')}><Button variant="ghost">Ver más preguntas</Button></Link>
+        </div>
+      </section>
 
       {/* Llamado */}
-      <FinalCTA />
+      <section className="mt-12 text-center rounded-2xl border bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
+        <h3 className="text-xl md:text-2xl font-semibold">¿Listo para enviar desde China a Venezuela?</h3>
+        <p className="text-slate-600 mt-2">Obtén una cotización hoy y recibe asesoría experta.</p>
+        <div className="mt-4 flex justify-center gap-3">
+          <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Solicitar cotización</Button></Link>
+          <Link to={createPageUrl('Support')}><Button variant="outline">Hablar con soporte</Button></Link>
+        </div>
+      </section>
     </div>);
 
 }

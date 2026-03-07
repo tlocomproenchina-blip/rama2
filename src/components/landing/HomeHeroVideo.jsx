@@ -12,7 +12,7 @@ export default function HomeHeroVideo({ onAuthClick, authLoading }) {
     "https://images.pexels.com/videos/10529628/pexels-photo-10529628.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-[#E5C770]/30 bg-black">
+    <section className="relative overflow-hidden rounded-2xl border bg-black">
       {/* Video de fondo */}
       <video
         className="absolute inset-0 h-full w-full object-cover"
