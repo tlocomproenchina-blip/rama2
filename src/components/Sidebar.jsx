@@ -381,7 +381,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                       to={createPageUrl(item.page)}
                       onClick={() => handleMenuClick(item.page)}
                       className={`
-                        flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                        flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                         ${isActive ?
                       'bg-blue-600 text-white shadow-lg shadow-blue-600/30' :
                       'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
