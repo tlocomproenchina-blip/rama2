@@ -26,7 +26,6 @@ const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
-const PushNotificationManager = lazy(() => import('@/components/PushNotificationManager'));
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -505,10 +504,7 @@ export default function Layout({ children, currentPageName }) {
       
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
       {user && (
-        <>
-          <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
-          <Suspense fallback={null}><PushNotificationManager user={user} /></Suspense>
-        </>
+        <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
       )}
       {user?.role === 'user' && (
         <Suspense fallback={null}><WhatsAppSupport /></Suspense>

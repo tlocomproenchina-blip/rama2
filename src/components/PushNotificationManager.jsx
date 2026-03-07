@@ -137,9 +137,14 @@ export default function PushNotificationManager({ user }) {
       <CardContent>
         {isIframe ? (
           <div className="space-y-3">
-            <p className="text-sm text-slate-600">
-              Las notificaciones del navegador están bloqueadas dentro del editor/iframe. Abre la app instalada o en una pestaña nueva para activarlas.
-            </p>
+            <Button
+              onClick={requestPermission}
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              Activar Notificaciones Push
+            </Button>
           </div>
         ) : subscription ? (
           <div className="space-y-3">
