@@ -1,5 +1,6 @@
 import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 as base44Raw } from '@/api/base44Client';
 
 // Hook de indicadores de atención (sin contadores)
 // - Actualiza cada 10s
@@ -37,9 +38,9 @@ export default function useAttentionFlags({ user }) {
       try {
         let rows = [];
         if (w.query) {
-          rows = await base44.entities[w.entity].filter(w.query, '-updated_date', 1);
+          rows = await base44Raw.entities[w.entity].filter(w.query, '-updated_date', 1);
         } else {
-          rows = await base44.entities[w.entity].list('-updated_date', 1);
+          rows = await base44Raw.entities[w.entity].list('-updated_date', 1);
         }
         const latest = Array.isArray(rows) ? rows[0] : undefined;
         if (!latest) { next[w.key] = false; latestMap[w.key] = 0; return; }
