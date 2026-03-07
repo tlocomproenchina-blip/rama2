@@ -2,7 +2,7 @@ import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 
 // Hook de indicadores de atención (sin contadores)
-// - Actualiza cada 60s
+// - Actualiza cada 10s
 // - Solo considera si hubo una actualización más reciente que la última vez que el usuario "vio" esa sección
 export default function useAttentionFlags({ user }) {
   const isAdmin = user?.role === 'admin';
@@ -66,7 +66,7 @@ export default function useAttentionFlags({ user }) {
     let mounted = true;
     const run = async () => { if (mounted) await poll(); };
     run();
-    const id = setInterval(run, 60000); // 60s
+    const id = setInterval(run, 10000); // 10s
     return () => { mounted = false; clearInterval(id); };
   }, [poll]);
 
