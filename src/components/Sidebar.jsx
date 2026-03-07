@@ -359,8 +359,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         const Icon = item.icon;
                         const isActive = currentPage === item.page;
 
-
-
                         return (
                           <Link
                             key={item.page}
@@ -375,7 +373,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                             </div>
-                            
+                            {notifCounts[item.page] > 0 && (
+                              <span className="ml-auto inline-flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-semibold min-w-5 h-5 px-1">
+                                {Math.min(notifCounts[item.page], 99)}
+                              </span>
+                            )}
                           </Link>
                         );
                       })}
@@ -395,8 +397,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         const Icon = item.icon;
                         const isActive = currentPage === item.page;
 
-
-
                         return (
                           <Link
                             key={item.page}
@@ -411,7 +411,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                             </div>
-                            
+                            {notifCounts[item.page] > 0 && (
+                              <span className="ml-auto inline-flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-semibold min-w-5 h-5 px-1">
+                                {Math.min(notifCounts[item.page], 99)}
+                              </span>
+                            )}
                           </Link>
                         );
                       })}
