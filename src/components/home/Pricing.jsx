@@ -39,16 +39,16 @@ export default function Pricing({ states, selectedCode, setSelectedCode }) {
                   <div className="uppercase text-xs tracking-wider opacity-90">Tarifa final por unidad</div>
                   <div className="text-2xl font-bold">{s?.state_name || selectedCode}</div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-6">
                   <div className="text-3xl font-extrabold">
                     {reg && reg > 0 ? `$${Number(reg).toLocaleString('en-US')}` : 'Consultar'}
                     <span className="text-sm font-medium ml-2 opacity-90">regular</span>
                   </div>
-                  {high && high > 0 && (
-                    <div className="text-sm bg-white/15 px-3 py-1 rounded-full">
-                      Alto riesgo: <b>${Number(high).toLocaleString('en-US')}</b>
-                    </div>
-                  )}
+                  <div className="h-8 w-px bg-white/30 hidden sm:block" />
+                  <div className="text-3xl font-extrabold">
+                    {high && high > 0 ? `$${Number(high).toLocaleString('en-US')}` : 'Consultar'}
+                    <span className="text-sm font-medium ml-2 opacity-90">alto riesgo</span>
+                  </div>
                 </div>
               </div>
               <div className="mt-2 text-white/90 text-sm">Tiempo estimado marítimo: 90 días</div>
