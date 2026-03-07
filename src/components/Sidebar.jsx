@@ -325,14 +325,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {showWarning && (<span className="text-amber-400 animate-pulse">⚠</span>)}
-                              {badgeCount > 0 && (
-                                <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                  {badgeCount > 9 ? '9+' : badgeCount}
-                                </span>
-                              )}
-                            </div>
+                            
                           </Link>
                         );
                       })}
@@ -368,14 +361,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {showWarning && (<span className="text-amber-400 animate-pulse">⚠</span>)}
-                              {badgeCount > 0 && (
-                                <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                  {badgeCount > 9 ? '9+' : badgeCount}
-                                </span>
-                              )}
-                            </div>
+                            
                           </Link>
                         );
                       })}
