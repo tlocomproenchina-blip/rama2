@@ -2,12 +2,31 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 
 export default function Pricing({ states, selectedCode, setSelectedCode }) {
   const s = states.find((x) => x.state_code === selectedCode);
-  const reg = s?.final_rate_regular;
-  const high = s?.final_rate_high;
+
+  const [pricingConfig, setPricingConfig] = React.useState(null);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const p = await base44.entities.PricingConfig.filter({ config_key: 'main' });
+        if (p && p[0]) setPricingConfig(p[0]);
+      } catch (_) {}
+    })();
+  }, []);
+
+  const stateShipping = s?.shipping_rate || 0;
+  const profit = (pricingConfig?.profit_percentage || 0) / 100;
+  const door = pricingConfig?.door_to_door_cost || 0;
+  const computedReg = pricingConfig ? ((pricingConfig.base_rate_regular || 0) * (1 + profit) + stateShipping + door) : null;
+  const computedHigh = pricingConfig ? ((pricingConfig.base_rate_high_risk || 0) * (1 + profit) + stateShipping + door) : null;
+
+  const finalReg = (s?.final_rate_regular && s.final_rate_regular > 0) ? s.final_rate_regular : computedReg;
+  const finalHigh = (s?.final_rate_high && s.final_rate_high > 0) ? s.final_rate_high : computedHigh;
 
   return (
     <section id="pricing" className="py-14 bg-gradient-to-br from-white to-blue-50">
@@ -41,12 +60,12 @@ export default function Pricing({ states, selectedCode, setSelectedCode }) {
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="text-3xl font-extrabold">
-                    {reg && reg > 0 ? `$${Number(reg).toLocaleString('en-US')}` : 'Consultar'}
+                    {finalReg != null ? `$${Number(finalReg).toLocaleString('en-US')}` : '—'}
                     <span className="text-sm font-medium ml-2 opacity-90">regular</span>
                   </div>
                   <div className="h-8 w-px bg-white/30 hidden sm:block" />
                   <div className="text-3xl font-extrabold">
-                    {high && high > 0 ? `$${Number(high).toLocaleString('en-US')}` : 'Consultar'}
+                    {finalHigh != null ? `$${Number(finalHigh).toLocaleString('en-US')}` : '—'}
                     <span className="text-sm font-medium ml-2 opacity-90">alto riesgo</span>
                   </div>
                 </div>
