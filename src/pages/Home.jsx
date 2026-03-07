@@ -15,7 +15,6 @@ import Services from '@/components/home/Services';
 import Pricing from '@/components/home/Pricing';
 import Testimonials from '@/components/home/Testimonials';
 import FAQSection from '@/components/home/FAQSection';
-import CTA from '@/components/home/CTA';
 import HomeFooter from '@/components/home/HomeFooter';
 
 export default function Home({ user }) {
@@ -60,7 +59,6 @@ export default function Home({ user }) {
       <Pricing states={states} selectedCode={selectedCode} setSelectedCode={setSelectedCode} />
       <Testimonials />
       <FAQSection />
-      <CTA />
       <HomeFooter />
     </div>);
 
