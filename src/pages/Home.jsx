@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Ship, Plane, Package, ShieldCheck, Clock, MapPin, ArrowRight, Loader2 } from 'lucide-react';
-import HomeHeroVideo from '@/components/landing/HomeHeroVideo.jsx';
 
 export default function Home({ user }) {
   // Metadatos SEO para Home (pública)
@@ -43,7 +42,34 @@ export default function Home({ user }) {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <HomeHeroVideo onAuthClick={handleAuthClick} authLoading={authLoading} />
+      <section className="relative overflow-hidden rounded-2xl border bg-white p-8 md:p-12">
+        <img aria-hidden="true" src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/460a4f069_ChatGPTImage6mar202617_06_35.png" alt="" className="absolute inset-0 h-full w-full object-cover blur-none md:blur-none opacity-50 md:opacity-60 scale-105 pointer-events-none select-none z-0" />
+        <div className="relative z-10 max-w-3xl">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">Logística China → Venezuela, sin fricción</h1>
+          <p className="mt-4 text-lg text-slate-800">Consolidamos, aseguramos y entregamos puerta a puerta. Transparente, rápido y con soporte en español.</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+            <Button
+              variant="outline"
+              onClick={handleAuthClick}
+              disabled={authLoading}
+              className="transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+
+              Registrarse
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleAuthClick}
+              disabled={authLoading}
+              className="gap-2 transition-transform hover:scale-[1.03] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+
+              {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Iniciar sesión
+            </Button>
+            <Link to={createPageUrl('Blog')}><Button variant="ghost">Ver blog</Button></Link>
+          </div>
+        </div>
+      </section>
 
       {/* Beneficios */}
       <section className="mt-10 grid gap-4 md:grid-cols-3">
