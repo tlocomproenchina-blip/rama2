@@ -19,8 +19,6 @@ import { Button } from "@/components/ui/button";
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 // Lazy loaded non-critical components
-
-
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
 const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
 const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
@@ -207,7 +205,7 @@ export default function Layout({ children, currentPageName }) {
     }
   }, []);
 
-  // Close any open Radix overlays (Select/Popover/Dropdown) on route change to avoid iOS removeChild crashes
+  // Close any open Radix overlays (Select/Popover/Dropdown) on route change
   useEffect(() => {
     try {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
@@ -540,7 +538,7 @@ export default function Layout({ children, currentPageName }) {
               <Menu className="h-6 w-6" />
             </Button>
             <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC CARGO'}</h1>
-            <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
+
           </div>
         </header>
         )}

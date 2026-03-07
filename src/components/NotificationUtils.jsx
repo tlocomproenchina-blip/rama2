@@ -16,50 +16,9 @@ export function getEmailQueueStats() {
   };
 }
 
-async function processAfterSend({ to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
-  // Evitar duplicados recientes (mismo usuario, título y referencia) en los últimos 60s
-  const _title = title || subject;
-  const _message = message || body.split('\n')[0];
-  let shouldCreate = true;
-  try {
-    if (referenceId) {
-      const existing = await base44.entities.Notification.filter({
-        user_email: to,
-        reference_id: referenceId,
-        title: _title
-      }, '-created_date', 1);
-      if (existing && existing.length > 0) {
-        const last = existing[0];
-        const diffMs = Date.now() - new Date(last.created_date).getTime();
-        if (diffMs < 60000) {
-          shouldCreate = false;
-        }
-      }
-    }
-  } catch {}
-
-  if (shouldCreate) {
-    await base44.entities.Notification.create({
-      user_email: to,
-      title: _title,
-      message: _message,
-      type,
-      icon,
-      reference_id: referenceId
-    });
-  }
-
-  // Send push notification
-  try {
-    await base44.functions.invoke('sendPushNotification', {
-      userEmail: to,
-      title: title || subject,
-      body: message || body.split('\n')[0],
-      url: '/'
-    });
-  } catch {
-    console.log('Push notification not sent (user may not be subscribed)');
-  }
+async function processAfterSend() {
+  // In-app and push notifications have been disabled; email only.
+  return;
 }
 
 async function flushEmailQueue() {
@@ -70,7 +29,6 @@ async function flushEmailQueue() {
       await base44.enqueue(async () => {
         return await base44.integrations.Core.SendEmail({ from_name: item.from_name || 'TLEC CARGO', to: item.to, subject: item.subject, body: item.body });
       }, 'HIGH', 'write');
-      await processAfterSend(item);
       emailSentCounter++;
       item.resolve && item.resolve(true);
     } catch (error) {
