@@ -166,12 +166,12 @@ export default function Layout({ children, currentPageName }) {
   // Ajuste inicial + suscripción a RuntimeTuning para autoescalado
   useEffect(() => {
     setApiTuning({
-      maxReads: 6,
-      maxWrites: 2,
-      minIntervalMs: 300,
-      backoffDelays: [3000, 6000, 12000, 24000],
-      circuitBreakerThreshold: 8,
-      circuitOpenMinutes: 2
+      maxReads: 48,
+      maxWrites: 16,
+      minIntervalMs: 40,
+      backoffDelays: [500, 1000, 2000, 4000, 8000],
+      circuitBreakerThreshold: 20,
+      circuitOpenMinutes: 1
     });
 
     // Cargar tuning actual desde la entidad

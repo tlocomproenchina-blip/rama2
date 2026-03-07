@@ -64,8 +64,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
 
-  const handleMenuClick = async (page) => {
-    if (page) await markAsReadForPage(page);
+  const handleMenuClick = async () => {
     onClose && onClose();
   };
 
@@ -75,17 +74,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const isAdmin = user?.role === 'admin';
   const customRole = user?.custom_role;
   const isClient = user?.role === 'user' && !customRole;
-  // Notificaciones en tiempo real
-  const [notifCounts, setNotifCounts] = useState({});
-  const pagesByType = {
-    package: ['AdminPackages','MyPackages','ShipmentTracking','PreAlert'],
-    consolidation: ['AdminConsolidate','AdminShipmentApprovals','MyConsolidations'],
-    request: ['RequestConsolidation','AdminConsolidate'],
-    invoice: ['AdminInvoices','MyInvoices','AdminPayments'],
-    support: ['Support','AdminSupportTickets'],
-    accounts_payable: ['AdminAccountsPayable','AdminProviderPayments','AdminReports'],
-    system: ['AdminDashboard','Dashboard']
-  };
+  // Notifications UI disabled
+  const showWarning = false;
+  const badgeCount = 0;
 
 
   useEffect(() => {
@@ -107,54 +98,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       console.error('Error loading role config:', error);
     }
   };
-
-  // ---- Notificaciones en tiempo real ----
-  const normalizeType = (n) => ((n?.entity_type || n?.type || '') + '').toLowerCase();
-
-  const recomputeCounts = (notifications) => {
-    const map = {};
-    notifications.forEach(n => {
-      const key = normalizeType(n);
-      const pages = pagesByType[key] || [];
-      pages.forEach(p => { map[p] = (map[p] || 0) + 1; });
-    });
-    setNotifCounts(map);
-  };
-
-  const loadUnread = async () => {
-    if (!user?.email) return;
-    const list = await base44.entities.Notification.filter({ user_email: user.email, read: false });
-    recomputeCounts(list);
-  };
-
-  const markAsReadForPage = async (page) => {
-    if (!user?.email) return;
-    const list = await base44.entities.Notification.filter({ user_email: user.email, read: false });
-    const typesForPage = Object.keys(pagesByType).filter(t => pagesByType[t].includes(page));
-    const toMark = list.filter(n => typesForPage.includes(normalizeType(n)));
-    for (const n of toMark) {
-      await base44.entities.Notification.update(n.id, { read: true });
-    }
-    await loadUnread();
-  };
-
-  useEffect(() => {
-    if (!user?.email) return;
-    loadUnread();
-    const unsubscribe = base44.entities.Notification.subscribe((event) => {
-      if (event?.data?.user_email !== user.email) return;
-      loadUnread();
-    });
-    return unsubscribe;
-  }, [user?.email]);
-
-  // Auto-marcar como leídas al entrar a la página correspondiente
-  useEffect(() => {
-    if (!user?.email || !currentPage) return;
-    if (notifCounts[currentPage] > 0) {
-      markAsReadForPage(currentPage);
-    }
-  }, [currentPage, user?.email, notifCounts]);
 
   const clientMenuItems = [
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
@@ -370,6 +313,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         const Icon = item.icon;
                         const isActive = currentPage === item.page;
 
+
+
                         return (
                           <Link
                             key={item.page}
@@ -384,9 +329,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                             </div>
-                            {notifCounts[item.page] > 0 && (
-                              <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
-                            )}
+                            
                           </Link>
                         );
                       })}
@@ -406,6 +349,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         const Icon = item.icon;
                         const isActive = currentPage === item.page;
 
+
+
                         return (
                           <Link
                             key={item.page}
@@ -420,9 +365,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                             </div>
-                            {notifCounts[item.page] > 0 && (
-                              <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
-                            )}
+                            
                           </Link>
                         );
                       })}
@@ -452,9 +395,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         <Icon className="h-5 w-5 flex-shrink-0" />
                         <span className="font-medium">{item.name}</span>
                       </div>
-                      {notifCounts[item.page] > 0 && (
-                        <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
-                      )}
+
                     </Link>
                   );
                 })
