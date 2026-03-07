@@ -105,24 +105,32 @@ class ApiQueueManager {
    * Ejecuta operación con retry y backoff exponencial
    */
   async executeWithRetry(operation, maxRetries = 5) {
+    const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('TIMEOUT')), ms);
+      promise.then((v) => { clearTimeout(timer); resolve(v); })
+             .catch((e) => { clearTimeout(timer); reject(e); });
+    });
+
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const result = await operation();
+        // Ejecuta con timeout para evitar cuelgues indefinidos
+        const result = await withTimeout(Promise.resolve().then(operation), this.OPERATION_TIMEOUT_MS || 45000);
         this.resetCircuitBreaker();
         return result;
       } catch (error) {
+        const isTimeout = error?.message?.includes('TIMEOUT');
         const isRateLimit = error?.message?.includes('429') || 
                            error?.message?.includes('Rate limit') ||
                            error?.response?.status === 429;
         const retryAfter = error?.response?.headers?.['retry-after'] || error?.response?.headers?.['Retry-After'];
 
-        if (isRateLimit && attempt < maxRetries - 1) {
-          this.registerRateLimitError();
+        if ((isRateLimit || isTimeout) && attempt < maxRetries - 1) {
+          if (isRateLimit) this.registerRateLimitError();
           await this.exponentialBackoff(attempt, retryAfter);
           continue;
         }
 
-        // Si no es rate limit o agotamos reintentos
+        // Si no es reintentable o agotamos reintentos
         throw error;
       }
     }
