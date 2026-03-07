@@ -78,9 +78,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const showWarning = false;
   const badgeCount = 0;
 
-  // Notifications UI disabled - keep placeholders harmless
-  const showWarning = false;
-  const badgeCount = 0;
 
   useEffect(() => {
     if (customRole) {
