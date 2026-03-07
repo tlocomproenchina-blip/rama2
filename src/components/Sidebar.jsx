@@ -77,6 +77,14 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const customRole = user?.custom_role;
   const isClient = user?.role === 'user' && !customRole;
   const [flags, markSeen] = useAttentionFlags({ user });
+  // Auto-limpiar el punto si el usuario llegó a la página por otra vía (no solo desde el sidebar)
+  useEffect(() => {
+    try {
+      if (currentPage && flags[currentPage]) {
+        markSeen(currentPage);
+      }
+    } catch {}
+  }, [currentPage, flags, markSeen]);
   // Notifications UI disabled
   const showWarning = false;
   const badgeCount = 0;
