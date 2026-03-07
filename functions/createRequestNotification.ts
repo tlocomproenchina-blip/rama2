@@ -16,15 +16,14 @@ Deno.serve(async (req) => {
 
     // NOTIFICACIÓN CRÍTICA: ConsolidationRequest SIEMPRE es crítica (requiere acción)
     // Notificar al cliente
-    await base44.asServiceRole.entities.AppNotification.create({
+    await base44.asServiceRole.entities.Notification.create({
       user_email: request.client_email,
       title: '🔔 Solicitud de consolidación enviada',
       message: `Tu solicitud de consolidación ha sido recibida. Espera aprobación.`,
       type: 'request',
-      category: 'OPERATIONAL',
-      priority: 'CRITICAL',
+      priority: 'critical',
       reference_id: request.id,
-      resource_type: 'ConsolidationRequest',
+      entity_type: 'ConsolidationRequest',
       icon: 'alert'
     });
 
@@ -33,15 +32,14 @@ Deno.serve(async (req) => {
     const admins = users.filter(u => u.role === 'admin');
 
     for (const admin of admins) {
-      await base44.asServiceRole.entities.AppNotification.create({
+      await base44.asServiceRole.entities.Notification.create({
         user_email: admin.email,
         title: '🚨 Nueva solicitud de consolidación (Requiere acción)',
         message: `${request.client_email} solicita consolidar ${request.package_ids?.length || 0} paquetes`,
         type: 'request',
-        category: 'OPERATIONAL',
-        priority: 'CRITICAL',
+        priority: 'critical',
         reference_id: request.id,
-        resource_type: 'ConsolidationRequest',
+        entity_type: 'ConsolidationRequest',
         icon: 'alert'
       });
     }

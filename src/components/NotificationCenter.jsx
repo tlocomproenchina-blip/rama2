@@ -20,16 +20,16 @@ export default function NotificationCenter({ user }) {
     
     try {
       setLoading(true);
-      const [byUser, byRole, byAll] = await Promise.all([
-        base44.entities.AppNotification.filter({ user_email: user.email, is_archived: false }, '-created_date', 50),
-        user?.role ? base44.entities.AppNotification.filter({ role_target: user.role, is_archived: false }, '-created_date', 50) : Promise.resolve([]),
-        base44.entities.AppNotification.filter({ role_target: 'all', is_archived: false }, '-created_date', 50).catch(() => [])
-      ]);
-      const merged = [...byUser, ...byRole, ...byAll].filter(n => !n.expires_at || new Date(n.expires_at) > new Date());
+      const data = await base44.entities.Notification.filter(
+        { user_email: user.email },
+        '-created_date',
+        50
+      );
+      // De-dup by (user, reference_id, title, type)
       const seen = new Set();
       const deduped = [];
-      for (const n of merged) {
-        const key = `${n.id}|${n.reference_id || ''}|${n.title || ''}|${n.type || ''}`;
+      for (const n of data) {
+        const key = `${n.user_email}|${n.reference_id || ''}|${n.title || ''}|${n.type || ''}`;
         if (!seen.has(key)) {
           seen.add(key);
           deduped.push(n);
@@ -56,17 +56,13 @@ export default function NotificationCenter({ user }) {
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
-  // Suscripción en tiempo real: usuario, rol y 'all' (con fallback polling activo)
+  // Suscripción en tiempo real a nuevas notificaciones del usuario
   useEffect(() => {
     if (!user?.email) return;
 
-    const unsubscribe = base44.entities.AppNotification.subscribe((event) => {
+    const unsubscribe = base44.entities.Notification.subscribe((event) => {
       const data = event?.data;
-      if (!data) return;
-      const toUser = data.user_email === user.email;
-      const toRole = !!user?.role && (data.role_target === user.role);
-      const toAll = !data.user_email && (data.role_target === 'all' || data.role_target == null);
-      if (!(toUser || toRole || toAll)) return;
+      if (!data || data.user_email !== user.email) return;
 
       if (event.type === 'create') {
         setNotifications((prev) => {
@@ -79,6 +75,7 @@ export default function NotificationCenter({ user }) {
         setLastRefresh(Date.now());
         toast.message(data.title || 'Nueva notificación', { description: data.message });
       } else if (event.type === 'update' || event.type === 'delete') {
+        // Mantener sincronizado el panel ante cambios
         loadNotifications();
       }
     });
@@ -86,7 +83,7 @@ export default function NotificationCenter({ user }) {
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, [user?.email, user?.role, loadNotifications]);
+  }, [user?.email, loadNotifications]);
 
   // Marcar como leída
   const markAsRead = async (notificationId) => {
@@ -94,7 +91,7 @@ export default function NotificationCenter({ user }) {
       // Optimistic UI update
       setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
-      await base44.entities.AppNotification.update(notificationId, { read: true });
+      await base44.entities.Notification.update(notificationId, { read: true });
     } catch (error) {
       toast.error('Error actualizando notificación');
     }
@@ -108,7 +105,7 @@ export default function NotificationCenter({ user }) {
       // Optimistic UI update
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
-      await Promise.all(unreadNotifications.map(n => base44.entities.AppNotification.update(n.id, { read: true })));
+      await Promise.all(unreadNotifications.map(n => base44.entities.Notification.update(n.id, { read: true })));
     } catch (error) {
       toast.error('Error actualizando notificaciones');
     }
@@ -125,7 +122,7 @@ export default function NotificationCenter({ user }) {
   const deleteNotification = async (notificationId, e) => {
     e.stopPropagation();
     try {
-      await base44.entities.AppNotification.delete(notificationId);
+      await base44.entities.Notification.delete(notificationId);
       loadNotifications();
       toast.success('Notificación eliminada');
     } catch (error) {
@@ -134,19 +131,17 @@ export default function NotificationCenter({ user }) {
   };
 
   const getPriorityColor = (priority) => {
-    const p = (priority || 'medium').toString().toLowerCase();
     const colors = {
       critical: 'bg-red-100 text-red-800 border-red-300',
       high: 'bg-orange-100 text-orange-800 border-orange-300',
-      medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      low: 'bg-blue-100 text-blue-800 border-blue-300',
-      info: 'bg-slate-100 text-slate-800 border-slate-300'
+      medium: 'bg-blue-100 text-blue-800 border-blue-300',
+      low: 'bg-slate-100 text-slate-800 border-slate-300'
     };
-    return colors[p] || colors.medium;
+    return colors[priority] || colors.medium;
   };
 
   const getCriticalCount = () => {
-    return notifications.filter(n => (n.priority || '').toString().toLowerCase() === 'critical' && !n.read).length;
+    return notifications.filter(n => n.priority === 'critical' && !n.read).length;
   };
 
   return (
@@ -243,7 +238,7 @@ export default function NotificationCenter({ user }) {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${
-                        ((notif.priority || '').toString().toLowerCase() === 'critical') ? 'bg-red-50 border-l-4 border-l-red-500' :
+                        notif.priority === 'critical' ? 'bg-red-50 border-l-4 border-l-red-500' :
                         !notif.read ? 'bg-blue-50' : ''
                       }`}
                       onClick={() => markAsRead(notif.id)}

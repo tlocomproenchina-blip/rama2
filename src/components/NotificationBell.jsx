@@ -73,26 +73,27 @@ export default function NotificationBell({ user }) {
   const loadNotifications = async () => {
     if (!user) return;
     try {
-      const [byUser, byRole, byAll] = await Promise.all([
-        base44.entities.AppNotification.filter({ user_email: user.email, is_archived: false }, '-created_date', 50),
-        user?.role ? base44.entities.AppNotification.filter({ role_target: user.role, is_archived: false }, '-created_date', 50) : Promise.resolve([]),
-        base44.entities.AppNotification.filter({ role_target: 'all', is_archived: false }, '-created_date', 50).catch(() => [])
-      ]);
-
-      const merged = [...byUser, ...byRole, ...byAll].filter(n => !n.expires_at || new Date(n.expires_at) > new Date());
-
+      const notifs = await base44.entities.Notification.filter(
+        { user_email: user.email },
+        '-created_date',
+        50 // Reduced from 100 to 50 to lighten the load
+      );
+      
+      // Deduplicate notifications by reference_id, title, and message
       const seen = new Set();
-      const deduped = merged.filter(n => {
-        const key = `${n.id}|${n.reference_id || ''}|${n.title || ''}|${n.type || ''}`;
-        if (seen.has(key)) return false;
+      const deduped = notifs.filter(n => {
+        const key = `${n.reference_id}-${n.title}-${n.message}`;
+        if (seen.has(key)) {
+          return false;
+        }
         seen.add(key);
         return true;
       });
-
+      
       setNotifications(deduped);
+      setLoading(false);
     } catch (error) {
       console.error('Error loading notifications:', error);
-    } finally {
       setLoading(false);
     }
   };
@@ -101,7 +102,7 @@ export default function NotificationBell({ user }) {
     // Mark as read (optimistic)
     if (!notif.read) {
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
-      await base44.entities.AppNotification.update(notif.id, { read: true });
+      await base44.entities.Notification.update(notif.id, { read: true });
     }
 
     // Navigate based on type and reference_id
@@ -131,12 +132,12 @@ export default function NotificationBell({ user }) {
    // Optimistic UI update
    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
-   await Promise.all(unreadIds.map(id => base44.entities.AppNotification.update(id, { read: true })));
+   await Promise.all(unreadIds.map(id => base44.entities.Notification.update(id, { read: true })));
   };
 
   const deleteNotification = async (notifId, e) => {
    e.stopPropagation();
-   await base44.entities.AppNotification.delete(notifId);
+   await base44.entities.Notification.delete(notifId);
    setNotifications(notifications.filter(n => n.id !== notifId));
   };
 
