@@ -166,19 +166,45 @@ export default function Layout({ children, currentPageName }) {
   // Ajuste inicial + suscripción a RuntimeTuning para autoescalado
   useEffect(() => {
     setApiTuning({
-      maxReads: 48,
-      maxWrites: 16,
+      maxReads: 160,
+      maxWrites: 60,
       minIntervalMs: 40,
       backoffDelays: [500, 1000, 2000, 4000, 8000],
-      circuitBreakerThreshold: 20,
+      circuitBreakerThreshold: 100,
       circuitOpenMinutes: 1
     });
 
-    // Cargar tuning actual desde la entidad
+    // Cargar/actualizar tuning global en la entidad (persistente)
     (async () => {
       try {
+        const TARGET = {
+          config_key: 'global',
+          max_reads: 160,
+          max_writes: 60,
+          min_interval_ms: 40,
+          backoff_delays: [500, 1000, 2000, 4000, 8000],
+          circuit_breaker_threshold: 100,
+          circuit_open_minutes: 1,
+          ui_degradation_mode: 'off',
+        };
         const rows = await base44.entities.RuntimeTuning.filter({ config_key: 'global' }, '-updated_date', 1);
-        if (rows && rows[0]) applyTuning(rows[0]);
+        if (rows && rows[0]) {
+          const r = rows[0];
+          const same =
+            r.max_reads === TARGET.max_reads &&
+            r.max_writes === TARGET.max_writes &&
+            r.min_interval_ms === TARGET.min_interval_ms &&
+            JSON.stringify(r.backoff_delays||[]) === JSON.stringify(TARGET.backoff_delays) &&
+            r.circuit_breaker_threshold === TARGET.circuit_breaker_threshold &&
+            r.circuit_open_minutes === TARGET.circuit_open_minutes;
+          if (!same) {
+            await base44.entities.RuntimeTuning.update(r.id, TARGET);
+          }
+          applyTuning(rows[0]);
+        } else {
+          const created = await base44.entities.RuntimeTuning.create(TARGET);
+          applyTuning(created);
+        }
       } catch {}
     })();
 
