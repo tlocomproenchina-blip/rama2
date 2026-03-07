@@ -9,12 +9,15 @@ export default function PushNotificationManager({ user }) {
   const [permission, setPermission] = useState('default');
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isIframe, setIsIframe] = useState(false);
 
   useEffect(() => {
-    if ('Notification' in window) {
-      setPermission(Notification.permission);
-      checkSubscription();
-    }
+    try { setIsIframe(window.top !== window.self); } catch { setIsIframe(true); }
+    refreshPermission();
+    checkSubscription();
+    const onVisibility = () => refreshPermission();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
   const checkSubscription = async () => {
@@ -40,6 +43,19 @@ export default function PushNotificationManager({ user }) {
       outputArray[i] = rawData.charCodeAt(i);
     }
     return outputArray;
+  };
+
+  const refreshPermission = async () => {
+    if (navigator?.permissions?.query) {
+      try {
+        const status = await navigator.permissions.query({ name: 'notifications' });
+        setPermission(status.state);
+      } catch (_) {
+        if ('Notification' in window) setPermission(Notification.permission);
+      }
+    } else if ('Notification' in window) {
+      setPermission(Notification.permission);
+    }
   };
 
   const requestPermission = async () => {
@@ -119,7 +135,13 @@ export default function PushNotificationManager({ user }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {subscription ? (
+        {isIframe ? (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">
+              Las notificaciones del navegador están bloqueadas dentro del editor/iframe. Abre la app instalada o en una pestaña nueva para activarlas.
+            </p>
+          </div>
+        ) : subscription ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-green-700">
               <Bell className="h-5 w-5" />
