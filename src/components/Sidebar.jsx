@@ -74,6 +74,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const isAdmin = user?.role === 'admin';
   const customRole = user?.custom_role;
   const isClient = user?.role === 'user' && !customRole;
+  // Notifications UI disabled
+  const showWarning = false;
+  const badgeCount = 0;
 
   // Notifications UI disabled - keep placeholders harmless
   const showWarning = false;
