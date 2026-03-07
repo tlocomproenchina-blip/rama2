@@ -47,7 +47,7 @@ export default function PushNotificationManager({ user }) {
     try {
       // Registrar service worker
       if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        const registration = await navigator.serviceWorker.register('/functions/sw', { scope: '/' });
         await navigator.serviceWorker.ready;
 
         // Solicitar permiso
