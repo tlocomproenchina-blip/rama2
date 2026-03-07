@@ -46,7 +46,7 @@ export default function Pricing({ states, selectedCode, setSelectedCode }) {
           </Select>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-gradient-to-r from-blue-600 to-blue-700">Calcular ahora</Button></Link>
-            <Link to={createPageUrl('Rates')}><Button variant="outline">Ver condiciones</Button></Link>
+            <Link to={createPageUrl('TermsOfService')}><Button variant="outline">Ver condiciones</Button></Link>
           </div>
         </div>
 
