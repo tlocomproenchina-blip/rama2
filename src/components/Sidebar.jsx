@@ -81,6 +81,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     package: ['AdminPackages','MyPackages','ShipmentTracking','PreAlert'],
     consolidation: ['AdminConsolidate','AdminShipmentApprovals','MyConsolidations'],
     request: ['RequestConsolidation','AdminConsolidate'],
+    invoice: ['AdminInvoices','MyInvoices','AdminPayments'],
+    support: ['Support','AdminSupportTickets'],
+    accounts_payable: ['AdminAccountsPayable','AdminProviderPayments','AdminReports'],
     system: ['AdminDashboard','Dashboard']
   };
 
