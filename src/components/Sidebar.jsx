@@ -34,19 +34,10 @@ import OptimizedImage from '@/components/OptimizedImage';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const [config, setConfig] = useState(null);
-  const [notificationCounts, setNotificationCounts] = useState({
-    critical: 0,
-    packages: 0,
-    requests: 0
-  });
+
 
   useEffect(() => {
     loadConfig();
-    loadNotificationCounts();
-    
-    // Poll for notification counts every 180 seconds
-    const interval = setInterval(loadNotificationCounts, 180000);
-    return () => clearInterval(interval);
   }, []);
 
   const loadConfig = async () => {
@@ -69,73 +60,15 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     }
   };
 
-  const loadNotificationCounts = async () => {
-    try {
-      if (!user?.email) return;
 
-      const notifications = await base44.entities.Notification.filter({
-        user_email: user.email,
-        read: false
-      });
 
-      const critical = notifications.filter(n => n.priority === 'critical').length;
-      const packageCount = notifications.filter(n => n.entity_type === 'Package').length;
-      const requestCount = notifications.filter(n => n.entity_type === 'ConsolidationRequest').length;
 
-      setNotificationCounts({
-        critical,
-        packages: packageCount,
-        requests: requestCount
-      });
-    } catch (error) {
-      console.error('Error loading notification counts:', error);
-    }
-  };
 
-  const markNotificationsAsRead = async (extraFilter = {}) => {
-    try {
-      if (!user?.email) return;
-      const unread = await base44.entities.Notification.filter({ user_email: user.email, read: false, ...extraFilter });
-      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { read: true })));
-    } catch (e) { /* no-op */ }
-  };
-
-  const handleMenuClick = async (page) => {
-    if (page === 'RequestConsolidation') {
-      await markNotificationsAsRead({ entity_type: 'ConsolidationRequest' });
-      setNotificationCounts(prev => ({ ...prev, requests: 0 }));
-    } else if (page === 'MyPackages' || page === 'AdminPackages') {
-      await markNotificationsAsRead({ entity_type: 'Package' });
-      setNotificationCounts(prev => ({ ...prev, packages: 0 }));
-    } else if (page === 'ShipmentTracking' || page === 'MyConsolidations' || page === 'AdminShipmentApprovals') {
-      await markNotificationsAsRead({ entity_type: 'Consolidation' });
-    } else if (page === 'Dashboard' || page === 'ClientPortal' || page === 'AdminDashboard') {
-      await markNotificationsAsRead({ priority: 'critical' });
-      setNotificationCounts(prev => ({ ...prev, critical: 0 }));
-    }
+  const handleMenuClick = async () => {
     onClose && onClose();
   };
 
-  // Auto-mark notifications as read when entering a page
-  useEffect(() => {
-    if (!user?.email) return;
-    const run = async () => {
-      if (currentPage === 'RequestConsolidation') {
-        await markNotificationsAsRead({ entity_type: 'ConsolidationRequest' });
-        setNotificationCounts(prev => ({ ...prev, requests: 0 }));
-      } else if (currentPage === 'MyPackages' || currentPage === 'AdminPackages') {
-        await markNotificationsAsRead({ entity_type: 'Package' });
-        setNotificationCounts(prev => ({ ...prev, packages: 0 }));
-      } else if (['ShipmentTracking','MyConsolidations','AdminShipmentApprovals','AdminConsolidate'].includes(currentPage)) {
-        await markNotificationsAsRead({ entity_type: 'Consolidation' });
-      } else if (['Dashboard','ClientPortal','AdminDashboard'].includes(currentPage)) {
-        await markNotificationsAsRead({ priority: 'critical' });
-        setNotificationCounts(prev => ({ ...prev, critical: 0 }));
-      }
-      await loadNotificationCounts();
-    };
-    run();
-  }, [currentPage, user?.email]);
+
 
   const [roleConfig, setRoleConfig] = useState(null);
   const isAdmin = user?.role === 'admin';
@@ -376,16 +309,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         const Icon = item.icon;
                         const isActive = currentPage === item.page;
 
-                        // Badges/alerts
-                        let badgeCount = null;
-                        let showWarning = false;
-                        if (item.page === 'Dashboard' || item.page === 'ClientPortal') {
-                          showWarning = notificationCounts.critical > 0;
-                        } else if (item.page === 'MyPackages' || item.page === 'AdminPackages') {
-                          badgeCount = notificationCounts.packages;
-                        } else if (item.page === 'RequestConsolidation') {
-                          badgeCount = notificationCounts.requests;
-                        }
+
 
                         return (
                           <Link
@@ -393,7 +317,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                             to={createPageUrl(item.page)}
                             onClick={() => handleMenuClick(item.page)}
                             className={`
-                              flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                              flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                               ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
                             `}
                           >
@@ -428,9 +352,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         const Icon = item.icon;
                         const isActive = currentPage === item.page;
 
-                        // Badges/alerts (ocultos para clientes; usar solo la campanita)
-                        let badgeCount = 0;
-                        let showWarning = false;
+
 
                         return (
                           <Link
@@ -438,7 +360,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                             to={createPageUrl(item.page)}
                             onClick={() => handleMenuClick(item.page)}
                             className={`
-                              flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                              flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                               ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
                             `}
                           >
@@ -465,17 +387,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                   const Icon = item.icon;
                   const isActive = currentPage === item.page;
 
-                  // Get badge count for this item
-                  let badgeCount = null;
-                  let showWarning = false;
 
-                  if (item.page === 'Dashboard' || item.page === 'ClientPortal') {
-                    showWarning = notificationCounts.critical > 0;
-                  } else if (item.page === 'MyPackages' || item.page === 'AdminPackages') {
-                    badgeCount = notificationCounts.packages;
-                  } else if (item.page === 'RequestConsolidation') {
-                    badgeCount = notificationCounts.requests;
-                  }
 
                   return (
                     <Link
@@ -493,16 +405,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         <Icon className="h-5 w-5 flex-shrink-0" />
                         <span className="font-medium">{item.name}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {showWarning && (
-                          <span className="text-amber-400 animate-pulse">⚠</span>
-                        )}
-                        {badgeCount > 0 && (
-                          <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                            {badgeCount > 9 ? '9+' : badgeCount}
-                          </span>
-                        )}
-                      </div>
+
                     </Link>
                   );
                 })

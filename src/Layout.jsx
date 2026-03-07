@@ -14,13 +14,13 @@ import Sidebar from '@/components/Sidebar';
 import { notifyAdmins } from '@/components/NotificationUtils';
 import { Menu, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Toaster } from 'sonner';
-import GlobalErrorListener from '@/components/common/GlobalErrorListener';
+
+
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 // Lazy loaded non-critical components
-const NotificationCenter = lazy(() => import('@/components/NotificationCenter.jsx'));
-const AdminNotificationCenter = lazy(() => import('@/components/AdminNotificationCenter.jsx'));
+
+
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
 const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
 const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
@@ -501,9 +501,9 @@ export default function Layout({ children, currentPageName }) {
           .recharts-wrapper, .recharts-responsive-container { max-width: 100% !important; }
         }
       `}</style>
-      <Toaster position="top-right" richColors />
-      <GlobalErrorListener />
-      <Suspense fallback={null}><AdminNotificationCenter user={user} /></Suspense>
+      
+      
+      
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
       {user && (
         <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
@@ -546,11 +546,7 @@ export default function Layout({ children, currentPageName }) {
         )}
 
         {/* Desktop Notification Center */}
-        {user && (
-        <div className="hidden lg:block fixed top-4 right-4 z-40">
-          <Suspense fallback={null}><NotificationCenter user={user} /></Suspense>
-        </div>
-        )}
+
 
         {/* Improve mobile tap targets in header */}
         <style>{`
