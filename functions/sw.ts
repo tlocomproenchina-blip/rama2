@@ -52,7 +52,7 @@ self.addEventListener('notificationclick', (event) => {
   return new Response(js, {
     status: 200,
     headers: {
-      'Content-Type': 'application/javascript',
+      'Content-Type': 'text/javascript; charset=utf-8',
       // Allow registering with scope "/" though script is under /functions/
       'Service-Worker-Allowed': '/',
       'Cache-Control': 'no-cache, no-store, must-revalidate'
