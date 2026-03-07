@@ -45,8 +45,8 @@ export default function Home({ user }) {
       <section className="relative overflow-hidden rounded-2xl border bg-white p-8 md:p-12">
         <img aria-hidden="true" src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/460a4f069_ChatGPTImage6mar202617_06_35.png" alt="" className="absolute inset-0 h-full w-full object-cover blur-none md:blur-none opacity-50 md:opacity-60 scale-105 pointer-events-none select-none z-0" />
         <div className="relative z-10 max-w-3xl">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white">Logística China → Venezuela, sin fricción</h1>
-          <p className="mt-4 text-lg text-slate-100">Consolidamos, aseguramos y entregamos puerta a puerta. Transparente, rápido y con soporte en español.</p>
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">Logística China → Venezuela, sin fricción</h1>
+          <p className="mt-4 text-lg text-slate-800">Consolidamos, aseguramos y entregamos puerta a puerta. Transparente, rápido y con soporte en español.</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to={createPageUrl('ShippingCalculator')}><Button className="bg-blue-600 hover:bg-blue-700">Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
             <Button
