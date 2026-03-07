@@ -9,15 +9,12 @@ export default function PushNotificationManager({ user }) {
   const [permission, setPermission] = useState('default');
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isIframe, setIsIframe] = useState(false);
 
   useEffect(() => {
-    try { setIsIframe(window.top !== window.self); } catch { setIsIframe(true); }
-    refreshPermission();
-    checkSubscription();
-    const onVisibility = () => refreshPermission();
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    if ('Notification' in window) {
+      setPermission(Notification.permission);
+      checkSubscription();
+    }
   }, []);
 
   const checkSubscription = async () => {
@@ -45,26 +42,12 @@ export default function PushNotificationManager({ user }) {
     return outputArray;
   };
 
-  const refreshPermission = async () => {
-    if (navigator?.permissions?.query) {
-      try {
-        const status = await navigator.permissions.query({ name: 'notifications' });
-        setPermission(status.state);
-      } catch (_) {
-        if ('Notification' in window) setPermission(Notification.permission);
-      }
-    } else if ('Notification' in window) {
-      setPermission(Notification.permission);
-    }
-  };
-
   const requestPermission = async () => {
     setLoading(true);
     try {
       // Registrar service worker
       if ('serviceWorker' in navigator) {
-        const scriptUrl = `/functions/sw?ts=${Date.now()}`;
-        const registration = await navigator.serviceWorker.register(scriptUrl, { scope: '/' });
+        const registration = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
 
         // Solicitar permiso
@@ -136,18 +119,7 @@ export default function PushNotificationManager({ user }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isIframe ? (
-          <div className="space-y-3">
-            <Button
-              onClick={requestPermission}
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              <Bell className="h-4 w-4 mr-2" />
-              Activar Notificaciones Push
-            </Button>
-          </div>
-        ) : subscription ? (
+        {subscription ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-green-700">
               <Bell className="h-5 w-5" />

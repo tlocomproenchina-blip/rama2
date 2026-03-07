@@ -29,7 +29,6 @@ import {
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
 import { createPageUrl } from '@/utils';
-import PushNotificationManager from '@/components/PushNotificationManager';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -778,7 +777,6 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <PushNotificationManager user={user} />
               {/* Modo Mantenimiento */}
               <div className="p-6 bg-rose-50 rounded-xl border border-rose-200 space-y-4">
                 <div className="flex items-center justify-between">
