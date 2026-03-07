@@ -671,11 +671,11 @@ export default function AdminPackages({ user }) {
                           )}
                           {pkg.status === 'recibido' && (
                           <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => setCancelReceptionModal(pkg)}
-                           className="text-rose-600 hover:text-rose-700 border-rose-200"
-                          >
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={() => setCancelReceptionModal(pkg)}
+                                                  className="gap-1 h-8 px-3 text-xs text-rose-600 hover:text-rose-700 border-rose-200"
+                                                >
                            <Undo2 className="h-4 w-4 mr-1" />
                            Cancelar recepción
                           </Button>
