@@ -98,6 +98,7 @@ import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import TermsOfService from './pages/TermsOfService';
+import Register from './pages/Register';
 import __Layout from './Layout.jsx';
 
 
@@ -153,6 +154,7 @@ export const PAGES = {
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
     "TermsOfService": TermsOfService,
+    "Register": Register,
 }
 
 export const pagesConfig = {
