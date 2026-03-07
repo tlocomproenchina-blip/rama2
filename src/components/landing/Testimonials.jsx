@@ -7,8 +7,8 @@ const data = [
 
 export default function Testimonials() {
   return (
-    <section className="mt-12">
-      <h2 className="text-2xl font-bold mb-4 text-slate-900">Testimonios</h2>
+    <section className="mt-12 rounded-2xl border bg-gradient-to-br from-[#0B1F3A] to-[#173B6A] p-6 md:p-8 text-white">
+      <h2 className="text-2xl font-bold mb-4 text-white">Testimonios</h2>
       <div className="grid gap-4 md:grid-cols-2">
         {data.map((t, i) => (
           <div key={i} className="rounded-2xl border bg-white p-6 shadow-sm">

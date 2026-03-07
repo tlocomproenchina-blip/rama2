@@ -5,7 +5,7 @@ import { createPageUrl } from "@/utils";
 
 export default function FinalCTA() {
   return (
-    <section className="mt-12 text-center rounded-2xl border bg-gradient-to-br from-[#0B1F3A] to-[#173B6A] p-8">
+    <section className="mt-12 text-center rounded-2xl border border-[#E5C770]/30 bg-gradient-to-br from-[#0B1F3A] to-[#173B6A] p-8">
       <h3 className="text-xl md:text-2xl font-semibold text-white">¿Listo para enviar desde China a Venezuela?</h3>
       <p className="text-white/90 mt-2">Obtén una cotización hoy y recibe asesoría experta.</p>
       <div className="mt-4 flex justify-center gap-3">

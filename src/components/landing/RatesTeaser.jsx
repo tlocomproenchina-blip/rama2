@@ -10,8 +10,8 @@ export default function RatesTeaser({ states, selectedCode, setSelectedCode }) {
   const high = s?.final_rate_high;
 
   return (
-    <section className="mt-12 rounded-2xl border bg-white p-6 md:p-8">
-      <h2 className="text-2xl font-bold mb-2 text-slate-900">Tarifas transparentes</h2>
+    <section className="mt-12 rounded-2xl border bg-gradient-to-br from-[#0B1F3A] to-[#173B6A] p-6 md:p-8 text-white">
+      <h2 className="text-2xl font-bold mb-2 text-white">Tarifas transparentes</h2>
       <p className="text-slate-600">Calcula tu envío en minutos y compara marítimo vs aéreo según tiempos y presupuesto.</p>
       <div className="mt-4 grid gap-3 md:grid-cols-[320px_auto] items-start">
         <div>

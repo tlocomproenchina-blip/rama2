@@ -5,8 +5,8 @@ import { createPageUrl } from "@/utils";
 
 export default function FAQTeaser() {
   return (
-    <section className="mt-12 rounded-2xl border bg-white p-6 md:p-8">
-      <h2 className="text-2xl font-bold mb-4 text-slate-900">Preguntas frecuentes</h2>
+    <section className="mt-12 rounded-2xl border bg-gradient-to-br from-[#0B1F3A] to-[#173B6A] p-6 md:p-8 text-white">
+      <h2 className="text-2xl font-bold mb-4 text-white">Preguntas frecuentes</h2>
       <div className="space-y-4">
         <div>
           <div className="font-medium text-slate-800">¿Cuánto tarda el envío marítimo vs aéreo?</div>
