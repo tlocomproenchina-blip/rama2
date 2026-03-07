@@ -647,44 +647,55 @@ export default function AdminPackages({ user }) {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {pkg.status === 'recibido' && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => setEditImageModal(pkg)}
-                              className="text-blue-600 hover:text-blue-700"
-                            >
-                              <ImageIcon className="h-4 w-4" />
-                            </Button>
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => setEditImageModal(pkg)}
+                               className="text-blue-600 hover:text-blue-700"
+                             >
+                               <ImageIcon className="h-4 w-4" />
+                             </Button>
+                           )}
+                          </>
                           )}
-                        </>
-                      )}
-                      {!pkg.package_image_url && pkg.status === 'recibido' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => setEditImageModal(pkg)}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          <Upload className="h-4 w-4 mr-1" />
-                          Foto
-                        </Button>
-                      )}
-                      {pkg.status !== 'pre_alerta' && pkg.status !== 'consolidado' && (
-                        <Select 
-                          value={pkg.status} 
-                          onValueChange={(val) => handleStatusChange(pkg, val)}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="recibido">Recibido</SelectItem>
-                            <SelectItem value="en_transito">En Tránsito</SelectItem>
-                            <SelectItem value="disponible">Disponible</SelectItem>
-                            <SelectItem value="entregado">Entregado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
+                          {!pkg.package_image_url && pkg.status === 'recibido' && (
+                          <Button 
+                           size="sm" 
+                           variant="outline"
+                           onClick={() => setEditImageModal(pkg)}
+                           className="text-blue-600 hover:text-blue-700"
+                          >
+                           <Upload className="h-4 w-4 mr-1" />
+                           Foto
+                          </Button>
+                          )}
+                          {pkg.status === 'recibido' && (
+                          <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => setCancelReceptionModal(pkg)}
+                           className="text-rose-600 hover:text-rose-700 border-rose-200"
+                          >
+                           <Undo2 className="h-4 w-4 mr-1" />
+                           Cancelar recepción
+                          </Button>
+                          )}
+                          {pkg.status !== 'pre_alerta' && pkg.status !== 'consolidado' && (
+                          <Select 
+                           value={pkg.status} 
+                           onValueChange={(val) => handleStatusChange(pkg, val)}
+                          >
+                           <SelectTrigger className="w-32">
+                             <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent>
+                             <SelectItem value="recibido">Recibido</SelectItem>
+                             <SelectItem value="en_transito">En Tránsito</SelectItem>
+                             <SelectItem value="disponible">Disponible</SelectItem>
+                             <SelectItem value="entregado">Entregado</SelectItem>
+                           </SelectContent>
+                          </Select>
+                          )}
                     </div>
                   </td>
                 </tr>
