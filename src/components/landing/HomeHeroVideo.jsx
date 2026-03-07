@@ -50,6 +50,11 @@ export default function HomeHeroVideo({ onAuthClick, authLoading }) {
                 Rastrear paquete
               </Button>
             </Link>
+            <Link to={createPageUrl("Blog")}>
+              <Button variant="ghost" className="text-white hover:bg-white/10">
+                Ver blog
+              </Button>
+            </Link>
           </div>
 
           {/* Acciones auxiliares (opcional, mantienen flujo existente) */}
