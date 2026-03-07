@@ -2,7 +2,7 @@ import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 
 // Hook de indicadores de atención (sin contadores)
-// - Actualiza cada 60s
+// - Actualiza cada 10s
 // - Solo considera si hubo una actualización más reciente que la última vez que el usuario "vio" esa sección
 export default function useAttentionFlags({ user }) {
   const isAdmin = user?.role === 'admin';
@@ -16,10 +16,10 @@ export default function useAttentionFlags({ user }) {
         { key: 'AdminPayments', entity: 'Consolidation' },
       ];
     }
-    // Clientes: solo Mis Paquetes, Mis Consolidaciones y Mis Facturas
+    // Básico para clientes (opcional): paquetes, facturas y soporte propios
     return [
+      { key: 'Support', entity: 'SupportTicket', query: email ? { client_email: email } : null },
       { key: 'MyPackages', entity: 'Package', query: email ? { client_email: email } : null },
-      { key: 'MyConsolidations', entity: 'Consolidation', query: email ? { client_email: email } : null },
       { key: 'MyInvoices', entity: 'Invoice', query: email ? { client_email: email } : null },
     ];
   }, [isAdmin, email]);
@@ -64,12 +64,11 @@ export default function useAttentionFlags({ user }) {
 
   React.useEffect(() => {
     let mounted = true;
-    if (watches.length === 0) { setFlags({}); return () => { mounted = false; }; }
     const run = async () => { if (mounted) await poll(); };
     run();
-    const id = setInterval(run, 60000); // 60s
+    const id = setInterval(run, 10000); // 10s
     return () => { mounted = false; clearInterval(id); };
-  }, [poll, watches.length]);
+  }, [poll]);
 
   const markSeen = React.useCallback((pageKey) => {
     if (!pageKey) return;
