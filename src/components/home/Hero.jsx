@@ -47,7 +47,7 @@ export default function Hero({ onLogin }) {
         <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .8 }} className="relative">
           <div className="relative rounded-3xl border-2 border-slate-100 bg-white/80 backdrop-blur-2xl p-3 md:p-4 shadow-xl">
             <video
-              className="w-full h-48 md:h-56 lg:h-64 rounded-2xl object-cover"
+              className="w-full h-60 md:h-72 lg:h-96 rounded-2xl object-cover"
               src="https://videos.pexels.com/video-files/10529628/10529628-hd_2560_1440_24fps.mp4"
               poster="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/5f2251a69_B761FC7B-A523-4A5C-9E96-DB83AFEFEAC8.png"
               autoPlay
