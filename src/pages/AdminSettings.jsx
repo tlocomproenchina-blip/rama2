@@ -778,6 +778,7 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <PushNotificationManager user={user} />
               {/* Modo Mantenimiento */}
               <div className="p-6 bg-rose-50 rounded-xl border border-rose-200 space-y-4">
                 <div className="flex items-center justify-between">
