@@ -414,7 +414,40 @@ Email: ${client.email}`;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `clientes-filtrados-${new Date().toISOString().split('T')[0]}.txt`;
+
+      // Construir nombre con filtro y fecha (America/Caracas)
+      const filterMap = {
+        all: 'todos',
+        with_mark: 'con_shipping_mark',
+        without_mark: 'sin_shipping_mark',
+        pending: 'pendientes',
+        incomplete: 'con_datos_faltantes',
+        active: 'activos',
+        inactive: 'inactivos',
+        with_packages: 'con_paquetes',
+        without_packages: 'sin_paquetes',
+        with_whatsapp: 'con_whatsapp',
+        without_whatsapp: 'sin_whatsapp'
+      };
+      const filterLabel = filterMap[exclusiveKey] || 'seleccion';
+
+      const now = new Date();
+      const veFmt = new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+      const [dd, mm, yyyy] = veFmt.split('/');
+      const todayStamp = `${yyyy}${mm}${dd}`; // yyyymmdd
+
+      let dateSuffix = todayStamp;
+      if (dateFilter) {
+        dateSuffix = String(dateFilter).replaceAll('-', ''); // yyyymmdd exacta
+      } else if (quickDate === 'today') {
+        dateSuffix = `${todayStamp}_hoy`;
+      } else if (quickDate === '7d') {
+        dateSuffix = `${todayStamp}_ultimos_7d`;
+      } else if (quickDate === '30d') {
+        dateSuffix = `${todayStamp}_ultimos_30d`;
+      }
+
+      link.download = `clientes_${filterLabel}_${dateSuffix}.txt`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success(`${filteredClients.length} clientes exportados a TXT`);
