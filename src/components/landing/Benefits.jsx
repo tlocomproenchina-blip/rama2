@@ -13,7 +13,7 @@ export default function Benefits() {
     <section className="mt-10 rounded-2xl border bg-gradient-to-br from-[#0B1F3A] to-[#173B6A] p-6 md:p-8 text-white">
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-white">Beneficios</h2>
-        <p className="text-slate-600 mt-1">Eficiencia, seguridad y transparencia en cada envío.</p>
+        <p className="text-white/80 mt-1">Eficiencia, seguridad y transparencia en cada envío.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {items.map((b, i) => (
