@@ -27,7 +27,7 @@ export default function PublicHeader() {
           <Link to={createPageUrl('ShippingCalculator')}>
             <Button size="sm" className="bg-[#1E5BB8] hover:bg-[#1A4DA0]">Cotizar</Button>
           </Link>
-          <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10" onClick={() => window.location.assign(createPageUrl('Home'))}>
+          <Button size="sm" variant="outline" className="border-white/30 text-white hover:bg-white/10" onClick={() => base44.auth.redirectToLogin()}>
             Iniciar sesión
           </Button>
         </div>
