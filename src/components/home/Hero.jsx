@@ -26,9 +26,7 @@ export default function Hero({ onLogin }) {
             <Link to={createPageUrl('ShippingCalculator')}>
               <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600">Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Button>
             </Link>
-            <Link to={createPageUrl('Register')}>
-              <Button variant="outline">Registrarse</Button>
-            </Link>
+            <Button variant="outline" onClick={onLogin}>Registrarse</Button>
           </div>
           {/* Stats */}
           <div className="mt-8 grid grid-cols-3 gap-4 max-w-md">
