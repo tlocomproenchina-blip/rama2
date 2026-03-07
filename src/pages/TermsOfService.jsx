@@ -3,10 +3,13 @@ import { base44 } from '@/api/base44Client';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export default function TermsOfService() {
   const [privacyCfg, setPrivacyCfg] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
@@ -32,6 +35,9 @@ export default function TermsOfService() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      <div className="mb-4">
+        <Button variant="outline" onClick={() => navigate(-1)}>Atrás</Button>
+      </div>
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-slate-900">Términos de servicio</CardTitle>
