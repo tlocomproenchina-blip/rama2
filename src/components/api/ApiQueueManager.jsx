@@ -23,15 +23,15 @@ class ApiQueueManager {
     this.debouncedOperations = new Map();
     this.lastOperationTime = 0;
     this.lastWriteTime = 0;
-    this.MAX_CONCURRENT_READS = 12;
-    this.MAX_CONCURRENT_WRITES = 3;
+    this.MAX_CONCURRENT_READS = 6;
+    this.MAX_CONCURRENT_WRITES = 2;
     this.activeReads = 0;
     this.activeWrites = 0;
     this.inflight = new Map();
-    this.MIN_OPERATION_INTERVAL = 250; // 250ms mínimo entre operaciones (mejor latencia)
-    this.backoffDelays = [5000, 10000, 20000, 40000];
-    this.circuitBreakerThreshold = 3;
-    this.circuitOpenMinutes = 20;
+    this.MIN_OPERATION_INTERVAL = 350; // pacing global entre operaciones
+    this.backoffDelays = [3000, 6000, 12000, 24000];
+    this.circuitBreakerThreshold = 8;
+    this.circuitOpenMinutes = 2;
   }
 
   /**
@@ -223,13 +223,14 @@ class ApiQueueManager {
             // Circuit breaker check
             this.checkCircuitBreaker();
 
-            // Rate limiting solo para escrituras
-            if (item.opType === 'write') {
+            // Pacing global (lecturas y escrituras)
+            {
               const now = Date.now();
-              const since = now - this.lastWriteTime;
+              const since = now - this.lastOperationTime;
               if (since < this.MIN_OPERATION_INTERVAL) {
                 await new Promise(r => setTimeout(r, this.MIN_OPERATION_INTERVAL - since));
               }
+              this.lastOperationTime = Date.now();
             }
 
             const result = await this.executeWithRetry(item.operation);
@@ -248,7 +249,6 @@ class ApiQueueManager {
               this.activeReads--;
             } else {
               this.activeWrites--;
-              this.lastWriteTime = Date.now();
             }
             // Intentar iniciar más tareas pendientes
             tryStart();
