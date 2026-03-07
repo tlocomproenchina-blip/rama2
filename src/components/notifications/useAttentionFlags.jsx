@@ -2,7 +2,7 @@ import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 
 // Hook de indicadores de atención (sin contadores)
-// - Actualiza cada 10s
+// - Actualiza cada 60s
 // - Solo considera si hubo una actualización más reciente que la última vez que el usuario "vio" esa sección
 export default function useAttentionFlags({ user }) {
   const isAdmin = user?.role === 'admin';
@@ -16,8 +16,12 @@ export default function useAttentionFlags({ user }) {
         { key: 'AdminPayments', entity: 'Consolidation' },
       ];
     }
-    // Deshabilitado para clientes
-    return [];
+    // Clientes: solo Mis Paquetes, Mis Consolidaciones y Mis Facturas
+    return [
+      { key: 'MyPackages', entity: 'Package', query: email ? { client_email: email } : null },
+      { key: 'MyConsolidations', entity: 'Consolidation', query: email ? { client_email: email } : null },
+      { key: 'MyInvoices', entity: 'Invoice', query: email ? { client_email: email } : null },
+    ];
   }, [isAdmin, email]);
 
   const [flags, setFlags] = React.useState({});
@@ -63,7 +67,7 @@ export default function useAttentionFlags({ user }) {
     if (watches.length === 0) { setFlags({}); return () => { mounted = false; }; }
     const run = async () => { if (mounted) await poll(); };
     run();
-    const id = setInterval(run, 10000); // 10s
+    const id = setInterval(run, 60000); // 60s
     return () => { mounted = false; clearInterval(id); };
   }, [poll, watches.length]);
 
