@@ -1,5 +1,8 @@
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 const faqs = [
   { q: '¿Cuánto tarda el envío marítimo vs aéreo?', a: 'Marítimo suele tardar más pero reduce costo/CBM; aéreo es más rápido para cargas urgentes.' },
@@ -21,6 +24,11 @@ export default function FAQSection() {
             </AccordionItem>
           ))}
         </Accordion>
+        <div className="mt-5">
+          <Link to={createPageUrl('FAQ')}>
+            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600 text-white">Ver más</Button>
+          </Link>
+        </div>
       </div>
     </section>
   );
