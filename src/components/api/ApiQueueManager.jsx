@@ -32,6 +32,7 @@ class ApiQueueManager {
     this.backoffDelays = [5000, 10000, 20000, 40000];
     this.circuitBreakerThreshold = 3;
     this.circuitOpenMinutes = 20;
+    this.OPERATION_TIMEOUT_MS = 45000; // 45s seguridad contra cuelgues
   }
 
   /**
