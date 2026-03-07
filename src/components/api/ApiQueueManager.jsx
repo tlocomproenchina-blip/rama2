@@ -174,6 +174,8 @@ class ApiQueueManager {
    * Añade operación a la cola
    */
   async enqueue(operation, priority = 'NORMAL', opType = 'read', dedupeKey) {
+    // Wrap operation to ensure it always returns a promise (and benefits from timeout)
+    const op = async () => await Promise.resolve().then(operation);
     // Dedupe: si hay una llamada idéntica en vuelo, reusar su promesa
     if (dedupeKey && this.inflight.has(dedupeKey)) {
       return this.inflight.get(dedupeKey);
