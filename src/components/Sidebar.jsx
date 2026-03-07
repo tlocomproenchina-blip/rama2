@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
 import { cacheManager } from '@/components/CacheManager';
 import OptimizedImage from '@/components/OptimizedImage';
+import useAttentionFlags from '@/components/notifications/useAttentionFlags';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const [config, setConfig] = useState(null);
@@ -64,7 +65,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
 
-  const handleMenuClick = async () => {
+  const handleMenuClick = async (page) => {
+    if (page) { try { markSeen(page); } catch {} }
     onClose && onClose();
   };
 
@@ -74,6 +76,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const isAdmin = user?.role === 'admin';
   const customRole = user?.custom_role;
   const isClient = user?.role === 'user' && !customRole;
+  const [flags, markSeen] = useAttentionFlags({ user });
   // Notifications UI disabled
   const showWarning = false;
   const badgeCount = 0;
@@ -328,7 +331,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                             <div className="flex items-center gap-3">
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
-                            </div>
+                                                              {flags[item.page] && (
+                                                                <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
+                                                              )}
+                                                            </div>
                             
                           </Link>
                         );
@@ -364,7 +370,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                             <div className="flex items-center gap-3">
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
-                            </div>
+                                                              {flags[item.page] && (
+                                                                <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
+                                                              )}
+                                                            </div>
                             
                           </Link>
                         );
