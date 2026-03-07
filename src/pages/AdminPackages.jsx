@@ -910,6 +910,47 @@ export default function AdminPackages({ user }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Cancel Reception Modal */}
+      <AlertDialog open={!!cancelReceptionModal} onOpenChange={setCancelReceptionModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar recepción</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esto revertirá el paquete a estado <span class="font-semibold">Pre‑alerta</span> y limpiará fecha, usuario y foto de recepción.
+              <br />
+              Tracking: <span class="font-mono">{cancelReceptionModal?.tracking_number}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelProcessing}>Cerrar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700"
+              disabled={cancelProcessing}
+              onClick={async (e) => {
+                e.preventDefault();
+                try {
+                  setCancelProcessing(true);
+                  await base44.entities.Package.update(cancelReceptionModal.id, {
+                    status: 'pre_alerta',
+                    received_date: null,
+                    received_by: null,
+                    package_image_url: null
+                  });
+                  toast.success('Recepción cancelada');
+                  setCancelReceptionModal(null);
+                  loadPackages(page);
+                } catch (_) {
+                  toast.error('No se pudo cancelar la recepción');
+                }
+                setCancelProcessing(false);
+              }}
+            >
+              {cancelProcessing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Procesando...</> : 'Confirmar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
