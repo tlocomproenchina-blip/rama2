@@ -589,18 +589,23 @@ export default function AdminPackages({ user }) {
                     />
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-medium text-slate-800">{pkg.tracking_number}</span>
-                      {pkg.has_insurance && (
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                          <Shield className="h-3 w-3" />
-                        </Badge>
-                      )}
-                      {pkg.reported ? (
-                        <Flag className="h-4 w-4 text-green-600" title="Reportado" />
-                      ) : (
-                        <FlagOff className="h-4 w-4 text-slate-300" title="No reportado" />
-                      )}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-medium text-slate-800">{pkg.tracking_number}</span>
+                        {pkg.has_insurance && (
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                            <Shield className="h-3 w-3" />
+                          </Badge>
+                        )}
+                        {pkg.reported ? (
+                          <Flag className="h-4 w-4 text-green-600" title="Reportado" />
+                        ) : (
+                          <FlagOff className="h-4 w-4 text-slate-300" title="No reportado" />
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {pkg.description || 'Sin descripción'}
+                      </div>
                     </div>
                   </td>
                   <td className="p-4 text-slate-600">{pkg.client_email}</td>
