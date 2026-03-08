@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import { createPageUrl } from '@/utils';
+import PayPalInline from '@/components/payments/PayPalInline';
 import PaymentModal from '@/components/PaymentModal';
 import StripeCheckout from '@/components/payments/StripeCheckout';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
@@ -23,7 +24,7 @@ export default function MyInvoices({ user }) {
   const [stripeOpen, setStripeOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [config, setConfig] = useState(null);
-  const [paypalProcessing, setPaypalProcessing] = useState(false);
+  const [paypalOpen, setPaypalOpen] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -77,33 +78,8 @@ export default function MyInvoices({ user }) {
   };
 
   const handlePayPal = async (invoice) => {
-    try {
-      setPaypalProcessing(true);
-      const returnUrl = `${window.location.origin}${createPageUrl('PaypalReturn')}?invoiceId=${invoice.id}`;
-      const cancelUrl = `${window.location.origin}${createPageUrl('MyInvoices')}`;
-      const res = await base44.functions.invoke('createPaypalOrder', {
-        invoice_id: invoice.id,
-        currency: 'USD',
-        return_url: returnUrl,
-        cancel_url: cancelUrl,
-      });
-      if (res.status === 200 && res.data?.approval_url) {
-        try {
-          const u = new URL(res.data.approval_url);
-          u.searchParams.set('fundingSource', 'card'); // preferir tarjeta
-          window.location.href = u.toString();
-        } catch (_) {
-          window.location.href = res.data.approval_url;
-        }
-      } else {
-        throw new Error(res.data?.error || 'No se pudo iniciar PayPal');
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error(e.message || 'No se pudo iniciar PayPal');
-    } finally {
-      setPaypalProcessing(false);
-    }
+    setSelectedInvoice(invoice);
+    setPaypalOpen(true);
   };
 
    const handleDownloadPDF = (invoice) => {
@@ -274,7 +250,7 @@ export default function MyInvoices({ user }) {
         </div>
       )}
 
-      {/* Modal Stripe minimalista */}
+      {/* Modal Stripe */}
       {stripeOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md bg-white rounded-xl shadow p-5">
@@ -313,7 +289,23 @@ export default function MyInvoices({ user }) {
         </div>
       )}
 
-      {/* Modal antiguo de pago sigue disponible para otros métodos */}
+      {/* Modal PayPal */}
+      {paypalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow p-5">
+            <PayPalInline 
+              invoice={selectedInvoice}
+              onSuccess={async () => {
+                setPaypalOpen(false);
+                await loadInvoices();
+              }}
+              onClose={() => setPaypalOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
+       {/* Modal antiguo de pago sigue disponible para otros métodos */}
       <PaymentModal
         open={paymentOpen}
         onClose={() => setPaymentOpen(false)}
