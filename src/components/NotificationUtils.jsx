@@ -47,8 +47,14 @@ function ensureQueueTimer() {
 }
 
 export async function getAdmins() {
-  const allUsers = await base44.entities.User.list();
-  return allUsers.filter(u => u.role === 'admin');
+  try {
+    const res = await base44.functions.invoke('listAdmins', {});
+    if (res?.status === 200 && Array.isArray(res.data?.admins)) {
+      return res.data.admins.map(a => ({ email: a.email, full_name: a.full_name, role: 'admin' }));
+    }
+  } catch (_) {}
+  // Fallback vacío para no romper flujos
+  return [];
 }
 
 export async function sendNotification({ from_name, to, subject, body, title, message, type = 'general', icon = 'alert', referenceId = null }) {
