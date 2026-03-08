@@ -6,7 +6,7 @@ import { FileText, CreditCard, Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 
-export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false }) {
+export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false }) {
   const statusColors = {
     pendiente: 'bg-yellow-100 text-yellow-800',
     revision: 'bg-blue-100 text-blue-800',
@@ -92,6 +92,18 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
               </a>
             </Button>
           )}
+
+          {showPayPalButton && invoice.status === 'pendiente' && (
+            <Button 
+              onClick={() => onPayPal?.(invoice)}
+              variant="outline"
+              className="flex-1"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Pagar con Débito / Crédito
+            </Button>
+          )}
+
           {/* Si está pagada o en revisión, nunca mostrar botón de Stripe */}
           {showOtherMethodsButton && invoice.status === 'pendiente' && (
             <Button 

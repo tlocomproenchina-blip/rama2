@@ -98,6 +98,7 @@ import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import TermsOfService from './pages/TermsOfService';
+import PaypalReturn from './pages/PaypalReturn';
 import __Layout from './Layout.jsx';
 
 
@@ -153,6 +154,7 @@ export const PAGES = {
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
     "TermsOfService": TermsOfService,
+    "PaypalReturn": PaypalReturn,
 }
 
 export const pagesConfig = {

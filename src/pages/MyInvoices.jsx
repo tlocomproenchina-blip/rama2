@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
+import { createPageUrl } from '@/utils';
 import PaymentModal from '@/components/PaymentModal';
 import StripeCheckout from '@/components/payments/StripeCheckout';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
@@ -22,6 +23,7 @@ export default function MyInvoices({ user }) {
   const [stripeOpen, setStripeOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [config, setConfig] = useState(null);
+  const [paypalProcessing, setPaypalProcessing] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -74,7 +76,31 @@ export default function MyInvoices({ user }) {
     }
   };
 
-  const handleDownloadPDF = (invoice) => {
+  const handlePayPal = async (invoice) => {
+    try {
+      setPaypalProcessing(true);
+      const returnUrl = `${window.location.origin}${createPageUrl('PaypalReturn')}?invoiceId=${invoice.id}`;
+      const cancelUrl = `${window.location.origin}${createPageUrl('MyInvoices')}`;
+      const res = await base44.functions.invoke('createPaypalOrder', {
+        invoice_id: invoice.id,
+        currency: 'USD',
+        return_url: returnUrl,
+        cancel_url: cancelUrl,
+      });
+      if (res.status === 200 && res.data?.approval_url) {
+        window.location.href = res.data.approval_url;
+      } else {
+        throw new Error(res.data?.error || 'No se pudo iniciar PayPal');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo iniciar PayPal');
+    } finally {
+      setPaypalProcessing(false);
+    }
+  };
+
+   const handleDownloadPDF = (invoice) => {
     const doc = new jsPDF();
     
     // Header
@@ -201,30 +227,32 @@ export default function MyInvoices({ user }) {
         <div className="grid gap-4">
           {visibleInvoices.map(invoice => (
             <InvoiceCard
-               key={invoice.id}
-               invoice={invoice}
-               onPay={handlePayOnline}
-               onDownload={handleDownloadPDF}
-               showPayButton={config?.payments_enable_stripe === true}
-               onOtherPay={(inv) => {
-                 if (inv.status === 'pagada' || inv.status === 'revision') return; // no permitir abrir otros métodos si ya está pagada o en revisión
-                 setSelectedConsolidation({ id: inv.consolidation_id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
-                 setPaymentOpen(true);
-               }}
-               showOtherMethodsButton={(() => {
-                 const c = config || {};
-                 return (
-                   (c.payments_enable_binance === true && c.wallet_binance) ||
-                   (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) ||
-                   (c.payments_enable_paypal === true && c.wallet_paypal) ||
-                   (c.payments_enable_wally === true && c.wallet_wally) ||
-                   (c.payments_enable_zinli === true && c.wallet_zinli) ||
-                   (c.payments_enable_wise === true && c.wallet_wise) ||
-                   (c.payments_enable_skrill === true && c.wallet_skrill) ||
-                   (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt)
-                 );
-               })()}
-             />
+              key={invoice.id}
+              invoice={invoice}
+              onPay={handlePayOnline}
+              onDownload={handleDownloadPDF}
+              showPayButton={config?.payments_enable_stripe === true}
+              onPayPal={handlePayPal}
+              showPayPalButton={config?.payments_enable_paypal === true}
+              onOtherPay={(inv) => {
+                if (inv.status === 'pagada' || inv.status === 'revision') return; // no permitir abrir otros métodos si ya está pagada o en revisión
+                setSelectedConsolidation({ id: inv.consolidation_id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
+                setPaymentOpen(true);
+              }}
+              showOtherMethodsButton={(() => {
+                const c = config || {};
+                return (
+                  (c.payments_enable_binance === true && c.wallet_binance) ||
+                  (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) ||
+                  (c.payments_enable_paypal === true && c.wallet_paypal) ||
+                  (c.payments_enable_wally === true && c.wallet_wally) ||
+                  (c.payments_enable_zinli === true && c.wallet_zinli) ||
+                  (c.payments_enable_wise === true && c.wallet_wise) ||
+                  (c.payments_enable_skrill === true && c.wallet_skrill) ||
+                  (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt)
+                );
+              })()}
+            />
           ))}
         </div>
       )}
