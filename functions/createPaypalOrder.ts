@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
         },
       ],
       application_context: {
+        landing_page: 'BILLING', // fuerza pantalla de tarjeta (guest checkout)
         user_action: 'PAY_NOW',
         return_url: return_url || 'https://example.com/return-paypal',
         cancel_url: cancel_url || 'https://example.com/cancel-paypal',
