@@ -11,6 +11,28 @@ function slugify(text) {
     .replace(/-+/g, '-');
 }
 
+// Similarity helpers to prevent duplicate topics
+function normalizeText(s) { return (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function tokenSet(s) { return new Set(normalizeText(s).split(' ').filter(Boolean)); }
+function jaccardSim(a, b) {
+  const A = tokenSet(a), B = tokenSet(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0; for (const x of A) { if (B.has(x)) inter++; }
+  const union = new Set([...A, ...B]).size;
+  return inter / union;
+}
+function isTooSimilar(title, existingTitles) {
+  const t = normalizeText(title);
+  for (const e of existingTitles) {
+    const en = normalizeText(e);
+    if (!en) continue;
+    if (t === en) return true;
+    if ((t.includes(en) || en.includes(t)) && Math.min(t.length, en.length) >= 20) return true;
+    if (jaccardSim(title, e) >= 0.8) return true;
+  }
+  return false;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -30,6 +52,11 @@ Deno.serve(async (req) => {
     const today = new Date();
     const dateStr = today.toISOString().slice(0,10);
 
+    // Get recent posts to avoid duplication
+    const recent = await base44.asServiceRole.entities.BlogPost.list('-updated_date', 20);
+    const recentTitles = (recent || []).map(p => p.title).filter(Boolean).slice(0, 15);
+    const avoidText = recentTitles.map((t,i) => `${i+1}. ${t}`).join('\n');
+
     const llmSchema = {
       type: 'object',
       properties: {
@@ -44,26 +71,50 @@ Deno.serve(async (req) => {
       required: ['title','excerpt','content_markdown']
     };
 
-    const prompt = `Eres un analista de contenidos logísticos. Investiga HOY en la web (incluye fuentes en español, inglés y chino) sobre: ${topic}.
-- Usa datos recientes y confiables (cita nombres de fuentes dentro del texto cuando aporte claridad).
-- Redacta la salida FINAL en español neutro.
-- Devuelve:
-  * title (máx. ~70 chars, claro y atractivo)
-  * excerpt (120–160 chars, estilo meta description)
-  * content_markdown (estructura con H2/H3, listas, tablas si aplica; añade un bloque de “Conclusiones” y otro de “Recomendaciones prácticas”)
-  * seo_title y seo_description
-  * tags (3–7 palabras clave)
-  * cover_image_prompt (descripción breve para una imagen representativa, sin texto sobreimpreso)
+    let finalPrompt = `Eres un analista de contenidos logísticos. FECHA: ${dateStr}.
+Investiga HOY en la web (ES/EN/中文) sobre: ${topic}.
+
+Evita repetir temas o ángulos similares a los últimos artículos:
+${avoidText || '- (sin historial)'}
+
+Instrucciones:
+- Selecciona un enfoque NOTORIAMENTE distinto y actual.
+- Usa datos recientes y fuentes citables (menciona el medio/informe cuando aporte claridad).
+- Redacta en español neutro.
+
+Devuelve JSON con:
+* title (≤70)
+* excerpt (120–160)
+* content_markdown (H2/H3, listas, tablas si aplica; incluye "Conclusiones" y "Recomendaciones prácticas")
+* seo_title, seo_description
+* tags (3–7)
+* cover_image_prompt (breve, sin texto)
+
 Evita plagio, reescribe con tus palabras y verifica coherencia factual.`;
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt,
+      prompt: finalPrompt,
       add_context_from_internet: true,
       response_json_schema: llmSchema
     });
 
-    const data = result || {};
-    const title = (data.title || `Actualización logística ${dateStr}`).trim();
+    let data = result || {};
+    let title = (data.title || `Actualización logística ${dateStr}`).trim();
+
+    // Retry up to 2 times if too similar to recent posts
+    let attempts = 1;
+    while (isTooSimilar(title, recentTitles) && attempts < 3) {
+      const refinePrompt = `${finalPrompt}\n\nIMPORTANTE:\n- Evita duplicar o reescribir temas similares a estos títulos recientes (no repitas ángulo ni estructura):\n${avoidText}\n- Cambia sustancialmente el enfoque (mercados, normativa, rutas, costos, casos reales, riesgos, estacionalidad).\n- Propón un título claramente diferente.`;
+      const retry = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: refinePrompt,
+        add_context_from_internet: true,
+        response_json_schema: llmSchema
+      });
+      if (retry) data = retry;
+      title = (data.title || `Actualización logística ${dateStr}`).trim();
+      attempts++;
+    }
+
     const slugBase = slugify(title);
 
     // Ensure unique slug
