@@ -97,23 +97,25 @@ export default function AdminBlog({ user }) {
   };
 
   const generateWithAgent = async () => {
-    setGenerating(true);
-    try {
-      const payload = topic.trim() ? { topic: topic.trim() } : {};
-      const { data } = await base44.functions.invoke('generateDailyBlogPost', payload);
-      if (data?.success) {
-        toast.success('Borrador generado con el agente');
-        setOpenAgent(false);
-        setTopic('');
-        qc.invalidateQueries({ queryKey: ['admin-blog-posts'] });
-      } else {
-        toast.error('No se pudo generar el borrador');
-      }
-    } catch (e) {
-      toast.error('Error al generar con el agente');
-    } finally {
-      setGenerating(false);
-    }
+   setGenerating(true);
+   try {
+     const payload = topic.trim() ? { topic: topic.trim() } : {};
+     const { data } = await base44.functions.invoke('generateDailyBlogPost', payload);
+     if (data?.success) {
+       toast.success('Borrador generado con el agente');
+       setOpenAgent(false);
+       setTopic('');
+       qc.invalidateQueries({ queryKey: ['admin-blog-posts'] });
+     } else if (data?.error) {
+       toast.error(data.error || 'No se pudo generar el borrador');
+     } else {
+       toast.error('No se pudo generar el borrador');
+     }
+   } catch (e) {
+     toast.error('Error al generar con el agente');
+   } finally {
+     setGenerating(false);
+   }
   };
 
   return (
