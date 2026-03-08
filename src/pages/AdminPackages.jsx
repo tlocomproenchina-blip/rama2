@@ -304,7 +304,10 @@ export default function AdminPackages({ user }) {
       let content = '';
       marks.forEach((mark, idx) => {
         content += `Shipping Mark\n${mark}\nTracking Number\n`;
-        groups.get(mark).forEach(pkg => { content += `${pkg.tracking_number}\n`; });
+        groups.get(mark).forEach(pkg => {
+          const desc = (pkg.description && String(pkg.description).trim()) ? String(pkg.description).replace(/\r?\n/g, ' ') : 'Sin descripción';
+          content += `${pkg.tracking_number}\n${desc}\n`;
+        });
         if (idx < marks.length - 1) content += `\n`;
       });
       await navigator.clipboard.writeText(content.trim());
