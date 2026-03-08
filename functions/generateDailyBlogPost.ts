@@ -124,6 +124,12 @@ Evita plagio, reescribe con tus palabras y verifica coherencia factual.`;
       slug = `${slugBase}-${today.getTime()}`;
     }
 
+    // If still similar after retries, append a differentiator to title
+    if (isTooSimilar(title, recentTitles)) {
+      const diff = ['Panorama regional', 'Perspectiva regulatoria', 'Análisis de costos', 'Casos reales', 'Tendencias 2026'][Math.floor(Math.random()*5)];
+      title = `${title} — ${diff}`;
+    }
+
     // Cover image generation (required: retry + fallback)
     let coverUrl = '';
     const basePrompt = data.cover_image_prompt || `Logística internacional China a Venezuela, contenedores, carga aérea y marítima, estilo fotorrealista, luz suave`;
