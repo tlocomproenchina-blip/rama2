@@ -55,6 +55,10 @@ export async function sendNotification({ from_name, to, subject, body, title, me
   ensureQueueTimer();
   return new Promise((resolve, reject) => {
     emailQueue.push({ from_name, to, subject, body, title, message, type, icon, referenceId, resolve, reject });
+    // Disparar envío inmediato si el lote es pequeño (< batch)
+    if (emailQueue.length < EMAIL_BATCH_SIZE) {
+      setTimeout(() => { try { flushEmailQueue(); } catch (_) {} }, 250);
+    }
   });
 }
 
