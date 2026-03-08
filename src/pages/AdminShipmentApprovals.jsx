@@ -285,26 +285,27 @@ export default function AdminShipmentApprovals({ user }) {
         status: 'en_transito'
       });
 
-      for (const pkgId of selectedPackages) {
-        await base44.entities.Package.update(pkgId, {
-          status: 'consolidado',
-          consolidation_id: consolidation.id
-        });
-      }
+      await Promise.all(
+        selectedPackages.map((pkgId) =>
+          base44.entities.Package.update(pkgId, {
+            status: 'consolidado',
+            consolidation_id: consolidation.id,
+          })
+        )
+      );
 
       await base44.entities.ConsolidationRequest.update(selectedRequest.id, {
         status: 'consolidada',
         consolidation_id: consolidation.id
       });
 
-      // Generate invoice synchronously
-      try {
-        const { generateInvoice } = await import('@/components/invoice/InvoiceGenerator');
-        await generateInvoice(consolidation);
-      } catch (err) {
-        console.error('Error generating invoice:', err);
-        toast.error('Advertencia: Error al generar factura');
-      }
+      // Generate invoice asynchronously (non-blocking)
+      import('@/components/invoice/InvoiceGenerator')
+        .then(({ generateInvoice }) => generateInvoice(consolidation))
+        .catch((err) => {
+          console.error('Error generating invoice (non-blocking):', err);
+          toast.message?.('Aviso: La factura se está generando en segundo plano');
+        });
 
       import('@/components/NotificationUtils').then(({ sendNotification }) => {
         sendNotification({
