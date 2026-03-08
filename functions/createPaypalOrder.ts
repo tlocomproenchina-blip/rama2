@@ -39,6 +39,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'La factura no está pendiente' }, { status: 400 });
     }
 
+    // Opcional: nombre de marca para checkout
+    let brandName = 'TLEC GROUP LLC';
+    try {
+      const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      brandName = (cfgs?.[0]?.invoice_company_name) || brandName;
+    } catch (_) {}
+
     const accessToken = await getAccessToken();
 
     const amount = Number(invoice.total || 0).toFixed(2);
@@ -54,7 +61,9 @@ Deno.serve(async (req) => {
         },
       ],
       application_context: {
-        landing_page: 'BILLING', // fuerza pantalla de tarjeta (guest checkout)
+        brand_name: brandName,
+        landing_page: 'BILLING', // mostrar tarjeta primero (guest checkout)
+        shipping_preference: 'NO_SHIPPING',
         user_action: 'PAY_NOW',
         return_url: return_url || 'https://example.com/return-paypal',
         cancel_url: cancel_url || 'https://example.com/cancel-paypal',

@@ -88,7 +88,13 @@ export default function MyInvoices({ user }) {
         cancel_url: cancelUrl,
       });
       if (res.status === 200 && res.data?.approval_url) {
-        window.location.href = res.data.approval_url;
+        try {
+          const u = new URL(res.data.approval_url);
+          u.searchParams.set('fundingSource', 'card'); // preferir tarjeta
+          window.location.href = u.toString();
+        } catch (_) {
+          window.location.href = res.data.approval_url;
+        }
       } else {
         throw new Error(res.data?.error || 'No se pudo iniciar PayPal');
       }
