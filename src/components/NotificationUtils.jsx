@@ -42,6 +42,8 @@ function ensureQueueTimer() {
   if (!queueTimer) {
     queueTimer = setInterval(flushEmailQueue, EMAIL_BATCH_INTERVAL_MS);
   }
+  // Flush rápido para no depender del intervalo de 60s
+  setTimeout(() => { try { flushEmailQueue(); } catch (_) {} }, 500);
 }
 
 export async function getAdmins() {
