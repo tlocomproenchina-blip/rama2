@@ -159,7 +159,7 @@ Evita plagio, reescribe con tus palabras y verifica coherencia factual.`;
       tags: Array.isArray(data.tags) ? data.tags : [],
       seo_title: data.seo_title || title,
       seo_description: data.seo_description || (data.excerpt || ''),
-      status: 'draft',
+      status: 'published',
       published_at: new Date().toISOString(),
       author_name: 'TLEC CARGO',
       reading_time_minutes: Math.max(1, Math.round(((data.content_markdown || '').split(/\s+/).filter(Boolean).length) / 200))
