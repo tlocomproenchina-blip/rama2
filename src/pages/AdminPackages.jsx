@@ -438,15 +438,7 @@ export default function AdminPackages({ user }) {
         <CardContent className="p-4">
           <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
             <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Búsqueda rápida por tracking, shipping mark o email..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
                 <TabsList className="w-full overflow-x-auto whitespace-nowrap">
                   <TabsTrigger value="all">Todos</TabsTrigger>
@@ -573,6 +565,17 @@ export default function AdminPackages({ user }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Barra de búsqueda superior */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Input
+          placeholder="Búsqueda rápida por tracking, shipping mark o email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10 w-full h-11"
+        />
+      </div>
 
       {/* Packages Table */}
       <Card className="border-0 shadow-lg overflow-hidden">
