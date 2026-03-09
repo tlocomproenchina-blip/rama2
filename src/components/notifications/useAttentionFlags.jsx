@@ -10,7 +10,6 @@ export default function useAttentionFlags({ user }) {
   const isCustom = !!user?.custom_role;
   const email = user?.email || null;
   const storagePrefix = `attentionSeen:${email || (isAdmin ? 'admin' : (isCustom ? user.custom_role : 'anon'))}:`;
-  const storagePrefix = `attentionSeen:${email || (isAdmin ? 'admin' : (isCustom ? user.custom_role : 'anon'))}:`;
   
 
   const watches = React.useMemo(() => {
