@@ -34,7 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
-import { sendNotification, getEmailQueueStats } from '@/components/NotificationUtils';
+import { getEmailQueueStats } from '@/components/NotificationUtils';
 
 export default function AdminEmailCampaigns({ user }) {
   const [clients, setClients] = useState([]);
