@@ -295,7 +295,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
               isAdmin ? 'bg-amber-500/20 text-amber-400' :
               customRole ? 'bg-blue-500/20 text-blue-400' :
               'bg-emerald-500/20 text-emerald-400'}`
-              }>
+              } style={{ transform: 'translateZ(0)' }}>
                 {isAdmin ? 'Administrador' : roleConfig?.role_name || 'Cliente'}
               </span>
             </div>
