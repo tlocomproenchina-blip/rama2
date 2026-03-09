@@ -104,8 +104,8 @@ export default function AdminEmailCampaigns({ user }) {
 
   const loadClients = async () => {
     const [users, pkgs] = await Promise.all([
-      base44.entities.User.filter({ role: 'user' }),
-      base44.entities.Package.list()
+      base44.entities.User.filter({ role: 'user' }, '-updated_date', 500),
+      base44.entities.Package.list('-updated_date', 500)
     ]);
     setClients(users);
     setPackages(pkgs);
