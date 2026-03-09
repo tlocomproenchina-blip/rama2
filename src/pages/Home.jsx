@@ -1,6 +1,6 @@
 import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
@@ -30,6 +30,19 @@ export default function Home({ user }) {
   const [states, setStates] = React.useState([]);
   const [selectedCode, setSelectedCode] = React.useState('');
   const [authLoading, setAuthLoading] = React.useState(false);
+  const navigate = useNavigate();
+
+  // Si el usuario ya está autenticado y cae en Home, redirigir al Dashboard
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const authed = await base44.auth.isAuthenticated();
+        if (authed) {
+          navigate(createPageUrl('Dashboard'), { replace: true });
+        }
+      } catch (_) {}
+    })();
+  }, [navigate]);
 
   React.useEffect(() => {
     (async () => {
@@ -43,8 +56,9 @@ export default function Home({ user }) {
   }, []);
 
   const handleAuthClick = () => {
-    try {setAuthLoading(true);} catch {}
-    base44.auth.redirectToLogin();
+    try { setAuthLoading(true); } catch {}
+    // Enviar al Dashboard inmediatamente tras login
+    base44.auth.redirectToLogin(createPageUrl('Dashboard'));
   };
 
 
