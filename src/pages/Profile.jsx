@@ -72,7 +72,7 @@ export default function Profile({ user, refreshUser }) {
         }
       }
       
-      const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
+      const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' }, undefined, 1);
       if (pricing.length > 0) {
         setPricingConfig(pricing[0]);
       }
