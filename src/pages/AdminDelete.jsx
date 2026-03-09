@@ -35,8 +35,8 @@ export default function AdminDelete({ user }) {
 
   const loadData = async () => {
     const [pkgs, cons] = await Promise.all([
-      base44.entities.Package.list('-created_date'),
-      base44.entities.Consolidation.list('-created_date')
+      listLimited('Package', 100),
+      listLimited('Consolidation', 100)
     ]);
     setPackages(pkgs);
     setConsolidations(cons);
