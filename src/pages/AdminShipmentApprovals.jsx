@@ -340,7 +340,15 @@ export default function AdminShipmentApprovals({ user }) {
       const res = await base44.functions.invoke('revokeConsolidationApproval', { request_id: request.id });
       if (res?.data?.success) {
         toast.success('Aprobación revocada');
-        // Éxito: ya fue removida de la UI; no recargamos
+        // Inyectar en tiempo real en pestaña de "Solicitudes" sin esperar reload
+        try {
+          const updated = await base44.entities.ConsolidationRequest.get(request.id);
+          if (updated?.status === 'pendiente') {
+            // Emitiremos manualmente un pseudo-evento local: agregar a AdminConsolidate si está montado con suscripción
+            // Como respaldo, intentamos escribir en localStorage para que otro tab/estado lo capture si escucha storage
+            window.dispatchEvent(new CustomEvent('cr:revoked', { detail: updated }));
+          }
+        } catch (_) { /* opcional */ }
       } else {
         // Revertir si falla
         setRequests(prevRequests);
