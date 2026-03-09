@@ -67,6 +67,7 @@ export default function AdminPaymentAlerts({ user }) {
   const loadData = async () => {
     setLoading(true);
     // Use queued client with dedupe keys and lower priority reads
+    // Dedupe same call bursts within the queue
     const [cons, invoices] = await Promise.all([
       base44.entities.Consolidation.filter({ status: 'pendiente_pago' }, '-updated_date', 200),
       base44.entities.Invoice.filter({ status: 'pendiente' }, '-updated_date', 200)
