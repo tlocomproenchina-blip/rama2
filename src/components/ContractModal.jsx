@@ -12,11 +12,16 @@ export default function ContractModal({ open, onAccept, onReject }) {
     if (!open) return;
     const load = async () => {
       try {
-        const cfgs = await base44.entities.AppConfig.filter({ config_key: "main" });
+        const [cfgs, privs] = await Promise.all([
+          base44.entities.AppConfig.filter({ config_key: "main" }),
+          base44.entities.PrivacyConfig.filter({ config_key: "main" })
+        ]);
         const cfg = cfgs?.[0];
+        const privacy = privs?.[0];
         setAppName(cfg?.app_name || "Tu Cuenta");
+        const content = privacy?.terms_of_service || cfg?.contract_text;
         setContractText(
-          cfg?.contract_text ||
+          content ||
             "Al continuar, aceptas los términos y condiciones del servicio."
         );
       } catch (_) {
