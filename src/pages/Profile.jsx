@@ -61,7 +61,7 @@ export default function Profile({ user, refreshUser }) {
 
   const loadConfigs = async () => {
     try {
-      const states = await base44.entities.StateConfig.filter({ is_active: true });
+      const states = await base44.entities.StateConfig.filter({ is_active: true }, undefined, 30);
       const normalized = normalizeStates(states);
       setStateConfigs(normalized);
       // Alinear el valor del usuario (código o nombre) al código esperado por el Select
