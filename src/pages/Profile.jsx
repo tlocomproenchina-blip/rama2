@@ -39,7 +39,7 @@ export default function Profile({ user, refreshUser }) {
 
   const missingFields = getMissingFields();
   const hasMissingFields = missingFields.length > 0;
-  const profileUpdatesDisabled = appConfig?.allow_profile_updates === false;
+  const profileUpdatesDisabled = appConfig?.allow_profile_updates === false ? true : false;
 
   useEffect(() => {
     loadConfigs();
