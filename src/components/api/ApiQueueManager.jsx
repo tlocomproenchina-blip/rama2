@@ -33,6 +33,9 @@ class ApiQueueManager {
     this.circuitBreakerThreshold = 100;
     this.circuitOpenMinutes = 20;
     this.OPERATION_TIMEOUT_MS = 45000; // 45s seguridad contra cuelgues
+    // Realtime + caché granular
+    this.cacheDisabledFor = new Set();
+    this.entitySubscriptions = new Map();
   }
 
   /**
@@ -147,6 +150,10 @@ class ApiQueueManager {
    * Obtiene del cache si es válido
    */
   getFromCache(key, ttlMs = 60000) {
+    // Respeta desactivación de caché por entidad
+    const entity = String(key).split(':')[0];
+    if (this.cacheDisabledFor.has(entity)) return null;
+
     const cached = this.cache.get(key);
     if (!cached) return null;
 
@@ -164,6 +171,8 @@ class ApiQueueManager {
    * Guarda en cache
    */
   saveToCache(key, data) {
+    const entity = String(key).split(':')[0];
+    if (this.cacheDisabledFor.has(entity)) return; // no guardar para vistas críticas
     this.cache.set(key, {
       data,
       timestamp: Date.now()
@@ -535,6 +544,34 @@ class ApiQueueManager {
     if (Number.isFinite(circuitOpenMinutes)) this.circuitOpenMinutes = Math.max(1, circuitOpenMinutes);
   }
 
+  // Desactiva caché para entidades críticas
+  disableCacheFor(entities = []) {
+    (entities || []).forEach((e) => this.cacheDisabledFor.add(String(e)));
+  }
+
+  // Habilita suscripciones en tiempo real y limpia caché al recibir eventos
+  enableRealtime(entities = []) {
+    (entities || []).forEach((name) => {
+      const entity = String(name);
+      if (this.entitySubscriptions.has(entity)) return;
+      let unsubscribe = () => {};
+      try {
+        unsubscribe = base44Client.entities[entity].subscribe((event) => {
+          // Invalida caché relacionada
+          const keys = Array.from(this.cache.keys());
+          keys.filter((k) => k.startsWith(entity + ':')).forEach((k) => this.cache.delete(k));
+          // Notifica globalmente a la UI
+          try {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('entity:event', { detail: { entity, event } }));
+            }
+          } catch (_) {}
+        });
+      } catch (_) {}
+      this.entitySubscriptions.set(entity, unsubscribe);
+    });
+  }
+
   getTuning() {
     return {
       maxReads: this.MAX_CONCURRENT_READS,
@@ -571,6 +608,9 @@ class ApiQueueManager {
 
 // Singleton global
 const apiQueue = new ApiQueueManager();
+// Activar realtime + sin caché en vistas críticas por defecto
+apiQueue.enableRealtime(['Package','Consolidation','ConsolidationRequest','Invoice','Notification']);
+apiQueue.disableCacheFor(['Package','Consolidation','ConsolidationRequest','Invoice','Notification']);
 
 // Export como base44 compatible
 export const base44 = apiQueue;
@@ -579,3 +619,5 @@ export const base44 = apiQueue;
 export const getApiStatus = () => apiQueue.getSystemStatus();
 export const setApiTuning = (opts) => apiQueue.setTuning(opts);
 export const getApiTuning = () => apiQueue.getTuning();
+export const enableRealtime = (entities) => apiQueue.enableRealtime(entities);
+export const disableCacheFor = (entities) => apiQueue.disableCacheFor(entities);
