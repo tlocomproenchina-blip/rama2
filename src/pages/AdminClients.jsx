@@ -555,7 +555,7 @@ Email: ${client.email}`;
 
   // Flexible search helpers: ignore accents, case, spaces and symbols; numeric-only for phones
   const removeDiacritics = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const normalizeText = (str) => removeDiacritics(str).toLowerCase().trim();
+  const normalizeText = (str) => removeDiacritics(str).toLowerCase().replace(/\s+/g, ' ').trim();
   const normalizeAlnum = (str) => normalizeText(str).replace(/[^a-z0-9]/g, '');
   const getDigits = (str) => (str || '').replace(/\D/g, '');
 
@@ -615,11 +615,13 @@ Email: ${client.email}`;
     const full = `${first} ${last}`.trim();
     const cityNorm = normalizeText(client.city || '');
     const whatsappDigits = getDigits(client.whatsapp || '');
+    const phoneDigits = getDigits(client.phone || '');
     const shippingMarkNorm = normalizeAlnum(client.shipping_mark || '');
+    const fullNameAlnum = normalizeAlnum((client.first_name || '') + (client.last_name || ''));
 
     const matchesText = qText === '' || email.includes(qText) || first.includes(qText) || last.includes(qText) || full.includes(qText) || cityNorm.includes(qText);
-    const matchesDigits = qDigits !== '' && whatsappDigits.includes(qDigits);
-    const matchesAlnum = qAlnum !== '' && shippingMarkNorm.includes(qAlnum);
+    const matchesDigits = qDigits !== '' && (whatsappDigits.includes(qDigits) || phoneDigits.includes(qDigits));
+    const matchesAlnum = qAlnum !== '' && (shippingMarkNorm.includes(qAlnum) || fullNameAlnum.includes(qAlnum));
 
     const matchesSearch = matchesText || matchesDigits || matchesAlnum;
 
