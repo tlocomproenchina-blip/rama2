@@ -12,14 +12,15 @@ import { toast } from 'sonner';
 
 export default function Profile({ user, refreshUser }) {
   const [formData, setFormData] = useState({
-    first_name: user?.first_name || '',
-    last_name: user?.last_name || '',
-    phone: user?.phone || '',
-    whatsapp: user?.whatsapp || '',
-    state: user?.state || '',
-    city: user?.city || '',
-    address: user?.address || ''
-  });
+      first_name: user?.first_name || '',
+      last_name: user?.last_name || '',
+      cedula: user?.cedula || '',
+      phone: user?.phone || '',
+      whatsapp: user?.whatsapp || '',
+      state: user?.state || '',
+      city: user?.city || '',
+      address: user?.address || ''
+    });
   const [saving, setSaving] = useState(false);
   const [stateConfigs, setStateConfigs] = useState([]);
   const [pricingConfig, setPricingConfig] = useState(null);
@@ -30,6 +31,7 @@ export default function Profile({ user, refreshUser }) {
     const missing = [];
     if (!user?.first_name) missing.push('first_name');
     if (!user?.last_name) missing.push('last_name');
+    if (!user?.cedula) missing.push('cedula');
     if (!user?.phone) missing.push('phone');
     if (!user?.whatsapp) missing.push('whatsapp');
     if (!user?.state) missing.push('state');
@@ -50,6 +52,7 @@ export default function Profile({ user, refreshUser }) {
       setFormData({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
+        cedula: user.cedula || '',
         phone: user.phone || '',
         whatsapp: user.whatsapp || '',
         state: user.state || '',
@@ -140,6 +143,11 @@ export default function Profile({ user, refreshUser }) {
     // Validaciones
     if (!formData.first_name || !formData.last_name) {
       toast.error('Nombre y apellido son obligatorios');
+      return;
+    }
+
+    if (!formData.cedula) {
+      toast.error('La cédula es obligatoria');
       return;
     }
 
@@ -275,6 +283,19 @@ export default function Profile({ user, refreshUser }) {
                   required
                 />
               </div>
+            </div>
+
+            {/* Cédula */}
+            <div className="space-y-2">
+              <Label htmlFor="cedula">NUMERO DE CEDULA *</Label>
+              <Input
+                id="cedula"
+                value={formData.cedula}
+                onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+                placeholder="V-12345678"
+                disabled={isFieldDisabled('cedula')}
+                required
+              />
             </div>
 
             {/* Teléfonos */}
