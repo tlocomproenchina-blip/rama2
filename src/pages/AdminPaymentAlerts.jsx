@@ -138,8 +138,10 @@ export default function AdminPaymentAlerts({ user }) {
     if (!confirmed) return;
 
     setLoading(true);
+    // Send sequentially but yield between to respect rate limits
     for (const payment of overdue) {
       await notifyClient(payment);
+      await new Promise(r => setTimeout(r, 200));
     }
     setLoading(false);
     toast.success(`${overdue.length} recordatorio(s) enviado(s)`);
