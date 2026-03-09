@@ -31,6 +31,48 @@ export default function AdminConsolidate({ user }) {
     loadData();
   }, []);
 
+  // Suscripción en tiempo real: refleja cambios sin recargar
+  useEffect(() => {
+    const unsubscribe = base44.entities.ConsolidationRequest.subscribe((event) => {
+      const data = event?.data;
+      if (!data) return;
+
+      setRequests((prev) => {
+        const idx = prev.findIndex((r) => r.id === data.id);
+
+        if (event.type === 'delete') {
+          if (idx === -1) return prev;
+          const copy = [...prev];
+          copy.splice(idx, 1);
+          return copy;
+        }
+
+        // Para create/update, mantener solo "pendiente" en esta lista
+        if (data.status === 'pendiente') {
+          if (idx === -1) {
+            return [data, ...prev];
+          } else {
+            const copy = [...prev];
+            copy[idx] = { ...copy[idx], ...data };
+            return copy;
+          }
+        } else {
+          // Si deja de ser pendiente, quitarla
+          if (idx !== -1) {
+            const copy = [...prev];
+            copy.splice(idx, 1);
+            return copy;
+          }
+          return prev;
+        }
+      });
+    });
+
+    return () => {
+      try { unsubscribe && unsubscribe(); } catch (_) {}
+    };
+  }, []);
+
   const loadData = async () => {
     // Load pending requests
     const reqs = await base44.entities.ConsolidationRequest.filter({ 
