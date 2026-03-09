@@ -85,10 +85,21 @@ Deno.serve(async (req) => {
     const nowIso = new Date().toISOString();
     const queued = await base44.asServiceRole.entities.NotificationJob.filter({
       status: 'queued',
-    }, '-priority,-created_date', BATCH_LIMIT);
+    }, '-created_date', BATCH_LIMIT);
 
     // Filtrar por next_attempt_at
     const ready = (queued || []).filter(j => !j.next_attempt_at || j.next_attempt_at <= nowIso);
+
+    // Ordenar por prioridad (high > normal > low) y luego por fecha
+    const prioRank = { high: 3, normal: 2, low: 1 };
+    ready.sort((a, b) => {
+      const pa = prioRank[a.priority] || 2;
+      const pb = prioRank[b.priority] || 2;
+      if (pb !== pa) return pb - pa;
+      const da = new Date(a.created_date || 0).getTime();
+      const db = new Date(b.created_date || 0).getTime();
+      return da - db;
+    });
 
     let sent = 0, failed = 0, requeued = 0;
     for (const job of ready) {
