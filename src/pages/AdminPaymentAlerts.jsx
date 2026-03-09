@@ -35,7 +35,7 @@ export default function AdminPaymentAlerts({ user }) {
 
   const loadConfig = async () => {
     try {
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, undefined, 1);
       if (configs.length > 0 && configs[0].payment_alert_days) {
         setAlertDays(configs[0].payment_alert_days);
       }
