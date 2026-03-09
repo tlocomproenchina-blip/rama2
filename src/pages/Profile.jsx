@@ -326,7 +326,7 @@ export default function Profile({ user, refreshUser }) {
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona tu estado" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-64 overflow-auto">
                      {stateConfigs.map((state) => (
                        <SelectItem key={state.state_code} value={state.state_code}>
                          {state.state_name}
