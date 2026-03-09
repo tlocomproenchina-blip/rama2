@@ -284,44 +284,30 @@ export default function AdminEmailCampaigns({ user }) {
         });
       }
 
-      for (const client of getTargetClients) {
-        try {
-          // Reemplazar variables en el asunto y cuerpo
-          const personalizedSubject = replaceEmailVariables(emailData.subject, client);
-          const personalizedBody = replaceEmailVariables(emailBody, client);
+      // Preparar lote para cola backend
+      const messages = getTargetClients.map((client) => {
+        const personalizedSubject = replaceEmailVariables(emailData.subject, client);
+        const personalizedBody = replaceEmailVariables(emailBody, client);
+        return {
+          to: client.email,
+          subject: personalizedSubject,
+          body: personalizedBody,
+          from_name: emailData.fromName,
+          source: 'campaign'
+        };
+      });
 
-          // Encolar inmediatamente (no esperar por cada envío)
-          sendNotification({
-            from_name: emailData.fromName,
-            to: client.email,
-            subject: personalizedSubject,
-            body: personalizedBody,
-            title: personalizedSubject,
-            message: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 140),
-            type: 'system',
-            icon: 'info',
-            referenceId: client.id
-          }).catch(() => {});
-
-          // Registrar en historial sin bloquear
-          base44.entities.EmailLog.create({
-            recipient_email: client.email,
-            recipient_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.email,
-            sender_email: user.email,
-            from_name: emailData.fromName,
-            subject: personalizedSubject,
-            body_preview: personalizedBody.replace(/<[^>]*>/g, '').substring(0, 200),
-            source: 'manual',
-            status: 'sent',
-            sent_date: new Date().toISOString()
-          }).catch(() => {});
-
-          results.success++;
-        } catch (error) {
-          results.failed++;
-          results.errors.push({ email: client.email, error: error.message });
+      // Enviar al backend en lotes seguros
+      const chunkSize = 500;
+      for (let i = 0; i < messages.length; i += chunkSize) {
+        const chunk = messages.slice(i, i + chunkSize);
+        const resp = await base44.functions.invoke('sendEmailQueue', { messages: chunk });
+        if (resp?.status !== 200) {
+          throw new Error('Fallo al encolar emails');
         }
       }
+
+      results.success = messages.length;
       
       loadEmailStats();
 
