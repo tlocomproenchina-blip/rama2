@@ -340,8 +340,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                                                               {flags[item.page] && (
-                                                                <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
-                                                              )}
+                                                                                                <span className="ml-auto inline-block h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
+                                                                                              )}
                                                             </div>
                             
                           </Link>
@@ -379,8 +379,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                                                               {flags[item.page] && (
-                                                                <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
-                                                              )}
+                                                                                                <span className="ml-auto inline-block h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
+                                                                                              )}
                                                             </div>
                             
                           </Link>
