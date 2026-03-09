@@ -30,17 +30,17 @@ export default function ProfileSetupModal({ open, onComplete }) {
 
   const loadConfigs = async () => {
     try {
-      const states = await base44.entities.StateConfig.filter({ is_active: true }, undefined, 30);
+      // Ejecutar en paralelo con dedupe interno del ApiQueueManager
+      const [states, pricingArr, me] = await Promise.all([
+        base44.entities.StateConfig.filter({ is_active: true }, undefined, 30),
+        base44.entities.PricingConfig.filter({ config_key: 'main' }, undefined, 1),
+        base44.auth.me(),
+      ]);
+
       const normalized = normalizeStates(states);
       setStateConfigs(normalized);
-      
-      const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' }, undefined, 1);
-      if (pricing.length > 0) {
-        setPricingConfig(pricing[0]);
-      }
+      if (pricingArr.length > 0) setPricingConfig(pricingArr[0]);
 
-      // Si el usuario ya tiene un valor guardado (código o nombre), alinear al código
-      const me = await base44.auth.me();
       if (me?.state) {
         const match = findStateByCodeOrName(normalized, me.state);
         if (match) setFormData((prev) => ({ ...prev, state: match.state_code }));
