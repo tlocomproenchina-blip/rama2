@@ -322,7 +322,7 @@ export default function Profile({ user, refreshUser }) {
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona tu estado" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-64 overflow-auto">
+                  <SelectContent className="max-h-64 overflow-auto" onCloseAutoFocus={(e) => { e.preventDefault(); }}>
                      {stateConfigs.map((state) => (
                        <SelectItem key={state.state_code} value={state.state_code}>
                          {state.state_name}
