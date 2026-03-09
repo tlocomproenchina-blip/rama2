@@ -12,13 +12,14 @@ import { normalizeStates, findStateByCodeOrName } from '@/components/utils/state
 
 export default function ProfileSetupModal({ open, onComplete }) {
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    state: '',
-    city: '',
-    whatsapp: '',
-    address: ''
-  });
+      first_name: '',
+      last_name: '',
+      cedula: '',
+      state: '',
+      city: '',
+      whatsapp: '',
+      address: ''
+    });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [stateConfigs, setStateConfigs] = useState([]);
@@ -54,6 +55,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
     const newErrors = {};
     if (!formData.first_name.trim()) newErrors.first_name = 'Nombre requerido';
     if (!formData.last_name.trim()) newErrors.last_name = 'Apellido requerido';
+    if (!formData.cedula.trim()) newErrors.cedula = 'Número de cédula requerido';
     if (!formData.state.trim()) newErrors.state = 'Estado requerido';
     if (!formData.city.trim()) newErrors.city = 'Ciudad requerida';
     if (!formData.whatsapp.trim()) newErrors.whatsapp = 'WhatsApp requerido';
@@ -193,8 +195,25 @@ export default function ProfileSetupModal({ open, onComplete }) {
             </div>
           </div>
 
+          {/* Cédula */}
           <div className="space-y-2">
-            <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
+            <Label htmlFor="cedula" className="text-slate-700">NUMERO DE CEDULA</Label>
+            <Input
+              id="cedula"
+              value={formData.cedula}
+              onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+              placeholder="V-12345678"
+              className={errors.cedula ? 'border-red-300' : ''}
+            />
+            {errors.cedula && (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" /> {errors.cedula}
+              </p>
+            )}
+          </div>
+
+           <div className="space-y-2">
+             <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
             <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
