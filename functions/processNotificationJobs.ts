@@ -74,13 +74,11 @@ async function processOne(base44, job) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    let user = null;
+    try { user = await base44.auth.me(); } catch (_) {}
 
-    // Sólo admins pueden disparar procesamiento manual
-    if (user.role !== 'admin') {
+    // Si viene desde UI (con usuario), exigir admin; si es automatización (sin usuario), permitir
+    if (user && user.role !== 'admin') {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
