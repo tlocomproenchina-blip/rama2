@@ -7,14 +7,21 @@ import { base44 as base44Raw } from '@/api/base44Client';
 // - Solo considera si hubo una actualización más reciente que la última vez que el usuario "vio" esa sección
 export default function useAttentionFlags({ user }) {
   const isAdmin = user?.role === 'admin';
+  const isCustom = !!user?.custom_role;
   const email = user?.email || null;
 
   const watches = React.useMemo(() => {
-    if (isAdmin) {
+    if (isAdmin || isCustom) {
       return [
         { key: 'AdminSupportTickets', entity: 'SupportTicket' },
         { key: 'AdminPackages', entity: 'Package' },
         { key: 'AdminPayments', entity: 'Consolidation' },
+        { key: 'AdminInvoices', entity: 'Invoice' },
+        { key: 'AdminConsolidate', entity: 'ConsolidationRequest' },
+        { key: 'AdminShipmentApprovals', entity: 'Consolidation' },
+        { key: 'AdminAccountsPayable', entity: 'AccountsPayable' },
+        { key: 'AdminProviderPayments', entity: 'ProviderPayment' },
+        { key: 'AdminProviders', entity: 'ShippingProvider' },
       ];
     }
     // Básico para clientes (opcional): paquetes, facturas y soporte propios
@@ -23,7 +30,7 @@ export default function useAttentionFlags({ user }) {
       { key: 'MyPackages', entity: 'Package', query: email ? { client_email: email } : null },
       { key: 'MyInvoices', entity: 'Invoice', query: email ? { client_email: email } : null },
     ];
-  }, [isAdmin, email]);
+  }, [isAdmin, isCustom, email]);
 
   const [flags, setFlags] = React.useState({});
   const [latestByKey, setLatestByKey] = React.useState({});
