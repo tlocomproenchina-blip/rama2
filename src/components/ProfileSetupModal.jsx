@@ -22,6 +22,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [stateConfigs, setStateConfigs] = useState([]);
+  const [isStatesOpen, setIsStatesOpen] = useState(false);
   const [pricingConfig, setPricingConfig] = useState(null);
 
   useEffect(() => {
