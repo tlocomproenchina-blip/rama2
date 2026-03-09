@@ -331,15 +331,23 @@ export default function AdminShipmentApprovals({ user }) {
   const handleRevokeApproval = async (request) => {
     if (!confirm('¿Revocar la aprobación de esta solicitud y devolverla a pendiente?')) return;
     setRevokingId(request.id);
+
+    // Optimistic UI: quitar de la lista de inmediato
+    const prevRequests = requests;
+    setRequests((curr) => curr.filter((r) => r.id !== request.id));
+
     try {
       const res = await base44.functions.invoke('revokeConsolidationApproval', { request_id: request.id });
       if (res?.data?.success) {
         toast.success('Aprobación revocada');
-        loadData();
+        // Éxito: ya fue removida de la UI; no recargamos
       } else {
+        // Revertir si falla
+        setRequests(prevRequests);
         toast.error(res?.data?.error || 'No se pudo revocar');
       }
     } catch (error) {
+      setRequests(prevRequests);
       toast.error('Error al revocar aprobación');
     }
     setRevokingId(null);
