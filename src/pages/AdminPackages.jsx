@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import AdvancedSearch from '@/components/admin/AdvancedSearch';
+import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 export default function AdminPackages({ user }) {
@@ -62,6 +63,7 @@ export default function AdminPackages({ user }) {
   const pageSize = 50;
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   useEffect(() => {
     loadPackages(page);
@@ -468,15 +470,25 @@ export default function AdminPackages({ user }) {
               </Select>
 
               </div>
-            <Button
-              onClick={handleExportPreAlerta}
-              variant="outline"
-              size="sm"
-              className="border-blue-200 text-blue-600 hover:bg-blue-50"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Pre-alerta
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setCreateModalOpen(true)}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Registrar Paquete
+              </Button>
+              <Button
+                onClick={handleExportPreAlerta}
+                variant="outline"
+                size="sm"
+                className="border-blue-200 text-blue-600 hover:bg-blue-50"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Pre-alerta
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -959,6 +971,16 @@ export default function AdminPackages({ user }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Register Package Modal */}
+      <RegisterPackageModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onCreated={() => {
+          setCreateModalOpen(false);
+          loadPackages(page);
+        }}
+      />
     </div>
   );
 }

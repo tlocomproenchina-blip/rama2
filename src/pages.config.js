@@ -55,6 +55,7 @@ import AdminBlog from './pages/AdminBlog';
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminDelete from './pages/AdminDelete';
 import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
 import AdminEmailTemplates from './pages/AdminEmailTemplates';
 import AdminFAQ from './pages/AdminFAQ';
@@ -63,12 +64,16 @@ import AdminInvoices from './pages/AdminInvoices';
 import AdminKnowledgeBase from './pages/AdminKnowledgeBase';
 import AdminMarketing from './pages/AdminMarketing';
 import AdminPackages from './pages/AdminPackages';
+import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
+import AdminPermissions from './pages/AdminPermissions';
 import AdminPromotions from './pages/AdminPromotions';
 import AdminProviderPayments from './pages/AdminProviderPayments';
 import AdminProviders from './pages/AdminProviders';
 import AdminReferrals from './pages/AdminReferrals';
 import AdminReports from './pages/AdminReports';
+import AdminRoles from './pages/AdminRoles';
+import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
@@ -87,18 +92,13 @@ import MyPackages from './pages/MyPackages';
 import MyReferrals from './pages/MyReferrals';
 import PaypalReturn from './pages/PaypalReturn';
 import PreAlert from './pages/PreAlert';
+import Profile from './pages/Profile';
 import Rates from './pages/Rates';
 import RequestConsolidation from './pages/RequestConsolidation';
 import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import TermsOfService from './pages/TermsOfService';
-import AdminDelete from './pages/AdminDelete';
-import AdminPermissions from './pages/AdminPermissions';
-import AdminSettings from './pages/AdminSettings';
-import Profile from './pages/Profile';
-import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
-import AdminRoles from './pages/AdminRoles';
 import __Layout from './Layout.jsx';
 
 
@@ -111,6 +111,7 @@ export const PAGES = {
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
+    "AdminDelete": AdminDelete,
     "AdminEmailCampaigns": AdminEmailCampaigns,
     "AdminEmailTemplates": AdminEmailTemplates,
     "AdminFAQ": AdminFAQ,
@@ -119,12 +120,16 @@ export const PAGES = {
     "AdminKnowledgeBase": AdminKnowledgeBase,
     "AdminMarketing": AdminMarketing,
     "AdminPackages": AdminPackages,
+    "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPayments": AdminPayments,
+    "AdminPermissions": AdminPermissions,
     "AdminPromotions": AdminPromotions,
     "AdminProviderPayments": AdminProviderPayments,
     "AdminProviders": AdminProviders,
     "AdminReferrals": AdminReferrals,
     "AdminReports": AdminReports,
+    "AdminRoles": AdminRoles,
+    "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
@@ -143,18 +148,13 @@ export const PAGES = {
     "MyReferrals": MyReferrals,
     "PaypalReturn": PaypalReturn,
     "PreAlert": PreAlert,
+    "Profile": Profile,
     "Rates": Rates,
     "RequestConsolidation": RequestConsolidation,
     "ShipmentTracking": ShipmentTracking,
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
     "TermsOfService": TermsOfService,
-    "AdminDelete": AdminDelete,
-    "AdminPermissions": AdminPermissions,
-    "AdminSettings": AdminSettings,
-    "Profile": Profile,
-    "AdminPaymentAlerts": AdminPaymentAlerts,
-    "AdminRoles": AdminRoles,
 }
 
 export const pagesConfig = {
