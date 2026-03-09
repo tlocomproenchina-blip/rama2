@@ -198,16 +198,16 @@ export default function ProfileSetupModal({ open, onComplete }) {
             <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
-            <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
+            <Select open={isStatesOpen} onOpenChange={setIsStatesOpen} value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
               <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
                 <SelectValue placeholder="Selecciona tu estado" />
               </SelectTrigger>
-              <SelectContent className="max-h-64 overflow-auto">
-                {stateConfigs.map((state) => (
-                  <SelectItem key={state.state_code} value={state.state_code}>
-                    {state.state_name}
-                  </SelectItem>
-                ))}
+              <SelectContent className="max-h-64 overflow-auto" onCloseAutoFocus={(e) => { e.preventDefault(); }}>
+               {stateConfigs.map((state) => (
+                 <SelectItem key={state.state_code} value={state.state_code}>
+                   {state.state_name}
+                 </SelectItem>
+               ))}
               </SelectContent>
             </Select>
             {errors.state && (
