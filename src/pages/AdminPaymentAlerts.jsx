@@ -28,7 +28,9 @@ export default function AdminPaymentAlerts({ user }) {
 
   useEffect(() => {
     loadConfig();
-    loadData();
+    // Debounce initial data load slightly to avoid burst on navigation
+    const t = setTimeout(() => loadData(), 150);
+    return () => clearTimeout(t);
   }, []);
 
   const loadConfig = async () => {
