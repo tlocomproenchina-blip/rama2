@@ -68,8 +68,20 @@ export default function AdminConsolidate({ user }) {
       });
     });
 
+    // Listener auxiliar para eventos locales (revocación inmediata desde otra vista)
+    const onLocalRevoked = (e) => {
+      const cr = e?.detail;
+      if (!cr) return;
+      setRequests((prev) => {
+        const exists = prev.some((r) => r.id === cr.id);
+        return cr.status === 'pendiente' && !exists ? [cr, ...prev] : prev;
+      });
+    };
+    window.addEventListener('cr:revoked', onLocalRevoked);
+
     return () => {
       try { unsubscribe && unsubscribe(); } catch (_) {}
+      window.removeEventListener('cr:revoked', onLocalRevoked);
     };
   }, []);
 
