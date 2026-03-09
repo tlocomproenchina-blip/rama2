@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,7 +113,7 @@ export default function AdminEmailCampaigns({ user }) {
   };
 
   const loadEmailStats = async () => {
-    const logs = await base44.entities.EmailLog.list();
+    const logs = await base44.entities.EmailLog.list('-updated_date', 200);
     const stats = {
       total: logs.length,
       delivered: logs.filter(l => ['delivered', 'opened', 'clicked'].includes(l.status)).length,
@@ -127,7 +127,7 @@ export default function AdminEmailCampaigns({ user }) {
   };
 
   const loadTemplates = async () => {
-    const data = await base44.entities.EmailTemplate.list('-created_date');
+    const data = await base44.entities.EmailTemplate.list('-created_date', 200);
     setTemplates(data);
   };
 
