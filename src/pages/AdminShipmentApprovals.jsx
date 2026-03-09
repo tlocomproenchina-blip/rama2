@@ -61,6 +61,7 @@ export default function AdminShipmentApprovals({ user }) {
   const [clientUser, setClientUser] = useState(null);
   const [pricingConfig, setPricingConfig] = useState(null);
   const [stateConfig, setStateConfig] = useState(null);
+  const [revokingId, setRevokingId] = useState(null);
   const MIN_CBM = 0.13;
 
   useEffect(() => {
@@ -325,6 +326,23 @@ export default function AdminShipmentApprovals({ user }) {
       toast.error('Error al consolidar');
     }
     setProcessing(false);
+  };
+
+  const handleRevokeApproval = async (request) => {
+    if (!confirm('¿Revocar la aprobación de esta solicitud y devolverla a pendiente?')) return;
+    setRevokingId(request.id);
+    try {
+      const res = await base44.functions.invoke('revokeConsolidationApproval', { request_id: request.id });
+      if (res?.data?.success) {
+        toast.success('Aprobación revocada');
+        loadData();
+      } else {
+        toast.error(res?.data?.error || 'No se pudo revocar');
+      }
+    } catch (error) {
+      toast.error('Error al revocar aprobación');
+    }
+    setRevokingId(null);
   };
 
   const handleExportApproved = () => {
@@ -875,13 +893,27 @@ export default function AdminShipmentApprovals({ user }) {
                     </div>
                   </div>
 
-                  <Button
-                    onClick={() => selectRequest(req)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Layers className="h-4 w-4 mr-2" />
-                    Consolidar
-                  </Button>
+                  <div className="flex flex-col items-end gap-2">
+                    <Button
+                      onClick={() => selectRequest(req)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Layers className="h-4 w-4 mr-2" />
+                      Consolidar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleRevokeApproval(req)}
+                      disabled={revokingId === req.id}
+                      className="border-red-300 text-red-700 hover:bg-red-50"
+                    >
+                      {revokingId === req.id ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Revocando...</>
+                      ) : (
+                        <><Undo className="h-4 w-4 mr-2" /> Revocar aprobación</>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
