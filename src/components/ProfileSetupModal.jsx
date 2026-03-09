@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { User, MapPin, Phone, Loader2, AlertCircle, DollarSign, Home } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 
 export default function ProfileSetupModal({ open, onComplete }) {
