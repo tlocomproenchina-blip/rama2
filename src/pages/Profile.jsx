@@ -77,7 +77,7 @@ export default function Profile({ user, refreshUser }) {
         setPricingConfig(pricing[0]);
       }
 
-      const config = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      const config = await base44.entities.AppConfig.filter({ config_key: 'main' }, undefined, 1);
       if (config.length > 0) {
         setAppConfig(config[0]);
       }
