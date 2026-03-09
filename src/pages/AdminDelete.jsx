@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+
+// Throttle heavy loads and avoid parallel bursts
+const listLimited = async (entity, limit = 50) => base44.entities[entity].list('-updated_date', limit);
+const filterLimited = async (entity, query = {}, limit = 50) => base44.entities[entity].filter(query, '-updated_date', limit);
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
