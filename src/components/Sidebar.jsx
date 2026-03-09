@@ -248,7 +248,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         {/* Header */}
         <div className="bg-[#1c3f82] p-6 border-b border-slate-700/50">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 w-full">
+            <div className="flex items-center gap-3">
               {config?.app_logo_url ? (
                 <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-white flex items-center justify-center">
                   <OptimizedImage
@@ -295,7 +295,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
               isAdmin ? 'bg-amber-500/20 text-amber-400' :
               customRole ? 'bg-blue-500/20 text-blue-400' :
               'bg-emerald-500/20 text-emerald-400'}`
-              } style={{ transform: 'translateZ(0)' }}>
+              }>
                 {isAdmin ? 'Administrador' : roleConfig?.role_name || 'Cliente'}
               </span>
             </div>
@@ -303,7 +303,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1 will-change-transform">
+        <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1">
           {customRole && !roleConfig ? (
             <div className="space-y-2 animate-pulse">
               <div className="h-10 bg-slate-700/40 rounded-xl" />
@@ -323,8 +323,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                         if (!item) return null;
                         const Icon = item.icon;
                         const isActive = currentPage === item.page;
-                        // fuerza re-render del indicador en PWA al recuperar foco
-                        // (se apoya en el polling, pero esto evita estados pegados)
+
+
 
                         return (
                           <Link
@@ -336,12 +336,12 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
                             `}
                           >
-                            <div className="flex items-center gap-3 w-full">
+                            <div className="flex items-center gap-3">
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                                                               {flags[item.page] && (
-                                                                                                <span className="ml-auto inline-block h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
-                                                                                              )}
+                                                                <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
+                                                              )}
                                                             </div>
                             
                           </Link>
@@ -375,12 +375,12 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
                             `}
                           >
-                            <div className="flex items-center gap-3 w-full">
+                            <div className="flex items-center gap-3">
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                                                               {flags[item.page] && (
-                                                                                                <span className="ml-auto inline-block h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
-                                                                                              )}
+                                                                <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
+                                                              )}
                                                             </div>
                             
                           </Link>
@@ -408,12 +408,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                       'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
                       `
                       }>
-                      <div className="flex items-center gap-3 w-full">
+                      <div className="flex items-center gap-3">
                         <Icon className="h-5 w-5 flex-shrink-0" />
                         <span className="font-medium">{item.name}</span>
-                        {flags[item.page] && (
-                          <span className="ml-auto inline-block h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
-                        )}
                       </div>
 
                     </Link>

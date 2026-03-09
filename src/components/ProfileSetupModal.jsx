@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { User, MapPin, Phone, Loader2, AlertCircle, DollarSign, Home } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 } from '@/api/base44Client';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 
 export default function ProfileSetupModal({ open, onComplete }) {
@@ -22,7 +22,6 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [stateConfigs, setStateConfigs] = useState([]);
-  const [isStatesOpen, setIsStatesOpen] = useState(false);
   const [pricingConfig, setPricingConfig] = useState(null);
 
   useEffect(() => {
@@ -31,17 +30,17 @@ export default function ProfileSetupModal({ open, onComplete }) {
 
   const loadConfigs = async () => {
     try {
-      // Ejecutar en paralelo con dedupe interno del ApiQueueManager
-      const [states, pricingArr, me] = await Promise.all([
-        base44.entities.StateConfig.filter({ is_active: true }, undefined, 30),
-        base44.entities.PricingConfig.filter({ config_key: 'main' }, undefined, 1),
-        base44.auth.me(),
-      ]);
-
+      const states = await base44.entities.StateConfig.filter({ is_active: true });
       const normalized = normalizeStates(states);
       setStateConfigs(normalized);
-      if (pricingArr.length > 0) setPricingConfig(pricingArr[0]);
+      
+      const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
+      if (pricing.length > 0) {
+        setPricingConfig(pricing[0]);
+      }
 
+      // Si el usuario ya tiene un valor guardado (código o nombre), alinear al código
+      const me = await base44.auth.me();
       if (me?.state) {
         const match = findStateByCodeOrName(normalized, me.state);
         if (match) setFormData((prev) => ({ ...prev, state: match.state_code }));
@@ -198,11 +197,11 @@ export default function ProfileSetupModal({ open, onComplete }) {
             <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
-            <Select open={isStatesOpen} onOpenChange={setIsStatesOpen} value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
+            <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
               <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
                 <SelectValue placeholder="Selecciona tu estado" />
               </SelectTrigger>
-              <SelectContent className="max-h-64 overflow-auto" onCloseAutoFocus={(e) => { e.preventDefault(); }}>
+              <SelectContent>
                {stateConfigs.map((state) => (
                  <SelectItem key={state.state_code} value={state.state_code}>
                    {state.state_name}

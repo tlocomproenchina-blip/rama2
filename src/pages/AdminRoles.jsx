@@ -15,17 +15,9 @@ const PERMISSION_LABELS = {
   edit_clients: 'Editar Clientes',
   consolidate: 'Consolidar',
   approve_consolidations: 'Aprobar Consolidaciones',
-
+  validate_payments: 'Validar Pagos',
   view_invoices: 'Ver Facturas',
   create_invoices: 'Crear Facturas',
-  view_payments: 'Ver Pagos',
-  validate_payments: 'Validar Pagos',
-
-  view_accounts_payable: 'Ver Cuentas por Pagar',
-  manage_accounts_payable: 'Gestionar Cuentas por Pagar',
-  view_providers: 'Ver Proveedores',
-  manage_providers: 'Gestionar Proveedores',
-
   send_emails: 'Enviar Emails',
   manage_faq: 'Gestionar FAQ',
   manage_support: 'Gestionar Soporte',
@@ -46,17 +38,11 @@ const PAGE_LABELS = {
   'AdminClients': 'Clientes',
   'AdminConsolidate': 'Aprobaciones',
   'AdminShipmentApprovals': 'Consolidar',
-
   'AdminPayments': 'Validar Pagos',
   'AdminInvoices': 'Facturas',
-  'AdminPaymentAlerts': 'Alertas de Pago',
-
-  'AdminAccountsPayable': 'Cuentas por Pagar',
-  'AdminProviders': 'Proveedores',
-  'AdminProviderPayments': 'Pagos a Proveedores',
-
   'AdminEmailCampaigns': 'Enviar Emails',
   'AdminEmailTemplates': 'Plantillas Email',
+  'AdminPaymentAlerts': 'Alertas de Pago',
   'AdminPromotions': 'Promociones',
   'AdminMarketing': 'Marketing',
   'AdminInsured': 'Tracking Asegurados',
@@ -66,7 +52,6 @@ const PAGE_LABELS = {
   'AdminPermissions': 'Administradores',
   'AdminSettings': 'Configuración',
   'AdminReports': 'Reportes',
-
   'ShipmentTracking': 'Seguimiento',
   'ShippingCalculator': 'Calculadora'
 };
@@ -147,29 +132,11 @@ export default function AdminRoles({ user }) {
           edit_clients: true,
           consolidate: true,
           approve_consolidations: true,
-
           view_invoices: true,
-          view_payments: true,
-          validate_payments: true,
-
-          view_accounts_payable: true,
-          manage_accounts_payable: true,
-          view_providers: true,
-          manage_providers: true,
-
           view_reports: true,
-          manage_support: true,
-          invite_users: true,
-          manage_roles: true
+          manage_support: true
         },
-        visible_pages: [
-          'AdminDashboard', 'AdminPackages', 'AdminClients',
-          'AdminConsolidate', 'AdminShipmentApprovals',
-          'AdminInvoices', 'AdminPayments', 'AdminPaymentAlerts',
-          'AdminAccountsPayable', 'AdminProviders', 'AdminProviderPayments',
-          'AdminReports', 'AdminSupportTickets', 'AdminPermissions',
-          'ShipmentTracking', 'ShippingCalculator'
-        ]
+        visible_pages: ['AdminDashboard', 'AdminPackages', 'AdminClients', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminInvoices', 'AdminReports', 'AdminSupportTickets', 'ShipmentTracking', 'ShippingCalculator']
       },
       {
         role_code: 'customer_service',
@@ -204,21 +171,12 @@ export default function AdminRoles({ user }) {
         is_active: true,
         permissions: {
           view_dashboard: true,
+          validate_payments: true,
           view_invoices: true,
           create_invoices: true,
-          view_payments: true,
-          validate_payments: true,
-          view_accounts_payable: true,
-          manage_accounts_payable: true,
-          view_providers: true,
-          manage_providers: true,
           view_reports: true
         },
-        visible_pages: [
-          'EmployeeDashboard', 'AdminPayments', 'AdminInvoices', 'AdminPaymentAlerts',
-          'AdminAccountsPayable', 'AdminProviders', 'AdminProviderPayments',
-          'AdminReports'
-        ]
+        visible_pages: ['EmployeeDashboard', 'AdminPayments', 'AdminInvoices', 'AdminPaymentAlerts', 'AdminReports']
       }
     ];
 

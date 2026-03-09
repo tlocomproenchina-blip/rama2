@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 } from '@/api/base44Client';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,22 +61,26 @@ export default function Profile({ user, refreshUser }) {
 
   const loadConfigs = async () => {
     try {
-      const [states, pricing, config] = await Promise.all([
-        base44.entities.StateConfig.filter({ is_active: true }, undefined, 30),
-        base44.entities.PricingConfig.filter({ config_key: 'main' }, undefined, 1),
-        base44.entities.AppConfig.filter({ config_key: 'main' }, undefined, 1),
-      ]);
-
+      const states = await base44.entities.StateConfig.filter({ is_active: true });
       const normalized = normalizeStates(states);
       setStateConfigs(normalized);
+      // Alinear el valor del usuario (código o nombre) al código esperado por el Select
       if (user?.state) {
         const match = findStateByCodeOrName(normalized, user.state);
         if (match) {
           setFormData((prev) => ({ ...prev, state: match.state_code }));
         }
       }
-      if (pricing.length > 0) setPricingConfig(pricing[0]);
-      if (config.length > 0) setAppConfig(config[0]);
+      
+      const pricing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
+      if (pricing.length > 0) {
+        setPricingConfig(pricing[0]);
+      }
+
+      const config = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (config.length > 0) {
+        setAppConfig(config[0]);
+      }
     } catch (error) {
       console.error('Error loading configs:', error);
     }
@@ -322,7 +326,7 @@ export default function Profile({ user, refreshUser }) {
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona tu estado" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-64 overflow-auto" onCloseAutoFocus={(e) => { e.preventDefault(); }}>
+                  <SelectContent>
                      {stateConfigs.map((state) => (
                        <SelectItem key={state.state_code} value={state.state_code}>
                          {state.state_name}

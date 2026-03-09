@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
-
-// Throttle heavy loads and avoid parallel bursts
-const listLimited = async (entity, limit = 50) => base44.entities[entity].list('-updated_date', limit);
-const filterLimited = async (entity, query = {}, limit = 50) => base44.entities[entity].filter(query, '-updated_date', limit);
+import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,8 +31,8 @@ export default function AdminDelete({ user }) {
 
   const loadData = async () => {
     const [pkgs, cons] = await Promise.all([
-      listLimited('Package', 100),
-      listLimited('Consolidation', 100)
+      base44.entities.Package.list('-created_date'),
+      base44.entities.Consolidation.list('-created_date')
     ]);
     setPackages(pkgs);
     setConsolidations(cons);

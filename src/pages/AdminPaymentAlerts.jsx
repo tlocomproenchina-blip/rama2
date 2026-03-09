@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,14 +28,12 @@ export default function AdminPaymentAlerts({ user }) {
 
   useEffect(() => {
     loadConfig();
-    // Debounce initial data load slightly to avoid burst on navigation
-    const t = setTimeout(() => loadData(), 150);
-    return () => clearTimeout(t);
+    loadData();
   }, []);
 
   const loadConfig = async () => {
     try {
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, undefined, 1);
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (configs.length > 0 && configs[0].payment_alert_days) {
         setAlertDays(configs[0].payment_alert_days);
       }
@@ -50,7 +48,7 @@ export default function AdminPaymentAlerts({ user }) {
     setSaving(true);
     
     try {
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, undefined, 1);
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (configs.length > 0) {
         await base44.entities.AppConfig.update(configs[0].id, {
           payment_alert_days: daysValue
@@ -66,11 +64,9 @@ export default function AdminPaymentAlerts({ user }) {
 
   const loadData = async () => {
     setLoading(true);
-    // Use queued client with dedupe keys and lower priority reads
-    // Dedupe same call bursts within the queue
     const [cons, invoices] = await Promise.all([
-      base44.entities.Consolidation.filter({ status: 'pendiente_pago' }, '-updated_date', 200),
-      base44.entities.Invoice.filter({ status: 'pendiente' }, '-updated_date', 200)
+      base44.entities.Consolidation.filter({ status: 'pendiente_pago' }),
+      base44.entities.Invoice.filter({ status: 'pendiente' })
     ]);
 
     // Get consolidation IDs that have invoices
@@ -139,10 +135,8 @@ export default function AdminPaymentAlerts({ user }) {
     if (!confirmed) return;
 
     setLoading(true);
-    // Send sequentially but yield between to respect rate limits
     for (const payment of overdue) {
       await notifyClient(payment);
-      await new Promise(r => setTimeout(r, 200));
     }
     setLoading(false);
     toast.success(`${overdue.length} recordatorio(s) enviado(s)`);
