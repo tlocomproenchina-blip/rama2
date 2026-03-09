@@ -190,6 +190,8 @@ export default function Profile({ user, refreshUser }) {
     
     try {
        await base44.auth.updateMe({ ...formData, whatsapp_normalized: getDigits(formData.whatsapp) });
+       // En apps antiguas, podría no existir el campo. Este update lo persistirá si está permitido
+       
 
        setShowSuccess(true);
        setTimeout(() => setShowSuccess(false), 3000);
