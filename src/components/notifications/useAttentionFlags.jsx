@@ -55,12 +55,11 @@ export default function useAttentionFlags({ user }) {
         const latestMs = latestDate ? new Date(latestDate).getTime() : 0;
         latestMap[w.key] = latestMs;
 
-        let seenStr = sessionStorage.getItem(`attentionSeen:${w.key}`);
+        let seenStr = localStorage.getItem(`${storagePrefix}${w.key}`);
         let seenMs = Number(seenStr);
         if (!seenStr || !Number.isFinite(seenMs)) {
-          // Primera vez: fijamos visto al último timestamp conocido del servidor para evitar falsos positivos
-          sessionStorage.setItem(`attentionSeen:${w.key}`, String(latestMs));
-          seenMs = latestMs;
+          // Primera vez: mostrar indicador si existe actividad reciente
+          seenMs = 0;
         }
         next[w.key] = latestMs > seenMs;
       } catch (_e) {
@@ -82,12 +81,29 @@ export default function useAttentionFlags({ user }) {
     return () => { mounted = false; clearInterval(id); };
   }, [poll]);
 
+  // Suscripción en tiempo real: repoll en eventos de entidades observadas
+  React.useEffect(() => {
+    const entities = Array.from(new Set((watches || []).map(w => w.entity)));
+    const unsubs = [];
+    entities.forEach((entity) => {
+      try {
+        const off = base44.entities[entity]?.subscribe?.(() => {
+          // Pequeño debounce interno para agrupar múltiples eventos
+          clearTimeout((window.__attnDebounce ||= {} )[entity]);
+          (window.__attnDebounce ||= {} )[entity] = setTimeout(() => { poll(); }, 200);
+        });
+        if (typeof off === 'function') unsubs.push(off);
+      } catch (_) {}
+    });
+    return () => { unsubs.forEach(u => { try { u(); } catch {} }); };
+  }, [watches, poll]);
+
   const markSeen = React.useCallback((pageKey) => {
     if (!pageKey) return;
     const latestMs = Number(latestByKey[pageKey]) || Date.now();
-    sessionStorage.setItem(`attentionSeen:${pageKey}`, String(latestMs));
+    try { localStorage.setItem(`${storagePrefix}${pageKey}`, String(latestMs)); } catch {}
     setFlags(prev => ({ ...prev, [pageKey]: false }));
-  }, [latestByKey]);
+  }, [latestByKey, storagePrefix]);
 
   return [flags, markSeen];
 }
