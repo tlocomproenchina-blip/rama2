@@ -50,7 +50,7 @@ export default function AdminPaymentAlerts({ user }) {
     setSaving(true);
     
     try {
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, undefined, 1);
       if (configs.length > 0) {
         await base44.entities.AppConfig.update(configs[0].id, {
           payment_alert_days: daysValue
