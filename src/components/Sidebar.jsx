@@ -248,7 +248,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         {/* Header */}
         <div className="bg-[#1c3f82] p-6 border-b border-slate-700/50">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full">
               {config?.app_logo_url ? (
                 <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-white flex items-center justify-center">
                   <OptimizedImage
@@ -336,7 +336,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
                             `}
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 w-full">
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                                                               {flags[item.page] && (
@@ -375,7 +375,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                               ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
                             `}
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 w-full">
                               <Icon className="h-5 w-5 flex-shrink-0" />
                               <span className="font-medium">{item.name}</span>
                                                               {flags[item.page] && (
@@ -408,7 +408,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
                       'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
                       `
                       }>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 w-full">
                         <Icon className="h-5 w-5 flex-shrink-0" />
                         <span className="font-medium">{item.name}</span>
                       </div>
