@@ -201,12 +201,12 @@ export default function ProfileSetupModal({ open, onComplete }) {
               <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
                 <SelectValue placeholder="Selecciona tu estado" />
               </SelectTrigger>
-              <SelectContent>
-               {stateConfigs.map((state) => (
-                 <SelectItem key={state.state_code} value={state.state_code}>
-                   {state.state_name}
-                 </SelectItem>
-               ))}
+              <SelectContent className="max-h-64 overflow-auto">
+                {stateConfigs.map((state) => (
+                  <SelectItem key={state.state_code} value={state.state_code}>
+                    {state.state_name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {errors.state && (
