@@ -9,6 +9,7 @@ export default function useAttentionFlags({ user }) {
   const isAdmin = user?.role === 'admin';
   const isCustom = !!user?.custom_role;
   const email = user?.email || null;
+  const storagePrefix = `attentionSeen:${email || (isAdmin ? 'admin' : 'anon')}:`;
 
   const watches = React.useMemo(() => {
     if (isAdmin || isCustom) {
@@ -22,6 +23,8 @@ export default function useAttentionFlags({ user }) {
         { key: 'AdminAccountsPayable', entity: 'AccountsPayable' },
         { key: 'AdminProviderPayments', entity: 'ProviderPayment' },
         { key: 'AdminProviders', entity: 'ShippingProvider' },
+        { key: 'AdminAssistedPayments', entity: 'AssistedPaymentRequest' },
+        { key: 'AdminPaymentAlerts', entity: 'Invoice' },
       ];
     }
     // Básico para clientes (opcional): paquetes, facturas y soporte propios
@@ -97,6 +100,18 @@ export default function useAttentionFlags({ user }) {
     });
     return () => { unsubs.forEach(u => { try { u(); } catch {} }); };
   }, [watches, poll]);
+
+  // Forzar sincronización al volver a primer plano (PWA/iOS pausa timers)
+  React.useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'visible') poll(); };
+    const onFocus = () => poll();
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [poll]);
 
   const markSeen = React.useCallback((pageKey) => {
     if (!pageKey) return;
