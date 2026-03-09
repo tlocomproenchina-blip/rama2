@@ -303,7 +303,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1">
+        <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1 will-change-transform">
           {customRole && !roleConfig ? (
             <div className="space-y-2 animate-pulse">
               <div className="h-10 bg-slate-700/40 rounded-xl" />
