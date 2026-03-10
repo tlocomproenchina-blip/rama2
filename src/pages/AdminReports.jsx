@@ -338,7 +338,7 @@ export default function AdminReports({ user }) {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip formatter={(v, n) => n==='Paquetes' || n==='Consolidaciones' ? [v, n] : [v, n]} />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
