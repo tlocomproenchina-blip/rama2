@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Loader2, Gift, DollarSign, TrendingUp, Crown, RefreshCw, Settings as SettingsIcon, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +21,22 @@ export default function AdminReferrals() {
 
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+
+  // temporales (se aplican con el botón Aplicar)
+  const [tempFromDate, setTempFromDate] = useState("");
+  const [tempToDate, setTempToDate] = useState("");
+
+  // inputs de filtro (temporales)
+  const [refQueryInput, setRefQueryInput] = useState(""); // email o shipping mark del referidor
+  const [statusInput, setStatusInput] = useState("all"); // all | pendiente | aplicado
+  const [minCbmInput, setMinCbmInput] = useState("");
+  const [minCreditInput, setMinCreditInput] = useState("");
+
+  // filtros aplicados
+  const [refQuery, setRefQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [minCbm, setMinCbm] = useState("");
+  const [minCredit, setMinCredit] = useState("");
 
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustData, setAdjustData] = useState({ email: "", amount: "", notes: "" });
@@ -57,18 +74,72 @@ export default function AdminReferrals() {
     return true;
   };
 
+  // yyyy-mm-dd respetando zona local
+  const fmtDate = (d) => {
+    const dt = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return dt.toISOString().slice(0, 10);
+  };
+
   const referredUsers = useMemo(() => users.filter(u => !!u.referred_by_user_id), [users]);
   const rewardsInRange = useMemo(() => rewards.filter(r => inRange(r.created_date)), [rewards, fromDate, toDate]);
   const creditsInRange = useMemo(() => credits.filter(c => inRange(c.created_date)), [credits, fromDate, toDate]);
 
-  const totalReferralCbm = useMemo(() => rewardsInRange.reduce((s, r) => s + (Number(r.cbm_rewarded)||0), 0), [rewardsInRange]);
-  const totalCreditsGenerated = useMemo(() => rewardsInRange.reduce((s, r) => s + (Number(r.credit_generated)||0), 0), [rewardsInRange]);
-  const totalCreditsApplied = useMemo(() => creditsInRange.filter(c => c.status === 'applied').reduce((s, c) => s + (Number(c.amount_usd)||0), 0), [creditsInRange]);
+  // claves de créditos aplicados (user_id|invoice_id)
+  const appliedCreditKeys = useMemo(() => {
+    const set = new Set();
+    creditsInRange
+      .filter(c => c.status === 'applied' && c.related_invoice_id && c.user_id)
+      .forEach(c => set.add(`${c.user_id}|${c.related_invoice_id}`));
+    return set;
+  }, [creditsInRange]);
+
+  // recompensas filtradas por filtros adicionales
+  const filteredRewards = useMemo(() => {
+    let list = rewardsInRange;
+
+    if (refQuery.trim()) {
+      const q = refQuery.trim().toLowerCase();
+      list = list.filter(rw => {
+        const ref = users.find(u => u.id === rw.referrer_user_id);
+        const email = (ref?.email || '').toLowerCase();
+        const mark = (ref?.shipping_mark || '').toLowerCase();
+        return email.includes(q) || mark.includes(q);
+      });
+    }
+
+    if (statusFilter !== 'all') {
+      list = list.filter(rw => {
+        const key = `${rw.referrer_user_id}|${rw.invoice_id}`;
+        const hasApplied = appliedCreditKeys.has(key);
+        return statusFilter === 'aplicado' ? hasApplied : (!hasApplied && rw.status !== 'reversed');
+      });
+    }
+
+    if (minCbm !== "" && !isNaN(Number(minCbm))) {
+      list = list.filter(rw => Number(rw.cbm_rewarded || 0) >= Number(minCbm));
+    }
+    if (minCredit !== "" && !isNaN(Number(minCredit))) {
+      list = list.filter(rw => Number(rw.credit_generated || 0) >= Number(minCredit));
+    }
+
+    return list;
+  }, [rewardsInRange, users, refQuery, statusFilter, minCbm, minCredit, appliedCreditKeys]);
+
+  // créditos aplicados asociados a las recompensas filtradas
+  const filteredCreditsApplied = useMemo(() => {
+    if (filteredRewards.length === 0) return [];
+    const keys = new Set(filteredRewards.map(rw => `${rw.referrer_user_id}|${rw.invoice_id}`));
+    return creditsInRange.filter(c => c.status === 'applied' && keys.has(`${c.user_id}|${c.related_invoice_id}`));
+  }, [creditsInRange, filteredRewards]);
+
+  const totalReferralCbm = useMemo(() => filteredRewards.reduce((s, r) => s + (Number(r.cbm_rewarded)||0), 0), [filteredRewards]);
+  const totalCreditsGenerated = useMemo(() => filteredRewards.reduce((s, r) => s + (Number(r.credit_generated)||0), 0), [filteredRewards]);
+  const totalCreditsApplied = useMemo(() => filteredCreditsApplied.reduce((s, c) => s + (Number(c.amount_usd)||0), 0), [filteredCreditsApplied]);
   const totalCreditsReversed = useMemo(() => creditsInRange.filter(c => c.status === 'reversed').reduce((s, c) => s + (Number(c.amount_usd)||0), 0), [creditsInRange]);
 
   const leaderboard = useMemo(() => {
     const map = new Map();
-    rewardsInRange.forEach(r => {
+    filteredRewards.forEach(r => {
       const key = r.referrer_user_id;
       if (!map.has(key)) map.set(key, { referrer_user_id: key, cbm: 0, credits: 0, referredSet: new Set() });
       const obj = map.get(key);
@@ -84,7 +155,7 @@ export default function AdminReferrals() {
       referrer: users.find(u => u.id === x.referrer_user_id)
     }));
     return arr.sort((a,b) => b.credits - a.credits).slice(0, 10);
-  }, [rewardsInRange, users]);
+  }, [filteredRewards, users]);
 
   const handleSaveSettings = async () => {
     try {
@@ -159,17 +230,56 @@ export default function AdminReferrals() {
 
       {/* Filtros */}
       <Card className="border-0 shadow-md">
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Label>Desde</Label>
-            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+        <CardContent className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <Label>Desde</Label>
+              <Input type="date" value={tempFromDate} onChange={(e) => setTempFromDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>Hasta</Label>
+              <Input type="date" value={tempToDate} onChange={(e) => setTempToDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>Referidor (email/mark)</Label>
+              <Input placeholder="ej: juan@correo.com o TLEC-123" value={refQueryInput} onChange={(e)=> setRefQueryInput(e.target.value)} />
+            </div>
+            <div>
+              <Label>Estado</Label>
+              <Select value={statusInput} onValueChange={setStatusInput}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pendiente">Pendiente</SelectItem>
+                  <SelectItem value="aplicado">Aplicado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Mín. CBM</Label>
+                <Input type="number" step="0.01" value={minCbmInput} onChange={(e)=> setMinCbmInput(e.target.value)} />
+              </div>
+              <div>
+                <Label>Mín. crédito (USD)</Label>
+                <Input type="number" step="0.01" value={minCreditInput} onChange={(e)=> setMinCreditInput(e.target.value)} />
+              </div>
+            </div>
           </div>
-          <div>
-            <Label>Hasta</Label>
-            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-          </div>
-          <div className="flex items-end">
-            <Button variant="outline" onClick={() => { setFromDate(""); setToDate(""); }}>Limpiar</Button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-500 mr-1">Rangos rápidos:</span>
+            <Button variant="outline" size="sm" onClick={() => { const n=new Date(); setTempFromDate(fmtDate(n)); setTempToDate(fmtDate(n)); }}>Hoy</Button>
+            <Button variant="outline" size="sm" onClick={() => { const n=new Date(); const s=new Date(); s.setDate(n.getDate()-6); setTempFromDate(fmtDate(s)); setTempToDate(fmtDate(n)); }}>7 días</Button>
+            <Button variant="outline" size="sm" onClick={() => { const n=new Date(); const s=new Date(); s.setDate(n.getDate()-29); setTempFromDate(fmtDate(s)); setTempToDate(fmtDate(n)); }}>30 días</Button>
+            <Button variant="outline" size="sm" onClick={() => { const n=new Date(); const s=new Date(n.getFullYear(), n.getMonth(), 1); setTempFromDate(fmtDate(s)); setTempToDate(fmtDate(n)); }}>Mes actual</Button>
+            <Button variant="outline" size="sm" onClick={() => { const n=new Date(); const s=new Date(n.getFullYear(), n.getMonth()-1, 1); const e=new Date(n.getFullYear(), n.getMonth(), 0); setTempFromDate(fmtDate(s)); setTempToDate(fmtDate(e)); }}>Mes anterior</Button>
+            <Button variant="outline" size="sm" onClick={() => { const n=new Date(); const q=Math.floor(n.getMonth()/3); const s=new Date(n.getFullYear(), q*3, 1); setTempFromDate(fmtDate(s)); setTempToDate(fmtDate(n)); }}>Trimestre actual</Button>
+            <Button variant="outline" size="sm" onClick={() => { const n=new Date(); const s=new Date(n.getFullYear(), 0, 1); setTempFromDate(fmtDate(s)); setTempToDate(fmtDate(n)); }}>Año actual</Button>
+            <div className="ml-auto flex gap-2">
+              <Button onClick={() => { setFromDate(tempFromDate); setToDate(tempToDate); setRefQuery(refQueryInput.trim()); setStatusFilter(statusInput); setMinCbm(minCbmInput); setMinCredit(minCreditInput); }}>Aplicar</Button>
+              <Button variant="outline" onClick={() => { setTempFromDate(""); setTempToDate(""); setFromDate(""); setToDate(""); setRefQueryInput(""); setStatusInput("all"); setMinCbmInput(""); setMinCreditInput(""); setRefQuery(""); setStatusFilter("all"); setMinCbm(""); setMinCredit(""); }}>Limpiar</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -231,10 +341,10 @@ export default function AdminReferrals() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rewardsInRange.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-slate-500">Sin recompensas en el rango</TableCell></TableRow>
+              {filteredRewards.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="text-center text-slate-500">Sin recompensas con los filtros</TableCell></TableRow>
               )}
-              {rewardsInRange.map((rw) => {
+              {filteredRewards.map((rw) => {
                 const referrer = users.find(u => u.id === rw.referrer_user_id);
                 const referred = users.find(u => u.id === rw.referred_user_id);
                 return (
