@@ -222,9 +222,9 @@ export default function AdminReferrals() {
           <h1 className="text-2xl font-bold text-slate-800">Gestión de Referidos</h1>
           <p className="text-slate-500">Recompensas por CBM cuando la factura está emitida (pendiente)</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => window.location.reload()}><RefreshCw className="h-4 w-4 mr-1" />Actualizar</Button>
-          <Button variant="outline" onClick={() => setAdjustOpen(true)}><DollarSign className="h-4 w-4 mr-1" />Ajuste manual</Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => window.location.reload()}><RefreshCw className="h-4 w-4 mr-1" />Actualizar</Button>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setAdjustOpen(true)}><DollarSign className="h-4 w-4 mr-1" />Ajuste manual</Button>
         </div>
       </div>
 

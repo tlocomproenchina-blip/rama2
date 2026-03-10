@@ -136,7 +136,7 @@ export default function MyPackages({ user }) {
         </div>
         {user?.shipping_mark && (
           <Link to={createPageUrl('PreAlert')}>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700">
               <Plus className="h-4 w-4 mr-2" />
               Nueva Pre-alerta
             </Button>

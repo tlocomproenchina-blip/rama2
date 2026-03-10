@@ -686,11 +686,11 @@ Email: ${client.email}`;
           <p className="text-slate-500">Administra los usuarios y asigna Shipping Marks</p>
         </div>
         {canExport && (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
 
             <Button 
               onClick={handleExportFilteredClients}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
               title="Exporta los clientes según los filtros actuales"
             >
               <Download className="h-4 w-4 mr-2" />
@@ -698,7 +698,7 @@ Email: ${client.email}`;
             </Button>
             <Button 
               onClick={handleExportClients}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
             >
               <Download className="h-4 w-4 mr-2" />
               Exportar para Remarketing
@@ -707,7 +707,7 @@ Email: ${client.email}`;
               variant="outline"
               onClick={handleBackfillStripeCustomers}
               disabled={backfilling}
-              className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+              className="w-full sm:w-auto border-indigo-200 text-indigo-700 hover:bg-indigo-50"
               title="Crear clientes en Stripe para todos los usuarios sin uno"
             >
               {backfilling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
@@ -1038,8 +1038,8 @@ Email: ${client.email}`;
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 pr-3 border-r border-slate-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex items-stretch gap-2 w-full">
+                    <div className="flex items-center gap-2 pb-2 sm:pb-0 sm:pr-3 sm:border-r border-b sm:border-b-0 border-slate-200">
                       <span className="text-xs text-slate-600">Activo</span>
                       <Switch
                         checked={client.is_active !== false}
@@ -1047,40 +1047,43 @@ Email: ${client.email}`;
                       />
                     </div>
                     <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCopyClientInfo(client);
-                      }}
-                      title="Copiar información"
+                     variant="outline" 
+                     size="sm"
+                     className="w-full sm:w-auto"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       handleCopyClientInfo(client);
+                     }}
+                     title="Copiar información"
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
                     <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setPackageClient(client);
-                        setAddingPackage(true);
-                      }}
-                      className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                     variant="outline" 
+                     size="sm"
+                     onClick={() => {
+                       setPackageClient(client);
+                       setAddingPackage(true);
+                     }}
+                     className="w-full sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Paquete
                     </Button>
                     <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setViewClient(client)}
+                     variant="outline" 
+                     size="sm"
+                     className="w-full sm:w-auto"
+                     onClick={() => setViewClient(client)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       Ver
                     </Button>
                     <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleEdit(client)}
+                     variant="outline" 
+                     size="sm"
+                     className="w-full sm:w-auto"
+                     onClick={() => handleEdit(client)}
                     >
                       <Edit2 className="h-4 w-4 mr-1" />
                       Editar
@@ -1090,16 +1093,16 @@ Email: ${client.email}`;
                         variant="outline" 
                         size="sm"
                         onClick={() => handleDeleteStripeCustomer(client)}
-                        className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                        className="w-full sm:w-auto text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                       >
                         <Trash2 className="h-4 w-4 mr-1" /> Stripe
                       </Button>
                     )}
                     <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setDeleteClient(client)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                     variant="outline" 
+                     size="sm"
+                     onClick={() => setDeleteClient(client)}
+                     className="w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

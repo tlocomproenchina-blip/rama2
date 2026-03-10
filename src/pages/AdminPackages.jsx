@@ -489,7 +489,7 @@ export default function AdminPackages({ user }) {
               <Button
                 onClick={() => setCreateModalOpen(true)}
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
               >
                 <Package className="h-4 w-4 mr-2" />
                 Registrar Paquete
@@ -498,7 +498,7 @@ export default function AdminPackages({ user }) {
                 onClick={handleExportPreAlerta}
                 variant="outline"
                 size="sm"
-                className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                className="w-full sm:w-auto border-blue-200 text-blue-600 hover:bg-blue-50"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Exportar Pre-alerta
@@ -700,7 +700,7 @@ export default function AdminPackages({ user }) {
                     <div className="text-[11px] text-slate-400">{new Date(pkg.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-stretch gap-2">
                       <Button 
                         size="sm" 
                         variant="outline" 
