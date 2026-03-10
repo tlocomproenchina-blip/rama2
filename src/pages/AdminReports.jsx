@@ -194,7 +194,7 @@ export default function AdminReports({ user }) {
                   <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={110} tickMargin={12} tickFormatter={(v) => { const s=String(v||''); return s.length>18 ? s.slice(0,18)+'…' : s; }} />
                   <YAxis />
                   <Tooltip />
-                  <Legend />
+                  <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="packages" fill="#3b82f6" name="Paquetes" />
                   <Bar dataKey="consolidations" fill="#8b5cf6" name="Consolidaciones" />
                 </BarChart>
