@@ -594,6 +594,7 @@ export default function AdminPackages({ user }) {
                 <th className="text-left p-4 font-medium text-slate-600">Shipping Mark</th>
                 <th className="text-left p-4 font-medium text-slate-600">Tipo</th>
                 <th className="text-left p-4 font-medium text-slate-600">Estado</th>
+                <th className="text-left p-4 font-medium text-slate-600">Registro</th>
                 <th className="text-left p-4 font-medium text-slate-600">Acciones</th>
               </tr>
             </thead>
@@ -638,6 +639,10 @@ export default function AdminPackages({ user }) {
                   </td>
                   <td className="p-4">
                     <StatusBadge status={pkg.status} size="sm" />
+                  </td>
+                  <td className="p-4 text-slate-600 text-xs">
+                    <div>{new Date(pkg.created_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                    <div className="text-[11px] text-slate-400">{new Date(pkg.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
