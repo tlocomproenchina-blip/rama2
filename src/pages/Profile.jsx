@@ -293,7 +293,7 @@ export default function Profile({ user, refreshUser }) {
               />
             </div>
 
-            {/* Teléfonos */}
+            {/* WhatsApp */}}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="whatsapp" className="flex items-center gap-2">
