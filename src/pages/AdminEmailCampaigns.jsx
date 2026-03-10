@@ -590,7 +590,7 @@ export default function AdminEmailCampaigns({ user }) {
                       rows={12}
                       className="font-mono text-sm"
                     />
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <Button
                         type="button"
                         onClick={handlePasteHtml}
@@ -633,7 +633,7 @@ export default function AdminEmailCampaigns({ user }) {
 
               <div className="space-y-3">
                 <Label>Adjuntos e Imágenes</Label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <label className="flex-1">
                     <Button 
                       type="button"
