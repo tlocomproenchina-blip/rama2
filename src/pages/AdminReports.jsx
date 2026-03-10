@@ -192,7 +192,7 @@ export default function AdminReports({ user }) {
                 <BarChart data={topClients} margin={{ top: 10, right: 20, left: 10, bottom: 140 }} barCategoryGap="24%">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={130} tickMargin={12} tick={{ fontSize: 11 }} tickFormatter={(v) => { const s=String(v||''); return s.length>18 ? s.slice(0,18)+'…' : s; }} />
-                  <YAxis />
+                  <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="packages" fill="#3b82f6" name="Paquetes" minPointSize={2} label={false} />
