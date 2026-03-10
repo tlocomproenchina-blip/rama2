@@ -389,7 +389,7 @@ export default function Profile({ user, refreshUser }) {
              <div className="relative">
                <Button 
                  type="submit" 
-                 disabled={saving || (!hasMissingFields && profileUpdatesDisabled)}
+                 disabled={saving}
                  className="w-full bg-blue-600 hover:bg-blue-700"
                >
                  {saving ? (
