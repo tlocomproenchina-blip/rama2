@@ -244,12 +244,15 @@ export default function AdminSettings({ user }) {
 
   // Guardado inmediato para el toggle de Actualización de Perfil
   const toggleAllowProfileUpdates = async (checked) => {
-    const next = { ...appConfig, allow_profile_updates: checked };
+    // Optimista en UI
+    const prev = appConfig;
+    const next = { ...prev, allow_profile_updates: checked };
     setAppConfig(next);
     try {
       const existing = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (existing.length > 0) {
-        await base44.entities.AppConfig.update(existing[0].id, { ...existing[0], allow_profile_updates: checked, config_key: 'main' });
+        // Actualizar SOLO los campos necesarios (evita enviar id/fechas readonly)
+        await base44.entities.AppConfig.update(existing[0].id, { allow_profile_updates: checked, config_key: 'main' });
       } else {
         await base44.entities.AppConfig.create({ ...next, config_key: 'main' });
       }
@@ -257,7 +260,7 @@ export default function AdminSettings({ user }) {
     } catch (e) {
       toast.error('No se pudo guardar la configuración');
       // revertir en UI si falla
-      setAppConfig({ ...appConfig, allow_profile_updates: !checked });
+      setAppConfig(prev);
     }
   };
 
