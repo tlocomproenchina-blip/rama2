@@ -22,10 +22,6 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
     maxAmount: ''
   });
 
-  // Consolidation window quick check (7 days)
-  const [consoKeyType, setConsoKeyType] = useState('email');
-  const [consoKeyValue, setConsoKeyValue] = useState('');
-
   const handleSearch = () => {
     onSearch(filters);
   };
@@ -232,39 +228,6 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
                     className="text-sm"
                   />
                 </div>
-              </div>
-            )}
-
-            {/* Consolidation Window (7 days) simple check */}
-            {type === 'packages' && (
-              <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_auto] gap-3 items-end">
-                <div className="space-y-2">
-                  <Label className="text-xs text-slate-600">Calcular por</Label>
-                  <Select value={consoKeyType} onValueChange={setConsoKeyType}>
-                    <SelectTrigger className="text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="shippingMark">Shipping Mark</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs text-slate-600">Valor</Label>
-                  <Input
-                    placeholder={consoKeyType === 'email' ? 'cliente@email.com' : 'TLEC-XXXX'}
-                    value={consoKeyValue}
-                    onChange={(e) => setConsoKeyValue(e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
-                <Button
-                  onClick={() => onSearch({ ...filters, consolidationKeyType: consoKeyType, consolidationKeyValue: consoKeyValue })}
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                >
-                  Calcular 7 días
-                </Button>
               </div>
             )}
 

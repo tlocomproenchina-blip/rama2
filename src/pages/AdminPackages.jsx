@@ -64,8 +64,6 @@ export default function AdminPackages({ user }) {
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [consolidationInfo, setConsolidationInfo] = useState(null);
-  const [checkingConsolidation, setCheckingConsolidation] = useState(false);
 
   useEffect(() => {
     loadPackages(page);
@@ -154,48 +152,8 @@ export default function AdminPackages({ user }) {
     loadPackages(page);
   };
 
-  const handleAdvancedSearch = async (filters) => {
-    const { consolidationKeyType, consolidationKeyValue, ...rest } = filters || {};
-    setAdvancedFilters(rest);
-
-    if (consolidationKeyValue && consolidationKeyValue.trim()) {
-      await computeConsolidationInfo(consolidationKeyType || 'email', consolidationKeyValue.trim());
-    }
-  };
-
-  const computeConsolidationInfo = async (keyType, value) => {
-    setCheckingConsolidation(true);
-    try {
-      const filterObj = keyType === 'shippingMark' ? { shipping_mark: value } : { client_email: value };
-      // Fetch packages for this client/mark (limit high to cover most cases)
-      const allPkgs = await base44.entities.Package.filter(filterObj, 'received_date', 1000);
-      const received = (allPkgs || []).filter(p => p.received_date);
-
-      if (!received.length) {
-        setConsolidationInfo({ notFound: true, keyType, value });
-        return;
-      }
-
-      received.sort((a, b) => new Date(a.received_date) - new Date(b.received_date));
-      const first = received[0];
-      const start = new Date(first.received_date);
-      const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const now = new Date();
-      const msLeft = end.getTime() - now.getTime();
-      const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
-
-      setConsolidationInfo({
-        notFound: false,
-        keyType,
-        value,
-        firstDate: start.toISOString(),
-        windowEnd: end.toISOString(),
-        daysLeft,
-        totalReceived: received.length
-      });
-    } finally {
-      setCheckingConsolidation(false);
-    }
+  const handleAdvancedSearch = (filters) => {
+    setAdvancedFilters(filters);
   };
 
   const handleResetFilters = () => {
@@ -474,41 +432,6 @@ export default function AdminPackages({ user }) {
         onSearch={handleAdvancedSearch}
         onReset={handleResetFilters}
       />
-
-      {checkingConsolidation && (
-        <Card className="border-0 shadow-md bg-emerald-50">
-          <CardContent className="p-4 text-sm text-emerald-900">Calculando ventana de consolidación...</CardContent>
-        </Card>
-      )}
-
-      {consolidationInfo && !checkingConsolidation && (
-        <Card className={`border-0 shadow-md ${consolidationInfo.notFound ? 'bg-amber-50' : 'bg-emerald-50'}`}>
-          <CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            {consolidationInfo.notFound ? (
-              <div className="text-sm text-amber-900">
-                No hay paquetes recibidos para {consolidationInfo.keyType === 'shippingMark' ? 'shipping mark' : 'email'} <span className="font-semibold">{consolidationInfo.value}</span>.
-              </div>
-            ) : (
-              <>
-                <div className="text-sm text-emerald-900">
-                  <div className="font-semibold">Ventana de consolidación (7 días) — {consolidationInfo.keyType === 'shippingMark' ? 'Mark' : 'Email'}: {consolidationInfo.value}</div>
-                  <div>
-                    Primer recibido: {new Date(consolidationInfo.firstDate).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    {' '}•{' '}
-                    {new Date(consolidationInfo.firstDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    {' '} | Termina: {new Date(consolidationInfo.windowEnd).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    {' '}•{' '}
-                    {new Date(consolidationInfo.windowEnd).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-                <div className="text-sm font-semibold text-emerald-900">
-                  Días restantes: {consolidationInfo.daysLeft}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Quick Filters */}
       <Card className="border-0 shadow-md">
