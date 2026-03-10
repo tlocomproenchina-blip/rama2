@@ -599,7 +599,7 @@ export default function AdminDashboard({ user }) {
                       <p className="font-medium text-slate-800 truncate">{cons.consolidation_tracking || 'Sin tracking'} • {cons.client_email}</p>
                       <p className="text-xs text-slate-500">{new Date(cons.created_date).toLocaleString()}</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0 ml-3">
                       <Badge variant="outline">${(cons.total_cost || 0).toFixed(2)}</Badge>
                       <StatusBadge status={cons.status} size="sm" />
                     </div>
