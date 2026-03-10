@@ -666,7 +666,7 @@ export default function AdminPackages({ user }) {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 <Button size="sm" variant="outline" onClick={() => handleCreateTicket(pkg)} className="gap-1">
                   <MessageSquare className="h-4 w-4" /> Ticket
                 </Button>
@@ -718,6 +718,15 @@ export default function AdminPackages({ user }) {
           </Card>
         ))}
       </div>
+
+      {filteredPackages.length === 0 && (
+        <Card className="lg:hidden border-0 shadow-lg">
+          <CardContent className="p-12 text-center">
+            <Package className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-500">No se encontraron paquetes</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Desktop Packages Table */}
       <Card className="hidden lg:block border-0 shadow-lg overflow-hidden">
