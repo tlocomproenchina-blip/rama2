@@ -12,6 +12,8 @@ export default function ChatbotAssistant({ user }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [failCount, setFailCount] = useState(0);
+  const [appConfig, setAppConfig] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -24,8 +26,30 @@ export default function ChatbotAssistant({ user }) {
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return;
+    (async () => {
+      try {
+        const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+        if (cfgs.length > 0) setAppConfig(cfgs[0]);
+      } catch (_) {}
+    })();
+  }, [isOpen]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const isUnhelpful = (text) => {
+    const t = String(text || '').toLowerCase();
+    return /no puedo|no (tengo|sé)|no dispongo|no encuentro|no tengo suficiente|no estoy seguro|no entiendo|problema al procesar|contacta a soporte|por favor contacta|inténtalo de nuevo|intentalo de nuevo/.test(t);
+  };
+
+  const getWhatsAppLink = () => {
+    const num = String(appConfig?.whatsapp_number || '').replace(/[^\d]/g, '');
+    if (!num) return null;
+    const msg = appConfig?.whatsapp_message || 'Hola, necesito ayuda con mi envío';
+    return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+  };
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -147,12 +171,37 @@ Responde natural y directo:`;
       });
 
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      const unhelpful = isUnhelpful(response);
+      setFailCount((c) => {
+        const next = unhelpful ? c + 1 : 0;
+        if (next >= 3) {
+          const link = getWhatsAppLink();
+          const msg = link
+            ? '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp.\nToca el botón para abrir el chat.'
+            : '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp. (Configura el número en Ajustes > General > WhatsApp)';
+          setMessages(prev => [...prev, { role: 'assistant', content: msg, waLink: link || undefined }]);
+          return 0;
+        }
+        return next;
+      });
     } catch (error) {
       console.error('Error:', error);
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: 'Disculpa, tuve un problema al procesar tu mensaje. ¿Podrías intentarlo de nuevo? Si el problema persiste, por favor contacta a soporte 🙏' 
       }]);
+      setFailCount((c) => {
+        const next = c + 1;
+        if (next >= 3) {
+          const link = getWhatsAppLink();
+          const msg = link
+            ? '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp.\nToca el botón para abrir el chat.'
+            : '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp. (Configura el número en Ajustes > General > WhatsApp)';
+        setMessages(prev => [...prev, { role: 'assistant', content: msg, waLink: link || undefined }]);
+          return 0;
+        }
+        return next;
+      });
     }
 
     setLoading(false);
@@ -223,7 +272,21 @@ Responde natural y directo:`;
                       : 'bg-white text-slate-800 shadow-sm'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.waLink ? (
+                    <div className="space-y-2">
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      <a
+                        href={msg.waLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-md"
+                      >
+                        Abrir WhatsApp
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  )}
                 </div>
               </div>
             ))}
