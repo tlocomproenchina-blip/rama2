@@ -296,20 +296,6 @@ export default function Profile({ user, refreshUser }) {
             {/* Teléfonos */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  Teléfono *
-                </Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+58 414 1234567"
-                  disabled={isFieldDisabled('phone')}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="whatsapp" className="flex items-center gap-2">
                   <Phone className="h-4 w-4" />
                   WhatsApp *
