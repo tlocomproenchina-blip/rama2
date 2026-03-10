@@ -156,7 +156,7 @@ export default function AdminReports({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-4 md:space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-xl">
         <div className="flex items-center gap-3">
@@ -170,7 +170,7 @@ export default function AdminReports({ user }) {
         </div>
       </div>
 
-      <Tabs defaultValue="clients" className="space-y-6">
+      <Tabs defaultValue="clients" className="space-y-4 md:space-y-5">
         <TabsList className="w-full overflow-x-auto whitespace-nowrap">
           <TabsTrigger value="clients">Top Clientes</TabsTrigger>
           <TabsTrigger value="revenue">Ingresos</TabsTrigger>
@@ -200,9 +200,9 @@ export default function AdminReports({ user }) {
                 </BarChart>
               </ResponsiveContainer>
 
-              <div className="mt-2 space-y-2">
+              <div className="mt-1 space-y-1.5">
                 {topClients.map((client, index) => (
-                  <div key={client.email} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div key={client.email} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full font-bold">
                         {index + 1}
