@@ -15,7 +15,6 @@ export default function Profile({ user, refreshUser }) {
       first_name: user?.first_name || '',
       last_name: user?.last_name || '',
       cedula: user?.cedula || '',
-      phone: user?.phone || '',
       whatsapp: user?.whatsapp || '',
       state: user?.state || '',
       city: user?.city || '',
@@ -32,7 +31,6 @@ export default function Profile({ user, refreshUser }) {
     if (!user?.first_name) missing.push('first_name');
     if (!user?.last_name) missing.push('last_name');
     if (!user?.cedula) missing.push('cedula');
-    if (!user?.phone) missing.push('phone');
     if (!user?.whatsapp) missing.push('whatsapp');
     if (!user?.state) missing.push('state');
     if (!user?.city) missing.push('city');
@@ -53,7 +51,6 @@ export default function Profile({ user, refreshUser }) {
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         cedula: user.cedula || '',
-        phone: user.phone || '',
         whatsapp: user.whatsapp || '',
         state: user.state || '',
         city: user.city || '',
@@ -151,10 +148,6 @@ export default function Profile({ user, refreshUser }) {
       return;
     }
 
-    if (!formData.phone) {
-      toast.error('El teléfono es obligatorio');
-      return;
-    }
 
     if (!formData.whatsapp) {
       toast.error('El WhatsApp es obligatorio');

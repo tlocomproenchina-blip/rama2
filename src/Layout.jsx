@@ -351,7 +351,6 @@ export default function Layout({ children, currentPageName }) {
           const missingFields = [];
           if (!currentUser.first_name) missingFields.push('first_name');
           if (!currentUser.last_name) missingFields.push('last_name');
-          if (!currentUser.phone) missingFields.push('phone');
           if (!currentUser.whatsapp) missingFields.push('whatsapp');
           if (!currentUser.state) missingFields.push('state');
           if (!currentUser.city) missingFields.push('city');
