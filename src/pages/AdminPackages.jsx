@@ -621,8 +621,106 @@ export default function AdminPackages({ user }) {
         </Card>
       )}
 
-      {/* Packages Table */}
-      <Card className="border-0 shadow-lg overflow-hidden">
+      {/* Mobile Packages List (stacked) */}
+      <div className="grid gap-3 lg:hidden">
+        {filteredPackages.map((pkg) => (
+          <Card key={pkg.id} className="border-0 shadow-md">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <Checkbox checked={selectedPackages.includes(pkg.id)} onCheckedChange={(checked)=>handleSelectPackage(pkg.id, checked)} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-medium text-slate-800 break-all">{pkg.tracking_number}</span>
+                      {pkg.has_insurance && (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200"><Shield className="h-3 w-3" /></Badge>
+                      )}
+                      {pkg.reported ? (
+                        <Flag className="h-4 w-4 text-green-600" title="Reportado" />
+                      ) : (
+                        <FlagOff className="h-4 w-4 text-slate-300" title="No reportado" />
+                      )}
+                    </div>
+                    {pkg.description && (<div className="text-xs text-slate-500 mt-1">{pkg.description}</div>)}
+                  </div>
+                </div>
+                <StatusBadge status={pkg.status} size="sm" />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                <Badge variant="outline" className="font-mono">{pkg.shipping_mark || '-'}</Badge>
+                <span className="truncate">{pkg.client_email}</span>
+                <span className="flex items-center gap-1 text-slate-500">
+                  {pkg.shipping_type === 'aereo' ? (<><Plane className="h-3 w-3" /> Aéreo</>) : (<><Ship className="h-3 w-3" /> Marítimo</>)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                <div>
+                  <div className="text-slate-500">Registro</div>
+                  <div>{new Date(pkg.created_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                </div>
+                <div>
+                  <div className="text-slate-500">Recepción</div>
+                  <div>{pkg.received_date ? new Date(pkg.received_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => handleCreateTicket(pkg)} className="gap-1">
+                  <MessageSquare className="h-4 w-4" /> Ticket
+                </Button>
+                {pkg.status === 'pre_alerta' && (
+                  <Button size="sm" onClick={() => setReceiveModal(pkg)} className="bg-blue-600 hover:bg-blue-700">
+                    <CheckCircle className="h-4 w-4 mr-1" /> Recibir
+                  </Button>
+                )}
+                {pkg.package_image_url && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => setViewImage(pkg.package_image_url)}>
+                      <Eye className="h-4 w-4" /> Foto
+                    </Button>
+                    {pkg.status === 'recibido' && (
+                      <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="text-blue-600 hover:text-blue-700">
+                        <ImageIcon className="h-4 w-4" /> Cambiar
+                      </Button>
+                    )}
+                  </>
+                )}
+                {!pkg.package_image_url && pkg.status === 'recibido' && (
+                  <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="text-blue-600 hover:text-blue-700">
+                    <Upload className="h-4 w-4 mr-1" /> Foto
+                  </Button>
+                )}
+                {pkg.status === 'recibido' && (
+                  <Button size="sm" variant="outline" onClick={() => setCancelReceptionModal(pkg)} className="text-rose-600 border-rose-200">
+                    <Undo2 className="h-4 w-4 mr-1" /> Cancelar recepción
+                  </Button>
+                )}
+              </div>
+
+              {pkg.status !== 'pre_alerta' && pkg.status !== 'consolidado' && (
+                <div className="pt-1">
+                  <Select value={pkg.status} onValueChange={(val) => handleStatusChange(pkg, val)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recibido">Recibido</SelectItem>
+                      <SelectItem value="en_transito">En Tránsito</SelectItem>
+                      <SelectItem value="disponible">Disponible</SelectItem>
+                      <SelectItem value="entregado">Entregado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop Packages Table */}
+      <Card className="hidden lg:block border-0 shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-100">
