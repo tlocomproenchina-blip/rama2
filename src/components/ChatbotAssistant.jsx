@@ -187,8 +187,7 @@ ${userMessage}
 Responde natural y directo:`;
 
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: prompt,
-        model: 'gpt_5_mini'
+        prompt: prompt
       });
 
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
