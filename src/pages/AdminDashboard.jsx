@@ -550,7 +550,7 @@ export default function AdminDashboard({ user }) {
                       <p className="font-medium text-slate-800 truncate">{inv.invoice_number} • {inv.client_email}</p>
                       <p className="text-xs text-slate-500">Fecha: {new Date(inv.invoice_date).toLocaleDateString()} • Vence: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0 ml-3">
                       <Badge variant="outline">${(inv.total || 0).toFixed(2)}</Badge>
                       <Link to={createPageUrl('AdminInvoices')}>
                         <Button size="sm" variant="outline">Ver</Button>
