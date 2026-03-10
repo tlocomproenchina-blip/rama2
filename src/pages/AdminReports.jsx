@@ -188,7 +188,7 @@ export default function AdminReports({ user }) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={420}>
                 <BarChart data={topClients} margin={{ top: 10, right: 20, left: 10, bottom: 140 }} barCategoryGap="24%">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={130} tickMargin={12} tick={{ fontSize: 11 }} tickFormatter={(v) => { const s=String(v||''); return s.length>18 ? s.slice(0,18)+'…' : s; }} />
