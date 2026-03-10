@@ -81,18 +81,20 @@ export default function ChatbotAssistant({ user }) {
 
     try {
       // Get user data and pricing info
-      const [packages, consolidations, faqs, pricingConfigs, stateConfigs] = await Promise.all([
+      const [packages, consolidations, faqs, pricingConfigs, stateConfigs, kbEntries] = await Promise.all([
         base44.entities.Package.filter({ client_email: user.email }),
         base44.entities.Consolidation.filter({ client_email: user.email }),
         base44.entities.FAQ.filter({ is_active: true }),
         base44.entities.PricingConfig.filter({ config_key: 'main' }),
-        base44.entities.StateConfig.filter({ is_active: true })
+        base44.entities.StateConfig.filter({ is_active: true }),
+        base44.entities.KnowledgeBase.filter({ status: 'published' }, '-updated_date', 8)
       ]);
 
       const pricing = pricingConfigs[0] || {};
       const userStateConfig = stateConfigs.find(s => s.state_code === user.state);
       const userStateRate = userStateConfig?.shipping_rate || 20;
       const states = stateConfigs.map(s => `${s.state_name}: $${s.shipping_rate}`).join(', ');
+      const kbContext = (kbEntries || []).map(e => `Q: ${e.title}\nA: ${String(e.content || '').slice(0, 400)}`).join('\n\n');
 
       // Build context
       const context = `
@@ -128,6 +130,9 @@ CÓMO CALCULAR ENVÍOS MARÍTIMOS:
 5. Sumar tarifa del estado del cliente
 6. Sumar puerta a puerta
 7. TOTAL = paso 4 + paso 5 + paso 6
+
+BASE DE CONOCIMIENTOS (recientes):
+${kbContext || '—'}
 
 PREGUNTAS FRECUENTES:
 ${faqs.map(faq => `P: ${faq.question}\nR: ${faq.answer}`).join('\n\n')}
@@ -191,6 +196,8 @@ Responde natural y directo:`;
       });
 
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      // Aprendizaje global: guardar Q/A en base de conocimientos (no bloquea la UI)
+      base44.functions.invoke('learnFromChat', { question: userMessage, answer: response }).catch(() => {});
       const unhelpful = isUnhelpful(response);
       if (!unhelpful) { setFailCount(0); }
       else {
