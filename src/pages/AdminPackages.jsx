@@ -408,9 +408,32 @@ export default function AdminPackages({ user }) {
     }
 
     return matchesSearch && matchesStatus && matchesReported;
-  });
+    });
 
-  if (loading) {
+    const simpleWindowSummary = (() => {
+      if (!advancedFilters) return null;
+      const email = (advancedFilters.email || '').trim();
+      const shippingMark = (advancedFilters.shippingMark || '').trim();
+      if (!email && !shippingMark) return null;
+      const list = packages.filter(p => {
+        const byEmail = email ? (p.client_email || '').toLowerCase().includes(email.toLowerCase()) : false;
+        const byMark = shippingMark ? (p.shipping_mark || '').toLowerCase().includes(shippingMark.toLowerCase()) : false;
+        return byEmail || byMark;
+      });
+      const received = list
+        .map(p => p.received_date)
+        .filter(Boolean)
+        .map(d => new Date(d))
+        .sort((a,b) => a - b);
+      if (received.length === 0) return null;
+      const first = received[0];
+      const end = new Date(first.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const now = new Date();
+      const remaining = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+      return { first, end, remaining };
+    })();
+
+    if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -576,6 +599,27 @@ export default function AdminPackages({ user }) {
           className="pl-10 w-full h-11"
         />
       </div>
+
+      {/* Resumen ventana 7 días (búsqueda por email o shipping mark) */}
+      {simpleWindowSummary && (
+        <Card className="border-0 shadow-sm bg-amber-50/60">
+          <CardContent className="p-4 flex flex-wrap gap-6 text-sm text-slate-700">
+            <div>
+              <span className="font-medium">Primer recibido:</span>{' '}
+              {new Date(simpleWindowSummary.first).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}{' '}
+              {new Date(simpleWindowSummary.first).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div>
+              <span className="font-medium">Fin ventana (7 días):</span>{' '}
+              {new Date(simpleWindowSummary.end).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}{' '}
+              {new Date(simpleWindowSummary.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div>
+              <span className="font-medium">Días restantes:</span> {simpleWindowSummary.remaining}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Packages Table */}
       <Card className="border-0 shadow-lg overflow-hidden">
