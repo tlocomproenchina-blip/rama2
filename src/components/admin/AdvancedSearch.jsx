@@ -17,6 +17,8 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
     shippingType: 'all',
     dateFrom: '',
     dateTo: '',
+    receivedDateFrom: '',
+    receivedDateTo: '',
     hasInsurance: 'all',
     minAmount: '',
     maxAmount: ''
@@ -35,6 +37,8 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
       shippingType: 'all',
       dateFrom: '',
       dateTo: '',
+      receivedDateFrom: '',
+      receivedDateTo: '',
       hasInsurance: 'all',
       minAmount: '',
       maxAmount: ''
@@ -173,12 +177,12 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
               )}
             </div>
 
-            {/* Date Range */}
+            {/* Date Range - Registro */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-xs text-slate-600 flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  Fecha Desde
+                  Fecha de Registro (Desde)
                 </Label>
                 <Input
                   type="date"
@@ -191,7 +195,7 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
               <div className="space-y-2">
                 <Label className="text-xs text-slate-600 flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  Fecha Hasta
+                  Fecha de Registro (Hasta)
                 </Label>
                 <Input
                   type="date"
@@ -201,6 +205,37 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
                 />
               </div>
             </div>
+
+            {/* Date Range - Recepción (solo Paquetes) */}
+            {type === 'packages' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600 flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Fecha de Recepción (Desde)
+                  </Label>
+                  <Input
+                    type="date"
+                    value={filters.receivedDateFrom}
+                    onChange={(e) => setFilters({ ...filters, receivedDateFrom: e.target.value })}
+                    className="text-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600 flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Fecha de Recepción (Hasta)
+                  </Label>
+                  <Input
+                    type="date"
+                    value={filters.receivedDateTo}
+                    onChange={(e) => setFilters({ ...filters, receivedDateTo: e.target.value })}
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Amount Range (for invoices and consolidations) */}
             {(type === 'invoices' || type === 'consolidations') && (
@@ -275,12 +310,22 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
                   )}
                   {filters.dateFrom && (
                     <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200">
-                      Desde: {filters.dateFrom}
+                      Reg. desde: {filters.dateFrom}
                     </span>
                   )}
                   {filters.dateTo && (
                     <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200">
-                      Hasta: {filters.dateTo}
+                      Reg. hasta: {filters.dateTo}
+                    </span>
+                  )}
+                  {filters.receivedDateFrom && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200">
+                      Rec. desde: {filters.receivedDateFrom}
+                    </span>
+                  )}
+                  {filters.receivedDateTo && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200">
+                      Rec. hasta: {filters.receivedDateTo}
                     </span>
                   )}
                   {filters.minAmount && (
