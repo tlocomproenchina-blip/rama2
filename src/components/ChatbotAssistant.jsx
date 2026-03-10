@@ -44,6 +44,15 @@ export default function ChatbotAssistant({ user }) {
     return /no puedo|no (tengo|sé)|no dispongo|no encuentro|no tengo suficiente|no estoy seguro|no entiendo|problema al procesar|contacta a soporte|por favor contacta|inténtalo de nuevo|intentalo de nuevo/.test(t);
   };
 
+  const needsHuman = (text) => {
+    const t = String(text || '').toLowerCase();
+    return /(whatsapp|whatsap|whatspp|whats|whatasppp|soporte|agente|humano|operador|hablar con alguien|hablar con una persona|quiero hablar|atenderme)/.test(t);
+  };
+
+  const addClarify = () => {
+    setMessages(prev => [...prev, { role: 'assistant', content: 'No estoy seguro si te entendí bien. ¿Podrías reformular tu pregunta o darme un poco más de detalle? 😊' }]);
+  };
+
   const getWhatsAppLink = () => {
     const num = String(appConfig?.whatsapp_number || '').replace(/[^\d]/g, '');
     if (!num) return null;
@@ -57,6 +66,17 @@ export default function ChatbotAssistant({ user }) {
     const userMessage = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+
+    if (needsHuman(userMessage)) {
+      const link = getWhatsAppLink();
+      const msg = link
+        ? 'Te conecto con un agente por WhatsApp. Toca el botón para abrir el chat.'
+        : 'Te conecto con un agente por WhatsApp. (Configura el número en Ajustes > General > WhatsApp)';
+      setMessages(prev => [...prev, { role: 'assistant', content: msg, waLink: link || undefined }]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -172,18 +192,22 @@ Responde natural y directo:`;
 
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
       const unhelpful = isUnhelpful(response);
-      setFailCount((c) => {
-        const next = unhelpful ? c + 1 : 0;
-        if (next >= 3) {
-          const link = getWhatsAppLink();
-          const msg = link
-            ? '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp.\nToca el botón para abrir el chat.'
-            : '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp. (Configura el número en Ajustes > General > WhatsApp)';
-          setMessages(prev => [...prev, { role: 'assistant', content: msg, waLink: link || undefined }]);
-          return 0;
-        }
-        return next;
-      });
+      if (!unhelpful) { setFailCount(0); }
+      else {
+        setFailCount((c) => {
+          const next = c + 1;
+          if (next === 1) { addClarify(); }
+          if (next >= 2) {
+            const link = getWhatsAppLink();
+            const msg = link
+              ? '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp.\nToca el botón para abrir el chat.'
+              : '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp. (Configura el número en Ajustes > General > WhatsApp)';
+            setMessages(prev => [...prev, { role: 'assistant', content: msg, waLink: link || undefined }]);
+            return 0;
+          }
+          return next;
+        });
+      }
     } catch (error) {
       console.error('Error:', error);
       setMessages(prev => [...prev, { 
@@ -192,12 +216,13 @@ Responde natural y directo:`;
       }]);
       setFailCount((c) => {
         const next = c + 1;
-        if (next >= 3) {
+        if (next === 1) { addClarify(); }
+        if (next >= 2) {
           const link = getWhatsAppLink();
           const msg = link
             ? '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp.\nToca el botón para abrir el chat.'
             : '¿Necesitas más ayuda? Te asignaré un agente humano por WhatsApp. (Configura el número en Ajustes > General > WhatsApp)';
-        setMessages(prev => [...prev, { role: 'assistant', content: msg, waLink: link || undefined }]);
+          setMessages(prev => [...prev, { role: 'assistant', content: msg, waLink: link || undefined }]);
           return 0;
         }
         return next;
