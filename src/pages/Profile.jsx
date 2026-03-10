@@ -203,11 +203,15 @@ export default function Profile({ user, refreshUser }) {
   };
 
   const isFieldDisabled = (fieldName) => {
-    // Si hay campos faltantes, solo habilitar los que faltan
+    // Si el admin habilitó la actualización de perfil, todos los campos editables
+    if (appConfig?.allow_profile_updates === true) {
+      return false;
+    }
+    // Si hay campos faltantes, solo habilitar los que faltan (onboarding)
     if (hasMissingFields) {
       return !missingFields.includes(fieldName);
     }
-    // Si no hay campos faltantes, deshabilitar por configuración global
+    // Caso contrario, respeta la configuración global
     return profileUpdatesDisabled;
   };
 
