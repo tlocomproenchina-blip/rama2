@@ -12,7 +12,7 @@ export default function PieChartCard({ title, data, dataKey = "value", nameKey =
       <CardHeader className="pb-2">
         <CardTitle className="text-base text-slate-700">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 h-64">
+      <CardContent className="pt-0 h-64 overflow-hidden">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie data={data} dataKey={dataKey} nameKey={nameKey} innerRadius={48} outerRadius={80} paddingAngle={3}>
@@ -21,7 +21,7 @@ export default function PieChartCard({ title, data, dataKey = "value", nameKey =
               ))}
             </Pie>
             <Tooltip />
-            <Legend verticalAlign="bottom" height={36} />
+            <Legend verticalAlign="bottom" height={40} wrapperStyle={{ fontSize: 12 }} />
           </PieChart>
         </ResponsiveContainer>
       </CardContent>

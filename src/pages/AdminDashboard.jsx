@@ -505,7 +505,7 @@ export default function AdminDashboard({ user }) {
                         </Badge>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 shrink-0 text-right pl-3">
                       {new Date(pkg.created_date).toLocaleDateString()}
                     </p>
                   </div>

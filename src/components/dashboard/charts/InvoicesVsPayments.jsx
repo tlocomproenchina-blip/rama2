@@ -13,7 +13,7 @@ export default function InvoicesVsPayments({ data }) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 12 }} tickFormatter={(v) => String(v).length > 12 ? String(v).slice(0,12) + '…' : String(v)} />
               <YAxis tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} width={52} />
               <Tooltip formatter={(v) => [`$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`, ""]} />
               <Legend />

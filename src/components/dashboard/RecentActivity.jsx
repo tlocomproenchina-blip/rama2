@@ -41,7 +41,7 @@ export default function RecentActivity({ items = [] }) {
                       <div className="text-xs text-slate-500 truncate">{it.description}</div>
                     )}
                   </div>
-                  <div className="text-xs text-slate-500 whitespace-nowrap">{tzFormat(it.date)}</div>
+                  <div className="text-xs text-slate-500 shrink-0 text-right pl-2 max-w-[96px] overflow-hidden text-ellipsis whitespace-nowrap sm:max-w-full">{tzFormat(it.date)}</div>
                 </li>
               );
             })}
