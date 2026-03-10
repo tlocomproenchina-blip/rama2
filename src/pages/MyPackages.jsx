@@ -263,11 +263,15 @@ export default function MyPackages({ user }) {
 
                   {/* Date */}
                   <div className="text-xs md:text-sm text-slate-500">
-                    {new Date(pkg.created_date).toLocaleDateString('es-ES', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    })}
+                    <div>
+                      Registro: {new Date(pkg.created_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </div>
+                    {pkg.received_date && (
+                      <div className="text-[11px] md:text-xs text-emerald-700">
+                        Recibido: {new Date(pkg.received_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {' '}{new Date(pkg.received_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
