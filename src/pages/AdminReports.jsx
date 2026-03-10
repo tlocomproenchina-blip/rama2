@@ -297,7 +297,7 @@ export default function AdminReports({ user }) {
                   <Tooltip 
                     formatter={(value) => `$${value.toFixed(2)}`}
                   />
-                  <Legend />
+                  <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 12 }} />
                   <Line 
                     type="monotone" 
                     dataKey="revenue" 
