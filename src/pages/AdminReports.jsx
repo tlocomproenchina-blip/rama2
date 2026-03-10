@@ -195,8 +195,8 @@ export default function AdminReports({ user }) {
                   <YAxis />
                   <Tooltip />
                   <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="packages" fill="#3b82f6" name="Paquetes" />
-                  <Bar dataKey="consolidations" fill="#8b5cf6" name="Consolidaciones" />
+                  <Bar dataKey="packages" fill="#3b82f6" name="Paquetes" minPointSize={2} label={false} />
+                  <Bar dataKey="consolidations" fill="#8b5cf6" name="Consolidaciones" minPointSize={2} label={false} />
                 </BarChart>
               </ResponsiveContainer>
 
