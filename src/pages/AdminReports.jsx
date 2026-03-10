@@ -179,19 +179,19 @@ export default function AdminReports({ user }) {
         </TabsList>
 
         {/* 1. Clientes con más envíos */}
-        <TabsContent value="clients" className="space-y-6">
+        <TabsContent value="clients" className="space-y-4 md:space-y-5">
           <Card className="border-0 shadow-lg">
-            <CardHeader>
+            <CardHeader className="pb-2 sm:pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-blue-600" />
                 Top 10 Clientes por Envíos
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-2 pb-3 sm:pb-4">
               <ResponsiveContainer width="100%" height={360}>
-                <BarChart data={topClients} margin={{ top: 10, right: 20, left: 10, bottom: 110 }} barCategoryGap="24%">
+                <BarChart data={topClients} margin={{ top: 8, right: 16, left: 8, bottom: 72 }} barCategoryGap="24%">
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={100} tickMargin={12} tick={{ fontSize: 11 }} tickFormatter={(v) => { const s=String(v||''); return s.length>18 ? s.slice(0,18)+'…' : s; }} />
+                  <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={72} tickMargin={6} tick={{ fontSize: 11 }} tickFormatter={(v) => { const s=String(v||''); return s.length>18 ? s.slice(0,18)+'…' : s; }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip />
                   <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: 12 }} />
