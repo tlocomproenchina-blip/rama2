@@ -593,7 +593,7 @@ export default function Layout({ children, currentPageName }) {
 
          {/* Main Content */}
         <div className="flex-1 overflow-x-hidden w-full">
-          <div className="w-full p-4 md:p-6 lg:p-8 max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
+          <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
             {showBackButton && (
               <div className="mb-3">
                 <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
