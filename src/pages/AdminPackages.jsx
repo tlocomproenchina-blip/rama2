@@ -389,8 +389,6 @@ export default function AdminPackages({ user }) {
         shippingType,
         dateFrom,
         dateTo,
-        receivedDateFrom,
-        receivedDateTo,
         hasInsurance
       } = advancedFilters;
 
@@ -401,18 +399,11 @@ export default function AdminPackages({ user }) {
       if (shippingType !== 'all' && pkg.shipping_type !== shippingType) return false;
       if (hasInsurance !== 'all' && pkg.has_insurance !== (hasInsurance === 'true')) return false;
 
-      // Date filtering - Registro (created_date)
+      // Date filtering
       if (dateFrom || dateTo) {
         const pkgDate = new Date(pkg.created_date);
         if (dateFrom && pkgDate < new Date(dateFrom)) return false;
         if (dateTo && pkgDate > new Date(dateTo + 'T23:59:59')) return false;
-      }
-
-      // Date filtering - Recepción (received_date)
-      if (receivedDateFrom || receivedDateTo) {
-        const rec = pkg.received_date ? new Date(pkg.received_date) : null;
-        if (receivedDateFrom && (!rec || rec < new Date(receivedDateFrom))) return false;
-        if (receivedDateTo && (!rec || rec > new Date(receivedDateTo + 'T23:59:59'))) return false;
       }
     }
 
