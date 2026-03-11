@@ -142,7 +142,7 @@ export default function AdminPackages({ user }) {
 
       toast.success('Imagen actualizada');
       setEditImageModal(null);
-      setNewImageFile(null);
+      setNewImageFiles([]);
       loadPackages(page);
     } catch (error) {
       toast.error('Error al actualizar imagen');
