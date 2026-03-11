@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Pagination from "@/components/common/Pagination";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,19 +60,25 @@ export default function AdminPackages({ user }) {
   const [cancelReceptionModal, setCancelReceptionModal] = useState(null);
   const [cancelProcessing, setCancelProcessing] = useState(false);
   const pageSize = 50;
-  const [page, setPage] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   useEffect(() => {
-    loadPackages(page);
-  }, [page]);
+    loadPackages(false);
+  }, []);
 
-  const loadPackages = async (pageIndex = 0) => {
-    const pkgs = await base44.entities.Package.list('-created_date', pageSize, pageIndex * pageSize);
-    setPackages(pkgs);
-    setHasNext(pkgs.length === pageSize);
-    setLoading(false);
+  const loadPackages = async (append = false) => {
+    if (append) setLoadingMore(true); else setLoading(true);
+    const skip = append ? packages.length : 0;
+    const pkgs = await base44.entities.Package.list('-created_date', pageSize, skip);
+    if (append) {
+      setPackages(prev => [...prev, ...pkgs]);
+    } else {
+      setPackages(pkgs);
+    }
+    setHasMore(pkgs.length === pageSize);
+    if (append) setLoadingMore(false); else setLoading(false);
   };
 
   const handleReceive = async () => {
@@ -113,7 +118,7 @@ export default function AdminPackages({ user }) {
       toast.success('Paquete marcado como recibido');
       setReceiveModal(null);
       setImageFiles([]);
-      loadPackages(page);
+      loadPackages(false);
     } catch (error) {
       toast.error('Error al procesar');
     }
@@ -143,7 +148,7 @@ export default function AdminPackages({ user }) {
       toast.success('Imagen actualizada');
       setEditImageModal(null);
       setNewImageFiles([]);
-      loadPackages(page);
+      loadPackages(false);
     } catch (error) {
       toast.error('Error al actualizar imagen');
     }
@@ -160,7 +165,7 @@ export default function AdminPackages({ user }) {
     }
     
     toast.success('Estado actualizado y cliente notificado');
-    loadPackages(page);
+    loadPackages(false);
   };
 
   const handleAdvancedSearch = (filters) => {
@@ -233,7 +238,7 @@ export default function AdminPackages({ user }) {
       setBulkAction('');
       setBulkStatus('');
       setShowBulkConfirm(false);
-      loadPackages(page);
+      loadPackages(false);
     } catch (error) {
       toast.error('Error al ejecutar acción masiva');
     }
@@ -336,7 +341,7 @@ export default function AdminPackages({ user }) {
       const selectedPkgs = packages.filter(p => selectedPackages.includes(p.id));
       await Promise.all(selectedPkgs.map(p => base44.entities.Package.update(p.id, { reported: flag })));
       toast.success(flag ? 'Marcados como reportados' : 'Reporte removido');
-      loadPackages(page);
+      loadPackages(false);
     } catch (e) {
       toast.error('No se pudo actualizar');
     }
@@ -924,7 +929,11 @@ export default function AdminPackages({ user }) {
         )}
         </Card>
 
-        <Pagination page={page} onPrev={() => setPage(p => Math.max(p - 1, 0))} onNext={() => setPage(p => (hasNext ? p + 1 : p))} hasNext={hasNext} />
+        {hasMore && (
+          <Button variant="outline" className="w-full mt-4" onClick={() => loadPackages(true)} disabled={loadingMore}>
+            {loadingMore ? 'Cargando...' : 'Cargar más'}
+          </Button>
+        )}
 
         {/* Receive Modal */}
       <Dialog open={!!receiveModal} onOpenChange={() => setReceiveModal(null)}>
@@ -1158,7 +1167,7 @@ export default function AdminPackages({ user }) {
                   });
                   toast.success('Recepción cancelada');
                   setCancelReceptionModal(null);
-                  loadPackages(page);
+                  loadPackages(false);
                 } catch (_) {
                   toast.error('No se pudo cancelar la recepción');
                 }
@@ -1177,7 +1186,7 @@ export default function AdminPackages({ user }) {
         onOpenChange={setCreateModalOpen}
         onCreated={() => {
           setCreateModalOpen(false);
-          loadPackages(page);
+          loadPackages(false);
         }}
       />
     </div>
