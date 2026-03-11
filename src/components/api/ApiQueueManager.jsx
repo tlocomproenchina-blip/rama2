@@ -320,7 +320,9 @@ class ApiQueueManager {
         if (cached) return cached;
 
         const result = await this.enqueue(async () => {
-          return await base44Client.entities[entityName].list(sortBy, limit, skip);
+          const lim = Number.isFinite(limit) ? limit : 200;
+          const sk = Number.isFinite(skip) ? skip : 0;
+          return await base44Client.entities[entityName].list(sortBy, lim, sk);
         }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
@@ -333,7 +335,9 @@ class ApiQueueManager {
         if (cached) return cached;
 
         const result = await this.enqueue(async () => {
-          return await base44Client.entities[entityName].filter(query, sortBy, limit, skip);
+          const lim = Number.isFinite(limit) ? limit : 200;
+          const sk = Number.isFinite(skip) ? skip : 0;
+          return await base44Client.entities[entityName].filter(query, sortBy, lim, sk);
         }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
