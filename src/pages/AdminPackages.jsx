@@ -993,10 +993,14 @@ export default function AdminPackages({ user }) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {editImageModal?.package_image_url && (
+            {(editImageModal?.package_images?.length || editImageModal?.package_image_url) && (
               <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-700">Foto actual</p>
-                <img src={editImageModal.package_image_url} alt="Actual" className="w-full rounded-lg" />
+                <p className="text-sm font-medium text-slate-700">Actuales</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(editImageModal?.package_images?.length ? editImageModal.package_images : [editImageModal.package_image_url]).map((url, i) => (
+                    <img key={i} src={url} alt={`Actual ${i+1}`} className="w-full rounded-lg" />
+                  ))}
+                </div>
               </div>
             )}
             <div className="space-y-2">
