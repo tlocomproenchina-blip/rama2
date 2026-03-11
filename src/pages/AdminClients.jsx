@@ -552,7 +552,7 @@ Email: ${client.email}`;
   };
 
   const hasIncompleteData = (client) => {
-    return !client.first_name || !client.last_name || !client.phone || !client.whatsapp || !client.state || !client.city;
+    return !client.first_name || !client.last_name || !client.whatsapp || !client.state || !client.city || !client.address;
   };
 
   const hasValidShippingMark = (client) => {
@@ -656,7 +656,7 @@ Email: ${client.email}`;
       switch (exclusiveKey) {
         case 'with_mark': return hasValidShippingMark(client);
         case 'without_mark': return !hasValidShippingMark(client);
-        case 'pending': return (!hasValidShippingMark(client) && client.profile_completed && !hasIncompleteData(client));
+        case 'pending': return (!hasValidShippingMark(client) && !hasIncompleteData(client));
         case 'incomplete': return hasIncompleteData(client);
         case 'active': return client.is_active !== false;
         case 'inactive': return client.is_active === false;
@@ -858,7 +858,7 @@ Email: ${client.email}`;
                 onClick={() => selectStatus(statusFilter === 'pending' ? 'all' : 'pending')}
                 className={(exclusiveKey === 'pending') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
               >
-                <Clock className="h-3 w-3 mr-1" /> Pendientes ({clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c)).length})
+                <Clock className="h-3 w-3 mr-1" /> Pendientes ({clients.filter(c => !hasValidShippingMark(c) && !hasIncompleteData(c)).length})
               </Button>
               <Button
                 variant="outline"
