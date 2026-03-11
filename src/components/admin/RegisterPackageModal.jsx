@@ -15,7 +15,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [trackingNumber, setTrackingNumber] = useState('');
   const [description, setDescription] = useState('');
   const [shippingType, setShippingType] = useState('aereo');
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,7 +25,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setTrackingNumber('');
     setDescription('');
     setShippingType('aereo');
-    setImageFile(null);
+    setImageFiles([]);
   };
 
   const handleSearch = async () => {
@@ -54,10 +54,14 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
     setSubmitting(true);
     try {
-      let imageUrl = null;
-      if (imageFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
-        imageUrl = file_url;
+      let imageUrls = [];
+      if (imageFiles && imageFiles.length > 0) {
+        const uploaded = [];
+        for (const f of imageFiles.slice(0,3)) {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+          uploaded.push(file_url);
+        }
+        imageUrls = uploaded;
       }
 
       const created = await base44.entities.Package.create({
@@ -66,7 +70,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         shipping_mark: shippingMark.trim(),
         shipping_type: shippingType,
         description: description?.trim() || '',
-        package_image_url: imageUrl || undefined,
+        package_image_urls: (imageUrls || []).slice(0,3),
+        package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : undefined,
         // status por defecto = pre_alerta (definido en el esquema)
       });
 
@@ -138,27 +143,28 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             </Select>
           </div>
 
-          {/* Foto */}
+          {/* Fotos (hasta 3) */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Foto del paquete (opcional)</Label>
+            <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Fotos del paquete (opcional, máx. 3)</Label>
             <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition-colors">
               <input
                 type="file"
                 accept="image/*"
-                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                multiple
+                onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0,3))}
                 className="hidden"
                 id="reg-pkg-image"
               />
               <label htmlFor="reg-pkg-image" className="cursor-pointer">
-                {imageFile ? (
+                {imageFiles && imageFiles.length > 0 ? (
                   <div className="flex items-center justify-center gap-2 text-emerald-600">
                     <CheckCircle className="h-5 w-5" />
-                    <span className="font-medium text-sm">{imageFile.name}</span>
+                    <span className="font-medium text-sm">{imageFiles.length} archivo(s) seleccionados</span>
                   </div>
                 ) : (
                   <div className="text-slate-500">
                     <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                    <p className="text-sm">Click para subir foto</p>
+                    <p className="text-sm">Click para subir hasta 3 fotos</p>
                   </div>
                 )}
               </label>
