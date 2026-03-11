@@ -978,12 +978,12 @@ export default function AdminPackages({ user }) {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Image Modal */}
+      {/* Edit Images Modal */}
       <Dialog open={!!editImageModal} onOpenChange={() => {
         setEditImageModal(null);
-        setNewImageFile(null);
+        setNewImageFiles([]);
       }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {editImageModal?.package_image_url ? 'Reemplazar Foto' : 'Agregar Foto'}
