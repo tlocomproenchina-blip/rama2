@@ -681,10 +681,10 @@ export default function AdminPackages({ user }) {
                     <CheckCircle className="h-4 w-4 mr-1" /> Recibir
                   </Button>
                 )}
-                {pkg.package_image_url && (
+                {(pkg.package_images?.length || pkg.package_image_url) && (
                   <>
-                    <Button size="sm" variant="outline" onClick={() => setViewImage(pkg.package_image_url)}>
-                      <Eye className="h-4 w-4" /> Foto
+                    <Button size="sm" variant="outline" onClick={() => setViewImages(pkg.package_images?.length ? pkg.package_images : [pkg.package_image_url])}>
+                      <Eye className="h-4 w-4" /> Fotos
                     </Button>
                     {pkg.status === 'recibido' && (
                       <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="text-blue-600 hover:text-blue-700">
@@ -693,9 +693,9 @@ export default function AdminPackages({ user }) {
                     )}
                   </>
                 )}
-                {!pkg.package_image_url && pkg.status === 'recibido' && (
+                {!(pkg.package_images?.length || pkg.package_image_url) && pkg.status === 'recibido' && (
                   <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="text-blue-600 hover:text-blue-700">
-                    <Upload className="h-4 w-4 mr-1" /> Foto
+                    <Upload className="h-4 w-4 mr-1" /> Fotos
                   </Button>
                 )}
                 {pkg.status === 'recibido' && (
@@ -838,7 +838,7 @@ export default function AdminPackages({ user }) {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => setViewImage(pkg.package_image_url)}
+                            onClick={() => setViewImages(pkg.package_images?.length ? pkg.package_images : [pkg.package_image_url])}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -854,7 +854,7 @@ export default function AdminPackages({ user }) {
                            )}
                           </>
                           )}
-                          {!pkg.package_image_url && pkg.status === 'recibido' && (
+                          {!(pkg.package_images?.length || pkg.package_image_url) && pkg.status === 'recibido' && (
                           <Button 
                            size="sm" 
                            variant="outline"
@@ -862,7 +862,7 @@ export default function AdminPackages({ user }) {
                            className="text-blue-600 hover:text-blue-700"
                           >
                            <Upload className="h-4 w-4 mr-1" />
-                           Foto
+                           Fotos
                           </Button>
                           )}
                           {pkg.status === 'recibido' && (
@@ -931,20 +931,21 @@ export default function AdminPackages({ user }) {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                  multiple
+                  onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0,3))}
                   className="hidden"
                   id="pkg-image"
                 />
                 <label htmlFor="pkg-image" className="cursor-pointer">
-                  {imageFile ? (
+                  {imageFiles && imageFiles.length > 0 ? (
                     <div className="flex items-center justify-center gap-2 text-emerald-600">
                       <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium">{imageFile.name}</span>
+                      <span className="font-medium">{imageFiles.length} archivo(s) seleccionado(s)</span>
                     </div>
                   ) : (
                     <div className="text-slate-500">
                       <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-sm">Click para subir foto</p>
+                      <p className="text-sm">Click para subir hasta 3 fotos</p>
                     </div>
                   )}
                 </label>
