@@ -35,6 +35,9 @@ export default function MyConsolidations({ user }) {
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const [config, setConfig] = useState(null);
+  const PAGE_SIZE = 100;
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     loadConsolidations();
@@ -43,11 +46,18 @@ export default function MyConsolidations({ user }) {
     // Use manual refresh button instead
   }, [user]);
 
-  const loadConsolidations = async () => {
+  const loadConsolidations = async (append = false) => {
     if (!user) return;
-    const cons = await base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date');
-    setConsolidations(cons);
-    setLoading(false);
+    const skip = append ? consolidations.length : 0;
+    if (append) setLoadingMore(true); else setLoading(true);
+    const cons = await base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', PAGE_SIZE, skip);
+    if (append) {
+      setConsolidations(prev => [...prev, ...cons]);
+    } else {
+      setConsolidations(cons);
+    }
+    setHasMore(cons.length === PAGE_SIZE);
+    if (append) setLoadingMore(false); else setLoading(false);
   };
 
   const canPay = (con) => {
@@ -151,11 +161,12 @@ export default function MyConsolidations({ user }) {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3 md:space-y-4">
-          {consolidations.map((con) => (
-            <Card key={con.id} className="border-0 shadow-lg overflow-hidden">
-              <Collapsible open={expandedId === con.id} onOpenChange={() => setExpandedId(expandedId === con.id ? null : con.id)}>
-                <CollapsibleTrigger asChild>
+                <>
+                <div className="space-y-3 md:space-y-4">
+                  {consolidations.map((con) => (
+                    <Card key={con.id} className="border-0 shadow-lg overflow-hidden">
+                      <Collapsible open={expandedId === con.id} onOpenChange={() => setExpandedId(expandedId === con.id ? null : con.id)}>
+                        <CollapsibleTrigger asChild>
                   <CardHeader className="p-3 md:p-4 lg:p-6 cursor-pointer hover:bg-slate-50 transition-colors">
                     <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                       {/* Main Info */}
@@ -320,9 +331,15 @@ export default function MyConsolidations({ user }) {
             </Card>
           ))}
         </div>
-      )}
+        {hasMore && (
+          <Button variant="outline" className="w-full mt-2" onClick={() => loadConsolidations(true)} disabled={loadingMore}>
+            {loadingMore ? 'Cargando...' : 'Cargar más'}
+          </Button>
+        )}
+        </>
+        )}
 
-      {/* Payment Modal */}
+        {/* Payment Modal */}
       {paymentModal && (
         <PaymentModal
           open={!!paymentModal}

@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import Pagination from "@/components/common/Pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -43,15 +42,15 @@ export default function AdminInvoices({ user }) {
   const [deconsolidateConfirm, setDeconsolidateConfirm] = useState(null);
   const [deconsolidating, setDeconsolidating] = useState(false);
   const pageSize = 50;
-  const [page, setPage] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
   const [appConfig, setAppConfig] = useState(null);
 
   useEffect(() => {
-    loadInvoices(page);
+    loadInvoices(false);
     loadConsolidations();
-  }, [page]);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -60,21 +59,23 @@ export default function AdminInvoices({ user }) {
     })();
   }, []);
 
-  const loadInvoices = async (pageIndex = 0) => {
-    const data = await base44.entities.Invoice.list('-invoice_date', pageSize, pageIndex * pageSize);
-    setInvoices(data);
+  const loadInvoices = async (append = false) => {
+    if (append) setLoadingMore(true); else setLoading(true);
+    const skip = append ? invoices.length : 0;
+    const data = await base44.entities.Invoice.list('-invoice_date', pageSize, skip);
+    const nextList = append ? [...invoices, ...data] : data;
 
-    // Calculate stats from current page (fast client-side)
-    const stats = {
-      total: data.length,
-      paid: data.filter(i => i.status === 'pagada').length,
-      pending: data.filter(i => i.status === 'pendiente').length,
-      revenue: data.filter(i => i.status === 'pagada').reduce((sum, i) => sum + i.total, 0)
+    const nextStats = {
+      total: nextList.length,
+      paid: nextList.filter(i => i.status === 'pagada').length,
+      pending: nextList.filter(i => i.status === 'pendiente').length,
+      revenue: nextList.filter(i => i.status === 'pagada').reduce((sum, i) => sum + i.total, 0)
     };
-    setStats(stats);
+    setStats(nextStats);
 
-    setHasNext(data.length === pageSize);
-    setLoading(false);
+    setInvoices(nextList);
+    setHasMore(data.length === pageSize);
+    if (append) setLoadingMore(false); else setLoading(false);
   };
 
   const loadConsolidations = async () => {
@@ -358,8 +359,7 @@ export default function AdminInvoices({ user }) {
     toast.success('Factura descargada');
   };
 
-  const goPrev = () => setPage(p => Math.max(p - 1, 0));
-  const goNext = () => setPage(p => (hasNext ? p + 1 : p));
+
 
   const handleExportAll = () => {
     const csv = ['Número,Cliente,Fecha,Total,Estado,Método de Pago'];
@@ -796,7 +796,11 @@ export default function AdminInvoices({ user }) {
         </div>
         )}
 
-        <Pagination page={page} onPrev={goPrev} onNext={goNext} hasNext={hasNext} />
+        {hasMore && (
+          <Button variant="outline" className="w-full mt-4" onClick={() => loadInvoices(true)} disabled={loadingMore}>
+            {loadingMore ? 'Cargando...' : 'Cargar más'}
+          </Button>
+        )}
 
         {/* Create Invoice Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>

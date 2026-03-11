@@ -77,6 +77,9 @@ export default function AdminClients({ user }) {
   const [exclusiveKey, setExclusiveKey] = useState('all');
   const [canExport, setCanExport] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
+  const PAGE_SIZE = 200;
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
 
 
@@ -121,30 +124,33 @@ export default function AdminClients({ user }) {
 
 
 
-   const loadClients = async () => {
+   const loadClients = async (append = false) => {
     try {
-      const usersPromise = canViewClients
-        ? (user?.role === 'admin'
-            ? base44.entities.User.filter({ role: 'user' })
-            : base44.functions.invoke('listClientsForSupport').then(res => res.data))
-        : Promise.resolve([]);
+      if (append) setLoadingMore(true); else setLoading(true);
+      let users = [];
+      if (canViewClients) {
+        if (user?.role === 'admin') {
+          const skip = append ? clients.length : 0;
+          users = await base44.entities.User.filter({ role: 'user' }, '-created_date', PAGE_SIZE, skip);
+          setHasMore(users.length === PAGE_SIZE);
+        } else {
+          const res = await base44.functions.invoke('listClientsForSupport');
+          users = res.data || [];
+          setHasMore(false);
+        }
+      }
 
-      const results = await Promise.allSettled([
-        usersPromise,
-        base44.entities.Package.list()
-      ]);
-
-      const users = results[0].status === 'fulfilled' ? results[0].value : [];
-      const packages = results[1].status === 'fulfilled' ? results[1].value : [];
-
-      const counts = {};
-      packages.forEach(pkg => {
-        counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1;
-      });
-      setPackagesCount(counts);
-      setClients(users);
+      if (append) {
+        setClients(prev => [...prev, ...users]);
+      } else {
+        const packages = await base44.entities.Package.list();
+        const counts = {};
+        packages.forEach(pkg => { counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1; });
+        setPackagesCount(counts);
+        setClients(users);
+      }
     } finally {
-      setLoading(false);
+      if (append) setLoadingMore(false); else setLoading(false);
     }
   };
 
@@ -974,6 +980,7 @@ Email: ${client.email}`;
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid gap-4">
           {filteredClients.map((client) => (
             <Card 
@@ -1112,6 +1119,12 @@ Email: ${client.email}`;
             </Card>
           ))}
         </div>
+        {hasMore && (
+          <Button variant="outline" className="w-full mt-4" onClick={() => loadClients(true)} disabled={loadingMore}>
+            {loadingMore ? 'Cargando...' : 'Cargar más'}
+          </Button>
+        )}
+        </>
       )}
 
       {/* Client Details Modal */}

@@ -25,6 +25,9 @@ export default function MyInvoices({ user }) {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [config, setConfig] = useState(null);
   const [paypalOpen, setPaypalOpen] = useState(false);
+  const PAGE_SIZE = 100;
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -45,10 +48,17 @@ export default function MyInvoices({ user }) {
     return () => window.removeEventListener('openStripeForInvoice', handler);
   }, []);
 
-  const loadInvoices = async () => {
-    const data = await base44.entities.Invoice.filter({ client_email: user.email }, '-invoice_date');
-    setInvoices(data);
-    setLoading(false);
+  const loadInvoices = async (append = false) => {
+    const skip = append ? invoices.length : 0;
+    if (append) setLoadingMore(true); else setLoading(true);
+    const data = await base44.entities.Invoice.filter({ client_email: user.email }, '-invoice_date', PAGE_SIZE, skip);
+    if (append) {
+      setInvoices(prev => [...prev, ...data]);
+    } else {
+      setInvoices(data);
+    }
+    setHasMore(data.length === PAGE_SIZE);
+    if (append) setLoadingMore(false); else setLoading(false);
   };
 
   const handlePayOnline = async (invoice) => {
