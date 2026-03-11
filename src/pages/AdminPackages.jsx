@@ -44,9 +44,9 @@ export default function AdminPackages({ user }) {
   const [reportedFilter, setReportedFilter] = useState('all');
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [receiveModal, setReceiveModal] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
   const [processing, setProcessing] = useState(false);
-  const [viewImage, setViewImage] = useState(null);
+  const [viewImages, setViewImages] = useState(null);
   const [advancedFilters, setAdvancedFilters] = useState(null);
   const [selectedPackages, setSelectedPackages] = useState([]);
   const [bulkAction, setBulkAction] = useState('');
@@ -54,7 +54,7 @@ export default function AdminPackages({ user }) {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [editImageModal, setEditImageModal] = useState(null);
-  const [newImageFile, setNewImageFile] = useState(null);
+  const [newImageFiles, setNewImageFiles] = useState([]);
   const [ticketModal, setTicketModal] = useState(null);
   const [ticketMessage, setTicketMessage] = useState('');
   const [ticketProcessing, setTicketProcessing] = useState(false);
@@ -81,15 +81,21 @@ export default function AdminPackages({ user }) {
     setProcessing(true);
 
     try {
-      let imageUrl = receiveModal.package_image_url;
-      if (imageFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
-        imageUrl = file_url;
+      let uploadedUrls = [];
+      if (imageFiles && imageFiles.length > 0) {
+        const uploads = await Promise.all(
+          imageFiles.slice(0, 3).map(async (f) => {
+            const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+            return file_url;
+          })
+        );
+        uploadedUrls = uploads.filter(Boolean);
       }
 
       await base44.entities.Package.update(receiveModal.id, {
         status: 'recibido',
-        package_image_url: imageUrl,
+        package_images: uploadedUrls,
+        package_image_url: uploadedUrls[0] || receiveModal.package_image_url || null,
         received_date: new Date().toISOString(),
         received_by: user.email
       });
@@ -107,7 +113,7 @@ export default function AdminPackages({ user }) {
 
       toast.success('Paquete marcado como recibido');
       setReceiveModal(null);
-      setImageFile(null);
+      setImageFiles([]);
       loadPackages(page);
     } catch (error) {
       toast.error('Error al procesar');
