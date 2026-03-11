@@ -204,6 +204,7 @@ export default function MyPackages({ user }) {
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid gap-3 md:gap-4">
           {filteredPackages.map((pkg) => (
             <Card key={pkg.id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
@@ -298,6 +299,7 @@ export default function MyPackages({ user }) {
             {loadingMore ? 'Cargando...' : 'Cargar más'}
           </Button>
         )}
+        </>
       )}
 
       {/* Image Modal */}
