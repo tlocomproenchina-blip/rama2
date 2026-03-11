@@ -44,9 +44,9 @@ export default function AdminPackages({ user }) {
   const [reportedFilter, setReportedFilter] = useState('all');
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [receiveModal, setReceiveModal] = useState(null);
-  const [imageFiles, setImageFiles] = useState([]);
+  const [imageFile, setImageFile] = useState(null);
   const [processing, setProcessing] = useState(false);
-  const [viewImages, setViewImages] = useState(null);
+  const [viewImage, setViewImage] = useState(null);
   const [advancedFilters, setAdvancedFilters] = useState(null);
   const [selectedPackages, setSelectedPackages] = useState([]);
   const [bulkAction, setBulkAction] = useState('');
@@ -54,7 +54,7 @@ export default function AdminPackages({ user }) {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [editImageModal, setEditImageModal] = useState(null);
-  const [newImageFiles, setNewImageFiles] = useState([]);
+  const [newImageFile, setNewImageFile] = useState(null);
   const [ticketModal, setTicketModal] = useState(null);
   const [ticketMessage, setTicketMessage] = useState('');
   const [ticketProcessing, setTicketProcessing] = useState(false);
@@ -81,21 +81,15 @@ export default function AdminPackages({ user }) {
     setProcessing(true);
 
     try {
-      let uploadedUrls = [];
-      if (imageFiles && imageFiles.length > 0) {
-        const uploads = await Promise.all(
-          imageFiles.slice(0, 3).map(async (f) => {
-            const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-            return file_url;
-          })
-        );
-        uploadedUrls = uploads.filter(Boolean);
+      let imageUrl = receiveModal.package_image_url;
+      if (imageFile) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
+        imageUrl = file_url;
       }
 
       await base44.entities.Package.update(receiveModal.id, {
         status: 'recibido',
-        package_images: uploadedUrls,
-        package_image_url: uploadedUrls[0] || receiveModal.package_image_url || null,
+        package_image_url: imageUrl,
         received_date: new Date().toISOString(),
         received_by: user.email
       });
@@ -113,7 +107,7 @@ export default function AdminPackages({ user }) {
 
       toast.success('Paquete marcado como recibido');
       setReceiveModal(null);
-      setImageFiles([]);
+      setImageFile(null);
       loadPackages(page);
     } catch (error) {
       toast.error('Error al procesar');
@@ -681,10 +675,10 @@ export default function AdminPackages({ user }) {
                     <CheckCircle className="h-4 w-4 mr-1" /> Recibir
                   </Button>
                 )}
-                {(pkg.package_images?.length || pkg.package_image_url) && (
+                {pkg.package_image_url && (
                   <>
-                    <Button size="sm" variant="outline" onClick={() => setViewImages(pkg.package_images?.length ? pkg.package_images : [pkg.package_image_url])}>
-                      <Eye className="h-4 w-4" /> Fotos
+                    <Button size="sm" variant="outline" onClick={() => setViewImage(pkg.package_image_url)}>
+                      <Eye className="h-4 w-4" /> Foto
                     </Button>
                     {pkg.status === 'recibido' && (
                       <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="text-blue-600 hover:text-blue-700">
@@ -693,9 +687,9 @@ export default function AdminPackages({ user }) {
                     )}
                   </>
                 )}
-                {!(pkg.package_images?.length || pkg.package_image_url) && pkg.status === 'recibido' && (
+                {!pkg.package_image_url && pkg.status === 'recibido' && (
                   <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="text-blue-600 hover:text-blue-700">
-                    <Upload className="h-4 w-4 mr-1" /> Fotos
+                    <Upload className="h-4 w-4 mr-1" /> Foto
                   </Button>
                 )}
                 {pkg.status === 'recibido' && (
@@ -838,7 +832,7 @@ export default function AdminPackages({ user }) {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => setViewImages(pkg.package_images?.length ? pkg.package_images : [pkg.package_image_url])}
+                            onClick={() => setViewImage(pkg.package_image_url)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -854,7 +848,7 @@ export default function AdminPackages({ user }) {
                            )}
                           </>
                           )}
-                          {!(pkg.package_images?.length || pkg.package_image_url) && pkg.status === 'recibido' && (
+                          {!pkg.package_image_url && pkg.status === 'recibido' && (
                           <Button 
                            size="sm" 
                            variant="outline"
@@ -862,7 +856,7 @@ export default function AdminPackages({ user }) {
                            className="text-blue-600 hover:text-blue-700"
                           >
                            <Upload className="h-4 w-4 mr-1" />
-                           Fotos
+                           Foto
                           </Button>
                           )}
                           {pkg.status === 'recibido' && (
@@ -931,21 +925,20 @@ export default function AdminPackages({ user }) {
                 <input
                   type="file"
                   accept="image/*"
-                  multiple
-                  onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0,3))}
+                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
                   className="hidden"
                   id="pkg-image"
                 />
                 <label htmlFor="pkg-image" className="cursor-pointer">
-                  {imageFiles && imageFiles.length > 0 ? (
+                  {imageFile ? (
                     <div className="flex items-center justify-center gap-2 text-emerald-600">
                       <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium">{imageFiles.length} archivo(s) seleccionado(s)</span>
+                      <span className="font-medium">{imageFile.name}</span>
                     </div>
                   ) : (
                     <div className="text-slate-500">
                       <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-sm">Click para subir hasta 3 fotos</p>
+                      <p className="text-sm">Click para subir foto</p>
                     </div>
                   )}
                 </label>
@@ -964,43 +957,35 @@ export default function AdminPackages({ user }) {
         </DialogContent>
       </Dialog>
 
-      {/* View Images Modal */}
-      <Dialog open={!!viewImages} onOpenChange={() => setViewImages(null)}>
-        <DialogContent className="max-w-3xl">
+      {/* View Image Modal */}
+      <Dialog open={!!viewImage} onOpenChange={() => setViewImage(null)}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Fotos del Paquete</DialogTitle>
+            <DialogTitle>Foto del Paquete</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {(viewImages || []).map((url, idx) => (
-              <img key={idx} src={url} alt={`Paquete ${idx+1}`} className="w-full rounded-lg" />
-            ))}
-          </div>
+          <img src={viewImage} alt="Paquete" className="w-full rounded-lg" />
         </DialogContent>
       </Dialog>
 
-      {/* Edit Images Modal */}
+      {/* Edit Image Modal */}
       <Dialog open={!!editImageModal} onOpenChange={() => {
         setEditImageModal(null);
-        setNewImageFiles([]);
+        setNewImageFile(null);
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {(editImageModal?.package_images?.length || editImageModal?.package_image_url) ? 'Gestionar Fotos' : 'Agregar Fotos'}
+              {editImageModal?.package_image_url ? 'Reemplazar Foto' : 'Agregar Foto'}
             </DialogTitle>
             <DialogDescription>
               Tracking: {editImageModal?.tracking_number}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {(editImageModal?.package_images?.length || editImageModal?.package_image_url) && (
+            {editImageModal?.package_image_url && (
               <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-700">Actuales</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {(editImageModal?.package_images?.length ? editImageModal.package_images : [editImageModal.package_image_url]).map((url, i) => (
-                    <img key={i} src={url} alt={`Actual ${i+1}`} className="w-full rounded-lg" />
-                  ))}
-                </div>
+                <p className="text-sm font-medium text-slate-700">Foto actual</p>
+                <img src={editImageModal.package_image_url} alt="Actual" className="w-full rounded-lg" />
               </div>
             )}
             <div className="space-y-2">
@@ -1012,21 +997,20 @@ export default function AdminPackages({ user }) {
                 <input
                   type="file"
                   accept="image/*"
-                  multiple
-                  onChange={(e) => setNewImageFiles(Array.from(e.target.files || []).slice(0,3))}
+                  onChange={(e) => setNewImageFile(e.target.files?.[0] || null)}
                   className="hidden"
                   id="edit-pkg-image"
                 />
                 <label htmlFor="edit-pkg-image" className="cursor-pointer">
-                  {newImageFiles && newImageFiles.length > 0 ? (
+                  {newImageFile ? (
                     <div className="flex items-center justify-center gap-2 text-emerald-600">
                       <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium text-sm">{newImageFiles.length} archivo(s) seleccionado(s)</span>
+                      <span className="font-medium text-sm">{newImageFile.name}</span>
                     </div>
                   ) : (
                     <div className="text-slate-500">
                       <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-sm">Click para subir fotos</p>
+                      <p className="text-sm">Click para subir foto</p>
                     </div>
                   )}
                 </label>
