@@ -997,7 +997,7 @@ export default function AdminPackages({ user }) {
       {/* Edit Image Modal */}
       <Dialog open={!!editImageModal} onOpenChange={() => {
         setEditImageModal(null);
-        setNewImageFile(null);
+        setNewImageFiles([]);
       }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -1157,7 +1157,8 @@ export default function AdminPackages({ user }) {
                     status: 'pre_alerta',
                     received_date: null,
                     received_by: null,
-                    package_image_url: null
+                    package_image_url: null,
+                    package_image_urls: []
                   });
                   toast.success('Recepción cancelada');
                   setCancelReceptionModal(null);
