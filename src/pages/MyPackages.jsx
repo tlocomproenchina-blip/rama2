@@ -34,6 +34,7 @@ export default function MyPackages({ user }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedGallery, setSelectedGallery] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [editModal, setEditModal] = useState(null);
   const [editForm, setEditForm] = useState({ tracking_number: '', description: '', shipping_type: 'aereo' });
@@ -227,15 +228,19 @@ export default function MyPackages({ user }) {
                         Asegurado
                       </Badge>
                     )}
-                    {pkg.package_image_url && (
+                    {(pkg.package_image_urls && pkg.package_image_urls.length > 0 || pkg.package_image_url) && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedImage(pkg.package_image_url)}
+                        onClick={() => {
+                          const gallery = pkg.package_image_urls && pkg.package_image_urls.length > 0 ? pkg.package_image_urls : [pkg.package_image_url];
+                          setSelectedGallery(gallery);
+                          setSelectedImage(gallery[0]);
+                        }}
                         className="text-slate-600 text-xs"
                       >
                         <ImageIcon className="h-3 w-3 mr-1" />
-                        Ver Foto
+                        Ver Fotos
                       </Button>
                     )}
                     <StatusBadge status={pkg.status} />
@@ -281,17 +286,28 @@ export default function MyPackages({ user }) {
       )}
 
       {/* Image Modal */}
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+      <Dialog open={!!selectedImage} onOpenChange={() => { setSelectedImage(null); setSelectedGallery([]); }}>
         <DialogContent className="max-w-xl md:max-w-2xl mx-auto">
           <DialogHeader>
-            <DialogTitle className="text-base md:text-lg">Foto del Paquete</DialogTitle>
+            <DialogTitle className="text-base md:text-lg">Fotos del Paquete</DialogTitle>
           </DialogHeader>
-          <div className="mt-4 overflow-y-auto max-h-[70vh]">
-            <img 
-              src={selectedImage} 
-              alt="Paquete recibido" 
-              className="w-full rounded-lg"
-            />
+          <div className="mt-2">
+            {selectedImage && (
+              <img src={selectedImage} alt="Paquete" className="w-full rounded-lg mb-3" />)
+            }
+            {selectedGallery && selectedGallery.length > 1 && (
+              <div className="grid grid-cols-3 gap-2">
+                {selectedGallery.map((url, idx) => (
+                  <img
+                    key={idx}
+                    src={url}
+                    alt={`mini-${idx+1}`}
+                    className={`w-full h-20 object-cover rounded cursor-pointer ${selectedImage===url ? 'ring-2 ring-blue-500' : ''}`}
+                    onClick={() => setSelectedImage(url)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
