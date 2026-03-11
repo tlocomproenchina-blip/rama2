@@ -986,7 +986,7 @@ export default function AdminPackages({ user }) {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editImageModal?.package_image_url ? 'Reemplazar Foto' : 'Agregar Foto'}
+              {(editImageModal?.package_images?.length || editImageModal?.package_image_url) ? 'Gestionar Fotos' : 'Agregar Fotos'}
             </DialogTitle>
             <DialogDescription>
               Tracking: {editImageModal?.tracking_number}
