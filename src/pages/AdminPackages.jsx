@@ -964,13 +964,17 @@ export default function AdminPackages({ user }) {
         </DialogContent>
       </Dialog>
 
-      {/* View Image Modal */}
-      <Dialog open={!!viewImage} onOpenChange={() => setViewImage(null)}>
-        <DialogContent className="max-w-2xl">
+      {/* View Images Modal */}
+      <Dialog open={!!viewImages} onOpenChange={() => setViewImages(null)}>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Foto del Paquete</DialogTitle>
+            <DialogTitle>Fotos del Paquete</DialogTitle>
           </DialogHeader>
-          <img src={viewImage} alt="Paquete" className="w-full rounded-lg" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(viewImages || []).map((url, idx) => (
+              <img key={idx} src={url} alt={`Paquete ${idx+1}`} className="w-full rounded-lg" />
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 
