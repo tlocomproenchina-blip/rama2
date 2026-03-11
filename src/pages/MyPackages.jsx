@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
 
 export default function MyPackages({ user }) {
+  const PAGE_SIZE = 200;
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -41,9 +42,11 @@ export default function MyPackages({ user }) {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    loadPackages();
+    loadPackages(false);
     
     // Real-time updates
     if (user) {
@@ -62,11 +65,18 @@ export default function MyPackages({ user }) {
     }
   }, [user]);
 
-  const loadPackages = async () => {
+  const loadPackages = async (append = false) => {
     if (!user) return;
-    const pkgs = await base44.entities.Package.filter({ client_email: user.email }, '-created_date');
-    setPackages(pkgs);
-    setLoading(false);
+    if (append) setLoadingMore(true); else setLoading(true);
+    const skip = append ? packages.length : 0;
+    const pkgs = await base44.entities.Package.filter({ client_email: user.email }, '-created_date', PAGE_SIZE, skip);
+    if (append) {
+      setPackages((prev) => [...prev, ...pkgs]);
+    } else {
+      setPackages(pkgs);
+    }
+    setHasMore(pkgs.length === PAGE_SIZE);
+    if (append) setLoadingMore(false); else setLoading(false);
   };
 
 
@@ -94,7 +104,7 @@ export default function MyPackages({ user }) {
     setSaving(false);
     setEditModal(null);
     toast.success('Paquete actualizado');
-    loadPackages();
+    loadPackages(false);
   };
 
   const openDelete = (pkg) => setDeleteConfirm(pkg);
@@ -106,7 +116,7 @@ export default function MyPackages({ user }) {
     setDeleting(false);
     setDeleteConfirm(null);
     toast.success('Paquete eliminado');
-    loadPackages();
+    loadPackages(false);
   };
 
   const filteredPackages = useMemo(() => {
@@ -283,6 +293,11 @@ export default function MyPackages({ user }) {
             </Card>
           ))}
         </div>
+        {hasMore && (
+          <Button variant="outline" className="w-full" onClick={() => loadPackages(true)} disabled={loadingMore}>
+            {loadingMore ? 'Cargando...' : 'Cargar más'}
+          </Button>
+        )}
       )}
 
       {/* Image Modal */}
