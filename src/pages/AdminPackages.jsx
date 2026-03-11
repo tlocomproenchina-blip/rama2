@@ -1012,20 +1012,21 @@ export default function AdminPackages({ user }) {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setNewImageFile(e.target.files?.[0] || null)}
+                  multiple
+                  onChange={(e) => setNewImageFiles(Array.from(e.target.files || []).slice(0,3))}
                   className="hidden"
                   id="edit-pkg-image"
                 />
                 <label htmlFor="edit-pkg-image" className="cursor-pointer">
-                  {newImageFile ? (
+                  {newImageFiles && newImageFiles.length > 0 ? (
                     <div className="flex items-center justify-center gap-2 text-emerald-600">
                       <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium text-sm">{newImageFile.name}</span>
+                      <span className="font-medium text-sm">{newImageFiles.length} archivo(s) seleccionado(s)</span>
                     </div>
                   ) : (
                     <div className="text-slate-500">
                       <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-sm">Click para subir foto</p>
+                      <p className="text-sm">Click para subir fotos</p>
                     </div>
                   )}
                 </label>
