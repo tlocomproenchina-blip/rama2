@@ -865,12 +865,8 @@ export default function AdminPackages({ user }) {
                                     >
                                       <ImageIcon className="h-4 w-4" /> Fotos
                                     </Button>
-                                >
-                                  <ImageIcon className="h-4 w-4" /> Fotos
-                                </Button>
-                             >
-                               <ImageIcon className="h-4 w-4" />
-                             </Button>
+                                
+
                            )}
                           </>
                           )}
@@ -952,7 +948,7 @@ export default function AdminPackages({ user }) {
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0,3))
+                  onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0,3))}
                   className="hidden"
                   id="pkg-image"
                 />
@@ -1029,7 +1025,7 @@ export default function AdminPackages({ user }) {
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(e) => setNewImageFiles(Array.from(e.target.files || []))
+                  onChange={(e) => setNewImageFiles(Array.from(e.target.files || []))}
                   className="hidden"
                   id="edit-pkg-image"
                 />
@@ -1052,13 +1048,13 @@ export default function AdminPackages({ user }) {
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setEditImageModal(null);
-              setNewImageFile(null);
+              setNewImageFiles([]);
             }}>
               Cancelar
             </Button>
             <Button 
               onClick={handleUpdateImage} 
-              disabled={processing || !newImageFile} 
+              disabled={processing || !newImageFiles || newImageFiles.length === 0} 
               className="bg-blue-600 hover:bg-blue-700"
             >
               {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
