@@ -393,7 +393,8 @@ export default function ShippingCalculator({ user }) {
             <CardTitle>Detalles del Envío</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="overflow-x-auto">
+            {/* Desktop (md+) table layout */}
+            <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -432,6 +433,49 @@ export default function ShippingCalculator({ user }) {
                   </TableRow>
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Mobile (sm) vertical layout */}
+            <div className="md:hidden space-y-2">
+              <div className="rounded-lg border p-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">Tarifa aplicada</div>
+                  <div className="text-sm font-semibold">${result.finalRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</div>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">{result.rateType}</div>
+              </div>
+
+              <div className="rounded-lg border p-3 bg-white">
+                <div className="text-sm font-medium">Unidad facturable</div>
+                <div className="text-xs text-slate-500 mt-1">{result.chargedBy}</div>
+              </div>
+
+              <div className="rounded-lg border p-3 bg-white">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">Costo de envío</div>
+                  <div className="text-sm font-semibold">${result.shippingCost.toFixed(2)}</div>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  {result.finalRate.toFixed(2)} × {result.billableWeight.toFixed(shippingType === 'aereo' ? 2 : 4)}
+                </div>
+              </div>
+
+              {result.insuranceCost > 0 && (
+                <div className="rounded-lg border p-3 bg-white">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">Seguro</div>
+                    <div className="text-sm font-semibold">${result.insuranceCost.toFixed(2)}</div>
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">{(config?.insurance_percentage || 0)}% de FOB</div>
+                </div>
+              )}
+
+              <div className="rounded-lg border p-3 bg-emerald-50 border-emerald-200">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold">Total</div>
+                  <div className="text-base font-bold text-emerald-700">${result.totalCost.toFixed(2)}</div>
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
               <div>Peso volumétrico: {result.volumetricWeight.toFixed(2)} kg</div>
