@@ -406,6 +406,7 @@ export default function Layout({ children, currentPageName }) {
 
 
   const handleContractReject = () => {
+    // Mantener al usuario en la misma página; solo cierra sesión de forma segura
     base44.auth.logout();
   };
 
