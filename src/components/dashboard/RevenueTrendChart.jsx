@@ -9,7 +9,7 @@ export default function RevenueTrendChart({ data }) {
         <CardTitle className="text-base md:text-lg">Ingresos vs Pagos (por día)</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-64 md:h-80">
+        <div className="h-64 md:h-80 min-w-[1px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
               <XAxis dataKey="date" tick={{ fontSize: 12 }} />

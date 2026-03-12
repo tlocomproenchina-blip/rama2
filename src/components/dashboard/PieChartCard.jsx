@@ -12,7 +12,7 @@ export default function PieChartCard({ title, data, dataKey = "value", nameKey =
       <CardHeader className="pb-2">
         <CardTitle className="text-base text-slate-700">{title}</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 h-64 overflow-hidden">
+      <CardContent className="pt-0 h-64 overflow-hidden min-w-[1px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie data={data} dataKey={dataKey} nameKey={nameKey} innerRadius={48} outerRadius={80} paddingAngle={3}>

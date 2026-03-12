@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     // Leer últimas métricas (recientes)
-    const recent = await base44.asServiceRole.entities.RuntimeMetrics.list('-created_date', 400);
+    const recent = await base44.asServiceRole.entities.RuntimeMetrics.list('-created_date', 200);
     const now = Date.now();
     const windowMs = 60_000; // 60s
     const metrics = (recent || []).filter(m => now - new Date(m.created_date).getTime() <= windowMs);
@@ -77,8 +77,12 @@ Deno.serve(async (req) => {
       };
     }
 
-    // Upsert RuntimeTuning (config_key = 'global')
+    // Upsert RuntimeTuning (config_key = 'global') con protección de frecuencia
     const existing = await base44.asServiceRole.entities.RuntimeTuning.filter({ config_key: 'global' }, '-created_date', 1);
+    const lastUpdated = existing?.[0]?.updated_date ? new Date(existing[0].updated_date).getTime() : 0;
+    if (Date.now() - lastUpdated < 45_000) {
+      return Response.json({ status: 'skipped', reason: 'throttled_recent_update', metrics_count: metrics.length });
+    }
     const record = {
       config_key: 'global',
       ...target,

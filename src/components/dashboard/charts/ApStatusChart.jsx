@@ -22,7 +22,7 @@ export default function ApStatusChart({ data }) {
         <CardTitle className="text-base md:text-lg">Cuentas por Pagar por Estado</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="h-72">
+        <div className="h-72 min-w-[1px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" />

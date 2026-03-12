@@ -1,5 +1,7 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import Stripe from 'npm:stripe@14.23.0';
+
+const inFlight = new Set();
 
 Deno.serve(async (req) => {
   try {
@@ -68,27 +70,43 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, message: 'Stripe customer already exists', stripe_customer_id: targetUser.stripe_customer_id });
     }
 
-    const fullName = targetUser.full_name || `${targetUser.first_name || ''} ${targetUser.last_name || ''}`.trim();
+    if (!targetUser.email) {
+      return Response.json({ error: 'User has no email' }, { status: 400 });
+    }
 
-    const customer = await stripe.customers.create({
-      email: targetUser.email,
-      name: fullName || undefined,
-      phone: targetUser.phone || targetUser.whatsapp || undefined,
-      address: {
-        line1: targetUser.address || undefined,
-        city: targetUser.city || undefined,
-        state: targetUser.state || undefined,
-        country: 'VE',
-      },
-      metadata: {
-        base44_user_id: String(targetUser.id || ''),
-      },
-    });
+    const inflightKey = `user:${targetUser.id}`;
+    if (inFlight.has(inflightKey)) {
+      return Response.json({ success: true, message: 'Stripe customer creation in progress' }, { status: 202 });
+    }
+    inFlight.add(inflightKey);
+    try {
+      const fullName = targetUser.full_name || `${targetUser.first_name || ''} ${targetUser.last_name || ''}`.trim();
 
-    // Persist on User (service role to work for both contexts)
-    await base44.asServiceRole.entities.User.update(targetUser.id, { stripe_customer_id: customer.id });
+      const customer = await Promise.race([
+        stripe.customers.create({
+          email: targetUser.email,
+          name: fullName || undefined,
+          phone: targetUser.phone || targetUser.whatsapp || undefined,
+          address: {
+            line1: targetUser.address || undefined,
+            city: targetUser.city || undefined,
+            state: targetUser.state || undefined,
+            country: 'VE',
+          },
+          metadata: {
+            base44_user_id: String(targetUser.id || ''),
+          },
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Stripe request timeout')), 6000))
+      ]);
 
-    return Response.json({ success: true, stripe_customer_id: customer.id });
+      // Persist on User (service role to work for both contexts)
+      await base44.asServiceRole.entities.User.update(targetUser.id, { stripe_customer_id: customer.id });
+
+      return Response.json({ success: true, stripe_customer_id: customer.id });
+    } finally {
+      inFlight.delete(inflightKey);
+    }
   } catch (error) {
     const message = (error && typeof error === 'object' && 'message' in error) ? error.message : 'Internal Server Error';
     return Response.json({ error: String(message) }, { status: 500 });
