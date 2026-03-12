@@ -395,13 +395,15 @@ export default function Layout({ children, currentPageName }) {
       contract_accepted: true,
       contract_accepted_date: new Date().toISOString()
     });
+    // Evitar cerrar el modal y cambiar de estado hasta que user se refresque
+    const updated = await base44.auth.me();
+    setUser(updated);
     setShowContract(false);
-    setUser({ ...user, contract_accepted: true });
-    
-    if (!user.profile_completed) {
+    if (!updated.profile_completed) {
       setShowProfile(true);
     }
   };
+
 
   const handleContractReject = () => {
     base44.auth.logout();
