@@ -33,7 +33,7 @@ export default function ContractModal({ open, onAccept, onReject }) {
   }, [open]);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onReject?.(); }}>
+    <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Contrato de Servicio - {appName}</DialogTitle>
