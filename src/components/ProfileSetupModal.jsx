@@ -111,6 +111,11 @@ export default function ProfileSetupModal({ open, onComplete }) {
     return () => { closeRadixOverlays(); };
   }, []);
 
+  // Evitar que Radix cierre el modal al tocar fuera (móviles)
+  const preventCloseOutside = (e) => {
+    e.preventDefault();
+  };
+
   const handleSubmit = async () => {
     if (!validate()) return;
 
