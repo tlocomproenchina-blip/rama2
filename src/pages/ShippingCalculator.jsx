@@ -290,7 +290,7 @@ export default function ShippingCalculator({ user }) {
                     type="number"
                     step="0.01"
                     value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
+                    onChange={(e) => { setWeight(e.target.value); setHasInteracted(true); }}
                     placeholder="1.0"
                   />
                 </div>
