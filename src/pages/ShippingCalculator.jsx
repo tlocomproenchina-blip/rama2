@@ -303,7 +303,7 @@ export default function ShippingCalculator({ user }) {
                     type="number"
                     step="0.0001"
                     value={cbm}
-                    onChange={(e) => setCbm(e.target.value)}
+                    onChange={(e) => { setCbm(e.target.value); setHasInteracted(true); }}
                     placeholder="0.0000"
                   />
                 </div>
