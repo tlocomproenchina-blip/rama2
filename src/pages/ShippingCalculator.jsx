@@ -162,7 +162,7 @@ export default function ShippingCalculator({ user }) {
   };
 
   // Auto-calculate when inputs change
-  useEffect(() => { calculateShipping(); }, [shippingType, cargoCategory, includeInsurance, fobValue, inputMode, weight, dimensions.length, dimensions.width, dimensions.height, cbm, selectedState, pricingConfig, config]);
+  useEffect(() => { calculateShipping(); }, [shippingType, cargoCategory, includeInsurance, fobValue, inputMode, weight, dimensions.length, dimensions.width, dimensions.height, cbm, selectedState, pricingConfig, config, states]);
 
   if (loading) {
     return (
@@ -187,7 +187,7 @@ export default function ShippingCalculator({ user }) {
         <CardContent className="p-4">
           <div className="grid gap-3 sm:grid-cols-[240px_1fr] items-center">
             <div className="text-sm text-slate-600">Estado de destino</div>
-            <Select value={selectedState} onValueChange={setSelectedState}>
+            <Select value={selectedState} onValueChange={(v)=>{ setSelectedState(v); setHasInteracted(true); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona un estado" />
               </SelectTrigger>
@@ -211,7 +211,7 @@ export default function ShippingCalculator({ user }) {
           <div className={`grid ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
               {config?.shipping_type_air_enabled !== false && (
                 <button
-                  onClick={() => setShippingType('aereo')}
+                  onClick={() => { setShippingType('aereo'); setHasInteracted(true); }}
                   className={`p-4 rounded-xl border-2 transition-all ${
                     shippingType === 'aereo' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
                   }`}
@@ -226,7 +226,7 @@ export default function ShippingCalculator({ user }) {
 
               {config?.shipping_type_sea_enabled !== false && (
                 <button
-                  onClick={() => setShippingType('maritimo')}
+                  onClick={() => { setShippingType('maritimo'); setHasInteracted(true); }}
                   className={`p-4 rounded-xl border-2 transition-all ${
                     shippingType === 'maritimo' ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
                   }`}
@@ -360,7 +360,7 @@ export default function ShippingCalculator({ user }) {
 
           {/* Seguro */}
           <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-            <Checkbox id="insurance" checked={includeInsurance} onCheckedChange={setIncludeInsurance} />
+            <Checkbox id="insurance" checked={includeInsurance} onCheckedChange={(v)=>{ setIncludeInsurance(v); setHasInteracted(true); }} />
             <div className="flex-1 space-y-3">
               <div>
                 <label htmlFor="insurance" className="font-medium text-slate-800 cursor-pointer">
