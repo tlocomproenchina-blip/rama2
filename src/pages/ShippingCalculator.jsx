@@ -375,7 +375,7 @@ export default function ShippingCalculator({ user }) {
                     type="number"
                     step="0.01"
                     value={fobValue}
-                    onChange={(e) => setFobValue(e.target.value)}
+                    onChange={(e) => { setFobValue(e.target.value); setHasInteracted(true); }}
                     placeholder="0.00"
                   />
                 </div>
