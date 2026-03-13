@@ -68,7 +68,8 @@ export default function AdminClients({ user }) {
     package_image_url: ''
   });
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [dateFilter, setDateFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [quickDate, setQuickDate] = useState('all');
   const [activeFilter, setActiveFilter] = useState('all');
   const [packageFilter, setPackageFilter] = useState('all');
@@ -395,8 +396,10 @@ Email: ${client.email}`;
       const todayStamp = `${yyyy}${mm}${dd}`; // yyyymmdd
 
       let dateSuffix = todayStamp;
-      if (dateFilter) {
-        dateSuffix = String(dateFilter).replaceAll('-', ''); // yyyymmdd exacta
+      if (fromDate || toDate) {
+        const fromS = fromDate ? String(fromDate).replaceAll('-', '') : '00000000';
+        const toS = toDate ? String(toDate).replaceAll('-', '') : todayStamp;
+        dateSuffix = `${fromS}_${toS}`;
       } else if (quickDate === 'today') {
         dateSuffix = `${todayStamp}_hoy`;
       } else if (quickDate === '7d') {
@@ -568,7 +571,8 @@ Email: ${client.email}`;
   const resetAllFilters = () => {
     setSearch('');
     setStatusFilter('all');
-    setDateFilter('');
+    setFromDate('');
+    setToDate('');
     setQuickDate('all');
     setActiveFilter('all');
     setPackageFilter('all');
@@ -631,15 +635,17 @@ Email: ${client.email}`;
 
     const matchesSearch = matchesText || matchesDigits || matchesAlnum;
 
-    // Date filters
-    let matchesDate = true;
-    if (dateFilter) {
-      const clientDate = new Date(client.created_date).toISOString().split('T')[0];
-      matchesDate = clientDate === dateFilter;
+    // Date filters (range or quick)
+    let matchesRange = true;
+    if (fromDate || toDate) {
+      const d = new Date(client.created_date);
+      const start = fromDate ? new Date(`${fromDate}T00:00:00`) : new Date(0);
+      const end = toDate ? new Date(`${toDate}T23:59:59.999`) : new Date();
+      matchesRange = d >= start && d <= end;
     }
 
     let matchesQuick = true;
-    if (!dateFilter && quickDate !== 'all') {
+    if (!fromDate && !toDate && quickDate !== 'all') {
       const now = new Date();
       const startOfToday = new Date();
       startOfToday.setHours(0,0,0,0);
@@ -672,7 +678,7 @@ Email: ${client.email}`;
     // State
     const matchesState = stateFilter === 'all' ? true : clientStateCode === stateFilter;
 
-    return matchesSearch && matchesDate && matchesQuick && matchesCategory && matchesState;
+    return matchesSearch && matchesRange && matchesQuick && matchesCategory && matchesState;
   });
 
   if (loading) {
@@ -795,29 +801,39 @@ Email: ${client.email}`;
           
           {/* Date Filter */}
           <div className="flex flex-col gap-2 p-3 bg-slate-50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-slate-700">Filtrar por fecha exacta:</span>
-              <Input
-                type="date"
-                value={dateFilter || ''}
-                onChange={(e) => { setDateFilter(e.target.value); setQuickDate('all'); }}
-                className="w-auto"
-              />
-              {dateFilter && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setDateFilter('')}
-                >
-                  Limpiar
-                </Button>
-              )}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">Filtrar por rango de fechas:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">Desde</span>
+                <Input
+                  type="date"
+                  value={fromDate || ''}
+                  onChange={(e) => { setFromDate(e.target.value); setQuickDate('all'); }}
+                  className="w-auto"
+                />
+                <span className="text-xs text-slate-500">Hasta</span>
+                <Input
+                  type="date"
+                  value={toDate || ''}
+                  onChange={(e) => { setToDate(e.target.value); setQuickDate('all'); }}
+                  className="w-auto"
+                />
+                {(fromDate || toDate) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setFromDate(''); setToDate(''); }}
+                  >
+                    Limpiar
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant={quickDate === 'all' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('all'); setDateFilter(''); }}>Todas</Button>
-              <Button variant={quickDate === 'today' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('today'); setDateFilter(''); }}>Hoy</Button>
-              <Button variant={quickDate === '7d' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('7d'); setDateFilter(''); }}>Últimos 7 días</Button>
-              <Button variant={quickDate === '30d' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('30d'); setDateFilter(''); }}>Últimos 30 días</Button>
+              <Button variant={quickDate === 'all' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('all'); setFromDate(''); setToDate(''); }}>Todas</Button>
+              <Button variant={quickDate === 'today' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('today'); setFromDate(''); setToDate(''); }}>Hoy</Button>
+              <Button variant={quickDate === '7d' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('7d'); setFromDate(''); setToDate(''); }}>Últimos 7 días</Button>
+              <Button variant={quickDate === '30d' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('30d'); setFromDate(''); setToDate(''); }}>Últimos 30 días</Button>
             </div>
           </div>
 
