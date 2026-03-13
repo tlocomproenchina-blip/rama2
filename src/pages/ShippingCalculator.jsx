@@ -243,7 +243,7 @@ export default function ShippingCalculator({ user }) {
           {/* Categoría de Carga */}
           <div className="space-y-2">
               <Label>Categoría de Carga</Label>
-              <Select value={cargoCategory} onValueChange={setCargoCategory}>
+              <Select value={cargoCategory} onValueChange={(v)=>{ setCargoCategory(v); setHasInteracted(true); }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
