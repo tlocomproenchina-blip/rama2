@@ -25,6 +25,7 @@ export default function ShippingCalculator({ user }) {
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const MIN_CBM = 0.13;
 
   useEffect(() => {
