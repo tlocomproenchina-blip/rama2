@@ -260,7 +260,7 @@ export default function ShippingCalculator({ user }) {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setInputMode('dimensions')}
+                    onClick={() => { setInputMode('dimensions'); setHasInteracted(true); }}
                     className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
                       inputMode === 'dimensions'
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
