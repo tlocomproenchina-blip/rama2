@@ -351,7 +351,7 @@ export default function ShippingCalculator({ user }) {
                       type="number"
                       placeholder="Alto"
                       value={dimensions.height}
-                      onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
+                      onChange={(e) => { setDimensions({ ...dimensions, height: e.target.value }); setHasInteracted(true); }}
                     />
                   </div>
                 </div>
