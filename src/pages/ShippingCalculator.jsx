@@ -56,9 +56,14 @@ export default function ShippingCalculator({ user }) {
       const normalized = normalizeStates(allStates);
       setStates(normalized);
       // Set default state from user if available (accepts code or name)
+      let applied = false;
       if (user?.state) {
         const match = findStateByCodeOrName(normalized, user.state);
-        if (match) setSelectedState(match.state_code);
+        if (match) { setSelectedState(match.state_code); applied = true; }
+      }
+      // Fallback: preseleccionar el primer estado activo para evitar que los resultados no se muestren en móviles
+      if (!applied && normalized[0]?.state_code) {
+        setSelectedState(normalized[0].state_code);
       }
     }
     
