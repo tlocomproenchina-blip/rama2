@@ -345,7 +345,7 @@ export default function ShippingCalculator({ user }) {
                       type="number"
                       placeholder="Ancho"
                       value={dimensions.width}
-                      onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
+                      onChange={(e) => { setDimensions({ ...dimensions, width: e.target.value }); setHasInteracted(true); }}
                     />
                     <Input
                       type="number"
