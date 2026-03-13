@@ -271,7 +271,7 @@ export default function ShippingCalculator({ user }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setInputMode('cbm')}
+                    onClick={() => { setInputMode('cbm'); setHasInteracted(true); }}
                     className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
                       inputMode === 'cbm'
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
