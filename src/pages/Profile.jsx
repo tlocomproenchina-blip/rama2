@@ -134,7 +134,6 @@ export default function Profile({ user, refreshUser }) {
   }, []);
 
   const handleSubmit = async (e) => {
-    closeRadixOverlays();
     e.preventDefault();
     
     // Validaciones
