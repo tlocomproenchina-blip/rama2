@@ -232,11 +232,12 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   // Close any open Radix overlays (Select/Popover/Dropdown) on route change
-  useEffect(() => {
-    try {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    } catch {}
-  }, [location.pathname, location.key]);
+  // Disabled to prevent rare DOM NotFoundError during rapid unmounts
+  // useEffect(() => {
+  //   try {
+  //     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  //   } catch {}
+  // }, [location.pathname, location.key]);
 
   const loadConfig = async () => {
     try {
