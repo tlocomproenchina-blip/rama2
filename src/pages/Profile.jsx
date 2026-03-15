@@ -136,6 +136,7 @@ export default function Profile({ user, refreshUser }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    try { const el = document.activeElement; if (el && typeof el.blur === 'function') { el.blur(); } } catch {}
     
     // Validaciones
     if (!formData.first_name || !formData.last_name) {
