@@ -129,9 +129,10 @@ export default function Profile({ user, refreshUser }) {
     try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); } catch {}
   };
 
-  useEffect(() => {
-    return () => { closeRadixOverlays(); };
-  }, []);
+  // Nota: evitar cerrar overlays globalmente al desmontar para no interferir con Radix internals
+  // useEffect(() => {
+  //   return () => { closeRadixOverlays(); };
+  // }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
