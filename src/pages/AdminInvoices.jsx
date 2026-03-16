@@ -69,7 +69,7 @@ export default function AdminInvoices({ user }) {
       total: nextList.length,
       paid: nextList.filter(i => i.status === 'pagada').length,
       pending: nextList.filter(i => i.status === 'pendiente').length,
-      revenue: nextList.filter(i => i.status === 'pagada').reduce((sum, i) => sum + i.total, 0)
+      revenue: nextList.filter(i => i.status === 'pagada').reduce((sum, i) => sum + (Number(i.total) || 0), 0)
     };
     setStats(nextStats);
 
@@ -277,7 +277,7 @@ export default function AdminInvoices({ user }) {
           yPos = 20;
         }
         
-        const fobText = pkg.fob_value ? `FOB: $${pkg.fob_value.toFixed(2)}` : 'Sin seguro';
+        const fobText = pkg.fob_value ? `FOB: $${Number(pkg.fob_value || 0).toFixed(2)}` : 'Sin seguro';
         
         // Tracking number
         doc.text(pkg.tracking_number, 25, yPos);
@@ -314,13 +314,13 @@ export default function AdminInvoices({ user }) {
       }
       
       doc.text(item.description, 20, yPos);
-      doc.text(`$${item.total.toFixed(2)}`, 170, yPos);
+      doc.text(`$${Number(item.total || 0).toFixed(2)}`, 170, yPos);
       yPos += 6;
       
       // Add insurance details if it's insurance item
       if (item.description.toLowerCase().includes('seguro')) {
         doc.setFontSize(8);
-        doc.text(`  Total FOB Declarado: $${totalFOB.toFixed(2)}`, 20, yPos);
+        doc.text(`  Total FOB Declarado: $${Number(totalFOB || 0).toFixed(2)}`, 20, yPos);
         yPos += 4;
         doc.text(`  Tasa de Seguro: 5%`, 20, yPos);
         yPos += 4;
@@ -340,7 +340,7 @@ export default function AdminInvoices({ user }) {
     yPos += 7;
     doc.setFontSize(12);
     doc.text('TOTAL:', 130, yPos);
-    doc.text(`$${invoice.total.toFixed(2)}`, 170, yPos);
+    doc.text(`$${Number(invoice.total || 0).toFixed(2)}`, 170, yPos);
     
     yPos += 10;
     doc.setFontSize(10);
@@ -368,7 +368,7 @@ export default function AdminInvoices({ user }) {
         inv.invoice_number,
         inv.client_email,
         new Date(inv.invoice_date).toLocaleDateString(),
-        inv.total.toFixed(2),
+        Number(inv.total || 0).toFixed(2),
         inv.status,
         inv.payment_method || 'N/A'
       ].join(','));
@@ -629,7 +629,7 @@ export default function AdminInvoices({ user }) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Ingresos</p>
-                <p className="text-2xl font-bold text-emerald-600">${stats.revenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-emerald-600">${Number(stats.revenue || 0).toFixed(2)}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-emerald-600" />
             </div>
@@ -818,7 +818,7 @@ export default function AdminInvoices({ user }) {
                 <SelectContent>
                   {consolidations.map(cons => (
                     <SelectItem key={cons.id} value={cons.id}>
-                      {cons.consolidation_tracking} - {cons.client_email} - ${cons.total_cost.toFixed(2)}
+                      {cons.consolidation_tracking} - {cons.client_email} - ${Number(cons.total_cost || 0).toFixed(2)}
                     </SelectItem>
                   ))}
                 </SelectContent>
