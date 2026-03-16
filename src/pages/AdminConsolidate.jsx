@@ -14,7 +14,8 @@ import {
   Loader2,
   CheckCircle,
   User,
-  Clock
+  Clock,
+  Calendar
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,6 +27,7 @@ export default function AdminConsolidate({ user }) {
   const [processing, setProcessing] = useState(null);
   const [activeTab, setActiveTab] = useState('requests'); // 'requests' or 'clients'
   const [expandedClient, setExpandedClient] = useState(null); // Track expanded client for quick consolidate
+  const [clientMeta, setClientMeta] = useState({});
 
   useEffect(() => {
     loadData();
@@ -139,6 +141,25 @@ export default function AdminConsolidate({ user }) {
     })).sort((a, b) => b.count - a.count);
 
     setClientsWithPackages(clientsList);
+    try {
+      const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      const periodDays = Array.isArray(cfgs?.[0]?.consolidation_periods) && cfgs[0].consolidation_periods.length > 0
+        ? Number(cfgs[0].consolidation_periods[0]) || 7
+        : 7;
+      const meta = {};
+      clientsList.forEach((c) => {
+        const dates = c.packages
+          .filter(p => p.status === 'recibido' && p.received_date)
+          .map(p => new Date(p.received_date).getTime());
+        if (dates.length) {
+          const firstTs = Math.min(...dates);
+          const firstISO = new Date(firstTs).toISOString();
+          const closeISO = new Date(firstTs + periodDays * 24 * 60 * 60 * 1000).toISOString();
+          meta[c.email] = { firstReceived: firstISO, closeDate: closeISO, periodDays };
+        }
+      });
+      setClientMeta(meta);
+    } catch (_) {}
     setLoading(false);
   };
 
@@ -359,8 +380,20 @@ export default function AdminConsolidate({ user }) {
                               </Badge>
                             ))}
                           </div>
-                        </div>
-                      </div>
+                          {clientMeta[client.email]?.firstReceived && (
+                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Recibido: {new Date(clientMeta[client.email].firstReceived).toLocaleDateString()}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Cierre: {new Date(clientMeta[client.email].closeDate).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
+                          </div>
+                          </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
