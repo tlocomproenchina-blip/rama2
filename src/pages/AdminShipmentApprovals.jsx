@@ -62,6 +62,7 @@ export default function AdminShipmentApprovals({ user }) {
   const [pricingConfig, setPricingConfig] = useState(null);
   const [stateConfig, setStateConfig] = useState(null);
   const [revokingId, setRevokingId] = useState(null);
+  const [requestMeta, setRequestMeta] = useState({});
   const MIN_CBM = 0.13;
 
   useEffect(() => {
@@ -100,6 +101,35 @@ export default function AdminShipmentApprovals({ user }) {
     setRequests(dedupedReqs);
     if (configs.length > 0) setConfig(configs[0]);
     if (pricing.length > 0) setPricingConfig(pricing[0]);
+
+    try {
+      const periodDays = Array.isArray(configs?.[0]?.consolidation_periods) && configs[0].consolidation_periods.length > 0
+        ? Number(configs[0].consolidation_periods[0]) || 7
+        : 7;
+
+      const uniqueClients = Array.from(new Set(dedupedReqs.map(r => r.client_email).filter(Boolean)));
+      const perClientPkgs = await Promise.all(
+        uniqueClients.map(email => base44.entities.Package.filter({ client_email: email, status: 'recibido' }))
+      );
+      const pkgsById = new Map();
+      perClientPkgs.forEach(arr => arr.forEach(p => pkgsById.set(p.id, p)));
+
+      const meta = {};
+      dedupedReqs.forEach(r => {
+        const dates = (r.package_ids || [])
+          .map(id => pkgsById.get(id)?.received_date)
+          .filter(Boolean)
+          .map(d => new Date(d).getTime());
+        if (dates.length) {
+          const firstTs = Math.min(...dates);
+          const firstISO = new Date(firstTs).toISOString();
+          const closeISO = new Date(firstTs + periodDays * 24 * 60 * 60 * 1000).toISOString();
+          meta[r.id] = { firstReceived: firstISO, closeDate: closeISO, periodDays };
+        }
+      });
+      setRequestMeta(meta);
+    } catch (_) {}
+
     setLoading(false);
   };
 
@@ -894,6 +924,19 @@ export default function AdminShipmentApprovals({ user }) {
                           {req.tracking_numbers?.length || 0} paquetes
                         </span>
                       </div>
+
+                      {requestMeta[req.id]?.firstReceived && (
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Recibido: {new Date(requestMeta[req.id].firstReceived).toLocaleDateString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            Cierre: {new Date(requestMeta[req.id].closeDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
 
                       <div className="pt-2">
                         <p className="text-xs text-slate-500 mb-2">Paquetes:</p>
