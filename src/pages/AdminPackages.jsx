@@ -751,7 +751,7 @@ export default function AdminPackages({ user }) {
       {/* Desktop Packages Table */}
       <Card className="hidden lg:block border-0 shadow-lg overflow-hidden">
         <div className="overflow-x-visible">
-          <table className="w-full table-fixed">
+          <table className="w-full table-auto">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 <th className="text-left p-4 font-medium text-slate-600">
@@ -760,13 +760,13 @@ export default function AdminPackages({ user }) {
                     onCheckedChange={handleSelectAll}
                   />
                 </th>
-                <th className="text-left p-4 font-medium text-slate-600">Tracking</th>
-                <th className="text-left p-4 font-medium text-slate-600">Cliente</th>
-                <th className="text-left p-4 font-medium text-slate-600">Shipping Mark</th>
-                <th className="text-left p-4 font-medium text-slate-600">Tipo</th>
-                <th className="text-left p-4 font-medium text-slate-600">Estado</th>
-                <th className="text-left p-4 font-medium text-slate-600">Recepción</th>
-                <th className="text-left p-4 font-medium text-slate-600">Registro</th>
+                <th className="text-left p-4 font-medium text-slate-600 w-[28%]">Tracking</th>
+                <th className="text-left p-4 font-medium text-slate-600 w-[26%]">Cliente</th>
+                <th className="text-left p-4 font-medium text-slate-600 w-[18%]">Shipping Mark</th>
+                <th className="text-left p-4 font-medium text-slate-600 w-[8%]">Tipo</th>
+                <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Estado</th>
+                <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Recepción</th>
+                <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Registro</th>
                 <th className="text-left p-4 font-medium text-slate-600">Acciones</th>
               </tr>
             </thead>
@@ -799,8 +799,8 @@ export default function AdminPackages({ user }) {
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-slate-600 break-all whitespace-normal">{pkg.client_email}</td>
-                  <td className="p-4 font-mono text-slate-600 break-all whitespace-normal">{pkg.shipping_mark || '-'}</td>
+                  <td className="p-4 text-slate-600 whitespace-nowrap truncate max-w-[28ch]">{pkg.client_email}</td>
+                  <td className="p-4 font-mono text-slate-600 whitespace-nowrap truncate max-w-[20ch]">{pkg.shipping_mark || '-'}</td>
                   <td className="p-4">
                     <div className="flex items-center gap-2 text-slate-600">
                       {pkg.shipping_type === 'aereo' 
