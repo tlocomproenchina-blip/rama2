@@ -460,10 +460,10 @@ export default function AdminConsolidate({ user }) {
                             {clientMeta[client.email]?.firstReceived && (
                               <div className="mt-2 text-xs text-slate-500 space-y-0.5">
                                 <div>
-                                  Primer recibido: {new Date(clientMeta[client.email].firstReceived).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  Primer recibido: {new Date(clientMeta[client.email].firstReceived).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                                 </div>
                                 <div>
-                                  Fin ventana ({clientMeta[client.email].periodDays} días): {new Date(clientMeta[client.email].closeDate).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  Fin ventana ({clientMeta[client.email].periodDays} días): {new Date(clientMeta[client.email].closeDate).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                                 </div>
                                 <div>
                                   Días restantes: {(() => { const end = new Date(clientMeta[client.email].closeDate).getTime(); const diffDays = Math.ceil((end - Date.now()) / (24*60*60*1000)); return Math.max(0, diffDays); })()}
