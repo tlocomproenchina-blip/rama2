@@ -439,7 +439,7 @@ export default function AdminConsolidate({ user }) {
                           </div>
                           <div>
                             <p className="font-medium text-slate-800">{client.email}</p>
-                            <div className="flex gap-2 mt-1">
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
                               {preAlertPkgs.length > 0 && (
                                 <Badge className="bg-yellow-100 text-yellow-700">
                                   {preAlertPkgs.length} pre-alerta
@@ -450,7 +450,26 @@ export default function AdminConsolidate({ user }) {
                                   {receivedPkgs.length} recibido
                                 </Badge>
                               )}
+                              {(client.packages.find(p => p.shipping_mark)?.shipping_mark) && (
+                                <Badge variant="outline" className="font-mono">
+                                  {client.packages.find(p => p.shipping_mark)?.shipping_mark}
+                                </Badge>
+                              )}
                             </div>
+
+                            {clientMeta[client.email]?.firstReceived && (
+                              <div className="mt-2 text-xs text-slate-500 space-y-0.5">
+                                <div>
+                                  Primer recibido: {new Date(clientMeta[client.email].firstReceived).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                                <div>
+                                  Fin ventana ({clientMeta[client.email].periodDays} días): {new Date(clientMeta[client.email].closeDate).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                                <div>
+                                  Días restantes: {(() => { const end = new Date(clientMeta[client.email].closeDate).getTime(); const diffDays = Math.ceil((end - Date.now()) / (24*60*60*1000)); return Math.max(0, diffDays); })()}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <Button
