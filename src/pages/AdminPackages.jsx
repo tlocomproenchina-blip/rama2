@@ -902,7 +902,7 @@ export default function AdminPackages({ user }) {
                            value={pkg.status} 
                            onValueChange={(val) => handleStatusChange(pkg, val)}
                           >
-                           <SelectTrigger className="h-8 px-3 justify-start gap-1 text-xs border border-rose-200 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-md w-auto min-w-[7rem] [&_svg]:h-3 [&_svg]:w-3 [&_svg]:translate-y-[1px] [&>span]:leading-none">
+                           <SelectTrigger className="w-28 h-7 py-1 px-1.5 justify-start gap-1 text-xs [&_svg]:h-3 [&_svg]:w-3 [&_svg]:translate-y-[1px] [&>span]:leading-none">
                              <SelectValue />
                            </SelectTrigger>
                            <SelectContent>
