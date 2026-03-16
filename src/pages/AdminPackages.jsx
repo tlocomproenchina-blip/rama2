@@ -773,13 +773,13 @@ export default function AdminPackages({ user }) {
             <tbody className="divide-y divide-slate-100">
               {filteredPackages.map((pkg) => (
                 <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="p-4">
+                  <td className="pl-3 pr-2 py-3">
                     <Checkbox 
                       checked={selectedPackages.includes(pkg.id)}
                       onCheckedChange={(checked) => handleSelectPackage(pkg.id, checked)}
                     />
                   </td>
-                  <td className="p-4">
+                  <td className="pl-3 pr-2 py-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-medium text-slate-800 break-all">{pkg.tracking_number}</span>
@@ -801,7 +801,7 @@ export default function AdminPackages({ user }) {
                   </td>
                   <td className="p-4 text-slate-600 whitespace-nowrap truncate max-w-[34ch]">{pkg.client_email}</td>
                   <td className="p-4 font-mono text-slate-600 whitespace-nowrap truncate max-w-[24ch]">{pkg.shipping_mark || '-'}</td>
-                  <td className="p-4">
+                  <td className="pl-3 pr-2 py-3">
                     <div className="flex items-center gap-2 text-slate-600">
                       {pkg.shipping_type === 'aereo' 
                         ? <><Plane className="h-4 w-4" /> Aéreo</>
@@ -809,7 +809,7 @@ export default function AdminPackages({ user }) {
                       }
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className="pl-3 pr-2 py-3">
                     <StatusBadge status={pkg.status} size="sm" />
                   </td>
                   <td className="p-4 text-slate-600 text-xs">
@@ -826,7 +826,7 @@ export default function AdminPackages({ user }) {
                     <div>{new Date(pkg.created_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                     <div className="text-[11px] text-slate-400">{new Date(pkg.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
-                  <td className="p-4">
+                  <td className="pl-3 pr-2 py-3">
                     <div className="flex flex-wrap items-stretch gap-2">
                       <Button 
                         size="sm" 
