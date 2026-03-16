@@ -458,7 +458,7 @@ export default function AdminPackages({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto px-2 md:px-4">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Gestión de Paquetes</h1>
