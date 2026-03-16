@@ -647,7 +647,7 @@ export default function AdminPackages({ user }) {
                   <Checkbox checked={selectedPackages.includes(pkg.id)} onCheckedChange={(checked)=>handleSelectPackage(pkg.id, checked)} />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-medium text-slate-800 break-all">{pkg.tracking_number}</span>
+                      <span className="font-mono font-medium text-slate-800 whitespace-nowrap truncate max-w-[22ch]">{pkg.tracking_number}</span>
                       {pkg.has_insurance && (
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200"><Shield className="h-3 w-3" /></Badge>
                       )}
@@ -782,7 +782,7 @@ export default function AdminPackages({ user }) {
                   <td className="pl-3 pr-2 py-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-slate-800 break-all">{pkg.tracking_number}</span>
+                        <span className="font-mono font-medium text-slate-800 whitespace-nowrap truncate max-w-[22ch]">{pkg.tracking_number}</span>
                         {pkg.has_insurance && (
                           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                             <Shield className="h-3 w-3" />
