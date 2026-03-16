@@ -93,6 +93,25 @@ export default function AdminClients({ user }) {
 
   }, []);
 
+  // Realtime updates: reflect user create/update/delete instantly
+  useEffect(() => {
+    let unsubscribe = null;
+    try {
+      unsubscribe = base44.entities.User.subscribe((event) => {
+        if (event.type === 'delete') {
+          setClients(prev => prev.filter(c => c.id !== event.id));
+        } else if (event.type === 'update') {
+          setClients(prev => prev.map(c => c.id === event.id ? event.data : c));
+        } else if (event.type === 'create') {
+          if (event.data?.role === 'user') {
+            setClients(prev => [event.data, ...prev]);
+          }
+        }
+      });
+    } catch (_) {}
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
+  }, []);
+
   const canViewClients = (user?.role === 'admin') || (user?.custom_role === 'customer_service');
 
   const loadStateConfigs = async () => {
