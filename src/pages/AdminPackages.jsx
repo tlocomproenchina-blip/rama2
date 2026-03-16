@@ -714,7 +714,7 @@ export default function AdminPackages({ user }) {
                 )}
                 {pkg.status === 'recibido' && (
                   <Button size="sm" variant="outline" onClick={() => setCancelReceptionModal(pkg)} className="text-rose-600 border-rose-200">
-                    <Undo2 className="h-4 w-4 mr-1" /> Cancelar recepción
+                    <Undo2 className="h-4 w-4 mr-1" /> Cancelar
                   </Button>
                 )}
               </div>
@@ -894,7 +894,7 @@ export default function AdminPackages({ user }) {
                                                   className="gap-1 h-8 px-3 text-xs text-rose-600 hover:text-rose-700 border-rose-200"
                                                 >
                            <Undo2 className="h-4 w-4 mr-1" />
-                           Cancelar recepción
+                           Cancelar
                           </Button>
                           )}
                           {pkg.status !== 'pre_alerta' && pkg.status !== 'consolidado' && (
@@ -1142,7 +1142,7 @@ export default function AdminPackages({ user }) {
       <AlertDialog open={!!cancelReceptionModal} onOpenChange={setCancelReceptionModal}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar recepción</AlertDialogTitle>
+            <AlertDialogTitle>Cancelar</AlertDialogTitle>
             <AlertDialogDescription>
               Esto revertirá el paquete a estado <span class="font-semibold">Pre‑alerta</span> y limpiará fecha, usuario y foto de recepción.
               <br />
