@@ -754,7 +754,7 @@ export default function AdminPackages({ user }) {
           <table className="w-full table-auto">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
-                <th className="text-left p-4 font-medium text-slate-600">
+                <th className="text-left pl-3 pr-2 py-3 font-medium text-slate-600">
                   <Checkbox 
                     checked={selectedPackages.length === filteredPackages.length && filteredPackages.length > 0}
                     onCheckedChange={handleSelectAll}
@@ -767,7 +767,7 @@ export default function AdminPackages({ user }) {
                 <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Estado</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Recepción</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Registro</th>
-                <th className="text-left p-4 font-medium text-slate-600">Acciones</th>
+                <th className="text-left pl-3 pr-2 py-3 font-medium text-slate-600">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -799,8 +799,8 @@ export default function AdminPackages({ user }) {
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-slate-600 whitespace-nowrap truncate max-w-[28ch]">{pkg.client_email}</td>
-                  <td className="p-4 font-mono text-slate-600 whitespace-nowrap truncate max-w-[20ch]">{pkg.shipping_mark || '-'}</td>
+                  <td className="p-4 text-slate-600 whitespace-nowrap truncate max-w-[34ch]">{pkg.client_email}</td>
+                  <td className="p-4 font-mono text-slate-600 whitespace-nowrap truncate max-w-[24ch]">{pkg.shipping_mark || '-'}</td>
                   <td className="p-4">
                     <div className="flex items-center gap-2 text-slate-600">
                       {pkg.shipping_type === 'aereo' 
