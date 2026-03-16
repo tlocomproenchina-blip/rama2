@@ -750,8 +750,8 @@ export default function AdminPackages({ user }) {
 
       {/* Desktop Packages Table */}
       <Card className="hidden lg:block border-0 shadow-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-visible">
+          <table className="w-full table-fixed">
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 <th className="text-left p-4 font-medium text-slate-600">
@@ -782,7 +782,7 @@ export default function AdminPackages({ user }) {
                   <td className="p-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-slate-800">{pkg.tracking_number}</span>
+                        <span className="font-mono font-medium text-slate-800 break-all">{pkg.tracking_number}</span>
                         {pkg.has_insurance && (
                           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                             <Shield className="h-3 w-3" />
@@ -799,8 +799,8 @@ export default function AdminPackages({ user }) {
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-slate-600">{pkg.client_email}</td>
-                  <td className="p-4 font-mono text-slate-600">{pkg.shipping_mark || '-'}</td>
+                  <td className="p-4 text-slate-600 break-all whitespace-normal">{pkg.client_email}</td>
+                  <td className="p-4 font-mono text-slate-600 break-all whitespace-normal">{pkg.shipping_mark || '-'}</td>
                   <td className="p-4">
                     <div className="flex items-center gap-2 text-slate-600">
                       {pkg.shipping_type === 'aereo' 
