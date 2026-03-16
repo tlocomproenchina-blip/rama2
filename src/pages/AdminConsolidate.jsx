@@ -380,18 +380,6 @@ export default function AdminConsolidate({ user }) {
                               </Badge>
                             ))}
                           </div>
-                          {clientMeta[client.email]?.firstReceived && (
-                            <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                Recibido: {new Date(clientMeta[client.email].firstReceived).toLocaleDateString()}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                Cierre: {new Date(clientMeta[client.email].closeDate).toLocaleDateString()}
-                              </span>
-                            </div>
-                          )}
                           </div>
                           </div>
                     </div>
