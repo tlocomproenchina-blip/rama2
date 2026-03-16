@@ -456,8 +456,10 @@ Email: ${client.email}`;
       } else {
         toast.error(res?.data?.error || 'No se pudo eliminar');
       }
+      // Optimistic UI: remove immediately without full reload
+      setClients(prev => prev.filter(c => c.id === deleteClient.id ? false : true));
+      setPackagesCount(prev => { const next = { ...prev }; try { delete next[deleteClient.email]; } catch (_) {} return next; });
       setDeleteClient(null);
-      loadClients();
     } catch (error) {
       toast.error('Error al eliminar el cliente');
     }
