@@ -600,7 +600,7 @@ export default function AdminDashboard({ user }) {
               Consolidaciones Recientes
             </CardTitle>
             <Tabs value={consFilter} onValueChange={setConsFilter}>
-              <TabsList className="w-full sm:w-auto flex-nowrap overflow-x-auto justify-start">
+              <TabsList className="w-full sm:w-auto flex-nowrap overflow-x-auto overflow-y-hidden justify-start whitespace-nowrap">
                 <TabsTrigger value="todas">Todas</TabsTrigger>
                 <TabsTrigger value="en_transito">En tránsito</TabsTrigger>
                 <TabsTrigger value="disponible">Disponible</TabsTrigger>
