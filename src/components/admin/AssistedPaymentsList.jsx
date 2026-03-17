@@ -88,77 +88,95 @@ export default function AssistedPaymentsList() {
           {requests.length === 0 ? (
             <p className="text-sm text-slate-500">Sin solicitudes</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="py-2 pr-4">Fecha</th>
-                    <th className="py-2 pr-4">Cliente</th>
-                    <th className="py-2 pr-4">Plataforma</th>
-                    <th className="py-2 pr-4">Enlace</th>
-                     <th className="py-2 pr-4">QR</th>
-                    <th className="py-2 pr-4">Monto</th>
-                    <th className="py-2 pr-4">Comisión</th>
-                    <th className="py-2 pr-4">Total</th>
-                    <th className="py-2 pr-4">Estado</th>
-                    <th className="py-2">Factura</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requests.map(r => (
-                    <tr key={r.id} className="border-b hover:bg-slate-50">
-                      <td className="py-2 pr-4 whitespace-nowrap">{new Date(r.created_date).toLocaleString()}</td>
-                      <td className="py-2 pr-4">{r.client_email}</td>
-                      <td className="py-2 pr-4 uppercase">{r.provider}</td>
-                      <td className="py-2 pr-4">
-                          {r.link_url ? (
-                            <a href={r.link_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Abrir</a>
-                          ) : '—'}
-                        </td>
-                        <td className="py-2 pr-4">
-                          {r.image_url ? (
-                            <a href={r.image_url} target="_blank" rel="noreferrer" title="Ver QR">
-                              <img src={r.image_url} alt="QR" className="h-10 w-10 object-cover rounded border" />
-                            </a>
-                          ) : '—'}
-                        </td>
-                      <td className="py-2 pr-4">${(r.amount||0).toFixed(2)}</td>
-                      <td className="py-2 pr-4">${(r.fee_amount||0).toFixed(2)} ({r.fee_percentage || 0}%)</td>
-                      <td className="py-2 pr-4 font-semibold">${(r.total_amount||0).toFixed(2)}</td>
-                      <td className="py-2 pr-4">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                            onClick={() => updateStatus(r, 'en_proceso')}
-                            disabled={r.status === 'en_proceso' || r.status === 'pagado' || r.status === 'rechazado'}
-                          >
-                            Aprobar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => updateStatus(r, 'rechazado')}
-                            disabled={r.status === 'rechazado' || r.status === 'pagado'}
-                          >
-                            Rechazar
-                          </Button>
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1">
-                          {r.status === 'en_proceso' && r.invoice_id ? 'Pago pendiente' : ({
-                            pendiente: 'Pendiente',
-                            en_proceso: 'En proceso',
-                            pagado: 'Pagado',
-                            rechazado: 'Rechazado',
-                          }[r.status] || r.status)}
-                        </div>
-                      </td>
-                      
-                      <td className="py-2">{r.invoice_id ? r.invoice_id : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-4">
+              {requests.map(r => (
+                <div key={r.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Fecha</p>
+                      <p className="mt-1 text-sm text-slate-800 break-words">{new Date(r.created_date).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Cliente</p>
+                      <p className="mt-1 text-sm text-slate-800 break-all">{r.client_email}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Plataforma</p>
+                      <p className="mt-1 text-sm text-slate-800 uppercase">{r.provider}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Enlace</p>
+                      <div className="mt-1 text-sm">
+                        {r.link_url ? (
+                          <a href={r.link_url} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">Abrir enlace</a>
+                        ) : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">QR</p>
+                      <div className="mt-1">
+                        {r.image_url ? (
+                          <a href={r.image_url} target="_blank" rel="noreferrer" title="Ver QR">
+                            <img src={r.image_url} alt="QR" className="h-14 w-14 object-cover rounded border bg-white" />
+                          </a>
+                        ) : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Factura</p>
+                      <p className="mt-1 text-sm text-slate-800 break-all">{r.invoice_id || '—'}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Monto</p>
+                      <p className="mt-1 text-sm text-slate-800">${(r.amount||0).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Comisión</p>
+                      <p className="mt-1 text-sm text-slate-800">${(r.fee_amount||0).toFixed(2)} ({r.fee_percentage || 0}%)</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Total</p>
+                      <p className="mt-1 text-base font-semibold text-slate-900">${(r.total_amount||0).toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-white border border-slate-200 p-3 space-y-3">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Estado</p>
+                      <p className="mt-1 text-sm text-slate-800">
+                        {r.status === 'en_proceso' && r.invoice_id ? 'Pago pendiente' : ({
+                          pendiente: 'Pendiente',
+                          en_proceso: 'En proceso',
+                          pagado: 'Pagado',
+                          rechazado: 'Rechazado',
+                        }[r.status] || r.status)}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button
+                        size="sm"
+                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
+                        onClick={() => updateStatus(r, 'en_proceso')}
+                        disabled={r.status === 'en_proceso' || r.status === 'pagado' || r.status === 'rechazado'}
+                      >
+                        Aprobar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="w-full sm:w-auto"
+                        onClick={() => updateStatus(r, 'rechazado')}
+                        disabled={r.status === 'rechazado' || r.status === 'pagado'}
+                      >
+                        Rechazar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
