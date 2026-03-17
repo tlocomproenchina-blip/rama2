@@ -138,50 +138,94 @@ export default function AdminBlog({ user }) {
 
       <Card className="border-0 shadow">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Título</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Actualizado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={5} className="p-6 text-slate-600">Cargando…</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="p-6 text-slate-600">Sin resultados</TableCell></TableRow>
-              ) : (
-                filtered.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.title}</TableCell>
-                    <TableCell className="text-slate-500">/{p.slug}</TableCell>
-                    <TableCell>
-                      {p.status === 'published' ? (
-                        <Badge className="bg-emerald-100 text-emerald-700">Publicado</Badge>
-                      ) : (
-                        <Badge className="bg-slate-100 text-slate-700">Borrador</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-slate-500">{new Date(p.updated_date).toLocaleString()}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                        {p.status === 'published' ? (
-                          <Button variant="outline" onClick={() => unpublish(p)}><FileText className="h-4 w-4 mr-1" />Borrador</Button>
-                        ) : (
-                          <Button onClick={() => publish(p)} className="bg-green-600 hover:bg-green-700"><Globe className="h-4 w-4 mr-1" />Publicar</Button>
-                        )}
-                        <Button variant="destructive" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
+          {isLoading ? (
+            <div className="p-6 text-slate-600">Cargando…</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-6 text-slate-600">Sin resultados</div>
+          ) : (
+            <>
+              <div className="divide-y md:hidden">
+                {filtered.map((p) => (
+                  <div key={p.id} className="p-4 space-y-3">
+                    <div>
+                      <p className="text-xs text-slate-500">Título</p>
+                      <p className="mt-1 font-medium text-slate-900 break-words">{p.title}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Slug</p>
+                      <p className="mt-1 text-sm text-slate-600 break-all">/{p.slug}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-slate-500">Estado</p>
+                        <div className="mt-1">
+                          {p.status === 'published' ? (
+                            <Badge className="bg-emerald-100 text-emerald-700">Publicado</Badge>
+                          ) : (
+                            <Badge className="bg-slate-100 text-slate-700">Borrador</Badge>
+                          )}
+                        </div>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                      <div>
+                        <p className="text-xs text-slate-500">Actualizado</p>
+                        <p className="mt-1 text-sm text-slate-600 break-words">{new Date(p.updated_date).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button variant="outline" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="h-4 w-4 mr-2" />Editar</Button>
+                      {p.status === 'published' ? (
+                        <Button variant="outline" onClick={() => unpublish(p)}><FileText className="h-4 w-4 mr-2" />Pasar a borrador</Button>
+                      ) : (
+                        <Button onClick={() => publish(p)} className="bg-green-600 hover:bg-green-700"><Globe className="h-4 w-4 mr-2" />Publicar</Button>
+                      )}
+                      <Button variant="destructive" onClick={() => remove(p)}><Trash2 className="h-4 w-4 mr-2" />Eliminar</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Slug</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Actualizado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.title}</TableCell>
+                        <TableCell className="text-slate-500">/{p.slug}</TableCell>
+                        <TableCell>
+                          {p.status === 'published' ? (
+                            <Badge className="bg-emerald-100 text-emerald-700">Publicado</Badge>
+                          ) : (
+                            <Badge className="bg-slate-100 text-slate-700">Borrador</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-500">{new Date(p.updated_date).toLocaleString()}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                            {p.status === 'published' ? (
+                              <Button variant="outline" onClick={() => unpublish(p)}><FileText className="h-4 w-4 mr-1" />Borrador</Button>
+                            ) : (
+                              <Button onClick={() => publish(p)} className="bg-green-600 hover:bg-green-700"><Globe className="h-4 w-4 mr-1" />Publicar</Button>
+                            )}
+                            <Button variant="destructive" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
