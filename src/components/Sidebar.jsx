@@ -172,10 +172,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'ALMACÉN', items: ['WarehouseDashboard','WarehouseReceive','WarehouseLocations','WarehousePickPackShip'] },
     { label: 'CONTABILIDAD', items: ['AccountingDashboard','AdminInvoices','AdminPayments','AdminAssistedPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
-    { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog'] },
+    { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog','AdminReferrals'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
     { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
-    { label: 'GESTIÓN', items: ['AdminClients','AdminReferrals','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
+    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
   ];
 
   const clientGroups = [
