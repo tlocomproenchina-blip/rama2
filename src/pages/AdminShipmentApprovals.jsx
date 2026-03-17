@@ -64,6 +64,7 @@ export default function AdminShipmentApprovals({ user }) {
   const [stateConfig, setStateConfig] = useState(null);
   const [revokingId, setRevokingId] = useState(null);
   const [requestMeta, setRequestMeta] = useState({});
+  const [clientPreAlertCounts, setClientPreAlertCounts] = useState({});
   const MIN_CBM = 0.13;
 
   useEffect(() => {
@@ -109,11 +110,17 @@ export default function AdminShipmentApprovals({ user }) {
         : 7;
 
       const uniqueClients = Array.from(new Set(dedupedReqs.map(r => r.client_email).filter(Boolean)));
-      const perClientPkgs = await Promise.all(
-        uniqueClients.map(email => base44.entities.Package.filter({ client_email: email, status: 'recibido' }))
-      );
+      const [perClientPkgs, perClientPreAlerts] = await Promise.all([
+        Promise.all(uniqueClients.map(email => base44.entities.Package.filter({ client_email: email, status: 'recibido' }))),
+        Promise.all(uniqueClients.map(email => base44.entities.Package.filter({ client_email: email, status: 'pre_alerta' })))
+      ]);
       const pkgsById = new Map();
       perClientPkgs.forEach(arr => arr.forEach(p => pkgsById.set(p.id, p)));
+      const preAlertMap = {};
+      uniqueClients.forEach((email, index) => {
+        preAlertMap[email] = perClientPreAlerts[index]?.length || 0;
+      });
+      setClientPreAlertCounts(preAlertMap);
 
       const meta = {};
       dedupedReqs.forEach(r => {
@@ -921,6 +928,11 @@ export default function AdminShipmentApprovals({ user }) {
                           <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
                           <Badge className={req.created_by === req.client_email ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}>
                             {req.created_by === req.client_email ? 'Solicitada por cliente' : 'Creada por sistema'}
+                          </Badge>
+                          <Badge className={clientPreAlertCounts[req.client_email] > 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}>
+                            {clientPreAlertCounts[req.client_email] > 0
+                              ? `${clientPreAlertCounts[req.client_email]} en pre-alerta`
+                              : 'Sin pre-alerta'}
                           </Badge>
                         </div>
                       </div>
