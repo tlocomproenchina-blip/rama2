@@ -14,6 +14,7 @@ import PieChartCard from '@/components/dashboard/PieChartCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import DashboardCustomizer from '@/components/dashboard/DashboardCustomizer';
 import AdminPlatformOverview from '@/components/dashboard/AdminPlatformOverview';
+import RuntimeTuningPanel from '@/components/performance/RuntimeTuningPanel';
 
 export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
@@ -282,7 +283,10 @@ export default function AdminDashboard({ user }) {
       </div>
 
       {mainTab === 'api' ? (
-        <ApiSystemPanel />
+        <div className="grid gap-4">
+          <ApiSystemPanel />
+          <RuntimeTuningPanel />
+        </div>
       ) : (
         <>
       <AdminPlatformOverview
