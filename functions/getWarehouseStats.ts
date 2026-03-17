@@ -55,8 +55,8 @@ Deno.serve(async (req) => {
         total_locations: locations.length,
         active_locations: activeLocations.length,
         occupied_locations: occupiedLocations,
-        assigned_packages: assignedPackages.length,
-        pending_reception: (packages || []).filter((pkg) => pkg.status === 'pre_alerta').length,
+        assigned_packages: totalCurrentUnits,
+        pending_reception: (preAlertPackages || []).length,
         approved_requests: approvedRequests,
         capacity: {
           units: {
