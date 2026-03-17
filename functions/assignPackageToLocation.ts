@@ -64,6 +64,10 @@ Deno.serve(async (req) => {
     const actual_cbm = toNumber(body?.actual_cbm) ?? computeCbm(actual_length_cm, actual_width_cm, actual_height_cm) ?? toNumber(pkg.actual_cbm);
 
     const updatedPackage = await base44.asServiceRole.entities.Package.update(packageId, {
+      warehouse_id: location.warehouse_id,
+      warehouse_name: location.warehouse_name,
+      warehouse_city: location.warehouse_city,
+      warehouse_country: location.warehouse_country,
       warehouse_location_id: location.id,
       warehouse_location_code: location.code,
       warehouse_location_name: location.name,

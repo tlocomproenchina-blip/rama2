@@ -24,11 +24,14 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const zone = body?.zone ? String(body.zone).trim() : null;
+    const warehouseId = body?.warehouse_id ? String(body.warehouse_id).trim() : null;
     const minUnits = Number(body?.min_units ?? 1);
     const minVolume = Number(body?.min_volume_cbm ?? 0);
     const minWeight = Number(body?.min_weight_kg ?? 0);
 
-    const query = zone ? { is_active: true, zone } : { is_active: true };
+    const query = { is_active: true };
+    if (zone) query.zone = zone;
+    if (warehouseId) query.warehouse_id = warehouseId;
     const locations = await base44.asServiceRole.entities.WarehouseLocation.filter(query, 'code', 200);
 
     const matches = (locations || []).filter((location) => {

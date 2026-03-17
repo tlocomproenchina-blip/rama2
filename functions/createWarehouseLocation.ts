@@ -18,13 +18,19 @@ Deno.serve(async (req) => {
     if (!(await hasWarehouseAccess(base44, user, ['WarehouseLocations']))) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
+    const warehouseId = String(body?.warehouse_id || '').trim();
     const name = String(body?.name || '').trim();
     const code = String(body?.code || '').trim().toUpperCase();
     const zone = String(body?.zone || '').trim();
     const type = String(body?.type || '').trim();
 
-    if (!name || !code || !zone || !type) {
-      return Response.json({ error: 'name, code, zone y type son obligatorios' }, { status: 400 });
+    if (!warehouseId || !name || !code || !zone || !type) {
+      return Response.json({ error: 'warehouse_id, name, code, zone y type son obligatorios' }, { status: 400 });
+    }
+
+    const warehouse = await base44.asServiceRole.entities.Warehouse.get(warehouseId);
+    if (!warehouse || warehouse.is_active === false) {
+      return Response.json({ error: 'Almacén no encontrado o inactivo' }, { status: 404 });
     }
 
     const existing = await base44.asServiceRole.entities.WarehouseLocation.filter({ code }, '-created_date', 1);
@@ -33,6 +39,10 @@ Deno.serve(async (req) => {
     }
 
     const location = await base44.asServiceRole.entities.WarehouseLocation.create({
+      warehouse_id: warehouse.id,
+      warehouse_name: warehouse.name,
+      warehouse_city: warehouse.city,
+      warehouse_country: warehouse.country,
       name,
       code,
       zone,

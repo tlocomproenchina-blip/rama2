@@ -36,7 +36,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    let warehouse = null;
+    const nextWarehouseId = body?.warehouse_id ?? current.warehouse_id;
+    if (nextWarehouseId) {
+      warehouse = await base44.asServiceRole.entities.Warehouse.get(String(nextWarehouseId));
+      if (!warehouse || warehouse.is_active === false) {
+        return Response.json({ error: 'Almacén no encontrado o inactivo' }, { status: 404 });
+      }
+    }
+
     const updates = {
+      warehouse_id: warehouse?.id ?? current.warehouse_id,
+      warehouse_name: warehouse?.name ?? current.warehouse_name,
+      warehouse_city: warehouse?.city ?? current.warehouse_city,
+      warehouse_country: warehouse?.country ?? current.warehouse_country,
       name: body?.name ?? current.name,
       code: nextCode,
       zone: body?.zone ?? current.zone,

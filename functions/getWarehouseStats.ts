@@ -22,12 +22,14 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (!(await hasWarehouseAccess(base44, user, ['WarehouseDashboard']))) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    const [locations, preAlertPackages, approvedRequestsList] = await Promise.all([
+    const [warehouses, locations, preAlertPackages, approvedRequestsList] = await Promise.all([
+      base44.asServiceRole.entities.Warehouse.list('name', 200),
       base44.asServiceRole.entities.WarehouseLocation.list('code', 500),
       base44.asServiceRole.entities.Package.filter({ status: 'pre_alerta' }, '-updated_date', 1000),
       base44.asServiceRole.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-updated_date', 300)
     ]);
 
+    const activeWarehouses = (warehouses || []).filter((w) => w.is_active !== false);
     const activeLocations = (locations || []).filter((l) => l.is_active !== false);
     const occupiedLocations = activeLocations.filter((location) => Number(location.current_units || 0) > 0).length;
 
@@ -47,11 +49,26 @@ Deno.serve(async (req) => {
       zoneMap.set(location.zone, current);
     });
 
+    const warehouseSummary = activeWarehouses.map((warehouse) => {
+      const warehouseLocations = activeLocations.filter((location) => location.warehouse_id === warehouse.id);
+      return {
+        id: warehouse.id,
+        name: warehouse.name,
+        city: warehouse.city,
+        country: warehouse.country,
+        locations: warehouseLocations.length,
+        occupied_locations: warehouseLocations.filter((location) => Number(location.current_units || 0) > 0).length,
+        packages: warehouseLocations.reduce((sum, location) => sum + Number(location.current_units || 0), 0)
+      };
+    });
+
     const approvedRequests = (approvedRequestsList || []).length;
 
     return Response.json({
       success: true,
       stats: {
+        total_warehouses: warehouses.length,
+        active_warehouses: activeWarehouses.length,
         total_locations: locations.length,
         active_locations: activeLocations.length,
         occupied_locations: occupiedLocations,
@@ -75,6 +92,7 @@ Deno.serve(async (req) => {
             utilization_percent: percent(totalCurrentVolume, totalCapacityVolume)
           }
         },
+        warehouses: warehouseSummary,
         zones: Array.from(zoneMap.values()).sort((a, b) => a.zone.localeCompare(b.zone))
       }
     });
