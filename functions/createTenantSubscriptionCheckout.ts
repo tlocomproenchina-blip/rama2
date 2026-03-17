@@ -82,7 +82,8 @@ Deno.serve(async (req) => {
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: {
         tenant_id: String(tenant.id),
-        plan_code: String(plan.plan_code),
+        plan_code: String(planCode),
+        plan_name: String(planName),
         billing_cycle: billingCycle
       },
       subscription_data: {
