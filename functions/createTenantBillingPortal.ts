@@ -14,7 +14,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const payload = await req.json();
+    let payload = {};
+    try {
+      payload = await req.json();
+    } catch (_) {
+      payload = {};
+    }
     const tenantId = payload?.tenant_id || user?.tenant_id;
     const returnUrl = payload?.returnUrl || req.headers.get('origin') || user?.appBaseUrl || '';
 
