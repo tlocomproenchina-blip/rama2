@@ -502,6 +502,7 @@ export default function AdminMarketing({ user }) {
           </CardContent>
         </Card>
       </div>
+      </div>
 
       {/* Campaigns List */}
       <div className="grid gap-4">
