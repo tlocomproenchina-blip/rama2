@@ -78,7 +78,7 @@ export default function AdminSettings({ user }) {
 
   // App Config
    const [appConfig, setAppConfig] = useState({
-      app_name: 'TLEC Logistics',
+      app_name: 'TLEC CARGO',
       app_tagline: 'Tu socio confiable en envíos',
       app_logo_url: '',
       favicon_url: '',
@@ -909,7 +909,7 @@ export default function AdminSettings({ user }) {
                 <Input
                   value={appConfig.app_name}
                   onChange={(e) => setAppConfig({ ...appConfig, app_name: e.target.value })}
-                  placeholder="TLEC Logistics"
+                  placeholder="TLEC CARGO"
                 />
               </div>
 

@@ -20,7 +20,7 @@ import HomeFooter from '@/components/home/HomeFooter';
 export default function Home({ user }) {
   // Metadatos SEO para Home (pública)
   React.useEffect(() => {
-    document.title = 'Envíos China → Venezuela | TLEC Logistics';
+    document.title = 'Envíos China → Venezuela | TLEC CARGO';
     const meta = document.querySelector('meta[name="description"]') || document.createElement('meta');
     meta.name = 'description';
     meta.content = 'Transporte puerta a puerta desde China a Venezuela: consolidación, tarifas claras y soporte experto.';
