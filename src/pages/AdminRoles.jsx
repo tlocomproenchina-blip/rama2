@@ -52,6 +52,10 @@ const PAGE_LABELS = {
   'AdminPermissions': 'Administradores',
   'AdminSettings': 'Configuración',
   'AdminReports': 'Reportes',
+  'WarehouseDashboard': 'Dashboard Almacén',
+  'WarehouseReceive': 'Recepción Almacén',
+  'WarehouseLocations': 'Ubicaciones Almacén',
+  'WarehousePickPackShip': 'Picking y Packing',
   'ShipmentTracking': 'Seguimiento',
   'ShippingCalculator': 'Calculadora'
 };
@@ -136,7 +140,7 @@ export default function AdminRoles({ user }) {
           view_reports: true,
           manage_support: true
         },
-        visible_pages: ['AdminDashboard', 'AdminPackages', 'AdminClients', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminInvoices', 'AdminReports', 'AdminSupportTickets', 'ShipmentTracking', 'ShippingCalculator']
+        visible_pages: ['AdminDashboard', 'AdminPackages', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'AdminClients', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminInvoices', 'AdminReports', 'AdminSupportTickets', 'ShipmentTracking', 'ShippingCalculator']
       },
       {
         role_code: 'customer_service',
@@ -162,7 +166,7 @@ export default function AdminRoles({ user }) {
           view_packages: true,
           receive_packages: true
         },
-        visible_pages: ['EmployeeDashboard', 'AdminPackages', 'ShipmentTracking']
+        visible_pages: ['EmployeeDashboard', 'AdminPackages', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'ShipmentTracking']
       },
       {
         role_code: 'accounting',
