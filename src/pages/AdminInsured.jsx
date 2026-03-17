@@ -154,82 +154,152 @@ export default function AdminInsured({ user }) {
 
       {/* Insured Packages Table */}
       <Card className="border-0 shadow-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="text-left p-4 font-medium text-slate-600">Tracking</th>
-                <th className="text-left p-4 font-medium text-slate-600">Cliente</th>
-                <th className="text-left p-4 font-medium text-slate-600">FOB</th>
-                <th className="text-left p-4 font-medium text-slate-600">Seguro</th>
-                <th className="text-left p-4 font-medium text-slate-600">Consolidación</th>
-                <th className="text-left p-4 font-medium text-slate-600">Estado</th>
-                <th className="text-left p-4 font-medium text-slate-600">Factura</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredPackages.map((pkg) => {
-                const consolidation = getConsolidation(pkg.id);
-                return (
-                  <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-slate-400" />
-                        <span className="font-mono font-medium text-slate-800">{pkg.tracking_number}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <p className="text-slate-800">{pkg.client_email}</p>
-                        <p className="text-sm text-slate-500 font-mono">{pkg.shipping_mark}</p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="font-medium text-slate-800">${pkg.fob_value?.toFixed(2)}</span>
-                    </td>
-                    <td className="p-4">
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                        ${calculateInsurance(pkg.fob_value).toFixed(2)}
-                      </Badge>
-                    </td>
-                    <td className="p-4">
-                      {consolidation ? (
-                        <span className="font-mono text-sm text-slate-600">
-                          {consolidation.consolidation_tracking}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <StatusBadge status={pkg.status} size="sm" />
-                    </td>
-                    <td className="p-4">
-                      {pkg.invoice_url ? (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setViewInvoice(pkg.invoice_url)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Ver
-                        </Button>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredPackages.length === 0 && (
+        {filteredPackages.length === 0 ? (
           <div className="p-12 text-center">
             <ShieldCheck className="h-12 w-12 mx-auto mb-3 text-slate-300" />
             <p className="text-slate-500">No se encontraron envíos asegurados</p>
           </div>
+        ) : (
+          <>
+            <div className="divide-y divide-slate-100 md:hidden">
+              {filteredPackages.map((pkg) => {
+                const consolidation = getConsolidation(pkg.id);
+                return (
+                  <div key={pkg.id} className="p-4 space-y-3">
+                    <div>
+                      <p className="text-xs text-slate-500">Tracking</p>
+                      <div className="mt-1 flex items-start gap-2">
+                        <Package className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                        <span className="font-mono font-medium text-slate-800 break-all">{pkg.tracking_number}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-500">Cliente</p>
+                      <p className="mt-1 text-slate-800 break-all">{pkg.client_email}</p>
+                      <p className="text-sm text-slate-500 font-mono break-all">{pkg.shipping_mark}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-slate-500">FOB</p>
+                        <p className="mt-1 font-medium text-slate-800">${pkg.fob_value?.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Seguro</p>
+                        <div className="mt-1">
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                            ${calculateInsurance(pkg.fob_value).toFixed(2)}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Consolidación</p>
+                        <p className="mt-1 font-mono text-sm text-slate-600 break-all">
+                          {consolidation ? consolidation.consolidation_tracking : '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Estado</p>
+                        <div className="mt-1">
+                          <StatusBadge status={pkg.status} size="sm" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-slate-500">Factura</p>
+                      <div className="mt-1">
+                        {pkg.invoice_url ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewInvoice(pkg.invoice_url)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver
+                          </Button>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="text-left p-4 font-medium text-slate-600">Tracking</th>
+                    <th className="text-left p-4 font-medium text-slate-600">Cliente</th>
+                    <th className="text-left p-4 font-medium text-slate-600">FOB</th>
+                    <th className="text-left p-4 font-medium text-slate-600">Seguro</th>
+                    <th className="text-left p-4 font-medium text-slate-600">Consolidación</th>
+                    <th className="text-left p-4 font-medium text-slate-600">Estado</th>
+                    <th className="text-left p-4 font-medium text-slate-600">Factura</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredPackages.map((pkg) => {
+                    const consolidation = getConsolidation(pkg.id);
+                    return (
+                      <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-slate-400" />
+                            <span className="font-mono font-medium text-slate-800">{pkg.tracking_number}</span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div>
+                            <p className="text-slate-800">{pkg.client_email}</p>
+                            <p className="text-sm text-slate-500 font-mono">{pkg.shipping_mark}</p>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className="font-medium text-slate-800">${pkg.fob_value?.toFixed(2)}</span>
+                        </td>
+                        <td className="p-4">
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                            ${calculateInsurance(pkg.fob_value).toFixed(2)}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          {consolidation ? (
+                            <span className="font-mono text-sm text-slate-600">
+                              {consolidation.consolidation_tracking}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <StatusBadge status={pkg.status} size="sm" />
+                        </td>
+                        <td className="p-4">
+                          {pkg.invoice_url ? (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setViewInvoice(pkg.invoice_url)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Ver
+                            </Button>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 
