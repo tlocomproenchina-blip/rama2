@@ -917,7 +917,12 @@ export default function AdminShipmentApprovals({ user }) {
                           <User className="h-4 w-4 text-slate-400" />
                           <p className="font-medium text-slate-800">{req.client_email}</p>
                         </div>
-                        <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
+                          <Badge className={req.created_by === req.client_email ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}>
+                            {req.created_by === req.client_email ? 'Solicitada por cliente' : 'Creada por sistema'}
+                          </Badge>
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
