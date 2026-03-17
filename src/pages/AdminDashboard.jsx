@@ -20,6 +20,7 @@ export default function AdminDashboard({ user }) {
   const [data, setData] = useState({
     packages: [],
     consolidations: [],
+    allConsolidations: [],
     users: [],
     invoices: [],
     notifications: [],
@@ -51,8 +52,9 @@ export default function AdminDashboard({ user }) {
   const loadData = async () => {
     try {
       // Cargar solo lo necesario para la pestaña Resumen y respetar los límites
-      const [packages, consolidations, users, invoices, supportTickets, cfg] = await Promise.all([
+      const [packages, consolidations, allConsolidations, users, invoices, supportTickets, cfg] = await Promise.all([
         base44.entities.Package.list('-created_date', packagesLimit),
+        base44.entities.Consolidation.list('-created_date', consolidationsLimit),
         base44.entities.Consolidation.list('-created_date', 500),
         base44.entities.User.filter({ role: 'user' }),
         base44.entities.Invoice.list('-created_date', invoicesLimit),
@@ -61,10 +63,10 @@ export default function AdminDashboard({ user }) {
       ]);
 
       setHasMorePackages(packages.length === packagesLimit);
-      setHasMoreConsolidations(consolidations.length >= 500);
+      setHasMoreConsolidations(consolidations.length === consolidationsLimit);
       setHasMoreInvoices(invoices.length === invoicesLimit);
       
-      setData({ packages, consolidations, users, invoices, supportTickets });
+      setData({ packages, consolidations, allConsolidations, users, invoices, supportTickets });
       if (Array.isArray(cfg) && cfg.length > 0) setAppConfig(cfg[0]);
 
       // Cargar notificaciones del admin (solo si estamos en resumen)
@@ -139,31 +141,31 @@ export default function AdminDashboard({ user }) {
       inTransit: data.packages.filter(p => p.status === 'en_transito').length,
       
       // Consolidaciones
-      totalConsolidations: data.consolidations.length,
-      pendingPayment: data.consolidations.filter(c => c.status === 'en_transito' && !c.payment_validated).length,
-      pendingValidation: data.consolidations.filter(c => c.payment_proof_url && !c.payment_validated).length,
-      available: data.consolidations.filter(c => c.status === 'disponible').length,
+      totalConsolidations: data.allConsolidations.length,
+      pendingPayment: data.allConsolidations.filter(c => c.status === 'en_transito' && !c.payment_validated).length,
+      pendingValidation: data.allConsolidations.filter(c => c.payment_proof_url && !c.payment_validated).length,
+      available: data.allConsolidations.filter(c => c.status === 'disponible').length,
       
       // Ingresos
-      totalRevenue: data.consolidations
+      totalRevenue: data.allConsolidations
         .filter(c => c.payment_validated)
         .reduce((sum, c) => sum + (c.total_cost || 0), 0),
-      pendingRevenue: data.consolidations
+      pendingRevenue: data.allConsolidations
         .filter(c => !c.payment_validated)
         .reduce((sum, c) => sum + (c.total_cost || 0), 0),
-      monthRevenue: data.consolidations
+      monthRevenue: data.allConsolidations
         .filter(c => c.payment_validated && new Date(c.payment_validation_date) >= lastMonth)
         .reduce((sum, c) => sum + (c.total_cost || 0), 0),
       projectedMonthlyRevenue: (() => {
         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        const validatedThisMonth = data.consolidations
+        const validatedThisMonth = data.allConsolidations
           .filter(c => c.payment_validated && c.payment_validation_date && new Date(c.payment_validation_date) >= monthStart)
           .reduce((sum, c) => sum + Number(c.total_cost || 0), 0);
         const elapsedDays = Math.max(1, today.getDate());
         const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
         return (validatedThisMonth / elapsedDays) * daysInMonth;
       })(),
-      totalShippingVolume: data.consolidations.reduce((sum, c) => sum + Number(c.cbm || 0), 0),
+      totalShippingVolume: data.allConsolidations.reduce((sum, c) => sum + Number(c.cbm || 0), 0),
       openSupportTickets: data.supportTickets.filter(t => t.status === 'abierto').length,
       
       // Clientes
