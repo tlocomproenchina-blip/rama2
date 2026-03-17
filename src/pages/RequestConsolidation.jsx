@@ -276,7 +276,7 @@ export default function RequestConsolidation({ user }) {
             <AlertCircle className="h-4 w-4 md:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-xs md:text-sm text-blue-800 min-w-0">
               <p className="font-medium mb-1">¿Qué sucede después?</p>
-              <p>Un administrador revisará tu solicitud, procesará la consolidación y generará tu factura.</p>
+              <p>Un administrador revisará tu solicitud, procesará la consolidación y generará tu factura. El envío mínimo es de 0.130 CBM o el equivalente a una caja de 50cm × 50cm × 50cm.</p>
             </div>
           </div>
         </CardContent>
