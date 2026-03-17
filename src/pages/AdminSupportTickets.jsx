@@ -543,8 +543,10 @@ export default function AdminSupportTickets({ user }) {
                             variant="outline"
                             size="sm"
                             onClick={() => {
+                              const currentAssignee = staffUsers.find((member) => member.email === ticket.assigned_to);
+                              const currentRole = currentAssignee ? (currentAssignee.role === 'admin' ? 'admin' : currentAssignee.custom_role) : null;
                               setAssigningTicket(ticket);
-                              setSelectedAssignRole(roleByCategory[ticket.category] || 'customer_service');
+                              setSelectedAssignRole(currentRole || roleByCategory[ticket.category] || 'customer_service');
                               setSelectedAssignee(ticket.assigned_to || '');
                             }}
                           >
