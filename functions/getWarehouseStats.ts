@@ -22,14 +22,13 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (!(await hasWarehouseAccess(base44, user, ['WarehouseDashboard']))) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    const [locations, packages, requests] = await Promise.all([
+    const [locations, preAlertPackages, approvedRequestsList] = await Promise.all([
       base44.asServiceRole.entities.WarehouseLocation.list('code', 500),
-      base44.asServiceRole.entities.Package.list('-updated_date', 1000),
-      base44.asServiceRole.entities.ConsolidationRequest.list('-updated_date', 300)
+      base44.asServiceRole.entities.Package.filter({ status: 'pre_alerta' }, '-updated_date', 1000),
+      base44.asServiceRole.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-updated_date', 300)
     ]);
 
     const activeLocations = (locations || []).filter((l) => l.is_active !== false);
-    const assignedPackages = (packages || []).filter((p) => p.warehouse_location_id);
     const occupiedLocations = activeLocations.filter((location) => Number(location.current_units || 0) > 0).length;
 
     const totalCapacityUnits = activeLocations.reduce((sum, location) => sum + Number(location.capacity_units || 0), 0);
@@ -41,29 +40,14 @@ Deno.serve(async (req) => {
 
     const zoneMap = new Map();
     activeLocations.forEach((location) => {
-      zoneMap.set(location.zone, {
-        zone: location.zone,
-        locations: 0,
-        occupied_locations: 0,
-        packages: 0,
-      });
-    });
-
-    activeLocations.forEach((location) => {
       const current = zoneMap.get(location.zone) || { zone: location.zone, locations: 0, occupied_locations: 0, packages: 0 };
       current.locations += 1;
+      current.packages += Number(location.current_units || 0);
       if (Number(location.current_units || 0) > 0) current.occupied_locations += 1;
       zoneMap.set(location.zone, current);
     });
 
-    assignedPackages.forEach((pkg) => {
-      const zone = pkg.warehouse_zone || 'sin_ubicar';
-      const current = zoneMap.get(zone) || { zone, locations: 0, occupied_locations: 0, packages: 0 };
-      current.packages += 1;
-      zoneMap.set(zone, current);
-    });
-
-    const approvedRequests = (requests || []).filter((request) => request.status === 'aprobada').length;
+    const approvedRequests = (approvedRequestsList || []).length;
 
     return Response.json({
       success: true,
