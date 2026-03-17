@@ -36,6 +36,13 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
               <p className="text-sm text-slate-500 mt-1">
                 Consolidación: {invoice.consolidation_tracking}
               </p>
+              {invoice.shipping_mark && (
+                <div className="mt-2">
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {invoice.shipping_mark}
+                  </Badge>
+                </div>
+              )}
               <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />

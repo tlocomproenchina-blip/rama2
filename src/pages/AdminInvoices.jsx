@@ -63,7 +63,14 @@ export default function AdminInvoices({ user }) {
     if (append) setLoadingMore(true); else setLoading(true);
     const skip = append ? invoices.length : 0;
     const data = await base44.entities.Invoice.list('-invoice_date', pageSize, skip);
-    const nextList = append ? [...invoices, ...data] : data;
+    const clientEmails = Array.from(new Set((data || []).map(inv => inv.client_email).filter(Boolean)));
+    const users = clientEmails.length ? await base44.entities.User.list() : [];
+    const usersMap = new Map(users.map(u => [u.email, u]));
+    const enrichedData = (data || []).map(inv => ({
+      ...inv,
+      shipping_mark: usersMap.get(inv.client_email)?.shipping_mark || ''
+    }));
+    const nextList = append ? [...invoices, ...enrichedData] : enrichedData;
 
     const nextStats = {
       total: nextList.length,
