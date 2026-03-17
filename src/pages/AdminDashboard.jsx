@@ -544,15 +544,15 @@ export default function AdminDashboard({ user }) {
       </Card>
 
       {/* Facturas Pendientes */}
-      <Card className="shadow-lg">
+      <Card className="shadow-lg overflow-hidden">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
+            <CardTitle className="flex items-center gap-2 min-w-0">
+              <DollarSign className="h-5 w-5 shrink-0" />
               Facturas
             </CardTitle>
             <Tabs value={invFilter} onValueChange={setInvFilter}>
-              <TabsList>
+              <TabsList className="w-full sm:w-auto flex-nowrap overflow-x-auto justify-start">
                 <TabsTrigger value="pendiente">Pendientes</TabsTrigger>
                 <TabsTrigger value="vencida">Vencidas</TabsTrigger>
                 <TabsTrigger value="todas">Todas</TabsTrigger>
@@ -592,15 +592,15 @@ export default function AdminDashboard({ user }) {
       </Card>
 
       {/* Consolidaciones Recientes */}
-      <Card className="shadow-lg">
+      <Card className="shadow-lg overflow-hidden">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="h-5 w-5" />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
+            <CardTitle className="flex items-center gap-2 min-w-0">
+              <Truck className="h-5 w-5 shrink-0" />
               Consolidaciones Recientes
             </CardTitle>
             <Tabs value={consFilter} onValueChange={setConsFilter}>
-              <TabsList>
+              <TabsList className="w-full sm:w-auto flex-nowrap overflow-x-auto justify-start">
                 <TabsTrigger value="todas">Todas</TabsTrigger>
                 <TabsTrigger value="en_transito">En tránsito</TabsTrigger>
                 <TabsTrigger value="disponible">Disponible</TabsTrigger>
@@ -616,12 +616,12 @@ export default function AdminDashboard({ user }) {
             <>
               <div className="space-y-3">
                 {recentConsolidations.map(cons => (
-                  <div key={cons.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                  <div key={cons.id} className="flex flex-col gap-3 p-3 bg-slate-50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="font-medium text-slate-800 truncate">{cons.consolidation_tracking || 'Sin tracking'} • {cons.client_email}</p>
+                      <p className="font-medium text-slate-800 break-all sm:truncate">{cons.consolidation_tracking || 'Sin tracking'} • {cons.client_email}</p>
                       <p className="text-xs text-slate-500">{new Date(cons.created_date).toLocaleString()}</p>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-3">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 sm:ml-3">
                       <Badge variant="outline">${(cons.total_cost || 0).toFixed(2)}</Badge>
                       <StatusBadge status={cons.status} size="sm" />
                     </div>
