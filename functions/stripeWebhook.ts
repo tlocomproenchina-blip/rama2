@@ -57,7 +57,18 @@ async function syncTenantSubscription(base44, stripe, subscription, statusOverri
 
   const plan = await resolvePlanFromSubscription(base44, subscription);
   const price = subscription?.items?.data?.[0]?.price;
-  const billingCycle = subscription?.metadata?.billing_cycle || (price?.recurring?.interval === 'year' ? 'yearly' : 'monthly');
+  const interval = price?.recurring?.interval;
+  const intervalCount = price?.recurring?.interval_count;
+  const inferredBillingCycle = interval === 'year'
+    ? 'yearly'
+    : interval === 'month' && intervalCount === 6
+      ? 'semiannual'
+      : interval === 'month' && intervalCount === 3
+        ? 'quarterly'
+        : interval === 'month' && intervalCount === 12
+          ? 'yearly'
+          : 'monthly';
+  const billingCycle = subscription?.metadata?.billing_cycle || inferredBillingCycle;
   const customerId = typeof subscription?.customer === 'string' ? subscription.customer : subscription?.customer?.id;
   const status = statusOverride || subscription?.status || 'none';
 
