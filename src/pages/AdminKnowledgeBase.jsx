@@ -212,64 +212,126 @@ export default function AdminKnowledgeBase({ user }) {
               <Loader2 className="h-6 w-6 animate-spin mr-2" /> Cargando...
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Tags</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Actualizado</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.length === 0 ? (
+            <>
+              <div className="divide-y md:hidden">
+                {filtered.length === 0 ? (
+                  <div className="text-center text-slate-500 p-6">Sin resultados</div>
+                ) : (
+                  filtered.map(it => (
+                    <div key={it.id} className="p-4 space-y-3">
+                      <div>
+                        <p className="text-xs text-slate-500">Título</p>
+                        <p className="mt-1 font-medium text-slate-900 break-words">{it.title}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-slate-500">Categoría</p>
+                          <div className="mt-1">
+                            <Badge className="bg-slate-100 text-slate-800">{CATEGORIES.find(c => c.key === (it.category || "general"))?.label || it.category}</Badge>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Estado</p>
+                          <div className="mt-1">
+                            <Badge className={
+                              (it.status === "published" ? "bg-emerald-100 text-emerald-800" : it.status === "draft" ? "bg-yellow-100 text-yellow-800" : "bg-slate-200 text-slate-800")
+                            }>
+                              {STATUS.find(s => s.key === (it.status || "draft"))?.label || it.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Tags</p>
+                        <p className="mt-1 text-sm text-slate-600 break-words">{(it.tags || []).slice(0,3).join(", ")}{(it.tags || []).length > 3 ? "…" : ""}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Actualizado</p>
+                        <p className="mt-1 text-sm text-slate-600 break-words">{it.updated_date ? new Date(it.updated_date).toLocaleString() : "—"}</p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {it.document_url && (
+                          <Button asChild variant="outline" size="sm">
+                            <a href={it.document_url} target="_blank" rel="noreferrer"><Globe className="h-4 w-4 mr-2" />Ver doc</a>
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm" onClick={() => openEdit(it)}>
+                          <Pencil className="h-4 w-4 mr-2" /> Editar
+                        </Button>
+                        {it.status !== "published" && (
+                          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setPublishState(it, "published")}>Publicar</Button>
+                        )}
+                        {it.status === "published" && (
+                          <Button variant="secondary" size="sm" onClick={() => setPublishState(it, "draft")}>Despublicar</Button>
+                        )}
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(it)}>
+                          <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-slate-500">Sin resultados</TableCell>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Categoría</TableHead>
+                      <TableHead>Tags</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Actualizado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
-                  ) : (
-                    filtered.map(it => (
-                      <TableRow key={it.id}>
-                        <TableCell className="font-medium">{it.title}</TableCell>
-                        <TableCell>
-                          <Badge className="bg-slate-100 text-slate-800">{CATEGORIES.find(c => c.key === (it.category || "general"))?.label || it.category}</Badge>
-                        </TableCell>
-                        <TableCell>{(it.tags || []).slice(0,3).join(", ")}{(it.tags || []).length > 3 ? "…" : ""}</TableCell>
-                        <TableCell>
-                          <Badge className={
-                            (it.status === "published" ? "bg-emerald-100 text-emerald-800" : it.status === "draft" ? "bg-yellow-100 text-yellow-800" : "bg-slate-200 text-slate-800")
-                          }>
-                            {STATUS.find(s => s.key === (it.status || "draft"))?.label || it.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{it.updated_date ? new Date(it.updated_date).toLocaleString() : "—"}</TableCell>
-                        <TableCell className="text-right space-x-1">
-                          {it.document_url && (
-                            <Button asChild variant="outline" size="sm">
-                              <a href={it.document_url} target="_blank" rel="noreferrer"><Globe className="h-4 w-4 mr-1" />Ver doc</a>
-                            </Button>
-                          )}
-                          <Button variant="outline" size="sm" onClick={() => openEdit(it)}>
-                            <Pencil className="h-4 w-4 mr-1" /> Editar
-                          </Button>
-                          {it.status !== "published" && (
-                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setPublishState(it, "published")}>Publicar</Button>
-                          )}
-                          {it.status === "published" && (
-                            <Button variant="secondary" size="sm" onClick={() => setPublishState(it, "draft")}>Despublicar</Button>
-                          )}
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(it)}>
-                            <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                          </Button>
-                        </TableCell>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-slate-500">Sin resultados</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    ) : (
+                      filtered.map(it => (
+                        <TableRow key={it.id}>
+                          <TableCell className="font-medium">{it.title}</TableCell>
+                          <TableCell>
+                            <Badge className="bg-slate-100 text-slate-800">{CATEGORIES.find(c => c.key === (it.category || "general"))?.label || it.category}</Badge>
+                          </TableCell>
+                          <TableCell>{(it.tags || []).slice(0,3).join(", ")}{(it.tags || []).length > 3 ? "…" : ""}</TableCell>
+                          <TableCell>
+                            <Badge className={
+                              (it.status === "published" ? "bg-emerald-100 text-emerald-800" : it.status === "draft" ? "bg-yellow-100 text-yellow-800" : "bg-slate-200 text-slate-800")
+                            }>
+                              {STATUS.find(s => s.key === (it.status || "draft"))?.label || it.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{it.updated_date ? new Date(it.updated_date).toLocaleString() : "—"}</TableCell>
+                          <TableCell className="text-right space-x-1">
+                            {it.document_url && (
+                              <Button asChild variant="outline" size="sm">
+                                <a href={it.document_url} target="_blank" rel="noreferrer"><Globe className="h-4 w-4 mr-1" />Ver doc</a>
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" onClick={() => openEdit(it)}>
+                              <Pencil className="h-4 w-4 mr-1" /> Editar
+                            </Button>
+                            {it.status !== "published" && (
+                              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setPublishState(it, "published")}>Publicar</Button>
+                            )}
+                            {it.status === "published" && (
+                              <Button variant="secondary" size="sm" onClick={() => setPublishState(it, "draft")}>Despublicar</Button>
+                            )}
+                            <Button variant="destructive" size="sm" onClick={() => handleDelete(it)}>
+                              <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
