@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import WarehouseReceive from './pages/WarehouseReceive';
 import WarehouseLocations from './pages/WarehouseLocations';
+import WarehouseDashboard from './pages/WarehouseDashboard';
+import WarehousePickPackShip from './pages/WarehousePickPackShip';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -68,6 +70,16 @@ const AuthenticatedApp = () => {
       <Route path="/WarehouseLocations" element={
         <LayoutWrapper currentPageName="WarehouseLocations">
           <WarehouseLocations />
+        </LayoutWrapper>
+      } />
+      <Route path="/WarehouseDashboard" element={
+        <LayoutWrapper currentPageName="WarehouseDashboard">
+          <WarehouseDashboard />
+        </LayoutWrapper>
+      } />
+      <Route path="/WarehousePickPackShip" element={
+        <LayoutWrapper currentPageName="WarehousePickPackShip">
+          <WarehousePickPackShip />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
