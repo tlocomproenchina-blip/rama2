@@ -35,11 +35,13 @@ Deno.serve(async (req) => {
     }
     const tenantId = payload?.tenant_id || user?.tenant_id;
     const planCode = payload?.planCode;
+    const planName = payload?.planName || 'Plan SaaS';
+    const priceId = payload?.priceId;
     const billingCycle = payload?.billingCycle === 'yearly' ? 'yearly' : 'monthly';
     const returnUrl = payload?.returnUrl || req.headers.get('origin') || user?.appBaseUrl || '';
 
-    if (!tenantId || !planCode || !returnUrl) {
-      return Response.json({ error: 'Missing tenant, plan or return URL' }, { status: 400 });
+    if (!tenantId || !planCode || !priceId || !returnUrl) {
+      return Response.json({ error: 'Missing tenant, plan, price or return URL' }, { status: 400 });
     }
 
     const stripeSecretKey = getStripeSecretKey();
@@ -50,21 +52,9 @@ Deno.serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
 
     const tenant = await resolveTenant(base44, tenantId);
-    const planRows = await base44.asServiceRole.entities.SubscriptionPlan.filter({ plan_code: planCode, is_active: true });
-
-    const plan = planRows?.[0];
 
     if (!tenant) {
       return Response.json({ error: 'Tenant not found' }, { status: 404 });
-    }
-
-    if (!plan) {
-      return Response.json({ error: 'Plan not found' }, { status: 404 });
-    }
-
-    const priceId = billingCycle === 'yearly' ? plan.stripe_price_id_yearly : plan.stripe_price_id_monthly;
-    if (!priceId) {
-      return Response.json({ error: `Missing Stripe price ID for ${billingCycle}` }, { status: 400 });
     }
 
     let stripeCustomerId = tenant.stripe_customer_id;
@@ -98,8 +88,8 @@ Deno.serve(async (req) => {
       subscription_data: {
         metadata: {
           tenant_id: String(tenant.id),
-          plan_code: String(plan.plan_code),
-          plan_name: String(plan.name),
+          plan_code: String(planCode),
+          plan_name: String(planName),
           billing_cycle: billingCycle
         }
       }

@@ -177,6 +177,8 @@ export default function AdminBilling({ user }) {
       setSaving(true);
       const response = await base44.functions.invoke('createTenantSubscriptionCheckout', {
         planCode: plan.plan_code,
+        planName: plan.name,
+        priceId: billingCycle === 'yearly' ? plan.stripe_price_id_yearly : plan.stripe_price_id_monthly,
         billingCycle,
         returnUrl: `${window.location.origin}${createPageUrl('AdminBilling')}`
       });
