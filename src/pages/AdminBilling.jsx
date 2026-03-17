@@ -18,8 +18,12 @@ const emptyForm = {
   name: '',
   description: '',
   monthly_price: '',
+  quarterly_price: '',
+  semiannual_price: '',
   yearly_price: '',
   stripe_price_id_monthly: '',
+  stripe_price_id_quarterly: '',
+  stripe_price_id_semiannual: '',
   stripe_price_id_yearly: '',
   max_users: '',
   max_shipments_per_month: '',
@@ -71,39 +75,17 @@ export default function AdminBilling({ user }) {
       setSaving(true);
       await base44.entities.SubscriptionPlan.bulkCreate([
         {
-          plan_code: 'starter',
-          name: 'Starter',
-          description: 'Ideal para operaciones pequeñas',
-          monthly_price: 49,
-          yearly_price: 490,
-          max_users: 3,
-          max_shipments_per_month: 150,
-          features: ['3 usuarios internos', 'Hasta 150 envíos al mes', 'Soporte estándar'],
-          sort_order: 1,
-          is_active: true
-        },
-        {
-          plan_code: 'growth',
-          name: 'Growth',
-          description: 'Para equipos en crecimiento',
-          monthly_price: 99,
-          yearly_price: 990,
+          plan_code: 'base',
+          name: 'Plan Base',
+          description: 'Estructura recomendada con descuentos por permanencia',
+          monthly_price: 100,
+          quarterly_price: 270,
+          semiannual_price: 510,
+          yearly_price: 960,
           max_users: 10,
-          max_shipments_per_month: 800,
-          features: ['10 usuarios internos', 'Hasta 800 envíos al mes', 'Reportes avanzados'],
-          sort_order: 2,
-          is_active: true
-        },
-        {
-          plan_code: 'enterprise',
-          name: 'Enterprise',
-          description: 'Operación avanzada y mayor capacidad',
-          monthly_price: 199,
-          yearly_price: 1990,
-          max_users: 50,
-          max_shipments_per_month: 5000,
-          features: ['50 usuarios internos', 'Hasta 5000 envíos al mes', 'Soporte prioritario'],
-          sort_order: 3,
+          max_shipments_per_month: 1000,
+          features: ['Pago flexible mensual', '10% de descuento trimestral', '15% de descuento semestral', '20% de descuento anual'],
+          sort_order: 1,
           is_active: true
         }
       ]);
@@ -129,8 +111,12 @@ export default function AdminBilling({ user }) {
         name: form.name,
         description: form.description,
         monthly_price: Number(form.monthly_price || 0),
+        quarterly_price: Number(form.quarterly_price || 0),
+        semiannual_price: Number(form.semiannual_price || 0),
         yearly_price: Number(form.yearly_price || 0),
         stripe_price_id_monthly: form.stripe_price_id_monthly,
+        stripe_price_id_quarterly: form.stripe_price_id_quarterly,
+        stripe_price_id_semiannual: form.stripe_price_id_semiannual,
         stripe_price_id_yearly: form.stripe_price_id_yearly,
         max_users: Number(form.max_users || 0),
         max_shipments_per_month: Number(form.max_shipments_per_month || 0),
@@ -162,8 +148,12 @@ export default function AdminBilling({ user }) {
       name: plan.name || '',
       description: plan.description || '',
       monthly_price: plan.monthly_price ?? '',
+      quarterly_price: plan.quarterly_price ?? '',
+      semiannual_price: plan.semiannual_price ?? '',
       yearly_price: plan.yearly_price ?? '',
       stripe_price_id_monthly: plan.stripe_price_id_monthly || '',
+      stripe_price_id_quarterly: plan.stripe_price_id_quarterly || '',
+      stripe_price_id_semiannual: plan.stripe_price_id_semiannual || '',
       stripe_price_id_yearly: plan.stripe_price_id_yearly || '',
       max_users: plan.max_users ?? '',
       max_shipments_per_month: plan.max_shipments_per_month ?? '',
@@ -178,7 +168,13 @@ export default function AdminBilling({ user }) {
       const response = await base44.functions.invoke('createTenantSubscriptionCheckout', {
         planCode: plan.plan_code,
         planName: plan.name,
-        priceId: billingCycle === 'yearly' ? plan.stripe_price_id_yearly : plan.stripe_price_id_monthly,
+        priceId: billingCycle === 'quarterly'
+          ? plan.stripe_price_id_quarterly
+          : billingCycle === 'semiannual'
+            ? plan.stripe_price_id_semiannual
+            : billingCycle === 'yearly'
+              ? plan.stripe_price_id_yearly
+              : plan.stripe_price_id_monthly,
         billingCycle,
         returnUrl: `${window.location.origin}${createPageUrl('AdminBilling')}`
       });
@@ -249,8 +245,10 @@ export default function AdminBilling({ user }) {
               <p className="text-sm text-slate-500">Elige mensual o anual antes de suscribir el tenant actual.</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant={billingCycle === 'monthly' ? 'default' : 'outline'} onClick={() => setBillingCycle('monthly')}>Mensual</Button>
+            <Button variant={billingCycle === 'quarterly' ? 'default' : 'outline'} onClick={() => setBillingCycle('quarterly')}>Trimestral</Button>
+            <Button variant={billingCycle === 'semiannual' ? 'default' : 'outline'} onClick={() => setBillingCycle('semiannual')}>Semestral</Button>
             <Button variant={billingCycle === 'yearly' ? 'default' : 'outline'} onClick={() => setBillingCycle('yearly')}>Anual</Button>
           </div>
         </CardContent>
