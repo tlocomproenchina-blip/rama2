@@ -52,7 +52,7 @@ export default function ClientAnalyticsSearch({
               type="button"
               onClick={() => {
                 onSelectClient(client);
-                setSearchTerm(client.full_name || client.email || '');
+                setSearchTerm('');
               }}
               className="flex w-full flex-col items-start gap-1 border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50"
             >
