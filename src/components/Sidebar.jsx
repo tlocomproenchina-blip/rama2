@@ -162,6 +162,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
   { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
   { name: 'Tenants', page: 'AdminTenants', icon: Building2 },
+  { name: 'Facturación SaaS', page: 'AdminBilling', icon: CreditCard },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
 { name: 'Administradores', page: 'AdminPermissions', icon: Shield },
   { name: 'Gestión de Roles', page: 'AdminRoles', icon: Shield },
@@ -177,7 +178,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog','AdminReferrals'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
     { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
-    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminTenants','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
+    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminTenants','AdminBilling','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
   ];
 
   const clientGroups = [

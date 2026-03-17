@@ -52,6 +52,7 @@ const PAGE_LABELS = {
   'AdminPermissions': 'Administradores',
   'AdminSettings': 'Configuración',
   'AdminTenants': 'Tenants',
+  'AdminBilling': 'Facturación SaaS',
   'AdminReports': 'Reportes',
   'WarehouseDashboard': 'Dashboard Almacén',
   'WarehouseReceive': 'Recepción Almacén',

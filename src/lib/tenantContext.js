@@ -39,6 +39,7 @@ export const TENANT_SCOPED_ENTITIES = new Set([
   'CreditsLedger',
   'BlogPost',
   'AssistedPaymentRequest',
+  'TenantSubscription',
   'RuntimeMetrics',
   'RuntimeTuning',
   'EmailQueue'
