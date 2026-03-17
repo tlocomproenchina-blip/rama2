@@ -675,7 +675,7 @@ export default function AdminSettings({ user }) {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Search and Actions */}
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
@@ -688,7 +688,7 @@ export default function AdminSettings({ user }) {
                 <Button
                   variant="outline"
                   onClick={() => handleToggleAllStates(true)}
-                  className="whitespace-nowrap"
+                  className="whitespace-nowrap w-full sm:w-auto"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Activar todos
@@ -696,7 +696,7 @@ export default function AdminSettings({ user }) {
                 <Button
                   variant="outline"
                   onClick={() => handleToggleAllStates(false)}
-                  className="whitespace-nowrap"
+                  className="whitespace-nowrap w-full sm:w-auto"
                 >
                   <XCircle className="h-4 w-4 mr-2" />
                   Desactivar todos
@@ -704,7 +704,7 @@ export default function AdminSettings({ user }) {
               </div>
 
               {/* Uniform Rate */}
-              <div className="flex gap-3 p-4 bg-slate-50 rounded-lg">
+              <div className="flex flex-col gap-3 p-4 bg-slate-50 rounded-lg sm:flex-row">
                 <Input
                   type="number"
                   placeholder="Tarifa uniforme"
@@ -712,13 +712,82 @@ export default function AdminSettings({ user }) {
                   onChange={(e) => setUniformRate(e.target.value)}
                   className="flex-1"
                 />
-                <Button onClick={handleApplyUniformRate} disabled={saving}>
+                <Button onClick={handleApplyUniformRate} disabled={saving} className="w-full sm:w-auto">
                   Aplicar tarifa uniforme
                 </Button>
               </div>
 
               {/* States Table */}
-              <div className="border rounded-lg overflow-hidden">
+              <div className="space-y-4 md:hidden">
+                {filteredStates.map((state) => (
+                  <div key={state.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                    <div>
+                      <p className="text-xs text-slate-500">Estado</p>
+                      <p className="mt-1 font-semibold text-slate-800">{state.state_name}</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Tarifa de Envío ($)</Label>
+                      <Input
+                        type="number"
+                        value={state.shipping_rate}
+                        onChange={(e) => {
+                          const updated = statesConfig.map(s =>
+                            s.id === state.id ? { ...s, shipping_rate: parseFloat(e.target.value) || 0 } : s
+                          );
+                          setStatesConfig(updated);
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <p className="text-xs text-slate-500">Precio final Regular ($)</p>
+                        <p className="mt-1 font-semibold text-slate-800">${(
+                          ((pricingConfig?.base_rate_regular || 0) * (1 + (pricingConfig?.profit_percentage || 0)/100))
+                          + (state.shipping_rate || 0)
+                          + (pricingConfig?.door_to_door_cost || 0)
+                        ).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Precio final Alto riesgo ($)</p>
+                        <p className="mt-1 font-semibold text-slate-800">${(
+                          ((pricingConfig?.base_rate_high_risk || 0) * (1 + (pricingConfig?.profit_percentage || 0)/100))
+                          + (state.shipping_rate || 0)
+                          + (pricingConfig?.door_to_door_cost || 0)
+                        ).toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">Activo</p>
+                        <p className="text-xs text-slate-500">Habilitar envíos para este estado</p>
+                      </div>
+                      <Switch
+                        checked={state.is_active}
+                        onCheckedChange={(checked) => {
+                          const updated = statesConfig.map(s =>
+                            s.id === state.id ? { ...s, is_active: checked } : s
+                          );
+                          setStatesConfig(updated);
+                        }}
+                      />
+                    </div>
+
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleSaveState(state)}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      Guardar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block border rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-slate-50">
                     <tr>
