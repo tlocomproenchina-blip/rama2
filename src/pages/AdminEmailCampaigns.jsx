@@ -468,7 +468,11 @@ export default function AdminEmailCampaigns({ user }) {
               Estadísticas de Email Marketing
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <p>Este módulo está en desarrollo y algunas métricas pueden no reflejar datos reales todavía.</p>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-blue-600">{emailStats.total}</p>
