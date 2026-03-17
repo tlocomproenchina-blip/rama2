@@ -194,45 +194,100 @@ export default function AdminProviders() {
           {loading ? (
             <div className="py-16 text-slate-500 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin mr-2"/>Cargando…</div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Modo</TableHead>
-                    <TableHead>Default</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Base Reg</TableHead>
-                    <TableHead>Base High</TableHead>
-                    <TableHead>D2D</TableHead>
-                    <TableHead>+Reg</TableHead>
-                    <TableHead>+High</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {providers.length === 0 ? (
-                    <TableRow><TableCell colSpan={10} className="text-center text-slate-500">Sin proveedores</TableCell></TableRow>
-                  ) : providers.map(p => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell>{p.mode}</TableCell>
-                      <TableCell>{p.is_default_for_mode ? <Badge className="bg-blue-100 text-blue-800">Sí</Badge> : '—'}</TableCell>
-                      <TableCell>{p.is_active ? <Badge className="bg-emerald-100 text-emerald-700">Activo</Badge> : <Badge className="bg-slate-200 text-slate-700">Inactivo</Badge>}</TableCell>
-                      <TableCell>${(p.base_rate_regular||0).toFixed?.(2) ?? Number(p.base_rate_regular||0).toFixed(2)}</TableCell>
-                      <TableCell>${(p.base_rate_high_risk||0).toFixed?.(2) ?? Number(p.base_rate_high_risk||0).toFixed(2)}</TableCell>
-                      <TableCell>${(p.door_to_door_cost||0).toFixed?.(2) ?? Number(p.door_to_door_cost||0).toFixed(2)}</TableCell>
-                      <TableCell>${(p.per_tracking_regular||0).toFixed?.(2) ?? Number(p.per_tracking_regular||0).toFixed(2)}</TableCell>
-                      <TableCell>${(p.per_tracking_high||0).toFixed?.(2) ?? Number(p.per_tracking_high||0).toFixed(2)}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => startEdit(p)}>Editar</Button>
-                        <Button size="sm" variant="destructive" onClick={() => remove(p.id)}>Eliminar</Button>
-                      </TableCell>
+            <>
+              <div className="space-y-3 md:hidden">
+                {providers.length === 0 ? (
+                  <div className="text-center text-slate-500 py-6">Sin proveedores</div>
+                ) : providers.map(p => (
+                  <div key={p.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-xs text-slate-500">Nombre</p>
+                        <p className="font-medium text-slate-800 break-words">{p.name}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-slate-500">Modo</p>
+                          <p className="text-slate-800 capitalize">{p.mode}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Default</p>
+                          <div className="mt-1">{p.is_default_for_mode ? <Badge className="bg-blue-100 text-blue-800">Sí</Badge> : '—'}</div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Estado</p>
+                          <div className="mt-1">{p.is_active ? <Badge className="bg-emerald-100 text-emerald-700">Activo</Badge> : <Badge className="bg-slate-200 text-slate-700">Inactivo</Badge>}</div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Base Reg</p>
+                          <p className="text-slate-800">${(p.base_rate_regular||0).toFixed?.(2) ?? Number(p.base_rate_regular||0).toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Base High</p>
+                          <p className="text-slate-800">${(p.base_rate_high_risk||0).toFixed?.(2) ?? Number(p.base_rate_high_risk||0).toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">D2D</p>
+                          <p className="text-slate-800">${(p.door_to_door_cost||0).toFixed?.(2) ?? Number(p.door_to_door_cost||0).toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">+Reg</p>
+                          <p className="text-slate-800">${(p.per_tracking_regular||0).toFixed?.(2) ?? Number(p.per_tracking_regular||0).toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">+High</p>
+                          <p className="text-slate-800">${(p.per_tracking_high||0).toFixed?.(2) ?? Number(p.per_tracking_high||0).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button size="sm" variant="outline" onClick={() => startEdit(p)}>Editar</Button>
+                      <Button size="sm" variant="destructive" onClick={() => remove(p.id)}>Eliminar</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Modo</TableHead>
+                      <TableHead>Default</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Base Reg</TableHead>
+                      <TableHead>Base High</TableHead>
+                      <TableHead>D2D</TableHead>
+                      <TableHead>+Reg</TableHead>
+                      <TableHead>+High</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {providers.length === 0 ? (
+                      <TableRow><TableCell colSpan={10} className="text-center text-slate-500">Sin proveedores</TableCell></TableRow>
+                    ) : providers.map(p => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell>{p.mode}</TableCell>
+                        <TableCell>{p.is_default_for_mode ? <Badge className="bg-blue-100 text-blue-800">Sí</Badge> : '—'}</TableCell>
+                        <TableCell>{p.is_active ? <Badge className="bg-emerald-100 text-emerald-700">Activo</Badge> : <Badge className="bg-slate-200 text-slate-700">Inactivo</Badge>}</TableCell>
+                        <TableCell>${(p.base_rate_regular||0).toFixed?.(2) ?? Number(p.base_rate_regular||0).toFixed(2)}</TableCell>
+                        <TableCell>${(p.base_rate_high_risk||0).toFixed?.(2) ?? Number(p.base_rate_high_risk||0).toFixed(2)}</TableCell>
+                        <TableCell>${(p.door_to_door_cost||0).toFixed?.(2) ?? Number(p.door_to_door_cost||0).toFixed(2)}</TableCell>
+                        <TableCell>${(p.per_tracking_regular||0).toFixed?.(2) ?? Number(p.per_tracking_regular||0).toFixed(2)}</TableCell>
+                        <TableCell>${(p.per_tracking_high||0).toFixed?.(2) ?? Number(p.per_tracking_high||0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button size="sm" variant="outline" onClick={() => startEdit(p)}>Editar</Button>
+                          <Button size="sm" variant="destructive" onClick={() => remove(p.id)}>Eliminar</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
