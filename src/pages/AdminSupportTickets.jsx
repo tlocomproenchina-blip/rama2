@@ -25,18 +25,22 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
+import TicketAssignmentDialog from '@/components/support/TicketAssignmentDialog';
 
 export default function AdminSupportTickets({ user }) {
   const [tickets, setTickets] = useState([]);
-  const [admins, setAdmins] = useState([]);
+  const [staffUsers, setStaffUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterAssigned, setFilterAssigned] = useState('all');
   const [assigningTicket, setAssigningTicket] = useState(null);
-  const [selectedAdmin, setSelectedAdmin] = useState('');
+  const [selectedAssignRole, setSelectedAssignRole] = useState('customer_service');
+  const [selectedAssignee, setSelectedAssignee] = useState('');
+  const [assigning, setAssigning] = useState(false);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [clients, setClients] = useState([]);
   const [clientSearch, setClientSearch] = useState('');
@@ -50,28 +54,47 @@ export default function AdminSupportTickets({ user }) {
   });
 
   const isAdmin = user?.role === 'admin';
+  const pageSize = 30;
+  const roleLabels = {
+    admin: 'Administración',
+    warehouse: 'Almacén',
+    customer_service: 'Servicio al Cliente',
+    operations_manager: 'Operaciones'
+  };
+  const roleByCategory = {
+    envio: 'warehouse',
+    tracking: 'warehouse',
+    consolidacion: 'operations_manager',
+    pago: 'customer_service',
+    actualizar_datos: 'customer_service',
+    otro: 'customer_service'
+  };
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (append = false) => {
     try {
+      if (append) setLoadingMore(true); else setLoading(true);
+      const skip = append ? tickets.length : 0;
       const results = await Promise.allSettled([
-        base44.entities.SupportTicket.list('-created_date'),
-        isAdmin ? base44.entities.User.filter({ role: 'admin' }) : Promise.resolve([user]),
-        isAdmin ? base44.entities.User.filter({ role: 'user' }) : Promise.resolve([])
+        base44.entities.SupportTicket.list('-created_date', pageSize, skip),
+        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve([user])
       ]);
 
       const allT = results[0].status === 'fulfilled' ? results[0].value : [];
-      const adminsList = results[1].status === 'fulfilled' ? results[1].value : [user];
-      const clientsList = results[2].status === 'fulfilled' ? results[2].value : [];
+      const usersList = results[1].status === 'fulfilled' ? results[1].value : [user];
+      const nextStaff = (usersList || []).filter((member) => member.role === 'admin' || ['warehouse', 'customer_service', 'operations_manager'].includes(member.custom_role));
+      const nextClients = (usersList || []).filter((member) => member.role === 'user' && !member.custom_role);
 
-      setTickets(allT);
-      setAdmins(adminsList);
-      setClients(clientsList);
+      setTickets((prev) => append ? [...prev, ...allT] : allT);
+      setStaffUsers(nextStaff);
+      setClients(nextClients);
+      setHasMore(allT.length === pageSize);
     } finally {
-      setLoading(false);
+      if (append) setLoadingMore(false); else setLoading(false);
     }
   };
 
@@ -120,37 +143,52 @@ export default function AdminSupportTickets({ user }) {
   };
 
   const handleAssignTicket = async () => {
-    if (!selectedAdmin || !assigningTicket) return;
+    if (!selectedAssignee || !assigningTicket) return;
 
-    await base44.entities.SupportTicket.update(assigningTicket.id, {
-      assigned_to: selectedAdmin,
-      status: assigningTicket.status === 'abierto' ? 'en_proceso' : assigningTicket.status
-    });
+    const assignee = staffUsers.find((member) => member.email === selectedAssignee);
+    const assigneeRole = assignee?.role === 'admin' ? 'admin' : assignee?.custom_role;
+    const systemMessage = {
+      sender_email: user.email,
+      sender_name: user.full_name || 'Administrador',
+      message: `Ticket asignado a ${assignee?.full_name || assignee?.email} (${roleLabels[assigneeRole] || assigneeRole || 'equipo'})`,
+      timestamp: new Date().toISOString(),
+      is_admin: true
+    };
 
-    // Notify assigned admin
-    base44.entities.Notification.create({
-      user_email: selectedAdmin,
-      title: '📋 Ticket Asignado',
-      message: `Se te ha asignado el ticket ${assigningTicket.ticket_number}`,
-      type: 'general',
-      icon: 'alert',
-      reference_id: assigningTicket.id
-    }).catch(err => console.error(err));
+    try {
+      setAssigning(true);
+      await base44.entities.SupportTicket.update(assigningTicket.id, {
+        assigned_to: selectedAssignee,
+        status: assigningTicket.status === 'abierto' ? 'en_proceso' : assigningTicket.status,
+        messages: [...(assigningTicket.messages || []), systemMessage]
+      });
 
-    // Notify client
-    base44.entities.Notification.create({
-      user_email: assigningTicket.client_email,
-      title: '👨‍💼 Ticket Asignado',
-      message: `Tu ticket ${assigningTicket.ticket_number} ha sido asignado a un administrador`,
-      type: 'general',
-      icon: 'check',
-      reference_id: assigningTicket.id
-    }).catch(err => console.error(err));
+      base44.entities.Notification.create({
+        user_email: selectedAssignee,
+        title: '📋 Ticket Asignado',
+        message: `Se te ha asignado el ticket ${assigningTicket.ticket_number}`,
+        type: 'general',
+        icon: 'alert',
+        reference_id: assigningTicket.id
+      }).catch(err => console.error(err));
 
-    toast.success('Ticket asignado exitosamente');
-    setAssigningTicket(null);
-    setSelectedAdmin('');
-    loadData();
+      base44.entities.Notification.create({
+        user_email: assigningTicket.client_email,
+        title: '👨‍💼 Ticket Asignado',
+        message: `Tu ticket ${assigningTicket.ticket_number} ha sido asignado al equipo de ${roleLabels[selectedAssignRole] || 'soporte'}`,
+        type: 'general',
+        icon: 'check',
+        reference_id: assigningTicket.id
+      }).catch(err => console.error(err));
+
+      toast.success('Ticket asignado exitosamente');
+      setAssigningTicket(null);
+      setSelectedAssignee('');
+      loadData();
+    } catch {
+      toast.error('No se pudo asignar el ticket');
+    }
+    setAssigning(false);
   };
 
   const handleStatusChange = async (ticket, newStatus) => {
@@ -159,28 +197,35 @@ export default function AdminSupportTickets({ user }) {
       updates.resolved_date = new Date().toISOString();
     }
 
-    await base44.entities.SupportTicket.update(ticket.id, updates);
+    try {
+      await base44.entities.SupportTicket.update(ticket.id, updates);
 
-    // Notify client
-    const statusMessages = {
-      en_proceso: 'Tu ticket está siendo atendido',
-      resuelto: 'Tu ticket ha sido resuelto',
-      cerrado: 'Tu ticket ha sido cerrado'
-    };
+      const statusMessages = {
+        abierto: 'Tu ticket ha sido reabierto',
+        en_proceso: 'Tu ticket está siendo atendido',
+        resuelto: 'Tu ticket ha sido resuelto',
+        cerrado: 'Tu ticket ha sido cerrado'
+      };
 
-    if (statusMessages[newStatus]) {
-      base44.entities.Notification.create({
-        user_email: ticket.client_email,
-        title: '🔔 Actualización de Ticket',
-        message: `${ticket.ticket_number}: ${statusMessages[newStatus]}`,
-        type: 'general',
-        icon: 'check',
-        reference_id: ticket.id
-      }).catch(err => console.error(err));
+      if (statusMessages[newStatus]) {
+        base44.entities.Notification.create({
+          user_email: ticket.client_email,
+          title: '🔔 Actualización de Ticket',
+          message: `${ticket.ticket_number}: ${statusMessages[newStatus]}`,
+          type: 'general',
+          icon: 'check',
+          reference_id: ticket.id
+        }).catch(err => console.error(err));
+      }
+
+      if (selectedTicket?.id === ticket.id) {
+        setSelectedTicket({ ...selectedTicket, ...updates });
+      }
+      toast.success('Estado actualizado');
+      loadData();
+    } catch {
+      toast.error('No se pudo actualizar el estado');
     }
-
-    toast.success('Estado actualizado');
-    loadData();
   };
 
   const handleSendMessage = async (message) => {
@@ -193,22 +238,26 @@ export default function AdminSupportTickets({ user }) {
     };
 
     const updatedMessages = [...(selectedTicket.messages || []), newMessage];
-    await base44.entities.SupportTicket.update(selectedTicket.id, {
-      messages: updatedMessages
-    });
+    try {
+      await base44.entities.SupportTicket.update(selectedTicket.id, {
+        messages: updatedMessages
+      });
 
-    // Notify client
-    base44.entities.Notification.create({
-      user_email: selectedTicket.client_email,
-      title: '💬 Nueva Respuesta',
-      message: `Tienes una nueva respuesta en ${selectedTicket.ticket_number}`,
-      type: 'general',
-      icon: 'alert',
-      reference_id: selectedTicket.id
-    }).catch(err => console.error(err));
+      base44.entities.Notification.create({
+        user_email: selectedTicket.client_email,
+        title: '💬 Nueva Respuesta',
+        message: `Tienes una nueva respuesta en ${selectedTicket.ticket_number}`,
+        type: 'general',
+        icon: 'alert',
+        reference_id: selectedTicket.id
+      }).catch(err => console.error(err));
 
-    setSelectedTicket({ ...selectedTicket, messages: updatedMessages });
-    loadData();
+      setSelectedTicket({ ...selectedTicket, messages: updatedMessages });
+      loadData();
+      toast.success('Respuesta enviada');
+    } catch {
+      toast.error('No se pudo enviar la respuesta');
+    }
   };
 
   const statusConfig = {
@@ -247,7 +296,7 @@ export default function AdminSupportTickets({ user }) {
   });
 
   // Admin statistics
-  const adminStats = admins.map(admin => {
+  const adminStats = staffUsers.map(admin => {
     const adminTickets = tickets.filter(t => t.assigned_to === admin.email);
     return {
       admin,
@@ -408,7 +457,7 @@ export default function AdminSupportTickets({ user }) {
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="unassigned">Sin asignar</SelectItem>
-                    {admins.map(admin => (
+                    {staffUsers.map(admin => (
                       <SelectItem key={admin.email} value={admin.email}>
                         {admin.full_name || admin.email}
                       </SelectItem>
@@ -434,7 +483,8 @@ export default function AdminSupportTickets({ user }) {
                 const statusInfo = statusConfig[ticket.status];
                 const StatusIcon = statusInfo.icon;
                 const priorityInfo = priorityConfig[ticket.priority];
-                const assignedAdmin = admins.find(a => a.email === ticket.assigned_to);
+                const assignedAdmin = staffUsers.find(a => a.email === ticket.assigned_to);
+                const assignedRole = assignedAdmin?.role === 'admin' ? 'admin' : assignedAdmin?.custom_role;
 
                 return (
                   <Card 
@@ -478,7 +528,7 @@ export default function AdminSupportTickets({ user }) {
                             {assignedAdmin ? (
                               <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                                 <UserCheck className="h-3 w-3 mr-1" />
-                                Asignado a: {assignedAdmin.full_name || assignedAdmin.email}
+                                Asignado a: {assignedAdmin.full_name || assignedAdmin.email} · {roleLabels[assignedRole] || assignedRole}
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
@@ -494,7 +544,8 @@ export default function AdminSupportTickets({ user }) {
                             size="sm"
                             onClick={() => {
                               setAssigningTicket(ticket);
-                              setSelectedAdmin(ticket.assigned_to || '');
+                              setSelectedAssignRole(roleByCategory[ticket.category] || 'customer_service');
+                              setSelectedAssignee(ticket.assigned_to || '');
                             }}
                           >
                             <UserCheck className="h-4 w-4 mr-1" />
@@ -522,7 +573,14 @@ export default function AdminSupportTickets({ user }) {
               })}
             </div>
           )}
-        </TabsContent>
+          {hasMore && (
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={() => loadData(true)} disabled={loadingMore}>
+                {loadingMore ? 'Cargando...' : 'Cargar más tickets'}
+              </Button>
+            </div>
+          )}
+          </TabsContent>
 
         <TabsContent value="stats" className="space-y-6">
           <div className="grid gap-4">
@@ -686,43 +744,22 @@ export default function AdminSupportTickets({ user }) {
         </DialogContent>
       </Dialog>
 
-      {/* Assign Dialog */}
-      <Dialog open={!!assigningTicket} onOpenChange={() => setAssigningTicket(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Asignar Ticket</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Ticket</Label>
-              <Input value={assigningTicket?.ticket_number || ''} disabled />
-            </div>
-            <div className="space-y-2">
-              <Label>Asignar a</Label>
-              <Select value={selectedAdmin} onValueChange={setSelectedAdmin}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un administrador" />
-                </SelectTrigger>
-                <SelectContent>
-                  {admins.map(admin => (
-                    <SelectItem key={admin.email} value={admin.email}>
-                      {admin.full_name || admin.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAssigningTicket(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAssignTicket} disabled={!selectedAdmin}>
-              Asignar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TicketAssignmentDialog
+        open={!!assigningTicket}
+        onOpenChange={(open) => !open && setAssigningTicket(null)}
+        ticket={assigningTicket}
+        selectedRole={selectedAssignRole}
+        onRoleChange={(value) => {
+          setSelectedAssignRole(value);
+          setSelectedAssignee('');
+        }}
+        selectedAssignee={selectedAssignee}
+        onAssigneeChange={setSelectedAssignee}
+        staffUsers={staffUsers}
+        roleLabels={roleLabels}
+        onConfirm={handleAssignTicket}
+        submitting={assigning}
+      />
 
       {/* Ticket Detail Dialog */}
       <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
@@ -743,7 +780,7 @@ export default function AdminSupportTickets({ user }) {
             messages={selectedTicket?.messages || []}
             onSendMessage={handleSendMessage}
             currentUserEmail={user.email}
-            disabled={false}
+            disabled={selectedTicket?.status === 'cerrado'}
           />
         </DialogContent>
       </Dialog>
