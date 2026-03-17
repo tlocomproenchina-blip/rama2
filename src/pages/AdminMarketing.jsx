@@ -413,95 +413,96 @@ export default function AdminMarketing({ user }) {
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
           <p>Este módulo está en desarrollo y algunas métricas pueden no reflejar datos reales todavía.</p>
         </div>
+
         <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Total</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Total</p>
+                  <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+                </div>
+                <Mail className="h-8 w-8 text-blue-600" />
               </div>
-              <Mail className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Enviadas</p>
-                <p className="text-2xl font-bold text-green-600">{stats.sent}</p>
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Enviadas</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.sent}</p>
+                </div>
+                <Send className="h-8 w-8 text-green-600" />
               </div>
-              <Send className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Programadas</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.scheduled}</p>
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Programadas</p>
+                  <p className="text-2xl font-bold text-orange-600">{stats.scheduled}</p>
+                </div>
+                <Calendar className="h-8 w-8 text-orange-600" />
               </div>
-              <Calendar className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Apertura</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.avgOpenRate}%</p>
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Apertura</p>
+                  <p className="text-2xl font-bold text-purple-600">{stats.avgOpenRate}%</p>
+                </div>
+                <Eye className="h-8 w-8 text-purple-600" />
               </div>
-              <Eye className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Clics</p>
-                <p className="text-2xl font-bold text-indigo-600">
-                  {campaigns.reduce((sum, c) => sum + (c.clicked_count || 0), 0)}
-                </p>
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Clics</p>
+                  <p className="text-2xl font-bold text-indigo-600">
+                    {campaigns.reduce((sum, c) => sum + (c.clicked_count || 0), 0)}
+                  </p>
+                </div>
+                <MousePointer className="h-8 w-8 text-indigo-600" />
               </div>
-              <MousePointer className="h-8 w-8 text-indigo-600" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Conversiones</p>
-                <p className="text-2xl font-bold text-teal-600">
-                  {campaigns.reduce((sum, c) => sum + (c.converted_count || 0), 0)}
-                </p>
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Conversiones</p>
+                  <p className="text-2xl font-bold text-teal-600">
+                    {campaigns.reduce((sum, c) => sum + (c.converted_count || 0), 0)}
+                  </p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-teal-600" />
               </div>
-              <TrendingUp className="h-8 w-8 text-teal-600" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Ingresos</p>
-                <p className="text-2xl font-bold text-emerald-600">${stats.totalRevenue.toFixed(2)}</p>
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Ingresos</p>
+                  <p className="text-2xl font-bold text-emerald-600">${stats.totalRevenue.toFixed(2)}</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-emerald-600" />
               </div>
-              <DollarSign className="h-8 w-8 text-emerald-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Campaigns List */}
