@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
+import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import { createPageUrl } from '@/utils';
 
 const VENEZUELAN_STATES = [
