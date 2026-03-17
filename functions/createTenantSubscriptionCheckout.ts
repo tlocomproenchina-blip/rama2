@@ -5,6 +5,19 @@ function getStripeSecretKey() {
   return Deno.env.get('STRIPE_SECRET_KEY') || Deno.env.get('CLAVESECRETA') || Deno.env.get('STRIPEAPI') || null;
 }
 
+async function resolveTenant(base44, tenantId) {
+  if (tenantId && tenantId !== 'legacy-default') {
+    const rows = await base44.asServiceRole.entities.Tenant.filter({ id: tenantId });
+    if (rows?.[0]) return rows[0];
+  }
+
+  const defaultRows = await base44.asServiceRole.entities.Tenant.filter({ is_default: true });
+  if (defaultRows?.[0]) return defaultRows[0];
+
+  const legacyRows = await base44.asServiceRole.entities.Tenant.filter({ slug: 'tlec-cargo' });
+  return legacyRows?.[0] || null;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -36,10 +49,9 @@ Deno.serve(async (req) => {
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
 
-    const tenantRows = await base44.asServiceRole.entities.Tenant.filter({ id: tenantId });
+    const tenant = await resolveTenant(base44, tenantId);
     const planRows = await base44.asServiceRole.entities.SubscriptionPlan.filter({ plan_code: planCode, is_active: true });
 
-    const tenant = tenantRows?.[0];
     const plan = planRows?.[0];
 
     if (!tenant) {

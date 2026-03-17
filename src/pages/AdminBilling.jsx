@@ -46,13 +46,14 @@ export default function AdminBilling({ user }) {
     try {
       setLoading(true);
       const currentTenantId = tenantContext?.tenant_id || user?.tenant_id;
-      const [planRows, tenantRows, subscriptionRows] = await Promise.all([
+      const [planRows, tenantRows] = await Promise.all([
         base44.entities.SubscriptionPlan.list('sort_order', 100),
-        currentTenantId ? base44.entities.Tenant.filter({ id: currentTenantId }, '-updated_date', 1) : Promise.resolve([]),
-        currentTenantId ? base44.entities.TenantSubscription.filter({ tenant_id: currentTenantId }, '-updated_date', 1) : Promise.resolve([])
+        base44.entities.Tenant.list('-created_date', 200)
       ]);
+      const resolvedTenant = (tenantRows || []).find((item) => item.id === currentTenantId) || (tenantRows || []).find((item) => item.is_default) || (tenantRows || [])[0] || null;
+      const subscriptionRows = resolvedTenant ? await base44.entities.TenantSubscription.filter({ tenant_id: resolvedTenant.id }, '-updated_date', 1) : [];
       setPlans(planRows || []);
-      setTenant((tenantRows || [])[0] || null);
+      setTenant(resolvedTenant);
       setSubscription((subscriptionRows || [])[0] || null);
     } catch (error) {
       toast.error('No se pudo cargar la facturación SaaS');
