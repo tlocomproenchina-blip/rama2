@@ -132,6 +132,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
   { name: 'Reportes', page: 'AdminReports', icon: BarChart3 },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
+  { name: 'Recepción Almacén', page: 'WarehouseReceive', icon: Package },
+  { name: 'Ubicaciones Almacén', page: 'WarehouseLocations', icon: Layers },
   { name: 'Aprobaciones', page: 'AdminConsolidate', icon: Layers },
   { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2 },
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
@@ -162,7 +164,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const adminGroups = [
     { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
-    { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAssistedPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
+    { label: 'OPERACIONES', items: ['AdminPackages','WarehouseReceive','WarehouseLocations','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAssistedPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
