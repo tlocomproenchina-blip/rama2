@@ -69,7 +69,7 @@ export default function StatusBadge({ status, size = 'default' }) {
   return (
     <Badge 
       variant="outline" 
-      className={`${config.color} ${sizeClasses} font-medium inline-flex items-center gap-1.5 border`}
+      className={`${config.color} ${sizeClasses} font-medium inline-flex items-center gap-1.5 border whitespace-nowrap shrink-0`}
     >
       <Icon className={size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'} />
       {config.label}
