@@ -4,8 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, CreditCard } from 'lucide-react';
 
-export default function PlanCard({ plan, currentPlanCode, onEdit, onSubscribe }) {
+export default function PlanCard({ plan, currentPlanCode, billingCycle, onEdit, onSubscribe }) {
   const isCurrent = currentPlanCode === plan.plan_code;
+  const selectedPriceId = billingCycle === 'yearly' ? plan.stripe_price_id_yearly : plan.stripe_price_id_monthly;
 
   return (
     <Card className={`border-0 shadow-md ${isCurrent ? 'ring-2 ring-blue-500' : ''}`}>
@@ -40,7 +41,7 @@ export default function PlanCard({ plan, currentPlanCode, onEdit, onSubscribe })
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => onEdit(plan)}>Editar</Button>
-          <Button disabled={!plan.stripe_price_id_monthly && !plan.stripe_price_id_yearly} onClick={() => onSubscribe(plan)} className="flex-1 bg-slate-900 hover:bg-slate-800">
+          <Button disabled={!selectedPriceId} onClick={() => onSubscribe(plan)} className="flex-1 bg-slate-900 hover:bg-slate-800">
             <CreditCard className="h-4 w-4 mr-2" />Suscribir tenant
           </Button>
         </div>

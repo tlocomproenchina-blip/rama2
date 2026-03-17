@@ -280,7 +280,7 @@ export default function AdminBilling({ user }) {
 
           <div className="grid gap-4">
             {plans.map((plan) => (
-              <PlanCard key={plan.id} plan={plan} currentPlanCode={currentPlanCode} onEdit={handleEditPlan} onSubscribe={handleSubscribe} />
+              <PlanCard key={plan.id} plan={plan} billingCycle={billingCycle} currentPlanCode={currentPlanCode} onEdit={handleEditPlan} onSubscribe={handleSubscribe} />
             ))}
           </div>
         </div>
