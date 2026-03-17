@@ -166,7 +166,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
   const adminGroups = [
     { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports'] },
-    { label: 'OPERACIONES', items: ['AdminPackages','WarehouseDashboard','WarehouseReceive','WarehouseLocations','WarehousePickPackShip','AdminConsolidate','AdminShipmentApprovals','AdminInvoices','AdminPayments','AdminAssistedPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
+    { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals'] },
+    { label: 'ALMACÉN', items: ['WarehouseDashboard','WarehouseReceive','WarehouseLocations','WarehousePickPackShip'] },
+    { label: 'CONTABILIDAD', items: ['AdminInvoices','AdminPayments','AdminAssistedPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
     { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
