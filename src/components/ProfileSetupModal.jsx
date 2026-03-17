@@ -283,6 +283,9 @@ export default function ProfileSetupModal({ open, onComplete }) {
               pattern="^\\+?\\d*$"
               className={errors.whatsapp ? 'border-red-300' : ''}
             />
+            <p className="text-xs text-slate-500">
+              Introduce tu número telefónico sin dejar espacios.
+            </p>
             {errors.whatsapp && (
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" /> {errors.whatsapp}
