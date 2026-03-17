@@ -112,7 +112,7 @@ export default function WarehousePickPackShip({ user }) {
         <p className="text-slate-500">Organiza la preparación física de solicitudes aprobadas.</p>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[360px,1fr]">
+      <div className="grid gap-6 xl:grid-cols-[360px,minmax(0,1fr)] min-w-0">
         <div className="space-y-3">
           <PickingOrderList requests={requests} selectedRequestId={selectedRequestId} onSelect={loadPicking} />
           {hasMoreRequests && (
@@ -122,40 +122,40 @@ export default function WarehousePickPackShip({ user }) {
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           {!pickingData ? (
             <Card><CardContent className="p-10 text-center text-slate-500">Selecciona una solicitud para ver su picking list.</CardContent></Card>
           ) : (
             <>
-              <Card className="shadow-sm">
+              <Card className="shadow-sm overflow-hidden">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><PackageCheck className="h-5 w-5" /> Resumen de preparación</CardTitle>
+                  <CardTitle className="flex items-center gap-2 min-w-0"><PackageCheck className="h-5 w-5 shrink-0" /> Resumen de preparación</CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-4 lg:grid-cols-4">
-                  <div><p className="text-sm text-slate-500">Cliente</p><p className="font-medium text-slate-800">{pickingData.request.client_email}</p></div>
-                  <div><p className="text-sm text-slate-500">Shipping mark</p><p className="font-medium text-slate-800">{pickingData.request.shipping_mark || '—'}</p></div>
+                <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 min-w-0">
+                  <div className="min-w-0"><p className="text-sm text-slate-500">Cliente</p><p className="font-medium text-slate-800 break-all">{pickingData.request.client_email}</p></div>
+                  <div className="min-w-0"><p className="text-sm text-slate-500">Shipping mark</p><p className="font-medium text-slate-800 break-all">{pickingData.request.shipping_mark || '—'}</p></div>
                   <div><p className="text-sm text-slate-500">Paquetes</p><p className="font-medium text-slate-800">{pickingData.summary.package_count}</p></div>
                   <div><p className="text-sm text-slate-500">Ubicados</p><p className="font-medium text-slate-800">{pickingData.summary.located_count}</p></div>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-sm">
-                <CardContent className="p-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="flex-1">
+              <Card className="shadow-sm overflow-hidden">
+                <CardContent className="p-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between min-w-0">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-700">Mover seleccionados / confirmar packing</p>
                     <p className="text-sm text-slate-500">Seleccionados: {selectedCount}</p>
                   </div>
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center min-w-0 xl:min-w-[520px]">
                     <Select value={destinationLocationId} onValueChange={setDestinationLocationId}>
-                      <SelectTrigger className="w-full lg:w-72"><SelectValue placeholder="Ubicación destino" /></SelectTrigger>
+                      <SelectTrigger className="w-full xl:w-72"><SelectValue placeholder="Ubicación destino" /></SelectTrigger>
                       <SelectContent>
                         {locations.map((location) => (
                           <SelectItem key={location.id} value={location.id}>{location.warehouse_name} · {location.code} · {location.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button variant="outline" disabled={processing || !selectedCount || !destinationLocationId} onClick={handleMoveSelected}>Mover seleccionados</Button>
-                    <Button disabled={processing || !destinationLocationId} onClick={handleConfirmPacking} className="bg-blue-600 hover:bg-blue-700">Confirmar packing</Button>
+                    <Button className="w-full xl:w-auto" variant="outline" disabled={processing || !selectedCount || !destinationLocationId} onClick={handleMoveSelected}>Mover seleccionados</Button>
+                    <Button className="w-full xl:w-auto bg-blue-600 hover:bg-blue-700" disabled={processing || !destinationLocationId} onClick={handleConfirmPacking}>Confirmar packing</Button>
                   </div>
                 </CardContent>
               </Card>
