@@ -178,48 +178,50 @@ export default function Rates({ user }) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 bg-white rounded-xl border border-blue-100">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-slate-500" />
-                  <span className="text-sm font-medium text-slate-600">Carga General</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-white rounded-xl border border-blue-100">
+                <div className="flex items-center justify-between mb-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-slate-500" />
+                    <span className="text-sm font-medium text-slate-600">Carga General</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-blue-600">
+                      {stateConfig && pricingConfig ? (
+                        `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + pricingConfig.door_to_door_cost).toFixed(2)}`
+                      ) : (
+                        `$${config?.rate_air_general?.toFixed(2) || '0.00'}`
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500">por kilogramo</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-blue-600">
-                    {stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + pricingConfig.door_to_door_cost).toFixed(2)}`
-                    ) : (
-                      `$${config?.rate_air_general?.toFixed(2) || '0.00'}`
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-500">por kilogramo</p>
-                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Ideal para productos estándar: ropa, electrónicos, accesorios, etc.
+                </p>
               </div>
-              <p className="text-xs text-slate-500 mt-2">
-                Ideal para productos estándar: ropa, electrónicos, accesorios, etc.
-              </p>
-            </div>
 
-            <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-medium text-amber-800">Carga Sensible</span>
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <div className="flex items-center justify-between mb-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-800">Carga Sensible</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-amber-600">
+                      {stateConfig && pricingConfig ? (
+                        `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + pricingConfig.door_to_door_cost).toFixed(2)}`
+                      ) : (
+                        `$${config?.rate_air_sensitive?.toFixed(2) || '0.00'}`
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500">por kilogramo</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-amber-600">
-                    {stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + pricingConfig.door_to_door_cost).toFixed(2)}`
-                    ) : (
-                      `$${config?.rate_air_sensitive?.toFixed(2) || '0.00'}`
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-500">por kilogramo</p>
-                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Para artículos frágiles o de alto valor: perfumes, vidrio, joyería, etc.
+                </p>
               </div>
-              <p className="text-xs text-slate-500 mt-2">
-                Para artículos frágiles o de alto valor: perfumes, vidrio, joyería, etc.
-              </p>
             </div>
 
             <div className="mt-4 p-3 bg-blue-50/50 rounded-lg">
@@ -246,59 +248,61 @@ export default function Rates({ user }) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 bg-white rounded-xl border border-indigo-100">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-slate-500" />
-                  <span className="text-sm font-medium text-slate-600">Carga General</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-white rounded-xl border border-indigo-100">
+                <div className="flex items-center justify-between mb-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-slate-500" />
+                    <span className="text-sm font-medium text-slate-600">Carga General</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-indigo-600">
+                      {stateConfig?.final_rate_regular > 0 ? (
+                        `$${Number(stateConfig.final_rate_regular).toFixed(2)}`
+                      ) : stateConfig && pricingConfig ? (
+                        `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + (stateConfig.shipping_rate || 0) + (pricingConfig.door_to_door_cost || 0)).toFixed(2)}`
+                      ) : (
+                        `$${config?.rate_sea_general?.toFixed(2) || '0.00'}`
+                      )
+                    }
+                    </p>
+                    <p className="text-xs text-slate-500">por CBM</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-indigo-600">
-                    {stateConfig?.final_rate_regular > 0 ? (
-                      `$${Number(stateConfig.final_rate_regular).toFixed(2)}`
-                    ) : stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + (stateConfig.shipping_rate || 0) + (pricingConfig.door_to_door_cost || 0)).toFixed(2)}`
-                    ) : (
-                      `$${config?.rate_sea_general?.toFixed(2) || '0.00'}`
-                    )
-                  }
-                  </p>
-                  <p className="text-xs text-slate-500">por CBM</p>
-                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Para grandes volúmenes: muebles, electrodomésticos, cajas múltiples.
+                </p>
               </div>
-              <p className="text-xs text-slate-500 mt-2">
-                Para grandes volúmenes: muebles, electrodomésticos, cajas múltiples.
-              </p>
-            </div>
 
-            <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-medium text-amber-800">Carga Sensible</span>
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <div className="flex items-center justify-between mb-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-800">Carga Sensible</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-amber-600">
+                      {stateConfig?.final_rate_high > 0 ? (
+                        `$${Number(stateConfig.final_rate_high).toFixed(2)}`
+                      ) : stateConfig && pricingConfig ? (
+                        `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + (stateConfig.shipping_rate || 0) + (pricingConfig.door_to_door_cost || 0)).toFixed(2)}`
+                      ) : (
+                        `$${config?.rate_sea_sensitive?.toFixed(2) || '0.00'}`
+                      )
+                    }
+                    </p>
+                    <p className="text-xs text-slate-500">por CBM</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-amber-600">
-                    {stateConfig?.final_rate_high > 0 ? (
-                      `$${Number(stateConfig.final_rate_high).toFixed(2)}`
-                    ) : stateConfig && pricingConfig ? (
-                      `$${(pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + (stateConfig.shipping_rate || 0) + (pricingConfig.door_to_door_cost || 0)).toFixed(2)}`
-                    ) : (
-                      `$${config?.rate_sea_sensitive?.toFixed(2) || '0.00'}`
-                    )
-                  }
-                  </p>
-                  <p className="text-xs text-slate-500">por CBM</p>
-                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Carga frágil de gran volumen con manejo especial y cuidadoso.
+                </p>
               </div>
-              <p className="text-xs text-slate-500 mt-2">
-                Carga frágil de gran volumen con manejo especial y cuidadoso.
-              </p>
             </div>
 
             <div className="mt-4 p-3 bg-indigo-50/50 rounded-lg">
               <p className="text-xs text-slate-600">
-                ⏱️ <span className="font-medium">Tiempo estimado:</span> 45-60 días
+                ⏱️ <span className="font-medium">Tiempo estimado de transito:</span> 75-90 días
               </p>
             </div>
           </CardContent>
