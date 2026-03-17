@@ -214,7 +214,7 @@ export default function PreAlert({ user }) {
           <h3 className="font-semibold text-indigo-900 text-sm mb-1">Información de Consolidación</h3>
           <p className="text-indigo-800 text-sm leading-relaxed">
             Una vez recibido tu primer paquete, contarás con <span className="font-bold">{config?.consolidation_periods?.[0] || 30} días</span> para solicitar la consolidación. 
-            De lo contrario, realizaremos una consolidación automática con los paquetes disponibles en depósito.
+            De lo contrario, realizaremos una consolidación automática con los paquetes disponibles en depósito. El envío mínimo es de 0.130 CBM o el equivalente a una caja de 50cm × 50cm × 50cm.
           </p>
         </div>
       </div>
