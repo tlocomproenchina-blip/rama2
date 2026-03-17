@@ -8,6 +8,7 @@ import AnalyticsSummaryCards from '@/components/client-analytics/AnalyticsSummar
 import MonthlySpendChart from '@/components/client-analytics/MonthlySpendChart';
 import ShippingCostBreakdownChart from '@/components/client-analytics/ShippingCostBreakdownChart';
 import ConsolidationEfficiencyChart from '@/components/client-analytics/ConsolidationEfficiencyChart';
+import ClientAnalyticsSearch from '@/components/client-analytics/ClientAnalyticsSearch';
 
 function getLastMonths(count) {
   const now = new Date();
@@ -24,29 +25,55 @@ function normalizePercent(value) {
   return Math.max(0, Math.min(100, Number(value || 0)));
 }
 
-export default function ClientAnalytics({ user }) {
-  const [loading, setLoading] = useState(true);
+export default function ClientAnalytics() {
+  const [loading, setLoading] = useState(false);
+  const [loadingClients, setLoadingClients] = useState(true);
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [consolidations, setConsolidations] = useState([]);
   const [invoices, setInvoices] = useState([]);
 
-  const loadData = async () => {
+  const loadClients = async () => {
+    try {
+      setLoadingClients(true);
+      const users = await base44.entities.User.list('-created_date', 500);
+      const customerUsers = (users || []).filter((item) => !item.role || item.role === 'user');
+      setClients(customerUsers);
+    } catch {
+      toast.error('No se pudieron cargar los clientes');
+    }
+    setLoadingClients(false);
+  };
+
+  const loadData = async (clientEmail) => {
+    if (!clientEmail) {
+      setConsolidations([]);
+      setInvoices([]);
+      return;
+    }
+
     try {
       setLoading(true);
       const [consolidationList, invoiceList] = await Promise.all([
-        base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', 500),
-        base44.entities.Invoice.filter({ client_email: user.email }, '-created_date', 500)
+        base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500),
+        base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500)
       ]);
       setConsolidations(consolidationList || []);
       setInvoices(invoiceList || []);
     } catch {
-      toast.error('No se pudo cargar la analítica');
+      toast.error('No se pudo cargar la analítica del cliente');
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    if (user?.email) loadData();
-  }, [user?.email]);
+    loadClients();
+  }, []);
+
+  useEffect(() => {
+    loadData(selectedClient?.email);
+  }, [selectedClient?.email]);
 
   const analytics = useMemo(() => {
     const months = getLastMonths(6);
@@ -95,7 +122,7 @@ export default function ClientAnalytics({ user }) {
     };
   }, [consolidations, invoices]);
 
-  if (loading) {
+  if (loadingClients) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
 
@@ -103,13 +130,31 @@ export default function ClientAnalytics({ user }) {
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Analítica de consumo</h1>
-          <p className="text-slate-500">Visualiza tu gasto, costos de envío y desempeño de consolidaciones.</p>
+          <h1 className="text-3xl font-bold text-slate-800">Analítica de clientes</h1>
+          <p className="text-slate-500">Busca un cliente y visualiza su gasto, costos de envío y desempeño de consolidaciones.</p>
         </div>
-        <Button variant="outline" onClick={loadData}>Actualizar</Button>
+        <Button variant="outline" onClick={() => loadData(selectedClient?.email)} disabled={!selectedClient || loading}>
+          {loading ? 'Actualizando...' : 'Actualizar'}
+        </Button>
       </div>
 
-      <AnalyticsSummaryCards items={[
+      <ClientAnalyticsSearch
+        clients={clients}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        selectedClient={selectedClient}
+        onSelectClient={setSelectedClient}
+      />
+
+      {!selectedClient && (
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-10 text-center text-slate-500">
+            Selecciona un cliente en el buscador para ver su analítica.
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedClient && <AnalyticsSummaryCards items={[
         {
           title: 'Consumo total',
           value: `$${analytics.totals.totalSpend.toFixed(2)}`,
@@ -138,16 +183,18 @@ export default function ClientAnalytics({ user }) {
           icon: Package,
           accent: 'bg-amber-100 text-amber-700'
         }
-      ]} />
+      ]} />}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <MonthlySpendChart data={analytics.monthlySpend} />
-        <ConsolidationEfficiencyChart data={analytics.efficiencyData} />
-      </div>
+      {selectedClient && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <MonthlySpendChart data={analytics.monthlySpend} />
+          <ConsolidationEfficiencyChart data={analytics.efficiencyData} />
+        </div>
+      )}
 
-      <ShippingCostBreakdownChart data={analytics.shipmentCostHistory} />
+      {selectedClient && <ShippingCostBreakdownChart data={analytics.shipmentCostHistory} />}
 
-      {analytics.shipmentCostHistory.length === 0 && (
+      {selectedClient && analytics.shipmentCostHistory.length === 0 && !loading && (
         <Card className="border-0 shadow-md">
           <CardContent className="p-10 text-center text-slate-500">Aún no hay suficientes datos para mostrar analítica histórica.</CardContent>
         </Card>

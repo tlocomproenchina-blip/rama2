@@ -99,6 +99,11 @@ import ShipmentTracking from './pages/ShipmentTracking';
 import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import TermsOfService from './pages/TermsOfService';
+import WarehouseDashboard from './pages/WarehouseDashboard';
+import WarehouseLocations from './pages/WarehouseLocations';
+import WarehousePickPackShip from './pages/WarehousePickPackShip';
+import WarehouseReceive from './pages/WarehouseReceive';
+import ClientAnalytics from './pages/ClientAnalytics';
 import __Layout from './Layout.jsx';
 
 
@@ -155,6 +160,11 @@ export const PAGES = {
     "ShippingCalculator": ShippingCalculator,
     "Support": Support,
     "TermsOfService": TermsOfService,
+    "WarehouseDashboard": WarehouseDashboard,
+    "WarehouseLocations": WarehouseLocations,
+    "WarehousePickPackShip": WarehousePickPackShip,
+    "WarehouseReceive": WarehouseReceive,
+    "ClientAnalytics": ClientAnalytics,
 }
 
 export const pagesConfig = {
