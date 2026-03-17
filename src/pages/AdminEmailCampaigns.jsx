@@ -30,6 +30,7 @@ import {
   MousePointer
 } from 'lucide-react';
 import EmailHistoryModal from '@/components/admin/EmailHistoryModal';
+import EmailAIAssistant from '@/components/admin/EmailAIAssistant';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
@@ -549,6 +550,11 @@ export default function AdminEmailCampaigns({ user }) {
                   </p>
                 )}
               </div>
+
+              <EmailAIAssistant
+                appName={config?.app_name || 'Logistics App'}
+                onApply={({ subject, body }) => setEmailData(prev => ({ ...prev, subject, body }))}
+              />
 
               <div className="space-y-2">
                 <Label>Nombre del Remitente</Label>
