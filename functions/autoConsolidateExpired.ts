@@ -40,94 +40,59 @@ Deno.serve(async (req) => {
       const expirationDate = new Date(firstReceivedDate.getTime() + defaultPeriodDays * 24 * 60 * 60 * 1000);
 
       if (now >= expirationDate) {
-        // Create consolidation
-        const consolidationTracking = `CONS-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-        
-        const consolidation = await base44.asServiceRole.entities.Consolidation.create({
-          consolidation_tracking: consolidationTracking,
-          client_email: request.client_email,
-          shipping_mark: request.shipping_mark,
-          package_ids: receivedPackages.map(p => p.id),
-          tracking_numbers: receivedPackages.map(p => p.tracking_number),
-          shipping_type: request.shipping_type,
-          status: 'en_transito',
-          consolidation_period_days: defaultPeriodDays,
-          consolidation_request_id: request.id,
-          created_date: new Date().toISOString()
-        });
-
-        // Update request status to consolidada
         await base44.asServiceRole.entities.ConsolidationRequest.update(request.id, {
-          status: 'consolidada',
-          consolidation_id: consolidation.id
+          status: 'aprobada',
+          approved_by: 'system',
+          approved_date: new Date().toISOString()
         });
 
-        // Update packages status to consolidado
-        for (const pkg of receivedPackages) {
-          await base44.asServiceRole.entities.Package.update(pkg.id, {
-            status: 'consolidado',
-            consolidation_id: consolidation.id
-          });
-        }
+        const notificationMessage = `Tu solicitud pasó automáticamente a aprobaciones porque ya venció el período de espera.\n\nPaquetes listos: ${receivedPackages.length}\n\nEl equipo ahora debe consolidar físicamente la carga, registrar dimensiones, fecha de envío y generar la factura antes del tránsito.`;
 
-        // Create notification for client with tracking numbers
-        const trackingList = receivedPackages.map(p => p.tracking_number).join(', ');
-        const notificationMessage = `Se ha consolidado automáticamente ${receivedPackages.length} paquete(s):\n\n${receivedPackages.map(p => `📦 ${p.tracking_number}`).join('\n')}\n\nTracking de consolidación: ${consolidationTracking}`;
-        
         await base44.asServiceRole.entities.Notification.create({
           user_email: request.client_email,
-          title: '📦 Consolidación Automática Completada',
+          title: '📦 Solicitud lista para consolidación',
           message: notificationMessage,
-          type: 'consolidation',
+          type: 'request',
           priority: 'high',
-          reference_id: consolidation.id,
-          entity_type: 'Consolidation',
-          icon: 'truck'
+          reference_id: request.id,
+          entity_type: 'ConsolidationRequest',
+          icon: 'package'
         });
 
-        // Send email notification to client
         try {
           await base44.asServiceRole.integrations.Core.SendEmail({
             to: request.client_email,
-            subject: `📦 Tu consolidación automática está lista - ${consolidationTracking}`,
+            subject: '📦 Tu solicitud pasó a aprobaciones',
             body: `
-              <h2>¡Consolidación Automática Completada!</h2>
+              <h2>Tu solicitud está lista para consolidación</h2>
               <p>Hola,</p>
-              <p>Se ha realizado una consolidación automática de tus paquetes ya que el período de espera ha vencido.</p>
-              <h3>Paquetes Consolidados (${receivedPackages.length}):</h3>
-              <ul>
-                ${receivedPackages.map(p => `<li>${p.tracking_number} - ${p.description}</li>`).join('')}
-              </ul>
-              <h3>Información de Consolidación:</h3>
-              <p><strong>Tracking Consolidado:</strong> ${consolidationTracking}</p>
-              <p>Puedes seguir el estado de tu consolidación en tu panel de cliente.</p>
-              <p>¡Gracias por usar nuestros servicios!</p>
+              <p>Tu solicitud pasó automáticamente a la bandeja de aprobaciones porque venció el período de espera.</p>
+              <p>Ahora el equipo debe consolidar físicamente la carga, registrar dimensiones y generar la factura antes de poner el envío en tránsito.</p>
             `
           });
         } catch (emailError) {
           console.error('Error sending email:', emailError);
         }
 
-        // Create notification for admins
         const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
         for (const admin of admins) {
           await base44.asServiceRole.entities.Notification.create({
             user_email: admin.email,
-            title: '📦 Consolidación Automática Creada',
-            message: `${receivedPackages.length} paquete(s) de ${request.client_email} consolidados automáticamente: ${consolidationTracking}`,
-            type: 'consolidation',
+            title: '📦 Solicitud auto-aprobada por vencimiento',
+            message: `${receivedPackages.length} paquete(s) de ${request.client_email} quedaron listos para consolidación física y factura.`,
+            type: 'request',
             priority: 'medium',
-            reference_id: consolidation.id,
-            entity_type: 'Consolidation',
-            icon: 'truck'
+            reference_id: request.id,
+            entity_type: 'ConsolidationRequest',
+            icon: 'package'
           });
         }
 
         results.push({
           clientEmail: request.client_email,
-          packagesConsolidated: receivedPackages.length,
-          consolidationId: consolidation.id,
-          consolidationTracking: consolidationTracking
+          packagesReady: receivedPackages.length,
+          requestId: request.id,
+          action: 'approved'
         });
       }
     }

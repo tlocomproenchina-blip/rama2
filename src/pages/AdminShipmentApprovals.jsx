@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
+import { generateInvoice } from '@/components/invoice/InvoiceGenerator';
 
 export default function AdminShipmentApprovals({ user }) {
   const navigate = useNavigate();
@@ -283,6 +284,8 @@ export default function AdminShipmentApprovals({ user }) {
     }
 
     setProcessing(true);
+    let consolidation = null;
+
     try {
       const calcs = calculateValues();
       const selectedPkgs = allPackages.filter(p => selectedPackages.includes(p.id));
@@ -293,7 +296,7 @@ export default function AdminShipmentApprovals({ user }) {
       const random = Math.random().toString(36).substring(2, 8).toUpperCase();
       const consolidationTracking = `CON-${selectedRequest.shipping_mark || 'TLEC'}-${random}-${dateStr}`;
 
-      const consolidation = await base44.entities.Consolidation.create({
+      consolidation = await base44.entities.Consolidation.create({
         consolidation_tracking: consolidationTracking,
         client_email: selectedRequest.client_email,
         shipping_mark: selectedRequest.shipping_mark,
@@ -310,11 +313,17 @@ export default function AdminShipmentApprovals({ user }) {
         shipping_cost: calcs.shippingCost,
         insurance_cost: calcs.insuranceCost,
         total_cost: calcs.totalCost,
+        shipping_date: new Date().toISOString(),
         estimated_delivery: consolidationData.estimated_delivery,
         consolidation_period_days: 30,
         consolidation_request_id: selectedRequest.id,
         status: 'en_transito'
       });
+
+      const invoice = await generateInvoice(consolidation);
+      if (!invoice?.id) {
+        throw new Error('No se pudo generar la factura');
+      }
 
       await Promise.all(
         selectedPackages.map((pkgId) =>
@@ -330,29 +339,26 @@ export default function AdminShipmentApprovals({ user }) {
         consolidation_id: consolidation.id
       });
 
-      // Generate invoice asynchronously (non-blocking)
-      import('@/components/invoice/InvoiceGenerator')
-        .then(({ generateInvoice }) => generateInvoice(consolidation))
-        .catch((err) => {
-          console.error('Error generating invoice (non-blocking):', err);
-          toast.message?.('Aviso: La factura se está generando en segundo plano');
-        });
-
       import('@/components/NotificationUtils').then(({ sendNotification }) => {
         sendNotification({
           to: selectedRequest.client_email,
           subject: '📦 Tu carga ha sido consolidada y enviada',
-          body: `¡Tu carga ha sido consolidada y está en tránsito!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nSe ha generado tu factura. Por favor realiza el pago para que podamos procesar la entrega.`,
+          body: `¡Tu carga ha sido consolidada y está en tránsito!\n\nTracking: ${consolidationTracking}\nPaquetes incluidos: ${trackingNumbers.length}\nTotal a pagar: $${calcs.totalCost.toFixed(2)}\n\nTu factura ya fue generada y la fecha de envío quedó registrada.`,
           type: 'consolidation',
           icon: 'truck',
           referenceId: consolidation.id
         });
       });
 
-      toast.success('Consolidación creada y enviada');
+      toast.success('Consolidación creada con factura generada');
       setSelectedRequest(null);
       loadData();
     } catch (error) {
+      if (consolidation?.id) {
+        try {
+          await base44.entities.Consolidation.delete(consolidation.id);
+        } catch (_) {}
+      }
       toast.error('Error al consolidar');
     }
     setProcessing(false);

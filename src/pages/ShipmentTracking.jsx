@@ -28,8 +28,20 @@ export default function ShipmentTracking({ user }) {
   }, [user]);
 
   const loadData = async () => {
-    const cons = await base44.entities.Consolidation.list('-created_date');
-    const filtered = cons.filter((item) => user?.role === 'admin' || item.client_email === user?.email);
+    const [cons, invoices] = await Promise.all([
+      base44.entities.Consolidation.list('-created_date'),
+      base44.entities.Invoice.list('-created_date')
+    ]);
+
+    const invoicedConsolidationIds = new Set(
+      (invoices || []).map((invoice) => invoice.consolidation_id).filter(Boolean)
+    );
+
+    const filtered = cons.filter((item) => {
+      const belongsToUser = user?.role === 'admin' || item.client_email === user?.email;
+      return belongsToUser && invoicedConsolidationIds.has(item.id);
+    });
+
     setConsolidations(filtered);
     setLoading(false);
   };
