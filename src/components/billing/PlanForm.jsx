@@ -31,17 +31,35 @@ export default function PlanForm({ form, setForm, onSave, saving, onCancel }) {
             <Input type="number" value={form.monthly_price} onChange={(e) => setForm({ ...form, monthly_price: e.target.value })} />
           </div>
           <div className="space-y-2">
+            <Label>Precio trimestral</Label>
+            <Input type="number" value={form.quarterly_price} onChange={(e) => setForm({ ...form, quarterly_price: e.target.value })} />
+          </div>
+          <div className="space-y-2">
+            <Label>Precio semestral</Label>
+            <Input type="number" value={form.semiannual_price} onChange={(e) => setForm({ ...form, semiannual_price: e.target.value })} />
+          </div>
+          <div className="space-y-2">
             <Label>Precio anual</Label>
             <Input type="number" value={form.yearly_price} onChange={(e) => setForm({ ...form, yearly_price: e.target.value })} />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label>Stripe price mensual</Label>
-          <Input value={form.stripe_price_id_monthly} onChange={(e) => setForm({ ...form, stripe_price_id_monthly: e.target.value })} placeholder="price_..." />
-        </div>
-        <div className="space-y-2">
-          <Label>Stripe price anual</Label>
-          <Input value={form.stripe_price_id_yearly} onChange={(e) => setForm({ ...form, stripe_price_id_yearly: e.target.value })} placeholder="price_..." />
+        <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-2">
+            <Label>Stripe price mensual</Label>
+            <Input value={form.stripe_price_id_monthly} onChange={(e) => setForm({ ...form, stripe_price_id_monthly: e.target.value })} placeholder="price_..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Stripe price trimestral</Label>
+            <Input value={form.stripe_price_id_quarterly} onChange={(e) => setForm({ ...form, stripe_price_id_quarterly: e.target.value })} placeholder="price_..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Stripe price semestral</Label>
+            <Input value={form.stripe_price_id_semiannual} onChange={(e) => setForm({ ...form, stripe_price_id_semiannual: e.target.value })} placeholder="price_..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Stripe price anual</Label>
+            <Input value={form.stripe_price_id_yearly} onChange={(e) => setForm({ ...form, stripe_price_id_yearly: e.target.value })} placeholder="price_..." />
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">

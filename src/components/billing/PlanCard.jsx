@@ -6,7 +6,13 @@ import { CheckCircle2, CreditCard } from 'lucide-react';
 
 export default function PlanCard({ plan, currentPlanCode, billingCycle, onEdit, onSubscribe }) {
   const isCurrent = currentPlanCode === plan.plan_code;
-  const selectedPriceId = billingCycle === 'yearly' ? plan.stripe_price_id_yearly : plan.stripe_price_id_monthly;
+  const selectedPriceId = billingCycle === 'quarterly'
+    ? plan.stripe_price_id_quarterly
+    : billingCycle === 'semiannual'
+      ? plan.stripe_price_id_semiannual
+      : billingCycle === 'yearly'
+        ? plan.stripe_price_id_yearly
+        : plan.stripe_price_id_monthly;
 
   return (
     <Card className={`border-0 shadow-md ${isCurrent ? 'ring-2 ring-blue-500' : ''}`}>
@@ -21,10 +27,18 @@ export default function PlanCard({ plan, currentPlanCode, billingCycle, onEdit, 
             {!plan.is_active && <Badge variant="outline">Inactivo</Badge>}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
           <div className="rounded-lg bg-slate-50 p-3">
             <p className="text-slate-500">Mensual</p>
             <p className="font-semibold text-slate-800">${Number(plan.monthly_price || 0).toFixed(2)}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 p-3">
+            <p className="text-slate-500">Trimestral</p>
+            <p className="font-semibold text-slate-800">${Number(plan.quarterly_price || 0).toFixed(2)}</p>
+          </div>
+          <div className="rounded-lg bg-slate-50 p-3">
+            <p className="text-slate-500">Semestral</p>
+            <p className="font-semibold text-slate-800">${Number(plan.semiannual_price || 0).toFixed(2)}</p>
           </div>
           <div className="rounded-lg bg-slate-50 p-3">
             <p className="text-slate-500">Anual</p>

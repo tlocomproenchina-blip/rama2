@@ -37,7 +37,9 @@ Deno.serve(async (req) => {
     const planCode = payload?.planCode;
     const planName = payload?.planName || 'Plan SaaS';
     const priceId = payload?.priceId;
-    const billingCycle = payload?.billingCycle === 'yearly' ? 'yearly' : 'monthly';
+    const billingCycle = ['monthly', 'quarterly', 'semiannual', 'yearly'].includes(payload?.billingCycle)
+      ? payload.billingCycle
+      : 'monthly';
     const returnUrl = payload?.returnUrl || req.headers.get('origin') || user?.appBaseUrl || '';
 
     if (!tenantId || !planCode || !priceId || !returnUrl) {
