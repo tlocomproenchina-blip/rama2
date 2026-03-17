@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Package, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import ReceivePackagePanel from '@/components/warehouse/ReceivePackagePanel';
+import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 
 const emptyForm = {
   location_id: '',
@@ -16,8 +17,6 @@ const emptyForm = {
   reception_notes: '',
 };
 
-const canAccessWarehouse = (user) => user?.role === 'admin' || ['warehouse', 'operations_manager'].includes(user?.custom_role);
-
 export default function WarehouseReceive({ user }) {
   const [tracking, setTracking] = useState('');
   const [pkg, setPkg] = useState(null);
@@ -27,11 +26,16 @@ export default function WarehouseReceive({ user }) {
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [suggestedLocation, setSuggestedLocation] = useState(null);
+  const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseReceive');
 
   useEffect(() => {
     (async () => {
-      const data = await base44.entities.WarehouseLocation.filter({ is_active: true }, 'code', 200);
-      setLocations(data || []);
+      try {
+        const data = await base44.entities.WarehouseLocation.filter({ is_active: true }, 'code', 200);
+        setLocations(data || []);
+      } catch {
+        toast.error('No se pudieron cargar las ubicaciones');
+      }
       setLoadingLocations(false);
     })();
   }, []);
@@ -103,7 +107,11 @@ export default function WarehouseReceive({ user }) {
     setSubmitting(false);
   };
 
-  if (!canAccessWarehouse(user)) {
+  if (loadingAccess) {
+    return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  }
+
+  if (!allowed) {
     return <Card><CardContent className="p-8 text-center text-slate-500">No tienes acceso a este módulo.</CardContent></Card>;
   }
 

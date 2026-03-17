@@ -1,7 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-function hasWarehouseAccess(user) {
-  return user?.role === 'admin' || ['warehouse', 'operations_manager'].includes(user?.custom_role);
+async function hasWarehouseAccess(base44, user, allowedPages) {
+  if (user?.role === 'admin') return true;
+  if (['warehouse', 'operations_manager'].includes(user?.custom_role)) return true;
+  if (!user?.custom_role) return false;
+  const roles = await base44.asServiceRole.entities.RoleConfig.filter({ role_code: user.custom_role, is_active: true }, '-updated_date', 1);
+  const role = roles?.[0];
+  const visiblePages = role?.visible_pages || [];
+  return allowedPages.some((page) => visiblePages.includes(page));
 }
 
 function percent(current, capacity) {
@@ -14,7 +20,7 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!hasWarehouseAccess(user)) return Response.json({ error: 'Forbidden' }, { status: 403 });
+    if (!(await hasWarehouseAccess(base44, user, ['WarehouseDashboard']))) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const [locations, packages, requests] = await Promise.all([
       base44.asServiceRole.entities.WarehouseLocation.list('code', 500),

@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import WarehouseStatsCards from '@/components/warehouse/WarehouseStatsCards';
-
-const canAccessWarehouse = (user) => user?.role === 'admin' || ['warehouse', 'operations_manager'].includes(user?.custom_role);
+import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 
 export default function WarehouseDashboard({ user }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseDashboard');
 
   const loadStats = async () => {
     try {
@@ -25,7 +25,11 @@ export default function WarehouseDashboard({ user }) {
 
   useEffect(() => { loadStats(); }, []);
 
-  if (!canAccessWarehouse(user)) {
+  if (loadingAccess) {
+    return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  }
+
+  if (!allowed) {
     return <Card><CardContent className="p-8 text-center text-slate-500">No tienes acceso a este módulo.</CardContent></Card>;
   }
 

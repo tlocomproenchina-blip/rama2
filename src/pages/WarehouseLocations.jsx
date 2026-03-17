@@ -9,8 +9,7 @@ import { Loader2, Layers, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import WarehouseLocationForm from '@/components/warehouse/WarehouseLocationForm';
 import WarehouseLocationList from '@/components/warehouse/WarehouseLocationList';
-
-const canAccessWarehouse = (user) => user?.role === 'admin' || ['warehouse', 'operations_manager'].includes(user?.custom_role);
+import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 
 export default function WarehouseLocations({ user }) {
   const [locations, setLocations] = useState([]);
@@ -21,12 +20,22 @@ export default function WarehouseLocations({ user }) {
   const [search, setSearch] = useState('');
   const [zoneFilter, setZoneFilter] = useState('all');
   const [activeFilter, setActiveFilter] = useState('all');
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageSize = 24;
+  const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseLocations');
 
-  const loadLocations = async () => {
-    setLoading(true);
-    const data = await base44.entities.WarehouseLocation.list('code', 200);
-    setLocations(data || []);
-    setLoading(false);
+  const loadLocations = async (append = false) => {
+    try {
+      if (append) setLoadingMore(true); else setLoading(true);
+      const skip = append ? locations.length : 0;
+      const data = await base44.entities.WarehouseLocation.list('code', pageSize, skip);
+      setLocations((prev) => append ? [...prev, ...(data || [])] : (data || []));
+      setHasMore((data || []).length === pageSize);
+    } catch {
+      toast.error('No se pudieron cargar las ubicaciones');
+    }
+    if (append) setLoadingMore(false); else setLoading(false);
   };
 
   useEffect(() => { loadLocations(); }, []);
@@ -68,7 +77,11 @@ export default function WarehouseLocations({ user }) {
     }
   };
 
-  if (!canAccessWarehouse(user)) {
+  if (loadingAccess) {
+    return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  }
+
+  if (!allowed) {
     return <Card><CardContent className="p-8 text-center text-slate-500">No tienes acceso a este módulo.</CardContent></Card>;
   }
 
@@ -115,11 +128,20 @@ export default function WarehouseLocations({ user }) {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
       ) : (
-        <WarehouseLocationList
-          locations={filteredLocations}
-          onEdit={(location) => { setEditingLocation(location); setModalOpen(true); }}
-          onDelete={handleDelete}
-        />
+        <>
+          <WarehouseLocationList
+            locations={filteredLocations}
+            onEdit={(location) => { setEditingLocation(location); setModalOpen(true); }}
+            onDelete={handleDelete}
+          />
+          {hasMore && !search && zoneFilter === 'all' && activeFilter === 'all' && (
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={() => loadLocations(true)} disabled={loadingMore}>
+                {loadingMore ? 'Cargando...' : 'Cargar más'}
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

@@ -7,8 +7,7 @@ import { Loader2, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import PickingOrderList from '@/components/warehouse/PickingOrderList';
 import PickingPackagesTable from '@/components/warehouse/PickingPackagesTable';
-
-const canAccessWarehouse = (user) => user?.role === 'admin' || ['warehouse', 'operations_manager'].includes(user?.custom_role);
+import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 
 export default function WarehousePickPackShip({ user }) {
   const [requests, setRequests] = useState([]);
@@ -19,20 +18,28 @@ export default function WarehousePickPackShip({ user }) {
   const [selectedPackageIds, setSelectedPackageIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [hasMoreRequests, setHasMoreRequests] = useState(false);
+  const [loadingMoreRequests, setLoadingMoreRequests] = useState(false);
+  const [packagesPage, setPackagesPage] = useState(1);
+  const requestsPageSize = 20;
+  const packagesPageSize = 25;
+  const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehousePickPackShip');
 
-  const loadBaseData = async () => {
+  const loadBaseData = async (append = false) => {
     try {
-      setLoading(true);
+      if (append) setLoadingMoreRequests(true); else setLoading(true);
+      const skip = append ? requests.length : 0;
       const [requestsData, locationsData] = await Promise.all([
-        base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-approved_date', 100),
+        base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-approved_date', requestsPageSize, skip),
         base44.entities.WarehouseLocation.filter({ is_active: true }, 'code', 200)
       ]);
-      setRequests(requestsData || []);
-      setLocations(locationsData || []);
+      setRequests((prev) => append ? [...prev, ...(requestsData || [])] : (requestsData || []));
+      setHasMoreRequests((requestsData || []).length === requestsPageSize);
+      if (!append) setLocations(locationsData || []);
     } catch {
       toast.error('No se pudo cargar la preparación de pedidos');
     }
-    setLoading(false);
+    if (append) setLoadingMoreRequests(false); else setLoading(false);
   };
 
   const loadPicking = async (requestId) => {
@@ -41,6 +48,7 @@ export default function WarehousePickPackShip({ user }) {
       setPickingData(response?.data || null);
       setSelectedRequestId(requestId);
       setSelectedPackageIds([]);
+      setPackagesPage(1);
     } catch {
       toast.error('No se pudo generar el picking list');
     }
@@ -49,6 +57,7 @@ export default function WarehousePickPackShip({ user }) {
   useEffect(() => { loadBaseData(); }, []);
 
   const selectedCount = selectedPackageIds.length;
+  const visiblePackages = useMemo(() => (pickingData?.packages || []).slice(0, packagesPage * packagesPageSize), [pickingData, packagesPage]);
   const selectedPackages = useMemo(() => (pickingData?.packages || []).filter((pkg) => selectedPackageIds.includes(pkg.id)), [pickingData, selectedPackageIds]);
 
   const handleMoveSelected = async () => {
@@ -84,7 +93,11 @@ export default function WarehousePickPackShip({ user }) {
     setProcessing(false);
   };
 
-  if (!canAccessWarehouse(user)) {
+  if (loadingAccess) {
+    return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  }
+
+  if (!allowed) {
     return <Card><CardContent className="p-8 text-center text-slate-500">No tienes acceso a este módulo.</CardContent></Card>;
   }
 
@@ -100,7 +113,14 @@ export default function WarehousePickPackShip({ user }) {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[360px,1fr]">
-        <PickingOrderList requests={requests} selectedRequestId={selectedRequestId} onSelect={loadPicking} />
+        <div className="space-y-3">
+          <PickingOrderList requests={requests} selectedRequestId={selectedRequestId} onSelect={loadPicking} />
+          {hasMoreRequests && (
+            <Button variant="outline" className="w-full" onClick={() => loadBaseData(true)} disabled={loadingMoreRequests}>
+              {loadingMoreRequests ? 'Cargando...' : 'Cargar más solicitudes'}
+            </Button>
+          )}
+        </div>
 
         <div className="space-y-4">
           {!pickingData ? (
@@ -141,11 +161,16 @@ export default function WarehousePickPackShip({ user }) {
               </Card>
 
               <PickingPackagesTable
-                packages={pickingData.packages || []}
+                packages={visiblePackages}
                 selectedPackageIds={selectedPackageIds}
-                onToggleAll={(checked) => setSelectedPackageIds(checked ? (pickingData.packages || []).map((pkg) => pkg.id) : [])}
+                onToggleAll={(checked) => setSelectedPackageIds(checked ? visiblePackages.map((pkg) => pkg.id) : [])}
                 onToggleOne={(id, checked) => setSelectedPackageIds((prev) => checked ? [...prev, id] : prev.filter((item) => item !== id))}
               />
+              {(pickingData.packages || []).length > visiblePackages.length && (
+                <div className="flex justify-center">
+                  <Button variant="outline" onClick={() => setPackagesPage((prev) => prev + 1)}>Cargar más paquetes</Button>
+                </div>
+              )}
             </>
           )}
         </div>
