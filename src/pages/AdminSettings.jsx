@@ -1011,16 +1011,6 @@ export default function AdminSettings({ user }) {
               </div>
 
               <div className="space-y-2">
-                <Label>Texto del contrato de servicio</Label>
-                <Textarea
-                  value={appConfig.contract_text}
-                  onChange={(e) => setAppConfig({ ...appConfig, contract_text: e.target.value })}
-                  placeholder="Términos y condiciones del servicio..."
-                  rows={8}
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label>Porcentaje de seguro (%)</Label>
                 <Input
                   type="number"
