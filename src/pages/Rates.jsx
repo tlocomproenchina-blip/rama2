@@ -310,6 +310,22 @@ export default function Rates({ user }) {
         )}
       </div>
 
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-l-amber-500">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-3">
+            <div className="p-3 bg-amber-100 rounded-full">
+              <Package className="h-6 w-6 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-800 text-lg">Facturación mínima de envío</h3>
+              <p className="text-sm text-slate-600 mt-1">
+                Se facturará toda carga o envío que no cumpla con el envío mínimo establecido, que es de 0.130 CBM o el equivalente a una caja de 50cm × 50cm × 50cm.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Insurance */}
       <Card className="border-0 shadow-lg bg-gradient-to-r from-emerald-50 to-teal-50">
         <CardHeader>
