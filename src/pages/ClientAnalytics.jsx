@@ -8,6 +8,7 @@ import AnalyticsSummaryCards from '@/components/client-analytics/AnalyticsSummar
 import MonthlySpendChart from '@/components/client-analytics/MonthlySpendChart';
 import ShippingCostBreakdownChart from '@/components/client-analytics/ShippingCostBreakdownChart';
 import ConsolidationEfficiencyChart from '@/components/client-analytics/ConsolidationEfficiencyChart';
+import ClientAnalyticsSelector from '@/components/client-analytics/ClientAnalyticsSelector';
 
 function getLastMonths(count) {
   const now = new Date();
@@ -26,15 +27,35 @@ function normalizePercent(value) {
 
 export default function ClientAnalytics({ user }) {
   const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState([]);
+  const [search, setSearch] = useState('');
+  const [selectedClient, setSelectedClient] = useState(null);
   const [consolidations, setConsolidations] = useState([]);
   const [invoices, setInvoices] = useState([]);
 
+  const loadClients = async () => {
+    try {
+      const clientList = await base44.entities.User.filter({ role: 'user' }, '-created_date', 500);
+      setClients(clientList || []);
+      if (!selectedClient && clientList?.length) setSelectedClient(clientList[0]);
+    } catch {
+      toast.error('No se pudo cargar la lista de clientes');
+    }
+  };
+
   const loadData = async () => {
+    if (!selectedClient?.email) {
+      setConsolidations([]);
+      setInvoices([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const [consolidationList, invoiceList] = await Promise.all([
-        base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', 500),
-        base44.entities.Invoice.filter({ client_email: user.email }, '-created_date', 500)
+        base44.entities.Consolidation.filter({ client_email: selectedClient.email }, '-created_date', 500),
+        base44.entities.Invoice.filter({ client_email: selectedClient.email }, '-created_date', 500)
       ]);
       setConsolidations(consolidationList || []);
       setInvoices(invoiceList || []);
@@ -45,8 +66,12 @@ export default function ClientAnalytics({ user }) {
   };
 
   useEffect(() => {
-    if (user?.email) loadData();
-  }, [user?.email]);
+    if (user?.role === 'admin') loadClients();
+  }, [user?.role]);
+
+  useEffect(() => {
+    loadData();
+  }, [selectedClient?.email]);
 
   const analytics = useMemo(() => {
     const months = getLastMonths(6);
@@ -103,55 +128,82 @@ export default function ClientAnalytics({ user }) {
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Analítica de consumo</h1>
-          <p className="text-slate-500">Visualiza tu gasto, costos de envío y desempeño de consolidaciones.</p>
+          <h1 className="text-3xl font-bold text-slate-800">Analítica de clientes</h1>
+          <p className="text-slate-500">Busca un cliente y revisa su gasto, costos de envío y consolidaciones.</p>
         </div>
         <Button variant="outline" onClick={loadData}>Actualizar</Button>
       </div>
 
-      <AnalyticsSummaryCards items={[
-        {
-          title: 'Consumo total',
-          value: `$${analytics.totals.totalSpend.toFixed(2)}`,
-          subtitle: 'Facturación acumulada',
-          icon: DollarSign,
-          accent: 'bg-emerald-100 text-emerald-700'
-        },
-        {
-          title: 'Promedio mensual',
-          value: `$${analytics.totals.monthlyAverage.toFixed(2)}`,
-          subtitle: 'Últimos 6 meses',
-          icon: TrendingUp,
-          accent: 'bg-blue-100 text-blue-700'
-        },
-        {
-          title: 'Consolidaciones',
-          value: String(analytics.totals.totalConsolidations),
-          subtitle: 'Histórico total',
-          icon: Boxes,
-          accent: 'bg-purple-100 text-purple-700'
-        },
-        {
-          title: 'Costo promedio',
-          value: `$${analytics.totals.averageShipmentCost.toFixed(2)}`,
-          subtitle: 'Por consolidación',
-          icon: Package,
-          accent: 'bg-amber-100 text-amber-700'
-        }
-      ]} />
+      <div className="grid grid-cols-1 xl:grid-cols-[360px,1fr] gap-6">
+        <ClientAnalyticsSelector
+          clients={clients}
+          search={search}
+          onSearchChange={setSearch}
+          selectedClient={selectedClient}
+          onSelectClient={setSelectedClient}
+        />
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <MonthlySpendChart data={analytics.monthlySpend} />
-        <ConsolidationEfficiencyChart data={analytics.efficiencyData} />
+        <div className="space-y-6">
+          {selectedClient ? (
+            <Card className="border-0 shadow-md">
+              <CardContent className="p-5">
+                <p className="text-sm text-slate-500">Cliente seleccionado</p>
+                <h2 className="text-2xl font-bold text-slate-800">{selectedClient.full_name || 'Cliente sin nombre'}</h2>
+                <p className="text-sm text-slate-500">{selectedClient.email}</p>
+                {selectedClient.shipping_mark && <p className="mt-1 text-sm text-slate-500">Shipping Mark: {selectedClient.shipping_mark}</p>}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-0 shadow-md">
+              <CardContent className="p-10 text-center text-slate-500">Selecciona un cliente para ver su analítica.</CardContent>
+            </Card>
+          )}
+
+          <AnalyticsSummaryCards items={[
+            {
+              title: 'Consumo total',
+              value: `$${analytics.totals.totalSpend.toFixed(2)}`,
+              subtitle: 'Facturación acumulada',
+              icon: DollarSign,
+              accent: 'bg-emerald-100 text-emerald-700'
+            },
+            {
+              title: 'Promedio mensual',
+              value: `$${analytics.totals.monthlyAverage.toFixed(2)}`,
+              subtitle: 'Últimos 6 meses',
+              icon: TrendingUp,
+              accent: 'bg-blue-100 text-blue-700'
+            },
+            {
+              title: 'Consolidaciones',
+              value: String(analytics.totals.totalConsolidations),
+              subtitle: 'Histórico total',
+              icon: Boxes,
+              accent: 'bg-purple-100 text-purple-700'
+            },
+            {
+              title: 'Costo promedio',
+              value: `$${analytics.totals.averageShipmentCost.toFixed(2)}`,
+              subtitle: 'Por consolidación',
+              icon: Package,
+              accent: 'bg-amber-100 text-amber-700'
+            }
+          ]} />
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <MonthlySpendChart data={analytics.monthlySpend} />
+            <ConsolidationEfficiencyChart data={analytics.efficiencyData} />
+          </div>
+
+          <ShippingCostBreakdownChart data={analytics.shipmentCostHistory} />
+
+          {selectedClient && analytics.shipmentCostHistory.length === 0 && (
+            <Card className="border-0 shadow-md">
+              <CardContent className="p-10 text-center text-slate-500">Este cliente aún no tiene suficientes datos para mostrar analítica histórica.</CardContent>
+            </Card>
+          )}
+        </div>
       </div>
-
-      <ShippingCostBreakdownChart data={analytics.shipmentCostHistory} />
-
-      {analytics.shipmentCostHistory.length === 0 && (
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-10 text-center text-slate-500">Aún no hay suficientes datos para mostrar analítica histórica.</CardContent>
-        </Card>
-      )}
     </div>
   );
 }
