@@ -25,7 +25,8 @@ import {
   CheckCircle2,
   Mail,
   Wallet,
-  Gift
+  Gift,
+  Building2
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
@@ -160,6 +161,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Clientes', page: 'AdminClients', icon: Users },
   { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
   { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
+  { name: 'Tenants', page: 'AdminTenants', icon: Building2 },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
 { name: 'Administradores', page: 'AdminPermissions', icon: Shield },
   { name: 'Gestión de Roles', page: 'AdminRoles', icon: Shield },
@@ -175,7 +177,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog','AdminReferrals'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
     { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
-    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
+    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminTenants','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
   ];
 
   const clientGroups = [
@@ -298,13 +300,16 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
           <div className="bg-slate-800/50 rounded-xl p-3">
             <p className="text-sm font-medium text-white truncate">{user?.full_name || user?.email}</p>
             <p className="text-xs text-slate-400 truncate">{user?.email}</p>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
               isAdmin ? 'bg-amber-500/20 text-amber-400' :
               customRole ? 'bg-blue-500/20 text-blue-400' :
               'bg-emerald-500/20 text-emerald-400'}`
               }>
                 {isAdmin ? 'Administrador' : roleConfig?.role_name || 'Cliente'}
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-700/60 text-slate-200">
+                {user?.tenant_name || 'Tenant legado'}
               </span>
             </div>
           </div>
