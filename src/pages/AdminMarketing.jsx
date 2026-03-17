@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import 'react-quill/dist/quill.snow.css';
 
 const ReactQuill = lazy(() => import('react-quill'));
-import { Plus, Loader2, Mail, Bell, Users, TrendingUp, Calendar, Send, Eye, MousePointer, DollarSign, Edit, Trash2, Paperclip, X, Image as ImageIcon, XCircle } from 'lucide-react';
+import { Plus, Loader2, Mail, Bell, Users, TrendingUp, Calendar, Send, Eye, MousePointer, DollarSign, Edit, Trash2, Paperclip, X, Image as ImageIcon, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import EmailHistoryModal from '@/components/admin/EmailHistoryModal';
 import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
@@ -408,7 +408,12 @@ export default function AdminMarketing({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+      <div className="space-y-4">
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <p>Este módulo está en desarrollo y algunas métricas pueden no reflejar datos reales todavía.</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
