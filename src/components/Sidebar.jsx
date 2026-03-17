@@ -113,6 +113,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const clientMenuItems = [
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
+  { name: 'Analítica', page: 'ClientAnalytics', icon: BarChart3 },
   { name: 'Mi Perfil', page: 'Profile', icon: Users },
   { name: 'Mis Referidos', page: 'MyReferrals', icon: Gift },
   { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
@@ -178,7 +179,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   ];
 
   const clientGroups = [
-    { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard'] },
+    { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard','ClientAnalytics'] },
     { label: 'ENVÍOS', items: ['MyPackages','PreAlert','RequestConsolidation','MyConsolidations'] },
     { label: 'PAGOS', items: ['MyInvoices','AssistedPayment'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator'] },

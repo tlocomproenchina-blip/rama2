@@ -1,0 +1,157 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { base44 } from '@/components/api/ApiQueueManager';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, DollarSign, Package, Boxes, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
+import AnalyticsSummaryCards from '@/components/client-analytics/AnalyticsSummaryCards';
+import MonthlySpendChart from '@/components/client-analytics/MonthlySpendChart';
+import ShippingCostBreakdownChart from '@/components/client-analytics/ShippingCostBreakdownChart';
+import ConsolidationEfficiencyChart from '@/components/client-analytics/ConsolidationEfficiencyChart';
+
+function getLastMonths(count) {
+  const now = new Date();
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (count - 1 - index), 1);
+    return {
+      key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+      label: date.toLocaleDateString('es-VE', { month: 'short', year: '2-digit' })
+    };
+  });
+}
+
+function normalizePercent(value) {
+  return Math.max(0, Math.min(100, Number(value || 0)));
+}
+
+export default function ClientAnalytics({ user }) {
+  const [loading, setLoading] = useState(true);
+  const [consolidations, setConsolidations] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [consolidationList, invoiceList] = await Promise.all([
+        base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', 500),
+        base44.entities.Invoice.filter({ client_email: user.email }, '-created_date', 500)
+      ]);
+      setConsolidations(consolidationList || []);
+      setInvoices(invoiceList || []);
+    } catch {
+      toast.error('No se pudo cargar la analítica');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (user?.email) loadData();
+  }, [user?.email]);
+
+  const analytics = useMemo(() => {
+    const months = getLastMonths(6);
+    const monthlySpendMap = new Map(months.map((item) => [item.key, { ...item, amount: 0 }]));
+    invoices.filter((invoice) => invoice.status !== 'cancelada').forEach((invoice) => {
+      const date = new Date(invoice.invoice_date || invoice.created_date);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (monthlySpendMap.has(key)) monthlySpendMap.get(key).amount += Number(invoice.total || 0);
+    });
+
+    const shipmentCostHistory = consolidations.slice(0, 8).reverse().map((item, index) => ({
+      label: item.consolidation_tracking || `Cons. ${index + 1}`,
+      shipping: Number(item.shipping_cost || 0),
+      insurance: Number(item.insurance_cost || 0),
+      total: Number(item.total_cost || 0)
+    }));
+
+    const totalConsolidations = consolidations.length;
+    const deliveredConsolidations = consolidations.filter((item) => item.status === 'entregado').length;
+    const payableConsolidations = consolidations.filter((item) => Number(item.total_cost || 0) > 0);
+    const insuredConsolidations = consolidations.filter((item) => Number(item.insurance_cost || 0) > 0).length;
+
+    const totalSpend = invoices.filter((invoice) => invoice.status !== 'cancelada').reduce((sum, invoice) => sum + Number(invoice.total || 0), 0);
+    const monthlyAverage = totalConsolidations ? totalSpend / Math.max(months.length, 1) : 0;
+    const averageShipmentCost = payableConsolidations.length ? payableConsolidations.reduce((sum, item) => sum + Number(item.total_cost || 0), 0) / payableConsolidations.length : 0;
+    const billableWeights = consolidations.filter((item) => Number(item.billable_weight || 0) > 0);
+    const averageBillableWeight = billableWeights.length ? billableWeights.reduce((sum, item) => sum + Number(item.billable_weight || 0), 0) / billableWeights.length : 0;
+
+    const efficiencyData = [
+      { metric: 'Entrega', value: normalizePercent(totalConsolidations ? (deliveredConsolidations / totalConsolidations) * 100 : 0) },
+      { metric: 'Seguro', value: normalizePercent(totalConsolidations ? (insuredConsolidations / totalConsolidations) * 100 : 0) },
+      { metric: 'Costo promedio', value: normalizePercent(averageShipmentCost ? Math.min((averageShipmentCost / 500) * 100, 100) : 0) },
+      { metric: 'Peso facturable', value: normalizePercent(averageBillableWeight ? Math.min((averageBillableWeight / 100) * 100, 100) : 0) }
+    ];
+
+    return {
+      monthlySpend: Array.from(monthlySpendMap.values()),
+      shipmentCostHistory,
+      efficiencyData,
+      totals: {
+        totalSpend,
+        monthlyAverage,
+        totalConsolidations,
+        averageShipmentCost
+      }
+    };
+  }, [consolidations, invoices]);
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  }
+
+  return (
+    <div className="space-y-8 max-w-7xl mx-auto">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">Analítica de consumo</h1>
+          <p className="text-slate-500">Visualiza tu gasto, costos de envío y desempeño de consolidaciones.</p>
+        </div>
+        <Button variant="outline" onClick={loadData}>Actualizar</Button>
+      </div>
+
+      <AnalyticsSummaryCards items={[
+        {
+          title: 'Consumo total',
+          value: `$${analytics.totals.totalSpend.toFixed(2)}`,
+          subtitle: 'Facturación acumulada',
+          icon: DollarSign,
+          accent: 'bg-emerald-100 text-emerald-700'
+        },
+        {
+          title: 'Promedio mensual',
+          value: `$${analytics.totals.monthlyAverage.toFixed(2)}`,
+          subtitle: 'Últimos 6 meses',
+          icon: TrendingUp,
+          accent: 'bg-blue-100 text-blue-700'
+        },
+        {
+          title: 'Consolidaciones',
+          value: String(analytics.totals.totalConsolidations),
+          subtitle: 'Histórico total',
+          icon: Boxes,
+          accent: 'bg-purple-100 text-purple-700'
+        },
+        {
+          title: 'Costo promedio',
+          value: `$${analytics.totals.averageShipmentCost.toFixed(2)}`,
+          subtitle: 'Por consolidación',
+          icon: Package,
+          accent: 'bg-amber-100 text-amber-700'
+        }
+      ]} />
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <MonthlySpendChart data={analytics.monthlySpend} />
+        <ConsolidationEfficiencyChart data={analytics.efficiencyData} />
+      </div>
+
+      <ShippingCostBreakdownChart data={analytics.shipmentCostHistory} />
+
+      {analytics.shipmentCostHistory.length === 0 && (
+        <Card className="border-0 shadow-md">
+          <CardContent className="p-10 text-center text-slate-500">Aún no hay suficientes datos para mostrar analítica histórica.</CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
