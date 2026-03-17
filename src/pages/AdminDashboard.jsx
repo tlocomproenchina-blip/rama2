@@ -599,12 +599,12 @@ export default function AdminDashboard({ user }) {
               <Truck className="h-5 w-5 shrink-0" />
               Consolidaciones Recientes
             </CardTitle>
-            <Tabs value={consFilter} onValueChange={setConsFilter}>
-              <TabsList className="w-full sm:w-auto flex-nowrap overflow-x-auto overflow-y-hidden justify-start whitespace-nowrap">
-                <TabsTrigger value="todas">Todas</TabsTrigger>
-                <TabsTrigger value="en_transito">En tránsito</TabsTrigger>
-                <TabsTrigger value="disponible">Disponible</TabsTrigger>
-                <TabsTrigger value="entregado">Entregado</TabsTrigger>
+            <Tabs value={consFilter} onValueChange={setConsFilter} className="w-full sm:w-auto">
+              <TabsList className="w-full sm:w-auto flex-nowrap overflow-x-auto overflow-y-hidden justify-start whitespace-nowrap bg-slate-100/70 p-0.5 rounded-xl">
+                <TabsTrigger value="todas" className="min-w-[88px] flex-1 text-center px-3">Todas</TabsTrigger>
+                <TabsTrigger value="en_transito" className="min-w-[104px] flex-1 text-center px-3">En tránsito</TabsTrigger>
+                <TabsTrigger value="disponible" className="min-w-[96px] flex-1 text-center px-3">Disponible</TabsTrigger>
+                <TabsTrigger value="entregado" className="min-w-[92px] flex-1 text-center px-3">Entregado</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
