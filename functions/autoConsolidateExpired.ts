@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      consolidationsCreated: results.length,
+      requestsApproved: results.length,
       details: results
     });
   } catch (error) {
