@@ -28,9 +28,12 @@ export default function WarehouseLocationList({ locations, onEdit, onDelete }) {
               </Badge>
             </div>
 
-            <div className="flex flex-wrap gap-2 text-xs">
-              <Badge variant="secondary">{location.zone}</Badge>
-              <Badge variant="outline">{location.type}</Badge>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-500">{location.warehouse_name || 'Sin almacén'} · {location.warehouse_city || '—'}, {location.warehouse_country || '—'}</p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Badge variant="secondary">{location.zone}</Badge>
+                <Badge variant="outline">{location.type}</Badge>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-sm text-slate-600">

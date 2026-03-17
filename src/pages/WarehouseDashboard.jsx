@@ -84,6 +84,23 @@ export default function WarehouseDashboard({ user }) {
       </div>
 
       <Card className="shadow-sm">
+        <CardHeader><CardTitle>Resumen por almacén</CardTitle></CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {(stats?.warehouses || []).map((warehouse) => (
+            <div key={warehouse.id} className="rounded-xl border p-4">
+              <p className="font-semibold text-slate-800">{warehouse.name}</p>
+              <p className="text-sm text-slate-500">{warehouse.city}, {warehouse.country}</p>
+              <div className="mt-3 grid grid-cols-3 gap-3 text-sm text-slate-600">
+                <div><p className="text-slate-400">Ubicaciones</p><p className="font-medium">{warehouse.locations}</p></div>
+                <div><p className="text-slate-400">Ocupadas</p><p className="font-medium">{warehouse.occupied_locations}</p></div>
+                <div><p className="text-slate-400">Paquetes</p><p className="font-medium">{warehouse.packages}</p></div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm">
         <CardHeader><CardTitle>Resumen por zona</CardTitle></CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {(stats?.zones || []).map((zone) => (

@@ -20,11 +20,12 @@ const emptyForm = {
 
 const toNumber = (value) => value === '' ? undefined : Number(value);
 
-export default function WarehouseLocationForm({ initialData, onSubmit, onCancel, submitting }) {
-  const [form, setForm] = useState(emptyForm);
+export default function WarehouseLocationForm({ initialData, warehouses = [], onSubmit, onCancel, submitting }) {
+  const [form, setForm] = useState({ ...emptyForm, warehouse_id: '' });
 
   useEffect(() => {
     setForm(initialData ? {
+      warehouse_id: initialData.warehouse_id || '',
       name: initialData.name || '',
       code: initialData.code || '',
       zone: initialData.zone || 'almacenamiento_general',
@@ -34,12 +35,13 @@ export default function WarehouseLocationForm({ initialData, onSubmit, onCancel,
       capacity_weight_kg: initialData.capacity_weight_kg ?? '',
       notes: initialData.notes || '',
       is_active: initialData.is_active !== false,
-    } : emptyForm);
+    } : { ...emptyForm, warehouse_id: '' });
   }, [initialData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({
+      warehouse_id: form.warehouse_id,
       name: form.name.trim(),
       code: form.code.trim().toUpperCase(),
       zone: form.zone,
@@ -55,6 +57,17 @@ export default function WarehouseLocationForm({ initialData, onSubmit, onCancel,
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2 md:col-span-2">
+          <Label>Almacén / sede</Label>
+          <Select value={form.warehouse_id} onValueChange={(value) => setForm({ ...form, warehouse_id: value })}>
+            <SelectTrigger><SelectValue placeholder="Selecciona almacén" /></SelectTrigger>
+            <SelectContent>
+              {warehouses.map((warehouse) => (
+                <SelectItem key={warehouse.id} value={warehouse.id}>{warehouse.name} · {warehouse.city}, {warehouse.country}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2">
           <Label>Nombre</Label>
           <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />

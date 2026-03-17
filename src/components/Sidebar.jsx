@@ -134,7 +134,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
   { name: 'Dashboard Almacén', page: 'WarehouseDashboard', icon: LayoutDashboard },
   { name: 'Recepción Almacén', page: 'WarehouseReceive', icon: Package },
-  { name: 'Ubicaciones Almacén', page: 'WarehouseLocations', icon: Layers },
+  { name: 'Ubicaciones y Sedes', page: 'WarehouseLocations', icon: Layers },
   { name: 'Picking y Packing', page: 'WarehousePickPackShip', icon: Truck },
   { name: 'Aprobaciones', page: 'AdminConsolidate', icon: Layers },
   { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2 },

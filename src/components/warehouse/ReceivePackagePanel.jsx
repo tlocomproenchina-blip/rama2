@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Package, Sparkles } from 'lucide-react';
 
-export default function ReceivePackagePanel({ pkg, form, setForm, locations, suggestedLocation, onSuggest, onSubmit, submitting }) {
+export default function ReceivePackagePanel({ pkg, form, setForm, warehouses, locations, suggestedLocation, onSuggest, onSubmit, submitting }) {
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -23,16 +23,27 @@ export default function ReceivePackagePanel({ pkg, form, setForm, locations, sug
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
+            <Label>Almacén</Label>
+            <Select value={form.warehouse_id} onValueChange={(value) => setForm({ ...form, warehouse_id: value, location_id: '' })}>
+              <SelectTrigger><SelectValue placeholder="Selecciona almacén" /></SelectTrigger>
+              <SelectContent>
+                {warehouses.map((warehouse) => (
+                  <SelectItem key={warehouse.id} value={warehouse.id}>{warehouse.name} · {warehouse.city}, {warehouse.country}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Peso real (kg)</Label>
             <Input type="number" min="0" step="0.01" value={form.actual_weight_kg} onChange={(e) => setForm({ ...form, actual_weight_kg: e.target.value })} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 md:col-span-2">
             <Label>Ubicación</Label>
             <Select value={form.location_id} onValueChange={(value) => setForm({ ...form, location_id: value })}>
               <SelectTrigger><SelectValue placeholder="Selecciona ubicación" /></SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (
-                  <SelectItem key={location.id} value={location.id}>{location.code} · {location.name}</SelectItem>
+                  <SelectItem key={location.id} value={location.id}>{location.warehouse_name} · {location.code} · {location.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

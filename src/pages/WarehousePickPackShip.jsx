@@ -150,7 +150,7 @@ export default function WarehousePickPackShip({ user }) {
                       <SelectTrigger className="w-full lg:w-72"><SelectValue placeholder="Ubicación destino" /></SelectTrigger>
                       <SelectContent>
                         {locations.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>{location.code} · {location.name}</SelectItem>
+                          <SelectItem key={location.id} value={location.id}>{location.warehouse_name} · {location.code} · {location.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

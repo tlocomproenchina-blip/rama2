@@ -20,8 +20,9 @@ const emptyForm = {
 export default function WarehouseReceive({ user }) {
   const [tracking, setTracking] = useState('');
   const [pkg, setPkg] = useState(null);
+  const [warehouses, setWarehouses] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState({ ...emptyForm, warehouse_id: '' });
   const [loadingLocations, setLoadingLocations] = useState(true);
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -31,8 +32,12 @@ export default function WarehouseReceive({ user }) {
   useEffect(() => {
     (async () => {
       try {
-        const data = await base44.entities.WarehouseLocation.filter({ is_active: true }, 'code', 200);
-        setLocations(data || []);
+        const [warehousesData, locationsData] = await Promise.all([
+          base44.entities.Warehouse.filter({ is_active: true }, 'name', 100),
+          base44.entities.WarehouseLocation.filter({ is_active: true }, 'code', 200)
+        ]);
+        setWarehouses(warehousesData || []);
+        setLocations(locationsData || []);
       } catch {
         toast.error('No se pudieron cargar las ubicaciones');
       }
@@ -52,6 +57,7 @@ export default function WarehouseReceive({ user }) {
         return;
       }
       setForm({
+        warehouse_id: nextPkg.warehouse_id || '',
         location_id: '',
         actual_weight_kg: nextPkg.actual_weight_kg ?? '',
         actual_length_cm: nextPkg.actual_length_cm ?? '',
@@ -68,11 +74,11 @@ export default function WarehouseReceive({ user }) {
 
   const handleSuggest = async () => {
     try {
-      const response = await base44.functions.invoke('findAvailableLocation', {});
+      const response = await base44.functions.invoke('findAvailableLocation', { warehouse_id: form.warehouse_id || undefined });
       const best = response?.data?.best_match || null;
       setSuggestedLocation(best);
       if (best?.id) {
-        setForm((prev) => ({ ...prev, location_id: best.id }));
+        setForm((prev) => ({ ...prev, warehouse_id: best.warehouse_id || prev.warehouse_id, location_id: best.id }));
         toast.success('Ubicación sugerida aplicada');
       } else {
         toast.error('No hay ubicaciones disponibles');
@@ -99,7 +105,7 @@ export default function WarehouseReceive({ user }) {
       toast.success('Paquete recibido y ubicado');
       setTracking('');
       setPkg(null);
-      setForm(emptyForm);
+      setForm({ ...emptyForm, warehouse_id: '' });
       setSuggestedLocation(null);
     } catch (error) {
       toast.error(error?.response?.data?.error || 'No se pudo recibir el paquete');
@@ -141,7 +147,8 @@ export default function WarehouseReceive({ user }) {
           pkg={pkg}
           form={form}
           setForm={setForm}
-          locations={locations}
+          warehouses={warehouses}
+          locations={locations.filter((location) => !form.warehouse_id || location.warehouse_id === form.warehouse_id)}
           suggestedLocation={suggestedLocation}
           onSuggest={handleSuggest}
           onSubmit={handleReceive}

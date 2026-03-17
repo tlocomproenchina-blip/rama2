@@ -54,7 +54,7 @@ const PAGE_LABELS = {
   'AdminReports': 'Reportes',
   'WarehouseDashboard': 'Dashboard Almacén',
   'WarehouseReceive': 'Recepción Almacén',
-  'WarehouseLocations': 'Ubicaciones Almacén',
+  'WarehouseLocations': 'Ubicaciones y Sedes Almacén',
   'WarehousePickPackShip': 'Picking y Packing',
   'ShipmentTracking': 'Seguimiento',
   'ShippingCalculator': 'Calculadora'
