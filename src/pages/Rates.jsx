@@ -162,7 +162,7 @@ export default function Rates({ user }) {
         </div>
 
         {/* Shipping Rates */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid grid-cols-1 ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'lg:grid-cols-2' : ''} gap-6`}>
         {/* Air Shipping */}
         {config?.shipping_type_air_enabled !== false && (
         <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-white">
