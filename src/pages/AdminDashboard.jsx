@@ -13,6 +13,7 @@ import KeyStat from '@/components/dashboard/KeyStat';
 import PieChartCard from '@/components/dashboard/PieChartCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import DashboardCustomizer from '@/components/dashboard/DashboardCustomizer';
+import AdminPlatformOverview from '@/components/dashboard/AdminPlatformOverview';
 
 export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
@@ -21,7 +22,8 @@ export default function AdminDashboard({ user }) {
     consolidations: [],
     users: [],
     invoices: [],
-    notifications: []
+    notifications: [],
+    supportTickets: []
   });
 
   // Paginación (cargar bajo demanda)
@@ -49,19 +51,20 @@ export default function AdminDashboard({ user }) {
   const loadData = async () => {
     try {
       // Cargar solo lo necesario para la pestaña Resumen y respetar los límites
-      const [packages, consolidations, users, invoices, cfg] = await Promise.all([
+      const [packages, consolidations, users, invoices, supportTickets, cfg] = await Promise.all([
         base44.entities.Package.list('-created_date', packagesLimit),
-        base44.entities.Consolidation.list('-created_date', consolidationsLimit),
+        base44.entities.Consolidation.list('-created_date', 500),
         base44.entities.User.filter({ role: 'user' }),
         base44.entities.Invoice.list('-created_date', invoicesLimit),
+        base44.entities.SupportTicket.list('-created_date', 200),
         base44.entities.AppConfig.filter({ config_key: 'main' })
       ]);
 
       setHasMorePackages(packages.length === packagesLimit);
-      setHasMoreConsolidations(consolidations.length === consolidationsLimit);
+      setHasMoreConsolidations(consolidations.length >= 500);
       setHasMoreInvoices(invoices.length === invoicesLimit);
       
-      setData({ packages, consolidations, users, invoices });
+      setData({ packages, consolidations, users, invoices, supportTickets });
       if (Array.isArray(cfg) && cfg.length > 0) setAppConfig(cfg[0]);
 
       // Cargar notificaciones del admin (solo si estamos en resumen)
@@ -151,6 +154,17 @@ export default function AdminDashboard({ user }) {
       monthRevenue: data.consolidations
         .filter(c => c.payment_validated && new Date(c.payment_validation_date) >= lastMonth)
         .reduce((sum, c) => sum + (c.total_cost || 0), 0),
+      projectedMonthlyRevenue: (() => {
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const validatedThisMonth = data.consolidations
+          .filter(c => c.payment_validated && c.payment_validation_date && new Date(c.payment_validation_date) >= monthStart)
+          .reduce((sum, c) => sum + Number(c.total_cost || 0), 0);
+        const elapsedDays = Math.max(1, today.getDate());
+        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        return (validatedThisMonth / elapsedDays) * daysInMonth;
+      })(),
+      totalShippingVolume: data.consolidations.reduce((sum, c) => sum + Number(c.cbm || 0), 0),
+      openSupportTickets: data.supportTickets.filter(t => t.status === 'abierto').length,
       
       // Clientes
       totalClients: data.users.length,
@@ -269,6 +283,12 @@ export default function AdminDashboard({ user }) {
         <ApiSystemPanel />
       ) : (
         <>
+      <AdminPlatformOverview
+        totalShippingVolume={stats.totalShippingVolume}
+        projectedMonthlyRevenue={stats.projectedMonthlyRevenue}
+        openSupportTickets={stats.openSupportTickets}
+      />
+
       {/* Acciones Urgentes */}
       {urgentActions.length > 0 && (
         <Card className="border-l-4 border-l-red-500 shadow-lg">
