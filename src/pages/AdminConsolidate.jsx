@@ -28,6 +28,7 @@ export default function AdminConsolidate({ user }) {
   const [activeTab, setActiveTab] = useState('requests'); // 'requests' or 'clients'
   const [expandedClient, setExpandedClient] = useState(null); // Track expanded client for quick consolidate
   const [clientMeta, setClientMeta] = useState({});
+  const [preAlertCounts, setPreAlertCounts] = useState({});
 
   useEffect(() => {
     loadData();
@@ -114,6 +115,12 @@ export default function AdminConsolidate({ user }) {
     const preAlertPackages = await base44.entities.Package.filter({ 
       status: 'pre_alerta' 
     }, '-created_date');
+    const preAlertMap = {};
+    preAlertPackages.forEach(pkg => {
+      if (!preAlertMap[pkg.client_email]) preAlertMap[pkg.client_email] = 0;
+      preAlertMap[pkg.client_email] += 1;
+    });
+    setPreAlertCounts(preAlertMap);
     
     const receivedPackages = await base44.entities.Package.filter({ 
       status: 'recibido' 
@@ -340,7 +347,14 @@ export default function AdminConsolidate({ user }) {
                             <User className="h-4 w-4 text-slate-400" />
                             <p className="font-medium text-slate-800">{req.client_email}</p>
                           </div>
-                          <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="font-mono">{req.shipping_mark}</Badge>
+                            <Badge className={preAlertCounts[req.client_email] > 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}>
+                              {preAlertCounts[req.client_email] > 0
+                                ? `${preAlertCounts[req.client_email]} en pre-alerta`
+                                : 'Sin pre-alerta'}
+                            </Badge>
+                          </div>
                         </div>
 
                         <div className="flex flex-wrap gap-4 text-sm text-slate-600">
