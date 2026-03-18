@@ -27,7 +27,7 @@ export default function RolePermissionsCard({ roleName, description, roleCode, p
                 key={page}
                 type="button"
                 onClick={() => onTogglePage(page)}
-                className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-left transition-all ${checked ? 'border-blue-200 bg-blue-50 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'}`}
+                className={`flex items-start gap-2 rounded-lg border px-3 py-1.5 text-left transition-all ${checked ? 'border-blue-200 bg-blue-50 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'}`}
               >
                 <Checkbox checked={checked} onCheckedChange={() => onTogglePage(page)} className="!h-5 !w-5 !rounded-sm !self-start sm:!h-5 sm:!w-5" />
                 <div className="min-w-0 pt-0.5">
