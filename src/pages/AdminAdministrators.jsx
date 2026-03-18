@@ -143,45 +143,47 @@ export default function AdminAdministrators({ user }) {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filteredAdmins.map((adminRecord) => (
-          <Card key={adminRecord.id} className="overflow-hidden border-0 shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl">
-            <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50/60 pb-4">
-              <CardTitle className="flex items-start justify-between gap-3 text-base">
-                <div className="min-w-0">
-                  <span className="block truncate text-slate-900">{adminRecord.full_name || adminRecord.email}</span>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge className="bg-emerald-100 text-emerald-700">
-                      <ShieldCheck className="mr-1 h-3 w-3" /> Admin
-                    </Badge>
-                    <Badge variant="outline" className="border-blue-200 text-blue-700">
-                      <Briefcase className="mr-1 h-3 w-3" />
-                      {adminRecord.custom_role || 'sin área'}
-                    </Badge>
+            {filteredAdmins.map((adminRecord) => (
+              <Card key={adminRecord.id} className="overflow-hidden border-0 shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl">
+                <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50/60 pb-4">
+                  <CardTitle className="flex items-start justify-between gap-3 text-base">
+                    <div className="min-w-0">
+                      <span className="block truncate text-slate-900">{adminRecord.full_name || adminRecord.email}</span>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Badge className="bg-emerald-100 text-emerald-700">
+                          <ShieldCheck className="mr-1 h-3 w-3" /> Admin
+                        </Badge>
+                        <Badge variant="outline" className="border-blue-200 text-blue-700">
+                          <Briefcase className="mr-1 h-3 w-3" />
+                          {adminRecord.custom_role || 'sin área'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 p-5">
+                  <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
+                    <div className="rounded-xl bg-white p-2 text-slate-500 shadow-sm"><Mail className="h-4 w-4" /></div>
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Correo</p>
+                      <p className="text-sm text-slate-700 break-all">{adminRecord.email}</p>
+                    </div>
                   </div>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
-                <div className="rounded-xl bg-white p-2 text-slate-500 shadow-sm"><Mail className="h-4 w-4" /></div>
-                <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Correo</p>
-                  <p className="text-sm text-slate-700 break-all">{adminRecord.email}</p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                onClick={() => handleDemote(adminRecord)}
-                disabled={processingId === adminRecord.id || adminRecord.email === user?.email}
-              >
-                {processingId === adminRecord.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserMinus className="mr-2 h-4 w-4" />}
-                Pasar a usuario
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  <Button
+                    variant="outline"
+                    className="w-full border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                    onClick={() => handleDemote(adminRecord)}
+                    disabled={processingId === adminRecord.id || adminRecord.email === user?.email}
+                  >
+                    {processingId === adminRecord.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserMinus className="mr-2 h-4 w-4" />}
+                    Pasar a usuario
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={openInvite} onOpenChange={setOpenInvite}>
         <DialogContent className="max-w-md border-0 shadow-2xl">
