@@ -71,7 +71,6 @@ export default function AccountingExportButtons({ report }) {
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" onClick={handleCsv} className="bg-white text-slate-800 hover:bg-slate-100 hover:text-slate-900"><FileSpreadsheet className="h-4 w-4 mr-2" /> CSV</Button>
       <Button variant="outline" onClick={handlePdf} className="bg-white text-slate-800 hover:bg-slate-100 hover:text-slate-900"><FileText className="h-4 w-4 mr-2" /> PDF</Button>
-      <Button onClick={handleCsv} className="bg-slate-800 hover:bg-slate-900"><Download className="h-4 w-4 mr-2" /> Exportar</Button>
     </div>
   );
 }
