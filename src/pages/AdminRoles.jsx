@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Search, ShieldCheck, Users } from 'lucide-react';
+import { Loader2, Search, ShieldCheck, Users, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminRoles({ user }) {
@@ -26,14 +26,11 @@ export default function AdminRoles({ user }) {
 
   useEffect(() => { loadUsers(); }, []);
 
-  const roleOptions = useMemo(() => {
-    const currentRoles = Array.from(new Set((users || []).map((item) => item.role).filter(Boolean)));
-    return Array.from(new Set(['user', 'admin', ...currentRoles]));
-  }, [users]);
+  const areaRoleOptions = useMemo(() => ['operaciones', 'almacen', 'contabilidad', 'soporte', 'marketing'], []);
 
   const filteredUsers = useMemo(() => users.filter((item) => {
     const q = search.toLowerCase();
-    return !q || item.email?.toLowerCase().includes(q) || item.full_name?.toLowerCase().includes(q) || item.role?.toLowerCase().includes(q);
+    return !q || item.email?.toLowerCase().includes(q) || item.full_name?.toLowerCase().includes(q) || item.role?.toLowerCase().includes(q) || item.custom_role?.toLowerCase().includes(q);
   }), [users, search]);
 
   const handleRoleChange = async (targetUser, nextRole) => {
@@ -43,11 +40,11 @@ export default function AdminRoles({ user }) {
     }
     setProcessingId(targetUser.id);
     try {
-      await base44.entities.User.update(targetUser.id, { role: nextRole });
-      setUsers((prev) => prev.map((item) => item.id === targetUser.id ? { ...item, role: nextRole } : item));
-      toast.success('Rol actualizado');
+      await base44.entities.User.update(targetUser.id, { custom_role: nextRole === 'sin_area' ? null : nextRole });
+      setUsers((prev) => prev.map((item) => item.id === targetUser.id ? { ...item, custom_role: nextRole === 'sin_area' ? null : nextRole } : item));
+      toast.success('Rol por área actualizado');
     } catch {
-      toast.error('No se pudo actualizar el rol');
+      toast.error('No se pudo actualizar el rol por área');
     }
     setProcessingId(null);
   };
@@ -59,15 +56,15 @@ export default function AdminRoles({ user }) {
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Roles</h1>
-        <p className="text-slate-500">Administra el rol actual de cada usuario del sistema.</p>
+        <h1 className="text-2xl font-bold text-slate-800">Roles por área</h1>
+        <p className="text-slate-500">Asigna áreas operativas sin alterar el rol base de admin o cliente.</p>
       </div>
 
       <Card className="border-0 shadow-md">
         <CardContent className="p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre, email o rol" className="pl-10" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre, email o área" className="pl-10" />
           </div>
         </CardContent>
       </Card>
@@ -83,17 +80,22 @@ export default function AdminRoles({ user }) {
                     {item.role === 'admin' ? <ShieldCheck className="mr-1 h-3 w-3" /> : <Users className="mr-1 h-3 w-3" />}
                     {item.role || 'user'}
                   </Badge>
+                  <Badge variant="outline" className="text-blue-700 border-blue-200">
+                    <Briefcase className="mr-1 h-3 w-3" />
+                    {item.custom_role || 'sin área'}
+                  </Badge>
                 </div>
                 <p className="text-sm text-slate-500 break-all">{item.email}</p>
               </div>
 
-              <div className="w-full md:w-56">
-                <Select value={item.role || 'user'} onValueChange={(value) => handleRoleChange(item, value)} disabled={processingId === item.id || item.email === user?.email}>
+              <div className="w-full md:w-64">
+                <Select value={item.custom_role || 'sin_area'} onValueChange={(value) => handleRoleChange(item, value)} disabled={processingId === item.id || item.email === user?.email}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona rol" />
+                    <SelectValue placeholder="Selecciona área" />
                   </SelectTrigger>
                   <SelectContent>
-                    {roleOptions.map((role) => (
+                    <SelectItem value="sin_area">Sin área</SelectItem>
+                    {areaRoleOptions.map((role) => (
                       <SelectItem key={role} value={role}>{role}</SelectItem>
                     ))}
                   </SelectContent>

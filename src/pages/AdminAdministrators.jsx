@@ -57,7 +57,7 @@ export default function AdminAdministrators({ user }) {
     }
     setProcessingId(adminRecord.id);
     try {
-      await base44.entities.User.update(adminRecord.id, { role: 'user' });
+      await base44.entities.User.update(adminRecord.id, { role: 'user', custom_role: null });
       setAdmins((prev) => prev.filter((item) => item.id !== adminRecord.id));
       toast.success('Administrador cambiado a usuario');
     } catch {
@@ -75,7 +75,7 @@ export default function AdminAdministrators({ user }) {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Administradores</h1>
-          <p className="text-slate-500">Consulta quién tiene acceso administrativo e invita nuevos admins.</p>
+          <p className="text-slate-500">Gestiona administradores; los roles por área se asignan desde el módulo de Roles.</p>
         </div>
         <Button onClick={() => setOpenInvite(true)} className="bg-blue-600 hover:bg-blue-700">
           <UserPlus className="mr-2 h-4 w-4" /> Invitar administrador
