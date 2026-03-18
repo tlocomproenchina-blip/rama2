@@ -6,16 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 
-// New Home sections
+// Above-the-fold sections
 import HomeHeader from '@/components/home/HomeHeader';
 import Hero from '@/components/home/Hero';
-import Features from '@/components/home/Features';
-import Process from '@/components/home/Process';
-import Services from '@/components/home/Services';
-import Pricing from '@/components/home/Pricing';
-import Testimonials from '@/components/home/Testimonials';
-import FAQSection from '@/components/home/FAQSection';
-import HomeFooter from '@/components/home/HomeFooter';
+
+// Below-the-fold sections
+const Features = React.lazy(() => import('@/components/home/Features'));
+const Process = React.lazy(() => import('@/components/home/Process'));
+const Services = React.lazy(() => import('@/components/home/Services'));
+const Pricing = React.lazy(() => import('@/components/home/Pricing'));
+const Testimonials = React.lazy(() => import('@/components/home/Testimonials'));
+const FAQSection = React.lazy(() => import('@/components/home/FAQSection'));
+const HomeFooter = React.lazy(() => import('@/components/home/HomeFooter'));
 
 export default function Home({ user }) {
   // Metadatos SEO para Home (pública)
@@ -47,7 +49,7 @@ export default function Home({ user }) {
   React.useEffect(() => {
     (async () => {
       try {
-        const list = await base44.entities.StateConfig.filter({ is_active: true });
+        const list = await base44.entities.StateConfig.filter({ is_active: true }, 'state_name', 50);
         setStates(list);
       } catch (e) {
         console.error('Error cargando estados', e);
@@ -67,13 +69,15 @@ export default function Home({ user }) {
     <div className="min-h-screen bg-white">
       <HomeHeader onLogin={handleAuthClick} />
       <Hero onLogin={handleAuthClick} />
-      <Features />
-      <Process />
-      <Services />
-      <Pricing states={states} selectedCode={selectedCode} setSelectedCode={setSelectedCode} />
-      <Testimonials />
-      <FAQSection />
-      <HomeFooter />
+      <React.Suspense fallback={<div className="px-4 py-16 text-center text-sm text-slate-500">Cargando contenido…</div>}>
+        <Features />
+        <Process />
+        <Services />
+        <Pricing states={states} selectedCode={selectedCode} setSelectedCode={setSelectedCode} />
+        <Testimonials />
+        <FAQSection />
+        <HomeFooter />
+      </React.Suspense>
     </div>);
 
 }

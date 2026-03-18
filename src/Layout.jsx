@@ -26,6 +26,7 @@ const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
+const GlobalErrorListener = lazy(() => import('@/components/common/GlobalErrorListener'));
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -112,7 +113,6 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     loadUser();
     loadConfig();
-    loadFavicon();
   }, []);
 
   // Publicar métricas de cliente → RuntimeMetrics (muestreo para evitar exceso de escrituras)
@@ -241,20 +241,12 @@ export default function Layout({ children, currentPageName }) {
 
   const loadConfig = async () => {
     try {
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
       if (configs.length > 0) {
-        setConfig(configs[0]);
-      }
-    } catch (error) {
-      console.error('Error loading config:', error);
-    }
-  };
+        const nextConfig = configs[0];
+        setConfig(nextConfig);
 
-  const loadFavicon = async () => {
-    try {
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
-      if (configs.length > 0) {
-        const faviconUrl = configs[0].favicon_url || configs[0].app_logo_url;
+        const faviconUrl = nextConfig.favicon_url || nextConfig.app_logo_url;
         if (faviconUrl) {
           const link = document.querySelector("link[rel='icon']") || document.createElement('link');
           link.rel = 'icon';
@@ -264,7 +256,7 @@ export default function Layout({ children, currentPageName }) {
         }
       }
     } catch (error) {
-      console.error('Error loading favicon:', error);
+      console.error('Error loading config:', error);
     }
   };
 
@@ -532,6 +524,7 @@ export default function Layout({ children, currentPageName }) {
       
       
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
+      <Suspense fallback={null}><GlobalErrorListener /></Suspense>
       {user && (
         <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
       )}
