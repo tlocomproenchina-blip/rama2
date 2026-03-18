@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
@@ -37,11 +37,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const [config, setConfig] = useState(null);
 
 
-  useEffect(() => {
-    loadConfig();
-  }, []);
-
-  const loadConfig = async () => {
+  const loadConfig = useCallback(async () => {
     try {
       // Check cache manager (1 hour TTL)
       const cached = cacheManager.get('app_config');
@@ -51,7 +47,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
       }
 
       // Load from API only if cache expired
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
       if (configs.length > 0) {
         setConfig(configs[0]);
         cacheManager.set('app_config', configs[0], 3600000); // 1 hour
@@ -59,16 +55,20 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     } catch (error) {
       console.error('Error loading config:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
 
 
 
 
 
-  const handleMenuClick = async (page) => {
+  const handleMenuClick = useCallback((page) => {
     if (page) { try { markSeen(page); } catch {} }
     onClose && onClose();
-  };
+  }, [markSeen, onClose]);
 
 
 
