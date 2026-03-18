@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
 import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -113,7 +113,7 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     loadUser();
     loadConfig();
-  }, []);
+  }, [loadUser, loadConfig]);
 
   // Publicar métricas de cliente → RuntimeMetrics (muestreo para evitar exceso de escrituras)
   useEffect(() => {
@@ -239,7 +239,7 @@ export default function Layout({ children, currentPageName }) {
   //   } catch {}
   // }, [location.pathname, location.key]);
 
-  const loadConfig = async () => {
+  const loadConfig = useCallback(async () => {
     try {
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
       if (configs.length > 0) {
@@ -258,9 +258,9 @@ export default function Layout({ children, currentPageName }) {
     } catch (error) {
       console.error('Error loading config:', error);
     }
-  };
+  }, []);
 
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
@@ -381,21 +381,20 @@ export default function Layout({ children, currentPageName }) {
       base44.auth.redirectToLogin();
       setLoading(false);
     }
-  };
+  }, [currentPageName, navigate]);
 
-  const handleContractAccept = async () => {
+  const handleContractAccept = useCallback(async () => {
     await base44.auth.updateMe({
       contract_accepted: true,
       contract_accepted_date: new Date().toISOString()
     });
-    // Evitar cerrar el modal y cambiar de estado hasta que user se refresque
     const updated = await base44.auth.me();
     setUser(updated);
     setShowContract(false);
     if (!updated.profile_completed) {
       setShowProfile(true);
     }
-  };
+  }, []);
 
 
   const handleContractReject = () => {
@@ -403,7 +402,7 @@ export default function Layout({ children, currentPageName }) {
     base44.auth.logout();
   };
 
-  const handleProfileComplete = async (profileData) => {
+  const handleProfileComplete = useCallback(async (profileData) => {
     try {
       await base44.auth.updateMe({
         ...profileData,
@@ -413,7 +412,6 @@ export default function Layout({ children, currentPageName }) {
       const updatedUser = { ...user, ...profileData, profile_completed: true };
       setUser(updatedUser);
 
-      // Notify admins
       notifyAdmins({
         subject: '👤 Nuevo usuario registrado',
         body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario desde el panel de Clientes.`,
@@ -425,7 +423,7 @@ export default function Layout({ children, currentPageName }) {
       console.error('Error completing profile:', error);
       throw error;
     }
-  };
+  }, [user]);
 
   if (loading) {
     return (
