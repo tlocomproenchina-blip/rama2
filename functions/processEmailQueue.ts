@@ -9,19 +9,19 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     // This is invoked by automation; no end-user auth required
 
-    const BATCH_SIZE = 100; // tune as needed based on rate limits
+    const BATCH_SIZE = 25;
     const nowIso = new Date().toISOString();
 
-    // Pull oldest pending first
     const pending = await base44.asServiceRole.entities.EmailQueue.filter({ status: 'pending' }, 'created_date', BATCH_SIZE);
-    if (!pending || pending.length === 0) {
+    const eligible = (pending || []).filter((row) => !row.scheduled_at || new Date(row.scheduled_at).getTime() <= Date.now());
+    if (!eligible.length) {
       return Response.json({ processed: 0, sent: 0, failed: 0 });
     }
 
     const batchId = makeBatchId();
 
     // Mark as sending to avoid double-processing
-    await Promise.all(pending.map((row) =>
+    await Promise.all(eligible.map((row) =>
       base44.asServiceRole.entities.EmailQueue.update(row.id, {
         status: 'sending',
         attempts: (row.attempts || 0) + 1,
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 
     let sent = 0, failed = 0;
 
-    for (const row of pending) {
+    for (const row of eligible) {
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: row.recipient_email,
@@ -64,8 +64,9 @@ Deno.serve(async (req) => {
         sent++;
       } catch (err) {
         failed++;
+        const attempts = Number(row.attempts || 0) + 1;
         await base44.asServiceRole.entities.EmailQueue.update(row.id, {
-          status: 'failed',
+          status: attempts >= 3 ? 'failed' : 'pending',
           error_message: err?.message?.slice(0, 500) || 'Unknown error',
         });
       }
@@ -73,7 +74,7 @@ Deno.serve(async (req) => {
       await new Promise((r) => setTimeout(r, 80));
     }
 
-    return Response.json({ processed: pending.length, sent, failed, batch_id: batchId });
+    return Response.json({ processed: eligible.length, sent, failed, batch_id: batchId });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

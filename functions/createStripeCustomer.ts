@@ -82,7 +82,12 @@ Deno.serve(async (req) => {
     try {
       const fullName = targetUser.full_name || `${targetUser.first_name || ''} ${targetUser.last_name || ''}`.trim();
 
-      const customer = await Promise.race([
+      const existingCustomers = await stripe.customers.list({ email: targetUser.email, limit: 10 });
+      const reusableCustomer = existingCustomers.data.find((customer) =>
+        customer.metadata?.base44_user_id === String(targetUser.id || '') || customer.email === targetUser.email
+      );
+
+      const customer = reusableCustomer || await Promise.race([
         stripe.customers.create({
           email: targetUser.email,
           name: fullName || undefined,
@@ -97,7 +102,7 @@ Deno.serve(async (req) => {
             base44_user_id: String(targetUser.id || ''),
           },
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Stripe request timeout')), 6000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Stripe request timeout')), 8000))
       ]);
 
       // Persist on User (service role to work for both contexts)

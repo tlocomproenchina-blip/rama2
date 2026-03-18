@@ -13,11 +13,14 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Leer últimas métricas (recientes)
-    const recent = await base44.asServiceRole.entities.RuntimeMetrics.list('-created_date', 200);
+    const recent = await base44.asServiceRole.entities.RuntimeMetrics.list('-created_date', 120);
     const now = Date.now();
-    const windowMs = 60_000; // 60s
+    const windowMs = 5 * 60_000;
     const metrics = (recent || []).filter(m => now - new Date(m.created_date).getTime() <= windowMs);
+
+    if (!metrics.length) {
+      return Response.json({ status: 'skipped', reason: 'no_recent_metrics', metrics_count: 0 });
+    }
 
     const q = metrics.map(m => Number(m.queue_length) || 0);
     const wA = metrics.map(m => Number(m.active_writes) || 0);
@@ -86,7 +89,7 @@ Deno.serve(async (req) => {
     const record = {
       config_key: 'global',
       ...target,
-      updated_by: (await base44.auth.me())?.email || 'system'
+      updated_by: 'system'
     };
 
     if (existing && existing.length > 0) {
