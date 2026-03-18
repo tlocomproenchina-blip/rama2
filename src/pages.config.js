@@ -80,7 +80,6 @@ import AdminSupportTickets from './pages/AdminSupportTickets';
 import AssistedPayment from './pages/AssistedPayment';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
-import BusinessDashboard from './pages/BusinessDashboard';
 import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
@@ -141,7 +140,6 @@ export const PAGES = {
     "AssistedPayment": AssistedPayment,
     "Blog": Blog,
     "BlogPost": BlogPost,
-    "BusinessDashboard": BusinessDashboard,
     "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
     "EmployeeDashboard": EmployeeDashboard,
