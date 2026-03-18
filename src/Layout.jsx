@@ -386,7 +386,7 @@ export default function Layout({ children, currentPageName }) {
 
       notifyAdmins({
         subject: '👤 Nuevo usuario registrado',
-        body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nPor favor asigna un Shipping Mark al usuario desde el panel de Clientes.`,
+        body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nRevisa el Shipping Mark según la configuración actual del sistema.`,
         message: `${profileData.first_name} ${profileData.last_name} (${user.email}) completó su registro`,
         type: 'general',
         icon: 'alert'

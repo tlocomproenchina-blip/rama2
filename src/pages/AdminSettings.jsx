@@ -29,6 +29,7 @@ import {
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
+import ShippingMarkAutomationSettings from '@/components/admin/ShippingMarkAutomationSettings';
 import { createPageUrl } from '@/utils';
 
 const VENEZUELAN_STATES = [
@@ -101,7 +102,11 @@ export default function AdminSettings({ user }) {
       whatsapp_icon_url: '',
       maintenance_mode: false,
       maintenance_message: 'Estamos realizando mantenimiento. Por favor, inténtalo más tarde.',
-      maintenance_image_url: ''
+      maintenance_image_url: '',
+      shipping_mark_auto_assign_enabled: false,
+      shipping_mark_auto_assign_prefix: 'TLEC-',
+      shipping_mark_auto_assign_length: 6,
+      shipping_mark_auto_assign_chars: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
    });
 
   // Privacy Config
@@ -1020,15 +1025,17 @@ export default function AdminSettings({ user }) {
               </div>
 
               <div className="space-y-2">
-                 <Label>Prefijo de Shipping Mark</Label>
-                 <Input
-                   value={appConfig.shipping_mark_prefix}
-                   onChange={(e) => setAppConfig({ ...appConfig, shipping_mark_prefix: e.target.value })}
-                   placeholder="TLEC-"
-                 />
-               </div>
+                <Label>Prefijo de Shipping Mark</Label>
+                <Input
+                  value={appConfig.shipping_mark_prefix}
+                  onChange={(e) => setAppConfig({ ...appConfig, shipping_mark_prefix: e.target.value })}
+                  placeholder="TLEC-"
+                />
+              </div>
 
-               {/* Chatbot Configuration */}
+              <ShippingMarkAutomationSettings appConfig={appConfig} setAppConfig={setAppConfig} />
+
+              {/* Chatbot Configuration */}
                <div className="mt-8 p-6 bg-indigo-50 rounded-xl border border-indigo-200 space-y-4">
                  <div className="flex items-center justify-between">
                    <div>
