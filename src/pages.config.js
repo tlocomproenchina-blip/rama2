@@ -66,13 +66,10 @@ import AdminMarketing from './pages/AdminMarketing';
 import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
-import AdminPermissions from './pages/AdminPermissions';
 import AdminPromotions from './pages/AdminPromotions';
 import AdminProviderPayments from './pages/AdminProviderPayments';
 import AdminProviders from './pages/AdminProviders';
 import AdminReferrals from './pages/AdminReferrals';
-import AdminReports from './pages/AdminReports';
-import AdminRoles from './pages/AdminRoles';
 import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
@@ -126,13 +123,10 @@ export const PAGES = {
     "AdminPackages": AdminPackages,
     "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPayments": AdminPayments,
-    "AdminPermissions": AdminPermissions,
     "AdminPromotions": AdminPromotions,
     "AdminProviderPayments": AdminProviderPayments,
     "AdminProviders": AdminProviders,
     "AdminReferrals": AdminReferrals,
-    "AdminReports": AdminReports,
-    "AdminRoles": AdminRoles,
     "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,

@@ -74,13 +74,11 @@ export const adminMenuItems = [
   { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
   { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
-  { name: 'Administradores', page: 'AdminPermissions', icon: Shield },
-  { name: 'Gestión de Roles', page: 'AdminRoles', icon: Shield },
   { name: 'Configuración', page: 'AdminSettings', icon: Settings },
 ];
 
 export const adminGroups = [
-  { label: 'PRINCIPAL', items: ['AdminDashboard', 'AdminReports', 'ClientAnalytics'] },
+  { label: 'PRINCIPAL', items: ['AdminDashboard', 'ClientAnalytics'] },
   { label: 'OPERACIONES', items: ['AdminPackages', 'AdminConsolidate', 'AdminShipmentApprovals'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAssistedPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders'] },
@@ -88,7 +86,7 @@ export const adminGroups = [
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['ShipmentTracking', 'ShippingCalculator', 'AdminInsured'] },
   { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminFAQ'] },
-  { label: 'GESTIÓN', items: ['AdminClients', 'AdminKnowledgeBase', 'AdminDelete', 'AdminPermissions', 'AdminRoles', 'AdminSettings'] },
+  { label: 'GESTIÓN', items: ['AdminClients', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
 
 export const clientGroups = [
