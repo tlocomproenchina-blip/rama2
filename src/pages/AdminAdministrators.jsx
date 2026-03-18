@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Loader2, ShieldCheck, UserMinus, UserPlus, Search, Briefcase } from 'lucide-react';
+import { Loader2, ShieldCheck, UserMinus, UserPlus, Search, Briefcase, Users, KeyRound, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminAdministrators({ user }) {
@@ -35,6 +35,12 @@ export default function AdminAdministrators({ user }) {
     const q = search.toLowerCase();
     return !q || admin.email?.toLowerCase().includes(q) || admin.full_name?.toLowerCase().includes(q);
   }), [admins, search]);
+
+  const stats = useMemo(() => ({
+    total: admins.length,
+    conArea: admins.filter((item) => !!item.custom_role).length,
+    sinArea: admins.filter((item) => !item.custom_role).length,
+  }), [admins]);
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -71,46 +77,101 @@ export default function AdminAdministrators({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Administradores</h1>
-          <p className="text-slate-500">Gestiona administradores; los roles por área se asignan desde el módulo de Roles.</p>
+    <div className="space-y-8 max-w-6xl mx-auto">
+      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-6 text-white shadow-xl md:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
+              <KeyRound className="h-3.5 w-3.5" />
+              Acceso administrativo
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Administradores</h1>
+            <p className="max-w-2xl text-sm text-slate-200 md:text-base">
+              Gestiona administradores, revisa si tienen área asignada y accede al módulo de Roles para controlar permisos por área.
+            </p>
+          </div>
+          <Button onClick={() => setOpenInvite(true)} className="bg-white text-slate-900 hover:bg-slate-100">
+            <UserPlus className="mr-2 h-4 w-4" /> Invitar administrador
+          </Button>
         </div>
-        <Button onClick={() => setOpenInvite(true)} className="bg-blue-600 hover:bg-blue-700">
-          <UserPlus className="mr-2 h-4 w-4" /> Invitar administrador
-        </Button>
       </div>
 
-      <Card className="border-0 shadow-md">
-        <CardContent className="p-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Total admins</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p>
+              </div>
+              <div className="rounded-2xl bg-blue-100 p-3 text-blue-700"><Users className="h-5 w-5" /></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Con área</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.conArea}</p>
+              </div>
+              <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><Briefcase className="h-5 w-5" /></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Sin área</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.sinArea}</p>
+              </div>
+              <div className="rounded-2xl bg-amber-100 p-3 text-amber-700"><ShieldCheck className="h-5 w-5" /></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl">Directorio de administradores</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre o email" className="pl-10" />
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {filteredAdmins.map((adminRecord) => (
-          <Card key={adminRecord.id} className="border-0 shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-3 text-base">
-                <span className="truncate">{adminRecord.full_name || adminRecord.email}</span>
-                <Badge className="bg-emerald-100 text-emerald-700">
-                  <ShieldCheck className="mr-1 h-3 w-3" /> Admin
-                </Badge>
+          <Card key={adminRecord.id} className="overflow-hidden border-0 shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl">
+            <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50/60 pb-4">
+              <CardTitle className="flex items-start justify-between gap-3 text-base">
+                <div className="min-w-0">
+                  <span className="block truncate text-slate-900">{adminRecord.full_name || adminRecord.email}</span>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge className="bg-emerald-100 text-emerald-700">
+                      <ShieldCheck className="mr-1 h-3 w-3" /> Admin
+                    </Badge>
+                    <Badge variant="outline" className="border-blue-200 text-blue-700">
+                      <Briefcase className="mr-1 h-3 w-3" />
+                      {adminRecord.custom_role || 'sin área'}
+                    </Badge>
+                  </div>
+                </div>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-slate-500 break-all">{adminRecord.email}</p>
-              <Badge variant="outline" className="text-blue-700 border-blue-200">
-                <Briefcase className="mr-1 h-3 w-3" />
-                {adminRecord.custom_role || 'sin área'}
-              </Badge>
+            <CardContent className="space-y-4 p-5">
+              <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
+                <div className="rounded-xl bg-white p-2 text-slate-500 shadow-sm"><Mail className="h-4 w-4" /></div>
+                <div className="min-w-0">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">Correo</p>
+                  <p className="text-sm text-slate-700 break-all">{adminRecord.email}</p>
+                </div>
+              </div>
               <Button
                 variant="outline"
-                className="w-full text-rose-600 hover:text-rose-700"
+                className="w-full border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                 onClick={() => handleDemote(adminRecord)}
                 disabled={processingId === adminRecord.id || adminRecord.email === user?.email}
               >
@@ -123,13 +184,16 @@ export default function AdminAdministrators({ user }) {
       </div>
 
       <Dialog open={openInvite} onOpenChange={setOpenInvite}>
-        <DialogContent>
+        <DialogContent className="max-w-md border-0 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Invitar administrador</DialogTitle>
+            <DialogTitle className="text-xl">Invitar administrador</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2 py-2">
+          <div className="space-y-3 py-2">
             <Label>Email</Label>
             <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="admin@empresa.com" />
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
+              El nuevo usuario recibirá una invitación con acceso administrativo.
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenInvite(false)}>Cancelar</Button>
