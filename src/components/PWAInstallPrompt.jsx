@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+const DISMISS_KEY = 'pwa_install_prompt_dismissed_at';
+const DISMISS_DAYS = 7;
+
+function wasDismissedRecently() {
+  const lastDismissed = Number(localStorage.getItem(DISMISS_KEY) || 0);
+  if (!lastDismissed) return false;
+  return Date.now() - lastDismissed < DISMISS_DAYS * 24 * 60 * 60 * 1000;
+}
+
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -9,111 +18,90 @@ export default function PWAInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // Detectar iOS
-    const iOS = () => {
-      return [
-        'iPad Simulator',
-        'iPhone Simulator',
-        'iPod Simulator',
-        'iPad',
-        'iPhone',
-        'iPod'
-      ].includes(navigator.platform) || (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
-    };
-    setIsIOS(iOS());
+    const iOS = ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) || (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
-    // Detectar si ya está instalada
-    if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true) {
-      setIsInstalled(true);
-      return;
-    }
+    setIsIOS(iOS);
+    setIsInstalled(standalone);
 
-    // Evento para capturar el prompt de instalación
+    if (standalone || wasDismissedRecently()) return;
+
+    const iosTimer = iOS ? window.setTimeout(() => setShowPrompt(true), 3500) : null;
+
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
+      if (wasDismissedRecently()) return;
       setDeferredPrompt(e);
       setShowPrompt(true);
     };
 
-    // Evento cuando la app se instala
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setShowPrompt(false);
       setDeferredPrompt(null);
+      localStorage.removeItem(DISMISS_KEY);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
+      if (iosTimer) window.clearTimeout(iosTimer);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
-  const handleInstallClick = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('Usuario aceptó la instalación');
-        }
-        setDeferredPrompt(null);
-        setShowPrompt(false);
-      });
-    }
-  };
-
-  const handleDismiss = () => {
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    await deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
     setShowPrompt(false);
   };
 
-  if (isInstalled) {
-    return null;
-  }
+  const handleDismiss = () => {
+    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    setShowPrompt(false);
+  };
+
+  if (isInstalled || !showPrompt) return null;
 
   if (isIOS) {
-    return showPrompt ? (
-      <div className="fixed bottom-20 right-6 z-40 bg-white p-4 rounded-lg shadow-xl border border-blue-200 max-w-xs animate-in slide-in-from-bottom-4">
+    return (
+      <div className="fixed inset-x-4 bottom-24 z-40 rounded-2xl border border-blue-200 bg-white p-4 shadow-xl lg:left-auto lg:right-6 lg:max-w-xs" style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            <p className="text-sm text-slate-700 font-medium">Instalar app</p>
-            <p className="text-xs text-slate-600 mt-1">
-              Toca <Download className="inline h-3 w-3" /> Compartir, luego "Añadir a pantalla de inicio"
+            <p className="text-sm font-medium text-slate-900">Instalar app</p>
+            <p className="mt-1 text-xs text-slate-600">
+              Toca <Download className="inline h-3 w-3" /> Compartir y luego <strong>Añadir a pantalla de inicio</strong>.
             </p>
           </div>
-          <button
-            onClick={handleDismiss}
-            className="text-slate-400 hover:text-slate-600 flex-shrink-0"
-          >
+          <button onClick={handleDismiss} className="text-slate-400 hover:text-slate-600 flex-shrink-0">
             <X className="h-4 w-4" />
           </button>
         </div>
       </div>
-    ) : null;
+    );
   }
 
-  return showPrompt && deferredPrompt ? (
-    <div className="fixed bottom-20 right-6 z-40 bg-white p-4 rounded-lg shadow-xl border border-blue-200 max-w-xs animate-in slide-in-from-bottom-4">
-      <div className="flex items-start justify-between gap-3 mb-3">
+  if (!deferredPrompt) return null;
+
+  return (
+    <div className="fixed inset-x-4 bottom-24 z-40 rounded-2xl border border-blue-200 bg-white p-4 shadow-xl lg:left-auto lg:right-6 lg:max-w-xs" style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-slate-900">Instalar TLEC Cargo</p>
-          <p className="text-xs text-slate-600 mt-1">Accede a tu cuenta desde cualquier lugar</p>
+          <p className="mt-1 text-xs text-slate-600">Abre más rápido y úsala como app en tu teléfono.</p>
         </div>
-        <button
-          onClick={handleDismiss}
-          className="text-slate-400 hover:text-slate-600 flex-shrink-0"
-        >
+        <button onClick={handleDismiss} className="text-slate-400 hover:text-slate-600 flex-shrink-0">
           <X className="h-4 w-4" />
         </button>
       </div>
-      <Button
-        onClick={handleInstallClick}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
-      >
-        <Download className="h-4 w-4 mr-2" />
+      <Button onClick={handleInstallClick} className="w-full bg-blue-600 text-sm text-white hover:bg-blue-700">
+        <Download className="mr-2 h-4 w-4" />
         Instalar
       </Button>
     </div>
-  ) : null;
+  );
 }
