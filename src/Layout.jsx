@@ -87,7 +87,7 @@ export default function Layout({ children, currentPageName }) {
     } catch {}
   };
 
-  const getTabKeyForPage = (pageName) => {
+  function getTabKeyForPage(pageName) {
     if (!pageName) return null;
     const mapUser = {
       home: ['ClientPortal', 'Home', 'Dashboard'],
@@ -106,7 +106,7 @@ export default function Layout({ children, currentPageName }) {
       if (pages.includes(pageName)) return key;
     }
     return null;
-  };
+  }
 
   const goToTab = (key) => {
     const defaults = (user?.role === 'admin') ? adminTabDefaults : userTabDefaults;
