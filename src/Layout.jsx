@@ -283,6 +283,10 @@ export default function Layout({ children, currentPageName }) {
         base44.functions.invoke('createStripeCustomer', {});
       }
 
+      if (currentUser?.role === 'user' && currentUser?.profile_completed && !currentUser?.shipping_mark) {
+        base44.functions.invoke('generateShippingMark', {});
+      }
+
       // Block access for inactive clients
       if (currentUser.role === 'user' && currentUser.is_active === false) {
         navigate(createPageUrl('AccountDisabled'));
@@ -381,12 +385,20 @@ export default function Layout({ children, currentPageName }) {
         profile_completed: true
       });
       setShowProfile(false);
-      const updatedUser = { ...user, ...profileData, profile_completed: true };
+
+      const shippingMarkResponse = await base44.functions.invoke('generateShippingMark', {});
+      const assignedShippingMark = shippingMarkResponse?.data?.shipping_mark;
+      const updatedUser = {
+        ...user,
+        ...profileData,
+        profile_completed: true,
+        ...(assignedShippingMark ? { shipping_mark: assignedShippingMark } : {})
+      };
       setUser(updatedUser);
 
       notifyAdmins({
         subject: '👤 Nuevo usuario registrado',
-        body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\nRevisa el Shipping Mark según la configuración actual del sistema.`,
+        body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\n${assignedShippingMark ? `Shipping Mark asignado automáticamente: ${assignedShippingMark}` : 'Revisa el Shipping Mark según la configuración actual del sistema.'}`,
         message: `${profileData.first_name} ${profileData.last_name} (${user.email}) completó su registro`,
         type: 'general',
         icon: 'alert'
