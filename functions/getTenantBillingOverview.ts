@@ -204,7 +204,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    const plans = await base44.asServiceRole.entities.SubscriptionPlan.list('display_order', 50);
+    const allowedPlanCodes = defaults.map((item) => item.plan_code);
+    const allPlans = await base44.asServiceRole.entities.SubscriptionPlan.list('display_order', 50);
+    const plans = (allPlans || [])
+      .filter((item) => allowedPlanCodes.includes(item.plan_code))
+      .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
     const tenantSubscriptions = await base44.asServiceRole.entities.TenantSubscription.filter({ tenant_id: tenantId }, '-updated_date', 20);
     const currentSubscription = (tenantSubscriptions || []).find((item) => ['trialing', 'active', 'past_due', 'incomplete'].includes(item.status)) || tenantSubscriptions?.[0] || null;
     const hadTrial = (tenantSubscriptions || []).some((item) => item.plan_code === 'free_trial_14d');

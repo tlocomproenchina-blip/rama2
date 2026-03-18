@@ -16,10 +16,11 @@ Deno.serve(async (req) => {
     const tenantId = resolveTenantId(user, payload);
 
     const plans = await base44.asServiceRole.entities.SubscriptionPlan.filter({ plan_code: 'free_trial_14d' }, '-updated_date', 1);
-    const trialPlan = plans?.[0];
-    if (!trialPlan) {
-      return Response.json({ error: 'Trial plan not found' }, { status: 404 });
-    }
+    const trialPlan = plans?.[0] || {
+      plan_code: 'free_trial_14d',
+      name: 'Prueba gratis 14 días',
+      trial_days: 14,
+    };
 
     const existingSubs = await base44.asServiceRole.entities.TenantSubscription.filter({ tenant_id: tenantId }, '-updated_date', 20);
     const hadTrial = (existingSubs || []).some((item) => item.plan_code === 'free_trial_14d');
