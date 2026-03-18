@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 
 
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 
 // Lazy loaded non-critical components
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
@@ -26,7 +27,6 @@ const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
-const GlobalErrorListener = lazy(() => import('@/components/common/GlobalErrorListener'));
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -522,7 +522,7 @@ export default function Layout({ children, currentPageName }) {
       
       
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
-      <Suspense fallback={null}><GlobalErrorListener /></Suspense>
+      <GlobalErrorListener />
       {user && (
         <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
       )}
