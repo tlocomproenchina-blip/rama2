@@ -234,7 +234,7 @@ export default function Layout({ children, currentPageName }) {
   //   } catch {}
   // }, [location.pathname, location.key]);
 
-  const loadConfig = useCallback(async () => {
+  async function loadConfig() {
     try {
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
       if (configs.length > 0) {
@@ -253,9 +253,9 @@ export default function Layout({ children, currentPageName }) {
     } catch (error) {
       console.error('Error loading config:', error);
     }
-  }, []);
+  }
 
-  const loadUser = useCallback(async () => {
+  async function loadUser() {
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
@@ -376,12 +376,12 @@ export default function Layout({ children, currentPageName }) {
       base44.auth.redirectToLogin();
       setLoading(false);
     }
-  }, [currentPageName, navigate]);
+  }
 
   useEffect(() => {
     loadUser();
     loadConfig();
-  }, [loadUser, loadConfig]);
+  }, [currentPageName, navigate]);
 
   const handleContractAccept = useCallback(async () => {
     await base44.auth.updateMe({
