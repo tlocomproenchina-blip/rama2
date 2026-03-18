@@ -33,29 +33,33 @@ import { cacheManager } from '@/components/CacheManager';
 import OptimizedImage from '@/components/OptimizedImage';
 import useAttentionFlags from '@/components/notifications/useAttentionFlags';
 
-export default function Sidebar({ user, currentPage, isOpen, onClose }) {
-  const [config, setConfig] = useState(null);
+export default function Sidebar({ user, currentPage, isOpen, onClose, initialConfig }) {
+  const [config, setConfig] = useState(initialConfig || null);
 
 
   const loadConfig = useCallback(async () => {
     try {
-      // Check cache manager (1 hour TTL)
+      if (initialConfig) {
+        setConfig(initialConfig);
+        cacheManager.set('app_config', initialConfig, 3600000);
+        return;
+      }
+
       const cached = cacheManager.get('app_config');
       if (cached) {
         setConfig(cached);
         return;
       }
 
-      // Load from API only if cache expired
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
       if (configs.length > 0) {
         setConfig(configs[0]);
-        cacheManager.set('app_config', configs[0], 3600000); // 1 hour
+        cacheManager.set('app_config', configs[0], 3600000);
       }
     } catch (error) {
       console.error('Error loading config:', error);
     }
-  }, []);
+  }, [initialConfig]);
 
   useEffect(() => {
     loadConfig();

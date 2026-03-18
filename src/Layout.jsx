@@ -540,6 +540,7 @@ export default function Layout({ children, currentPageName }) {
             currentPage={currentPageName}
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
+            initialConfig={config}
           />
         </div>
       )}
