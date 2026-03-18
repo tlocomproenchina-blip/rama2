@@ -8,6 +8,7 @@ import { User, MapPin, Phone, Loader2, AlertCircle, DollarSign, Home } from 'luc
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ProfileSetupModal({ open, onComplete }) {
   const [formData, setFormData] = useState({
@@ -220,19 +221,18 @@ export default function ProfileSetupModal({ open, onComplete }) {
             <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
-            <select
-              id="state"
-              value={formData.state}
-              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-              className={`flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring ${errors.state ? 'border-red-300' : 'border-input'}`}
-            >
-              <option value="">Selecciona tu estado</option>
-              {stateConfigs.map((state) => (
-                <option key={state.state_code} value={state.state_code}>
-                  {state.state_name}
-                </option>
-              ))}
-            </select>
+            <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
+              <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
+                <SelectValue placeholder="Selecciona tu estado" />
+              </SelectTrigger>
+              <SelectContent>
+                {stateConfigs.map((state) => (
+                  <SelectItem key={state.state_code} value={state.state_code}>
+                    {state.state_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.state && (
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" /> {errors.state}

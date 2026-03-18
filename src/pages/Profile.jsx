@@ -439,7 +439,7 @@ export default function Profile({ user, refreshUser }) {
         </CardContent>
       </Card>
 
-      <DeleteAccountSection />
+      {user?.role === 'user' && <DeleteAccountSection user={user} />}
     </div>
   );
 }

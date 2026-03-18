@@ -16,14 +16,20 @@ import { toast } from 'sonner';
 
 const CONFIRM_TEXT = 'ELIMINAR';
 
-export default function DeleteAccountSection() {
+export default function DeleteAccountSection({ user }) {
   const [open, setOpen] = React.useState(false);
   const [confirmText, setConfirmText] = React.useState('');
+  const [confirmEmail, setConfirmEmail] = React.useState('');
   const [deleting, setDeleting] = React.useState(false);
 
   const handleDelete = async () => {
     if (confirmText !== CONFIRM_TEXT) {
       toast.error(`Escribe ${CONFIRM_TEXT} para confirmar`);
+      return;
+    }
+
+    if ((confirmEmail || '').trim().toLowerCase() !== (user?.email || '').toLowerCase()) {
+      toast.error('Confirma también tu correo para continuar');
       return;
     }
 
@@ -50,7 +56,7 @@ export default function DeleteAccountSection() {
             Eliminar cuenta
           </CardTitle>
           <CardDescription>
-            Esta acción eliminará tu cuenta de forma permanente y cerrará tu acceso.
+            Puedes eliminar tu cuenta directamente desde la app, sin soporte externo, con una confirmación final antes de completar el proceso.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -70,11 +76,20 @@ export default function DeleteAccountSection() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+              Se cerrará tu acceso y la acción es permanente. Para continuar, confirma la palabra y tu correo.
+            </div>
             <Input
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
               placeholder={`Escribe ${CONFIRM_TEXT}`}
+              disabled={deleting}
+            />
+            <Input
+              value={confirmEmail}
+              onChange={(e) => setConfirmEmail(e.target.value)}
+              placeholder={user?.email || 'Confirma tu correo'}
               disabled={deleting}
             />
           </div>
@@ -85,7 +100,7 @@ export default function DeleteAccountSection() {
             </Button>
             <Button
               onClick={handleDelete}
-              disabled={deleting || confirmText !== CONFIRM_TEXT}
+              disabled={deleting || confirmText !== CONFIRM_TEXT || (confirmEmail || '').trim().toLowerCase() !== (user?.email || '').toLowerCase()}
               className="bg-rose-600 hover:bg-rose-700"
             >
               {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
