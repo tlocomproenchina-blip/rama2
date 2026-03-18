@@ -397,10 +397,9 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
 
-  const handleContractReject = () => {
-    // Mantener al usuario en la misma página; solo cierra sesión de forma segura
+  const handleContractReject = useCallback(() => {
     base44.auth.logout();
-  };
+  }, []);
 
   const handleProfileComplete = useCallback(async (profileData) => {
     try {

@@ -232,9 +232,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
     return clientMenuItems;
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     base44.auth.logout();
-  };
+  }, []);
 
   return (
     <>
