@@ -70,7 +70,7 @@ const formatEstimatedDate = (value) => {
   }
 };
 
-export default function TrackingShipmentCard({ consolidation, user, onStatusChange, onEditDate, onDataChanged }) {
+export default function TrackingShipmentCard({ consolidation, user, isPending = false, hasFailedRequest = false, onStatusChange, onEditDate, onDataChanged }) {
   const [expanded, setExpanded] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(consolidation.payment_amount || '');
   const [paymentMethod, setPaymentMethod] = useState(consolidation.payment_method || '');
@@ -180,7 +180,7 @@ export default function TrackingShipmentCard({ consolidation, user, onStatusChan
   };
 
   return (
-    <Card className="overflow-hidden rounded-2xl border-0 shadow-md transition-shadow hover:shadow-lg">
+    <Card className={`overflow-hidden rounded-2xl border-0 shadow-md transition-all hover:shadow-lg ${isPending ? 'opacity-75' : ''} ${hasFailedRequest ? 'ring-1 ring-rose-200 bg-rose-50/30' : ''}`}>
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
@@ -199,6 +199,8 @@ export default function TrackingShipmentCard({ consolidation, user, onStatusChan
                 {statusLabels[consolidation.status] || consolidation.status}
               </Badge>
               <Badge className={paymentBadge.className}>{paymentBadge.label}</Badge>
+              {isPending && <Badge className="bg-slate-100 text-slate-700">Actualizando...</Badge>}
+              {hasFailedRequest && <Badge className="bg-rose-100 text-rose-700">Revisar cambio</Badge>}
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">

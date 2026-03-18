@@ -19,6 +19,8 @@ export default function ShipmentTracking({ user }) {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [editingDate, setEditingDate] = useState(null);
+  const [pendingConsolidationIds, setPendingConsolidationIds] = useState({});
+  const [failedConsolidationIds, setFailedConsolidationIds] = useState({});
   const [shippingDate, setShippingDate] = useState('');
   const [estimatedDate, setEstimatedDate] = useState('');
   const [savingDate, setSavingDate] = useState(false);
@@ -47,7 +49,11 @@ export default function ShipmentTracking({ user }) {
   };
 
   const handleStatusChange = async (consolidation, newStatus) => {
+    const previousConsolidations = consolidations;
     try {
+      setPendingConsolidationIds((prev) => ({ ...prev, [consolidation.id]: true }));
+      setFailedConsolidationIds((prev) => ({ ...prev, [consolidation.id]: false }));
+      setConsolidations((prev) => prev.map((item) => item.id === consolidation.id ? { ...item, status: newStatus } : item));
       await base44.entities.Consolidation.update(consolidation.id, { status: newStatus });
 
       for (const pkgId of consolidation.package_ids || []) {
@@ -60,10 +66,12 @@ export default function ShipmentTracking({ user }) {
       }
 
       toast.success('Estado actualizado correctamente');
-      loadData();
     } catch {
+      setConsolidations(previousConsolidations);
+      setFailedConsolidationIds((prev) => ({ ...prev, [consolidation.id]: true }));
       toast.error('Error al actualizar el estado');
     }
+    setPendingConsolidationIds((prev) => ({ ...prev, [consolidation.id]: false }));
   };
 
   const handleEditDate = (consolidation) => {
@@ -83,11 +91,16 @@ export default function ShipmentTracking({ user }) {
       return;
     }
 
+    const previousConsolidations = consolidations;
     try {
       setSavingDate(true);
       const updateData = {};
       if (shippingDate) updateData.shipping_date = shippingDate;
       if (estimatedDate) updateData.estimated_delivery = estimatedDate;
+
+      setPendingConsolidationIds((prev) => ({ ...prev, [editingDate.id]: true }));
+      setFailedConsolidationIds((prev) => ({ ...prev, [editingDate.id]: false }));
+      setConsolidations((prev) => prev.map((item) => item.id === editingDate.id ? { ...item, ...updateData } : item));
 
       await base44.entities.Consolidation.update(editingDate.id, updateData);
 
@@ -107,10 +120,12 @@ export default function ShipmentTracking({ user }) {
       setEditingDate(null);
       setShippingDate('');
       setEstimatedDate('');
-      loadData();
     } catch {
+      setConsolidations(previousConsolidations);
+      setFailedConsolidationIds((prev) => ({ ...prev, [editingDate.id]: true }));
       toast.error('Error al actualizar fechas');
     }
+    setPendingConsolidationIds((prev) => ({ ...prev, [editingDate.id]: false }));
     setSavingDate(false);
   };
 
@@ -202,6 +217,8 @@ export default function ShipmentTracking({ user }) {
               key={consolidation.id}
               consolidation={consolidation}
               user={user}
+              isPending={!!pendingConsolidationIds[consolidation.id]}
+              hasFailedRequest={!!failedConsolidationIds[consolidation.id]}
               onStatusChange={handleStatusChange}
               onEditDate={handleEditDate}
               onDataChanged={loadData}
