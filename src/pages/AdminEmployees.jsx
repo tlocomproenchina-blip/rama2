@@ -16,6 +16,9 @@ export default function AdminEmployees({ user }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [openInvite, setOpenInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteArea, setInviteArea] = useState('sin_area');
   const [editData, setEditData] = useState({
     first_name: '',
     last_name: '',
@@ -25,6 +28,7 @@ export default function AdminEmployees({ user }) {
     custom_role: 'sin_area',
   });
   const [saving, setSaving] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
   const loadEmployees = async () => {
     setLoading(true);
@@ -97,6 +101,33 @@ export default function AdminEmployees({ user }) {
     setSaving(false);
   };
 
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    try {
+      await base44.users.inviteUser(inviteEmail.trim(), 'admin');
+
+      if (inviteArea !== 'sin_area') {
+        try {
+          const rows = await base44.entities.User.filter({ email: inviteEmail.trim() }, '-created_date', 1);
+          const invitedUser = rows?.[0];
+          if (invitedUser?.id) {
+            await base44.entities.User.update(invitedUser.id, { custom_role: inviteArea });
+          }
+        } catch {}
+      }
+
+      toast.success('Invitación de empleado enviada');
+      setInviteEmail('');
+      setInviteArea('sin_area');
+      setOpenInvite(false);
+      loadEmployees();
+    } catch {
+      toast.error('No se pudo enviar la invitación');
+    }
+    setInviting(false);
+  };
+
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
@@ -104,15 +135,20 @@ export default function AdminEmployees({ user }) {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-6 text-white shadow-xl md:p-8">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
-            <UserCog className="h-3.5 w-3.5" />
-            Gestión de empleados internos
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
+              <UserCog className="h-3.5 w-3.5" />
+              Gestión de empleados internos
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Empleados</h1>
+            <p className="max-w-2xl text-sm text-slate-200 md:text-base">
+              Visualiza, busca y edita a los empleados del sistema, incluyendo la asignación directa del rol por área.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Empleados</h1>
-          <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-            Visualiza, busca y edita a los empleados del sistema, incluyendo la asignación directa del rol por área.
-          </p>
+          <Button onClick={() => setOpenInvite(true)} className="bg-white text-slate-900 hover:bg-slate-100">
+            Agregar empleado
+          </Button>
         </div>
       </div>
 
@@ -168,6 +204,46 @@ export default function AdminEmployees({ user }) {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={openInvite} onOpenChange={setOpenInvite}>
+        <DialogContent className="max-w-md border-0 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Agregar empleado</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="empleado@empresa.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>Rol por área</Label>
+              <Select value={inviteArea} onValueChange={setInviteArea}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona área" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sin_area">Sin área</SelectItem>
+                  {ROLE_OPTIONS.map((role) => (
+                    <SelectItem key={role} value={role}>{ROLE_PRESETS[role].role_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
+              El empleado será invitado con acceso administrativo y podrás seguir editándolo desde este módulo.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenInvite(false)}>Cancelar</Button>
+            <Button onClick={handleInvite} disabled={inviting} className="bg-blue-600 hover:bg-blue-700">
+              {inviting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Enviar invitación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editingEmployee} onOpenChange={() => setEditingEmployee(null)}>
         <DialogContent className="max-w-xl border-0 shadow-2xl">
