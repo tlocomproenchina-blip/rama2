@@ -231,7 +231,7 @@ export default function AdminRoles({ user }) {
           </div>
         </div>
 
-        <div className="grid min-w-0 gap-5 xl:grid-cols-[320px,minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-4 xl:grid-cols-[320px,minmax(0,1fr)]">
           <RoleAreaSidebar
             roleOptions={ROLE_OPTIONS}
             roleConfigs={roleConfigs}
