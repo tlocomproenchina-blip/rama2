@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 
 export default function useWarehouseAccess(user, pageName) {
   const [loading, setLoading] = useState(true);
@@ -17,7 +18,7 @@ export default function useWarehouseAccess(user, pageName) {
         return;
       }
 
-      if (user.role === 'admin' || ['warehouse', 'operations_manager'].includes(user.custom_role)) {
+      if (user.role === 'admin' && !user.custom_role) {
         if (active) {
           setAllowed(true);
           setLoading(false);
@@ -35,11 +36,12 @@ export default function useWarehouseAccess(user, pageName) {
 
       try {
         const configs = await base44.entities.RoleConfig.filter({ role_code: user.custom_role, is_active: true }, '-updated_date', 1);
-        const roleConfig = configs?.[0];
+        const roleConfig = configs?.[0] || getDefaultRoleConfig(user.custom_role);
         const visiblePages = roleConfig?.visible_pages || [];
         if (active) setAllowed(visiblePages.includes(pageName));
       } catch {
-        if (active) setAllowed(false);
+        const fallback = getDefaultRoleConfig(user.custom_role);
+        if (active) setAllowed((fallback?.visible_pages || []).includes(pageName));
       }
 
       if (active) setLoading(false);

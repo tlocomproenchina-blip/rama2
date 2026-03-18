@@ -12,9 +12,11 @@ import {
   clientGroups,
   clientMenuItems,
 } from '@/components/sidebar/sidebarConfig';
+import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose, initialConfig }) {
   const [config, setConfig] = useState(initialConfig || null);
+  const [roleConfig, setRoleConfig] = useState(null);
 
 
   const loadConfig = useCallback(async () => {
@@ -45,6 +47,24 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
     loadConfig();
   }, [loadConfig]);
 
+  useEffect(() => {
+    let active = true;
+    const loadRoleConfig = async () => {
+      if (user?.role !== 'admin' || !user?.custom_role) {
+        if (active) setRoleConfig(null);
+        return;
+      }
+      try {
+        const rows = await base44.entities.RoleConfig.filter({ role_code: user.custom_role, is_active: true }, '-updated_date', 1);
+        if (active) setRoleConfig(rows?.[0] || getDefaultRoleConfig(user.custom_role));
+      } catch {
+        if (active) setRoleConfig(getDefaultRoleConfig(user.custom_role));
+      }
+    };
+    loadRoleConfig();
+    return () => { active = false; };
+  }, [user?.role, user?.custom_role]);
+
 
 
 
@@ -68,7 +88,19 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
   const badgeCount = 0;
 
 
-  const adminItemsByPage = useMemo(() => Object.fromEntries(adminMenuItems.map((item) => [item.page, item])), []);
+  const visibleAdminPages = useMemo(() => {
+    if (user?.role !== 'admin') return [];
+    if (!user?.custom_role) return adminMenuItems.map((item) => item.page);
+    return roleConfig?.visible_pages || [];
+  }, [user?.role, user?.custom_role, roleConfig]);
+
+  const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
+  const filteredAdminGroups = useMemo(() => adminGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((page) => visibleAdminPages.includes(page))
+  })).filter((group) => group.items.length > 0), [visibleAdminPages]);
+
+  const adminItemsByPage = useMemo(() => Object.fromEntries(filteredAdminMenuItems.map((item) => [item.page, item])), [filteredAdminMenuItems]);
   const clientItemsByPage = useMemo(() => Object.fromEntries(clientMenuItems.map((item) => [item.page, item])), []);
 
 
@@ -152,7 +184,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         {/* Navigation */}
         <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1">
           {isAdmin ? (
-            adminGroups.map((group) => (
+            filteredAdminGroups.map((group) => (
               <SidebarNavGroup
                 key={group.label}
                 label={group.label}
