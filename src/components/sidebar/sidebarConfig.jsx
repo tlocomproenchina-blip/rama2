@@ -70,6 +70,7 @@ export const adminMenuItems = [
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
   { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
   { name: 'Clientes', page: 'AdminClients', icon: Users },
+  { name: 'Empleados', page: 'AdminEmployees', icon: UserCheck },
   { name: 'Administradores', page: 'AdminAdministrators', icon: UserCheck },
   { name: 'Roles', page: 'AdminRoles', icon: Settings2 },
   { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
@@ -87,7 +88,7 @@ export const adminGroups = [
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['ShipmentTracking', 'ShippingCalculator', 'AdminInsured'] },
   { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminFAQ'] },
-  { label: 'GESTIÓN', items: ['AdminClients', 'AdminAdministrators', 'AdminRoles', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
+  { label: 'GESTIÓN', items: ['AdminClients', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
 
 export const clientGroups = [

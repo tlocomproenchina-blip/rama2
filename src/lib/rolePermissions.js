@@ -54,6 +54,7 @@ export const PAGE_LABELS = {
   AdminSupportTickets: 'Tickets Soporte',
   AdminFAQ: 'Gestionar FAQ',
   AdminClients: 'Clientes',
+  AdminEmployees: 'Empleados',
   AdminEmailCampaigns: 'Enviar Emails',
   AdminEmailTemplates: 'Plantillas Email',
   AdminPromotions: 'Promociones',

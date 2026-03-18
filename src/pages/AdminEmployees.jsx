@@ -1,0 +1,226 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { base44 } from '@/components/api/ApiQueueManager';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Briefcase, Loader2, Mail, Search, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { ROLE_OPTIONS, ROLE_PRESETS } from '@/lib/rolePermissions';
+
+export default function AdminEmployees({ user }) {
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [editData, setEditData] = useState({
+    first_name: '',
+    last_name: '',
+    whatsapp: '',
+    city: '',
+    address: '',
+    custom_role: 'sin_area',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const loadEmployees = async () => {
+    setLoading(true);
+    try {
+      const rows = await base44.entities.User.filter({ role: 'admin' }, '-created_date', 300);
+      setEmployees(rows || []);
+    } catch {
+      toast.error('No se pudieron cargar los empleados');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadEmployees(); }, []);
+
+  const filteredEmployees = useMemo(() => employees.filter((item) => {
+    const q = search.toLowerCase();
+    return !q || item.email?.toLowerCase().includes(q) || item.full_name?.toLowerCase().includes(q) || item.custom_role?.toLowerCase().includes(q) || item.city?.toLowerCase().includes(q);
+  }), [employees, search]);
+
+  const stats = useMemo(() => {
+    const base = {
+      total: employees.length,
+      sin_area: employees.filter((item) => !item.custom_role).length,
+    };
+
+    ROLE_OPTIONS.forEach((role) => {
+      base[role] = employees.filter((item) => item.custom_role === role).length;
+    });
+
+    return base;
+  }, [employees]);
+
+  const handleEdit = (employee) => {
+    setEditingEmployee(employee);
+    setEditData({
+      first_name: employee.first_name || '',
+      last_name: employee.last_name || '',
+      whatsapp: employee.whatsapp || '',
+      city: employee.city || '',
+      address: employee.address || '',
+      custom_role: employee.custom_role || 'sin_area',
+    });
+  };
+
+  const handleSave = async () => {
+    if (!editingEmployee) return;
+    if (editingEmployee.email === user?.email && editData.custom_role === 'sin_area') {
+      toast.error('No puedes dejar tu propia cuenta sin área aquí');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        first_name: editData.first_name,
+        last_name: editData.last_name,
+        whatsapp: editData.whatsapp,
+        city: editData.city,
+        address: editData.address,
+        custom_role: editData.custom_role === 'sin_area' ? null : editData.custom_role,
+      };
+
+      await base44.entities.User.update(editingEmployee.id, payload);
+      setEmployees((prev) => prev.map((item) => item.id === editingEmployee.id ? { ...item, ...payload } : item));
+      setEditingEmployee(null);
+      toast.success('Empleado actualizado');
+    } catch {
+      toast.error('No se pudo actualizar el empleado');
+    }
+    setSaving(false);
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  }
+
+  return (
+    <div className="space-y-8 max-w-7xl mx-auto">
+      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-6 text-white shadow-xl md:p-8">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
+            <UserCog className="h-3.5 w-3.5" />
+            Gestión de empleados internos
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">Empleados</h1>
+          <p className="max-w-2xl text-sm text-slate-200 md:text-base">
+            Visualiza, busca y edita a los empleados del sistema, incluyendo la asignación directa del rol por área.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Total</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p></CardContent></Card>
+        {ROLE_OPTIONS.slice(0, 2).map((role) => (
+          <Card key={role} className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">{ROLE_PRESETS[role].role_name}</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats[role]}</p></CardContent></Card>
+        ))}
+        <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Sin área</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.sin_area}</p></CardContent></Card>
+      </div>
+
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl"><Users className="h-5 w-5 text-blue-600" /> Directorio de empleados</CardTitle>
+          <CardDescription>Usa el buscador para encontrar y editar empleados rápidamente.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre, email, ciudad o área" className="pl-10" />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {filteredEmployees.map((employee) => (
+              <Card key={employee.id} className="border border-slate-100 bg-slate-50/60 shadow-sm transition-all hover:shadow-md">
+                <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-slate-800 truncate">{employee.full_name || employee.email}</h3>
+                      <Badge className="bg-emerald-100 text-emerald-700">
+                        <ShieldCheck className="mr-1 h-3 w-3" /> Admin
+                      </Badge>
+                      <Badge variant="outline" className="border-blue-200 text-blue-700">
+                        <Briefcase className="mr-1 h-3 w-3" />
+                        {employee.custom_role || 'sin área'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-start gap-3 rounded-xl bg-white p-3 shadow-sm">
+                      <Mail className="mt-0.5 h-4 w-4 text-slate-400" />
+                      <div className="min-w-0">
+                        <p className="text-xs uppercase tracking-wide text-slate-400">Correo</p>
+                        <p className="text-sm text-slate-700 break-all">{employee.email}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(employee)}>
+                    Editar empleado
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!editingEmployee} onOpenChange={() => setEditingEmployee(null)}>
+        <DialogContent className="max-w-xl border-0 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Editar empleado</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input value={editData.first_name} onChange={(e) => setEditData({ ...editData, first_name: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Apellido</Label>
+              <Input value={editData.last_name} onChange={(e) => setEditData({ ...editData, last_name: e.target.value })} />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>WhatsApp</Label>
+              <Input value={editData.whatsapp} onChange={(e) => setEditData({ ...editData, whatsapp: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Ciudad</Label>
+              <Input value={editData.city} onChange={(e) => setEditData({ ...editData, city: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Rol por área</Label>
+              <Select value={editData.custom_role} onValueChange={(value) => setEditData({ ...editData, custom_role: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona área" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sin_area">Sin área</SelectItem>
+                  {ROLE_OPTIONS.map((role) => (
+                    <SelectItem key={role} value={role}>{ROLE_PRESETS[role].role_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>Dirección</Label>
+              <Input value={editData.address} onChange={(e) => setEditData({ ...editData, address: e.target.value })} />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingEmployee(null)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
