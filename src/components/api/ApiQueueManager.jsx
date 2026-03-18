@@ -36,6 +36,8 @@ class ApiQueueManager {
     // Realtime + caché granular
     this.cacheDisabledFor = new Set();
     this.entitySubscriptions = new Map();
+    this.tenantScopedEntities = new Set(['Package', 'Invoice', 'ConsolidationRequest', 'AppConfig', 'User']);
+    this.tenantScopedEntities = new Set(['Package', 'Invoice', 'ConsolidationRequest', 'AppConfig', 'User']);
   }
 
   /**
