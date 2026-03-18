@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import PickingOrderList from '@/components/warehouse/PickingOrderList';
 import PickingPackagesTable from '@/components/warehouse/PickingPackagesTable';
-import BarcodeScannerControl from '@/components/warehouse/BarcodeScannerControl';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 
 export default function WarehousePickPackShip({ user }) {
@@ -17,7 +17,6 @@ export default function WarehousePickPackShip({ user }) {
   const [pickingData, setPickingData] = useState(null);
   const [destinationLocationId, setDestinationLocationId] = useState('');
   const [selectedPackageIds, setSelectedPackageIds] = useState([]);
-  const [scannedTracking, setScannedTracking] = useState('');
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [hasMoreRequests, setHasMoreRequests] = useState(false);
@@ -62,21 +61,24 @@ export default function WarehousePickPackShip({ user }) {
   const visiblePackages = useMemo(() => (pickingData?.packages || []).slice(0, packagesPage * packagesPageSize), [pickingData, packagesPage]);
   const selectedPackages = useMemo(() => (pickingData?.packages || []).filter((pkg) => selectedPackageIds.includes(pkg.id)), [pickingData, selectedPackageIds]);
 
-  const handleScanPackage = (nextTracking = scannedTracking) => {
-    const cleaned = (nextTracking || '').trim().toLowerCase();
-    if (!cleaned || !pickingData) return;
-
-    const packageIndex = (pickingData.packages || []).findIndex((pkg) => (pkg.tracking_number || '').trim().toLowerCase() === cleaned);
-    if (packageIndex === -1) {
-      toast.error('Ese tracking no pertenece a esta solicitud');
+  const handleScanPackage = (code) => {
+    if (!pickingData?.packages?.length) {
+      toast.error('Selecciona una solicitud primero');
       return;
     }
 
-    const match = pickingData.packages[packageIndex];
+    const normalizedCode = code.trim().toLowerCase();
+    const packageIndex = pickingData.packages.findIndex((pkg) => String(pkg.tracking_number || '').trim().toLowerCase() === normalizedCode);
+
+    if (packageIndex === -1) {
+      toast.error('Ese código no pertenece a la solicitud activa');
+      return;
+    }
+
+    const matchedPackage = pickingData.packages[packageIndex];
     setPackagesPage((prev) => Math.max(prev, Math.ceil((packageIndex + 1) / packagesPageSize)));
-    setSelectedPackageIds((prev) => prev.includes(match.id) ? prev : [...prev, match.id]);
-    setScannedTracking('');
-    toast.success(`Paquete ${match.tracking_number} seleccionado`);
+    setSelectedPackageIds((prev) => prev.includes(matchedPackage.id) ? prev : [...prev, matchedPackage.id]);
+    toast.success(`Paquete ${matchedPackage.tracking_number} seleccionado`);
   };
 
   const handleMoveSelected = async () => {
@@ -146,6 +148,14 @@ export default function WarehousePickPackShip({ user }) {
             <Card><CardContent className="p-10 text-center text-slate-500">Selecciona una solicitud para ver su picking list.</CardContent></Card>
           ) : (
             <>
+              <BarcodeScannerModule
+                title="Escaneo rápido para picking"
+                description="Escanea un tracking para marcarlo automáticamente dentro de la solicitud activa."
+                placeholder="Escanea el tracking a preparar"
+                actionLabel="Seleccionar paquete"
+                onDetected={handleScanPackage}
+              />
+
               <Card className="shadow-sm overflow-hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 min-w-0"><PackageCheck className="h-5 w-5 shrink-0" /> Resumen de preparación</CardTitle>
@@ -155,20 +165,6 @@ export default function WarehousePickPackShip({ user }) {
                   <div className="min-w-0"><p className="text-sm text-slate-500">Shipping mark</p><p className="font-medium text-slate-800 break-all">{pickingData.request.shipping_mark || '—'}</p></div>
                   <div><p className="text-sm text-slate-500">Paquetes</p><p className="font-medium text-slate-800">{pickingData.summary.package_count}</p></div>
                   <div><p className="text-sm text-slate-500">Ubicados</p><p className="font-medium text-slate-800">{pickingData.summary.located_count}</p></div>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-sm overflow-hidden">
-                <CardContent className="p-4">
-                  <BarcodeScannerControl
-                    value={scannedTracking}
-                    onChange={setScannedTracking}
-                    onSubmit={handleScanPackage}
-                    placeholder="Escanea tracking para seleccionar paquete"
-                    buttonLabel="Agregar"
-                    submitDisabled={processing}
-                    helperText="Cada lectura marca el paquete para moverlo o confirmar el packing más rápido."
-                  />
                 </CardContent>
               </Card>
 

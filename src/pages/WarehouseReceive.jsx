@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Package, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import ReceivePackagePanel from '@/components/warehouse/ReceivePackagePanel';
-import BarcodeScannerControl from '@/components/warehouse/BarcodeScannerControl';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 
 const emptyForm = {
@@ -46,12 +46,13 @@ export default function WarehouseReceive({ user }) {
     })();
   }, []);
 
-  const handleSearch = async (nextTracking = tracking) => {
-    const currentTracking = (nextTracking || '').trim();
-    if (!currentTracking) return;
+  const handleSearch = async (rawTracking = tracking) => {
+    const nextTracking = rawTracking.trim();
+    if (!nextTracking) return;
     try {
       setSearching(true);
-      const found = await base44.entities.Package.filter({ tracking_number: currentTracking }, '-created_date', 1);
+      setTracking(nextTracking);
+      const found = await base44.entities.Package.filter({ tracking_number: nextTracking }, '-created_date', 1);
       const nextPkg = found?.[0] || null;
       setPkg(nextPkg);
       if (!nextPkg) {
@@ -134,18 +135,21 @@ export default function WarehouseReceive({ user }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Buscar paquete</CardTitle>
         </CardHeader>
-        <CardContent>
-          <BarcodeScannerControl
-            value={tracking}
-            onChange={setTracking}
-            onSubmit={handleSearch}
-            placeholder="Escanea o escribe el tracking"
-            buttonLabel={searching ? 'Buscando...' : 'Buscar paquete'}
-            submitDisabled={searching || loadingLocations}
-            helperText="Compatible con cámara del dispositivo y lectoras USB que escriben en el campo."
-          />
+        <CardContent className="flex flex-col gap-3 md:flex-row">
+          <Input placeholder="Ingresa tracking number" value={tracking} onChange={(e) => setTracking(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
+          <Button onClick={handleSearch} disabled={searching || loadingLocations} className="bg-blue-600 hover:bg-blue-700">
+            {searching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />} Buscar
+          </Button>
         </CardContent>
       </Card>
+
+      <BarcodeScannerModule
+        title="Escaneo rápido de recepción"
+        description="Busca un tracking usando la cámara del dispositivo o una lectora de códigos de barras."
+        placeholder="Escanea el tracking del paquete"
+        actionLabel="Buscar tracking"
+        onDetected={(code) => handleSearch(code)}
+      />
 
       {loadingLocations && <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>}
 

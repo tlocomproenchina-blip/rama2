@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { 
   Package, 
   Search, 
@@ -33,7 +34,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import AdvancedSearch from '@/components/admin/AdvancedSearch';
 import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
-import BarcodeScannerControl from '@/components/warehouse/BarcodeScannerControl';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 export default function AdminPackages({ user }) {
@@ -353,6 +353,30 @@ export default function AdminPackages({ user }) {
     setTicketMessage('');
   };
 
+  const handleScanSearch = async (code) => {
+    const nextCode = code.trim();
+    if (!nextCode) return;
+
+    setSearch(nextCode);
+
+    if (packages.some((pkg) => String(pkg.tracking_number || '').trim() === nextCode)) {
+      toast.success('Tracking cargado en la búsqueda');
+      return;
+    }
+
+    try {
+      const found = await base44.entities.Package.filter({ tracking_number: nextCode }, '-created_date', 1);
+      if (found?.[0]) {
+        setPackages((prev) => [found[0], ...prev.filter((pkg) => pkg.id !== found[0].id)]);
+        toast.success('Paquete encontrado');
+      } else {
+        toast.error('No se encontró ese tracking');
+      }
+    } catch {
+      toast.error('No se pudo buscar el tracking escaneado');
+    }
+  };
+
   const confirmCreateTicket = async () => {
     if (!ticketModal) return;
     try {
@@ -606,16 +630,24 @@ export default function AdminPackages({ user }) {
         </Card>
       )}
 
-      {/* Barra de búsqueda superior */}
-      <BarcodeScannerControl
-        value={search}
-        onChange={setSearch}
-        onSubmit={(value) => setSearch((value || '').trim())}
-        placeholder="Busca o escanea tracking, shipping mark o email..."
-        buttonLabel="Filtrar"
-        helperText="Puedes usar la cámara o una lectora de códigos para ubicar paquetes más rápido."
-        className="mb-3"
+      <BarcodeScannerModule
+        title="Escaneo rápido de paquetes"
+        description="Busca un paquete por tracking usando cámara o lectora de códigos de barras."
+        placeholder="Escanea el tracking a buscar"
+        actionLabel="Buscar paquete"
+        onDetected={handleScanSearch}
       />
+
+      {/* Barra de búsqueda superior */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Input
+          placeholder="Búsqueda rápida por tracking, shipping mark o email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10 w-full h-11"
+        />
+      </div>
 
       {/* Resumen ventana 7 días (búsqueda por email o shipping mark) */}
       {simpleWindowSummary && (
