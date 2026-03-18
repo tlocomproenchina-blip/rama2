@@ -425,7 +425,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className={`min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden ${isAdminPanel ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
+    <div className={`min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
       <style>{`
         /* Respect safe areas */
         :root { 
@@ -497,7 +497,7 @@ export default function Layout({ children, currentPageName }) {
       )}
       
       {user && (
-        <div className={isAdminPanel ? 'lg:h-screen lg:overflow-y-auto' : ''}>
+        <div className={hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}>
           <Sidebar 
             user={user} 
             currentPage={currentPageName}
@@ -508,7 +508,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
       )}
 
-      <main className={`flex-1 min-h-screen flex flex-col ${isAdminPanel ? 'lg:h-screen lg:overflow-y-auto' : ''}`}>
+      <main className={`flex-1 min-h-screen flex flex-col ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}`}>
         {/* Mobile Header */}
         {user && (
         <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
