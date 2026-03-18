@@ -1024,15 +1024,6 @@ export default function AdminSettings({ user }) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Prefijo de Shipping Mark</Label>
-                <Input
-                  value={appConfig.shipping_mark_prefix}
-                  onChange={(e) => setAppConfig({ ...appConfig, shipping_mark_prefix: e.target.value })}
-                  placeholder="TLEC-"
-                />
-              </div>
-
               <ShippingMarkAutomationSettings appConfig={appConfig} setAppConfig={setAppConfig} />
 
               {/* Chatbot Configuration */}
