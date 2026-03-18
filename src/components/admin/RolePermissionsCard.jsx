@@ -18,8 +18,8 @@ export default function RolePermissionsCard({ roleName, description, roleCode, p
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3">
-        <div className="grid gap-2 sm:grid-cols-2">
+      <CardContent className="p-2 sm:p-3">
+        <div className="grid gap-1.5 sm:gap-2 sm:grid-cols-2">
           {pages.map((page) => {
             const checked = selectedPages.includes(page);
             return (
