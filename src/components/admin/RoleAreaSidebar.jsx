@@ -28,7 +28,7 @@ export default function RoleAreaSidebar({ roleOptions, roleConfigs, selectedRole
                   <p className="break-words text-sm font-medium leading-tight">{role?.role_name || roleCode}</p>
                   <p className="mt-1 break-words text-[11px] leading-tight text-slate-500">{role?.description || 'Sin descripción'}</p>
                 </div>
-                <Badge variant="outline" className={`shrink-0 self-start text-[11px] ${isActive ? 'border-blue-200 text-blue-700' : ''}`}>
+                <Badge variant="outline" className={`shrink-0 self-start justify-center text-center tabular-nums min-w-8 px-0 text-[11px] ${isActive ? 'border-blue-200 text-blue-700' : ''}`}>
                   {selectedCount}
                 </Badge>
               </div>
