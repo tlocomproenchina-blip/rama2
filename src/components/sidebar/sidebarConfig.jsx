@@ -111,5 +111,4 @@ export const accountingMenuItems = [
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
   { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle },
-  { name: 'Reportes', page: 'AdminReports', icon: BarChart3 },
 ];
