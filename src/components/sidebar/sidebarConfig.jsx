@@ -19,6 +19,8 @@ import {
   Wallet,
   Gift,
   ShieldCheck,
+  UserCheck,
+  Settings2,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -68,6 +70,8 @@ export const adminMenuItems = [
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
   { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
   { name: 'Clientes', page: 'AdminClients', icon: Users },
+  { name: 'Administradores', page: 'AdminAdministrators', icon: UserCheck },
+  { name: 'Roles', page: 'AdminRoles', icon: Settings2 },
   { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
   { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
@@ -83,7 +87,7 @@ export const adminGroups = [
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['ShipmentTracking', 'ShippingCalculator', 'AdminInsured'] },
   { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminFAQ'] },
-  { label: 'GESTIÓN', items: ['AdminClients', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
+  { label: 'GESTIÓN', items: ['AdminClients', 'AdminAdministrators', 'AdminRoles', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
 
 export const clientGroups = [
