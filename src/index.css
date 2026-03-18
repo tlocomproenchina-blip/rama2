@@ -97,12 +97,27 @@
     touch-action: manipulation;
   }
 
+  .relative > svg.absolute + input,
+  .relative > svg.absolute + textarea {
+    padding-left: 2.75rem !important;
+  }
+
+  .relative > svg.absolute {
+    pointer-events: none;
+    z-index: 1;
+  }
+
   @media (max-width: 640px) {
     button,
     [role="button"],
     a[role="button"] {
       min-height: 44px;
       min-width: 44px;
+    }
+
+    .relative > svg.absolute + input,
+    .relative > svg.absolute + textarea {
+      padding-left: 3rem !important;
     }
 
     .ql-toolbar button {
