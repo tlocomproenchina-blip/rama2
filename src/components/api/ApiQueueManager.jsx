@@ -540,6 +540,7 @@ class ApiQueueManager {
           return await base44Client.auth.me();
         }, 'HIGH', 'read', cacheKey);
 
+        this.cache.delete('auth:me:empty');
         this.saveToCache(cacheKey, result);
         return result;
       },
