@@ -11,10 +11,8 @@ import SidebarNavGroup from '@/components/sidebar/SidebarNavGroup';
 import {
   adminGroups,
   adminMenuItems,
-  accountingMenuItems,
   clientGroups,
   clientMenuItems,
-  employeeMenuItems,
 } from '@/components/sidebar/sidebarConfig';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose, initialConfig }) {
@@ -52,10 +50,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
 
 
-  const [roleConfig, setRoleConfig] = useState(null);
   const isAdmin = user?.role === 'admin';
-  const customRole = user?.custom_role;
-  const isClient = user?.role === 'user' && !customRole;
+  const isClient = user?.role === 'user';
   const [flags, markSeen] = useAttentionFlags({ user });
 
   const handleMenuClick = useCallback((page) => {
@@ -75,56 +71,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
   const badgeCount = 0;
 
 
-  const loadRoleConfig = useCallback(async () => {
-    try {
-      const configs = await base44.entities.RoleConfig.filter({ 
-        role_code: customRole,
-        is_active: true
-      });
-      if (configs.length > 0) {
-        setRoleConfig(configs[0]);
-      }
-    } catch (error) {
-      console.error('Error loading role config:', error);
-    }
-  }, [customRole]);
-
-  useEffect(() => {
-    if (customRole) {
-      loadRoleConfig();
-    }
-  }, [customRole, loadRoleConfig]);
-
   const adminItemsByPage = useMemo(() => Object.fromEntries(adminMenuItems.map((item) => [item.page, item])), []);
   const clientItemsByPage = useMemo(() => Object.fromEntries(clientMenuItems.map((item) => [item.page, item])), []);
 
-  const getMenuItems = () => {
-    if (isAdmin) return adminMenuItems;
-
-    // Avoid flicker: if user has a custom role but roleConfig not loaded yet, render nothing
-    if (customRole && !roleConfig) return [];
-
-    if (customRole && roleConfig) {
-      const visiblePages = roleConfig.visible_pages || [];
-
-      // Special handling for accounting role
-      if (customRole === 'accounting') {
-        return accountingMenuItems.filter(item => visiblePages.includes(item.page));
-      }
-
-      const allMenuItems = [...adminMenuItems, ...employeeMenuItems, ...clientMenuItems];
-      const seen = new Set();
-      return allMenuItems.filter(item => {
-        if (visiblePages.includes(item.page) && !seen.has(item.page)) {
-          seen.add(item.page);
-          return true;
-        }
-        return false;
-      });
-    }
-
-    return clientMenuItems;
-  };
 
   const handleLogout = useCallback(() => {
     base44.auth.logout();
@@ -195,11 +144,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
             <p className="text-xs text-slate-400 truncate">{user?.email}</p>
             <div className="mt-2 flex items-center gap-2">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-              isAdmin ? 'bg-amber-500/20 text-amber-400' :
-              customRole ? 'bg-blue-500/20 text-blue-400' :
-              'bg-emerald-500/20 text-emerald-400'}`
+              isAdmin ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`
               }>
-                {isAdmin ? 'Administrador' : roleConfig?.role_name || 'Cliente'}
+                {isAdmin ? 'Administrador' : 'Cliente'}
               </span>
             </div>
           </div>
@@ -207,66 +154,31 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
         {/* Navigation */}
         <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1">
-          {customRole && !roleConfig ? (
-            <div className="space-y-2 animate-pulse">
-              <div className="h-10 bg-slate-700/40 rounded-xl" />
-              <div className="h-10 bg-slate-700/40 rounded-xl" />
-              <div className="h-10 bg-slate-700/40 rounded-xl" />
-            </div>
+          {isAdmin ? (
+            adminGroups.map((group) => (
+              <SidebarNavGroup
+                key={group.label}
+                label={group.label}
+                pages={group.items}
+                itemsByPage={adminItemsByPage}
+                currentPage={currentPage}
+                flags={flags}
+                onItemClick={handleMenuClick}
+              />
+            ))
           ) : (
-              isAdmin ? (
-                adminGroups.map((group) => (
-                  <SidebarNavGroup
-                    key={group.label}
-                    label={group.label}
-                    pages={group.items}
-                    itemsByPage={adminItemsByPage}
-                    currentPage={currentPage}
-                    flags={flags}
-                    onItemClick={handleMenuClick}
-                  />
-                ))
-              ) : isClient ? (
-                clientGroups.map((group) => (
-                  <SidebarNavGroup
-                    key={group.label}
-                    label={group.label}
-                    pages={group.items}
-                    itemsByPage={clientItemsByPage}
-                    currentPage={currentPage}
-                    flags={flags}
-                    onItemClick={handleMenuClick}
-                  />
-                ))
-              ) : (
-                getMenuItems().map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentPage === item.page;
-
-
-
-                  return (
-                    <Link
-                      key={item.page}
-                      to={createPageUrl(item.page)}
-                      onClick={() => handleMenuClick(item.page)}
-                      className={`
-                        flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-                        ${isActive ?
-                      'bg-blue-600 text-white shadow-lg shadow-blue-600/30' :
-                      'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
-                      `
-                      }>
-                      <div className="flex items-center gap-3">
-                        <Icon className="h-5 w-5 flex-shrink-0" />
-                        <span className="font-medium">{item.name}</span>
-                      </div>
-
-                    </Link>
-                  );
-                })
-              )
-            )}
+            clientGroups.map((group) => (
+              <SidebarNavGroup
+                key={group.label}
+                label={group.label}
+                pages={group.items}
+                itemsByPage={clientItemsByPage}
+                currentPage={currentPage}
+                flags={flags}
+                onItemClick={handleMenuClick}
+              />
+            ))
+          )}
         </nav>
 
         {/* Logout */}

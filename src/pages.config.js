@@ -48,7 +48,6 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AccountDisabled from './pages/AccountDisabled';
-import AccountingDashboard from './pages/AccountingDashboard';
 import AdminAccountsPayable from './pages/AdminAccountsPayable';
 import AdminAssistedPayments from './pages/AdminAssistedPayments';
 import AdminBlog from './pages/AdminBlog';
@@ -79,7 +78,6 @@ import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
-import EmployeeDashboard from './pages/EmployeeDashboard';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
 import MyConsolidations from './pages/MyConsolidations';
@@ -105,7 +103,6 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "AccountDisabled": AccountDisabled,
-    "AccountingDashboard": AccountingDashboard,
     "AdminAccountsPayable": AdminAccountsPayable,
     "AdminAssistedPayments": AdminAssistedPayments,
     "AdminBlog": AdminBlog,
@@ -136,7 +133,6 @@ export const PAGES = {
     "BlogPost": BlogPost,
     "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
-    "EmployeeDashboard": EmployeeDashboard,
     "FAQ": FAQ,
     "Home": Home,
     "MyConsolidations": MyConsolidations,

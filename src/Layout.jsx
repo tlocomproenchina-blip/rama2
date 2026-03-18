@@ -297,33 +297,6 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      // Redirect custom role users to their dashboard (except when on Home)
-      if (currentUser.custom_role && (!currentPageName || currentPageName === 'Dashboard')) {
-        const roleConfigs = await base44.entities.RoleConfig.filter({ 
-          role_code: currentUser.custom_role,
-          is_active: true
-        });
-        
-        if (roleConfigs.length > 0) {
-          const visiblePages = roleConfigs[0].visible_pages || [];
-          
-          // Redirect to specialized dashboard for accounting role
-          if (currentUser.custom_role === 'accounting') {
-            navigate(createPageUrl('AccountingDashboard'));
-            setLoading(false);
-            return;
-          } else if (visiblePages.includes('AdminDashboard')) {
-            navigate(createPageUrl('AdminDashboard'));
-            setLoading(false);
-            return;
-          } else if (visiblePages.includes('EmployeeDashboard')) {
-            navigate(createPageUrl('EmployeeDashboard'));
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
       // Check contract and profile for regular users
       if (currentUser.role === 'user') {
         if (!currentUser.contract_accepted) {
