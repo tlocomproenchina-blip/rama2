@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/StatusBadge';
 
-export default function PickingPackagesTable({ packages, selectedPackageIds, onToggleAll, onToggleOne }) {
+export default function PickingPackagesTable({ packages, pendingPackageIds = {}, failedPackageIds = {}, selectedPackageIds, onToggleAll, onToggleOne }) {
   const allSelected = packages.length > 0 && selectedPackageIds.length === packages.length;
 
   return (
@@ -19,7 +19,7 @@ export default function PickingPackagesTable({ packages, selectedPackageIds, onT
             <span>Seleccionar todos</span>
           </div>
           {packages.map((pkg) => (
-            <div key={pkg.id} className="px-4 py-3">
+            <div key={pkg.id} className={`px-4 py-3 transition-all ${pendingPackageIds[pkg.id] ? 'opacity-70' : ''} ${failedPackageIds[pkg.id] ? 'bg-rose-50' : ''}`}>
               <div className="flex items-start gap-3">
                 <Checkbox checked={selectedPackageIds.includes(pkg.id)} onCheckedChange={(checked) => onToggleOne(pkg.id, checked)} />
                 <div className="min-w-0 flex-1 space-y-2">
@@ -55,7 +55,7 @@ export default function PickingPackagesTable({ packages, selectedPackageIds, onT
             </thead>
             <tbody>
               {packages.map((pkg) => (
-                <tr key={pkg.id} className="border-b last:border-b-0">
+                <tr key={pkg.id} className={`border-b last:border-b-0 transition-all ${pendingPackageIds[pkg.id] ? 'opacity-70' : ''} ${failedPackageIds[pkg.id] ? 'bg-rose-50' : ''}`}>
                   <td className="py-3 pr-3 pl-6"><Checkbox checked={selectedPackageIds.includes(pkg.id)} onCheckedChange={(checked) => onToggleOne(pkg.id, checked)} /></td>
                   <td className="py-3 pr-3">
                     <div className="font-medium text-slate-800">{pkg.tracking_number}</div>

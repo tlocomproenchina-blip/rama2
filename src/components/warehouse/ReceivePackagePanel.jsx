@@ -8,9 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Package, Sparkles } from 'lucide-react';
 
-export default function ReceivePackagePanel({ pkg, form, setForm, warehouses, locations, suggestedLocation, onSuggest, onSubmit, submitting }) {
+export default function ReceivePackagePanel({ pkg, form, setForm, warehouses, locations, suggestedLocation, onSuggest, onSubmit, submitting, failed = false }) {
   return (
-    <Card className="shadow-lg">
+    <Card className={`shadow-lg transition-all ${submitting ? 'opacity-80' : ''} ${failed ? 'border-rose-200 bg-rose-50/40' : ''}`}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> {pkg.tracking_number}</CardTitle>
       </CardHeader>

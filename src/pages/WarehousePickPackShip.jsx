@@ -19,6 +19,8 @@ export default function WarehousePickPackShip({ user }) {
   const [selectedPackageIds, setSelectedPackageIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [pendingPackageIds, setPendingPackageIds] = useState({});
+  const [failedPackageIds, setFailedPackageIds] = useState({});
   const [hasMoreRequests, setHasMoreRequests] = useState(false);
   const [loadingMoreRequests, setLoadingMoreRequests] = useState(false);
   const [packagesPage, setPackagesPage] = useState(1);
@@ -83,8 +85,22 @@ export default function WarehousePickPackShip({ user }) {
 
   const handleMoveSelected = async () => {
     if (!destinationLocationId || !selectedPackages.length) return;
+    const movedIds = Object.fromEntries(selectedPackages.map((pkg) => [pkg.id, true]));
+    const previousPickingData = pickingData;
+    const targetLocation = locations.find((location) => location.id === destinationLocationId);
     try {
       setProcessing(true);
+      setPendingPackageIds((prev) => ({ ...prev, ...movedIds }));
+      setFailedPackageIds({});
+      setPickingData((current) => current ? {
+        ...current,
+        packages: current.packages.map((pkg) => selectedPackageIds.includes(pkg.id) ? {
+          ...pkg,
+          warehouse_location_id: destinationLocationId,
+          warehouse_location_code: targetLocation?.code || pkg.warehouse_location_code,
+          warehouse_zone: targetLocation?.zone || pkg.warehouse_zone,
+        } : pkg),
+      } : current);
       await Promise.all(selectedPackages.map((pkg) => base44.functions.invoke('updatePackageLocationStatus', {
         package_id: pkg.id,
         target_location_id: destinationLocationId,
@@ -93,15 +109,26 @@ export default function WarehousePickPackShip({ user }) {
       toast.success('Paquetes movidos');
       await loadPicking(selectedRequestId);
     } catch {
+      setPickingData(previousPickingData);
+      setFailedPackageIds(movedIds);
       toast.error('No se pudieron mover los paquetes');
     }
+    setPendingPackageIds({});
     setProcessing(false);
   };
 
   const handleConfirmPacking = async () => {
     if (!selectedRequestId) return;
+    const allIds = Object.fromEntries((pickingData?.packages || []).map((pkg) => [pkg.id, true]));
+    const previousPickingData = pickingData;
     try {
       setProcessing(true);
+      setPendingPackageIds(allIds);
+      setFailedPackageIds({});
+      setPickingData((current) => current ? {
+        ...current,
+        packages: current.packages.map((pkg) => ({ ...pkg, status: 'consolidado' })),
+      } : current);
       await base44.functions.invoke('confirmPacking', {
         request_id: selectedRequestId,
         target_location_id: destinationLocationId || undefined,
@@ -109,8 +136,11 @@ export default function WarehousePickPackShip({ user }) {
       toast.success('Packing confirmado');
       await loadPicking(selectedRequestId);
     } catch {
+      setPickingData(previousPickingData);
+      setFailedPackageIds(allIds);
       toast.error('No se pudo confirmar el packing');
     }
+    setPendingPackageIds({});
     setProcessing(false);
   };
 
@@ -191,6 +221,8 @@ export default function WarehousePickPackShip({ user }) {
 
               <PickingPackagesTable
                 packages={visiblePackages}
+                pendingPackageIds={pendingPackageIds}
+                failedPackageIds={failedPackageIds}
                 selectedPackageIds={selectedPackageIds}
                 onToggleAll={(checked) => setSelectedPackageIds(checked ? visiblePackages.map((pkg) => pkg.id) : [])}
                 onToggleOne={(id, checked) => setSelectedPackageIds((prev) => checked ? [...prev, id] : prev.filter((item) => item !== id))}

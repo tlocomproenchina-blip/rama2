@@ -28,6 +28,7 @@ export default function WarehouseReceive({ user }) {
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [suggestedLocation, setSuggestedLocation] = useState(null);
+  const [receiveFailed, setReceiveFailed] = useState(false);
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseReceive');
 
   useEffect(() => {
@@ -93,8 +94,20 @@ export default function WarehouseReceive({ user }) {
 
   const handleReceive = async () => {
     if (!pkg?.id || !form.location_id) return;
+    const previousPkg = pkg;
+    const selectedLocation = locations.find((location) => location.id === form.location_id);
     try {
       setSubmitting(true);
+      setReceiveFailed(false);
+      setPkg((currentPkg) => currentPkg ? {
+        ...currentPkg,
+        status: 'recibido',
+        warehouse_id: form.warehouse_id,
+        warehouse_location_id: form.location_id,
+        warehouse_location_code: selectedLocation?.code || currentPkg.warehouse_location_code,
+        warehouse_location_name: selectedLocation?.name || currentPkg.warehouse_location_name,
+        reception_notes: form.reception_notes,
+      } : currentPkg);
       await base44.functions.invoke('assignPackageToLocation', {
         package_id: pkg.id,
         location_id: form.location_id,
@@ -111,6 +124,8 @@ export default function WarehouseReceive({ user }) {
       setForm({ ...emptyForm, warehouse_id: '' });
       setSuggestedLocation(null);
     } catch (error) {
+      setPkg(previousPkg);
+      setReceiveFailed(true);
       toast.error(error?.response?.data?.error || 'No se pudo recibir el paquete');
     }
     setSubmitting(false);
@@ -164,6 +179,7 @@ export default function WarehouseReceive({ user }) {
           onSuggest={handleSuggest}
           onSubmit={handleReceive}
           submitting={submitting}
+          failed={receiveFailed}
         />
       )}
     </div>
