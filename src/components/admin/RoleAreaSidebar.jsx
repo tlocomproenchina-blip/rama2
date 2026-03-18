@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 
 export default function RoleAreaSidebar({ roleOptions, roleConfigs, selectedRoleCode, onSelectRole }) {
   return (
-    <Card className="w-full min-w-0 border-0 shadow-lg">
-      <CardHeader className="pb-3 px-4 py-4">
+    <Card className="w-full min-w-0 overflow-hidden border-0 shadow-lg">
+      <CardHeader className="px-3 py-3 pb-2 sm:px-4 sm:py-4 sm:pb-3">
         <CardTitle className="text-base">Áreas</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2 px-3 pb-3 pt-0 sm:px-4">
+      <CardContent className="space-y-2 overflow-hidden px-2 pb-2 pt-0 sm:px-4 sm:pb-4">
         {roleOptions.map((roleCode) => {
           const role = roleConfigs[roleCode];
           const isActive = selectedRoleCode === roleCode;
