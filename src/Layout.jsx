@@ -44,6 +44,7 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
+  const hasDesktopSidebar = !!user;
   const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ'].includes(currentPageName);
 
   const applyTuning = (cfg) => {
