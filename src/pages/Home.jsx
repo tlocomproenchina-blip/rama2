@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 // Above-the-fold sections
 import HomeHeader from '@/components/home/HomeHeader';
 import Hero from '@/components/home/Hero';
+import FAQSection from '@/components/home/FAQSection';
 
 // Below-the-fold sections
 const Features = React.lazy(() => import('@/components/home/Features'));
@@ -16,7 +17,6 @@ const Process = React.lazy(() => import('@/components/home/Process'));
 const Services = React.lazy(() => import('@/components/home/Services'));
 const Pricing = React.lazy(() => import('@/components/home/Pricing'));
 const Testimonials = React.lazy(() => import('@/components/home/Testimonials'));
-const FAQSection = React.lazy(() => import('@/components/home/FAQSection'));
 const HomeFooter = React.lazy(() => import('@/components/home/HomeFooter'));
 
 export default function Home({ user }) {
