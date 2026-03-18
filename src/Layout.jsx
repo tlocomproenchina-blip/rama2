@@ -110,11 +110,6 @@ export default function Layout({ children, currentPageName }) {
     sessionStorage.setItem(storageKey, window.location.pathname + window.location.search);
   }, [currentPageName, location.key]);
 
-  useEffect(() => {
-    loadUser();
-    loadConfig();
-  }, [loadUser, loadConfig]);
-
   // Publicar métricas de cliente → RuntimeMetrics (muestreo para evitar exceso de escrituras)
   useEffect(() => {
     if (!user) return;
@@ -382,6 +377,11 @@ export default function Layout({ children, currentPageName }) {
       setLoading(false);
     }
   }, [currentPageName, navigate]);
+
+  useEffect(() => {
+    loadUser();
+    loadConfig();
+  }, [loadUser, loadConfig]);
 
   const handleContractAccept = useCallback(async () => {
     await base44.auth.updateMe({
