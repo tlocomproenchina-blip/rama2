@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Search, ShieldCheck, Briefcase, Save, Users, KeyRound, LayoutPanelTop } from 'lucide-react';
 import { toast } from 'sonner';
 import RolePermissionsCard from '@/components/admin/RolePermissionsCard';
+import RoleAreaSidebar from '@/components/admin/RoleAreaSidebar';
 import { ROLE_OPTIONS, ROLE_PRESETS, PAGE_LABELS } from '@/lib/rolePermissions';
 import { adminMenuItems } from '@/components/sidebar/sidebarConfig';
 
@@ -22,6 +23,7 @@ export default function AdminRoles({ user }) {
   const [search, setSearch] = useState('');
   const [processingUserId, setProcessingUserId] = useState(null);
   const [processingRoleCode, setProcessingRoleCode] = useState(null);
+  const [selectedRoleCode, setSelectedRoleCode] = useState(ROLE_OPTIONS[0]);
 
   const loadData = async () => {
     setLoading(true);
@@ -225,31 +227,40 @@ export default function AdminRoles({ user }) {
           <LayoutPanelTop className="h-5 w-5 text-blue-600" />
           <div>
             <h2 className="text-xl font-semibold text-slate-800">Permisos por área</h2>
-            <p className="text-sm text-slate-500">Activa o desactiva los módulos visibles para cada una de las áreas.</p>
+            <p className="text-sm text-slate-500">Toca un área en el panel lateral para desplegar y editar sus permisos.</p>
           </div>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-2">
-          {ROLE_OPTIONS.map((roleCode) => {
-            const config = roleConfigs[roleCode] || ROLE_PRESETS[roleCode];
-            return (
-              <div key={roleCode} className="space-y-3">
-                <RolePermissionsCard
-                  roleName={config.role_name}
-                  description={config.description}
-                  roleCode={roleCode}
-                  pages={PERMISSION_PAGES}
-                  pageLabels={PAGE_LABELS}
-                  selectedPages={config.visible_pages || []}
-                  onTogglePage={(page) => handleTogglePage(roleCode, page)}
-                />
-                <Button onClick={() => handleSavePermissions(roleCode)} disabled={processingRoleCode === roleCode} className="w-full bg-blue-600 hover:bg-blue-700">
-                  {processingRoleCode === roleCode ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Guardar permisos de {config.role_name}
-                </Button>
-              </div>
-            );
-          })}
+        <div className="grid gap-5 xl:grid-cols-[320px,minmax(0,1fr)]">
+          <RoleAreaSidebar
+            roleOptions={ROLE_OPTIONS}
+            roleConfigs={roleConfigs}
+            selectedRoleCode={selectedRoleCode}
+            onSelectRole={setSelectedRoleCode}
+          />
+
+          <div className="space-y-3">
+            {(() => {
+              const config = roleConfigs[selectedRoleCode] || ROLE_PRESETS[selectedRoleCode];
+              return (
+                <>
+                  <RolePermissionsCard
+                    roleName={config.role_name}
+                    description={config.description}
+                    roleCode={selectedRoleCode}
+                    pages={PERMISSION_PAGES}
+                    pageLabels={PAGE_LABELS}
+                    selectedPages={config.visible_pages || []}
+                    onTogglePage={(page) => handleTogglePage(selectedRoleCode, page)}
+                  />
+                  <Button onClick={() => handleSavePermissions(selectedRoleCode)} disabled={processingRoleCode === selectedRoleCode} className="w-full bg-blue-600 hover:bg-blue-700">
+                    {processingRoleCode === selectedRoleCode ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Guardar permisos de {config.role_name}
+                  </Button>
+                </>
+              );
+            })()}
+          </div>
         </div>
       </div>
     </div>
