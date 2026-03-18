@@ -64,9 +64,9 @@ export default function AdminPackages({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const loadPackages = useCallback(async (append = false) => {
+  const loadPackages = useCallback(async (append = false, skipOverride = 0) => {
     if (append) setLoadingMore(true); else setLoading(true);
-    const skip = append ? packages.length : 0;
+    const skip = append ? skipOverride : 0;
     const pkgs = await base44.entities.Package.list('-created_date', pageSize, skip);
     if (append) {
       setPackages(prev => [...prev, ...pkgs]);
@@ -75,7 +75,7 @@ export default function AdminPackages({ user }) {
     }
     setHasMore(pkgs.length === pageSize);
     if (append) setLoadingMore(false); else setLoading(false);
-  }, [packages.length]);
+  }, []);
 
   useEffect(() => {
     loadPackages(false);
@@ -930,7 +930,7 @@ export default function AdminPackages({ user }) {
         </Card>
 
         {hasMore && (
-          <Button variant="outline" className="w-full mt-4" onClick={() => loadPackages(true)} disabled={loadingMore}>
+          <Button variant="outline" className="w-full mt-4" onClick={() => loadPackages(true, packages.length)} disabled={loadingMore}>
             {loadingMore ? 'Cargando...' : 'Cargar más'}
           </Button>
         )}
