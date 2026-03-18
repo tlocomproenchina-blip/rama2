@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2 } from 'lucide-react';
 
-export default function WarehouseLocationList({ locations, onEdit, onDelete }) {
+export default function WarehouseLocationList({ locations, onEdit, onDelete, pendingIds = {}, failedIds = {}, pendingDeleteIds = {} }) {
   if (!locations.length) {
     return (
       <Card className="shadow-sm">
@@ -16,7 +16,10 @@ export default function WarehouseLocationList({ locations, onEdit, onDelete }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {locations.map((location) => (
-        <Card key={location.id} className="shadow-sm">
+        <Card
+          key={location.id}
+          className={`shadow-sm transition-all ${pendingIds[location.id] ? 'opacity-70' : ''} ${pendingDeleteIds[location.id] ? 'scale-[0.99] opacity-60' : ''} ${failedIds[location.id] ? 'border-rose-200 bg-rose-50/40' : ''}`}
+        >
           <CardContent className="p-5 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -54,10 +57,10 @@ export default function WarehouseLocationList({ locations, onEdit, onDelete }) {
             {location.notes && <p className="text-sm text-slate-500">{location.notes}</p>}
 
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => onEdit(location)} className="flex-1">
-                <Pencil className="h-4 w-4 mr-2" /> Editar
+              <Button variant="outline" size="sm" onClick={() => onEdit(location)} className="flex-1" disabled={pendingIds[location.id] || pendingDeleteIds[location.id]}>
+                <Pencil className="h-4 w-4 mr-2" /> {pendingIds[location.id] ? 'Guardando...' : 'Editar'}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => onDelete(location)} className="text-rose-600 border-rose-200 hover:text-rose-700">
+              <Button variant="outline" size="sm" onClick={() => onDelete(location)} className="text-rose-600 border-rose-200 hover:text-rose-700" disabled={pendingIds[location.id] || pendingDeleteIds[location.id]}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>

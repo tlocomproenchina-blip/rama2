@@ -18,6 +18,12 @@ export default function WarehouseLocations({ user }) {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pendingLocationIds, setPendingLocationIds] = useState({});
+  const [failedLocationIds, setFailedLocationIds] = useState({});
+  const [pendingDeleteLocationIds, setPendingDeleteLocationIds] = useState({});
+  const [pendingWarehouseIds, setPendingWarehouseIds] = useState({});
+  const [failedWarehouseIds, setFailedWarehouseIds] = useState({});
+  const [pendingDeleteWarehouseIds, setPendingDeleteWarehouseIds] = useState({});
   const [modalOpen, setModalOpen] = useState(false);
   const [warehouseModalOpen, setWarehouseModalOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
@@ -59,62 +65,125 @@ export default function WarehouseLocations({ user }) {
   }), [locations, search, warehouseFilter, zoneFilter, activeFilter]);
 
   const handleSave = async (payload) => {
+    const warehouseMeta = warehouses.find((warehouse) => warehouse.id === payload.warehouse_id);
+    const optimisticLocation = {
+      ...(editingLocation || {}),
+      ...payload,
+      warehouse_name: warehouseMeta?.name || editingLocation?.warehouse_name,
+      warehouse_city: warehouseMeta?.city || editingLocation?.warehouse_city,
+      warehouse_country: warehouseMeta?.country || editingLocation?.warehouse_country,
+    };
+
     try {
       setSaving(true);
-      if (editingLocation) {
-        await base44.functions.invoke('updateWarehouseLocation', { location_id: editingLocation.id, ...payload });
-        toast.success('Ubicación actualizada');
-      } else {
-        await base44.functions.invoke('createWarehouseLocation', payload);
-        toast.success('Ubicación creada');
-      }
       setModalOpen(false);
       setEditingLocation(null);
-      loadLocations();
-    } catch (error) {
-      toast.error(error?.response?.data?.error || 'No se pudo guardar la ubicación');
+
+      if (editingLocation) {
+        const previousLocations = locations;
+        setLocations((prev) => prev.map((location) => location.id === editingLocation.id ? { ...location, ...optimisticLocation } : location));
+        setPendingLocationIds((prev) => ({ ...prev, [editingLocation.id]: true }));
+        setFailedLocationIds((prev) => ({ ...prev, [editingLocation.id]: false }));
+        try {
+          await base44.functions.invoke('updateWarehouseLocation', { location_id: editingLocation.id, ...payload });
+          toast.success('Ubicación actualizada');
+        } catch (error) {
+          setLocations(previousLocations);
+          setFailedLocationIds((prev) => ({ ...prev, [editingLocation.id]: true }));
+          toast.error(error?.response?.data?.error || 'No se pudo guardar la ubicación');
+        } finally {
+          setPendingLocationIds((prev) => ({ ...prev, [editingLocation.id]: false }));
+        }
+      } else {
+        const tempId = `temp-location-${Date.now()}`;
+        setLocations((prev) => [{ id: tempId, ...optimisticLocation }, ...prev]);
+        setPendingLocationIds((prev) => ({ ...prev, [tempId]: true }));
+        try {
+          await base44.functions.invoke('createWarehouseLocation', payload);
+          toast.success('Ubicación creada');
+          await loadLocations();
+        } catch (error) {
+          setLocations((prev) => prev.filter((location) => location.id !== tempId));
+          toast.error(error?.response?.data?.error || 'No se pudo guardar la ubicación');
+        } finally {
+          setPendingLocationIds((prev) => ({ ...prev, [tempId]: false }));
+        }
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleDelete = async (location) => {
     if (!window.confirm(`¿Eliminar ${location.name}?`)) return;
     try {
+      setPendingDeleteLocationIds((prev) => ({ ...prev, [location.id]: true }));
+      setFailedLocationIds((prev) => ({ ...prev, [location.id]: false }));
       await base44.functions.invoke('deleteWarehouseLocation', { location_id: location.id });
+      setLocations((prev) => prev.filter((item) => item.id !== location.id));
       toast.success('Ubicación eliminada');
-      loadLocations();
     } catch (error) {
+      setFailedLocationIds((prev) => ({ ...prev, [location.id]: true }));
       toast.error(error?.response?.data?.error || 'No se pudo eliminar la ubicación');
+    } finally {
+      setPendingDeleteLocationIds((prev) => ({ ...prev, [location.id]: false }));
     }
   };
 
   const handleSaveWarehouse = async (payload) => {
     try {
       setSaving(true);
-      if (editingWarehouse) {
-        await base44.functions.invoke('updateWarehouse', { warehouse_id: editingWarehouse.id, ...payload });
-        toast.success('Almacén actualizado');
-      } else {
-        await base44.functions.invoke('createWarehouse', payload);
-        toast.success('Almacén creado');
-      }
       setWarehouseModalOpen(false);
       setEditingWarehouse(null);
-      loadLocations();
-    } catch (error) {
-      toast.error(error?.response?.data?.error || 'No se pudo guardar el almacén');
+
+      if (editingWarehouse) {
+        const previousWarehouses = warehouses;
+        setWarehouses((prev) => prev.map((warehouse) => warehouse.id === editingWarehouse.id ? { ...warehouse, ...payload } : warehouse));
+        setPendingWarehouseIds((prev) => ({ ...prev, [editingWarehouse.id]: true }));
+        setFailedWarehouseIds((prev) => ({ ...prev, [editingWarehouse.id]: false }));
+        try {
+          await base44.functions.invoke('updateWarehouse', { warehouse_id: editingWarehouse.id, ...payload });
+          toast.success('Almacén actualizado');
+        } catch (error) {
+          setWarehouses(previousWarehouses);
+          setFailedWarehouseIds((prev) => ({ ...prev, [editingWarehouse.id]: true }));
+          toast.error(error?.response?.data?.error || 'No se pudo guardar el almacén');
+        } finally {
+          setPendingWarehouseIds((prev) => ({ ...prev, [editingWarehouse.id]: false }));
+        }
+      } else {
+        const tempId = `temp-warehouse-${Date.now()}`;
+        setWarehouses((prev) => [{ id: tempId, ...payload }, ...prev]);
+        setPendingWarehouseIds((prev) => ({ ...prev, [tempId]: true }));
+        try {
+          await base44.functions.invoke('createWarehouse', payload);
+          toast.success('Almacén creado');
+          await loadLocations();
+        } catch (error) {
+          setWarehouses((prev) => prev.filter((warehouse) => warehouse.id !== tempId));
+          toast.error(error?.response?.data?.error || 'No se pudo guardar el almacén');
+        } finally {
+          setPendingWarehouseIds((prev) => ({ ...prev, [tempId]: false }));
+        }
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleDeleteWarehouse = async (warehouse) => {
     if (!window.confirm(`¿Eliminar ${warehouse.name}?`)) return;
     try {
+      setPendingDeleteWarehouseIds((prev) => ({ ...prev, [warehouse.id]: true }));
+      setFailedWarehouseIds((prev) => ({ ...prev, [warehouse.id]: false }));
       await base44.functions.invoke('deleteWarehouse', { warehouse_id: warehouse.id });
+      setWarehouses((prev) => prev.filter((item) => item.id !== warehouse.id));
       toast.success('Almacén eliminado');
-      loadLocations();
     } catch (error) {
+      setFailedWarehouseIds((prev) => ({ ...prev, [warehouse.id]: true }));
       toast.error(error?.response?.data?.error || 'No se pudo eliminar el almacén');
+    } finally {
+      setPendingDeleteWarehouseIds((prev) => ({ ...prev, [warehouse.id]: false }));
     }
   };
 
@@ -150,6 +219,9 @@ export default function WarehouseLocations({ user }) {
         <CardContent>
           <WarehouseList
             warehouses={warehouses}
+            pendingIds={pendingWarehouseIds}
+            failedIds={failedWarehouseIds}
+            pendingDeleteIds={pendingDeleteWarehouseIds}
             onEdit={(warehouse) => { setEditingWarehouse(warehouse); setWarehouseModalOpen(true); }}
             onDelete={handleDeleteWarehouse}
           />
@@ -199,6 +271,9 @@ export default function WarehouseLocations({ user }) {
         <>
           <WarehouseLocationList
             locations={filteredLocations}
+            pendingIds={pendingLocationIds}
+            failedIds={failedLocationIds}
+            pendingDeleteIds={pendingDeleteLocationIds}
             onEdit={(location) => { setEditingLocation(location); setModalOpen(true); }}
             onDelete={handleDelete}
           />
