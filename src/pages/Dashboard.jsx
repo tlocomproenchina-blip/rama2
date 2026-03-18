@@ -1,5 +1,5 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { base44 } from '@/api/base44Client';
+import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,36 +40,22 @@ export default function Dashboard({ user, refreshUser }) {
   const [loading, setLoading] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
 
-  useEffect(() => {
-    if (user && user.email) {
-      loadData();
-    }
-  }, [user?.email]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user || !user.email) return;
-    
+
     try {
-      // Load config first (cached, no rate limit issue)
-      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      setLoading(true);
+      const [configs, pkgs, cons, invs] = await Promise.all([
+        base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1),
+        base44.entities.Package.filter({ client_email: user.email }, '-updated_date', 100),
+        base44.entities.Consolidation.filter({ client_email: user.email }, '-updated_date', 50),
+        base44.entities.Invoice.filter({ client_email: user.email }, '-updated_date', 50)
+      ]);
+
       if (configs.length > 0) setConfig(configs[0]);
-      
-      setLoading(false); // Show UI immediately with config
-      
-      // Then load user-specific data in sequence with 2 minute delays to prevent rate limiting
-      await new Promise(resolve => setTimeout(resolve, 15000));
-      const pkgs = await base44.entities.Package.filter({ client_email: user.email });
-      setPackages(pkgs);
-      
-      await new Promise(resolve => setTimeout(resolve, 120000));
-      
-      const cons = await base44.entities.Consolidation.filter({ client_email: user.email });
-      setConsolidations(cons);
-      
-      await new Promise(resolve => setTimeout(resolve, 120000));
-      
-      const invs = await base44.entities.Invoice.filter({ client_email: user.email });
-      setInvoices(invs);
+      setPackages(pkgs || []);
+      setConsolidations(cons || []);
+      setInvoices(invs || []);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       if (error.message?.includes('Rate limit')) {
@@ -77,9 +63,15 @@ export default function Dashboard({ user, refreshUser }) {
       } else {
         toast.error('Error al cargar datos. Por favor recarga la página.');
       }
-      setLoading(false);
     }
-  };
+    setLoading(false);
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (user?.email) {
+      loadData();
+    }
+  }, [user?.email, loadData]);
 
   const copyShippingMark = () => {
     navigator.clipboard.writeText(user.shipping_mark);
@@ -93,7 +85,7 @@ export default function Dashboard({ user, refreshUser }) {
 
   const handleProfileUpdate = async () => {
     await refreshUser();
-    loadData();
+    await loadData();
   };
 
   const stats = {

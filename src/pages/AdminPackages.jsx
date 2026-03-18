@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,11 +64,7 @@ export default function AdminPackages({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  useEffect(() => {
-    loadPackages(false);
-  }, []);
-
-  const loadPackages = async (append = false) => {
+  const loadPackages = useCallback(async (append = false) => {
     if (append) setLoadingMore(true); else setLoading(true);
     const skip = append ? packages.length : 0;
     const pkgs = await base44.entities.Package.list('-created_date', pageSize, skip);
@@ -79,7 +75,11 @@ export default function AdminPackages({ user }) {
     }
     setHasMore(pkgs.length === pageSize);
     if (append) setLoadingMore(false); else setLoading(false);
-  };
+  }, [packages.length]);
+
+  useEffect(() => {
+    loadPackages(false);
+  }, [loadPackages]);
 
   const handleReceive = async () => {
     if (!receiveModal) return;
@@ -386,7 +386,7 @@ export default function AdminPackages({ user }) {
     setTicketProcessing(false);
   };
 
-  const filteredPackages = packages.filter(pkg => {
+  const filteredPackages = useMemo(() => packages.filter(pkg => {
     // Basic search
     const matchesSearch = 
       pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -424,7 +424,7 @@ export default function AdminPackages({ user }) {
     }
 
     return matchesSearch && matchesStatus && matchesReported;
-    });
+    }), [packages, search, statusFilter, reportedFilter, advancedFilters]);
 
     const simpleWindowSummary = (() => {
       if (!advancedFilters) return null;

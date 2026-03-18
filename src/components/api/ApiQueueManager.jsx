@@ -179,6 +179,17 @@ class ApiQueueManager {
     });
   }
 
+  invalidateEntityCache(entityName, methods = []) {
+    const targets = methods.length ? methods : ['list', 'filter', 'get', 'schema'];
+    Array.from(this.cache.keys())
+      .filter((key) => key.startsWith(`${entityName}:`) && targets.some((method) => key.startsWith(`${entityName}:${method}`)))
+      .forEach((key) => this.cache.delete(key));
+  }
+
+  invalidateAuthCache() {
+    ['auth:me', 'auth:isAuthenticated'].forEach((key) => this.cache.delete(key));
+  }
+
   /**
    * Añade operación a la cola
    */
@@ -358,10 +369,7 @@ class ApiQueueManager {
       },
 
       create: async (data) => {
-        // Invalida cache de list/filter
-        Array.from(this.cache.keys())
-          .filter(key => key.startsWith(`${entityName}:list`) || key.startsWith(`${entityName}:filter`))
-          .forEach(key => this.cache.delete(key));
+        this.invalidateEntityCache(entityName, ['list', 'filter']);
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].create(data);
@@ -369,10 +377,7 @@ class ApiQueueManager {
       },
 
       update: async (id, data) => {
-        // Invalida cache
-        Array.from(this.cache.keys())
-          .filter(key => key.includes(entityName))
-          .forEach(key => this.cache.delete(key));
+        this.invalidateEntityCache(entityName);
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].update(id, data);
@@ -380,10 +385,7 @@ class ApiQueueManager {
       },
 
       delete: async (id) => {
-        // Invalida cache
-        Array.from(this.cache.keys())
-          .filter(key => key.includes(entityName))
-          .forEach(key => this.cache.delete(key));
+        this.invalidateEntityCache(entityName);
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].delete(id);
@@ -391,10 +393,7 @@ class ApiQueueManager {
       },
 
       bulkCreate: async (dataArray) => {
-        // Invalida cache
-        Array.from(this.cache.keys())
-          .filter(key => key.startsWith(`${entityName}:list`) || key.startsWith(`${entityName}:filter`))
-          .forEach(key => this.cache.delete(key));
+        this.invalidateEntityCache(entityName, ['list', 'filter']);
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].bulkCreate(dataArray);
@@ -439,7 +438,7 @@ class ApiQueueManager {
       },
 
       updateMe: async (data) => {
-        this.cache.delete('auth:me');
+        this.invalidateAuthCache();
         
         return await this.enqueue(async () => {
           return await base44Client.auth.updateMe(data);
@@ -454,6 +453,7 @@ class ApiQueueManager {
 
       logout: (redirectUrl) => {
         this.cache.clear();
+        this.inflight.clear();
         return base44Client.auth.logout(redirectUrl);
       },
 

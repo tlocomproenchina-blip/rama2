@@ -1,6 +1,5 @@
 import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { base44 as base44Raw } from '@/api/base44Client';
 
 // Hook de indicadores de atención (sin contadores)
 // - Actualiza cada 10s
@@ -38,9 +37,9 @@ export default function useAttentionFlags({ user }) {
       try {
         let rows = [];
         if (w.query) {
-          rows = await base44Raw.entities[w.entity].filter(w.query, '-updated_date', 1);
+          rows = await base44.entities[w.entity].filter(w.query, '-updated_date', 1);
         } else {
-          rows = await base44Raw.entities[w.entity].list('-updated_date', 1);
+          rows = await base44.entities[w.entity].list('-updated_date', 1);
         }
         const latest = Array.isArray(rows) ? rows[0] : undefined;
         if (!latest) { next[w.key] = false; latestMap[w.key] = 0; return; }
@@ -70,10 +69,23 @@ export default function useAttentionFlags({ user }) {
   React.useEffect(() => {
     let mounted = true;
     const run = async () => { if (mounted) await poll(); };
+    const handleEntityEvent = (evt) => {
+      const entity = evt?.detail?.entity;
+      if (watches.some((watch) => watch.entity === entity)) {
+        run();
+      }
+    };
+
     run();
-    const id = setInterval(run, 10000); // 10s
-    return () => { mounted = false; clearInterval(id); };
-  }, [poll]);
+    const id = setInterval(run, 30000);
+    window.addEventListener('entity:event', handleEntityEvent);
+
+    return () => {
+      mounted = false;
+      clearInterval(id);
+      window.removeEventListener('entity:event', handleEntityEvent);
+    };
+  }, [poll, watches]);
 
   const markSeen = React.useCallback((pageKey) => {
     if (!pageKey) return;
