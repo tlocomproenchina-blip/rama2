@@ -182,15 +182,22 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
   const toggleCard = (key) => setOpenCards((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleStripeCheck = async () => {
+    setCheckingStripe(true);
+    setStripeCheckResult(null);
     try {
       const res = await base44.functions.invoke('getStripeConfig');
       if (res.status === 200 && res.data?.publishableKey) {
+        setStripeCheckResult({ type: 'success', message: 'Stripe está configurado correctamente.' });
         toast.success('Stripe está configurado correctamente');
       } else {
+        setStripeCheckResult({ type: 'error', message: 'Falta configurar la clave pública de Stripe.' });
         toast.error('Falta configurar la clave pública de Stripe');
       }
     } catch (_) {
+      setStripeCheckResult({ type: 'error', message: 'No se pudo verificar Stripe en este momento.' });
       toast.error('No se pudo verificar Stripe');
+    } finally {
+      setCheckingStripe(false);
     }
   };
 
