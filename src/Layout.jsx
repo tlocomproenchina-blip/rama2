@@ -598,11 +598,11 @@ export default function Layout({ children, currentPageName }) {
               <ErrorBoundary>
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div
-                    key={location.pathname}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                    key={location.pathname + location.search}
+                    initial={{ opacity: 0, x: 28 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
                   >
                     {React.cloneElement(children, { user, refreshUser: loadUser })}
                   </motion.div>

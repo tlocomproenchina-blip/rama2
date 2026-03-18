@@ -97,6 +97,20 @@
     touch-action: manipulation;
   }
 
+  @media (max-width: 640px) {
+    button,
+    [role="button"],
+    a[role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    .ql-toolbar button {
+      min-height: auto;
+      min-width: auto;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html:focus-within {
       scroll-behavior: auto;

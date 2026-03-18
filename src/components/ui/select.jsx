@@ -5,6 +5,7 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { BottomSheetPanel } from "@/components/ui/bottom-sheet"
 
 const Select = SelectPrimitive.Root
 
@@ -61,14 +62,15 @@ const SelectContent = React.forwardRef(({ className, children, position = "poppe
       )}
       position={position}
       {...props}>
-      <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden" />
-      <SelectScrollUpButton />
-      <SelectPrimitive.Viewport
-        className={cn("p-2 sm:p-1", position === "popper" &&
-          "sm:h-[var(--radix-select-trigger-height)] sm:w-full sm:min-w-[var(--radix-select-trigger-width)]")}>
-        {children}
-      </SelectPrimitive.Viewport>
-      <SelectScrollDownButton />
+      <BottomSheetPanel>
+        <SelectScrollUpButton />
+        <SelectPrimitive.Viewport
+          className={cn("p-2 sm:p-1", position === "popper" &&
+            "sm:h-[var(--radix-select-trigger-height)] sm:w-full sm:min-w-[var(--radix-select-trigger-width)]")}>
+          {children}
+        </SelectPrimitive.Viewport>
+        <SelectScrollDownButton />
+      </BottomSheetPanel>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ))

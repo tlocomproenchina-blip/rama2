@@ -22,7 +22,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
               to={createPageUrl(item.page)}
               onClick={() => onItemClick(item.page)}
               className={[
-                'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
+                'flex min-h-[52px] items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation',
                 isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
               ].join(' ')}
             >
