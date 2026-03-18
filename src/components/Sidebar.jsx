@@ -87,13 +87,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   const badgeCount = 0;
 
 
-  useEffect(() => {
-    if (customRole) {
-      loadRoleConfig();
-    }
-  }, [customRole]);
-
-  const loadRoleConfig = async () => {
+  const loadRoleConfig = useCallback(async () => {
     try {
       const configs = await base44.entities.RoleConfig.filter({ 
         role_code: customRole,
@@ -105,7 +99,13 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     } catch (error) {
       console.error('Error loading role config:', error);
     }
-  };
+  }, [customRole]);
+
+  useEffect(() => {
+    if (customRole) {
+      loadRoleConfig();
+    }
+  }, [customRole, loadRoleConfig]);
 
   const clientMenuItems = [
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
