@@ -50,7 +50,7 @@ export default function DeleteAccountSection() {
             Eliminar cuenta
           </CardTitle>
           <CardDescription>
-            Esta acción eliminará tu cuenta y tus datos relacionados de forma permanente.
+            Esta acción eliminará tu cuenta de forma permanente y cerrará tu acceso.
           </CardDescription>
         </CardHeader>
         <CardContent>
