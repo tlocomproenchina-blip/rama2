@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import { Package, LogOut, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
@@ -51,7 +49,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
 
   const isAdmin = user?.role === 'admin';
-  const isClient = user?.role === 'user';
   const [flags, markSeen] = useAttentionFlags({ user });
 
   const handleMenuClick = useCallback((page) => {
