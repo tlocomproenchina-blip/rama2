@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell, UserCheck, UserX, Wallet } from 'lucide-react';
+import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell, UserCheck, UserX } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import StatusBadge from '@/components/StatusBadge';
@@ -640,7 +640,7 @@ export default function AdminDashboard({ user }) {
 
 
       {/* Links Rápidos */}
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid md:grid-cols-3 gap-4">
         <Link to={createPageUrl('AdminPackages')}>
           <Card className="shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-blue-50 to-white">
             <CardContent className="p-6 text-center">
@@ -664,15 +664,6 @@ export default function AdminDashboard({ user }) {
             <CardContent className="p-6 text-center">
               <Users className="h-10 w-10 text-purple-600 mx-auto mb-3" />
               <p className="font-semibold text-slate-800">Ver Clientes</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to={createPageUrl('AdminBilling')}>
-          <Card className="shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-amber-50 to-white">
-            <CardContent className="p-6 text-center">
-              <Wallet className="h-10 w-10 text-amber-600 mx-auto mb-3" />
-              <p className="font-semibold text-slate-800">Suscripción SaaS</p>
             </CardContent>
           </Card>
         </Link>

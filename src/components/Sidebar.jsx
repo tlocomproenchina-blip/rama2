@@ -25,8 +25,7 @@ import {
   CheckCircle2,
   Mail,
   Wallet,
-  Gift,
-  Building2
+  Gift
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
@@ -159,13 +158,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
   { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
   { name: 'Clientes', page: 'AdminClients', icon: Users },
-  { name: 'Tenants', page: 'AdminTenants', icon: Building2 },
   { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
   { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
 { name: 'Administradores', page: 'AdminPermissions', icon: Shield },
   { name: 'Gestión de Roles', page: 'AdminRoles', icon: Shield },
-  { name: 'Suscripción SaaS', page: 'AdminBilling', icon: Wallet },
   { name: 'Configuración', page: 'AdminSettings', icon: Settings }];
 
 
@@ -178,7 +175,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
     { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog','AdminReferrals'] },
     { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
     { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
-    { label: 'GESTIÓN', items: ['AdminClients','AdminTenants','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminBilling','AdminSettings'] }
+    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
   ];
 
   const clientGroups = [

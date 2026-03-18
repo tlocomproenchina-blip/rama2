@@ -36,8 +36,6 @@ class ApiQueueManager {
     // Realtime + caché granular
     this.cacheDisabledFor = new Set();
     this.entitySubscriptions = new Map();
-    this.tenantScopedEntities = new Set(['Package', 'Invoice', 'ConsolidationRequest', 'AppConfig', 'User']);
-    this.tenantScopedEntities = new Set(['Package', 'Invoice', 'ConsolidationRequest', 'AppConfig', 'User']);
   }
 
   /**
@@ -311,96 +309,19 @@ class ApiQueueManager {
     });
   }
 
-  isTenantScopedEntity(entityName) {
-    return this.tenantScopedEntities.has(String(entityName));
-  }
-
-  async getTenantContext() {
-    const cached = this.cache.get('auth:me')?.data;
-    if (cached) {
-      return { user: cached, tenantId: cached?.tenant_id || null };
-    }
-
-    const emptyAuthCache = this.cache.get('auth:me:empty');
-    if (emptyAuthCache && Date.now() - emptyAuthCache.timestamp < 60000) {
-      return { user: null, tenantId: null };
-    }
-
-    try {
-      const user = await base44Client.auth.me();
-      this.cache.delete('auth:me:empty');
-      this.saveToCache('auth:me', user);
-      return { user, tenantId: user?.tenant_id || null };
-    } catch {
-      this.cache.set('auth:me:empty', { data: true, timestamp: Date.now() });
-      return { user: null, tenantId: null };
-    }
-  }
-
-  buildTenantQuery(entityName, query = {}, user, tenantId) {
-    if (!this.isTenantScopedEntity(entityName) || !user) return { ...(query || {}) };
-
-    const scopedQuery = { ...(query || {}) };
-
-    if (tenantId) {
-      scopedQuery.tenant_id = tenantId;
-      return scopedQuery;
-    }
-
-    if (user.role === 'user' && ['Package', 'Invoice', 'ConsolidationRequest'].includes(entityName)) {
-      scopedQuery.client_email = user.email;
-    }
-
-    return scopedQuery;
-  }
-
-  prepareEntityPayload(entityName, data = {}, user, tenantId, existingRecord = null) {
-    const payload = { ...(data || {}) };
-    const resolvedTenantId = existingRecord?.tenant_id || tenantId || payload.tenant_id || null;
-
-    if (this.isTenantScopedEntity(entityName) && resolvedTenantId) {
-      payload.tenant_id = resolvedTenantId;
-    }
-
-    if (user?.role === 'user' && ['Package', 'Invoice', 'ConsolidationRequest'].includes(entityName) && !payload.client_email) {
-      payload.client_email = user.email;
-    }
-
-    return payload;
-  }
-
-  assertTenantAccess(entityName, record, user, tenantId) {
-    if (!record || !user || !this.isTenantScopedEntity(entityName)) return;
-
-    if (tenantId && record.tenant_id !== tenantId) {
-      throw new Error('Forbidden: cross-tenant access');
-    }
-
-    if (!tenantId && user.role === 'user' && ['Package', 'Invoice', 'ConsolidationRequest'].includes(entityName) && record.client_email !== user.email) {
-      throw new Error('Forbidden: cross-tenant access');
-    }
-  }
-
   /**
    * API Wrapper - Entities
    */
   createEntityWrapper(entityName) {
     return {
       list: async (sortBy, limit, skip = 0) => {
-        const { user, tenantId } = await this.getTenantContext();
-        const scopedQuery = this.buildTenantQuery(entityName, {}, user, tenantId);
-        const cacheKey = this.getCacheKey(entityName, 'list', { sortBy, limit, skip, scopedQuery });
+        const cacheKey = this.getCacheKey(entityName, 'list', { sortBy, limit, skip });
         const cached = this.getFromCache(cacheKey);
         if (cached) return cached;
 
         const result = await this.enqueue(async () => {
           const lim = Number.isFinite(limit) ? limit : 200;
           const sk = Number.isFinite(skip) ? skip : 0;
-
-          if (this.isTenantScopedEntity(entityName)) {
-            return await base44Client.entities[entityName].filter(scopedQuery, sortBy, lim, sk);
-          }
-
           return await base44Client.entities[entityName].list(sortBy, lim, sk);
         }, 'NORMAL', 'read', cacheKey);
 
@@ -409,16 +330,14 @@ class ApiQueueManager {
       },
 
       filter: async (query, sortBy, limit, skip = 0) => {
-        const { user, tenantId } = await this.getTenantContext();
-        const scopedQuery = this.buildTenantQuery(entityName, query, user, tenantId);
-        const cacheKey = this.getCacheKey(entityName, 'filter', { scopedQuery, sortBy, limit, skip });
+        const cacheKey = this.getCacheKey(entityName, 'filter', { query, sortBy, limit, skip });
         const cached = this.getFromCache(cacheKey);
         if (cached) return cached;
 
         const result = await this.enqueue(async () => {
           const lim = Number.isFinite(limit) ? limit : 200;
           const sk = Number.isFinite(skip) ? skip : 0;
-          return await base44Client.entities[entityName].filter(scopedQuery, sortBy, lim, sk);
+          return await base44Client.entities[entityName].filter(query, sortBy, lim, sk);
         }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
@@ -426,15 +345,12 @@ class ApiQueueManager {
       },
 
       get: async (id) => {
-        const { user, tenantId } = await this.getTenantContext();
-        const cacheKey = this.getCacheKey(entityName, 'get', { id, tenantId, userEmail: user?.email || null });
+        const cacheKey = this.getCacheKey(entityName, 'get', { id });
         const cached = this.getFromCache(cacheKey);
         if (cached) return cached;
 
         const result = await this.enqueue(async () => {
-          const record = await base44Client.entities[entityName].get(id);
-          this.assertTenantAccess(entityName, record, user, tenantId);
-          return record;
+          return await base44Client.entities[entityName].get(id);
         }, 'NORMAL', 'read', cacheKey);
 
         this.saveToCache(cacheKey, result);
@@ -442,59 +358,52 @@ class ApiQueueManager {
       },
 
       create: async (data) => {
-        const { user, tenantId } = await this.getTenantContext();
+        // Invalida cache de list/filter
         Array.from(this.cache.keys())
-          .filter(key => key.startsWith(`${entityName}:list`) || key.startsWith(`${entityName}:filter`) || key.startsWith(`${entityName}:get`))
+          .filter(key => key.startsWith(`${entityName}:list`) || key.startsWith(`${entityName}:filter`))
           .forEach(key => this.cache.delete(key));
 
         return await this.enqueue(async () => {
-          const payload = this.prepareEntityPayload(entityName, data, user, tenantId);
-          return await base44Client.entities[entityName].create(payload);
+          return await base44Client.entities[entityName].create(data);
         }, 'HIGH', 'write');
       },
 
       update: async (id, data) => {
-        const { user, tenantId } = await this.getTenantContext();
+        // Invalida cache
         Array.from(this.cache.keys())
           .filter(key => key.includes(entityName))
           .forEach(key => this.cache.delete(key));
 
         return await this.enqueue(async () => {
-          const existingRecord = await base44Client.entities[entityName].get(id);
-          this.assertTenantAccess(entityName, existingRecord, user, tenantId);
-          const payload = this.prepareEntityPayload(entityName, data, user, tenantId, existingRecord);
-          return await base44Client.entities[entityName].update(id, payload);
+          return await base44Client.entities[entityName].update(id, data);
         }, 'HIGH', 'write');
       },
 
       delete: async (id) => {
-        const { user, tenantId } = await this.getTenantContext();
+        // Invalida cache
         Array.from(this.cache.keys())
           .filter(key => key.includes(entityName))
           .forEach(key => this.cache.delete(key));
 
         return await this.enqueue(async () => {
-          const existingRecord = await base44Client.entities[entityName].get(id);
-          this.assertTenantAccess(entityName, existingRecord, user, tenantId);
           return await base44Client.entities[entityName].delete(id);
         }, 'HIGH', 'write');
       },
 
       bulkCreate: async (dataArray) => {
-        const { user, tenantId } = await this.getTenantContext();
+        // Invalida cache
         Array.from(this.cache.keys())
-          .filter(key => key.startsWith(`${entityName}:list`) || key.startsWith(`${entityName}:filter`) || key.startsWith(`${entityName}:get`))
+          .filter(key => key.startsWith(`${entityName}:list`) || key.startsWith(`${entityName}:filter`))
           .forEach(key => this.cache.delete(key));
 
         return await this.enqueue(async () => {
-          const payload = (dataArray || []).map((item) => this.prepareEntityPayload(entityName, item, user, tenantId));
-          return await base44Client.entities[entityName].bulkCreate(payload);
+          return await base44Client.entities[entityName].bulkCreate(dataArray);
         }, 'HIGH', 'write');
       },
 
       schema: async () => {
         const cacheKey = this.getCacheKey(entityName, 'schema', {});
-        const cached = this.getFromCache(cacheKey, 3600000);
+        const cached = this.getFromCache(cacheKey, 3600000); // 1 hora
         if (cached) return cached;
 
         const result = await this.enqueue(async () => {
@@ -506,22 +415,7 @@ class ApiQueueManager {
       },
 
       subscribe: (callback) => {
-        try {
-          return base44Client.entities[entityName].subscribe(async (event) => {
-            const { user, tenantId } = await this.getTenantContext();
-            const record = event?.data || null;
-            if (!record || !this.isTenantScopedEntity(entityName)) {
-              callback(event);
-              return;
-            }
-            try {
-              this.assertTenantAccess(entityName, record, user, tenantId);
-              callback(event);
-            } catch (_) {}
-          });
-        } catch {
-          return () => {};
-        }
+        try { return base44Client.entities[entityName].subscribe(callback); } catch { return () => {}; }
       }
     };
   }
@@ -540,14 +434,12 @@ class ApiQueueManager {
           return await base44Client.auth.me();
         }, 'HIGH', 'read', cacheKey);
 
-        this.cache.delete('auth:me:empty');
         this.saveToCache(cacheKey, result);
         return result;
       },
 
       updateMe: async (data) => {
         this.cache.delete('auth:me');
-        this.cache.delete('auth:me:empty');
         
         return await this.enqueue(async () => {
           return await base44Client.auth.updateMe(data);
@@ -578,12 +470,8 @@ class ApiQueueManager {
     return {
       invoke: async (functionName, params, options = {}) => {
         const { priority = 'NORMAL', opType = 'write', dedupeKey } = options;
-        const { tenantId } = await this.getTenantContext();
-        const payload = tenantId && params && typeof params === 'object' && !Array.isArray(params)
-          ? { ...params, tenant_id: tenantId }
-          : params;
         return await this.enqueue(async () => {
-          return await base44Client.functions.invoke(functionName, payload);
+          return await base44Client.functions.invoke(functionName, params);
         }, priority, opType, dedupeKey);
       }
     };
@@ -725,8 +613,8 @@ class ApiQueueManager {
 // Singleton global
 const apiQueue = new ApiQueueManager();
 // Activar realtime + sin caché en vistas críticas por defecto
-apiQueue.enableRealtime(['Package','Consolidation','ConsolidationRequest','Invoice','Notification','AppConfig']);
-apiQueue.disableCacheFor(['Package','Consolidation','ConsolidationRequest','Invoice','Notification','AppConfig']);
+apiQueue.enableRealtime(['Package','Consolidation','ConsolidationRequest','Invoice','Notification']);
+apiQueue.disableCacheFor(['Package','Consolidation','ConsolidationRequest','Invoice','Notification']);
 
 // Export como base44 compatible
 export const base44 = apiQueue;
