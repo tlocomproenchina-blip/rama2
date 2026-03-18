@@ -231,7 +231,7 @@ export default function AdminRoles({ user }) {
           </div>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[320px,minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-5 xl:grid-cols-[320px,minmax(0,1fr)]">
           <RoleAreaSidebar
             roleOptions={ROLE_OPTIONS}
             roleConfigs={roleConfigs}
@@ -239,7 +239,7 @@ export default function AdminRoles({ user }) {
             onSelectRole={setSelectedRoleCode}
           />
 
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             {(() => {
               const config = roleConfigs[selectedRoleCode] || ROLE_PRESETS[selectedRoleCode];
               return (
