@@ -38,12 +38,11 @@ export default function Layout({ children, currentPageName }) {
   const [showContract, setShowContract] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [isInstalledApp, setIsInstalledApp] = useState(false);
-  const [pendingMobileTab, setPendingMobileTab] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
   const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ'].includes(currentPageName);
-  const activeMobileTab = pendingMobileTab || getTabKeyForPage(currentPageName);
+  const activeMobileTab = getTabKeyForPage(currentPageName);
   const mobileTabItems = isAdminPanel ? [
     { key: 'home', label: 'Inicio', icon: LayoutDashboard },
     { key: 'packages', label: 'Paquetes', icon: Package },
@@ -114,11 +113,6 @@ export default function Layout({ children, currentPageName }) {
     const storageKey = `tab:lastRoute:${user?.role || 'user'}:${key}`;
     const saved = sessionStorage.getItem(storageKey);
     const target = saved || createPageUrl(defaults[key]);
-    setPendingMobileTab(key);
-    if (window.location.pathname + window.location.search === target) {
-      setPendingMobileTab(null);
-      return;
-    }
     navigate(target);
   };
 
@@ -129,14 +123,6 @@ export default function Layout({ children, currentPageName }) {
     const storageKey = `tab:lastRoute:${user?.role || 'user'}:${key}`;
     sessionStorage.setItem(storageKey, window.location.pathname + window.location.search);
   }, [currentPageName, location.key]);
-
-  useEffect(() => {
-    if (!pendingMobileTab) return;
-    const currentKey = getTabKeyForPage(currentPageName);
-    if (currentKey === pendingMobileTab) {
-      setPendingMobileTab(null);
-    }
-  }, [pendingMobileTab, currentPageName]);
 
   // Publicar métricas de cliente → RuntimeMetrics (muestreo para evitar exceso de escrituras)
   useEffect(() => {
@@ -474,7 +460,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className={`min-h-screen bg-slate-100 flex flex-col lg:flex-row overflow-x-hidden ${isAdminPanel ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
+    <div className={`min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-x-hidden ${isAdminPanel ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
       <style>{`
         /* Respect safe areas */
         :root { 
@@ -560,7 +546,7 @@ export default function Layout({ children, currentPageName }) {
       <main className={`flex-1 min-h-screen flex flex-col ${isAdminPanel ? 'lg:h-screen lg:overflow-y-auto' : ''}`}>
         {/* Mobile Header */}
         {user && (
-        <header className="lg:hidden sticky top-0 z-30 border-b border-white/60 bg-white/80 px-4 py-3 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between gap-2">
             <Button 
               variant="ghost" 
@@ -599,9 +585,9 @@ export default function Layout({ children, currentPageName }) {
         `}</style>
 
          {/* Main Content */}
-        <div className="flex-1 w-full overflow-x-hidden bg-gradient-to-b from-slate-100 to-slate-50">
+        <div className="flex-1 overflow-x-hidden w-full">
           <PullToRefresh enabled={!!user} onRefresh={() => window.location.reload()}>
-            <div className="mx-auto min-h-full w-full max-w-screen-sm rounded-t-[28px] bg-white/88 p-4 shadow-[0_-1px_0_rgba(255,255,255,0.9)] backdrop-blur-sm sm:max-w-2xl md:p-6 lg:max-w-[100vw] lg:rounded-none lg:bg-transparent lg:p-8 lg:shadow-none" style={{ paddingBottom: user ? 'calc(env(safe-area-inset-bottom) + 104px)' : 'calc(env(safe-area-inset-bottom) + 72px)' }}>
+            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: user ? 'calc(env(safe-area-inset-bottom) + 96px)' : 'calc(env(safe-area-inset-bottom) + 72px)' }}>
               {showBackButton && (
                 <div className="mb-3">
                   <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
@@ -629,7 +615,6 @@ export default function Layout({ children, currentPageName }) {
           <MobileBottomTabs
             items={mobileTabItems}
             activeKey={activeMobileTab}
-            pendingKey={pendingMobileTab}
             onChange={goToTab}
           />
         )}

@@ -54,14 +54,6 @@ export default function Home({ user }) {
 
   return (
     <div className="min-h-screen bg-white">
-      {authLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-lg">
-            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-            <span className="text-sm font-medium text-slate-700">Abriendo tu cuenta…</span>
-          </div>
-        </div>
-      )}
       <HomeHeader onLogin={handleAuthClick} />
       <Hero onLogin={handleAuthClick} />
       <React.Suspense fallback={<div className="px-4 py-16 text-center text-sm text-slate-500">Cargando contenido…</div>}>
