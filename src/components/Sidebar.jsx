@@ -6,7 +6,6 @@ import { cacheManager } from '@/components/CacheManager';
 import OptimizedImage from '@/components/OptimizedImage';
 import useAttentionFlags from '@/components/notifications/useAttentionFlags';
 import SidebarNavGroup from '@/components/sidebar/SidebarNavGroup';
-import ClientQuickMenuBar from '@/components/sidebar/ClientQuickMenuBar';
 import {
   adminGroups,
   adminMenuItems,
@@ -103,9 +102,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
   const adminItemsByPage = useMemo(() => Object.fromEntries(filteredAdminMenuItems.map((item) => [item.page, item])), [filteredAdminMenuItems]);
   const clientItemsByPage = useMemo(() => Object.fromEntries(clientMenuItems.map((item) => [item.page, item])), []);
-  const clientQuickMenuItems = useMemo(() => ['ClientPortal', 'Dashboard', 'MyPackages', 'MyInvoices', 'AssistedPayment', 'Support']
-    .map((page) => clientItemsByPage[page])
-    .filter(Boolean), [clientItemsByPage]);
+
 
   const handleLogout = useCallback(() => {
     base44.auth.logout();
@@ -183,14 +180,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
             </div>
           </div>
         </div>
-
-        {!isAdmin && (
-          <ClientQuickMenuBar
-            items={clientQuickMenuItems}
-            currentPage={currentPage}
-            onItemClick={handleMenuClick}
-          />
-        )}
 
         {/* Navigation */}
         <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1">
