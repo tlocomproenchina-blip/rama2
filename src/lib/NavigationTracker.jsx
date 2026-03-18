@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
@@ -10,33 +10,25 @@ export default function NavigationTracker() {
     const { Pages, mainPage } = pagesConfig;
     const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 
-    // Log user activity when navigating to a page
-    useEffect(() => {
-        // Extract page name from pathname
+    const pageName = useMemo(() => {
         const pathname = location.pathname;
-        let pageName;
 
         if (pathname === '/' || pathname === '') {
-            pageName = mainPageKey;
-        } else {
-            // Remove leading slash and get the first segment
-            const pathSegment = pathname.replace(/^\//, '').split('/')[0];
-
-            // Try case-insensitive lookup in Pages config
-            const pageKeys = Object.keys(Pages);
-            const matchedKey = pageKeys.find(
-                key => key.toLowerCase() === pathSegment.toLowerCase()
-            );
-
-            pageName = matchedKey || null;
+            return mainPageKey;
         }
 
-        if (isAuthenticated && pageName) {
-            base44.appLogs.logUserInApp(pageName).catch(() => {
-                // Silently fail - logging shouldn't break the app
-            });
-        }
-    }, [location, isAuthenticated, Pages, mainPageKey]);
+        const pathSegment = pathname.replace(/^\//, '').split('/')[0];
+        const pageKeys = Object.keys(Pages);
+        return pageKeys.find((key) => key.toLowerCase() === pathSegment.toLowerCase()) || null;
+    }, [location.pathname, Pages, mainPageKey]);
+
+    useEffect(() => {
+        if (!isAuthenticated || !pageName || !base44.appLogs?.logUserInApp) return;
+
+        base44.appLogs.logUserInApp(pageName).catch(() => {
+            // Silently fail - logging shouldn't break the app
+        });
+    }, [isAuthenticated, pageName]);
 
     return null;
 }
