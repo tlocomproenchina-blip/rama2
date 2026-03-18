@@ -283,10 +283,6 @@ export default function Layout({ children, currentPageName }) {
         base44.functions.invoke('createStripeCustomer', {});
       }
 
-      if (currentUser?.role === 'user' && currentUser?.profile_completed && !currentUser?.shipping_mark) {
-        base44.functions.invoke('generateShippingMark', {});
-      }
-
       // Block access for inactive clients
       if (currentUser.role === 'user' && currentUser.is_active === false) {
         navigate(createPageUrl('AccountDisabled'));
