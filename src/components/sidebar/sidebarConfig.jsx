@@ -95,18 +95,3 @@ export const clientGroups = [
   { label: 'SOPORTE', items: ['FAQ', 'Support'] },
   { label: 'CUENTA', items: ['Profile', 'MyReferrals'] },
 ];
-
-export const employeeMenuItems = [
-  { name: 'Dashboard', page: 'EmployeeDashboard', icon: LayoutDashboard },
-  { name: 'Clientes', page: 'AdminClients', icon: Users },
-  { name: 'Paquetes', page: 'AdminPackages', icon: Package },
-  { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers },
-  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
-];
-
-export const accountingMenuItems = [
-  { name: 'Dashboard', page: 'AccountingDashboard', icon: LayoutDashboard },
-  { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
-  { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
-  { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle },
-];
