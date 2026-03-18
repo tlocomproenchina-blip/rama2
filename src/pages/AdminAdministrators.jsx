@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Loader2, ShieldCheck, UserMinus, UserPlus, Search } from 'lucide-react';
+import { Loader2, ShieldCheck, UserMinus, UserPlus, Search, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminAdministrators({ user }) {
@@ -104,6 +104,10 @@ export default function AdminAdministrators({ user }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-slate-500 break-all">{adminRecord.email}</p>
+              <Badge variant="outline" className="text-blue-700 border-blue-200">
+                <Briefcase className="mr-1 h-3 w-3" />
+                {adminRecord.custom_role || 'sin área'}
+              </Badge>
               <Button
                 variant="outline"
                 className="w-full text-rose-600 hover:text-rose-700"

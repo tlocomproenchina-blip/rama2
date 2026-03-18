@@ -4,6 +4,7 @@ import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/a
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
+import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 
 
 
@@ -32,6 +33,7 @@ const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
   const [config, setConfig] = useState(null);
+  const [roleConfig, setRoleConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showContract, setShowContract] = useState(false);
@@ -219,6 +221,17 @@ export default function Layout({ children, currentPageName }) {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
 
+      let resolvedRoleConfig = null;
+      if (currentUser?.role === 'admin' && currentUser?.custom_role) {
+        try {
+          const roleRows = await base44.entities.RoleConfig.filter({ role_code: currentUser.custom_role, is_active: true }, '-updated_date', 1);
+          resolvedRoleConfig = roleRows?.[0] || getDefaultRoleConfig(currentUser.custom_role);
+        } catch {
+          resolvedRoleConfig = getDefaultRoleConfig(currentUser.custom_role);
+        }
+      }
+      setRoleConfig(resolvedRoleConfig);
+
       // Handle referral code in URL (e.g., ?ref=TLEC-XXXXXX)
       try {
         const params = new URLSearchParams(window.location.search);
@@ -252,6 +265,12 @@ export default function Layout({ children, currentPageName }) {
       // Redirect admin to AdminDashboard when landing on Home/Dashboard or no page specified
       if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Home')) {
         navigate(createPageUrl('AdminDashboard'));
+        setLoading(false);
+        return;
+      }
+
+      if (currentUser.role === 'admin' && resolvedRoleConfig?.visible_pages?.length && currentPageName && !resolvedRoleConfig.visible_pages.includes(currentPageName) && !['AdminDashboard', 'Home', 'Dashboard'].includes(currentPageName)) {
+        navigate(createPageUrl(resolvedRoleConfig.visible_pages[0] || 'AdminDashboard'));
         setLoading(false);
         return;
       }
