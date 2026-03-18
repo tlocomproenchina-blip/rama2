@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
 
     const clientConsolidations = await withRetry(() => base44.asServiceRole.entities.Consolidation.filter({ client_email: targetEmail }, '-created_date', 100));
     for (const consolidation of clientConsolidations) {
-      const accountsPayable = await base44.asServiceRole.entities.AccountsPayable.filter({ related_consolidation_id: consolidation.id }, '-created_date', 500);
+      const accountsPayable = await withRetry(() => base44.asServiceRole.entities.AccountsPayable.filter({ related_consolidation_id: consolidation.id }, '-created_date', 100));
       for (const ap of accountsPayable) {
         const apLedgers = await withRetry(() => base44.asServiceRole.entities.AccountsPayableLedger.filter({ ap_id: ap.id }, '-created_date', 100));
         for (const ledger of apLedgers) {
