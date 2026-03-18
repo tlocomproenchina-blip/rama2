@@ -27,12 +27,12 @@ export default function RolePermissionsCard({ roleName, description, roleCode, p
                 key={page}
                 type="button"
                 onClick={() => onTogglePage(page)}
-                className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-left transition-all ${checked ? 'border-blue-200 bg-blue-50 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'}`}
+                className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-left transition-all ${checked ? 'border-blue-200 bg-blue-50 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'}`}
               >
                 <Checkbox checked={checked} onCheckedChange={() => onTogglePage(page)} />
                 <div className="min-w-0">
-                  <Label className="cursor-pointer text-sm font-medium text-slate-800">{pageLabels[page] || page}</Label>
-                  <p className="mt-1 text-xs text-slate-500">{checked ? 'Visible para esta área' : 'Oculto para esta área'}</p>
+                  <Label className="cursor-pointer text-[13px] font-medium text-slate-800 leading-tight">{pageLabels[page] || page}</Label>
+                  <p className="mt-0.5 text-[11px] text-slate-500">{checked ? 'Visible para esta área' : 'Oculto para esta área'}</p>
                 </div>
               </button>
             );
