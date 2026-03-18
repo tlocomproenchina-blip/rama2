@@ -88,12 +88,16 @@ export default function Dashboard({ user, refreshUser }) {
     await loadData();
   };
 
-  const stats = {
+  const stats = React.useMemo(() => ({
     preAlerta: packages.filter(p => p.status === 'pre_alerta').length,
     recibidos: packages.filter(p => p.status === 'recibido').length,
     enTransito: consolidations.filter(c => c.status === 'en_transito').length,
     disponibles: consolidations.filter(c => c.status === 'disponible').length,
-  }; // Calculadas sobre los últimos 50 registros para eficiencia
+  }), [packages, consolidations]);
+
+  const pendingApprovalCount = React.useMemo(() => (
+    consolidations.filter(c => c.payment_validated && !c.shipment_approved && c.status !== 'en_transito' && c.status !== 'disponible' && c.status !== 'entregado').length
+  ), [consolidations]);
 
   if (loading) {
     return (
@@ -309,7 +313,7 @@ export default function Dashboard({ user, refreshUser }) {
       </div>
 
       {/* Approval Alert */}
-      {consolidations.filter(c => c.payment_validated && !c.shipment_approved && c.status !== 'en_transito' && c.status !== 'disponible' && c.status !== 'entregado').length > 0 && (
+      {pendingApprovalCount > 0 && (
         <Card className="border-2 border-blue-300 bg-blue-50 shadow-lg">
           <CardContent className="p-4 lg:p-6">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
@@ -320,7 +324,7 @@ export default function Dashboard({ user, refreshUser }) {
                 <div className="min-w-0">
                   <h3 className="font-semibold text-blue-900 text-sm lg:text-lg">¡Consolidaciones listas para aprobar!</h3>
                   <p className="text-blue-700 text-xs lg:text-base mt-1">
-                    Tienes {consolidations.filter(c => c.payment_validated && !c.shipment_approved && c.status !== 'en_transito' && c.status !== 'disponible' && c.status !== 'entregado').length} consolidación(es) esperando tu aprobación de despacho
+                    Tienes {pendingApprovalCount} consolidación(es) esperando tu aprobación de despacho
                   </p>
                 </div>
               </div>

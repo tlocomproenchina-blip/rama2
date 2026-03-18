@@ -426,7 +426,7 @@ export default function AdminPackages({ user }) {
     return matchesSearch && matchesStatus && matchesReported;
     }), [packages, search, statusFilter, reportedFilter, advancedFilters]);
 
-    const simpleWindowSummary = (() => {
+    const simpleWindowSummary = useMemo(() => {
       if (!advancedFilters) return null;
       const email = (advancedFilters.email || '').trim();
       const shippingMark = (advancedFilters.shippingMark || '').trim();
@@ -447,7 +447,7 @@ export default function AdminPackages({ user }) {
       const now = new Date();
       const remaining = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
       return { first, end, remaining };
-    })();
+    }, [advancedFilters, packages]);
 
     if (loading) {
     return (
