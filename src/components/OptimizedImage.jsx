@@ -69,7 +69,6 @@ export default function OptimizedImage({
         onError={() => setIsLoaded(true)}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
-        fetchpriority={priority ? 'high' : 'auto'}
         sizes="100vw"
         className={`w-full h-full object-cover transition-opacity duration-300 ${
           isLoaded ? 'opacity-100' : 'opacity-0'
