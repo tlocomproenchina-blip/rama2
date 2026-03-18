@@ -62,24 +62,24 @@ export default function PaymentMethodCard({
   const styles = toneStyles[tone] || toneStyles.slate;
 
   return (
-    <Card className={cn('overflow-hidden border shadow-sm transition-all', styles.card)}>
-      <div className="flex items-start gap-4 p-5 sm:p-6">
+    <Card className={cn('overflow-hidden rounded-2xl border shadow-sm transition-all', styles.card)}>
+      <div className="flex items-start gap-3 p-4 sm:p-5">
         <button
           type="button"
           onClick={onToggleOpen}
           className="flex flex-1 items-start gap-4 text-left"
         >
-          <div className={cn('flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm', styles.icon)}>
+          <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl shadow-sm', styles.icon)}>
             <Icon className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+              <h3 className="text-sm font-semibold text-slate-900 sm:text-base">{title}</h3>
               <Badge variant="outline" className={enabled ? styles.badge : 'border-slate-200 bg-white text-slate-500'}>
                 {enabled ? 'Activo' : 'Inactivo'}
               </Badge>
             </div>
-            <p className="mt-1 text-sm text-slate-600">{description}</p>
+            <p className="mt-1 text-xs text-slate-600 sm:text-sm">{description}</p>
           </div>
         </button>
 
@@ -99,7 +99,7 @@ export default function PaymentMethodCard({
       </div>
 
       {open && (
-        <CardContent className="border-t border-white/70 bg-white/70 p-5 sm:p-6">
+        <CardContent className="border-t border-white/70 bg-white/70 p-4 sm:p-5">
           <div className="grid gap-4">
             {identityLabel && onIdentityChange && (
               <div className="space-y-2">

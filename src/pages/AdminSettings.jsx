@@ -425,7 +425,7 @@ export default function AdminSettings({ user }) {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-4 md:space-y-6 max-w-6xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Panel de Administración</h1>
         <p className="text-slate-500">Gestión de tarifas, estados y configuración del sistema</p>
@@ -433,7 +433,7 @@ export default function AdminSettings({ user }) {
 
       <Tabs defaultValue="tarifas" className="space-y-6">
         <div className="flex items-center justify-between">
-          <TabsList className="grid grid-cols-8 w-full">
+          <TabsList className="grid grid-cols-8 w-full rounded-2xl p-1">
             <TabsTrigger value="tarifas" className="flex items-center gap-2 text-xs">
               <DollarSign className="h-4 w-4" />
               <span className="hidden md:inline">Tarifas</span>
@@ -490,14 +490,14 @@ export default function AdminSettings({ user }) {
 
         {/* Tab Tarifas */}
         <TabsContent value="tarifas">
-          <Card className="border-0 shadow-lg">
+          <Card className="rounded-2xl border-0 shadow-lg"
             <CardHeader>
               <CardTitle>Configuración de Precios</CardTitle>
               <CardDescription>
                 Gestiona las tarifas base y porcentajes de beneficio del sistema
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Tarifa base Regular ($)</Label>
@@ -553,7 +553,7 @@ export default function AdminSettings({ user }) {
               </Button>
 
               {/* Fórmula de Cálculo */}
-              <div className="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="mt-8 p-4 md:p-6 bg-blue-50 rounded-xl border border-blue-200">
                 <div className="flex items-center gap-2 mb-4">
                   <Calculator className="h-5 w-5 text-blue-600" />
                   <h3 className="font-semibold text-slate-800">Fórmula de Cálculo</h3>
@@ -583,16 +583,16 @@ export default function AdminSettings({ user }) {
 
         {/* Tab Tipos de Envío */}
         <TabsContent value="envios">
-          <Card className="border-0 shadow-lg">
+          <Card className="rounded-2xl border-0 shadow-lg"
             <CardHeader>
               <CardTitle>Tipos de Envío Disponibles</CardTitle>
               <CardDescription>
                 Habilita o deshabilita los tipos de envío que estarán disponibles en todo el sistema
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-6 bg-blue-50 rounded-xl border border-blue-200">
+                <div className="flex items-center justify-between p-4 md:p-6 bg-blue-50 rounded-xl border border-blue-200">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-blue-100 rounded-lg">
                       <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -610,7 +610,7 @@ export default function AdminSettings({ user }) {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-6 bg-cyan-50 rounded-xl border border-cyan-200">
+                <div className="flex items-center justify-between p-4 md:p-6 bg-cyan-50 rounded-xl border border-cyan-200">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-cyan-100 rounded-lg">
                       <svg className="h-6 w-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -628,7 +628,7 @@ export default function AdminSettings({ user }) {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-6 bg-purple-50 rounded-xl border border-purple-200">
+                <div className="flex items-center justify-between p-4 md:p-6 bg-purple-50 rounded-xl border border-purple-200">
                   <div className="flex items-center gap-4">
                     <div className="p-3 bg-purple-100 rounded-lg">
                       <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -667,7 +667,7 @@ export default function AdminSettings({ user }) {
 
         {/* Tab Estados */}
         <TabsContent value="estados">
-          <Card className="border-0 shadow-lg">
+          <Card className="rounded-2xl border-0 shadow-lg"
             <CardHeader>
               <CardTitle>Gestión de Estados Venezolanos</CardTitle>
               <CardDescription>
@@ -678,7 +678,7 @@ export default function AdminSettings({ user }) {
                 <span>estados activos</span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
               {/* Search and Actions */}
               <div className="flex flex-col gap-3 sm:flex-row">
                 <div className="relative flex-1">
@@ -866,16 +866,16 @@ export default function AdminSettings({ user }) {
 
         {/* Tab General */}
         <TabsContent value="general">
-          <Card className="border-0 shadow-lg">
+          <Card className="rounded-2xl border-0 shadow-lg"
             <CardHeader>
               <CardTitle>Configuración General de la Aplicación</CardTitle>
               <CardDescription>
                 Personaliza la identidad y configuraciones básicas del sistema
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
               {/* Modo Mantenimiento */}
-              <div className="p-6 bg-rose-50 rounded-xl border border-rose-200 space-y-4">
+              <div className="p-4 md:p-6 bg-rose-50 rounded-xl border border-rose-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-slate-800 text-lg">Modo mantenimiento</h3>
@@ -1027,7 +1027,7 @@ export default function AdminSettings({ user }) {
               <ShippingMarkAutomationSettings appConfig={appConfig} setAppConfig={setAppConfig} />
 
               {/* Chatbot Configuration */}
-               <div className="mt-8 p-6 bg-indigo-50 rounded-xl border border-indigo-200 space-y-4">
+               <div className="mt-8 p-4 md:p-6 bg-indigo-50 rounded-xl border border-indigo-200 space-y-4">
                  <div className="flex items-center justify-between">
                    <div>
                      <h3 className="font-semibold text-slate-800 text-lg">Asistente Virtual (AI)</h3>
@@ -1056,7 +1056,7 @@ export default function AdminSettings({ user }) {
                </div>
 
                {/* WhatsApp Configuration */}
-               <div className="mt-8 p-6 bg-green-50 rounded-xl border border-green-200 space-y-4">
+               <div className="mt-8 p-4 md:p-6 bg-green-50 rounded-xl border border-green-200 space-y-4">
                  <div className="flex items-center justify-between">
                    <div>
                      <h3 className="font-semibold text-slate-800 text-lg">Configuración WhatsApp</h3>
@@ -1108,7 +1108,7 @@ export default function AdminSettings({ user }) {
                  </div>
 
                  {/* Consolidation Periods */}
-                 <div className="mt-8 p-6 bg-indigo-50 rounded-xl border border-indigo-200 space-y-4">
+                 <div className="mt-8 p-4 md:p-6 bg-indigo-50 rounded-xl border border-indigo-200 space-y-4">
                  <div className="flex items-center gap-2 mb-4">
                    <Clock className="h-5 w-5 text-indigo-600" />
                    <h3 className="font-semibold text-slate-800 text-lg">Períodos de Consolidación</h3>
@@ -1166,14 +1166,14 @@ export default function AdminSettings({ user }) {
 
         {/* Tab Privacidad */}
         <TabsContent value="privacidad">
-          <Card className="border-0 shadow-lg">
+          <Card className="rounded-2xl border-0 shadow-lg"
             <CardHeader>
               <CardTitle>Privacidad y Gestión de Datos</CardTitle>
               <CardDescription>
                 Configura políticas de retención y privacidad de datos
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
               <div className="space-y-2">
                 <Label>Retención de datos (días)</Label>
                 <Input
@@ -1238,7 +1238,7 @@ export default function AdminSettings({ user }) {
 
 
         <TabsContent value="facturas">
-          <Card className="border-0 shadow-lg">
+          <Card className="rounded-2xl border-0 shadow-lg"
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
@@ -1248,7 +1248,7 @@ export default function AdminSettings({ user }) {
                 Personaliza la información que aparece en las facturas PDF
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
               <div className="space-y-2">
                 <Label>Nombre de la Empresa</Label>
                 <Input

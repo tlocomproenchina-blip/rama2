@@ -140,7 +140,7 @@ export default function ResourceInspector() {
   };
 
   return (
-    <Card className="border-0 shadow-lg">
+    <Card className="rounded-2xl border-0 shadow-lg">
       <CardHeader className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2">
           <HardDrive className="h-5 w-5" />

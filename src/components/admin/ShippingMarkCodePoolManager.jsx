@@ -76,7 +76,7 @@ export default function ShippingMarkCodePoolManager() {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-3">
-        <Card className="border-sky-200 bg-white/70 shadow-sm">
+        <Card className="rounded-2xl border-sky-200 bg-white/70 shadow-sm">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-500">Disponibles</p>
@@ -85,7 +85,7 @@ export default function ShippingMarkCodePoolManager() {
             <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Activos</Badge>
           </CardContent>
         </Card>
-        <Card className="border-sky-200 bg-white/70 shadow-sm">
+        <Card className="rounded-2xl border-sky-200 bg-white/70 shadow-sm">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-500">Asignados</p>
@@ -94,7 +94,7 @@ export default function ShippingMarkCodePoolManager() {
             <Badge className="bg-slate-100 text-slate-700 border-slate-200">Usados</Badge>
           </CardContent>
         </Card>
-        <Card className="border-sky-200 bg-white/70 shadow-sm">
+        <Card className="rounded-2xl border-sky-200 bg-white/70 shadow-sm">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-500">Total cargados</p>

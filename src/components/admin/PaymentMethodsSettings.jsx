@@ -203,8 +203,8 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
 
   return (
     <div className="space-y-6">
-      <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-        <CardHeader className="pb-4">
+      <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+        <CardHeader className="pb-3 px-4 pt-4 md:pb-4 md:px-6 md:pt-6">
           <CardTitle className="flex items-center gap-2 text-xl">
             <DollarSign className="h-5 w-5" />
             Panel de pagos
@@ -213,7 +213,7 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
             Organiza tus métodos en tarjetas plegables, activa solo los necesarios y deja instrucciones más claras para tu equipo y tus clientes.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
+        <CardContent className="grid gap-3 px-4 pb-4 md:grid-cols-3 md:px-6 md:pb-6">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-sm text-slate-300">Métodos activos</p>
             <p className="mt-2 text-3xl font-semibold">{activeCount}</p>
@@ -229,7 +229,7 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-lg">
+      <Card className="rounded-2xl border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="text-lg">Reglas de sincronización con Stripe</CardTitle>
           <CardDescription>

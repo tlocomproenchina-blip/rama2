@@ -7,7 +7,7 @@ import ShippingMarkCodePoolManager from '@/components/admin/ShippingMarkCodePool
 
 export default function ShippingMarkAutomationSettings({ appConfig, setAppConfig }) {
   return (
-    <div className="mt-8 p-6 bg-sky-50 rounded-xl border border-sky-200 space-y-4">
+    <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 p-4 md:mt-8 md:p-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="font-semibold text-slate-800 text-lg flex items-center gap-2">
