@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import AuthRequiredScreen from '@/components/AuthRequiredScreen';
 import WarehouseReceive from './pages/WarehouseReceive';
 import WarehouseLocations from './pages/WarehouseLocations';
 import WarehouseDashboard from './pages/WarehouseDashboard';
@@ -40,9 +41,7 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
+      return <AuthRequiredScreen onLogin={navigateToLogin} />;
     }
   }
 
