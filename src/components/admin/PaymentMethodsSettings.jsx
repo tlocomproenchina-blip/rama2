@@ -172,6 +172,8 @@ const methodGroups = [
 
 export default function PaymentMethodsSettings({ config, setConfig, saving, onSave }) {
   const [openCards, setOpenCards] = useState({ stripe: true, binance: true, paypal: true });
+  const [checkingStripe, setCheckingStripe] = useState(false);
+  const [stripeCheckResult, setStripeCheckResult] = useState(null);
 
   const visibleMethods = useMemo(() => methodGroups.flatMap((group) => group.methods), []);
   const activeCount = visibleMethods.filter((method) => !!config?.[method.enabledKey]).length;
