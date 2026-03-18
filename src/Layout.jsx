@@ -12,12 +12,13 @@ import Sidebar from '@/components/Sidebar';
 
 
 import { notifyAdmins } from '@/components/NotificationUtils';
-import { Menu, Loader2, ArrowLeft } from 'lucide-react';
+import { Menu, Loader2, ArrowLeft, LayoutDashboard, Package, CreditCard, MessageCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-
 
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
+import PullToRefresh from '@/components/common/PullToRefresh';
+import MobileBottomTabs from '@/components/navigation/MobileBottomTabs';
 
 // Lazy loaded non-critical components
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
@@ -40,6 +41,18 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
   const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ'].includes(currentPageName);
+  const activeMobileTab = getTabKeyForPage(currentPageName);
+  const mobileTabItems = isAdminPanel ? [
+    { key: 'home', label: 'Inicio', icon: LayoutDashboard },
+    { key: 'packages', label: 'Paquetes', icon: Package },
+    { key: 'invoices', label: 'Facturas', icon: CreditCard },
+    { key: 'support', label: 'Soporte', icon: MessageCircle },
+  ] : [
+    { key: 'home', label: 'Inicio', icon: LayoutDashboard },
+    { key: 'packages', label: 'Paquetes', icon: Package },
+    { key: 'invoices', label: 'Facturas', icon: CreditCard },
+    { key: 'support', label: 'Soporte', icon: MessageCircle },
+  ];
 
   // Mobile tab navigation mappings
   const userTabDefaults = {
@@ -568,19 +581,28 @@ export default function Layout({ children, currentPageName }) {
 
          {/* Main Content */}
         <div className="flex-1 overflow-x-hidden w-full">
-          <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-            {showBackButton && (
-              <div className="mb-3">
-                <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
-                  <ArrowLeft className="h-4 w-4" /> Atrás
-                </Button>
-              </div>
-            )}
-            <ErrorBoundary>
-              {React.cloneElement(children, { user, refreshUser: loadUser })}
-            </ErrorBoundary>
-          </div>
+          <PullToRefresh enabled={!!user} onRefresh={() => window.location.reload()}>
+            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: user ? 'calc(env(safe-area-inset-bottom) + 96px)' : 'calc(env(safe-area-inset-bottom) + 72px)' }}>
+              {showBackButton && (
+                <div className="mb-3">
+                  <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
+                    <ArrowLeft className="h-4 w-4" /> Atrás
+                  </Button>
+                </div>
+              )}
+              <ErrorBoundary>
+                {React.cloneElement(children, { user, refreshUser: loadUser })}
+              </ErrorBoundary>
+            </div>
+          </PullToRefresh>
         </div>
+        {user && (
+          <MobileBottomTabs
+            items={mobileTabItems}
+            activeKey={activeMobileTab}
+            onChange={goToTab}
+          />
+        )}
       </main>
 
 
