@@ -43,7 +43,6 @@ export const clientMenuItems = [
 
 export const adminMenuItems = [
   { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
-  { name: 'Reportes', page: 'AdminReports', icon: BarChart3 },
   { name: 'Análisis Cliente', page: 'ClientAnalytics', icon: TrendingUp },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
   { name: 'Dashboard Almacén', page: 'WarehouseDashboard', icon: LayoutDashboard },
