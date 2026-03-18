@@ -361,7 +361,7 @@ export default function Layout({ children, currentPageName }) {
     } catch (error) {
       // Not logged in - if maintenance is ON, show maintenance instead of redirecting
       try {
-        const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+        const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
         const cfg = configs[0];
         if (cfg?.maintenance_mode) {
           setConfig(cfg);
