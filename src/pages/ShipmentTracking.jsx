@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { format, parse } from 'date-fns';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Loader2, MapPin, Package, Save, Truck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
@@ -13,8 +14,8 @@ import TrackingFilters from '@/components/shipment-tracking/TrackingFilters';
 import TrackingShipmentCard from '@/components/shipment-tracking/TrackingShipmentCard';
 
 export default function ShipmentTracking({ user }) {
-  const [consolidations, setConsolidations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const trackingQueryKey = ['shipmentTracking', user?.role, user?.email];
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
@@ -24,10 +25,6 @@ export default function ShipmentTracking({ user }) {
   const [shippingDate, setShippingDate] = useState('');
   const [estimatedDate, setEstimatedDate] = useState('');
   const [savingDate, setSavingDate] = useState(false);
-
-  useEffect(() => {
-    loadData();
-  }, [user]);
 
   const loadData = async () => {
     const [cons, invoices] = await Promise.all([
@@ -39,39 +36,59 @@ export default function ShipmentTracking({ user }) {
       (invoices || []).map((invoice) => invoice.consolidation_id).filter(Boolean)
     );
 
-    const filtered = cons.filter((item) => {
+    return cons.filter((item) => {
       const belongsToUser = user?.role === 'admin' || item.client_email === user?.email;
       return belongsToUser && invoicedConsolidationIds.has(item.id);
     });
-
-    setConsolidations(filtered);
-    setLoading(false);
   };
 
-  const handleStatusChange = async (consolidation, newStatus) => {
-    const previousConsolidations = consolidations;
-    try {
-      setPendingConsolidationIds((prev) => ({ ...prev, [consolidation.id]: true }));
-      setFailedConsolidationIds((prev) => ({ ...prev, [consolidation.id]: false }));
-      setConsolidations((prev) => prev.map((item) => item.id === consolidation.id ? { ...item, status: newStatus } : item));
-      await base44.entities.Consolidation.update(consolidation.id, { status: newStatus });
+  const { data: consolidations = [], isLoading: loading } = useQuery({
+    queryKey: trackingQueryKey,
+    queryFn: loadData,
+    enabled: !!user,
+    initialData: [],
+  });
 
+  const statusMutation = useMutation({
+    mutationFn: async ({ consolidation, newStatus }) => {
+      await base44.entities.Consolidation.update(consolidation.id, { status: newStatus });
       for (const pkgId of consolidation.package_ids || []) {
         await base44.entities.Package.update(pkgId, { status: newStatus });
       }
-
       if (['disponible', 'entregado'].includes(newStatus)) {
         const { notifyConsolidationStatus } = await import('@/components/NotificationUtils');
         notifyConsolidationStatus(consolidation, newStatus);
       }
-
+      return { id: consolidation.id, status: newStatus };
+    },
+    onMutate: async ({ consolidation, newStatus }) => {
+      await queryClient.cancelQueries({ queryKey: trackingQueryKey });
+      const previousConsolidations = queryClient.getQueryData(trackingQueryKey) || [];
+      setPendingConsolidationIds((prev) => ({ ...prev, [consolidation.id]: true }));
+      setFailedConsolidationIds((prev) => ({ ...prev, [consolidation.id]: false }));
+      queryClient.setQueryData(trackingQueryKey, previousConsolidations.map((item) => item.id === consolidation.id ? { ...item, status: newStatus } : item));
+      return { previousConsolidations, consolidationId: consolidation.id };
+    },
+    onSuccess: () => {
       toast.success('Estado actualizado correctamente');
-    } catch {
-      setConsolidations(previousConsolidations);
-      setFailedConsolidationIds((prev) => ({ ...prev, [consolidation.id]: true }));
+    },
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(trackingQueryKey, context?.previousConsolidations || []);
+      if (context?.consolidationId) {
+        setFailedConsolidationIds((prev) => ({ ...prev, [context.consolidationId]: true }));
+      }
       toast.error('Error al actualizar el estado');
+    },
+    onSettled: (_data, _error, variables) => {
+      if (variables?.consolidation?.id) {
+        setPendingConsolidationIds((prev) => ({ ...prev, [variables.consolidation.id]: false }));
+      }
+      queryClient.invalidateQueries({ queryKey: trackingQueryKey });
     }
-    setPendingConsolidationIds((prev) => ({ ...prev, [consolidation.id]: false }));
+  });
+
+  const handleStatusChange = (consolidation, newStatus) => {
+    statusMutation.mutate({ consolidation, newStatus });
   };
 
   const handleEditDate = (consolidation) => {
@@ -85,48 +102,68 @@ export default function ShipmentTracking({ user }) {
     }
   };
 
+  const dateMutation = useMutation({
+    mutationFn: async ({ consolidation, updateData, estimatedDateValue }) => {
+      await base44.entities.Consolidation.update(consolidation.id, updateData);
+      if (estimatedDateValue) {
+        const { sendNotification } = await import('@/components/NotificationUtils');
+        sendNotification({
+          to: consolidation.client_email,
+          subject: '📅 Fecha de entrega actualizada',
+          body: `La fecha de entrega estimada de tu consolidación ${consolidation.consolidation_tracking} ha sido actualizada.\n\nNueva fecha estimada: ${format(parse(estimatedDateValue, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')}\n\nIngresa al sistema para más detalles.`,
+          type: 'consolidation',
+          icon: 'alert',
+          referenceId: consolidation.id,
+        });
+      }
+      return { id: consolidation.id };
+    },
+    onMutate: async ({ consolidation, updateData }) => {
+      await queryClient.cancelQueries({ queryKey: trackingQueryKey });
+      const previousConsolidations = queryClient.getQueryData(trackingQueryKey) || [];
+      setPendingConsolidationIds((prev) => ({ ...prev, [consolidation.id]: true }));
+      setFailedConsolidationIds((prev) => ({ ...prev, [consolidation.id]: false }));
+      queryClient.setQueryData(trackingQueryKey, previousConsolidations.map((item) => item.id === consolidation.id ? { ...item, ...updateData } : item));
+      return { previousConsolidations, consolidationId: consolidation.id };
+    },
+    onSuccess: () => {
+      toast.success('Fechas actualizadas correctamente');
+      setEditingDate(null);
+      setShippingDate('');
+      setEstimatedDate('');
+    },
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(trackingQueryKey, context?.previousConsolidations || []);
+      if (context?.consolidationId) {
+        setFailedConsolidationIds((prev) => ({ ...prev, [context.consolidationId]: true }));
+      }
+      toast.error('Error al actualizar fechas');
+    },
+    onSettled: (_data, _error, variables) => {
+      if (variables?.consolidation?.id) {
+        setPendingConsolidationIds((prev) => ({ ...prev, [variables.consolidation.id]: false }));
+      }
+      queryClient.invalidateQueries({ queryKey: trackingQueryKey });
+      setSavingDate(false);
+    }
+  });
+
   const handleSaveDate = async () => {
     if (!shippingDate && !estimatedDate) {
       toast.error('Selecciona al menos una fecha');
       return;
     }
 
-    const previousConsolidations = consolidations;
-    try {
-      setSavingDate(true);
-      const updateData = {};
-      if (shippingDate) updateData.shipping_date = shippingDate;
-      if (estimatedDate) updateData.estimated_delivery = estimatedDate;
+    setSavingDate(true);
+    const updateData = {};
+    if (shippingDate) updateData.shipping_date = shippingDate;
+    if (estimatedDate) updateData.estimated_delivery = estimatedDate;
 
-      setPendingConsolidationIds((prev) => ({ ...prev, [editingDate.id]: true }));
-      setFailedConsolidationIds((prev) => ({ ...prev, [editingDate.id]: false }));
-      setConsolidations((prev) => prev.map((item) => item.id === editingDate.id ? { ...item, ...updateData } : item));
-
-      await base44.entities.Consolidation.update(editingDate.id, updateData);
-
-      if (estimatedDate) {
-        const { sendNotification } = await import('@/components/NotificationUtils');
-        sendNotification({
-          to: editingDate.client_email,
-          subject: '📅 Fecha de entrega actualizada',
-          body: `La fecha de entrega estimada de tu consolidación ${editingDate.consolidation_tracking} ha sido actualizada.\n\nNueva fecha estimada: ${format(parse(estimatedDate, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy')}\n\nIngresa al sistema para más detalles.`,
-          type: 'consolidation',
-          icon: 'alert',
-          referenceId: editingDate.id,
-        });
-      }
-
-      toast.success('Fechas actualizadas correctamente');
-      setEditingDate(null);
-      setShippingDate('');
-      setEstimatedDate('');
-    } catch {
-      setConsolidations(previousConsolidations);
-      setFailedConsolidationIds((prev) => ({ ...prev, [editingDate.id]: true }));
-      toast.error('Error al actualizar fechas');
-    }
-    setPendingConsolidationIds((prev) => ({ ...prev, [editingDate.id]: false }));
-    setSavingDate(false);
+    dateMutation.mutate({
+      consolidation: editingDate,
+      updateData,
+      estimatedDateValue: estimatedDate,
+    });
   };
 
   const handleExportApprovals = () => {
@@ -221,7 +258,8 @@ export default function ShipmentTracking({ user }) {
               hasFailedRequest={!!failedConsolidationIds[consolidation.id]}
               onStatusChange={handleStatusChange}
               onEditDate={handleEditDate}
-              onDataChanged={loadData}
+              queryKey={trackingQueryKey}
+              onDataChanged={() => queryClient.invalidateQueries({ queryKey: trackingQueryKey })}
             />
           ))}
         </div>

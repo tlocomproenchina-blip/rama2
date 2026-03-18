@@ -38,6 +38,8 @@ export default function Layout({ children, currentPageName }) {
   const [showContract, setShowContract] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [isInstalledApp, setIsInstalledApp] = useState(false);
+  const [slideDirection, setSlideDirection] = useState(1);
+  const historyIndexRef = React.useRef(typeof window !== 'undefined' ? (window.history.state?.idx ?? 0) : 0);
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
@@ -229,6 +231,12 @@ export default function Layout({ children, currentPageName }) {
 
     return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, []);
+
+  useEffect(() => {
+    const currentIndex = typeof window !== 'undefined' ? (window.history.state?.idx ?? historyIndexRef.current) : historyIndexRef.current;
+    setSlideDirection(currentIndex < historyIndexRef.current ? -1 : 1);
+    historyIndexRef.current = currentIndex;
+  }, [location.pathname, location.search]);
 
   // Detect if running as installed PWA (standalone)
   useEffect(() => {
@@ -599,9 +607,9 @@ export default function Layout({ children, currentPageName }) {
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div
                     key={location.pathname + location.search}
-                    initial={{ opacity: 0, x: 28 }}
+                    initial={{ opacity: 0, x: slideDirection > 0 ? 28 : -28 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
+                    exit={{ opacity: 0, x: slideDirection > 0 ? -20 : 20 }}
                     transition={{ duration: 0.22, ease: 'easeOut' }}
                   >
                     {React.cloneElement(children, { user, refreshUser: loadUser })}

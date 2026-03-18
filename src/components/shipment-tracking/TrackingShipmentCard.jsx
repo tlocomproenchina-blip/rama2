@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { format, differenceInDays, parse } from 'date-fns';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Calendar,
   CheckCircle2,
@@ -70,13 +71,21 @@ const formatEstimatedDate = (value) => {
   }
 };
 
-export default function TrackingShipmentCard({ consolidation, user, isPending = false, hasFailedRequest = false, onStatusChange, onEditDate, onDataChanged }) {
+export default function TrackingShipmentCard({ consolidation, user, isPending = false, hasFailedRequest = false, queryKey, onStatusChange, onEditDate, onDataChanged }) {
   const [expanded, setExpanded] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(consolidation.payment_amount || '');
   const [paymentMethod, setPaymentMethod] = useState(consolidation.payment_method || '');
   const [paymentProof, setPaymentProof] = useState(consolidation.payment_proof_url || '');
+  const queryClient = useQueryClient();
   const [savingPayment, setSavingPayment] = useState(false);
   const [uploadingProof, setUploadingProof] = useState(false);
+  const [paymentActionFailed, setPaymentActionFailed] = useState(false);
+
+  useEffect(() => {
+    setPaymentAmount(consolidation.payment_amount || '');
+    setPaymentMethod(consolidation.payment_method || '');
+    setPaymentProof(consolidation.payment_proof_url || '');
+  }, [consolidation.id, consolidation.payment_amount, consolidation.payment_method, consolidation.payment_proof_url]);
 
   const expectedTransitDays = consolidation.shipping_type === 'maritimo' ? 90 : 30;
 
@@ -127,21 +136,116 @@ export default function TrackingShipmentCard({ consolidation, user, isPending = 
     toast.success('Tracking copiado');
   };
 
-  const handleUploadProof = async (file) => {
-    try {
-      setUploadingProof(true);
+  const updateTrackingCache = async (updater) => {
+    if (!queryKey) return { previousConsolidations: null };
+    await queryClient.cancelQueries({ queryKey });
+    const previousConsolidations = queryClient.getQueryData(queryKey) || [];
+    queryClient.setQueryData(queryKey, previousConsolidations.map((item) => item.id === consolidation.id ? updater(item) : item));
+    return { previousConsolidations };
+  };
+
+  const uploadProofMutation = useMutation({
+    mutationFn: async (file) => {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setPaymentProof(file_url);
       await base44.entities.Consolidation.update(consolidation.id, {
         payment_proof_url: file_url,
         payment_date: new Date().toISOString(),
       });
+      return file_url;
+    },
+    onMutate: async () => {
+      setPaymentActionFailed(false);
+      setUploadingProof(true);
+      return await updateTrackingCache((item) => ({ ...item, payment_date: new Date().toISOString() }));
+    },
+    onSuccess: (fileUrl) => {
+      setPaymentProof(fileUrl);
       toast.success('Comprobante subido');
-      onDataChanged?.();
-    } catch {
+    },
+    onError: (_error, _variables, context) => {
+      if (queryKey) {
+        queryClient.setQueryData(queryKey, context?.previousConsolidations || []);
+      }
+      setPaymentActionFailed(true);
       toast.error('Error al subir comprobante');
+    },
+    onSettled: () => {
+      setUploadingProof(false);
+      if (queryKey) queryClient.invalidateQueries({ queryKey });
+      onDataChanged?.();
     }
-    setUploadingProof(false);
+  });
+
+  const savePaymentMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.Consolidation.update(consolidation.id, {
+        payment_amount: parseFloat(paymentAmount),
+        payment_method: paymentMethod,
+      });
+    },
+    onMutate: async () => {
+      setPaymentActionFailed(false);
+      setSavingPayment(true);
+      return await updateTrackingCache((item) => ({
+        ...item,
+        payment_amount: parseFloat(paymentAmount),
+        payment_method: paymentMethod,
+      }));
+    },
+    onSuccess: () => {
+      toast.success('Pago guardado');
+    },
+    onError: (_error, _variables, context) => {
+      if (queryKey) {
+        queryClient.setQueryData(queryKey, context?.previousConsolidations || []);
+      }
+      setPaymentActionFailed(true);
+      toast.error('Error al guardar pago');
+    },
+    onSettled: () => {
+      setSavingPayment(false);
+      if (queryKey) queryClient.invalidateQueries({ queryKey });
+      onDataChanged?.();
+    }
+  });
+
+  const validatePaymentMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.Consolidation.update(consolidation.id, {
+        payment_validated: true,
+        payment_validation_date: new Date().toISOString(),
+        payment_validated_by: user?.email || '',
+        status: 'pago_validado',
+      });
+    },
+    onMutate: async () => {
+      setPaymentActionFailed(false);
+      return await updateTrackingCache((item) => ({
+        ...item,
+        payment_validated: true,
+        payment_validation_date: new Date().toISOString(),
+        payment_validated_by: user?.email || '',
+        status: 'pago_validado',
+      }));
+    },
+    onSuccess: () => {
+      toast.success('Pago validado');
+    },
+    onError: (_error, _variables, context) => {
+      if (queryKey) {
+        queryClient.setQueryData(queryKey, context?.previousConsolidations || []);
+      }
+      setPaymentActionFailed(true);
+      toast.error('Error al validar pago');
+    },
+    onSettled: () => {
+      if (queryKey) queryClient.invalidateQueries({ queryKey });
+      onDataChanged?.();
+    }
+  });
+
+  const handleUploadProof = async (file) => {
+    uploadProofMutation.mutate(file);
   };
 
   const handleSavePayment = async () => {
@@ -150,37 +254,15 @@ export default function TrackingShipmentCard({ consolidation, user, isPending = 
       return;
     }
 
-    try {
-      setSavingPayment(true);
-      await base44.entities.Consolidation.update(consolidation.id, {
-        payment_amount: parseFloat(paymentAmount),
-        payment_method: paymentMethod,
-      });
-      toast.success('Pago guardado');
-      onDataChanged?.();
-    } catch {
-      toast.error('Error al guardar pago');
-    }
-    setSavingPayment(false);
+    savePaymentMutation.mutate();
   };
 
   const handleValidatePayment = async () => {
-    try {
-      await base44.entities.Consolidation.update(consolidation.id, {
-        payment_validated: true,
-        payment_validation_date: new Date().toISOString(),
-        payment_validated_by: user?.email || '',
-        status: 'pago_validado',
-      });
-      toast.success('Pago validado');
-      onDataChanged?.();
-    } catch {
-      toast.error('Error al validar pago');
-    }
+    validatePaymentMutation.mutate();
   };
 
   return (
-    <Card className={`overflow-hidden rounded-2xl border-0 shadow-md transition-all hover:shadow-lg ${isPending ? 'opacity-75' : ''} ${hasFailedRequest ? 'ring-1 ring-rose-200 bg-rose-50/30' : ''}`}>
+    <Card className={`overflow-hidden rounded-2xl border-0 shadow-md transition-all hover:shadow-lg ${(isPending || savingPayment || uploadingProof) ? 'opacity-75' : ''} ${(hasFailedRequest || paymentActionFailed) ? 'ring-1 ring-rose-200 bg-rose-50/30' : ''}`}>
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
