@@ -5,12 +5,20 @@ import {
   Users,
   Settings,
   CreditCard,
+  FileText,
+  Truck,
+  MessageCircle,
+  Calculator,
+  Trash2,
+  AlertTriangle,
+  HelpCircle,
   Tag,
   TrendingUp,
   CheckCircle2,
   Mail,
   Wallet,
   Gift,
+  ShieldCheck,
 } from 'lucide-react';
 
 export const clientMenuItems = [
