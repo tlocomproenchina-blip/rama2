@@ -105,6 +105,17 @@ export default function AssistedPaymentForm({ user }) {
             </div>
           )}
 
+          <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-4">
+            <h3 className="text-sm font-semibold text-blue-900">Instrucciones de uso</h3>
+            <ol className="mt-2 space-y-1 text-sm text-blue-900/80 list-decimal pl-4">
+              <li>Pega el enlace del producto o sube el QR de WeChat o Alipay.</li>
+              <li>Indica el monto exacto a pagar en USD.</li>
+              <li>Selecciona la plataforma correspondiente.</li>
+              <li>Agrega notas si necesitas especificar color, talla o detalles de compra.</li>
+              <li>Revisa el cálculo estimado y luego pulsa <span className="font-medium">Enviar solicitud</span>.</li>
+            </ol>
+          </div>
+
           <div className="space-y-2">
             <Label>Enlace (si no subes QR)</Label>
             <Input
