@@ -312,10 +312,15 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
                         <p className="font-medium text-slate-900">Estado de Stripe</p>
                         <p className="text-sm text-slate-600">Las claves viven en el servidor. Desde aquí puedes comprobar si todo está listo.</p>
                       </div>
-                      <Button type="button" variant="outline" onClick={handleStripeCheck} className="bg-white">
-                        Probar Stripe
+                      <Button type="button" variant="outline" onClick={handleStripeCheck} className="bg-white" disabled={checkingStripe}>
+                        {checkingStripe ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando...</> : 'Probar Stripe'}
                       </Button>
                     </div>
+                    {stripeCheckResult && (
+                      <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${stripeCheckResult.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
+                        {stripeCheckResult.message}
+                      </div>
+                    )}
                   </div>
                 )}
               </PaymentMethodCard>
