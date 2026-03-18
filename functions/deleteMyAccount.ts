@@ -19,6 +19,9 @@ Deno.serve(async (req) => {
     return Response.json({ success: true });
   } catch (error) {
     console.error('deleteMyAccount error:', error);
+    if (String(error?.message || '').includes('owner of the app')) {
+      return Response.json({ error: 'La cuenta propietaria de la app no puede eliminarse desde la aplicación.' }, { status: 403 });
+    }
     return Response.json({ error: error?.message || 'Internal Server Error' }, { status: 500 });
   }
 });
