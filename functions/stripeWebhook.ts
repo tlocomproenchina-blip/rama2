@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 import Stripe from 'npm:stripe@14.25.0';
 
 // Helper: fetch Stripe secret from any of the possible env names already used in the app
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
     switch (event.type) {
       case 'payment_intent.succeeded': {
-        const pi: any = event.data.object;
+        const pi = event.data.object;
         // Resolve our Base44 invoice id from metadata or the linked Stripe invoice
         let base44Id = pi?.metadata?.base44_invoice_id || pi?.metadata?.invoice_id || null;
         if (!base44Id && pi?.invoice) {
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
           try {
             // Check current status to avoid overriding 'revision'
             const currentList = await base44.asServiceRole.entities.Invoice.filter({ id: base44Id });
-            const currentInv: any = currentList && currentList[0] ? currentList[0] : null;
+            const currentInv = currentList && currentList[0] ? currentList[0] : null;
 
             if (currentInv?.status === 'revision') {
               // Only record references; keep status as 'revision'
@@ -140,13 +140,13 @@ Deno.serve(async (req) => {
       }
 
       case 'invoice.paid': {
-        const invObj: any = event.data.object;
+        const invObj = event.data.object;
         const base44Id = invObj?.metadata?.base44_invoice_id;
         if (base44Id) {
           try {
             // Respect 'revision' status (no auto-mark as paid)
             const currList = await base44.asServiceRole.entities.Invoice.filter({ id: base44Id });
-            const currInv: any = currList && currList[0] ? currList[0] : null;
+            const currInv = currList && currList[0] ? currList[0] : null;
 
             if (currInv?.status === 'revision') {
               await base44.asServiceRole.entities.Invoice.update(base44Id, {
@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
       }
 
       case 'invoice.payment_failed': {
-        const invObj: any = event.data.object;
+        const invObj = event.data.object;
         const base44Id = invObj?.metadata?.base44_invoice_id;
         if (base44Id) {
           try {

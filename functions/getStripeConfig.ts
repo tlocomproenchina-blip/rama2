@@ -5,6 +5,7 @@ function getPublishableKey() {
     Deno.env.get('STRIPE_PUBLISHABLE_KEY') ||
     Deno.env.get('STRIPE_PUBLIC_KEY') ||
     Deno.env.get('STRIPEPPUBLICA') ||
+    Deno.env.get('stripepublicable') ||
     null
   );
 }
