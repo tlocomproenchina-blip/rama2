@@ -51,6 +51,8 @@ export default function ShippingMarkAutomationSettings({ appConfig, setAppConfig
           />
         </div>
       </div>
+
+      <ShippingMarkCodePoolManager />
     </div>
   );
 }
