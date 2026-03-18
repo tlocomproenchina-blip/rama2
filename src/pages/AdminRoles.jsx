@@ -51,8 +51,6 @@ const PAGE_LABELS = {
   'AdminDelete': 'Eliminar',
   'AdminPermissions': 'Administradores',
   'AdminSettings': 'Configuración',
-  'AdminTenants': 'Tenants',
-  'AdminBilling': 'Facturación SaaS',
   'AdminReports': 'Reportes',
   'WarehouseDashboard': 'Dashboard Almacén',
   'WarehouseReceive': 'Recepción Almacén',

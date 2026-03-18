@@ -7,14 +7,11 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import AuthRequiredScreen from '@/components/AuthRequiredScreen';
 import WarehouseReceive from './pages/WarehouseReceive';
 import WarehouseLocations from './pages/WarehouseLocations';
 import WarehouseDashboard from './pages/WarehouseDashboard';
 import WarehousePickPackShip from './pages/WarehousePickPackShip';
 import ClientAnalytics from './pages/ClientAnalytics';
-import AdminTenants from './pages/AdminTenants';
-import AdminBilling from './pages/AdminBilling';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -41,7 +38,9 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      return <AuthRequiredScreen onLogin={navigateToLogin} />;
+      // Redirect to login automatically
+      navigateToLogin();
+      return null;
     }
   }
 
@@ -87,16 +86,6 @@ const AuthenticatedApp = () => {
       <Route path="/ClientAnalytics" element={
         <LayoutWrapper currentPageName="ClientAnalytics">
           <ClientAnalytics />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminTenants" element={
-        <LayoutWrapper currentPageName="AdminTenants">
-          <AdminTenants />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminBilling" element={
-        <LayoutWrapper currentPageName="AdminBilling">
-          <AdminBilling />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
