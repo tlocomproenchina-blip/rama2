@@ -21,10 +21,10 @@ export default function OptimizedImage({
   const containerRef = useRef(null);
 
   useEffect(() => {
+    setIsLoaded(false);
     if (!src) return;
 
-    // Si es prioritario, cargar inmediatamente
-    if (priority) {
+    if (priority || typeof IntersectionObserver === 'undefined') {
       setImageSrc(src);
       return;
     }
@@ -40,7 +40,7 @@ export default function OptimizedImage({
         }
       });
     }, {
-      rootMargin: '100px'
+      rootMargin: '120px'
     });
 
     observer.observe(node);
@@ -66,8 +66,11 @@ export default function OptimizedImage({
         width={width}
         height={height}
         onLoad={handleLoad}
+        onError={() => setIsLoaded(true)}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
+        fetchPriority={priority ? 'high' : 'auto'}
+        sizes="100vw"
         className={`w-full h-full object-cover transition-opacity duration-300 ${
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
