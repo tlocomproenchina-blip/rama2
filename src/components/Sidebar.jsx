@@ -1,37 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import {
-  LayoutDashboard,
-  Package,
-  Layers,
-  Users,
-  Settings,
-  CreditCard,
-  Shield,
-  FileText,
-  ShieldCheck,
-  LogOut,
-  X,
-  Truck,
-  MessageCircle,
-  Calculator,
-  Trash2,
-  AlertTriangle,
-  HelpCircle,
-  BarChart3,
-  Tag,
-  TrendingUp,
-  CheckCircle2,
-  Mail,
-  Wallet,
-  Gift
-} from 'lucide-react';
+import { Package, LogOut, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
 import { cacheManager } from '@/components/CacheManager';
 import OptimizedImage from '@/components/OptimizedImage';
 import useAttentionFlags from '@/components/notifications/useAttentionFlags';
+import SidebarNavGroup from '@/components/sidebar/SidebarNavGroup';
+import {
+  adminGroups,
+  adminMenuItems,
+  accountingMenuItems,
+  clientGroups,
+  clientMenuItems,
+  employeeMenuItems,
+} from '@/components/sidebar/sidebarConfig';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose, initialConfig }) {
   const [config, setConfig] = useState(initialConfig || null);
@@ -111,98 +95,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
     }
   }, [customRole, loadRoleConfig]);
 
-  const clientMenuItems = [
-  { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
-  { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
-  { name: 'Mi Perfil', page: 'Profile', icon: Users },
-  { name: 'Mis Referidos', page: 'MyReferrals', icon: Gift },
-  { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
-  { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
-  { name: 'Solicitar Consolidación', page: 'RequestConsolidation', icon: Layers },
-  { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
-  { name: 'Mis Facturas', page: 'MyInvoices', icon: FileText },
-  { name: 'Pago Asistido', page: 'AssistedPayment', icon: CreditCard },
-  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
-  { name: 'Calculadora', page: 'ShippingCalculator', icon: CreditCard },
-  { name: 'Tarifas', page: 'Rates', icon: FileText },
-  { name: 'Ayuda (FAQ)', page: 'FAQ', icon: HelpCircle },
-  { name: 'Soporte', page: 'Support', icon: MessageCircle }];
-
-
-  const adminMenuItems = [
-  { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
-  { name: 'Reportes', page: 'AdminReports', icon: BarChart3 },
-  { name: 'Análisis Cliente', page: 'ClientAnalytics', icon: TrendingUp },
-  { name: 'Paquetes', page: 'AdminPackages', icon: Package },
-  { name: 'Dashboard Almacén', page: 'WarehouseDashboard', icon: LayoutDashboard },
-  { name: 'Recepción Almacén', page: 'WarehouseReceive', icon: Package },
-  { name: 'Ubicaciones y Sedes', page: 'WarehouseLocations', icon: Layers },
-  { name: 'Picking y Packing', page: 'WarehousePickPackShip', icon: Truck },
-  { name: 'Aprobaciones', page: 'AdminConsolidate', icon: Layers },
-  { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2 },
-  { name: 'Dashboard Contabilidad', page: 'AccountingDashboard', icon: LayoutDashboard },
-  { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
-  { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
-  { name: 'Pagos Asistidos', page: 'AdminAssistedPayments', icon: CreditCard },
-  { name: 'Cuentas por Pagar', page: 'AdminAccountsPayable', icon: Wallet },
-  { name: 'Pagos Proveedores', page: 'AdminProviderPayments', icon: CreditCard },
-  { name: 'Proveedores', page: 'AdminProviders', icon: Users },
-  { name: 'Enviar Emails', page: 'AdminEmailCampaigns', icon: Mail },
-  { name: 'Plantillas Email', page: 'AdminEmailTemplates', icon: FileText },
-  { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle },
-  { name: 'Promociones', page: 'AdminPromotions', icon: Tag },
-  { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp },
-  { name: 'Blog', page: 'AdminBlog', icon: FileText },
-  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
-  { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
-  { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
-  { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
-  { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
-  { name: 'Clientes', page: 'AdminClients', icon: Users },
-  { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
-  { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
-  { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
-{ name: 'Administradores', page: 'AdminPermissions', icon: Shield },
-  { name: 'Gestión de Roles', page: 'AdminRoles', icon: Shield },
-  { name: 'Configuración', page: 'AdminSettings', icon: Settings }];
-
-
-  const adminGroups = [
-    { label: 'PRINCIPAL', items: ['AdminDashboard','AdminReports','ClientAnalytics'] },
-    { label: 'OPERACIONES', items: ['AdminPackages','AdminConsolidate','AdminShipmentApprovals'] },
-    { label: 'ALMACÉN', items: ['WarehouseDashboard','WarehouseReceive','WarehouseLocations','WarehousePickPackShip'] },
-    { label: 'CONTABILIDAD', items: ['AccountingDashboard','AdminInvoices','AdminPayments','AdminAssistedPayments','AdminAccountsPayable','AdminProviderPayments','AdminProviders'] },
-    { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns','AdminEmailTemplates','AdminPaymentAlerts'] },
-    { label: 'MARKETING', items: ['AdminPromotions','AdminMarketing','AdminBlog','AdminReferrals'] },
-    { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator','AdminInsured'] },
-    { label: 'SOPORTE', items: ['AdminSupportTickets','AdminFAQ'] },
-    { label: 'GESTIÓN', items: ['AdminClients','AdminKnowledgeBase','AdminDelete','AdminPermissions','AdminRoles','AdminSettings'] }
-  ];
-
-  const clientGroups = [
-    { label: 'PRINCIPAL', items: ['ClientPortal','Dashboard'] },
-    { label: 'ENVÍOS', items: ['MyPackages','PreAlert','RequestConsolidation','MyConsolidations'] },
-    { label: 'PAGOS', items: ['MyInvoices','AssistedPayment'] },
-    { label: 'SEGUIMIENTO', items: ['ShipmentTracking','ShippingCalculator'] },
-    { label: 'INFORMACIÓN', items: ['Rates'] },
-    { label: 'SOPORTE', items: ['FAQ','Support'] },
-    { label: 'CUENTA', items: ['Profile','MyReferrals'] }
-  ];
-
-  const employeeMenuItems = [
-  { name: 'Dashboard', page: 'EmployeeDashboard', icon: LayoutDashboard },
-  { name: 'Clientes', page: 'AdminClients', icon: Users },
-  { name: 'Paquetes', page: 'AdminPackages', icon: Package },
-  { name: 'Consolidar', page: 'AdminConsolidate', icon: Layers },
-  { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck }];
-
-  const accountingMenuItems = [
-  { name: 'Dashboard', page: 'AccountingDashboard', icon: LayoutDashboard },
-  { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
-  { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
-  { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle },
-  { name: 'Reportes', page: 'AdminReports', icon: BarChart3 }];
-
+  const adminItemsByPage = useMemo(() => Object.fromEntries(adminMenuItems.map((item) => [item.page, item])), []);
+  const clientItemsByPage = useMemo(() => Object.fromEntries(clientMenuItems.map((item) => [item.page, item])), []);
 
   const getMenuItems = () => {
     if (isAdmin) return adminMenuItems;
@@ -322,81 +216,27 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
           ) : (
               isAdmin ? (
                 adminGroups.map((group) => (
-                  <div key={group.label} className="mt-3 first:mt-0">
-                    <div className="px-3 py-2 text-[10px] font-semibold tracking-wide text-slate-300/70 uppercase">
-                      {group.label}
-                    </div>
-                    <div className="space-y-1">
-                      {group.items.map((page) => {
-                        const item = adminMenuItems.find(i => i.page === page);
-                        if (!item) return null;
-                        const Icon = item.icon;
-                        const isActive = currentPage === item.page;
-
-
-
-                        return (
-                          <Link
-                            key={item.page}
-                            to={createPageUrl(item.page)}
-                            onClick={() => handleMenuClick(item.page)}
-                            className={`
-                              flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-                              ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
-                            `}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Icon className="h-5 w-5 flex-shrink-0" />
-                              <span className="font-medium">{item.name}</span>
-                                                              {flags[item.page] && (
-                                                                <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
-                                                              )}
-                                                            </div>
-                            
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <SidebarNavGroup
+                    key={group.label}
+                    label={group.label}
+                    pages={group.items}
+                    itemsByPage={adminItemsByPage}
+                    currentPage={currentPage}
+                    flags={flags}
+                    onItemClick={handleMenuClick}
+                  />
                 ))
               ) : isClient ? (
                 clientGroups.map((group) => (
-                  <div key={group.label} className="mt-3 first:mt-0">
-                    <div className="px-3 py-2 text-[10px] font-semibold tracking-wide text-slate-300/70 uppercase">
-                      {group.label}
-                    </div>
-                    <div className="space-y-1">
-                      {group.items.map((page) => {
-                        const item = clientMenuItems.find(i => i.page === page);
-                        if (!item) return null;
-                        const Icon = item.icon;
-                        const isActive = currentPage === item.page;
-
-
-
-                        return (
-                          <Link
-                            key={item.page}
-                            to={createPageUrl(item.page)}
-                            onClick={() => handleMenuClick(item.page)}
-                            className={`
-                              flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-                              ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'}
-                            `}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Icon className="h-5 w-5 flex-shrink-0" />
-                              <span className="font-medium">{item.name}</span>
-                                                              {flags[item.page] && (
-                                                                <span className="ml-auto h-2.5 w-2.5 rounded-full bg-amber-400 shadow shadow-amber-500/40" />
-                                                              )}
-                                                            </div>
-                            
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <SidebarNavGroup
+                    key={group.label}
+                    label={group.label}
+                    pages={group.items}
+                    itemsByPage={clientItemsByPage}
+                    currentPage={currentPage}
+                    flags={flags}
+                    onItemClick={handleMenuClick}
+                  />
                 ))
               ) : (
                 getMenuItems().map((item) => {
