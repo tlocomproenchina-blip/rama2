@@ -89,16 +89,28 @@ Deno.serve(async (req) => {
     }
 
     let shippingMark = '';
-    let attempts = 0;
 
-    while (attempts < 20) {
-      const candidate = `${prefix}${getRandomPart(chars, length)}`;
-      const existing = await base44.asServiceRole.entities.User.filter({ shipping_mark: candidate }, '-updated_date', 1);
-      if (!existing?.length) {
-        shippingMark = candidate;
-        break;
+    const availableCodes = await base44.asServiceRole.entities.ShippingMarkCode.filter({ status: 'available' }, 'created_date', 1);
+    const pooledCode = availableCodes?.[0] || null;
+
+    if (pooledCode?.code) {
+      shippingMark = String(pooledCode.code).trim().toUpperCase();
+      await base44.asServiceRole.entities.ShippingMarkCode.update(pooledCode.id, {
+        status: 'assigned',
+        assigned_to_email: targetUser.email || '',
+        assigned_date: new Date().toISOString()
+      });
+    } else {
+      let attempts = 0;
+      while (attempts < 20) {
+        const candidate = `${prefix}${getRandomPart(chars, length)}`;
+        const existing = await base44.asServiceRole.entities.User.filter({ shipping_mark: candidate }, '-updated_date', 1);
+        if (!existing?.length) {
+          shippingMark = candidate;
+          break;
+        }
+        attempts += 1;
       }
-      attempts += 1;
     }
 
     if (!shippingMark) {

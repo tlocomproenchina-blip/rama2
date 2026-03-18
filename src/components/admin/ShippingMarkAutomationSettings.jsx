@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Tag } from 'lucide-react';
+import ShippingMarkCodePoolManager from '@/components/admin/ShippingMarkCodePoolManager';
 
 export default function ShippingMarkAutomationSettings({ appConfig, setAppConfig }) {
   return (
