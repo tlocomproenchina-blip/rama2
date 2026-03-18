@@ -76,7 +76,7 @@ export default function AdminClients({ user }) {
   const [whatsappFilter, setWhatsappFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
   const [exclusiveKey, setExclusiveKey] = useState('all');
-  const [canExport, setCanExport] = useState(false);
+  const canExport = user?.role === 'admin';
   const [backfilling, setBackfilling] = useState(false);
   const PAGE_SIZE = 200;
   const [hasMore, setHasMore] = useState(false);
@@ -89,7 +89,6 @@ export default function AdminClients({ user }) {
   useEffect(() => {
     loadClients();
     loadStateConfigs();
-    loadRolePermissions();
 
   }, []);
 
@@ -112,7 +111,7 @@ export default function AdminClients({ user }) {
     return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, []);
 
-  const canViewClients = (user?.role === 'admin') || (user?.custom_role === 'customer_service');
+  const canViewClients = user?.role === 'admin';
 
   const loadStateConfigs = async () => {
     try {
@@ -122,22 +121,6 @@ export default function AdminClients({ user }) {
       setStateConfigs(normalizeStates(states));
     } catch (error) {
       console.error('Error loading states:', error);
-    }
-  };
-
-  const loadRolePermissions = async () => {
-    try {
-      // Los administradores siempre pueden exportar
-      if (user?.role === 'admin') { setCanExport(true); return; }
-
-      const roleCode = user?.custom_role || null;
-      if (!roleCode) { setCanExport(false); return; }
-
-      const roles = await base44.entities.RoleConfig.filter({ role_code: roleCode, is_active: true });
-      const allowed = roles.length > 0 ? !!(roles[0]?.permissions?.export_data) : false;
-      setCanExport(allowed);
-    } catch (e) {
-      setCanExport(user?.role === 'admin');
     }
   };
 

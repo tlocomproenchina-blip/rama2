@@ -76,6 +76,7 @@ import AdminSupportTickets from './pages/AdminSupportTickets';
 import AssistedPayment from './pages/AssistedPayment';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
+import ClientAnalytics from './pages/ClientAnalytics';
 import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
 import FAQ from './pages/FAQ';
@@ -97,7 +98,6 @@ import WarehouseDashboard from './pages/WarehouseDashboard';
 import WarehouseLocations from './pages/WarehouseLocations';
 import WarehousePickPackShip from './pages/WarehousePickPackShip';
 import WarehouseReceive from './pages/WarehouseReceive';
-import ClientAnalytics from './pages/ClientAnalytics';
 import __Layout from './Layout.jsx';
 
 
@@ -131,6 +131,7 @@ export const PAGES = {
     "AssistedPayment": AssistedPayment,
     "Blog": Blog,
     "BlogPost": BlogPost,
+    "ClientAnalytics": ClientAnalytics,
     "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
     "FAQ": FAQ,
@@ -152,7 +153,6 @@ export const PAGES = {
     "WarehouseLocations": WarehouseLocations,
     "WarehousePickPackShip": WarehousePickPackShip,
     "WarehouseReceive": WarehouseReceive,
-    "ClientAnalytics": ClientAnalytics,
 }
 
 export const pagesConfig = {
