@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -467,7 +468,11 @@ export default function Layout({ children, currentPageName }) {
           --sab: env(safe-area-inset-bottom); 
         }
         /* toasts visible */
-        body { overflow-x: hidden; }
+        html { -webkit-text-size-adjust: 100%; }
+        body { overflow-x: hidden; overscroll-behavior-y: contain; }
+        button, a, [role="button"], [role="tab"] { -webkit-tap-highlight-color: transparent; }
+        button, a, [role="button"], [role="tab"], nav { -webkit-user-select: none; user-select: none; }
+        input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
 
         /* Mobile responsiveness improvements */
         @media (max-width: 640px) {
@@ -591,7 +596,17 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               )}
               <ErrorBoundary>
-                {React.cloneElement(children, { user, refreshUser: loadUser })}
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={location.pathname}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                  >
+                    {React.cloneElement(children, { user, refreshUser: loadUser })}
+                  </motion.div>
+                </AnimatePresence>
               </ErrorBoundary>
             </div>
           </PullToRefresh>
