@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 import HomeHeader from '@/components/home/HomeHeader';
 import Hero from '@/components/home/Hero';
 import FAQSection from '@/components/home/FAQSection';
+import RecentOperationsPanel from '@/components/home/RecentOperationsPanel';
 
 // Below-the-fold sections
 const Features = React.lazy(() => import('@/components/home/Features'));
@@ -56,6 +57,7 @@ export default function Home({ user }) {
     <div className="min-h-screen bg-white">
       <HomeHeader onLogin={handleAuthClick} />
       <Hero onLogin={handleAuthClick} />
+      <RecentOperationsPanel user={user} />
       <React.Suspense fallback={<div className="px-4 py-16 text-center text-sm text-slate-500">Cargando contenido…</div>}>
         <Features />
         <Process />
