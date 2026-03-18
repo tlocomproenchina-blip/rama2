@@ -64,19 +64,16 @@ export default function Sidebar({ user, currentPage, isOpen, onClose }) {
 
 
 
-
-  const handleMenuClick = useCallback((page) => {
-    if (page) { try { markSeen(page); } catch {} }
-    onClose && onClose();
-  }, [markSeen, onClose]);
-
-
-
   const [roleConfig, setRoleConfig] = useState(null);
   const isAdmin = user?.role === 'admin';
   const customRole = user?.custom_role;
   const isClient = user?.role === 'user' && !customRole;
   const [flags, markSeen] = useAttentionFlags({ user });
+
+  const handleMenuClick = useCallback((page) => {
+    if (page) { try { markSeen(page); } catch {} }
+    onClose && onClose();
+  }, [markSeen, onClose]);
   // Auto-limpiar el punto si el usuario llegó a la página por otra vía (no solo desde el sidebar)
   useEffect(() => {
     try {
