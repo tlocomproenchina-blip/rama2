@@ -321,11 +321,18 @@ class ApiQueueManager {
       return { user: cached, tenantId: cached?.tenant_id || null };
     }
 
+    const emptyAuthCache = this.cache.get('auth:me:empty');
+    if (emptyAuthCache && Date.now() - emptyAuthCache.timestamp < 60000) {
+      return { user: null, tenantId: null };
+    }
+
     try {
       const user = await base44Client.auth.me();
+      this.cache.delete('auth:me:empty');
       this.saveToCache('auth:me', user);
       return { user, tenantId: user?.tenant_id || null };
     } catch {
+      this.cache.set('auth:me:empty', { data: true, timestamp: Date.now() });
       return { user: null, tenantId: null };
     }
   }
@@ -539,6 +546,7 @@ class ApiQueueManager {
 
       updateMe: async (data) => {
         this.cache.delete('auth:me');
+        this.cache.delete('auth:me:empty');
         
         return await this.enqueue(async () => {
           return await base44Client.auth.updateMe(data);
@@ -716,8 +724,8 @@ class ApiQueueManager {
 // Singleton global
 const apiQueue = new ApiQueueManager();
 // Activar realtime + sin caché en vistas críticas por defecto
-apiQueue.enableRealtime(['Package','Consolidation','ConsolidationRequest','Invoice','Notification','AppConfig','User']);
-apiQueue.disableCacheFor(['Package','Consolidation','ConsolidationRequest','Invoice','Notification','AppConfig','User']);
+apiQueue.enableRealtime(['Package','Consolidation','ConsolidationRequest','Invoice','Notification','AppConfig']);
+apiQueue.disableCacheFor(['Package','Consolidation','ConsolidationRequest','Invoice','Notification','AppConfig']);
 
 // Export como base44 compatible
 export const base44 = apiQueue;
