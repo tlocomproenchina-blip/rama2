@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 export default function ClientQuickMenuBar({ items = [], currentPage, onItemClick }) {
   return (
-    <div className="border-b border-slate-700/50 bg-[#1c3f82] px-4 py-3 lg:hidden">
+    <div className="border-b border-slate-700/50 bg-[#1c3f82] px-4 py-3">
       <div className="flex gap-2 overflow-x-auto pb-1">
         {items.map((item) => {
           const Icon = item.icon;
