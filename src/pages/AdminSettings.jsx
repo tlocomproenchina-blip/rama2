@@ -490,7 +490,7 @@ export default function AdminSettings({ user }) {
 
         {/* Tab Tarifas */}
         <TabsContent value="tarifas">
-          <Card className="rounded-2xl border-0 shadow-lg"
+          <Card className="rounded-2xl border-0 shadow-lg">
             <CardHeader>
               <CardTitle>Configuración de Precios</CardTitle>
               <CardDescription>
@@ -583,7 +583,7 @@ export default function AdminSettings({ user }) {
 
         {/* Tab Tipos de Envío */}
         <TabsContent value="envios">
-          <Card className="rounded-2xl border-0 shadow-lg"
+          <Card className="rounded-2xl border-0 shadow-lg">
             <CardHeader>
               <CardTitle>Tipos de Envío Disponibles</CardTitle>
               <CardDescription>
@@ -667,7 +667,7 @@ export default function AdminSettings({ user }) {
 
         {/* Tab Estados */}
         <TabsContent value="estados">
-          <Card className="rounded-2xl border-0 shadow-lg"
+          <Card className="rounded-2xl border-0 shadow-lg">
             <CardHeader>
               <CardTitle>Gestión de Estados Venezolanos</CardTitle>
               <CardDescription>
@@ -866,7 +866,7 @@ export default function AdminSettings({ user }) {
 
         {/* Tab General */}
         <TabsContent value="general">
-          <Card className="rounded-2xl border-0 shadow-lg"
+          <Card className="rounded-2xl border-0 shadow-lg">
             <CardHeader>
               <CardTitle>Configuración General de la Aplicación</CardTitle>
               <CardDescription>
@@ -1166,7 +1166,7 @@ export default function AdminSettings({ user }) {
 
         {/* Tab Privacidad */}
         <TabsContent value="privacidad">
-          <Card className="rounded-2xl border-0 shadow-lg"
+          <Card className="rounded-2xl border-0 shadow-lg">
             <CardHeader>
               <CardTitle>Privacidad y Gestión de Datos</CardTitle>
               <CardDescription>
@@ -1238,7 +1238,7 @@ export default function AdminSettings({ user }) {
 
 
         <TabsContent value="facturas">
-          <Card className="rounded-2xl border-0 shadow-lg"
+          <Card className="rounded-2xl border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
