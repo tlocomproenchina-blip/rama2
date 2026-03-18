@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, MapPin, Phone, Save, Loader2, DollarSign, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import DeleteAccountCard from '@/components/profile/DeleteAccountCard';
 
 export default function Profile({ user, refreshUser }) {
   const [formData, setFormData] = useState({
@@ -437,6 +438,8 @@ export default function Profile({ user, refreshUser }) {
           </p>
         </CardContent>
       </Card>
+
+      <DeleteAccountCard userEmail={user?.email} />
     </div>
   );
 }
