@@ -44,10 +44,6 @@ export default function AdminActivityAudit() {
     return matchesEntity && (!q || haystack.includes(q));
   }), [entityFilter, logs, search]);
 
-  if (loading) {
-    return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
-  }
-
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900 p-6 text-white shadow-xl md:p-8">
@@ -56,6 +52,12 @@ export default function AdminActivityAudit() {
             <History className="h-3.5 w-3.5" />
             Auditoría de actividad
           </div>
+          {loading && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/80">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Actualizando datos
+            </div>
+          )}
           <h1 className="text-3xl font-bold tracking-tight">Auditoría de Actividad</h1>
           <p className="max-w-2xl text-sm text-slate-200 md:text-base">
             Revisa los cambios recientes sobre paquetes y rutas, con actor, fecha y comparación de valores.
