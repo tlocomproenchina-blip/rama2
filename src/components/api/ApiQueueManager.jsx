@@ -616,6 +616,9 @@ const apiQueue = new ApiQueueManager();
 apiQueue.enableRealtime(['Package','Consolidation','ConsolidationRequest','Invoice','Notification']);
 apiQueue.disableCacheFor(['Package','Consolidation','ConsolidationRequest','Invoice','Notification']);
 
+// Mantener caché fresca en módulos administrativos de alta navegación
+apiQueue.enableRealtime(['Vehiculo','Chofer','Ruta','CargaRuta','SeguimientoRuta','Warehouse','WarehouseLocation','ConsolidationRequest','AssistedPaymentRequest','Package']);
+
 // Export como base44 compatible
 export const base44 = apiQueue;
 
