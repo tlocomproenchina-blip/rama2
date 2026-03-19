@@ -23,6 +23,7 @@ export default function AdminLogistica() {
   const [loading, setLoading] = useState(true);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthCheck, setHealthCheck] = useState(null);
+  const [latestHealthReport, setLatestHealthReport] = useState(null);
   const [vehiculos, setVehiculos] = useState([]);
   const [choferes, setChoferes] = useState([]);
   const [rutas, setRutas] = useState([]);
@@ -39,18 +40,20 @@ export default function AdminLogistica() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const [vehiculosRows, choferesRows, rutasRows, cargasRows, seguimientosRows] = await Promise.all([
+      const [vehiculosRows, choferesRows, rutasRows, cargasRows, seguimientosRows, reportRows] = await Promise.all([
         base44.entities.Vehiculo.list('-updated_date', 200),
         base44.entities.Chofer.list('-updated_date', 200),
         base44.entities.Ruta.list('-updated_date', 200),
         base44.entities.CargaRuta.list('-updated_date', 200),
         base44.entities.SeguimientoRuta.list('-fecha_hora', 200),
+        base44.entities.LogisticsHealthReport.list('-checked_at', 1),
       ]);
       setVehiculos(vehiculosRows || []);
       setChoferes(choferesRows || []);
       setRutas(rutasRows || []);
       setCargas(cargasRows || []);
       setSeguimientos(seguimientosRows || []);
+      setLatestHealthReport(reportRows?.[0] || null);
       setLoading(false);
     };
 
@@ -135,6 +138,21 @@ export default function AdminLogistica() {
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Rutas activas</p><p className="mt-2 text-3xl font-bold text-slate-900">{metrics.rutasActivas}</p></CardContent></Card>
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Entregas pendientes</p><p className="mt-2 text-3xl font-bold text-slate-900">{metrics.entregasPendientes}</p></CardContent></Card>
       </div>
+
+      {latestHealthReport && (
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle>Último monitoreo automático</CardTitle>
+            <CardDescription>{latestHealthReport.summary_text}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-4 text-sm text-slate-600">
+            <div><span className="font-medium text-slate-800">Severidad:</span> {latestHealthReport.severity}</div>
+            <div><span className="font-medium text-slate-800">Fecha:</span> {latestHealthReport.checked_at ? new Date(latestHealthReport.checked_at).toLocaleString('es-VE') : '—'}</div>
+            <div><span className="font-medium text-slate-800">Conflictos:</span> {latestHealthReport.resource_conflicts || 0}</div>
+            <div><span className="font-medium text-slate-800">Sobrecarga:</span> {latestHealthReport.capacity_alerts || 0}</div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-0 shadow-lg">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
