@@ -3,7 +3,7 @@ export const ROLE_PRESETS = {
     role_code: 'operaciones',
     role_name: 'Operaciones',
     description: 'Gestión operativa de paquetes, consolidaciones y seguimiento.',
-    visible_pages: ['AdminDashboard', 'AdminOperaciones', 'AdminLogistica', 'ClientAnalytics', 'AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'AdminConsolidate', 'AdminShipmentApprovals', 'ShipmentTracking']
+    visible_pages: ['AdminDashboard', 'AdminOperaciones', 'AdminLogistica', 'ClientAnalytics', 'AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'AdminConsolidate', 'AdminShipmentApprovals', 'ShipmentTracking']
   },
   almacen: {
     role_code: 'almacen',
@@ -45,7 +45,7 @@ export const ROLE_PRESETS = {
     role_code: 'seguimiento',
     role_name: 'Seguimiento',
     description: 'Monitoreo de rutas, tracking y avances de entrega.',
-    visible_pages: ['AdminDashboard', 'AdminSeguimiento', 'AdminLogistica', 'AdminRutas', 'AdminRutaDetalle', 'AdminSeguimientoRutas', 'ShipmentTracking', 'AdminInsured']
+    visible_pages: ['AdminDashboard', 'AdminSeguimiento', 'AdminLogistica', 'AdminRutas', 'AdminRutaDetalle', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'ShipmentTracking', 'AdminInsured']
   },
   equipo_y_acceso: {
     role_code: 'equipo_y_acceso',
@@ -62,6 +62,7 @@ export const PAGE_LABELS = {
   ClientAnalytics: 'Análisis Cliente',
   AdminOperaciones: 'Dashboard Operaciones',
   AdminSeguimiento: 'Dashboard Seguimiento',
+  AdminActivityAudit: 'Auditoría Actividad',
   AdminLogistica: 'Logística',
   AdminRutaDetalle: 'Detalle de Ruta',
   AdminPackages: 'Paquetes',
