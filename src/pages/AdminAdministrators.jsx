@@ -32,8 +32,10 @@ export default function AdminAdministrators({ user }) {
   useEffect(() => { loadAdmins(); }, []);
 
   const filteredAdmins = useMemo(() => admins.filter((admin) => {
-    const q = search.toLowerCase();
-    return !q || admin.email?.toLowerCase().includes(q) || admin.full_name?.toLowerCase().includes(q);
+    const q = String(search || '').toLowerCase();
+    const email = String(admin.email || '').toLowerCase();
+    const fullName = String(admin.full_name || '').toLowerCase();
+    return !q || email.includes(q) || fullName.includes(q);
   }), [admins, search]);
 
   const stats = useMemo(() => ({

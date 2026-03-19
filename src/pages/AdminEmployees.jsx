@@ -44,8 +44,12 @@ export default function AdminEmployees({ user }) {
   useEffect(() => { loadEmployees(); }, []);
 
   const filteredEmployees = useMemo(() => employees.filter((item) => {
-    const q = search.toLowerCase();
-    return !q || item.email?.toLowerCase().includes(q) || item.full_name?.toLowerCase().includes(q) || item.custom_role?.toLowerCase().includes(q) || item.city?.toLowerCase().includes(q);
+    const q = String(search || '').toLowerCase();
+    const email = String(item.email || '').toLowerCase();
+    const fullName = String(item.full_name || '').toLowerCase();
+    const customRole = String(item.custom_role || '').toLowerCase();
+    const city = String(item.city || '').toLowerCase();
+    return !q || email.includes(q) || fullName.includes(q) || customRole.includes(q) || city.includes(q);
   }), [employees, search]);
 
   const stats = useMemo(() => {

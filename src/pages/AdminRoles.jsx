@@ -55,8 +55,11 @@ export default function AdminRoles({ user }) {
   useEffect(() => { loadData(); }, []);
 
   const filteredAdmins = useMemo(() => admins.filter((item) => {
-    const q = search.toLowerCase();
-    return !q || item.email?.toLowerCase().includes(q) || item.full_name?.toLowerCase().includes(q) || item.custom_role?.toLowerCase().includes(q);
+    const q = String(search || '').toLowerCase();
+    const email = String(item.email || '').toLowerCase();
+    const fullName = String(item.full_name || '').toLowerCase();
+    const customRole = String(item.custom_role || '').toLowerCase();
+    return !q || email.includes(q) || fullName.includes(q) || customRole.includes(q);
   }), [admins, search]);
 
   const stats = useMemo(() => ({
