@@ -43,6 +43,14 @@ export default function AdminEmployees({ user }) {
 
   useEffect(() => { loadEmployees(); }, []);
 
+  const createAuditLog = async (payload) => {
+    await base44.entities.EmployeeAuditLog.create({
+      actor_email: user?.email || 'system',
+      actor_name: user?.full_name || '',
+      ...payload,
+    });
+  };
+
   const filteredEmployees = useMemo(() => employees.filter((item) => {
     const q = String(search || '').toLowerCase();
     const email = String(item.email || '').toLowerCase();

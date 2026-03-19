@@ -54,6 +54,14 @@ export default function AdminRoles({ user }) {
 
   useEffect(() => { loadData(); }, []);
 
+  const createAuditLog = async (payload) => {
+    await base44.entities.EmployeeAuditLog.create({
+      actor_email: user?.email || 'system',
+      actor_name: user?.full_name || '',
+      ...payload,
+    });
+  };
+
   const filteredAdmins = useMemo(() => admins.filter((item) => {
     const q = String(search || '').toLowerCase();
     const email = String(item.email || '').toLowerCase();
