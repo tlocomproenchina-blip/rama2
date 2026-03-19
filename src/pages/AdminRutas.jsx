@@ -105,6 +105,20 @@ export default function AdminRutas() {
     return acc;
   }, {}), [cargas]);
 
+  const entregasPendientesPorRuta = useMemo(() => cargas.reduce((acc, item) => {
+    if (['pendiente', 'en_transito', 'entrega_parcial'].includes(item.estado_entrega)) {
+      acc[item.ruta_id] = (acc[item.ruta_id] || 0) + 1;
+    }
+    return acc;
+  }, {}), [cargas]);
+
+  const entregasCompletadasPorRuta = useMemo(() => cargas.reduce((acc, item) => {
+    if (item.estado_entrega === 'entregada') {
+      acc[item.ruta_id] = (acc[item.ruta_id] || 0) + 1;
+    }
+    return acc;
+  }, {}), [cargas]);
+
   const vehiculosById = useMemo(() => Object.fromEntries(vehiculos.map((item) => [item.id, item])), [vehiculos]);
 
   const ultimoSeguimientoPorRuta = useMemo(() => seguimientos.reduce((acc, item) => {
@@ -289,6 +303,8 @@ export default function AdminRutas() {
                     <div><span className="font-medium text-slate-800">Salida:</span> {formatDateTimeInput(ruta.fecha_salida) || '—'}</div>
                     <div><span className="font-medium text-slate-800">Entrega:</span> {formatDateTimeInput(ruta.fecha_estimada_entrega) || '—'}</div>
                     <div className="md:col-span-2"><span className="font-medium text-slate-800">Cargas asignadas:</span> {cargasPorRuta[ruta.id] || 0}</div>
+                    <div><span className="font-medium text-slate-800">Entregas pendientes:</span> {entregasPendientesPorRuta[ruta.id] || 0}</div>
+                    <div><span className="font-medium text-slate-800">Entregas completadas:</span> {entregasCompletadasPorRuta[ruta.id] || 0}</div>
                     <div><span className="font-medium text-slate-800">Peso cargado:</span> {cargaResumen.peso} kg</div>
                     <div><span className="font-medium text-slate-800">Volumen cargado:</span> {cargaResumen.volumen} m³</div>
                     <div className="md:col-span-2"><span className="font-medium text-slate-800">Capacidad:</span> {vehiculo ? `${vehiculo.capacidad_peso_kg || 0} kg · ${vehiculo.capacidad_volumen_m3 || 0} m³` : 'Sin vehículo asignado'}</div>
