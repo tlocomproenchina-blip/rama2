@@ -149,7 +149,7 @@ export default function AdminLogistica() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className={`rounded-2xl border p-4 ${healthCheck?.summary?.resource_conflicts ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
-            <div className="flex items-center gap-2 text-sm font-medium ${''}">
+            <div className="flex items-center gap-2 text-sm font-medium">
               {healthCheck?.summary?.resource_conflicts ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
               <span>Conflictos de recursos</span>
             </div>
