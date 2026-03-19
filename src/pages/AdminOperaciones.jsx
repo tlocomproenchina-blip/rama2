@@ -15,27 +15,10 @@ const quickLinks = [
 const formatDate = (value) => value ? new Date(value).toLocaleString('es-VE') : '—';
 
 export default function AdminOperaciones() {
-  const [loading, setLoading] = useState(true);
-  const [packages, setPackages] = useState([]);
-  const [requests, setRequests] = useState([]);
-  const [assistedPayments, setAssistedPayments] = useState([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      const [packageRows, requestRows, paymentRows] = await Promise.all([
-        base44.entities.Package.list('-updated_date', 300),
-        base44.entities.ConsolidationRequest.list('-updated_date', 300),
-        base44.entities.AssistedPaymentRequest.list('-updated_date', 300),
-      ]);
-      setPackages(packageRows || []);
-      setRequests(requestRows || []);
-      setAssistedPayments(paymentRows || []);
-      setLoading(false);
-    };
-
-    loadData();
-  }, []);
+  const { data, loading } = useAdminOperacionesData();
+  const packages = data?.packages || [];
+  const requests = data?.requests || [];
+  const assistedPayments = data?.assistedPayments || [];
 
   const metrics = useMemo(() => ({
     paquetesRecibidos: packages.filter((item) => item.status === 'recibido').length,

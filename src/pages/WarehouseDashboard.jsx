@@ -8,22 +8,16 @@ import WarehouseStatsCards from '@/components/warehouse/WarehouseStatsCards';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 
 export default function WarehouseDashboard({ user }) {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseDashboard');
+  const { data: stats, loading, refresh } = useWarehouseDashboardData(allowed);
 
   const loadStats = async () => {
     try {
-      setLoading(true);
-      const response = await base44.functions.invoke('getWarehouseStats', {});
-      setStats(response?.data?.stats || null);
+      await refresh();
     } catch {
       toast.error('No se pudo cargar el dashboard de almacén');
     }
-    setLoading(false);
   };
-
-  useEffect(() => { loadStats(); }, []);
 
   if (loadingAccess) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;

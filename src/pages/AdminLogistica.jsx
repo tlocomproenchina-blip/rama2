@@ -22,46 +22,23 @@ const formatDate = (value) => {
 };
 
 export default function AdminLogistica() {
-  const [loading, setLoading] = useState(true);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthCheck, setHealthCheck] = useState(null);
-  const [latestHealthReport, setLatestHealthReport] = useState(null);
-  const [vehiculos, setVehiculos] = useState([]);
-  const [choferes, setChoferes] = useState([]);
-  const [rutas, setRutas] = useState([]);
-  const [cargas, setCargas] = useState([]);
-  const [seguimientos, setSeguimientos] = useState([]);
+  const { data, loading, refresh } = useAdminLogisticaData();
+  const vehiculos = data?.vehiculos || [];
+  const choferes = data?.choferes || [];
+  const rutas = data?.rutas || [];
+  const cargas = data?.cargas || [];
+  const seguimientos = data?.seguimientos || [];
+  const latestHealthReport = data?.latestHealthReport || null;
 
   const runHealthCheck = async () => {
     setHealthLoading(true);
     const response = await base44.functions.invoke('runLogisticsHealthCheck', {});
     setHealthCheck(response.data);
+    await refresh(true);
     setHealthLoading(false);
   };
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      const [vehiculosRows, choferesRows, rutasRows, cargasRows, seguimientosRows, reportRows] = await Promise.all([
-        base44.entities.Vehiculo.list('-updated_date', 200),
-        base44.entities.Chofer.list('-updated_date', 200),
-        base44.entities.Ruta.list('-updated_date', 200),
-        base44.entities.CargaRuta.list('-updated_date', 200),
-        base44.entities.SeguimientoRuta.list('-fecha_hora', 200),
-        base44.entities.LogisticsHealthReport.list('-checked_at', 1),
-      ]);
-      setVehiculos(vehiculosRows || []);
-      setChoferes(choferesRows || []);
-      setRutas(rutasRows || []);
-      setCargas(cargasRows || []);
-      setSeguimientos(seguimientosRows || []);
-      setLatestHealthReport(reportRows?.[0] || null);
-      setLoading(false);
-    };
-
-    loadData();
-    runHealthCheck();
-  }, []);
 
   const rutasById = useMemo(() => Object.fromEntries(rutas.map((item) => [item.id, item])), [rutas]);
 

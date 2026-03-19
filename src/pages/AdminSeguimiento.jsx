@@ -16,27 +16,10 @@ const quickLinks = [
 const formatDate = (value) => value ? new Date(value).toLocaleString('es-VE') : '—';
 
 export default function AdminSeguimiento() {
-  const [loading, setLoading] = useState(true);
-  const [packages, setPackages] = useState([]);
-  const [routes, setRoutes] = useState([]);
-  const [trackingEvents, setTrackingEvents] = useState([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      const [packageRows, routeRows, trackingRows] = await Promise.all([
-        base44.entities.Package.list('-updated_date', 300),
-        base44.entities.Ruta.list('-updated_date', 300),
-        base44.entities.SeguimientoRuta.list('-fecha_hora', 300),
-      ]);
-      setPackages(packageRows || []);
-      setRoutes(routeRows || []);
-      setTrackingEvents(trackingRows || []);
-      setLoading(false);
-    };
-
-    loadData();
-  }, []);
+  const { data, loading } = useAdminSeguimientoData();
+  const packages = data?.packages || [];
+  const routes = data?.routes || [];
+  const trackingEvents = data?.trackingEvents || [];
 
   const routeById = useMemo(() => Object.fromEntries(routes.map((item) => [item.id, item])), [routes]);
 
@@ -88,11 +71,13 @@ export default function AdminSeguimiento() {
           {quickLinks.map((item) => {
             const Icon = item.icon;
             return (
-              <Button key={item.href} variant="outline" className="h-auto justify-start gap-3 p-4" onClick={() => window.location.href = item.href}>
-                <div className="rounded-xl bg-slate-100 p-2">
-                  <Icon className="h-4 w-4 text-slate-700" />
-                </div>
-                <span>{item.label}</span>
+              <Button key={item.href} variant="outline" className="h-auto justify-start gap-3 p-4" asChild>
+                <Link to={item.href}>
+                  <div className="rounded-xl bg-slate-100 p-2">
+                    <Icon className="h-4 w-4 text-slate-700" />
+                  </div>
+                  <span>{item.label}</span>
+                </Link>
               </Button>
             );
           })}
