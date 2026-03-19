@@ -48,15 +48,20 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import AccountDisabled from './pages/AccountDisabled';
+import AccountingDashboard from './pages/AccountingDashboard';
 import AdminAccountsPayable from './pages/AdminAccountsPayable';
+import AdminAdministrators from './pages/AdminAdministrators';
 import AdminAssistedPayments from './pages/AdminAssistedPayments';
 import AdminBlog from './pages/AdminBlog';
+import AdminChoferes from './pages/AdminChoferes';
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDelete from './pages/AdminDelete';
 import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
 import AdminEmailTemplates from './pages/AdminEmailTemplates';
+import AdminEmployeeAudit from './pages/AdminEmployeeAudit';
+import AdminEmployees from './pages/AdminEmployees';
 import AdminFAQ from './pages/AdminFAQ';
 import AdminInsured from './pages/AdminInsured';
 import AdminInvoices from './pages/AdminInvoices';
@@ -69,10 +74,12 @@ import AdminPromotions from './pages/AdminPromotions';
 import AdminProviderPayments from './pages/AdminProviderPayments';
 import AdminProviders from './pages/AdminProviders';
 import AdminReferrals from './pages/AdminReferrals';
+import AdminRoles from './pages/AdminRoles';
 import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
 import AdminSupportTickets from './pages/AdminSupportTickets';
+import AdminVehiculos from './pages/AdminVehiculos';
 import AssistedPayment from './pages/AssistedPayment';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
@@ -98,20 +105,29 @@ import WarehouseDashboard from './pages/WarehouseDashboard';
 import WarehouseLocations from './pages/WarehouseLocations';
 import WarehousePickPackShip from './pages/WarehousePickPackShip';
 import WarehouseReceive from './pages/WarehouseReceive';
+import AdminRutas from './pages/AdminRutas';
+import AdminCargaRutas from './pages/AdminCargaRutas';
+import AdminSeguimientoRutas from './pages/AdminSeguimientoRutas';
+import AdminLogistica from './pages/AdminLogistica';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AccountDisabled": AccountDisabled,
+    "AccountingDashboard": AccountingDashboard,
     "AdminAccountsPayable": AdminAccountsPayable,
+    "AdminAdministrators": AdminAdministrators,
     "AdminAssistedPayments": AdminAssistedPayments,
     "AdminBlog": AdminBlog,
+    "AdminChoferes": AdminChoferes,
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
     "AdminDelete": AdminDelete,
     "AdminEmailCampaigns": AdminEmailCampaigns,
     "AdminEmailTemplates": AdminEmailTemplates,
+    "AdminEmployeeAudit": AdminEmployeeAudit,
+    "AdminEmployees": AdminEmployees,
     "AdminFAQ": AdminFAQ,
     "AdminInsured": AdminInsured,
     "AdminInvoices": AdminInvoices,
@@ -124,10 +140,12 @@ export const PAGES = {
     "AdminProviderPayments": AdminProviderPayments,
     "AdminProviders": AdminProviders,
     "AdminReferrals": AdminReferrals,
+    "AdminRoles": AdminRoles,
     "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
     "AdminSupportTickets": AdminSupportTickets,
+    "AdminVehiculos": AdminVehiculos,
     "AssistedPayment": AssistedPayment,
     "Blog": Blog,
     "BlogPost": BlogPost,
@@ -153,10 +171,14 @@ export const PAGES = {
     "WarehouseLocations": WarehouseLocations,
     "WarehousePickPackShip": WarehousePickPackShip,
     "WarehouseReceive": WarehouseReceive,
+    "AdminRutas": AdminRutas,
+    "AdminCargaRutas": AdminCargaRutas,
+    "AdminSeguimientoRutas": AdminSeguimientoRutas,
+    "AdminLogistica": AdminLogistica,
 }
 
 export const pagesConfig = {
-    mainPage: "Home",
+    mainPage: "AccountDisabled",
     Pages: PAGES,
     Layout: __Layout,
 };

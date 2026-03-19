@@ -135,9 +135,22 @@ export default function AdminSeguimientoRutas({ user }) {
       incidencia: 'incidencia',
     };
 
+    const nextRouteState = routeStatusMap[form.estado] || 'planificada';
+
     await base44.entities.Ruta.update(form.ruta_id, {
-      estado: routeStatusMap[form.estado] || 'planificada',
+      estado: nextRouteState,
     });
+
+    const rutaActual = rutasById[form.ruta_id];
+    const nextResourceState = ['asignada', 'en_curso'].includes(nextRouteState) ? 'en_ruta' : 'disponible';
+
+    if (rutaActual?.vehiculo_id) {
+      await base44.entities.Vehiculo.update(rutaActual.vehiculo_id, { estado: nextResourceState });
+    }
+
+    if (rutaActual?.chofer_id) {
+      await base44.entities.Chofer.update(rutaActual.chofer_id, { estado: nextResourceState });
+    }
 
     if (form.carga_ruta_id && cargaStatusMap[form.estado]) {
       await base44.entities.CargaRuta.update(form.carga_ruta_id, {

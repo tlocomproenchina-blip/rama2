@@ -116,6 +116,13 @@ export default function AdminRutas() {
     return (payload.vehiculo_id && ruta.vehiculo_id === payload.vehiculo_id) || (payload.chofer_id && ruta.chofer_id === payload.chofer_id);
   });
 
+  const hasOtherActiveRoute = (field, value, excludeId) => rutas.some((ruta) => {
+    if (!value) return false;
+    if (ruta.id === excludeId) return false;
+    if (!activeStates.includes(ruta.estado)) return false;
+    return ruta[field] === value;
+  });
+
   const handleSave = async () => {
     if (!form.codigo_ruta.trim() || !form.origen.trim() || !form.destino.trim()) {
       toast.error('Código, origen y destino son obligatorios');
@@ -135,11 +142,33 @@ export default function AdminRutas() {
     setSaving(true);
     if (editing) {
       await base44.entities.Ruta.update(editing.id, payload);
-      toast.success('Ruta actualizada');
     } else {
       await base44.entities.Ruta.create(payload);
-      toast.success('Ruta creada');
     }
+
+    const nextResourceState = activeStates.includes(payload.estado) ? 'en_ruta' : 'disponible';
+
+    if (editing?.vehiculo_id && editing.vehiculo_id !== payload.vehiculo_id && !hasOtherActiveRoute('vehiculo_id', editing.vehiculo_id, editing.id)) {
+      await base44.entities.Vehiculo.update(editing.vehiculo_id, { estado: 'disponible', chofer_id: '', chofer_nombre: '' });
+    }
+
+    if (editing?.chofer_id && editing.chofer_id !== payload.chofer_id && !hasOtherActiveRoute('chofer_id', editing.chofer_id, editing.id)) {
+      await base44.entities.Chofer.update(editing.chofer_id, { estado: 'disponible' });
+    }
+
+    if (payload.vehiculo_id) {
+      await base44.entities.Vehiculo.update(payload.vehiculo_id, {
+        estado: nextResourceState,
+        chofer_id: payload.chofer_id || '',
+        chofer_nombre: payload.chofer_nombre || '',
+      });
+    }
+
+    if (payload.chofer_id) {
+      await base44.entities.Chofer.update(payload.chofer_id, { estado: nextResourceState });
+    }
+
+    toast.success(editing ? 'Ruta actualizada' : 'Ruta creada');
     setSaving(false);
     setOpen(false);
     setForm(emptyForm);
@@ -149,6 +178,15 @@ export default function AdminRutas() {
   const handleDelete = async () => {
     if (!deleting) return;
     await base44.entities.Ruta.delete(deleting.id);
+
+    if (deleting.vehiculo_id && !hasOtherActiveRoute('vehiculo_id', deleting.vehiculo_id, deleting.id)) {
+      await base44.entities.Vehiculo.update(deleting.vehiculo_id, { estado: 'disponible', chofer_id: '', chofer_nombre: '' });
+    }
+
+    if (deleting.chofer_id && !hasOtherActiveRoute('chofer_id', deleting.chofer_id, deleting.id)) {
+      await base44.entities.Chofer.update(deleting.chofer_id, { estado: 'disponible' });
+    }
+
     toast.success('Ruta eliminada');
     setDeleting(null);
     await loadData();
