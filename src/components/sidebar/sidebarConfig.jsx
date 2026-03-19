@@ -71,6 +71,8 @@ export const adminMenuItems = [
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
   { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
   { name: 'Clientes', page: 'AdminClients', icon: Users },
+  { name: 'Vehículos', page: 'AdminVehiculos', icon: Truck },
+  { name: 'Choferes', page: 'AdminChoferes', icon: UserCheck },
   { name: 'Empleados', page: 'AdminEmployees', icon: UserCheck },
   { name: 'Administradores', page: 'AdminAdministrators', icon: UserCheck },
   { name: 'Roles', page: 'AdminRoles', icon: Settings2 },
@@ -83,7 +85,7 @@ export const adminMenuItems = [
 
 export const adminGroups = [
   { label: 'PRINCIPAL', items: ['AdminDashboard', 'ClientAnalytics'] },
-  { label: 'OPERACIONES', items: ['AdminPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
+  { label: 'OPERACIONES', items: ['AdminPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments', 'AdminVehiculos', 'AdminChoferes'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
