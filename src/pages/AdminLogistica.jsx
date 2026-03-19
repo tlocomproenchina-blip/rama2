@@ -74,6 +74,25 @@ export default function AdminLogistica() {
     return acc;
   }, {}), [seguimientos]);
 
+  const vehiculosById = useMemo(() => Object.fromEntries(vehiculos.map((item) => [item.id, item])), [vehiculos]);
+
+  const cargaResumenPorRuta = useMemo(() => cargas.reduce((acc, item) => {
+    const current = acc[item.ruta_id] || { peso: 0, volumen: 0 };
+    acc[item.ruta_id] = {
+      peso: current.peso + Number(item.peso_kg || 0),
+      volumen: current.volumen + Number(item.volumen_m3 || 0),
+    };
+    return acc;
+  }, {}), [cargas]);
+
+  const rutasConSobrecarga = useMemo(() => rutas.filter((ruta) => {
+    const vehiculo = vehiculosById[ruta.vehiculo_id];
+    const resumen = cargaResumenPorRuta[ruta.id] || { peso: 0, volumen: 0 };
+    const exceedsPeso = vehiculo?.capacidad_peso_kg && resumen.peso > vehiculo.capacidad_peso_kg;
+    const exceedsVolumen = vehiculo?.capacidad_volumen_m3 && resumen.volumen > vehiculo.capacidad_volumen_m3;
+    return exceedsPeso || exceedsVolumen;
+  }), [cargaResumenPorRuta, rutas, vehiculosById]);
+
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
@@ -211,6 +230,46 @@ export default function AdminLogistica() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle>Alertas de capacidad</CardTitle>
+          <CardDescription>Rutas cuya carga supera la capacidad del vehículo asignado.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {rutasConSobrecarga.length === 0 ? (
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
+              No hay rutas con sobrecarga en este momento.
+            </div>
+          ) : (
+            rutasConSobrecarga.slice(0, 5).map((ruta) => {
+              const vehiculo = vehiculosById[ruta.vehiculo_id];
+              const resumen = cargaResumenPorRuta[ruta.id] || { peso: 0, volumen: 0 };
+              return (
+                <div key={ruta.id} className="rounded-2xl border border-rose-100 bg-rose-50 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-slate-900">{ruta.codigo_ruta}</p>
+                      <p className="text-sm text-slate-600">{ruta.origen} → {ruta.destino}</p>
+                      <p className="text-xs text-rose-700 mt-1">Cargado: {resumen.peso} kg · {resumen.volumen} m³</p>
+                      <p className="text-xs text-rose-700">Capacidad: {vehiculo?.capacidad_peso_kg || 0} kg · {vehiculo?.capacidad_volumen_m3 || 0} m³</p>
+                    </div>
+                    <EstadoLogisticaBadge value={ruta.estado} />
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminRutas`}>
+                      Revisar ruta
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
+                      Ver cargas
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
