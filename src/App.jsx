@@ -17,6 +17,7 @@ import AccountingDashboard from './pages/AccountingDashboard';
 import AdminEmployees from './pages/AdminEmployees';
 import AdminAdministrators from './pages/AdminAdministrators';
 import AdminRoles from './pages/AdminRoles';
+import AdminEmployeeAudit from './pages/AdminEmployeeAudit';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -115,6 +116,11 @@ const AuthenticatedApp = () => {
       <Route path="/AdminRoles" element={
         <LayoutWrapper currentPageName="AdminRoles">
           <AdminRoles />
+        </LayoutWrapper>
+      } />
+      <Route path="/AdminEmployeeAudit" element={
+        <LayoutWrapper currentPageName="AdminEmployeeAudit">
+          <AdminEmployeeAudit />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
