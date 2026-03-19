@@ -165,12 +165,16 @@ export default function AdminLogistica() {
                     <p className="text-xs text-slate-400 mt-1">Pendientes: {cargasPendientesPorRuta[ruta.id] || 0} · Completadas: {entregasCompletadasPorRuta[ruta.id] || 0}</p>
                     <p className="text-xs text-slate-400 mt-1">Último avance: {ultimoSeguimientoPorRuta[ruta.id]?.estado ? String(ultimoSeguimientoPorRuta[ruta.id].estado).replaceAll('_', ' ') : 'Sin registros'}</p>
                     <p className="text-xs text-slate-400 mt-1">Última ubicación: {ultimoSeguimientoPorRuta[ruta.id]?.ubicacion || '—'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Último evento: {formatDate(ultimoSeguimientoPorRuta[ruta.id]?.fecha_hora)}</p>
                   </div>
                   <EstadoLogisticaBadge value={ruta.estado} />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
                     Ver cargas
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}&action=new`}>
+                    Nueva carga
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${ruta.id}`}>
                     Ver seguimiento
