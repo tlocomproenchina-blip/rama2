@@ -55,7 +55,7 @@ export const PAGE_LABELS = {
   AdminFAQ: 'Gestionar FAQ',
   AdminClients: 'Clientes',
   AdminEmployees: 'Empleados',
-  AdminEmployeeAudit: 'Auditoría Empleados',
+  AdminEmployeeAudit: 'Auditoría de Acciones',
   AdminEmailCampaigns: 'Enviar Emails',
   AdminEmailTemplates: 'Plantillas Email',
   AdminPromotions: 'Promociones',

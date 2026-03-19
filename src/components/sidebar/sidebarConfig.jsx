@@ -74,7 +74,7 @@ export const adminMenuItems = [
   { name: 'Empleados', page: 'AdminEmployees', icon: UserCheck },
   { name: 'Administradores', page: 'AdminAdministrators', icon: UserCheck },
   { name: 'Roles', page: 'AdminRoles', icon: Settings2 },
-  { name: 'Auditoría Empleados', page: 'AdminEmployeeAudit', icon: History },
+  { name: 'Auditoría de Acciones', page: 'AdminEmployeeAudit', icon: History },
   { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
   { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
