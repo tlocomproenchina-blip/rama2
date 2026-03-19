@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
     // Create local Invoice with 2 items
     const invoice = await base44.asServiceRole.entities.Invoice.create({
       client_email: apReq.client_email,
+      consolidation_id: apReq.id,
+      consolidation_tracking: `AP-${String(apReq.id).slice(0, 8).toUpperCase()}`,
       invoice_date: nowIso,
       due_date: dueIso,
       items: [
