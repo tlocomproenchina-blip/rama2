@@ -3,7 +3,7 @@ export const ROLE_PRESETS = {
     role_code: 'operaciones',
     role_name: 'Operaciones',
     description: 'Gestión operativa de paquetes, consolidaciones y seguimiento.',
-    visible_pages: ['AdminDashboard', 'ClientAnalytics', 'AdminPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'ShipmentTracking', 'AdminVehiculos', 'AdminChoferes']
+    visible_pages: ['AdminDashboard', 'ClientAnalytics', 'AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminConsolidate', 'AdminShipmentApprovals', 'ShipmentTracking']
   },
   almacen: {
     role_code: 'almacen',
@@ -57,8 +57,6 @@ export const PAGE_LABELS = {
   AdminSupportTickets: 'Tickets Soporte',
   AdminFAQ: 'Gestionar FAQ',
   AdminClients: 'Clientes',
-  AdminVehiculos: 'Vehículos',
-  AdminChoferes: 'Choferes',
   AdminEmployees: 'Empleados',
   AdminEmployeeAudit: 'Auditoría de Acciones',
   AdminEmailCampaigns: 'Enviar Emails',

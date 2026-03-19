@@ -88,7 +88,7 @@ export const adminMenuItems = [
 
 export const adminGroups = [
   { label: 'PRINCIPAL', items: ['AdminDashboard', 'ClientAnalytics'] },
-  { label: 'OPERACIONES', items: ['AdminPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments', 'AdminVehiculos', 'AdminChoferes'] },
+  { label: 'OPERACIONES', items: ['AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
