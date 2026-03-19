@@ -43,6 +43,7 @@ export default function AdminRutas() {
   const [vehiculos, setVehiculos] = useState([]);
   const [choferes, setChoferes] = useState([]);
   const [cargas, setCargas] = useState([]);
+  const [seguimientos, setSeguimientos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
@@ -53,16 +54,18 @@ export default function AdminRutas() {
 
   const loadData = async () => {
     setLoading(true);
-    const [rutasRows, vehiculosRows, choferesRows, cargasRows] = await Promise.all([
+    const [rutasRows, vehiculosRows, choferesRows, cargasRows, seguimientosRows] = await Promise.all([
       base44.entities.Ruta.list('-updated_date', 200),
       base44.entities.Vehiculo.list('-updated_date', 200),
       base44.entities.Chofer.list('-updated_date', 200),
       base44.entities.CargaRuta.list('-updated_date', 300),
+      base44.entities.SeguimientoRuta.list('-fecha_hora', 300),
     ]);
     setRutas(rutasRows || []);
     setVehiculos(vehiculosRows || []);
     setChoferes(choferesRows || []);
     setCargas(cargasRows || []);
+    setSeguimientos(seguimientosRows || []);
     setLoading(false);
   };
 
@@ -91,6 +94,12 @@ export default function AdminRutas() {
     acc[item.ruta_id] = (acc[item.ruta_id] || 0) + 1;
     return acc;
   }, {}), [cargas]);
+
+  const ultimoSeguimientoPorRuta = useMemo(() => seguimientos.reduce((acc, item) => {
+    if (!item.ruta_id) return acc;
+    if (!acc[item.ruta_id]) acc[item.ruta_id] = item;
+    return acc;
+  }, {}), [seguimientos]);
 
   const openCreate = () => {
     setEditing(null);
@@ -262,6 +271,7 @@ export default function AdminRutas() {
                     <div><span className="font-medium text-slate-800">Salida:</span> {formatDateTimeInput(ruta.fecha_salida) || '—'}</div>
                     <div><span className="font-medium text-slate-800">Entrega:</span> {formatDateTimeInput(ruta.fecha_estimada_entrega) || '—'}</div>
                     <div className="md:col-span-2"><span className="font-medium text-slate-800">Cargas asignadas:</span> {cargasPorRuta[ruta.id] || 0}</div>
+                    <div className="md:col-span-2"><span className="font-medium text-slate-800">Último seguimiento:</span> {ultimoSeguimientoPorRuta[ruta.id]?.estado ? String(ultimoSeguimientoPorRuta[ruta.id].estado).replaceAll('_', ' ') : 'Sin registros'}</div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
