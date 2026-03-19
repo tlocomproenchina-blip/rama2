@@ -20,6 +20,7 @@ import AdminRoles from './pages/AdminRoles';
 import AdminEmployeeAudit from './pages/AdminEmployeeAudit';
 import AdminVehiculos from './pages/AdminVehiculos';
 import AdminChoferes from './pages/AdminChoferes';
+import AdminRutas from './pages/AdminRutas';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -133,6 +134,11 @@ const AuthenticatedApp = () => {
       <Route path="/AdminChoferes" element={
         <LayoutWrapper currentPageName="AdminChoferes">
           <AdminChoferes />
+        </LayoutWrapper>
+      } />
+      <Route path="/AdminRutas" element={
+        <LayoutWrapper currentPageName="AdminRutas">
+          <AdminRutas />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
