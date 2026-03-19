@@ -57,6 +57,16 @@ export default function AdminAdministrators({ user }) {
     setInviting(true);
     try {
       await base44.users.inviteUser(inviteEmail.trim(), 'admin');
+      await createAuditLog({
+        target_email: inviteEmail.trim(),
+        target_name: '',
+        action_type: 'invite_admin',
+        area_code: '',
+        area_name: 'Administración',
+        summary: `Invitó administrador ${inviteEmail.trim()}`,
+        details: 'Se envió una invitación con acceso administrativo',
+        changed_fields: ['role'],
+      });
       toast.success('Invitación de administrador enviada');
       setInviteEmail('');
       setOpenInvite(false);
@@ -74,6 +84,16 @@ export default function AdminAdministrators({ user }) {
     setProcessingId(adminRecord.id);
     try {
       await base44.entities.User.update(adminRecord.id, { role: 'user', custom_role: null });
+      await createAuditLog({
+        target_email: adminRecord.email,
+        target_name: adminRecord.full_name || adminRecord.email,
+        action_type: 'demote_admin',
+        area_code: adminRecord.custom_role || '',
+        area_name: adminRecord.custom_role || 'Administración',
+        summary: `Quitó acceso admin a ${adminRecord.full_name || adminRecord.email}`,
+        details: 'El usuario fue cambiado de administrador a usuario regular',
+        changed_fields: ['role', 'custom_role'],
+      });
       setAdmins((prev) => prev.filter((item) => item.id !== adminRecord.id));
       toast.success('Administrador cambiado a usuario');
     } catch {

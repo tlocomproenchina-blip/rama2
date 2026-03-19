@@ -86,6 +86,16 @@ export default function AdminRoles({ user }) {
     setProcessingUserId(targetUser.id);
     try {
       await base44.entities.User.update(targetUser.id, { custom_role: nextRole === 'sin_area' ? null : nextRole });
+      await createAuditLog({
+        target_email: targetUser.email,
+        target_name: targetUser.full_name || targetUser.email,
+        action_type: 'assign_area',
+        area_code: nextRole === 'sin_area' ? '' : nextRole,
+        area_name: nextRole === 'sin_area' ? 'Sin área' : ROLE_PRESETS[nextRole]?.role_name || nextRole,
+        summary: `Asignó área a ${targetUser.full_name || targetUser.email}`,
+        details: `Área anterior: ${targetUser.custom_role || 'sin área'} · Nueva área: ${nextRole === 'sin_area' ? 'sin área' : ROLE_PRESETS[nextRole]?.role_name || nextRole}`,
+        changed_fields: ['custom_role'],
+      });
       setAdmins((prev) => prev.map((item) => item.id === targetUser.id ? { ...item, custom_role: nextRole === 'sin_area' ? null : nextRole } : item));
       toast.success('Área asignada correctamente');
     } catch {
@@ -132,6 +142,16 @@ export default function AdminRoles({ user }) {
         const created = await base44.entities.RoleConfig.create(payload);
         setRoleConfigs((prev) => ({ ...prev, [roleCode]: { ...current, ...created } }));
       }
+      await createAuditLog({
+        target_email: '',
+        target_name: current.role_name,
+        action_type: 'save_permissions',
+        area_code: roleCode,
+        area_name: current.role_name,
+        summary: `Actualizó permisos del área ${current.role_name}`,
+        details: `Módulos visibles configurados: ${(current.visible_pages || []).join(', ') || 'ninguno'}`,
+        changed_fields: ['visible_pages'],
+      });
       toast.success('Permisos guardados');
     } catch {
       toast.error('No se pudieron guardar los permisos');

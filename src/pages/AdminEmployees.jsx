@@ -102,8 +102,21 @@ export default function AdminEmployees({ user }) {
         address: editData.address,
         custom_role: editData.custom_role === 'sin_area' ? null : editData.custom_role,
       };
+      const changedFields = Object.entries(payload)
+        .filter(([key, value]) => (editingEmployee?.[key] || null) !== (value || null))
+        .map(([key]) => key);
 
       await base44.entities.User.update(editingEmployee.id, payload);
+      await createAuditLog({
+        target_email: editingEmployee.email,
+        target_name: editingEmployee.full_name || `${payload.first_name || ''} ${payload.last_name || ''}`.trim(),
+        action_type: 'update_employee',
+        area_code: payload.custom_role || '',
+        area_name: payload.custom_role ? ROLE_PRESETS[payload.custom_role]?.role_name || payload.custom_role : 'Sin área',
+        summary: `Actualizó empleado ${editingEmployee.full_name || editingEmployee.email}`,
+        details: changedFields.length > 0 ? `Campos modificados: ${changedFields.join(', ')}` : 'Sin cambios detectados en campos auditables',
+        changed_fields: changedFields,
+      });
       setEmployees((prev) => prev.map((item) => item.id === editingEmployee.id ? { ...item, ...payload } : item));
       setEditingEmployee(null);
       toast.success('Empleado actualizado');
@@ -129,6 +142,16 @@ export default function AdminEmployees({ user }) {
         } catch {}
       }
 
+      await createAuditLog({
+        target_email: inviteEmail.trim(),
+        target_name: '',
+        action_type: 'invite_employee',
+        area_code: inviteArea === 'sin_area' ? '' : inviteArea,
+        area_name: inviteArea === 'sin_area' ? 'Sin área' : ROLE_PRESETS[inviteArea]?.role_name || inviteArea,
+        summary: `Invitó empleado ${inviteEmail.trim()}`,
+        details: inviteArea === 'sin_area' ? 'Invitación enviada sin área asignada' : `Invitación enviada con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
+        changed_fields: ['role', 'custom_role'],
+      });
       toast.success('Invitación de empleado enviada');
       setInviteEmail('');
       setInviteArea('sin_area');
