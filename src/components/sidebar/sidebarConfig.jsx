@@ -46,6 +46,7 @@ export const adminMenuItems = [
   { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
   { name: 'Análisis Cliente', page: 'ClientAnalytics', icon: TrendingUp },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
+  { name: 'Logística', page: 'AdminLogistica', icon: Truck },
   { name: 'Vehículos', page: 'AdminVehiculos', icon: Truck },
   { name: 'Choferes', page: 'AdminChoferes', icon: UserCheck },
   { name: 'Rutas', page: 'AdminRutas', icon: Truck },
@@ -87,7 +88,7 @@ export const adminMenuItems = [
 ];
 
 export const adminGroups = [
-  { label: 'PRINCIPAL', items: ['AdminDashboard', 'ClientAnalytics'] },
+  { label: 'PRINCIPAL', items: ['AdminDashboard', 'AdminLogistica', 'ClientAnalytics'] },
   { label: 'OPERACIONES', items: ['AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders'] },
