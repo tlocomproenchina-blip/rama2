@@ -144,12 +144,23 @@ export default function AdminCargaRutas() {
 
     if (editing) {
       await base44.entities.CargaRuta.update(editing.id, payload);
-      toast.success('Carga actualizada');
     } else {
       await base44.entities.CargaRuta.create(payload);
-      toast.success('Carga asignada');
     }
 
+    const packageStatusMap = {
+      en_transito: 'en_transito',
+      entrega_parcial: 'en_transito',
+      entregada: 'entregado',
+    };
+
+    if (payload.tipo_carga === 'paquete' && payload.package_id && packageStatusMap[payload.estado_entrega]) {
+      await base44.entities.Package.update(payload.package_id, {
+        status: packageStatusMap[payload.estado_entrega],
+      });
+    }
+
+    toast.success(editing ? 'Carga actualizada' : 'Carga asignada');
     setSaving(false);
     setOpen(false);
     setForm(emptyForm);

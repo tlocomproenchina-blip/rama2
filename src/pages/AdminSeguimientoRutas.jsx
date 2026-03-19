@@ -181,6 +181,19 @@ export default function AdminSeguimientoRutas({ user }) {
       await base44.entities.CargaRuta.update(form.carga_ruta_id, {
         estado_entrega: cargaStatusMap[form.estado],
       });
+
+      const cargaActual = cargasById[form.carga_ruta_id];
+      const packageStatusMap = {
+        en_transito: 'en_transito',
+        entrega_parcial: 'en_transito',
+        entregada: 'entregado',
+      };
+
+      if (cargaActual?.package_id && packageStatusMap[cargaStatusMap[form.estado]]) {
+        await base44.entities.Package.update(cargaActual.package_id, {
+          status: packageStatusMap[cargaStatusMap[form.estado]],
+        });
+      }
     }
 
     toast.success(editing ? 'Seguimiento actualizado' : 'Seguimiento registrado');
