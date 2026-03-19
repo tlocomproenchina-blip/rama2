@@ -48,6 +48,15 @@ export default function AssistedPaymentsList() {
         toast.success('Factura generada y enviada al cliente');
         return;
       }
+
+      if (status === 'rechazado' && req.invoice_id) {
+        await base44.entities.Invoice.delete(req.invoice_id);
+        await base44.entities.AssistedPaymentRequest.update(req.id, { status, invoice_id: null });
+        setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status, invoice_id: null } : r));
+        toast.success('Solicitud rechazada y factura eliminada');
+        return;
+      }
+
       await base44.entities.AssistedPaymentRequest.update(req.id, { status });
       setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status } : r));
     } catch (e) { toast.error('No se pudo actualizar'); }
