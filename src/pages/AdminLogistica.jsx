@@ -68,6 +68,12 @@ export default function AdminLogistica() {
     .sort((a, b) => (cargasPendientesPorRuta[b.id] || 0) - (cargasPendientesPorRuta[a.id] || 0))
   , [cargasPendientesPorRuta, rutas]);
 
+  const ultimoSeguimientoPorRuta = useMemo(() => seguimientos.reduce((acc, item) => {
+    if (!item.ruta_id) return acc;
+    if (!acc[item.ruta_id]) acc[item.ruta_id] = item;
+    return acc;
+  }, {}), [seguimientos]);
+
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
@@ -128,6 +134,8 @@ export default function AdminLogistica() {
                     <p className="font-semibold text-slate-900">{ruta.codigo_ruta}</p>
                     <p className="text-sm text-slate-500">{ruta.origen} → {ruta.destino}</p>
                     <p className="text-xs text-slate-400 mt-1">Salida: {formatDate(ruta.fecha_salida)}</p>
+                    <p className="text-xs text-slate-400 mt-1">Pendientes: {cargasPendientesPorRuta[ruta.id] || 0}</p>
+                    <p className="text-xs text-slate-400 mt-1">Último avance: {ultimoSeguimientoPorRuta[ruta.id]?.estado ? String(ultimoSeguimientoPorRuta[ruta.id].estado).replaceAll('_', ' ') : 'Sin registros'}</p>
                   </div>
                   <EstadoLogisticaBadge value={ruta.estado} />
                 </div>
@@ -137,6 +145,9 @@ export default function AdminLogistica() {
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${ruta.id}`}>
                     Ver seguimiento
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${ruta.id}&action=new`}>
+                    Registrar avance
                   </Button>
                 </div>
               </div>
