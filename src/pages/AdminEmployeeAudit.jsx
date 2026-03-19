@@ -59,8 +59,8 @@ export default function AdminEmployeeAudit() {
 
   const stats = useMemo(() => ({
     total: logs.length,
-    employeeChanges: logs.filter((log) => ['invite_employee', 'update_employee'].includes(log.action_type)).length,
-    accessChanges: logs.filter((log) => ['invite_admin', 'demote_admin', 'assign_area', 'save_permissions'].includes(log.action_type)).length,
+    employeeChanges: logs.filter((log) => ['invite_employee', 'update_employee', 'report_prealert', 'create_assisted_payment_request'].includes(log.action_type)).length,
+    accessChanges: logs.filter((log) => ['invite_admin', 'demote_admin', 'assign_area', 'save_permissions', 'send_marketing_email'].includes(log.action_type)).length,
   }), [logs]);
 
   if (loading) {

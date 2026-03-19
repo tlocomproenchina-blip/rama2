@@ -310,6 +310,17 @@ export default function AdminEmailCampaigns({ user }) {
       }
 
       results.success = messages.length;
+      await logActionAudit(base44, user, {
+        target_email: '',
+        target_name: `${messages.length} destinatarios`,
+        action_type: 'send_marketing_email',
+        module_name: 'AdminEmailCampaigns',
+        reference_id: '',
+        area_name: 'Marketing',
+        summary: `Envió email a ${messages.length} destinatarios`,
+        details: `Asunto: ${emailData.subject} · Segmento: ${targetType}`,
+        changed_fields: ['subject', 'body', 'targetType'],
+      });
       
       loadEmailStats();
 

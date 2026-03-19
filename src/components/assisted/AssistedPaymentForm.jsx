@@ -65,7 +65,7 @@ export default function AssistedPaymentForm({ user }) {
     const { feeAmt, total } = calc();
     setSubmitting(true);
     try {
-      await base44.entities.AssistedPaymentRequest.create({
+      const request = await base44.entities.AssistedPaymentRequest.create({
         client_email: user.email,
         link_url: link,
         provider: provider || autoDetectProvider(link),
@@ -77,6 +77,17 @@ export default function AssistedPaymentForm({ user }) {
         image_url: imageUrl || undefined,
         notes: notes || undefined,
         status: 'pendiente'
+      });
+      await logActionAudit(base44, user, {
+        target_email: user?.email,
+        target_name: user?.full_name || user?.email,
+        action_type: 'create_assisted_payment_request',
+        module_name: 'AssistedPayment',
+        reference_id: request?.id,
+        area_name: 'Operaciones',
+        summary: `Generó solicitud de pago asistido por $${total.toFixed(2)}`,
+        details: `Plataforma: ${provider || autoDetectProvider(link)} · Enlace: ${link || 'sin enlace'} · QR: ${imageUrl || 'sin QR'}`,
+        changed_fields: ['provider', 'amount', 'fee_amount', 'total_amount'],
       });
       toast.success('Solicitud enviada');
       setLink(''); setAmount(''); setImageUrl(''); setNotes('');

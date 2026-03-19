@@ -133,6 +133,18 @@ export default function PreAlert({ user }) {
         status: 'pre_alerta'
       });
 
+      await logActionAudit(base44, user, {
+        target_email: user?.email,
+        target_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email,
+        action_type: 'report_prealert',
+        module_name: 'PreAlert',
+        reference_id: newPackage.id,
+        area_name: 'Operaciones',
+        summary: `Reportó pre-alerta ${formData.tracking_number}`,
+        details: `Tipo: ${formData.shipping_type} · Descripción: ${formData.description}${formData.has_insurance ? ` · Asegurado FOB $${formData.fob_value}` : ''}`,
+        changed_fields: ['tracking_number', 'shipping_type', 'description', 'has_insurance'],
+      });
+
       // Notify admins
       const isHighValue = formData.has_insurance && parseFloat(formData.fob_value) >= 500;
       import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
