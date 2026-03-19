@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
+import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import useAdminSeguimientoData from '@/hooks/useAdminSeguimientoData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, History, Truck, Package, MapPin } from 'lucide-react';
