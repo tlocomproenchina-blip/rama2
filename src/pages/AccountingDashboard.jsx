@@ -140,6 +140,14 @@ export default function AccountingDashboard({ user }) {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-7xl space-y-8">
       <section className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 p-6 text-white shadow-xl md:p-8">
@@ -149,12 +157,6 @@ export default function AccountingDashboard({ user }) {
             <p className="max-w-2xl text-sm text-slate-200 md:text-base">
               Resumen rápido de ingresos, cuentas por cobrar y pagos a proveedores.
             </p>
-            {loading && (
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/80">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Actualizando datos
-              </div>
-            )}
           </div>
           <AccountingExportButtons report={report} />
         </div>

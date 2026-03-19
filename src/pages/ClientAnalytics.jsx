@@ -122,24 +122,16 @@ export default function ClientAnalytics() {
     };
   }, [consolidations, invoices]);
 
+  if (loadingClients) {
+    return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
+  }
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Analítica de clientes</h1>
           <p className="text-slate-500">Busca un cliente y visualiza su gasto, costos de envío y desempeño de consolidaciones.</p>
-          {loadingClients && (
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Cargando clientes
-            </div>
-          )}
-          {!loadingClients && loading && (
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Actualizando analítica
-            </div>
-          )}
         </div>
         <Button variant="outline" onClick={() => loadData(selectedClient?.email)} disabled={!selectedClient || loading}>
           {loading ? 'Actualizando...' : 'Actualizar'}
