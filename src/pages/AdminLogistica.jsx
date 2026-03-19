@@ -63,6 +63,13 @@ export default function AdminLogistica() {
     return acc;
   }, {}), [cargas]);
 
+  const entregasCompletadasPorRuta = useMemo(() => cargas.reduce((acc, item) => {
+    if (item.estado_entrega === 'entregada') {
+      acc[item.ruta_id] = (acc[item.ruta_id] || 0) + 1;
+    }
+    return acc;
+  }, {}), [cargas]);
+
   const rutasConPendientes = useMemo(() => rutas
     .filter((ruta) => cargasPendientesPorRuta[ruta.id])
     .sort((a, b) => (cargasPendientesPorRuta[b.id] || 0) - (cargasPendientesPorRuta[a.id] || 0))
@@ -153,8 +160,11 @@ export default function AdminLogistica() {
                     <p className="font-semibold text-slate-900">{ruta.codigo_ruta}</p>
                     <p className="text-sm text-slate-500">{ruta.origen} → {ruta.destino}</p>
                     <p className="text-xs text-slate-400 mt-1">Salida: {formatDate(ruta.fecha_salida)}</p>
-                    <p className="text-xs text-slate-400 mt-1">Pendientes: {cargasPendientesPorRuta[ruta.id] || 0}</p>
+                    <p className="text-xs text-slate-400 mt-1">Chofer: {ruta.chofer_nombre || 'Sin asignar'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Vehículo: {ruta.vehiculo_placa || 'Sin asignar'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Pendientes: {cargasPendientesPorRuta[ruta.id] || 0} · Completadas: {entregasCompletadasPorRuta[ruta.id] || 0}</p>
                     <p className="text-xs text-slate-400 mt-1">Último avance: {ultimoSeguimientoPorRuta[ruta.id]?.estado ? String(ultimoSeguimientoPorRuta[ruta.id].estado).replaceAll('_', ' ') : 'Sin registros'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Última ubicación: {ultimoSeguimientoPorRuta[ruta.id]?.ubicacion || '—'}</p>
                   </div>
                   <EstadoLogisticaBadge value={ruta.estado} />
                 </div>
