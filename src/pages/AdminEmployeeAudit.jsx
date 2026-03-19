@@ -73,11 +73,11 @@ export default function AdminEmployeeAudit() {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-cyan-100">
             <History className="h-3.5 w-3.5" />
-            Auditoría de equipo y accesos
+            Auditoría de acciones del equipo
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Auditoría de empleados</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Auditoría de acciones</h1>
           <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-            Revisa quién hizo cambios en empleados, administradores, áreas y permisos dentro del sistema.
+            Revisa hábitos de trabajo y acciones realizadas por el equipo, como pre-alertas, pagos asistidos, emails y cambios de acceso.
           </p>
         </div>
       </div>
