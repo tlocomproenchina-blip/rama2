@@ -182,6 +182,25 @@ export default function AdminRutas() {
       return;
     }
 
+    const validationResponse = await base44.functions.invoke('validateRouteAssignment', {
+      routeId: editing?.id || '',
+      vehicleId: payload.vehiculo_id,
+      driverId: payload.chofer_id,
+      routeStatus: payload.estado,
+    });
+    const validation = validationResponse.data;
+
+    if (!validation?.valid) {
+      if (validation?.vehicleConflict) {
+        toast.error(`El vehículo ya está asignado a la ruta ${validation.vehicleConflict.codigo_ruta}`);
+      } else if (validation?.driverConflict) {
+        toast.error(`El chofer ya está asignado a la ruta ${validation.driverConflict.codigo_ruta}`);
+      } else {
+        toast.error('No se pudo validar la asignación de la ruta');
+      }
+      return;
+    }
+
     setSaving(true);
     if (editing) {
       await base44.entities.Ruta.update(editing.id, payload);

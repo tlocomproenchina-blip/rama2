@@ -134,13 +134,35 @@ export default function AdminCargaRutas() {
       }
     }
 
-    setSaving(true);
     const payload = {
       ...form,
       peso_kg: form.peso_kg ? Number(form.peso_kg) : 0,
       volumen_m3: form.volumen_m3 ? Number(form.volumen_m3) : 0,
       cantidad_bultos: form.cantidad_bultos ? Number(form.cantidad_bultos) : 1,
     };
+
+    const validationResponse = await base44.functions.invoke('validateRouteLoad', {
+      loadId: editing?.id || '',
+      routeId: payload.ruta_id,
+      packageId: payload.package_id,
+      loadType: payload.tipo_carga,
+      weightKg: payload.peso_kg,
+      volumeM3: payload.volumen_m3,
+    });
+    const validation = validationResponse.data;
+
+    if (!validation?.valid) {
+      if (validation?.duplicatePackageConflict) {
+        toast.error('Ese paquete ya fue asignado a otra ruta');
+      } else if (validation?.capacityWarning?.isOverCapacity) {
+        toast.error('La carga supera la capacidad del vehículo asignado a la ruta');
+      } else {
+        toast.error('No se pudo validar la carga de la ruta');
+      }
+      return;
+    }
+
+    setSaving(true);
 
     if (editing) {
       await base44.entities.CargaRuta.update(editing.id, payload);
