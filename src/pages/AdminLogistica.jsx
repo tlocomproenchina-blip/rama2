@@ -111,13 +111,23 @@ export default function AdminLogistica() {
           </CardHeader>
           <CardContent className="space-y-4">
             {rutas.slice(0, 5).map((ruta) => (
-              <div key={ruta.id} className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                <div>
-                  <p className="font-semibold text-slate-900">{ruta.codigo_ruta}</p>
-                  <p className="text-sm text-slate-500">{ruta.origen} → {ruta.destino}</p>
-                  <p className="text-xs text-slate-400 mt-1">Salida: {formatDate(ruta.fecha_salida)}</p>
+              <div key={ruta.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-slate-900">{ruta.codigo_ruta}</p>
+                    <p className="text-sm text-slate-500">{ruta.origen} → {ruta.destino}</p>
+                    <p className="text-xs text-slate-400 mt-1">Salida: {formatDate(ruta.fecha_salida)}</p>
+                  </div>
+                  <EstadoLogisticaBadge value={ruta.estado} />
                 </div>
-                <EstadoLogisticaBadge value={ruta.estado} />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
+                    Ver cargas
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${ruta.id}`}>
+                    Ver seguimiento
+                  </Button>
+                </div>
               </div>
             ))}
           </CardContent>
@@ -140,6 +150,11 @@ export default function AdminLogistica() {
                   <EstadoLogisticaBadge value={item.estado} />
                 </div>
                 <p className="mt-3 text-sm text-slate-600">{item.comentario || 'Sin comentario'}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${item.ruta_id}${item.carga_ruta_id ? `&carga_id=${item.carga_ruta_id}` : ''}`}>
+                    Abrir seguimiento
+                  </Button>
+                </div>
               </div>
             ))}
           </CardContent>
