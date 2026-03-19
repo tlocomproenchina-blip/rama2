@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { logActionAudit } from '@/lib/actionAudit';
 
 export default function AssistedPaymentForm({ user }) {
   const [config, setConfig] = React.useState(null);

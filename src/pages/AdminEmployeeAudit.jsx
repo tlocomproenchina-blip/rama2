@@ -14,6 +14,9 @@ const ACTION_LABELS = {
   demote_admin: 'Quitó acceso admin',
   assign_area: 'Asignó área',
   save_permissions: 'Guardó permisos',
+  report_prealert: 'Reportó pre-alerta',
+  create_assisted_payment_request: 'Generó pago asistido',
+  send_marketing_email: 'Envió email',
 };
 
 export default function AdminEmployeeAudit() {

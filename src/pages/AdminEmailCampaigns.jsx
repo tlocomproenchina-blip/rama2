@@ -36,6 +36,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
 import { getEmailQueueStats } from '@/components/NotificationUtils';
+import { logActionAudit } from '@/lib/actionAudit';
 
 export default function AdminEmailCampaigns({ user }) {
   const [clients, setClients] = useState([]);
