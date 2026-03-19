@@ -153,10 +153,12 @@ export default function MyInvoices({ user }) {
     toast.success('Factura descargada');
   };
 
-  const filteredInvoices = invoices.filter(inv => 
-    inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
-    inv.consolidation_tracking.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredInvoices = invoices.filter((inv) => {
+    const term = String(search || '').toLowerCase();
+    const invoiceNumber = String(inv.invoice_number || '').toLowerCase();
+    const consolidationTracking = String(inv.consolidation_tracking || '').toLowerCase();
+    return invoiceNumber.includes(term) || consolidationTracking.includes(term);
+  });
 
   // Mostrar facturas "pendiente" si tienen link de Stripe O si hay otros métodos de pago habilitados
   const visibleInvoices = filteredInvoices.filter(inv => {
