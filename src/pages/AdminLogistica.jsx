@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Truck, UserCheck, Route, Package, History } from 'lucide-react';
+import { Loader2, Truck, UserCheck, Route, Package, History, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import EstadoLogisticaBadge from '@/components/logistica/EstadoLogisticaBadge';
 
 const quickLinks = [
@@ -21,11 +21,20 @@ const formatDate = (value) => {
 
 export default function AdminLogistica() {
   const [loading, setLoading] = useState(true);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthCheck, setHealthCheck] = useState(null);
   const [vehiculos, setVehiculos] = useState([]);
   const [choferes, setChoferes] = useState([]);
   const [rutas, setRutas] = useState([]);
   const [cargas, setCargas] = useState([]);
   const [seguimientos, setSeguimientos] = useState([]);
+
+  const runHealthCheck = async () => {
+    setHealthLoading(true);
+    const response = await base44.functions.invoke('runLogisticsHealthCheck', {});
+    setHealthCheck(response.data);
+    setHealthLoading(false);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -46,6 +55,7 @@ export default function AdminLogistica() {
     };
 
     loadData();
+    runHealthCheck();
   }, []);
 
   const rutasById = useMemo(() => Object.fromEntries(rutas.map((item) => [item.id, item])), [rutas]);
@@ -125,6 +135,42 @@ export default function AdminLogistica() {
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Rutas activas</p><p className="mt-2 text-3xl font-bold text-slate-900">{metrics.rutasActivas}</p></CardContent></Card>
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Entregas pendientes</p><p className="mt-2 text-3xl font-bold text-slate-900">{metrics.entregasPendientes}</p></CardContent></Card>
       </div>
+
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>Diagnóstico logístico</CardTitle>
+            <CardDescription>Validación rápida de conflictos, paquetes duplicados y sobrecargas.</CardDescription>
+          </div>
+          <Button variant="outline" onClick={runHealthCheck} disabled={healthLoading}>
+            {healthLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <AlertTriangle className="h-4 w-4" />}
+            Ejecutar diagnóstico
+          </Button>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className={`rounded-2xl border p-4 ${healthCheck?.summary?.resource_conflicts ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
+            <div className="flex items-center gap-2 text-sm font-medium ${''}">
+              {healthCheck?.summary?.resource_conflicts ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+              <span>Conflictos de recursos</span>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{healthCheck?.summary?.resource_conflicts || 0}</p>
+          </div>
+          <div className={`rounded-2xl border p-4 ${healthCheck?.summary?.duplicate_packages ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
+            <div className="flex items-center gap-2 text-sm font-medium">
+              {healthCheck?.summary?.duplicate_packages ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+              <span>Paquetes duplicados</span>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{healthCheck?.summary?.duplicate_packages || 0}</p>
+          </div>
+          <div className={`rounded-2xl border p-4 ${healthCheck?.summary?.capacity_alerts ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
+            <div className="flex items-center gap-2 text-sm font-medium">
+              {healthCheck?.summary?.capacity_alerts ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+              <span>Alertas de capacidad</span>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{healthCheck?.summary?.capacity_alerts || 0}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-0 shadow-lg">
         <CardHeader>
