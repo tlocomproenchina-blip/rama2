@@ -7,17 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Search, History, ShieldCheck, UserCheck, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
-const ACTION_LABELS = {
-  invite_employee: 'Invitó empleado',
-  update_employee: 'Actualizó empleado',
-  invite_admin: 'Invitó administrador',
-  demote_admin: 'Quitó acceso admin',
-  assign_area: 'Asignó área',
-  save_permissions: 'Guardó permisos',
-  report_prealert: 'Reportó pre-alerta',
-  create_assisted_payment_request: 'Generó pago asistido',
-  send_marketing_email: 'Envió email',
-};
+function formatActionLabel(actionType) {
+  return String(actionType || 'sin_accion')
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 export default function AdminEmployeeAudit() {
   const [logs, setLogs] = useState([]);
@@ -57,10 +51,14 @@ export default function AdminEmployeeAudit() {
     });
   }, [logs, search, actionType]);
 
+  const actionOptions = useMemo(() => {
+    return Array.from(new Set(logs.map((log) => log.action_type).filter(Boolean))).sort();
+  }, [logs]);
+
   const stats = useMemo(() => ({
     total: logs.length,
-    employeeChanges: logs.filter((log) => ['invite_employee', 'update_employee', 'report_prealert', 'create_assisted_payment_request'].includes(log.action_type)).length,
-    accessChanges: logs.filter((log) => ['invite_admin', 'demote_admin', 'assign_area', 'save_permissions', 'send_marketing_email'].includes(log.action_type)).length,
+    actors: new Set(logs.map((log) => log.actor_email).filter(Boolean)).size,
+    modules: new Set(logs.map((log) => log.module_name).filter(Boolean)).size,
   }), [logs]);
 
   if (loading) {
@@ -73,19 +71,19 @@ export default function AdminEmployeeAudit() {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-cyan-100">
             <History className="h-3.5 w-3.5" />
-            Auditoría de acciones del equipo
+            Auditoría global del sistema
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Auditoría de acciones</h1>
           <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-            Revisa hábitos de trabajo y acciones realizadas por el equipo, como pre-alertas, pagos asistidos, emails y cambios de acceso.
+            Revisa acciones realizadas por cualquier rol y en cualquier módulo para entender hábitos y actividad del equipo.
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Registros</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p></CardContent></Card>
-        <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Cambios de empleados</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.employeeChanges}</p></CardContent></Card>
-        <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Cambios de acceso</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.accessChanges}</p></CardContent></Card>
+        <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Usuarios con actividad</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.actors}</p></CardContent></Card>
+        <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Módulos auditados</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.modules}</p></CardContent></Card>
       </div>
 
       <Card className="border-0 shadow-lg">
@@ -104,8 +102,8 @@ export default function AdminEmployeeAudit() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas las acciones</SelectItem>
-                {Object.entries(ACTION_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                {actionOptions.map((value) => (
+                  <SelectItem key={value} value={value}>{formatActionLabel(value)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -124,7 +122,7 @@ export default function AdminEmployeeAudit() {
                       <div className="space-y-2 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold text-slate-800">{log.summary}</h3>
-                          <Badge className="bg-blue-100 text-blue-700">{ACTION_LABELS[log.action_type] || log.action_type}</Badge>
+                          <Badge className="bg-blue-100 text-blue-700">{formatActionLabel(log.action_type)}</Badge>
                           {log.area_name && <Badge variant="outline" className="border-cyan-200 text-cyan-700">{log.area_name}</Badge>}
                         </div>
                         <p className="text-sm text-slate-500">{new Date(log.created_date).toLocaleString('es-VE')}</p>
