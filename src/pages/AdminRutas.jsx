@@ -319,6 +319,9 @@ export default function AdminRutas() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => window.location.href = `/AdminRutaDetalle?ruta_id=${ruta.id}`}>
+                      Ver detalle
+                    </Button>
                     <Button variant="outline" onClick={() => openEdit(ruta)}>
                       <Pencil className="h-4 w-4" /> Editar
                     </Button>

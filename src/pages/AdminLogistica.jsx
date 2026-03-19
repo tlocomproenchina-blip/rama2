@@ -232,6 +232,9 @@ export default function AdminLogistica() {
                   <EstadoLogisticaBadge value={ruta.estado} />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminRutaDetalle?ruta_id=${ruta.id}`}>
+                    Ver detalle
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
                     Ver cargas
                   </Button>
