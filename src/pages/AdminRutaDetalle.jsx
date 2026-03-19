@@ -18,26 +18,6 @@ export default function AdminRutaDetalle() {
   const [optimizing, setOptimizing] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!rutaId) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      const [rutasRows, cargasRows, seguimientoRows, planRows] = await Promise.all([
-        base44.entities.Ruta.filter({ id: rutaId }, '-updated_date', 1),
-        base44.entities.CargaRuta.filter({ ruta_id: rutaId }, '-updated_date', 200),
-        base44.entities.SeguimientoRuta.filter({ ruta_id: rutaId }, '-fecha_hora', 200),
-        base44.entities.RouteOptimizationPlan.filter({ route_id: rutaId }, '-updated_date', 1),
-      ]);
-      setRuta(rutasRows?.[0] || null);
-      setCargas(cargasRows || []);
-      setSeguimientos(seguimientoRows || []);
-      setOptimizationPlan(planRows?.[0] || null);
-      setLoading(false);
-    };
-
     loadData();
   }, [rutaId]);
 
@@ -104,9 +84,10 @@ export default function AdminRutaDetalle() {
       </div>
 
       <RutaDetalleResumen ruta={ruta} metrics={metrics} ultimoSeguimiento={seguimientos[0]} />
+      <RouteOptimizationCard plan={optimizationPlan} onOptimize={handleOptimize} loading={optimizing} />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <RutaDetalleCargasList cargas={cargas} />
+        <RutaDetalleCargasList cargas={cargas} orderedLoadIds={optimizationPlan?.ordered_load_ids || []} />
         <RutaDetalleSeguimientoList seguimientos={seguimientos.slice(0, 10)} />
       </div>
     </div>
