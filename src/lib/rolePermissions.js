@@ -28,6 +28,30 @@ export const ROLE_PRESETS = {
     role_name: 'Marketing',
     description: 'Campañas, plantillas, promociones, blog y referidos.',
     visible_pages: ['AdminDashboard', 'AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals']
+  },
+  logistica: {
+    role_code: 'logistica',
+    role_name: 'Logística',
+    description: 'Vehículos, choferes, rutas, cargas y detalle operativo.',
+    visible_pages: ['AdminDashboard', 'AdminLogistica', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas']
+  },
+  comunicaciones: {
+    role_code: 'comunicaciones',
+    role_name: 'Comunicaciones',
+    description: 'Campañas, plantillas y alertas de comunicación.',
+    visible_pages: ['AdminDashboard', 'AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts']
+  },
+  seguimiento: {
+    role_code: 'seguimiento',
+    role_name: 'Seguimiento',
+    description: 'Monitoreo de rutas, tracking y avances de entrega.',
+    visible_pages: ['AdminDashboard', 'AdminLogistica', 'AdminRutas', 'AdminRutaDetalle', 'AdminSeguimientoRutas', 'ShipmentTracking', 'AdminInsured']
+  },
+  equipo_y_acceso: {
+    role_code: 'equipo_y_acceso',
+    role_name: 'Equipo y Acceso',
+    description: 'Gestión de empleados, administradores, roles y auditoría.',
+    visible_pages: ['AdminDashboard', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit']
   }
 };
 
