@@ -259,10 +259,10 @@ export default function AdminRutas() {
                     <Button variant="outline" onClick={() => openEdit(ruta)}>
                       <Pencil className="h-4 w-4" /> Editar
                     </Button>
-                    <Button variant="outline" onClick={() => window.location.href = `/AdminCargaRutas`}>
+                    <Button variant="outline" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
                       Ver cargas
                     </Button>
-                    <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas`}>
+                    <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${ruta.id}`}>
                       Ver seguimiento
                     </Button>
                     <Button variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => setDeleting(ruta)}>

@@ -32,6 +32,9 @@ const emptyForm = {
 const formatDateTimeInput = (value) => value ? String(value).slice(0, 16) : '';
 
 export default function AdminSeguimientoRutas({ user }) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const rutaFilterId = urlParams.get('ruta_id') || '';
+  const cargaFilterId = urlParams.get('carga_id') || '';
   const [seguimientos, setSeguimientos] = useState([]);
   const [rutas, setRutas] = useState([]);
   const [cargas, setCargas] = useState([]);
@@ -67,12 +70,15 @@ export default function AdminSeguimientoRutas({ user }) {
     const ruta = rutasById[item.ruta_id];
     const carga = cargasById[item.carga_ruta_id];
     const q = String(search || '').toLowerCase();
-    return !q ||
+    const routeMatch = !rutaFilterId || item.ruta_id === rutaFilterId;
+    const cargaMatch = !cargaFilterId || item.carga_ruta_id === cargaFilterId;
+    const textMatch = !q ||
       String(item.ubicacion || '').toLowerCase().includes(q) ||
       String(item.comentario || '').toLowerCase().includes(q) ||
       String(ruta?.codigo_ruta || '').toLowerCase().includes(q) ||
       String(carga?.tracking_number || carga?.descripcion || '').toLowerCase().includes(q);
-  }), [cargasById, rutasById, search, seguimientos]);
+    return routeMatch && cargaMatch && textMatch;
+  }), [cargaFilterId, cargasById, rutaFilterId, rutasById, search, seguimientos]);
 
   const stats = useMemo(() => ({
     total: seguimientos.length,
@@ -83,7 +89,12 @@ export default function AdminSeguimientoRutas({ user }) {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...emptyForm, fecha_hora: formatDateTimeInput(new Date().toISOString()) });
+    setForm({
+      ...emptyForm,
+      ruta_id: rutaFilterId,
+      carga_ruta_id: cargaFilterId,
+      fecha_hora: formatDateTimeInput(new Date().toISOString())
+    });
     setOpen(true);
   };
 
@@ -210,6 +221,15 @@ export default function AdminSeguimientoRutas({ user }) {
           <CardDescription>Visualiza y registra eventos operativos de cada ruta.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {(rutaFilterId || cargaFilterId) && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-100 bg-orange-50 p-3 text-sm text-orange-900">
+              <span>
+                {rutaFilterId ? `Ruta: ${rutasById[rutaFilterId]?.codigo_ruta || 'seleccionada'}` : 'Seguimiento filtrado'}
+                {cargaFilterId ? ` · Carga: ${cargasById[cargaFilterId]?.tracking_number || cargasById[cargaFilterId]?.descripcion || 'seleccionada'}` : ''}
+              </span>
+              <Button variant="outline" onClick={() => window.location.href = '/AdminSeguimientoRutas'}>Quitar filtro</Button>
+            </div>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por ruta, carga, ubicación o comentario" className="pl-10" />

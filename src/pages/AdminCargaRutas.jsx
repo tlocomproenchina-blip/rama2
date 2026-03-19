@@ -35,6 +35,8 @@ const emptyForm = {
 };
 
 export default function AdminCargaRutas() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const rutaFilterId = urlParams.get('ruta_id') || '';
   const [cargas, setCargas] = useState([]);
   const [rutas, setRutas] = useState([]);
   const [packages, setPackages] = useState([]);
@@ -68,12 +70,14 @@ export default function AdminCargaRutas() {
   const filteredCargas = useMemo(() => cargas.filter((item) => {
     const q = String(search || '').toLowerCase();
     const ruta = rutasById[item.ruta_id];
-    return !q ||
+    const routeMatch = !rutaFilterId || item.ruta_id === rutaFilterId;
+    const textMatch = !q ||
       String(item.tracking_number || '').toLowerCase().includes(q) ||
       String(item.descripcion || '').toLowerCase().includes(q) ||
       String(item.cliente_email || '').toLowerCase().includes(q) ||
       String(ruta?.codigo_ruta || '').toLowerCase().includes(q);
-  }), [cargas, rutasById, search]);
+    return routeMatch && textMatch;
+  }), [cargas, rutaFilterId, rutasById, search]);
 
   const stats = useMemo(() => ({
     total: cargas.length,
@@ -84,7 +88,7 @@ export default function AdminCargaRutas() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, ruta_id: rutaFilterId });
     setOpen(true);
   };
 
@@ -188,6 +192,12 @@ export default function AdminCargaRutas() {
           <CardDescription>Consulta y administra la carga asignada a cada ruta.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {rutaFilterId && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-100 bg-cyan-50 p-3 text-sm text-cyan-900">
+              <span>Mostrando cargas de la ruta: <strong>{rutasById[rutaFilterId]?.codigo_ruta || 'seleccionada'}</strong></span>
+              <Button variant="outline" onClick={() => window.location.href = '/AdminCargaRutas'}>Quitar filtro</Button>
+            </div>
+          )}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por tracking, descripción, cliente o ruta" className="pl-10" />
@@ -219,7 +229,7 @@ export default function AdminCargaRutas() {
                       <Button variant="outline" onClick={() => openEdit(carga)}>
                         <Pencil className="h-4 w-4" /> Editar
                       </Button>
-                      <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas`}>
+                      <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${carga.ruta_id}&carga_id=${carga.id}`}>
                         Seguimiento
                       </Button>
                       <Button variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => setDeleting(carga)}>
