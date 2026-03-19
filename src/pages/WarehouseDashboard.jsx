@@ -27,16 +27,18 @@ export default function WarehouseDashboard({ user }) {
     return <Card><CardContent className="p-8 text-center text-slate-500">No tienes acceso a este módulo.</CardContent></Card>;
   }
 
-  if (loading) {
-    return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Dashboard de almacén</h1>
           <p className="text-slate-500">Vista rápida de ocupación, recepción y preparación.</p>
+          {loading && (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Actualizando datos
+            </div>
+          )}
         </div>
         <Button variant="outline" onClick={loadStats}><RefreshCw className="h-4 w-4 mr-2" /> Actualizar</Button>
       </div>
