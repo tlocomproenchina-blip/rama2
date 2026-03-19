@@ -238,20 +238,18 @@ export default function AdminDashboard({ user }) {
     return actions;
   }, [stats]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Panel de Control</h1>
           <p className="text-slate-500">{mainTab === 'api' ? 'Estado del sistema y cola de API' : 'Resumen de operaciones'}</p>
+          {loading && (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Actualizando datos
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Tabs value={mainTab} onValueChange={setMainTab}>
