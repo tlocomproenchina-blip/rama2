@@ -271,10 +271,10 @@ export default function AdminRutas() {
                     <Button variant="outline" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
                       Ver cargas
                     </Button>
-                    <Button variant="outline" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
+                    <Button variant="outline" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}&action=new`}>
                       Nueva carga
                     </Button>
-                    <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${ruta.id}`}>
+                    <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${ruta.id}&action=new`}>
                       Nuevo seguimiento
                     </Button>
                     <Button variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => setDeleting(ruta)}>

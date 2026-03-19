@@ -35,6 +35,7 @@ export default function AdminSeguimientoRutas({ user }) {
   const urlParams = new URLSearchParams(window.location.search);
   const rutaFilterId = urlParams.get('ruta_id') || '';
   const cargaFilterId = urlParams.get('carga_id') || '';
+  const startAction = urlParams.get('action') || '';
   const [seguimientos, setSeguimientos] = useState([]);
   const [rutas, setRutas] = useState([]);
   const [cargas, setCargas] = useState([]);
@@ -62,6 +63,19 @@ export default function AdminSeguimientoRutas({ user }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!loading && startAction === 'new') {
+      setEditing(null);
+      setForm({
+        ...emptyForm,
+        ruta_id: rutaFilterId,
+        carga_ruta_id: cargaFilterId,
+        fecha_hora: formatDateTimeInput(new Date().toISOString())
+      });
+      setOpen(true);
+    }
+  }, [cargaFilterId, loading, rutaFilterId, startAction]);
 
   const rutasById = useMemo(() => Object.fromEntries(rutas.map((item) => [item.id, item])), [rutas]);
   const cargasById = useMemo(() => Object.fromEntries(cargas.map((item) => [item.id, item])), [cargas]);

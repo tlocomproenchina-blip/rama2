@@ -37,6 +37,7 @@ const emptyForm = {
 export default function AdminCargaRutas() {
   const urlParams = new URLSearchParams(window.location.search);
   const rutaFilterId = urlParams.get('ruta_id') || '';
+  const startAction = urlParams.get('action') || '';
   const [cargas, setCargas] = useState([]);
   const [rutas, setRutas] = useState([]);
   const [packages, setPackages] = useState([]);
@@ -64,6 +65,14 @@ export default function AdminCargaRutas() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!loading && startAction === 'new') {
+      setEditing(null);
+      setForm({ ...emptyForm, ruta_id: rutaFilterId });
+      setOpen(true);
+    }
+  }, [loading, rutaFilterId, startAction]);
 
   const rutasById = useMemo(() => Object.fromEntries(rutas.map((item) => [item.id, item])), [rutas]);
 
@@ -229,7 +238,7 @@ export default function AdminCargaRutas() {
                       <Button variant="outline" onClick={() => openEdit(carga)}>
                         <Pencil className="h-4 w-4" /> Editar
                       </Button>
-                      <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${carga.ruta_id}&carga_id=${carga.id}`}>
+                      <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${carga.ruta_id}&carga_id=${carga.id}&action=new`}>
                         Seguimiento
                       </Button>
                       <Button variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => setDeleting(carga)}>
