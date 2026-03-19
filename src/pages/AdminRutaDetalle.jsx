@@ -5,6 +5,7 @@ import { Loader2, ArrowLeft, Package, History } from 'lucide-react';
 import RutaDetalleResumen from '@/components/logistica/RutaDetalleResumen';
 import RutaDetalleCargasList from '@/components/logistica/RutaDetalleCargasList';
 import RutaDetalleSeguimientoList from '@/components/logistica/RutaDetalleSeguimientoList';
+import RouteOptimizationCard from '@/components/logistica/RouteOptimizationCard';
 
 export default function AdminRutaDetalle() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -13,6 +14,8 @@ export default function AdminRutaDetalle() {
   const [ruta, setRuta] = useState(null);
   const [cargas, setCargas] = useState([]);
   const [seguimientos, setSeguimientos] = useState([]);
+  const [optimizationPlan, setOptimizationPlan] = useState(null);
+  const [optimizing, setOptimizing] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -22,14 +25,16 @@ export default function AdminRutaDetalle() {
       }
 
       setLoading(true);
-      const [rutasRows, cargasRows, seguimientoRows] = await Promise.all([
+      const [rutasRows, cargasRows, seguimientoRows, planRows] = await Promise.all([
         base44.entities.Ruta.filter({ id: rutaId }, '-updated_date', 1),
         base44.entities.CargaRuta.filter({ ruta_id: rutaId }, '-updated_date', 200),
         base44.entities.SeguimientoRuta.filter({ ruta_id: rutaId }, '-fecha_hora', 200),
+        base44.entities.RouteOptimizationPlan.filter({ route_id: rutaId }, '-updated_date', 1),
       ]);
       setRuta(rutasRows?.[0] || null);
       setCargas(cargasRows || []);
       setSeguimientos(seguimientoRows || []);
+      setOptimizationPlan(planRows?.[0] || null);
       setLoading(false);
     };
 
@@ -41,6 +46,33 @@ export default function AdminRutaDetalle() {
     pendientes: cargas.filter((item) => ['pendiente', 'en_transito', 'entrega_parcial'].includes(item.estado_entrega)).length,
     completadas: cargas.filter((item) => item.estado_entrega === 'entregada').length,
   }), [cargas]);
+
+  const loadData = async () => {
+    if (!rutaId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const [rutasRows, cargasRows, seguimientoRows, planRows] = await Promise.all([
+      base44.entities.Ruta.filter({ id: rutaId }, '-updated_date', 1),
+      base44.entities.CargaRuta.filter({ ruta_id: rutaId }, '-updated_date', 200),
+      base44.entities.SeguimientoRuta.filter({ ruta_id: rutaId }, '-fecha_hora', 200),
+      base44.entities.RouteOptimizationPlan.filter({ route_id: rutaId }, '-updated_date', 1),
+    ]);
+    setRuta(rutasRows?.[0] || null);
+    setCargas(cargasRows || []);
+    setSeguimientos(seguimientoRows || []);
+    setOptimizationPlan(planRows?.[0] || null);
+    setLoading(false);
+  };
+
+  const handleOptimize = async () => {
+    setOptimizing(true);
+    await base44.functions.invoke('optimizeRouteSequence', { routeId: rutaId, mode: 'manual' });
+    await loadData();
+    setOptimizing(false);
+  };
 
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;

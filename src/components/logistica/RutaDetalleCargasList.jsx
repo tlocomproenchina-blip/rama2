@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EstadoLogisticaBadge from '@/components/logistica/EstadoLogisticaBadge';
 
-export default function RutaDetalleCargasList({ cargas }) {
+export default function RutaDetalleCargasList({ cargas, orderedLoadIds = [] }) {
+  const orderMap = Object.fromEntries(orderedLoadIds.map((id, index) => [id, index + 1]));
   return (
     <Card className="border-0 shadow-lg">
       <CardHeader>
@@ -17,6 +18,9 @@ export default function RutaDetalleCargasList({ cargas }) {
               <div>
                 <p className="font-medium text-slate-900">{carga.tracking_number || carga.descripcion}</p>
                 <p className="text-sm text-slate-500">{carga.cliente_email || 'Sin cliente'} · {carga.tipo_carga}</p>
+                {orderMap[carga.id] && (
+                  <p className="text-xs text-violet-700 mt-2">Orden sugerido: #{orderMap[carga.id]}</p>
+                )}
               </div>
               <EstadoLogisticaBadge value={carga.estado_entrega} />
             </div>
