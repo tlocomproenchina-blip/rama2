@@ -259,20 +259,18 @@ export default function AdminEmailTemplates({ user }) {
     custom: templates.filter(t => !t.is_default).length
   }), [templates]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Plantillas de Email</h1>
           <p className="text-slate-500">Gestiona plantillas reutilizables para tus emails</p>
+          {loading && (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Actualizando datos
+            </div>
+          )}
         </div>
         <div className="header-actions flex flex-wrap gap-2 w-full sm:w-auto">
           <Button 

@@ -377,19 +377,17 @@ export default function AdminEmailCampaigns({ user }) {
     'link', 'image'
   ];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Envío de Emails</h1>
         <p className="text-slate-500">Envía comunicaciones manuales a tus clientes</p>
+        {loading && (
+          <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Actualizando datos
+          </div>
+        )}
       </div>
 
       {/* Stats */}
