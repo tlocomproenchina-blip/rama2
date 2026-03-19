@@ -79,11 +79,13 @@ export default function AdminOperaciones() {
           {quickLinks.map((item) => {
             const Icon = item.icon;
             return (
-              <Button key={item.href} variant="outline" className="h-auto justify-start gap-3 p-4" onClick={() => window.location.href = item.href}>
-                <div className="rounded-xl bg-slate-100 p-2">
-                  <Icon className="h-4 w-4 text-slate-700" />
-                </div>
-                <span>{item.label}</span>
+              <Button key={item.href} variant="outline" className="h-auto justify-start gap-3 p-4" asChild>
+                <Link to={item.href}>
+                  <div className="rounded-xl bg-slate-100 p-2">
+                    <Icon className="h-4 w-4 text-slate-700" />
+                  </div>
+                  <span>{item.label}</span>
+                </Link>
               </Button>
             );
           })}
