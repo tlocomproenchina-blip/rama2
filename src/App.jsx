@@ -22,6 +22,7 @@ import AdminVehiculos from './pages/AdminVehiculos';
 import AdminChoferes from './pages/AdminChoferes';
 import AdminRutas from './pages/AdminRutas';
 import AdminCargaRutas from './pages/AdminCargaRutas';
+import AdminSeguimientoRutas from './pages/AdminSeguimientoRutas';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -145,6 +146,11 @@ const AuthenticatedApp = () => {
       <Route path="/AdminCargaRutas" element={
         <LayoutWrapper currentPageName="AdminCargaRutas">
           <AdminCargaRutas />
+        </LayoutWrapper>
+      } />
+      <Route path="/AdminSeguimientoRutas" element={
+        <LayoutWrapper currentPageName="AdminSeguimientoRutas">
+          <AdminSeguimientoRutas />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
