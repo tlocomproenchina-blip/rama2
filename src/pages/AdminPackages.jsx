@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import AdvancedSearch from '@/components/admin/AdvancedSearch';
 import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
+import PackageImportDialog from '@/components/imports/PackageImportDialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 export default function AdminPackages({ user }) {
@@ -64,6 +65,7 @@ export default function AdminPackages({ user }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const loadPackages = useCallback(async (append = false, skipOverride = 0) => {
     if (append) setLoadingMore(true); else setLoading(true);
@@ -534,6 +536,15 @@ export default function AdminPackages({ user }) {
               >
                 <Package className="h-4 w-4 mr-2" />
                 Registrar Paquete
+              </Button>
+              <Button
+                onClick={() => setImportModalOpen(true)}
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importar
               </Button>
               <Button
                 onClick={handleExportPreAlerta}
@@ -1221,6 +1232,12 @@ export default function AdminPackages({ user }) {
           setCreateModalOpen(false);
           loadPackages(false);
         }}
+      />
+
+      <PackageImportDialog
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        onImported={() => loadPackages(false)}
       />
     </div>
   );

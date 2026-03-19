@@ -14,10 +14,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Plus, Search, Route, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Search, Route, Pencil, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import RutaForm from '@/components/logistica/RutaForm';
 import EstadoLogisticaBadge from '@/components/logistica/EstadoLogisticaBadge';
+import RutaImportDialog from '@/components/imports/RutaImportDialog';
 
 const emptyForm = {
   codigo_ruta: '',
@@ -52,6 +53,7 @@ export default function AdminRutas() {
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -272,9 +274,14 @@ export default function AdminRutas() {
               Crea rutas, asigna vehículo y chofer, y controla el estado operativo de cada recorrido.
             </p>
           </div>
-          <Button onClick={openCreate} className="bg-white text-slate-900 hover:bg-slate-100">
-            <Plus className="h-4 w-4" /> Nueva ruta
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImportModalOpen(true)} className="bg-white text-slate-900 hover:bg-slate-100">
+              <Upload className="h-4 w-4" /> Importar
+            </Button>
+            <Button onClick={openCreate} className="bg-white text-slate-900 hover:bg-slate-100">
+              <Plus className="h-4 w-4" /> Nueva ruta
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -394,6 +401,12 @@ export default function AdminRutas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <RutaImportDialog
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        onImported={() => loadData()}
+      />
     </div>
   );
 }
