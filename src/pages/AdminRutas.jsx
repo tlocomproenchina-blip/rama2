@@ -37,6 +37,7 @@ const emptyForm = {
 
 const activeStates = ['asignada', 'en_curso'];
 const formatDateTimeInput = (value) => value ? String(value).slice(0, 16) : '';
+const formatDateTimeDisplay = (value) => value ? String(value).slice(0, 16).replace('T', ' ') : '—';
 
 export default function AdminRutas() {
   const [rutas, setRutas] = useState([]);
@@ -272,6 +273,8 @@ export default function AdminRutas() {
                     <div><span className="font-medium text-slate-800">Entrega:</span> {formatDateTimeInput(ruta.fecha_estimada_entrega) || '—'}</div>
                     <div className="md:col-span-2"><span className="font-medium text-slate-800">Cargas asignadas:</span> {cargasPorRuta[ruta.id] || 0}</div>
                     <div className="md:col-span-2"><span className="font-medium text-slate-800">Último seguimiento:</span> {ultimoSeguimientoPorRuta[ruta.id]?.estado ? String(ultimoSeguimientoPorRuta[ruta.id].estado).replaceAll('_', ' ') : 'Sin registros'}</div>
+                    <div className="md:col-span-2"><span className="font-medium text-slate-800">Última ubicación:</span> {ultimoSeguimientoPorRuta[ruta.id]?.ubicacion || '—'}</div>
+                    <div className="md:col-span-2"><span className="font-medium text-slate-800">Último evento:</span> {formatDateTimeDisplay(ultimoSeguimientoPorRuta[ruta.id]?.fecha_hora)}</div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
