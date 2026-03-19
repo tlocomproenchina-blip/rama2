@@ -43,6 +43,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal';
+import ClientImportDialog from '@/components/imports/ClientImportDialog';
 
 export default function AdminClients({ user }) {
   const [clients, setClients] = useState([]);
@@ -78,6 +79,7 @@ export default function AdminClients({ user }) {
   const [exclusiveKey, setExclusiveKey] = useState('all');
   const canExport = user?.role === 'admin';
   const [backfilling, setBackfilling] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const PAGE_SIZE = 200;
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -705,6 +707,14 @@ Email: ${client.email}`;
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
 
             <Button 
+              onClick={() => setImportModalOpen(true)}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Importar Clientes
+            </Button>
+            <Button 
               onClick={handleExportFilteredClients}
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
               title="Exporta los clientes según los filtros actuales"
@@ -1153,6 +1163,12 @@ Email: ${client.email}`;
         open={!!viewClient}
         onClose={() => setViewClient(null)}
         onClientUpdated={loadClients}
+      />
+
+      <ClientImportDialog
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        onImported={loadClients}
       />
 
       {/* Add Package Dialog */}
