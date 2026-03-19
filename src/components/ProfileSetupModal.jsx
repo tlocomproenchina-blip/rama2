@@ -102,19 +102,6 @@ export default function ProfileSetupModal({ open, onComplete }) {
     return s;
   };
 
-  // Cierra overlays de Radix (Select/Popover) antes de desmontar/cerrar
-  const closeRadixOverlays = () => {
-    try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); } catch {}
-  };
-
-  useEffect(() => {
-    return () => { closeRadixOverlays(); };
-  }, []);
-
-  // Evitar que Radix cierre el modal al tocar fuera (móviles)
-  const preventCloseOutside = (e) => {
-    e.preventDefault();
-  };
 
   const handleSubmit = async () => {
     if (!validate()) return;
@@ -149,7 +136,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const pricingInfo = calculatePricing();
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-h-[80vh]" onPointerDownOutside={preventCloseOutside}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-amber-50 rounded-xl">
@@ -221,7 +208,13 @@ export default function ProfileSetupModal({ open, onComplete }) {
             <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
-            <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
+            <Select
+              value={formData.state}
+              onValueChange={(value) => {
+                setFormData((prev) => ({ ...prev, state: value }));
+                setErrors((prev) => ({ ...prev, state: null }));
+              }}
+            >
               <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
                 <SelectValue placeholder="Selecciona tu estado" />
               </SelectTrigger>
