@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
 import useAdminLogisticaData from '@/hooks/useAdminLogisticaData';
