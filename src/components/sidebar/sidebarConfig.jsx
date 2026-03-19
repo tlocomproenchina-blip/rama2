@@ -88,7 +88,8 @@ export const adminGroups = [
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['ShipmentTracking', 'ShippingCalculator', 'AdminInsured'] },
   { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminFAQ'] },
-  { label: 'GESTIÓN', items: ['AdminClients', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
+  { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles'] },
+  { label: 'GESTIÓN', items: ['AdminClients', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
 
 export const clientGroups = [
