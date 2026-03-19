@@ -45,6 +45,7 @@ export const clientMenuItems = [
 export const adminMenuItems = [
   { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
   { name: 'Análisis Cliente', page: 'ClientAnalytics', icon: TrendingUp },
+  { name: 'Dashboard Operaciones', page: 'AdminOperaciones', icon: LayoutDashboard },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
   { name: 'Logística', page: 'AdminLogistica', icon: Truck },
   { name: 'Vehículos', page: 'AdminVehiculos', icon: Truck },
@@ -71,6 +72,7 @@ export const adminMenuItems = [
   { name: 'Promociones', page: 'AdminPromotions', icon: Tag },
   { name: 'Marketing', page: 'AdminMarketing', icon: TrendingUp },
   { name: 'Blog', page: 'AdminBlog', icon: FileText },
+  { name: 'Dashboard Seguimiento', page: 'AdminSeguimiento', icon: LayoutDashboard },
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
@@ -89,13 +91,13 @@ export const adminMenuItems = [
 
 export const adminGroups = [
   { label: 'PRINCIPAL', items: ['AdminDashboard', 'AdminLogistica', 'ClientAnalytics'] },
-  { label: 'OPERACIONES', items: ['AdminPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
+  { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
-  { label: 'SEGUIMIENTO', items: ['ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
+  { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
   { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminFAQ'] },
   { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit'] },
   { label: 'GESTIÓN', items: ['AdminClients', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
