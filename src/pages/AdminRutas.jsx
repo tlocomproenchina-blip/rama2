@@ -42,6 +42,7 @@ export default function AdminRutas() {
   const [rutas, setRutas] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [choferes, setChoferes] = useState([]);
+  const [cargas, setCargas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
@@ -52,14 +53,16 @@ export default function AdminRutas() {
 
   const loadData = async () => {
     setLoading(true);
-    const [rutasRows, vehiculosRows, choferesRows] = await Promise.all([
+    const [rutasRows, vehiculosRows, choferesRows, cargasRows] = await Promise.all([
       base44.entities.Ruta.list('-updated_date', 200),
       base44.entities.Vehiculo.list('-updated_date', 200),
       base44.entities.Chofer.list('-updated_date', 200),
+      base44.entities.CargaRuta.list('-updated_date', 300),
     ]);
     setRutas(rutasRows || []);
     setVehiculos(vehiculosRows || []);
     setChoferes(choferesRows || []);
+    setCargas(cargasRows || []);
     setLoading(false);
   };
 
@@ -83,6 +86,11 @@ export default function AdminRutas() {
     enCurso: rutas.filter((item) => item.estado === 'en_curso').length,
     completadas: rutas.filter((item) => item.estado === 'completada').length,
   }), [rutas]);
+
+  const cargasPorRuta = useMemo(() => cargas.reduce((acc, item) => {
+    acc[item.ruta_id] = (acc[item.ruta_id] || 0) + 1;
+    return acc;
+  }, {}), [cargas]);
 
   const openCreate = () => {
     setEditing(null);
@@ -253,6 +261,7 @@ export default function AdminRutas() {
                     <div><span className="font-medium text-slate-800">Chofer:</span> {ruta.chofer_nombre || 'Sin asignar'}</div>
                     <div><span className="font-medium text-slate-800">Salida:</span> {formatDateTimeInput(ruta.fecha_salida) || '—'}</div>
                     <div><span className="font-medium text-slate-800">Entrega:</span> {formatDateTimeInput(ruta.fecha_estimada_entrega) || '—'}</div>
+                    <div className="md:col-span-2"><span className="font-medium text-slate-800">Cargas asignadas:</span> {cargasPorRuta[ruta.id] || 0}</div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -262,8 +271,11 @@ export default function AdminRutas() {
                     <Button variant="outline" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
                       Ver cargas
                     </Button>
+                    <Button variant="outline" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
+                      Nueva carga
+                    </Button>
                     <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${ruta.id}`}>
-                      Ver seguimiento
+                      Nuevo seguimiento
                     </Button>
                     <Button variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => setDeleting(ruta)}>
                       <Trash2 className="h-4 w-4" /> Eliminar
