@@ -223,6 +223,7 @@ export default function MyInvoices({ user }) {
             <InvoiceCard
               key={invoice.id}
               invoice={invoice}
+              user={user}
               onPay={handlePayOnline}
               onDownload={handleDownloadPDF}
               showPayButton={config?.payments_enable_stripe === true}

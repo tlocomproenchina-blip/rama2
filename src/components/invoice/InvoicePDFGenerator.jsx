@@ -5,7 +5,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
-export default function InvoicePDFGenerator({ invoice }) {
+export default function InvoicePDFGenerator({ invoice, user }) {
   const [generating, setGenerating] = useState(false);
   const [config, setConfig] = useState(null);
 
@@ -75,21 +75,24 @@ export default function InvoicePDFGenerator({ invoice }) {
       doc.text('FACTURA', pageWidth / 2, yPos, { align: 'center' });
       yPos += 15;
 
+      const assistedDetails = invoice.items?.find((item) => item?.details)?.details || {};
+      const isAssistedPayment = assistedDetails.request_type === 'assisted_payment' || String(invoice.consolidation_tracking || '').startsWith('AP-') || String(invoice.notes || '').toLowerCase().includes('pago asistido');
+
       // Invoice details
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Factura No: ${invoice.invoice_number}`, 15, yPos);
+      doc.text(`Factura No: ${invoice.invoice_number || 'N/A'}`, 15, yPos);
       doc.text(`Fecha: ${new Date(invoice.invoice_date).toLocaleDateString()}`, pageWidth - 15, yPos, { align: 'right' });
       yPos += 7;
-      doc.text(`Tracking: ${invoice.consolidation_tracking || 'N/A'}`, 15, yPos);
+      doc.text(isAssistedPayment ? `Tipo: Pago Asistido` : `Tracking: ${invoice.consolidation_tracking || 'N/A'}`, 15, yPos);
       doc.text(`Vencimiento: ${new Date(invoice.due_date).toLocaleDateString()}`, pageWidth - 15, yPos, { align: 'right' });
       yPos += 15;
 
       // Get consolidation and client data to fetch packages
       let packages = [];
       let consolidation = null;
-      let clientData = null;
-      if (invoice.consolidation_id) {
+      let clientData = user || null;
+      if (!isAssistedPayment && invoice.consolidation_id) {
         try {
           const consolidations = await base44.entities.Consolidation.filter({ id: invoice.consolidation_id });
           if (consolidations.length > 0) {
@@ -99,9 +102,8 @@ export default function InvoicePDFGenerator({ invoice }) {
               packages = allPackages.filter(p => consolidation.package_ids.includes(p.id));
             }
 
-            // Fetch client user data
             const users = await base44.entities.User.list();
-            clientData = users.find(u => u.email === consolidation.client_email);
+            clientData = users.find(u => u.email === consolidation.client_email) || clientData;
           }
         } catch (error) {
           console.error('Error loading packages:', error);
@@ -118,11 +120,15 @@ export default function InvoicePDFGenerator({ invoice }) {
 
       // Display client information
       if (clientData) {
-        const fullName = `${clientData.full_name || ''}`.trim();
-        doc.text(fullName, 15, yPos);
+        const fullName = `${clientData.full_name || `${clientData.first_name || ''} ${clientData.last_name || ''}`}`.trim();
+        if (fullName) {
+          doc.text(fullName, 15, yPos);
+          yPos += 5;
+        }
+        doc.text(clientData.email || invoice.client_email || 'N/A', 15, yPos);
         yPos += 5;
 
-        if (consolidation?.shipping_mark) {
+        if (!isAssistedPayment && consolidation?.shipping_mark) {
           doc.text(`Envío: ${consolidation.shipping_mark}`, 15, yPos);
           yPos += 5;
         }
@@ -131,15 +137,47 @@ export default function InvoicePDFGenerator({ invoice }) {
           doc.text(`WhatsApp: ${clientData.whatsapp}`, 15, yPos);
           yPos += 5;
         }
+        if (clientData.city) {
+          doc.text(`Ciudad: ${clientData.city}`, 15, yPos);
+          yPos += 5;
+        }
+        if (clientData.address) {
+          const addressLines = doc.splitTextToSize(`Dirección: ${clientData.address}`, pageWidth - 30);
+          doc.text(addressLines, 15, yPos);
+          yPos += addressLines.length * 5;
+        }
       } else {
-        // Fallback if client data not available
         doc.text(invoice.client_email || 'N/A', 15, yPos);
         yPos += 5;
       }
       yPos += 2;
 
+      if (isAssistedPayment) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Datos de la solicitud:', 15, yPos);
+        yPos += 7;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+
+        const requestLines = [
+          `Plataforma: ${assistedDetails.provider || 'N/A'}`,
+          `Enlace: ${assistedDetails.link_url || 'N/A'}`,
+          `QR de pago: ${assistedDetails.qr_url || 'N/A'}`,
+          `Notas: ${assistedDetails.notes || 'N/A'}`,
+        ];
+
+        requestLines.forEach((line) => {
+          const lines = doc.splitTextToSize(line, pageWidth - 30);
+          doc.text(lines, 15, yPos);
+          yPos += lines.length * 5;
+        });
+
+        yPos += 5;
+      }
+
       // Display packages in table format (3 columns: Tracking | Descripción | FOB) - Only if space available
-      if (packages.length > 0 && yPos < doc.internal.pageSize.height - 60) {
+      if (!isAssistedPayment && packages.length > 0 && yPos < doc.internal.pageSize.height - 60) {
        // Calculate total FOB for insured packages
        const totalFOB = packages.filter(p => p.has_insurance).reduce((sum, p) => sum + (p.fob_value || 0), 0);
 
@@ -191,7 +229,7 @@ export default function InvoicePDFGenerator({ invoice }) {
        }
 
        yPos += 5;
-      } else if (packages.length > 0 && yPos > doc.internal.pageSize.height - 60) {
+      } else if (!isAssistedPayment && packages.length > 0 && yPos > doc.internal.pageSize.height - 60) {
        // If not enough space, move to next page
        doc.addPage();
        yPos = 20;

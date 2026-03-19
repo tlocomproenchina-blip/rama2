@@ -6,7 +6,16 @@ import { FileText, CreditCard, Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 
-export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false }) {
+export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false }) {
+  const assistedDetails = invoice.items?.find((item) => item?.details)?.details || {};
+  const isAssistedPayment = assistedDetails.request_type === 'assisted_payment' || String(invoice.consolidation_tracking || '').startsWith('AP-') || String(invoice.notes || '').toLowerCase().includes('pago asistido');
+  const providerLabel = {
+    alibaba: 'Alibaba',
+    wechat: 'WeChat',
+    alipay: 'Alipay',
+    otro: 'Otro',
+  }[assistedDetails.provider] || assistedDetails.provider || 'Pago asistido';
+
   const statusColors = {
     pendiente: 'bg-yellow-100 text-yellow-800',
     revision: 'bg-blue-100 text-blue-800',
@@ -32,16 +41,33 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
               <FileText className="h-6 w-6 text-blue-600" />
             </div>
             <div>
-              <CardTitle className="text-lg text-slate-800">{invoice.invoice_number}</CardTitle>
-              <p className="text-sm text-slate-500 mt-1">
-                Consolidación: {invoice.consolidation_tracking}
-              </p>
-              {invoice.shipping_mark && (
-                <div className="mt-2">
-                  <Badge variant="outline" className="font-mono text-xs">
-                    {invoice.shipping_mark}
-                  </Badge>
+              <CardTitle className="text-lg text-slate-800">{invoice.invoice_number || 'Factura'}</CardTitle>
+              {isAssistedPayment ? (
+                <div className="mt-1 space-y-2 text-sm text-slate-500">
+                  <p>Pago asistido · {providerLabel}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="text-xs">Cliente: {user?.full_name || user?.email || invoice.client_email}</Badge>
+                    {assistedDetails.link_url && (
+                      <a href={assistedDetails.link_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline underline-offset-2">Ver enlace</a>
+                    )}
+                    {assistedDetails.qr_url && (
+                      <a href={assistedDetails.qr_url} target="_blank" rel="noopener noreferrer" className="text-emerald-700 underline underline-offset-2">Ver QR</a>
+                    )}
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Consolidación: {invoice.consolidation_tracking}
+                  </p>
+                  {invoice.shipping_mark && (
+                    <div className="mt-2">
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {invoice.shipping_mark}
+                      </Badge>
+                    </div>
+                  )}
+                </>
               )}
               <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                 <span className="flex items-center gap-1">
@@ -125,7 +151,7 @@ export default function InvoiceCard({ invoice, onPay, onDownload, showPayButton 
           {/* Oculta acciones cuando está en revisión o pagada */}
           {(invoice.status === 'revision' || invoice.status === 'pagada') && null}
           <div className="flex-1 min-w-40">
-            <InvoicePDFGenerator invoice={invoice} />
+            <InvoicePDFGenerator invoice={invoice} user={user} />
           </div>
         </div>
 

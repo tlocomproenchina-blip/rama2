@@ -59,8 +59,13 @@ Deno.serve(async (req) => {
           unit_price: baseAmount,
           total: baseAmount,
           details: {
+            request_type: 'assisted_payment',
             provider: apReq.provider,
             link_url: apReq.link_url,
+            qr_url: apReq.image_url,
+            client_email: apReq.client_email,
+            notes: apReq.notes,
+            request_id: apReq.id,
           }
         },
         {
@@ -69,8 +74,12 @@ Deno.serve(async (req) => {
           unit_price: feeAmount,
           total: feeAmount,
           details: {
+            request_type: 'assisted_payment',
             provider: apReq.provider,
-            reference: 'assisted_payment_fee'
+            qr_url: apReq.image_url,
+            client_email: apReq.client_email,
+            reference: 'assisted_payment_fee',
+            request_id: apReq.id,
           }
         }
       ],
@@ -78,7 +87,7 @@ Deno.serve(async (req) => {
       tax: 0,
       total: total,
       status: 'pendiente',
-      notes: `Pago asistido — Plataforma: ${apReq.provider || 'N/A'} — Enlace: ${apReq.link_url || 'N/A'}`
+      notes: `Pago asistido — Cliente: ${apReq.client_email || 'N/A'} — Plataforma: ${apReq.provider || 'N/A'} — Enlace: ${apReq.link_url || 'N/A'} — QR: ${apReq.image_url || 'N/A'} — Notas: ${apReq.notes || 'N/A'}`
     });
 
     // Link back to request
