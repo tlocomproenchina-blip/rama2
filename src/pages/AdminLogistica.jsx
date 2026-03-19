@@ -57,6 +57,17 @@ export default function AdminLogistica() {
     entregasPendientes: cargas.filter((item) => ['pendiente', 'en_transito', 'entrega_parcial'].includes(item.estado_entrega)).length,
   }), [vehiculos, choferes, rutas, cargas]);
 
+  const cargasPendientesPorRuta = useMemo(() => cargas.reduce((acc, item) => {
+    if (!['pendiente', 'en_transito', 'entrega_parcial'].includes(item.estado_entrega)) return acc;
+    acc[item.ruta_id] = (acc[item.ruta_id] || 0) + 1;
+    return acc;
+  }, {}), [cargas]);
+
+  const rutasConPendientes = useMemo(() => rutas
+    .filter((ruta) => cargasPendientesPorRuta[ruta.id])
+    .sort((a, b) => (cargasPendientesPorRuta[b.id] || 0) - (cargasPendientesPorRuta[a.id] || 0))
+  , [cargasPendientesPorRuta, rutas]);
+
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
@@ -103,7 +114,7 @@ export default function AdminLogistica() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-3">
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle>Rutas recientes</CardTitle>
@@ -153,6 +164,35 @@ export default function AdminLogistica() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${item.ruta_id}${item.carga_ruta_id ? `&carga_id=${item.carga_ruta_id}` : ''}`}>
                     Abrir seguimiento
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle>Entregas pendientes por ruta</CardTitle>
+            <CardDescription>Prioriza las rutas con más trabajo por completar.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {rutasConPendientes.slice(0, 5).map((ruta) => (
+              <div key={ruta.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-slate-900">{ruta.codigo_ruta}</p>
+                    <p className="text-sm text-slate-500">{ruta.origen} → {ruta.destino}</p>
+                    <p className="text-xs text-slate-400 mt-1">Pendientes: {cargasPendientesPorRuta[ruta.id] || 0}</p>
+                  </div>
+                  <EstadoLogisticaBadge value={ruta.estado} />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminCargaRutas?ruta_id=${ruta.id}`}>
+                    Ver cargas
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = `/AdminSeguimientoRutas?ruta_id=${ruta.id}&action=new`}>
+                    Registrar avance
                   </Button>
                 </div>
               </div>
