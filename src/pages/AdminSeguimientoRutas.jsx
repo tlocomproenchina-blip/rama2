@@ -115,12 +115,37 @@ export default function AdminSeguimientoRutas({ user }) {
 
     if (editing) {
       await base44.entities.SeguimientoRuta.update(editing.id, payload);
-      toast.success('Seguimiento actualizado');
     } else {
       await base44.entities.SeguimientoRuta.create(payload);
-      toast.success('Seguimiento registrado');
     }
 
+    const routeStatusMap = {
+      salida: 'asignada',
+      en_transito: 'en_curso',
+      detenido: 'en_curso',
+      entrega_parcial: 'en_curso',
+      entregada: 'completada',
+      incidencia: 'en_curso',
+    };
+
+    const cargaStatusMap = {
+      en_transito: 'en_transito',
+      entrega_parcial: 'entrega_parcial',
+      entregada: 'entregada',
+      incidencia: 'incidencia',
+    };
+
+    await base44.entities.Ruta.update(form.ruta_id, {
+      estado: routeStatusMap[form.estado] || 'planificada',
+    });
+
+    if (form.carga_ruta_id && cargaStatusMap[form.estado]) {
+      await base44.entities.CargaRuta.update(form.carga_ruta_id, {
+        estado_entrega: cargaStatusMap[form.estado],
+      });
+    }
+
+    toast.success(editing ? 'Seguimiento actualizado' : 'Seguimiento registrado');
     setSaving(false);
     setOpen(false);
     setForm(emptyForm);

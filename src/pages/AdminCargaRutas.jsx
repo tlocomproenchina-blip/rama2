@@ -219,6 +219,9 @@ export default function AdminCargaRutas() {
                       <Button variant="outline" onClick={() => openEdit(carga)}>
                         <Pencil className="h-4 w-4" /> Editar
                       </Button>
+                      <Button variant="outline" onClick={() => window.location.href = `/AdminSeguimientoRutas`}>
+                        Seguimiento
+                      </Button>
                       <Button variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50" onClick={() => setDeleting(carga)}>
                         <Trash2 className="h-4 w-4" /> Eliminar
                       </Button>
