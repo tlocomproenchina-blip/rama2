@@ -96,6 +96,17 @@ export default function AdminRutas() {
     return acc;
   }, {}), [cargas]);
 
+  const cargaResumenPorRuta = useMemo(() => cargas.reduce((acc, item) => {
+    const current = acc[item.ruta_id] || { peso: 0, volumen: 0 };
+    acc[item.ruta_id] = {
+      peso: current.peso + Number(item.peso_kg || 0),
+      volumen: current.volumen + Number(item.volumen_m3 || 0),
+    };
+    return acc;
+  }, {}), [cargas]);
+
+  const vehiculosById = useMemo(() => Object.fromEntries(vehiculos.map((item) => [item.id, item])), [vehiculos]);
+
   const ultimoSeguimientoPorRuta = useMemo(() => seguimientos.reduce((acc, item) => {
     if (!item.ruta_id) return acc;
     if (!acc[item.ruta_id]) acc[item.ruta_id] = item;
@@ -253,7 +264,13 @@ export default function AdminRutas() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            {filteredRutas.map((ruta) => (
+            {filteredRutas.map((ruta) => {
+              const cargaResumen = cargaResumenPorRuta[ruta.id] || { peso: 0, volumen: 0 };
+              const vehiculo = vehiculosById[ruta.vehiculo_id];
+              const exceedsPeso = vehiculo?.capacidad_peso_kg && cargaResumen.peso > vehiculo.capacidad_peso_kg;
+              const exceedsVolumen = vehiculo?.capacidad_volumen_m3 && cargaResumen.volumen > vehiculo.capacidad_volumen_m3;
+
+              return (
               <Card key={ruta.id} className="border border-slate-100 bg-slate-50/70 shadow-sm">
                 <CardContent className="space-y-4 p-5">
                   <div className="flex items-start justify-between gap-3">
@@ -272,6 +289,14 @@ export default function AdminRutas() {
                     <div><span className="font-medium text-slate-800">Salida:</span> {formatDateTimeInput(ruta.fecha_salida) || '—'}</div>
                     <div><span className="font-medium text-slate-800">Entrega:</span> {formatDateTimeInput(ruta.fecha_estimada_entrega) || '—'}</div>
                     <div className="md:col-span-2"><span className="font-medium text-slate-800">Cargas asignadas:</span> {cargasPorRuta[ruta.id] || 0}</div>
+                    <div><span className="font-medium text-slate-800">Peso cargado:</span> {cargaResumen.peso} kg</div>
+                    <div><span className="font-medium text-slate-800">Volumen cargado:</span> {cargaResumen.volumen} m³</div>
+                    <div className="md:col-span-2"><span className="font-medium text-slate-800">Capacidad:</span> {vehiculo ? `${vehiculo.capacidad_peso_kg || 0} kg · ${vehiculo.capacidad_volumen_m3 || 0} m³` : 'Sin vehículo asignado'}</div>
+                    {(exceedsPeso || exceedsVolumen) && (
+                      <div className="md:col-span-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                        Atención: la carga supera la capacidad {exceedsPeso && exceedsVolumen ? 'de peso y volumen' : exceedsPeso ? 'de peso' : 'de volumen'} del vehículo.
+                      </div>
+                    )}
                     <div className="md:col-span-2"><span className="font-medium text-slate-800">Último seguimiento:</span> {ultimoSeguimientoPorRuta[ruta.id]?.estado ? String(ultimoSeguimientoPorRuta[ruta.id].estado).replaceAll('_', ' ') : 'Sin registros'}</div>
                     <div className="md:col-span-2"><span className="font-medium text-slate-800">Última ubicación:</span> {ultimoSeguimientoPorRuta[ruta.id]?.ubicacion || '—'}</div>
                     <div className="md:col-span-2"><span className="font-medium text-slate-800">Último evento:</span> {formatDateTimeDisplay(ultimoSeguimientoPorRuta[ruta.id]?.fecha_hora)}</div>
@@ -296,7 +321,7 @@ export default function AdminRutas() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            );})}
           </div>
         </CardContent>
       </Card>
