@@ -1333,7 +1333,7 @@ Email: ${client.email}`;
 
       {/* Edit Modal */}
       <Dialog open={!!editClient} onOpenChange={() => setEditClient(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Editar Cliente</DialogTitle>
             <DialogDescription>
