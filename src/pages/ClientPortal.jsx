@@ -40,6 +40,7 @@ import { toast } from 'sonner';
 import EditProfileModal from '@/components/EditProfileModal';
 import PortalHero from '@/components/client-portal/PortalHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import PremiumLoader from '@/components/common/PremiumLoader';
 
 export default function ClientPortal({ user, refreshUser }) {
   const navigate = useNavigate();
@@ -177,11 +178,7 @@ export default function ClientPortal({ user, refreshUser }) {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
+    return <PremiumLoader title="Cargando tu portal" description="Estamos organizando tus envíos, facturas y soporte." />;
   }
 
   return (

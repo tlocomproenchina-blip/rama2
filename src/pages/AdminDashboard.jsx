@@ -15,6 +15,7 @@ import RecentActivity from '@/components/dashboard/RecentActivity';
 import DashboardCustomizer from '@/components/dashboard/DashboardCustomizer';
 import AdminPlatformOverview from '@/components/dashboard/AdminPlatformOverview';
 import AdminDashboardHero from '@/components/dashboard/AdminDashboardHero';
+import PremiumLoader from '@/components/common/PremiumLoader';
 
 export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
@@ -240,11 +241,7 @@ export default function AdminDashboard({ user }) {
   }, [stats]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-      </div>
-    );
+    return <PremiumLoader title="Cargando dashboard" description="Estamos preparando tus métricas y accesos rápidos." />;
   }
 
   return (

@@ -91,6 +91,15 @@
     background-image: radial-gradient(circle at top, hsl(var(--accent) / 0.55), transparent 38%);
   }
 
+  ::selection {
+    background: hsl(var(--primary) / 0.16);
+    color: hsl(var(--foreground));
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   h1,
   h2,
   h3,
@@ -141,6 +150,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    html,
     html:focus-within {
       scroll-behavior: auto;
     }

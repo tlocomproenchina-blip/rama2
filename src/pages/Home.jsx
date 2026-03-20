@@ -5,6 +5,7 @@ import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import PremiumLoader from '@/components/common/PremiumLoader';
 
 // Above-the-fold sections
 import HomeHeader from '@/components/home/HomeHeader';
@@ -53,11 +54,11 @@ export default function Home({ user }) {
 
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <HomeHeader onLogin={handleAuthClick} />
       <Hero onLogin={handleAuthClick} />
       <RecentOperationsPanel user={user} />
-      <React.Suspense fallback={<div className="px-4 py-16 text-center text-sm text-slate-500">Cargando contenido…</div>}>
+      <React.Suspense fallback={<PremiumLoader title="Cargando contenido" description="Estamos preparando la experiencia visual de la página principal." />}>
         <Features />
         <Process />
         <Services />

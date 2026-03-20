@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import PullToRefresh from '@/components/common/PullToRefresh';
+import SkipToContent from '@/components/common/SkipToContent';
 
 // Lazy loaded non-critical components
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
@@ -432,6 +433,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className={`min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
+      <SkipToContent />
       <style>{`
         /* Respect safe areas */
         :root { 
@@ -556,7 +558,7 @@ export default function Layout({ children, currentPageName }) {
         `}</style>
 
          {/* Main Content */}
-        <div className="flex-1 overflow-x-hidden w-full">
+        <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
           <PullToRefresh enabled={!!user} onRefresh={() => window.location.reload()}>
             <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
               {showBackButton && (
