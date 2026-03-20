@@ -121,13 +121,13 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
       {/* Sidebar */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50
-        w-72 bg-gradient-to-b from-slate-900 to-slate-800 
+        w-72 border-r border-border/70 bg-gradient-to-b from-sky-50 via-white to-blue-50
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        flex flex-col
+        flex flex-col shadow-card
       `}>
         {/* Header */}
-        <div className="bg-[#1c3f82] p-6 border-b border-slate-700/50">
+        <div className="bg-transparent p-6 border-b border-border/70">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {config?.app_logo_url ? (
@@ -142,15 +142,15 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                   />
                 </div>
               ) : (
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-500 rounded-xl flex items-center justify-center shadow-card">
                   <Package className="h-5 w-5 text-white" />
                 </div>
               )}
               <div>
-                <h1 className="text-lg font-bold text-white">
+                <h1 className="text-lg font-bold text-foreground">
                   {config?.app_name || 'TLEC CARGO'}
                 </h1>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   {config?.app_tagline || 'Sistema de Envíos'}
                 </p>
               </div>
@@ -160,13 +160,13 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </div>
 
         {/* User Info */}
-        <div className="bg-[#1c3f82] px-4 py-4 border-b border-slate-700/50">
-          <div className="bg-slate-800/50 rounded-xl p-3">
-            <p className="text-sm font-medium text-white truncate">{user?.full_name || user?.email}</p>
-            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+        <div className="bg-transparent px-4 py-4 border-b border-border/70">
+          <div className="rounded-2xl border border-border/70 bg-white/80 p-3 shadow-sm">
+            <p className="text-sm font-medium text-foreground truncate">{user?.full_name || user?.email}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             <div className="mt-2 flex items-center gap-2">
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-              isAdmin ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`
+              isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
               }>
                 {isAdmin ? 'Administrador' : 'Cliente'}
               </span>
@@ -175,7 +175,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </div>
 
         {/* Navigation */}
-        <nav className="bg-[#1c3f82] p-4 flex-1 overflow-y-auto space-y-1">
+        <nav className="bg-transparent p-4 flex-1 overflow-y-auto space-y-1">
           {isAdmin ? (
             filteredAdminGroups.map((group) => (
               <SidebarNavGroup
@@ -204,10 +204,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </nav>
 
         {/* Logout */}
-        <div className="bg-[#1c3f82] p-4 border-t border-slate-700/50">
+        <div className="bg-transparent p-4 border-t border-border/70">
           <Button
             variant="ghost"
-            className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-700/50"
+            className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent"
             onClick={handleLogout}>
 
             <LogOut className="h-5 w-5 mr-3" />
