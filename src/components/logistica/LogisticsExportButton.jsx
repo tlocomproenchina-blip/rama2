@@ -111,7 +111,7 @@ export default function LogisticsExportButton({ rutas = [], cargas = [], latestH
   };
 
   return (
-    <Button variant="outline" onClick={handleExport} disabled={loading}>
+    <Button variant="outline" onClick={handleExport} disabled={loading} className="text-slate-900">
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
       Exportar PDF
     </Button>
