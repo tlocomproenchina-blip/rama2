@@ -617,7 +617,7 @@ export default function AdminDashboard({ user }) {
 
 
       {/* Links Rápidos */}
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Link to={createPageUrl('AdminPackages')}>
           <Card className="cursor-pointer border-border/70 bg-gradient-to-br from-blue-50 via-white to-white shadow-card transition-all hover:-translate-y-0.5 hover:shadow-premium">
             <CardContent className="p-6 text-center">
