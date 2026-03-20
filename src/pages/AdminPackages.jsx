@@ -909,8 +909,8 @@ export default function AdminPackages({ user }) {
                                size="sm" 
                                variant="outline"
                                onClick={() => setEditImageModal(pkg)}
-                                      className="text-blue-600 hover:text-blue-700"
-                                    >
+                                                                      className="w-full justify-start text-blue-600 hover:text-blue-700"
+                                                                    >
                                       <ImageIcon className="h-4 w-4" /> Fotos
                                     </Button>
                                 
