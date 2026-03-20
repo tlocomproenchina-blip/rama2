@@ -1,13 +1,37 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lock } from 'lucide-react';
 
-export default function AccountDisabled() {
+export default function AccountDisabled({ user }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      navigate(createPageUrl('AdminDashboard'));
+      return;
+    }
+
+    if (user && user.is_active !== false) {
+      navigate(createPageUrl('Dashboard'));
+      return;
+    }
+
+    if (!user) {
+      navigate(createPageUrl('Home'));
+    }
+  }, [user, navigate]);
+
   const handleLogout = () => {
     base44.auth.logout();
   };
+
+  if (!user || user.is_active !== false) {
+    return null;
+  }
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
