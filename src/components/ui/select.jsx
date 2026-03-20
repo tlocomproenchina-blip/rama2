@@ -16,7 +16,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex min-h-[48px] w-full touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-card px-4 py-3 text-base shadow-card ring-offset-background data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:min-h-10 sm:px-3 sm:py-2 sm:text-sm [&>span]:line-clamp-1",
+      "flex min-h-[48px] w-full touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-white/90 px-4 py-3 text-base shadow-sm ring-offset-background data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:min-h-10 sm:px-3 sm:py-2 sm:text-sm [&>span]:line-clamp-1",
       className
     )}
     {...props}>
@@ -54,7 +54,7 @@ const SelectContent = React.forwardRef(({ className, children, position = "poppe
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-[80] max-h-[70vh] overflow-hidden rounded-2xl border border-border/80 bg-popover text-popover-foreground shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:relative sm:inset-auto sm:block sm:max-h-96 sm:min-w-[8rem] sm:rounded-md sm:bg-popover sm:shadow-md sm:z-50 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[side=bottom]:slide-in-from-top-2 sm:data-[side=left]:slide-in-from-right-2 sm:data-[side=right]:slide-in-from-left-2 sm:data-[side=top]:slide-in-from-bottom-2",
+        "fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-[70] max-h-[70vh] overflow-hidden rounded-2xl border bg-white text-popover-foreground shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:relative sm:inset-auto sm:block sm:max-h-96 sm:min-w-[8rem] sm:rounded-md sm:bg-popover sm:shadow-md sm:z-50 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[side=bottom]:slide-in-from-top-2 sm:data-[side=left]:slide-in-from-right-2 sm:data-[side=right]:slide-in-from-left-2 sm:data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
           "sm:data-[side=bottom]:translate-y-1 sm:data-[side=left]:-translate-x-1 sm:data-[side=right]:translate-x-1 sm:data-[side=top]:-translate-y-1",
         className
@@ -63,7 +63,7 @@ const SelectContent = React.forwardRef(({ className, children, position = "poppe
       {...props}>
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
-        className={cn("overflow-y-auto bg-popover p-2 sm:bg-transparent sm:p-1", position === "popper" &&
+        className={cn("overflow-y-auto bg-white p-2 sm:bg-transparent sm:p-1", position === "popper" &&
           "sm:h-[var(--radix-select-trigger-height)] sm:w-full sm:min-w-[var(--radix-select-trigger-width)]")}>
         {children}
       </SelectPrimitive.Viewport>
