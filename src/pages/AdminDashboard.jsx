@@ -16,6 +16,7 @@ import DashboardCustomizer from '@/components/dashboard/DashboardCustomizer';
 import AdminPlatformOverview from '@/components/dashboard/AdminPlatformOverview';
 import AdminDashboardHero from '@/components/dashboard/AdminDashboardHero';
 import PremiumLoader from '@/components/common/PremiumLoader';
+import DesignFeedbackPanel from '@/components/dashboard/DesignFeedbackPanel';
 
 export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
@@ -264,6 +265,8 @@ export default function AdminDashboard({ user }) {
         projectedMonthlyRevenue={stats.projectedMonthlyRevenue}
         openSupportTickets={stats.openSupportTickets}
       />
+
+      <DesignFeedbackPanel />
 
       {/* Acciones Urgentes */}
       {urgentActions.length > 0 && (

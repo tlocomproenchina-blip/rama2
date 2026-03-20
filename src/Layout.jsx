@@ -30,6 +30,7 @@ const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
+const ExperienceFeedbackWidget = lazy(() => import('@/components/common/ExperienceFeedbackWidget'));
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
@@ -503,6 +504,9 @@ export default function Layout({ children, currentPageName }) {
       {user?.role === 'user' && config?.chatbot_enabled && (
         <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
       )}
+      <Suspense fallback={null}>
+        <ExperienceFeedbackWidget user={user} currentPageName={currentPageName} />
+      </Suspense>
       
       {user && (
         <div className={hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}>
