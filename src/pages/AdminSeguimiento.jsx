@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Loader2, History, Truck, Package, MapPin } from 'lucide-react';
 import EstadoLogisticaBadge from '@/components/logistica/EstadoLogisticaBadge';
+import PageHero from '@/components/common/PageHero';
 
 const quickLinks = [
   { label: 'Seguimiento de Rutas', href: '/AdminSeguimientoRutas', icon: History },
@@ -38,24 +39,13 @@ export default function AdminSeguimiento() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 p-6 text-white shadow-xl md:p-8">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-orange-100">
-            <History className="h-3.5 w-3.5" />
-            Centro de seguimiento
-          </div>
-          {loading && (
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/80">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Actualizando datos
-            </div>
-          )}
-          <h1 className="text-3xl font-bold tracking-tight">Seguimiento</h1>
-          <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-            Monitorea rutas activas, paquetes en tránsito y eventos recientes de entrega.
-          </p>
-        </div>
-      </div>
+      <PageHero
+        icon={History}
+        badge="Centro de seguimiento"
+        title="Seguimiento"
+        description="Monitorea rutas activas, paquetes en tránsito y eventos recientes de entrega."
+        loadingLabel={loading ? 'Actualizando datos' : ''}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Rutas activas</p><p className="mt-2 text-3xl font-bold text-slate-900">{metrics.rutasActivas}</p></CardContent></Card>

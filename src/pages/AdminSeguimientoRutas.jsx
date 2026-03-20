@@ -18,6 +18,7 @@ import { Loader2, History, MapPin, Pencil, Plus, Search, Trash2 } from 'lucide-r
 import { toast } from 'sonner';
 import EstadoLogisticaBadge from '@/components/logistica/EstadoLogisticaBadge';
 import SeguimientoRutaForm from '@/components/logistica/SeguimientoRutaForm';
+import PageHero from '@/components/common/PageHero';
 
 const emptyForm = {
   ruta_id: '',
@@ -217,23 +218,13 @@ export default function AdminSeguimientoRutas({ user }) {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-orange-900 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-orange-100">
-              <History className="h-3.5 w-3.5" />
-              Seguimiento de entregas
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight">Seguimiento de Rutas</h1>
-            <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-              Registra novedades, incidencias y entregas por ruta o por carga específica.
-            </p>
-          </div>
-          <Button onClick={openCreate} className="bg-white text-slate-900 hover:bg-slate-100">
-            <Plus className="h-4 w-4" /> Nuevo seguimiento
-          </Button>
-        </div>
-      </div>
+      <PageHero
+        icon={History}
+        badge="Seguimiento de entregas"
+        title="Seguimiento de Rutas"
+        description="Registra novedades, incidencias y entregas por ruta o por carga específica."
+        actions={<Button onClick={openCreate}><Plus className="h-4 w-4" /> Nuevo seguimiento</Button>}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Total</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p></CardContent></Card>

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Loader2, ShieldCheck, UserMinus, UserPlus, Search, Briefcase, Users, KeyRound, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import PageHero from '@/components/common/PageHero';
 
 export default function AdminAdministrators({ user }) {
   const [admins, setAdmins] = useState([]);
@@ -108,23 +109,13 @@ export default function AdminAdministrators({ user }) {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
-              <KeyRound className="h-3.5 w-3.5" />
-              Acceso administrativo
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight">Administradores</h1>
-            <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-              Gestiona administradores, revisa si tienen área asignada y accede al módulo de Roles para controlar permisos por área.
-            </p>
-          </div>
-          <Button onClick={() => setOpenInvite(true)} className="bg-white text-slate-900 hover:bg-slate-100">
-            <UserPlus className="mr-2 h-4 w-4" /> Invitar administrador
-          </Button>
-        </div>
-      </div>
+      <PageHero
+        icon={KeyRound}
+        badge="Acceso administrativo"
+        title="Administradores"
+        description="Gestiona administradores, revisa si tienen área asignada y accede al módulo de Roles para controlar permisos por área."
+        actions={<Button onClick={() => setOpenInvite(true)}><UserPlus className="mr-2 h-4 w-4" /> Invitar administrador</Button>}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-0 shadow-lg">

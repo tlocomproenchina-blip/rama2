@@ -11,6 +11,7 @@ import RolePermissionsCard from '@/components/admin/RolePermissionsCard';
 import RoleAreaSidebar from '@/components/admin/RoleAreaSidebar';
 import { ROLE_OPTIONS, ROLE_PRESETS, PAGE_LABELS } from '@/lib/rolePermissions';
 import { adminMenuItems } from '@/components/sidebar/sidebarConfig';
+import PageHero from '@/components/common/PageHero';
 
 const PERMISSION_PAGES = adminMenuItems
   .map((item) => item.page)
@@ -165,39 +166,32 @@ export default function AdminRoles({ user }) {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
-              <KeyRound className="h-3.5 w-3.5" />
-              Gestión de accesos por área
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight">Roles por área</h1>
-            <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-              Asigna un área a cada administrador y define qué módulos puede ver cada equipo dentro del sistema.
-            </p>
-          </div>
-
+      <PageHero
+        icon={KeyRound}
+        badge="Gestión de accesos por área"
+        title="Roles por área"
+        description="Asigna un área a cada administrador y define qué módulos puede ver cada equipo dentro del sistema."
+        actions={
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-              <p className="text-xs text-slate-300">Administradores</p>
-              <p className="mt-2 text-2xl font-semibold">{stats.admins}</p>
+            <div className="rounded-2xl border border-blue-100 bg-white/80 p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Administradores</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{stats.admins}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-              <p className="text-xs text-slate-300">Con área</p>
-              <p className="mt-2 text-2xl font-semibold">{stats.assigned}</p>
+            <div className="rounded-2xl border border-blue-100 bg-white/80 p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Con área</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{stats.assigned}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-              <p className="text-xs text-slate-300">Áreas</p>
-              <p className="mt-2 text-2xl font-semibold">{stats.areas}</p>
+            <div className="rounded-2xl border border-blue-100 bg-white/80 p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Áreas</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{stats.areas}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-              <p className="text-xs text-slate-300">Módulos</p>
-              <p className="mt-2 text-2xl font-semibold">{stats.modules}</p>
+            <div className="rounded-2xl border border-blue-100 bg-white/80 p-4 shadow-sm">
+              <p className="text-xs text-slate-500">Módulos</p>
+              <p className="mt-2 text-2xl font-semibold text-foreground">{stats.modules}</p>
             </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <Card className="border-0 shadow-lg">
         <CardHeader className="pb-4">

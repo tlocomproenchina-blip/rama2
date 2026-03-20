@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Briefcase, Loader2, Mail, Search, ShieldCheck, UserCog, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { ROLE_OPTIONS, ROLE_PRESETS } from '@/lib/rolePermissions';
+import PageHero from '@/components/common/PageHero';
 
 export default function AdminEmployees({ user }) {
   const [employees, setEmployees] = useState([]);
@@ -169,23 +170,13 @@ export default function AdminEmployees({ user }) {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
-              <UserCog className="h-3.5 w-3.5" />
-              Gestión de empleados internos
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight">Empleados</h1>
-            <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-              Visualiza, busca y edita a los empleados del sistema, incluyendo la asignación directa del rol por área.
-            </p>
-          </div>
-          <Button onClick={() => setOpenInvite(true)} className="bg-white text-slate-900 hover:bg-slate-100">
-            Agregar empleado
-          </Button>
-        </div>
-      </div>
+      <PageHero
+        icon={UserCog}
+        badge="Gestión de empleados internos"
+        title="Empleados"
+        description="Visualiza, busca y edita a los empleados del sistema, incluyendo la asignación directa del rol por área."
+        actions={<Button onClick={() => setOpenInvite(true)}>Agregar empleado</Button>}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Total</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p></CardContent></Card>

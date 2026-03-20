@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Search, History, ShieldCheck, UserCheck, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
+import PageHero from '@/components/common/PageHero';
 
 function formatActionLabel(actionType) {
   return String(actionType || 'sin_accion')
@@ -67,18 +68,12 @@ export default function AdminEmployeeAudit() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900 p-6 text-white shadow-xl md:p-8">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-cyan-100">
-            <History className="h-3.5 w-3.5" />
-            Auditoría global del sistema
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">Auditoría de acciones</h1>
-          <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-            Revisa acciones realizadas por cualquier rol y en cualquier módulo para entender hábitos y actividad del equipo.
-          </p>
-        </div>
-      </div>
+      <PageHero
+        icon={History}
+        badge="Auditoría global del sistema"
+        title="Auditoría de acciones"
+        description="Revisa acciones realizadas por cualquier rol y en cualquier módulo para entender hábitos y actividad del equipo."
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Registros</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p></CardContent></Card>

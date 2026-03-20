@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Search, History } from 'lucide-react';
 import { toast } from 'sonner';
+import PageHero from '@/components/common/PageHero';
 
 function formatActionLabel(actionType) {
   return String(actionType || 'sin_accion').replaceAll('_', ' ');
@@ -50,18 +51,12 @@ export default function AdminActivityAudit() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900 p-6 text-white shadow-xl md:p-8">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-cyan-100">
-            <History className="h-3.5 w-3.5" />
-            Auditoría de actividad
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">Auditoría de Actividad</h1>
-          <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-            Revisa los cambios recientes sobre paquetes y rutas, con actor, fecha y comparación de valores.
-          </p>
-        </div>
-      </div>
+      <PageHero
+        icon={History}
+        badge="Auditoría de actividad"
+        title="Auditoría de Actividad"
+        description="Revisa los cambios recientes sobre paquetes y rutas, con actor, fecha y comparación de valores."
+      />
 
       <Card className="border-0 shadow-lg">
         <CardHeader>
