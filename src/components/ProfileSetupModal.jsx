@@ -208,24 +208,22 @@ export default function ProfileSetupModal({ open, onComplete }) {
             <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
-            <Select
+            <select
+              id="state"
               value={formData.state}
-              onValueChange={(value) => {
-                setFormData((prev) => ({ ...prev, state: value }));
+              onChange={(e) => {
+                setFormData((prev) => ({ ...prev, state: e.target.value }));
                 setErrors((prev) => ({ ...prev, state: null }));
               }}
+              className={`flex min-h-[48px] w-full rounded-md border px-4 py-3 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-ring sm:min-h-9 sm:px-3 sm:py-2 sm:text-sm ${errors.state ? 'border-red-300 bg-white' : 'border-input bg-white'}`}
             >
-              <SelectTrigger className={errors.state ? 'border-red-300 bg-white' : 'bg-white'}>
-                <SelectValue placeholder="Selecciona tu estado" />
-              </SelectTrigger>
-              <SelectContent>
-                {stateConfigs.map((state) => (
-                  <SelectItem key={state.state_code} value={state.state_code}>
-                    {state.state_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value="">Selecciona tu estado</option>
+              {stateConfigs.map((state) => (
+                <option key={state.state_code} value={state.state_code}>
+                  {state.state_name}
+                </option>
+              ))}
+            </select>
             {errors.state && (
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" /> {errors.state}
