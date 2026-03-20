@@ -682,7 +682,7 @@ export default function AdminPackages({ user }) {
       )}
 
       {/* Mobile Packages List (stacked) */}
-      <div className="grid gap-3 lg:hidden">
+      <div className="grid gap-3 2xl:hidden">
         {filteredPackages.map((pkg) => (
           <Card key={pkg.id} className="border-0 shadow-md">
             <CardContent className="p-4 space-y-3">
@@ -727,11 +727,11 @@ export default function AdminPackages({ user }) {
               </div>
 
               <div className="grid grid-cols-1 gap-2">
-                <Button size="sm" variant="outline" onClick={() => handleCreateTicket(pkg)} className="gap-1">
+                <Button size="sm" variant="outline" onClick={() => handleCreateTicket(pkg)} className="w-full justify-start gap-1">
                   <MessageSquare className="h-4 w-4" /> Ticket
                 </Button>
                 {pkg.status === 'pre_alerta' && (
-                  <Button size="sm" onClick={() => setReceiveModal(pkg)} className="bg-blue-600 hover:bg-blue-700">
+                  <Button size="sm" onClick={() => setReceiveModal(pkg)} className="w-full justify-start bg-blue-600 hover:bg-blue-700">
                     <CheckCircle className="h-4 w-4 mr-1" /> Recibir
                   </Button>
                 )}
@@ -739,25 +739,25 @@ export default function AdminPackages({ user }) {
                   <>
                     <div className="flex flex-wrap gap-2">
                       {(pkg.package_image_urls && pkg.package_image_urls.length > 0 ? pkg.package_image_urls : (pkg.package_image_url ? [pkg.package_image_url] : [])).map((url, idx) => (
-                        <Button key={idx} size="sm" variant="outline" onClick={() => setViewImage(url)}>
+                        <Button key={idx} size="sm" variant="outline" onClick={() => setViewImage(url)} className="w-full justify-start">
                           <Eye className="h-4 w-4" /> Foto {idx+1}
                         </Button>
                       ))}
                     </div>
                     {pkg.status === 'recibido' && (
-                      <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="text-blue-600 hover:text-blue-700">
+                      <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="w-full justify-start text-blue-600 hover:text-blue-700">
                         <ImageIcon className="h-4 w-4" /> Cambiar
                       </Button>
                     )}
                   </>
                 )}
                 {!pkg.package_image_url && pkg.status === 'recibido' && (
-                  <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="text-blue-600 hover:text-blue-700">
+                  <Button size="sm" variant="outline" onClick={() => setEditImageModal(pkg)} className="w-full justify-start text-blue-600 hover:text-blue-700">
                     <Upload className="h-4 w-4 mr-1" /> Foto
                   </Button>
                 )}
                 {pkg.status === 'recibido' && (
-                  <Button size="sm" variant="outline" onClick={() => setCancelReceptionModal(pkg)} className="text-rose-600 border-rose-200">
+                  <Button size="sm" variant="outline" onClick={() => setCancelReceptionModal(pkg)} className="w-full justify-start text-rose-600 border-rose-200">
                     <Undo2 className="h-4 w-4 mr-1" /> Cancelar
                   </Button>
                 )}
@@ -766,7 +766,7 @@ export default function AdminPackages({ user }) {
               {pkg.status !== 'pre_alerta' && pkg.status !== 'consolidado' && (
                 <div className="pt-1">
                   <Select value={pkg.status} onValueChange={(val) => handleStatusChange(pkg, val)}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full justify-between">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -793,7 +793,7 @@ export default function AdminPackages({ user }) {
       )}
 
       {/* Desktop Packages Table */}
-      <Card className="hidden lg:block border-0 shadow-lg overflow-hidden">
+      <Card className="hidden 2xl:block border-0 shadow-lg overflow-hidden">
         <div className="overflow-x-visible">
           <table className="w-full table-auto">
             <thead className="bg-slate-50 border-b border-slate-100">
@@ -871,12 +871,12 @@ export default function AdminPackages({ user }) {
                     <div className="text-[11px] text-slate-400">{new Date(pkg.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
                   <td className="pl-3 pr-2 py-3">
-                    <div className="flex flex-wrap items-stretch gap-2">
+                    <div className="flex min-w-[180px] flex-col items-stretch gap-2">
                       <Button 
                         size="sm" 
                         variant="outline" 
                         onClick={() => handleCreateTicket(pkg)}
-                        className="gap-1"
+                        className="w-full justify-start gap-1"
                       >
                         <MessageSquare className="h-4 w-4" />
                         Ticket
@@ -885,7 +885,7 @@ export default function AdminPackages({ user }) {
                         <Button 
                           size="sm" 
                           onClick={() => setReceiveModal(pkg)}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="w-full justify-start bg-blue-600 hover:bg-blue-700"
                         >
                           <CheckCircle className="h-4 w-4 mr-1" />
                           Recibir
@@ -900,6 +900,7 @@ export default function AdminPackages({ user }) {
                             size="sm" 
                             variant="outline"
                             onClick={() => setViewImage(url)}
+                            className="w-full justify-start"
                           >
                             <Eye className="h-4 w-4" /> {idx+1}
                           </Button>
@@ -924,7 +925,7 @@ export default function AdminPackages({ user }) {
                            size="sm" 
                            variant="outline"
                            onClick={() => setEditImageModal(pkg)}
-                           className="text-blue-600 hover:text-blue-700"
+                           className="w-full justify-start text-blue-600 hover:text-blue-700"
                           >
                            <Upload className="h-4 w-4 mr-1" />
                            Foto
@@ -935,7 +936,7 @@ export default function AdminPackages({ user }) {
                                                   size="sm"
                                                   variant="outline"
                                                   onClick={() => setCancelReceptionModal(pkg)}
-                                                  className="gap-1 h-8 px-3 text-xs text-rose-600 hover:text-rose-700 border-rose-200"
+                                                  className="w-full justify-start gap-1 h-8 px-3 text-xs text-rose-600 hover:text-rose-700 border-rose-200"
                                                 >
                            <Undo2 className="h-4 w-4 mr-1" />
                            Cancelar
@@ -946,7 +947,7 @@ export default function AdminPackages({ user }) {
                            value={pkg.status} 
                            onValueChange={(val) => handleStatusChange(pkg, val)}
                           >
-                           <SelectTrigger className="w-auto h-8 px-3 justify-start gap-1 text-xs [&>svg:last-child]:order-first [&>svg:last-child]:mr-1 [&>svg:last-child]:h-3 [&>svg:last-child]:w-3 [&>svg:last-child]:translate-y-[1px] [&>span]:leading-none">
+                           <SelectTrigger className="w-full h-8 px-3 justify-between gap-1 text-xs [&>span]:leading-none">
                              <SelectValue />
                            </SelectTrigger>
                            <SelectContent>
