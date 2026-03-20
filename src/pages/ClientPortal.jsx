@@ -259,12 +259,12 @@ export default function ClientPortal({ user, refreshUser }) {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-          <TabsTrigger value="overview">Resumen</TabsTrigger>
-          <TabsTrigger value="packages">Paquetes</TabsTrigger>
-          <TabsTrigger value="invoices">Facturas</TabsTrigger>
-          <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
-          <TabsTrigger value="support">Soporte</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-0 lg:grid-cols-5">
+          <TabsTrigger value="overview" className="w-full min-h-[56px] whitespace-normal text-center">Resumen</TabsTrigger>
+          <TabsTrigger value="packages" className="w-full min-h-[56px] whitespace-normal text-center">Paquetes</TabsTrigger>
+          <TabsTrigger value="invoices" className="w-full min-h-[56px] whitespace-normal text-center">Facturas</TabsTrigger>
+          <TabsTrigger value="profile" className="w-full min-h-[56px] whitespace-normal text-center">Mi Perfil</TabsTrigger>
+          <TabsTrigger value="support" className="w-full min-h-[56px] whitespace-normal text-center">Soporte</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
