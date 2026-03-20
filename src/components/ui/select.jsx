@@ -17,7 +17,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex min-h-[48px] w-full touch-manipulation items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-4 py-3 text-base shadow-sm ring-offset-background data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-9 sm:min-h-9 sm:px-3 sm:py-2 sm:text-sm [&>span]:line-clamp-1",
+      "flex min-h-[48px] w-full touch-manipulation items-center justify-between whitespace-nowrap rounded-md border border-input bg-white px-4 py-3 text-base shadow-sm ring-offset-background data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-9 sm:min-h-9 sm:bg-transparent sm:px-3 sm:py-2 sm:text-sm [&>span]:line-clamp-1",
       className
     )}
     {...props}>
@@ -65,7 +65,7 @@ const SelectContent = React.forwardRef(({ className, children, position = "poppe
       <BottomSheetPanel>
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
-          className={cn("p-2 sm:p-1", position === "popper" &&
+          className={cn("bg-white p-2 sm:bg-transparent sm:p-1", position === "popper" &&
             "sm:h-[var(--radix-select-trigger-height)] sm:w-full sm:min-w-[var(--radix-select-trigger-width)]")}>
           {children}
         </SelectPrimitive.Viewport>
