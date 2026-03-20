@@ -55,17 +55,17 @@ const SelectContent = React.forwardRef(({ className, children, position = "poppe
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-3 bottom-3 top-auto z-50 max-h-[70vh] overflow-hidden rounded-2xl border bg-popover text-popover-foreground shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[side=bottom]:slide-in-from-bottom-2 sm:relative sm:inset-auto sm:max-h-96 sm:min-w-[8rem] sm:rounded-md sm:shadow-md sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[side=bottom]:slide-in-from-top-2 sm:data-[side=left]:slide-in-from-right-2 sm:data-[side=right]:slide-in-from-left-2 sm:data-[side=top]:slide-in-from-bottom-2",
+        "fixed inset-x-3 top-[12vh] bottom-[max(12px,env(safe-area-inset-bottom))] z-[70] flex flex-col overflow-hidden rounded-2xl border bg-white text-popover-foreground shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:relative sm:inset-auto sm:block sm:max-h-96 sm:min-w-[8rem] sm:rounded-md sm:bg-popover sm:shadow-md sm:z-50 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[side=bottom]:slide-in-from-top-2 sm:data-[side=left]:slide-in-from-right-2 sm:data-[side=right]:slide-in-from-left-2 sm:data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
           "sm:data-[side=bottom]:translate-y-1 sm:data-[side=left]:-translate-x-1 sm:data-[side=right]:translate-x-1 sm:data-[side=top]:-translate-y-1",
         className
       )}
       position={position}
       {...props}>
-      <BottomSheetPanel>
+      <BottomSheetPanel className="flex h-full flex-col sm:block">
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
-          className={cn("bg-white p-2 sm:bg-transparent sm:p-1", position === "popper" &&
+          className={cn("flex-1 overflow-y-auto bg-white p-2 sm:bg-transparent sm:p-1", position === "popper" &&
             "sm:h-[var(--radix-select-trigger-height)] sm:w-full sm:min-w-[var(--radix-select-trigger-width)]")}>
           {children}
         </SelectPrimitive.Viewport>
