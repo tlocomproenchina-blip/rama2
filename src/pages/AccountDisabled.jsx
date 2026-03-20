@@ -35,20 +35,20 @@ export default function AccountDisabled({ user }) {
 
   return (
     <div className="flex min-h-[75vh] items-center justify-center">
-      <Card className="w-full max-w-2xl overflow-hidden border-border/70 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-premium">
+      <Card className="w-full max-w-2xl overflow-hidden border-border/70 bg-gradient-to-br from-sky-50 via-white to-blue-100 shadow-card">
         <CardHeader className="items-center text-center pb-2">
-          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-3xl border border-white/10 bg-white/10">
-            <Lock className="h-8 w-8 text-white" />
+          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-3xl border border-blue-100 bg-white shadow-sm">
+            <Lock className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl text-white">Cuenta desactivada</CardTitle>
+          <CardTitle className="text-2xl text-foreground">Cuenta desactivada</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-5 text-center text-slate-300">
+        <CardContent className="space-y-5 text-center text-muted-foreground">
           <p className="mx-auto max-w-xl text-sm md:text-base">Tu cuenta fue desactivada por el equipo de soporte. Si crees que se trata de un error, por favor comunícate con nosotros para revisarlo.</p>
-          <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+          <div className="mx-auto max-w-xl rounded-2xl border border-blue-100 bg-white/80 p-4 text-sm text-muted-foreground shadow-sm">
             Mientras tanto, puedes cerrar sesión de forma segura desde aquí.
           </div>
           <div className="flex justify-center">
-            <Button onClick={handleLogout} className="bg-white text-slate-900 hover:bg-slate-100">Cerrar sesión</Button>
+            <Button onClick={handleLogout} className="bg-primary text-primary-foreground hover:bg-primary/90">Cerrar sesión</Button>
           </div>
         </CardContent>
       </Card>

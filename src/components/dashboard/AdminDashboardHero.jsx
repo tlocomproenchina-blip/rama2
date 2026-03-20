@@ -12,32 +12,32 @@ const ranges = [
 
 export default function AdminDashboardHero({ mainTab, range, setRange, onRefresh, onCustomize, onTabChange }) {
   return (
-    <div className="overflow-hidden rounded-[calc(var(--radius)+0.5rem)] border border-border/70 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-premium">
+    <div className="overflow-hidden rounded-[calc(var(--radius)+0.5rem)] border border-border/70 bg-gradient-to-br from-sky-50 via-white to-blue-100 text-foreground shadow-card">
       <div className="space-y-5 p-6 md:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
-            <Badge variant="secondary" className="bg-white/10 text-white hover:bg-white/10">
+            <Badge variant="secondary" className="bg-white text-primary shadow-sm hover:bg-white">
               <Sparkles className="mr-1 h-3.5 w-3.5" /> Centro de control premium
             </Badge>
             <div>
-              <h1 className="text-3xl font-bold text-white md:text-4xl">Panel de Control</h1>
-              <p className="mt-2 max-w-2xl text-sm text-slate-300 md:text-base">
+              <h1 className="text-3xl font-bold text-foreground md:text-4xl">Panel de Control</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
                 {mainTab === 'api' ? 'Estado del sistema y cola de API.' : 'Vista ejecutiva de operaciones, pagos, clientes y actividad reciente.'}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant={mainTab === 'resumen' ? 'secondary' : 'outline'} onClick={() => onTabChange('resumen')} className="border-white/15 bg-white/10 text-white hover:bg-white/15">
+            <Button variant={mainTab === 'resumen' ? 'secondary' : 'outline'} onClick={() => onTabChange('resumen')} className="border-blue-100 bg-white text-foreground hover:bg-blue-50">
               Resumen
             </Button>
-            <Button variant={mainTab === 'api' ? 'secondary' : 'outline'} onClick={() => onTabChange('api')} className="border-white/15 bg-white/10 text-white hover:bg-white/15">
+            <Button variant={mainTab === 'api' ? 'secondary' : 'outline'} onClick={() => onTabChange('api')} className="border-blue-100 bg-white text-foreground hover:bg-blue-50">
               API
             </Button>
-            <Button variant="outline" onClick={onRefresh} className="border-white/15 bg-white text-slate-900 hover:bg-slate-100">
+            <Button variant="outline" onClick={onRefresh} className="border-blue-100 bg-white text-foreground hover:bg-blue-50">
               <RefreshCw className="mr-2 h-4 w-4" /> Actualizar
             </Button>
-            <Button onClick={onCustomize} className="bg-white/10 text-white hover:bg-white/15">
+            <Button onClick={onCustomize} className="bg-primary text-primary-foreground hover:bg-primary/90">
               <SlidersHorizontal className="mr-2 h-4 w-4" /> Personalizar
             </Button>
           </div>
@@ -50,7 +50,7 @@ export default function AdminDashboardHero({ mainTab, range, setRange, onRefresh
               variant="outline"
               size="sm"
               onClick={() => setRange(item.key)}
-              className={range === item.key ? 'border-white bg-white text-slate-900 hover:bg-slate-100' : 'border-white/15 bg-white/5 text-white hover:bg-white/10'}
+              className={range === item.key ? 'border-blue-200 bg-primary text-primary-foreground hover:bg-primary/90' : 'border-blue-100 bg-white text-foreground hover:bg-blue-50'}
             >
               {item.label}
             </Button>

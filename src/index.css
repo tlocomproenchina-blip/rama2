@@ -6,41 +6,41 @@
 
 @layer base {
   :root {
-    --background: 220 33% 98%;
-    --foreground: 222 36% 11%;
+    --background: 210 60% 98%;
+    --foreground: 221 35% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 222 36% 11%;
+    --card-foreground: 221 35% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 36% 11%;
-    --primary: 226 33% 16%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 220 28% 95%;
-    --secondary-foreground: 222 36% 16%;
-    --muted: 220 24% 95%;
-    --muted-foreground: 220 12% 42%;
-    --accent: 222 42% 94%;
-    --accent-foreground: 226 33% 18%;
+    --popover-foreground: 221 35% 20%;
+    --primary: 212 78% 64%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 55% 96%;
+    --secondary-foreground: 221 30% 24%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 218 15% 48%;
+    --accent: 206 90% 94%;
+    --accent-foreground: 216 40% 28%;
     --destructive: 0 72% 54%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 20% 89%;
-    --input: 220 20% 92%;
-    --ring: 228 45% 45%;
-    --chart-1: 230 46% 42%;
-    --chart-2: 194 55% 38%;
-    --chart-3: 262 42% 46%;
-    --chart-4: 32 78% 58%;
-    --chart-5: 149 48% 38%;
+    --border: 210 35% 88%;
+    --input: 210 35% 91%;
+    --ring: 212 78% 64%;
+    --chart-1: 212 78% 64%;
+    --chart-2: 196 62% 58%;
+    --chart-3: 227 56% 70%;
+    --chart-4: 35 86% 66%;
+    --chart-5: 167 46% 48%;
     --radius: 1rem;
     --font-sans: 'Inter', sans-serif;
     --font-display: 'Manrope', sans-serif;
-    --sidebar-background: 220 30% 97%;
-    --sidebar-foreground: 222 28% 18%;
-    --sidebar-primary: 226 33% 16%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 220 25% 93%;
-    --sidebar-accent-foreground: 222 30% 18%;
-    --sidebar-border: 220 18% 88%;
-    --sidebar-ring: 228 45% 45%;
+    --sidebar-background: 210 60% 98%;
+    --sidebar-foreground: 221 30% 24%;
+    --sidebar-primary: 212 78% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 206 82% 94%;
+    --sidebar-accent-foreground: 216 40% 28%;
+    --sidebar-border: 210 32% 88%;
+    --sidebar-ring: 212 78% 64%;
   }
 
   .dark {
