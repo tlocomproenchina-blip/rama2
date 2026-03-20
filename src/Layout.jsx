@@ -296,13 +296,13 @@ export default function Layout({ children, currentPageName }) {
           if (!currentUser.city) missingFields.push('city');
           if (!currentUser.address) missingFields.push('address');
           
-          if (missingFields.length > 0 && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
+          if (missingFields.length > 0 && (!currentPageName || currentPageName === 'Home')) {
             navigate(createPageUrl('Profile'));
             setLoading(false);
             return;
           }
 
-          if (!missingFields.length && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
+          if (!missingFields.length && (!currentPageName || currentPageName === 'Home')) {
             navigate(createPageUrl('ClientPortal'));
             setLoading(false);
             return;
