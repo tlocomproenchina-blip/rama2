@@ -4,6 +4,7 @@ import useAdminOperacionesData from '@/hooks/useAdminOperacionesData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Package, Layers, CreditCard, Clock } from 'lucide-react';
+import PageHero from '@/components/common/PageHero';
 
 const quickLinks = [
   { label: 'Paquetes', href: '/AdminPackages', icon: Package },
@@ -29,24 +30,13 @@ export default function AdminOperaciones() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-6 text-white shadow-xl md:p-8">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-emerald-100">
-            <Layers className="h-3.5 w-3.5" />
-            Centro de operaciones
-          </div>
-          {loading && (
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/80">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Actualizando datos
-            </div>
-          )}
-          <h1 className="text-3xl font-bold tracking-tight">Operaciones</h1>
-          <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-            Control rápido de paquetes, aprobaciones, consolidación y pagos asistidos.
-          </p>
-        </div>
-      </div>
+      <PageHero
+        icon={Layers}
+        badge="Centro de operaciones"
+        title="Operaciones"
+        description="Control rápido de paquetes, aprobaciones, consolidación y pagos asistidos."
+        loadingLabel={loading ? 'Actualizando datos' : ''}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Paquetes recibidos</p><p className="mt-2 text-3xl font-bold text-slate-900">{metrics.paquetesRecibidos}</p></CardContent></Card>

@@ -11,6 +11,7 @@ import MonthlyRevenueChart from '@/components/accounting/MonthlyRevenueChart';
 import ReceivablesOverview from '@/components/accounting/ReceivablesOverview';
 import ProviderPaymentsOverview from '@/components/accounting/ProviderPaymentsOverview';
 import AccountingExportButtons from '@/components/accounting/AccountingExportButtons';
+import PageHero from '@/components/common/PageHero';
 
 function sumAmounts(items, getValue) {
   return (items || []).reduce((total, item) => total + Number(getValue(item) || 0), 0);
@@ -150,17 +151,13 @@ export default function AccountingDashboard({ user }) {
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
-      <section className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard Contabilidad</h1>
-            <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-              Resumen rápido de ingresos, cuentas por cobrar y pagos a proveedores.
-            </p>
-          </div>
-          <AccountingExportButtons report={report} />
-        </div>
-      </section>
+      <PageHero
+        icon={Wallet}
+        badge="Centro financiero"
+        title="Dashboard Contabilidad"
+        description="Resumen rápido de ingresos, cuentas por cobrar y pagos a proveedores."
+        actions={<AccountingExportButtons report={report} />}
+      />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <AccountingMetricCard title="Ingresos del mes" value={`$${report.metrics.monthRevenue.toFixed(2)}`} subtitle="Facturas pagadas este mes" icon={TrendingUp} accent="bg-emerald-100 text-emerald-700" />

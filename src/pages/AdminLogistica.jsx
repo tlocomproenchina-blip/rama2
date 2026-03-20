@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Truck, UserCheck, Route, Package, History, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import EstadoLogisticaBadge from '@/components/logistica/EstadoLogisticaBadge';
 import LogisticsExportButton from '@/components/logistica/LogisticsExportButton';
+import PageHero from '@/components/common/PageHero';
 
 const quickLinks = [
   { label: 'Vehículos', href: '/AdminVehiculos', icon: Truck },
@@ -95,27 +96,14 @@ export default function AdminLogistica() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-6 text-white shadow-xl md:p-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-blue-100">
-              <Truck className="h-3.5 w-3.5" />
-              Centro de control logístico
-            </div>
-            {loading && (
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs text-white/80">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Actualizando datos
-              </div>
-            )}
-            <h1 className="text-3xl font-bold tracking-tight">Logística</h1>
-            <p className="max-w-2xl text-sm text-slate-200 md:text-base">
-              Gestiona vehículos, choferes, rutas, carga y seguimiento desde un solo panel.
-            </p>
-          </div>
-          <LogisticsExportButton rutas={rutas} cargas={cargas} latestHealthReport={latestHealthReport} />
-        </div>
-      </div>
+      <PageHero
+        icon={Truck}
+        badge="Centro de control logístico"
+        title="Logística"
+        description="Gestiona vehículos, choferes, rutas, carga y seguimiento desde un solo panel."
+        loadingLabel={loading ? 'Actualizando datos' : ''}
+        actions={<LogisticsExportButton rutas={rutas} cargas={cargas} latestHealthReport={latestHealthReport} />}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Vehículos disponibles</p><p className="mt-2 text-3xl font-bold text-slate-900">{metrics.vehiculosDisponibles}</p></CardContent></Card>
