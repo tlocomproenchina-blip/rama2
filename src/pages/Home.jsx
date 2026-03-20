@@ -47,8 +47,7 @@ export default function Home({ user }) {
 
   const handleAuthClick = () => {
     try { setAuthLoading(true); } catch {}
-    // Enviar al Dashboard inmediatamente tras login
-    base44.auth.redirectToLogin(createPageUrl('Dashboard'));
+    base44.auth.redirectToLogin(createPageUrl('ClientPortal'));
   };
 
 

@@ -301,6 +301,12 @@ export default function Layout({ children, currentPageName }) {
             setLoading(false);
             return;
           }
+
+          if (!missingFields.length && (!currentPageName || currentPageName === 'Home' || currentPageName === 'Dashboard')) {
+            navigate(createPageUrl('ClientPortal'));
+            setLoading(false);
+            return;
+          }
         }
       }
       
