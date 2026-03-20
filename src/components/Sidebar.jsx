@@ -155,14 +155,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden text-slate-400 hover:text-white"
-              onClick={onClose}>
 
-              <X className="h-5 w-5" />
-            </Button>
           </div>
         </div>
 
