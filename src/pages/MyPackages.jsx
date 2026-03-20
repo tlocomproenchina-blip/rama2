@@ -168,9 +168,9 @@ export default function MyPackages({ user }) {
                 className="pl-10 text-sm"
               />
             </div>
-            <div className="overflow-x-auto -mx-3 md:mx-0">
-              <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-max md:w-full">
-              <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full">
+            <div>
+              <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
                 <TabsTrigger value="all">Todos</TabsTrigger>
                 <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
                 <TabsTrigger value="recibido">Recibido</TabsTrigger>

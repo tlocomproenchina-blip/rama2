@@ -506,7 +506,7 @@ export default function AdminPackages({ user }) {
             <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
 
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
-                <TabsList className="w-full overflow-x-auto whitespace-nowrap">
+                <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
                   <TabsTrigger value="all">Todos</TabsTrigger>
                   <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
                   <TabsTrigger value="recibido">Recibido</TabsTrigger>
