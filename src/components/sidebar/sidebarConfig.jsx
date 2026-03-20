@@ -26,7 +26,7 @@ import {
 
 export const clientMenuItems = [
   { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
-  { name: 'Dashboard', page: 'ClientPortal', icon: LayoutDashboard },
+  { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: 'Mi Perfil', page: 'Profile', icon: Users },
   { name: 'Mis Referidos', page: 'MyReferrals', icon: Gift },
   { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
