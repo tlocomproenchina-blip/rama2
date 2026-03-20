@@ -1426,7 +1426,7 @@ Email: ${client.email}`;
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t border-slate-200">
             <Button variant="outline" onClick={() => setEditClient(null)}>
               <X className="h-4 w-4 mr-2" />
               Cancelar
