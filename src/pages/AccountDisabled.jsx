@@ -34,18 +34,21 @@ export default function AccountDisabled({ user }) {
   }
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <Card className="max-w-lg w-full border-0 shadow-lg">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 p-3 rounded-full bg-red-100 w-14 h-14 flex items-center justify-center">
-            <Lock className="h-7 w-7 text-red-600" />
+    <div className="flex min-h-[75vh] items-center justify-center">
+      <Card className="w-full max-w-2xl overflow-hidden border-border/70 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white shadow-premium">
+        <CardHeader className="items-center text-center pb-2">
+          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-3xl border border-white/10 bg-white/10">
+            <Lock className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-xl">Cuenta desactivada</CardTitle>
+          <CardTitle className="text-2xl text-white">Cuenta desactivada</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-center text-slate-600">
-          <p>Tu cuenta ha sido desactivada por el equipo de soporte. Si crees que es un error, por favor contáctanos.</p>
+        <CardContent className="space-y-5 text-center text-slate-300">
+          <p className="mx-auto max-w-xl text-sm md:text-base">Tu cuenta fue desactivada por el equipo de soporte. Si crees que se trata de un error, por favor comunícate con nosotros para revisarlo.</p>
+          <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+            Mientras tanto, puedes cerrar sesión de forma segura desde aquí.
+          </div>
           <div className="flex justify-center">
-            <Button onClick={handleLogout} className="bg-blue-600 hover:bg-blue-700">Cerrar sesión</Button>
+            <Button onClick={handleLogout} className="bg-white text-slate-900 hover:bg-slate-100">Cerrar sesión</Button>
           </div>
         </CardContent>
       </Card>

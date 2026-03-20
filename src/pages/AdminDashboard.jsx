@@ -14,6 +14,7 @@ import PieChartCard from '@/components/dashboard/PieChartCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import DashboardCustomizer from '@/components/dashboard/DashboardCustomizer';
 import AdminPlatformOverview from '@/components/dashboard/AdminPlatformOverview';
+import AdminDashboardHero from '@/components/dashboard/AdminDashboardHero';
 
 export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
@@ -248,30 +249,14 @@ export default function AdminDashboard({ user }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Panel de Control</h1>
-          <p className="text-slate-500">{mainTab === 'api' ? 'Estado del sistema y cola de API' : 'Resumen de operaciones'}</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Tabs value={mainTab} onValueChange={setMainTab}>
-            <TabsList>
-              <TabsTrigger value="resumen">Resumen</TabsTrigger>
-              <TabsTrigger value="api">API</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <div className="flex items-center gap-2">
-            <Button onClick={loadData} variant="outline" size="sm">Actualizar</Button>
-            <Button onClick={() => setShowCustomizer(true)} size="sm" className="bg-slate-800 hover:bg-slate-900 text-white">Personalizar</Button>
-          </div>
-          <div className="ml-auto flex items-center gap-1">
-            <Button variant={range === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setRange('today')}>Hoy</Button>
-            <Button variant={range === '7d' ? 'default' : 'outline'} size="sm" onClick={() => setRange('7d')}>7 días</Button>
-            <Button variant={range === '30d' ? 'default' : 'outline'} size="sm" onClick={() => setRange('30d')}>30 días</Button>
-            <Button variant={range === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setRange('all')}>Todo el tiempo</Button>
-          </div>
-        </div>
-      </div>
+      <AdminDashboardHero
+        mainTab={mainTab}
+        range={range}
+        setRange={setRange}
+        onRefresh={loadData}
+        onCustomize={() => setShowCustomizer(true)}
+        onTabChange={setMainTab}
+      />
 
       {mainTab === 'api' ? (
         <ApiSystemPanel />
@@ -285,7 +270,7 @@ export default function AdminDashboard({ user }) {
 
       {/* Acciones Urgentes */}
       {urgentActions.length > 0 && (
-        <Card className="border-l-4 border-l-red-500 shadow-lg">
+        <Card className="border border-rose-200/70 bg-gradient-to-br from-rose-50 to-white shadow-card">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-red-600" />
@@ -634,7 +619,7 @@ export default function AdminDashboard({ user }) {
       {/* Links Rápidos */}
       <div className="grid md:grid-cols-3 gap-4">
         <Link to={createPageUrl('AdminPackages')}>
-          <Card className="shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-blue-50 to-white">
+          <Card className="cursor-pointer border-border/70 bg-gradient-to-br from-blue-50 via-white to-white shadow-card transition-all hover:-translate-y-0.5 hover:shadow-premium">
             <CardContent className="p-6 text-center">
               <Package className="h-10 w-10 text-blue-600 mx-auto mb-3" />
               <p className="font-semibold text-slate-800">Gestionar Paquetes</p>
@@ -643,7 +628,7 @@ export default function AdminDashboard({ user }) {
         </Link>
 
         <Link to={createPageUrl('AdminPayments')}>
-          <Card className="shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-green-50 to-white">
+          <Card className="cursor-pointer border-border/70 bg-gradient-to-br from-emerald-50 via-white to-white shadow-card transition-all hover:-translate-y-0.5 hover:shadow-premium">
             <CardContent className="p-6 text-center">
               <DollarSign className="h-10 w-10 text-green-600 mx-auto mb-3" />
               <p className="font-semibold text-slate-800">Validar Pagos</p>
@@ -652,7 +637,7 @@ export default function AdminDashboard({ user }) {
         </Link>
 
         <Link to={createPageUrl('AdminClients')}>
-          <Card className="shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-br from-purple-50 to-white">
+          <Card className="cursor-pointer border-border/70 bg-gradient-to-br from-violet-50 via-white to-white shadow-card transition-all hover:-translate-y-0.5 hover:shadow-premium">
             <CardContent className="p-6 text-center">
               <Users className="h-10 w-10 text-purple-600 mx-auto mb-3" />
               <p className="font-semibold text-slate-800">Ver Clientes</p>

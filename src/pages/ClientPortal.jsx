@@ -38,6 +38,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import EditProfileModal from '@/components/EditProfileModal';
+import PortalHero from '@/components/client-portal/PortalHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 
 export default function ClientPortal({ user, refreshUser }) {
   const navigate = useNavigate();
@@ -184,77 +186,13 @@ export default function ClientPortal({ user, refreshUser }) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Mi Portal</h1>
-          <p className="text-slate-500 mt-1">
-            Bienvenido, {user.first_name || user.email}
-          </p>
-        </div>
-        <Button onClick={() => setShowTicketModal(true)} className="bg-blue-600 hover:bg-blue-700">
-          <MessageCircle className="h-4 w-4 mr-2" />
-          Crear Ticket de Soporte
-        </Button>
-      </div>
+      <PortalHero user={user} onCreateTicket={() => setShowTicketModal(true)} />
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Paquetes</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.totalPackages}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <Package className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">En Tránsito</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.inTransit}</p>
-              </div>
-              <div className="p-3 bg-amber-100 rounded-xl">
-                <Truck className="h-6 w-6 text-amber-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Pagos Pendientes</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.pendingPayments}</p>
-              </div>
-              <div className="p-3 bg-red-100 rounded-xl">
-                <DollarSign className="h-6 w-6 text-red-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Tickets Abiertos</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.openTickets}</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <MessageCircle className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Paquetes" value={stats.totalPackages} subtitle="Total registrados" icon={Package} tone="blue" />
+        <PortalMetricCard title="En tránsito" value={stats.inTransit} subtitle="Movimientos activos" icon={Truck} tone="amber" />
+        <PortalMetricCard title="Pagos pendientes" value={stats.pendingPayments} subtitle="Facturas por atender" icon={DollarSign} tone="rose" />
+        <PortalMetricCard title="Tickets abiertos" value={stats.openTickets} subtitle="Soporte en curso" icon={MessageCircle} tone="violet" />
       </div>
 
       {/* Main Content Tabs */}
@@ -344,25 +282,6 @@ export default function ClientPortal({ user, refreshUser }) {
             </Card>
           </div>
 
-          {/* Shipping Mark Info */}
-          {user.shipping_mark && (
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-4 bg-white rounded-xl shadow-md">
-                    <Tag className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-slate-800 mb-1">Tu Shipping Mark</h3>
-                    <p className="text-2xl font-bold text-blue-600 font-mono">{user.shipping_mark}</p>
-                    <p className="text-sm text-slate-600 mt-1">
-                      Usa este código en todas tus compras online
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         {/* Packages Tab */}
