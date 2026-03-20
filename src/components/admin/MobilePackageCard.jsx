@@ -27,7 +27,7 @@ export default function MobilePackageCard({
       <CardContent className="p-4 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="mt-1 rounded-xl border border-border bg-background p-2">
+            <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-background/80 shadow-sm">
               <Checkbox checked={isSelected} onCheckedChange={onSelect} />
             </div>
             <div className="min-w-0">
