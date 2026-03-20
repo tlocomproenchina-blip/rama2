@@ -215,7 +215,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
                 setErrors((prev) => ({ ...prev, state: null }));
               }}
             >
-              <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
+              <SelectTrigger className={errors.state ? 'border-red-300 bg-white' : 'bg-white'}>
                 <SelectValue placeholder="Selecciona tu estado" />
               </SelectTrigger>
               <SelectContent>
