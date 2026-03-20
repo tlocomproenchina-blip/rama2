@@ -517,16 +517,30 @@ export default function AdminPackages({ user }) {
                 </TabsList>
               </Tabs>
 
-              <Select value={reportedFilter} onValueChange={setReportedFilter}>
-                <SelectTrigger className="w-full lg:w-48 bg-white">
-                  <SelectValue placeholder="Reporte" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="reported">Reportados</SelectItem>
-                  <SelectItem value="unreported">No reportados</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid w-full grid-cols-3 gap-2 lg:hidden">
+                <Button variant={reportedFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setReportedFilter('all')} className="w-full">
+                  Todos
+                </Button>
+                <Button variant={reportedFilter === 'reported' ? 'default' : 'outline'} size="sm" onClick={() => setReportedFilter('reported')} className="w-full">
+                  Reportados
+                </Button>
+                <Button variant={reportedFilter === 'unreported' ? 'default' : 'outline'} size="sm" onClick={() => setReportedFilter('unreported')} className="w-full">
+                  No reportados
+                </Button>
+              </div>
+
+              <div className="hidden lg:block">
+                <Select value={reportedFilter} onValueChange={setReportedFilter}>
+                  <SelectTrigger className="w-full lg:w-48 bg-white">
+                    <SelectValue placeholder="Reporte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="reported">Reportados</SelectItem>
+                    <SelectItem value="unreported">No reportados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               </div>
             <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full sm:w-auto">
