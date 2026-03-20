@@ -28,12 +28,22 @@ export const CANONICAL_STATE_NAMES = {
 
 export function normalizeStates(states) {
   if (!Array.isArray(states)) return [];
-  const mapped = states.map((s) => ({
-    ...s,
-    state_name: CANONICAL_STATE_NAMES[s.state_code] || s.state_name || s.state_code,
-  }));
-  // sort by name
-  return mapped.sort((a, b) => a.state_name.localeCompare(b.state_name, 'es', { sensitivity: 'base' }));
+
+  const deduped = new Map();
+
+  states.forEach((s) => {
+    const stateCode = String(s.state_code || '').trim().toLowerCase();
+    const stateName = CANONICAL_STATE_NAMES[stateCode] || s.state_name || s.state_code;
+    const key = stateCode || String(stateName || '').trim().toLowerCase();
+    if (!key || deduped.has(key)) return;
+    deduped.set(key, {
+      ...s,
+      state_code: stateCode,
+      state_name: stateName,
+    });
+  });
+
+  return Array.from(deduped.values()).sort((a, b) => a.state_name.localeCompare(b.state_name, 'es', { sensitivity: 'base' }));
 }
 
 export function findStateByCodeOrName(states, value) {

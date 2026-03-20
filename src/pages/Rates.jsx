@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,11 +59,13 @@ export default function Rates({ user }) {
       setPricingConfig(pricing[0]);
     }
 
-    setStates(statesList);
-    if (statesList.length > 0) {
-      const defaultCode = (user?.state && statesList.some(s => s.state_code === user.state)) ? user.state : statesList[0].state_code;
+    const normalizedStates = normalizeStates(statesList);
+    setStates(normalizedStates);
+    if (normalizedStates.length > 0) {
+      const matchedState = user?.state ? findStateByCodeOrName(normalizedStates, user.state) : null;
+      const defaultCode = matchedState?.state_code || normalizedStates[0].state_code;
       setSelectedCode(defaultCode);
-      const sel = statesList.find(s => s.state_code === defaultCode);
+      const sel = normalizedStates.find(s => s.state_code === defaultCode);
       setStateConfig(sel || null);
     }
 
