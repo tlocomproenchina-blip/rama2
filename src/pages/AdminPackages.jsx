@@ -805,8 +805,7 @@ export default function AdminPackages({ user }) {
                   />
                 </th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[28%]">Tracking</th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[26%]">Cliente</th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[18%]">Shipping Mark</th>
+                <th className="text-left p-4 font-medium text-slate-600 w-[22%]">Shipping Mark</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[8%]">Tipo</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Estado</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Recepción</th>
@@ -843,7 +842,6 @@ export default function AdminPackages({ user }) {
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-slate-600 whitespace-nowrap truncate max-w-[34ch]">{pkg.client_email}</td>
                   <td className="p-4 font-mono text-slate-600 whitespace-nowrap truncate max-w-[24ch]">{pkg.shipping_mark || '-'}</td>
                   <td className="pl-3 pr-2 py-3">
                     <div className="flex items-center gap-2 text-slate-600">
