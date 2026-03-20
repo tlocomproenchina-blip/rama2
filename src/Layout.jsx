@@ -263,15 +263,15 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      // Redirect admin to AdminDashboard when landing on Home/Dashboard or no page specified
+      // Redirect admin to AccountingDashboard when landing on Home/Dashboard or no page specified
       if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Home')) {
-        navigate(createPageUrl('AdminDashboard'));
+        navigate(createPageUrl('AccountingDashboard'));
         setLoading(false);
         return;
       }
 
-      if (currentUser.role === 'admin' && resolvedRoleConfig?.visible_pages?.length && currentPageName && !resolvedRoleConfig.visible_pages.includes(currentPageName) && !['AdminDashboard', 'Home', 'Dashboard'].includes(currentPageName)) {
-        navigate(createPageUrl(resolvedRoleConfig.visible_pages[0] || 'AdminDashboard'));
+      if (currentUser.role === 'admin' && resolvedRoleConfig?.visible_pages?.length && currentPageName && !resolvedRoleConfig.visible_pages.includes(currentPageName) && !['AccountingDashboard', 'Home', 'Dashboard'].includes(currentPageName)) {
+        navigate(createPageUrl(resolvedRoleConfig.visible_pages[0] || 'AccountingDashboard'));
         setLoading(false);
         return;
       }
