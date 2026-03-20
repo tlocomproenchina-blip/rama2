@@ -5,7 +5,6 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { BottomSheetPanel } from "@/components/ui/bottom-sheet"
 
 const Select = SelectPrimitive.Root
 
@@ -32,7 +31,7 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 const SelectScrollUpButton = React.forwardRef(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
-    className={cn("flex cursor-default items-center justify-center py-1", className)}
+    className={cn("hidden cursor-default items-center justify-center py-1 sm:flex", className)}
     {...props}>
     <ChevronUp className="h-4 w-4" />
   </SelectPrimitive.ScrollUpButton>
@@ -42,7 +41,7 @@ SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
 const SelectScrollDownButton = React.forwardRef(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
-    className={cn("flex cursor-default items-center justify-center py-1", className)}
+    className={cn("hidden cursor-default items-center justify-center py-1 sm:flex", className)}
     {...props}>
     <ChevronDown className="h-4 w-4" />
   </SelectPrimitive.ScrollDownButton>
@@ -55,22 +54,20 @@ const SelectContent = React.forwardRef(({ className, children, position = "poppe
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-3 top-[12vh] bottom-[max(12px,env(safe-area-inset-bottom))] z-[70] flex flex-col overflow-hidden rounded-2xl border bg-white text-popover-foreground shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:relative sm:inset-auto sm:block sm:max-h-96 sm:min-w-[8rem] sm:rounded-md sm:bg-popover sm:shadow-md sm:z-50 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[side=bottom]:slide-in-from-top-2 sm:data-[side=left]:slide-in-from-right-2 sm:data-[side=right]:slide-in-from-left-2 sm:data-[side=top]:slide-in-from-bottom-2",
+        "fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] z-[70] max-h-[70vh] overflow-hidden rounded-2xl border bg-white text-popover-foreground shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:relative sm:inset-auto sm:block sm:max-h-96 sm:min-w-[8rem] sm:rounded-md sm:bg-popover sm:shadow-md sm:z-50 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[side=bottom]:slide-in-from-top-2 sm:data-[side=left]:slide-in-from-right-2 sm:data-[side=right]:slide-in-from-left-2 sm:data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
           "sm:data-[side=bottom]:translate-y-1 sm:data-[side=left]:-translate-x-1 sm:data-[side=right]:translate-x-1 sm:data-[side=top]:-translate-y-1",
         className
       )}
       position={position}
       {...props}>
-      <BottomSheetPanel className="flex h-full flex-col sm:block">
-        <SelectScrollUpButton />
-        <SelectPrimitive.Viewport
-          className={cn("flex-1 overflow-y-auto bg-white p-2 sm:bg-transparent sm:p-1", position === "popper" &&
-            "sm:h-[var(--radix-select-trigger-height)] sm:w-full sm:min-w-[var(--radix-select-trigger-width)]")}>
-          {children}
-        </SelectPrimitive.Viewport>
-        <SelectScrollDownButton />
-      </BottomSheetPanel>
+      <SelectScrollUpButton />
+      <SelectPrimitive.Viewport
+        className={cn("overflow-y-auto bg-white p-2 sm:bg-transparent sm:p-1", position === "popper" &&
+          "sm:h-[var(--radix-select-trigger-height)] sm:w-full sm:min-w-[var(--radix-select-trigger-width)]")}>
+        {children}
+      </SelectPrimitive.Viewport>
+      <SelectScrollDownButton />
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ))
