@@ -9,6 +9,14 @@ module.exports = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
+  		fontFamily: {
+  			sans: ['var(--font-sans)'],
+  			display: ['var(--font-display)']
+  		},
+  		boxShadow: {
+  			card: '0 12px 40px -18px rgb(15 23 42 / 0.18)',
+  			premium: '0 18px 50px -22px rgb(15 23 42 / 0.28)'
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
