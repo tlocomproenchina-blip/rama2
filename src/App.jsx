@@ -83,6 +83,13 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      {Pages.Dashboard && (
+        <Route path="/ClientPortal" element={
+          <LayoutWrapper currentPageName="Dashboard">
+            <Pages.Dashboard />
+          </LayoutWrapper>
+        } />
+      )}
       <Route path="/WarehouseReceive" element={
         <LayoutWrapper currentPageName="WarehouseReceive">
           <WarehouseReceive />
