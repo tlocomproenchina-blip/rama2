@@ -32,7 +32,7 @@ import ResourceInspector from '@/components/admin/ResourceInspector';
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import ShippingMarkAutomationSettings from '@/components/admin/ShippingMarkAutomationSettings';
 import DesignPhaseOneStudio from '@/components/admin/DesignPhaseOneStudio';
-import { createPageUrl } from '@/utils';
+import { cacheManager } from '@/components/CacheManager';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -301,39 +301,26 @@ export default function AdminSettings({ user }) {
       if (counter <= 0) {
         clearInterval(timer);
         try {
-          // Clear all localStorage
-          localStorage.clear();
-          // Clear sessionStorage
-          sessionStorage.clear();
+          cacheManager.clear();
 
-          // Clear IndexedDB (wait for deletions to finish)
-          if (typeof indexedDB !== 'undefined') {
-            let dbs = [];
-            const listFn = indexedDB.databases;
-            if (typeof listFn === 'function') {
-              try {
-                dbs = (await listFn.call(indexedDB)) || [];
-              } catch (e) {
-                dbs = [];
-              }
+          Object.keys(sessionStorage).forEach((key) => {
+            if (key.startsWith('seen_') || key.startsWith('tlec_')) {
+              sessionStorage.removeItem(key);
             }
-            const deleteDb = (name) => new Promise((resolve) => {
-              if (!name) return resolve();
-              const req = indexedDB.deleteDatabase(name);
-              req.onsuccess = () => resolve();
-              req.onerror = () => resolve();
-              req.onblocked = () => resolve();
-            });
-            await Promise.all(dbs.map((db) => deleteDb(db.name)));
-          }
+          });
 
-          toast.success('✓ Cache limpia');
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('tlec_')) {
+              localStorage.removeItem(key);
+            }
+          });
+
+          toast.success('✓ Caché local limpiada');
         } catch (error) {
           toast.error('Error al limpiar cache');
         } finally {
-          // Ir al dashboard del administrador tras limpiar
           setTimeout(() => {
-            window.location.href = createPageUrl('AdminDashboard');
+            window.location.reload();
           }, 700);
         }
       }
