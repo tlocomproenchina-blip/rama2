@@ -14,11 +14,15 @@ import InternalMessageComposer from '@/components/internal-messaging/InternalMes
 import CreateConversationDialog from '@/components/internal-messaging/CreateConversationDialog';
 
 const AREA_LABELS = {
-  almacen: 'Almacén',
-  logistica: 'Logística',
-  soporte: 'Soporte',
   operaciones: 'Operaciones',
+  almacen: 'Almacén',
+  contabilidad: 'Contabilidad',
+  soporte: 'Soporte',
+  marketing: 'Marketing',
+  logistica: 'Logística',
+  comunicaciones: 'Comunicaciones',
   seguimiento: 'Seguimiento',
+  equipo_y_acceso: 'Equipo y Acceso',
   all: 'Todas',
 };
 
@@ -44,15 +48,28 @@ export default function AdminInternalMessages({ user }) {
     let active = true;
     const loadData = async () => {
       setLoading(true);
-      const [conversationRows, packageRows, routeRows] = await Promise.all([
+      const [conversationRows, packageRows, routeRows, userRows] = await Promise.all([
         base44.entities.InternalConversation.list('-updated_date', 300),
-        base44.entities.Package.list('-updated_date', 200),
+        base44.entities.Package.list('-updated_date', 300),
         base44.entities.Ruta.list('-updated_date', 200),
+        base44.entities.User.list('-created_date', 500),
       ]);
       if (!active) return;
+      const usersMap = new Map((userRows || []).map((item) => [String(item.email || '').toLowerCase(), item]));
       setConversations(conversationRows || []);
-      setPackages((packageRows || []).map((item) => ({ id: item.id, label: item.tracking_number || item.shipping_mark || item.id })));
-      setRoutes((routeRows || []).map((item) => ({ id: item.id, label: item.codigo_ruta || item.nombre || item.id })));
+      setPackages((packageRows || []).map((item) => {
+        const client = usersMap.get(String(item.client_email || '').toLowerCase());
+        const clientName = client?.full_name || `${client?.first_name || ''} ${client?.last_name || ''}`.trim() || item.client_email || 'Sin cliente';
+        const clientPhone = client?.whatsapp || client?.telefono || client?.phone || '';
+        const tracking = item.tracking_number || item.id;
+        const shippingMark = item.shipping_mark || '';
+        return {
+          id: item.id,
+          label: `${tracking}${shippingMark ? ` · ${shippingMark}` : ''}${clientName ? ` · ${clientName}` : ''}`,
+          searchText: [tracking, shippingMark, clientName, item.client_email, clientPhone].filter(Boolean).join(' '),
+        };
+      }));
+      setRoutes((routeRows || []).map((item) => ({ id: item.id, label: item.codigo_ruta || item.nombre || item.id, searchText: [item.codigo_ruta, item.nombre, item.id].filter(Boolean).join(' ') })));
       setLoading(false);
     };
     loadData();
@@ -209,7 +226,7 @@ export default function AdminInternalMessages({ user }) {
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
               <CardTitle>{selectedConversation?.title || 'Selecciona una conversación'}</CardTitle>
-              <p className="mt-1 text-sm text-slate-500">{selectedConversation ? `${selectedConversation.entity_type}: ${selectedConversation.entity_label} · Área destino: ${AREA_LABELS[selectedConversation.target_area] || 'Todas'}` : 'Elige una conversación para ver el chat.'}</p>
+              <p className="mt-1 text-sm text-slate-500">{selectedConversation ? `${selectedConversation.entity_type}: ${selectedConversation.entity_label} · Departamento: ${AREA_LABELS[selectedConversation.target_area] || 'Todas'}` : 'Elige una conversación para ver el chat.'}</p>
             </div>
             {selectedConversation ? <Button variant="outline" onClick={handleToggleStatus}>{selectedConversation.status === 'open' ? 'Marcar resuelta' : 'Reabrir'}</Button> : null}
           </CardHeader>
