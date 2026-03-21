@@ -103,6 +103,8 @@ export default function AdminSettings({ user }) {
       maintenance_mode: false,
       maintenance_message: 'Estamos realizando mantenimiento. Por favor, inténtalo más tarde.',
       maintenance_image_url: '',
+      external_services_enabled: true,
+      external_services_message: 'Modo demo activo: integraciones externas desactivadas.',
       shipping_mark_auto_assign_enabled: false,
       shipping_mark_auto_assign_prefix: 'TLEC-',
       shipping_mark_auto_assign_length: 6,
@@ -895,6 +897,28 @@ export default function AdminSettings({ user }) {
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Guardar configuración
                 </Button>
+              </div>
+
+              <div className="p-4 md:p-6 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-slate-800 text-lg">Modo demo / APIs externas</h3>
+                    <p className="text-sm text-slate-600">Apaga Stripe, PayPal, emails, push y webhooks externos sin afectar el resto de la app.</p>
+                  </div>
+                  <Switch
+                    checked={!!appConfig.external_services_enabled}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, external_services_enabled: checked })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Mensaje cuando esté apagado</Label>
+                  <Textarea
+                    value={appConfig.external_services_message || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, external_services_message: e.target.value })}
+                    rows={2}
+                    placeholder="Modo demo activo: integraciones externas desactivadas."
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Nombre de la aplicación</Label>

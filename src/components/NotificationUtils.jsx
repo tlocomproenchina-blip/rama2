@@ -9,6 +9,23 @@ import { ensureBaseNotificationTemplates, markTemplateAsUsed, renderEmailTemplat
 // - Mantener API pública existente: sendNotification, notifyPackageStatus, notifyAdmins
 
 let CACHED_FROM_NAME = null;
+let CACHED_EXTERNAL_CONFIG = null;
+
+async function getExternalServicesConfig() {
+  if (CACHED_EXTERNAL_CONFIG) return CACHED_EXTERNAL_CONFIG;
+  try {
+    const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+    const cfg = cfgs?.[0] || {};
+    CACHED_EXTERNAL_CONFIG = {
+      enabled: cfg.external_services_enabled !== false,
+      message: cfg.external_services_message || 'Modo demo activo: integraciones externas desactivadas.'
+    };
+    return CACHED_EXTERNAL_CONFIG;
+  } catch (_) {
+    CACHED_EXTERNAL_CONFIG = { enabled: true, message: '' };
+    return CACHED_EXTERNAL_CONFIG;
+  }
+}
 
 async function getFromName() {
   if (CACHED_FROM_NAME) return CACHED_FROM_NAME;
@@ -68,6 +85,22 @@ export async function sendNotification({ from_name, to, subject, body, title, me
   if (!subject) throw new Error('Falta asunto (subject)');
 
   const fromName = from_name || (await getFromName());
+  const externalConfig = await getExternalServicesConfig();
+
+  if (!externalConfig.enabled) {
+    createEmailLog({ to, subject, body, status: 'failed' });
+    sendInAppNotification({
+      user_email: to,
+      title: title || subject,
+      message: message || body,
+      type,
+      icon,
+      reference_id: referenceId,
+      entity_type: inferEntityTypeFromType(type),
+      priority: type === 'package' ? 'high' : 'medium'
+    });
+    return { success: true, skipped: true, reason: externalConfig.message };
+  }
 
   // 1) Enviar email
   try {
