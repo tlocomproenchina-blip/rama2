@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import SupportImageUploader from '@/components/support/SupportImageUploader';
 
 export default function CreateConversationDialog({ open, onOpenChange, packages, routes, onCreate }) {
-  const [form, setForm] = useState({ entity_type: 'Package', entity_id: '', title: '', topic: '', target_area: 'all', first_message: '' });
+  const [form, setForm] = useState({ entity_type: 'Package', entity_id: '', title: '', topic: '', target_area: 'all', first_message: '', attachments: [] });
   const [recordSearch, setRecordSearch] = useState('');
   const options = useMemo(() => form.entity_type === 'Package' ? packages : routes, [form.entity_type, packages, routes]);
   const filteredOptions = useMemo(() => {
@@ -32,10 +33,11 @@ export default function CreateConversationDialog({ open, onOpenChange, packages,
           <div className="space-y-2"><Label>Título</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ej: Incidencia con paquete recibido" /></div>
           <div className="space-y-2"><Label>Contexto</Label><Input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} placeholder="Resumen corto del problema" /></div>
           <div className="space-y-2"><Label>Primer mensaje</Label><Textarea value={form.first_message} onChange={(e) => setForm({ ...form, first_message: e.target.value })} rows={4} placeholder="Describe lo que necesita el equipo" /></div>
+          <div className="space-y-2"><Label>Fotos</Label><SupportImageUploader files={form.attachments} onChange={(attachments) => setForm({ ...form, attachments })} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onCreate(form, options.find((item) => item.id === form.entity_id))} disabled={!form.entity_id || !form.title.trim() || !form.first_message.trim()} className="bg-blue-600 hover:bg-blue-700">Crear conversación</Button>
+          <Button onClick={() => onCreate(form, options.find((item) => item.id === form.entity_id))} disabled={!form.entity_id || !form.title.trim() || (!form.first_message.trim() && form.attachments.length === 0)} className="bg-blue-600 hover:bg-blue-700">Crear conversación</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

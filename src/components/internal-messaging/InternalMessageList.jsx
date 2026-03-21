@@ -1,4 +1,5 @@
 import React from 'react';
+import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPreview';
 
 export default function InternalMessageList({ messages, currentUserEmail }) {
   return (
@@ -11,7 +12,8 @@ export default function InternalMessageList({ messages, currentUserEmail }) {
           <div key={msg.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${mine ? 'bg-primary text-white' : 'bg-white text-slate-800 border border-slate-200'}`}>
               <p className={`text-xs font-semibold ${mine ? 'text-white/80' : 'text-slate-500'}`}>{msg.sender_name} · {msg.sender_area || msg.sender_role || 'Equipo'}</p>
-              <p className="mt-1 whitespace-pre-wrap text-sm">{msg.message}</p>
+              {msg.message ? <p className="mt-1 whitespace-pre-wrap text-sm">{msg.message}</p> : null}
+              <SupportAttachmentsPreview attachments={msg.attachments} />
               <p className={`mt-2 text-[11px] ${mine ? 'text-white/70' : 'text-slate-400'}`}>{new Date(msg.created_date).toLocaleString('es-VE')}</p>
             </div>
           </div>

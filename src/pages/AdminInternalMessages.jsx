@@ -12,6 +12,7 @@ import InternalConversationList from '@/components/internal-messaging/InternalCo
 import InternalMessageList from '@/components/internal-messaging/InternalMessageList';
 import InternalMessageComposer from '@/components/internal-messaging/InternalMessageComposer';
 import CreateConversationDialog from '@/components/internal-messaging/CreateConversationDialog';
+import { uploadSupportImages } from '@/components/support/supportUploadUtils';
 
 const AREA_LABELS = {
   operaciones: 'Operaciones',
@@ -147,6 +148,8 @@ export default function AdminInternalMessages({ user }) {
     try {
       setCreating(true);
       const actorName = user?.full_name || user?.email;
+      const uploadedAttachments = await uploadSupportImages(form.attachments);
+      const previewText = form.first_message.trim() || (uploadedAttachments.length > 0 ? 'Fotos adjuntas' : '');
       const conversation = await base44.entities.InternalConversation.create({
         title: form.title,
         topic: form.topic,
@@ -159,7 +162,7 @@ export default function AdminInternalMessages({ user }) {
         created_by_area: AREA_LABELS[getUserArea(user)] || getUserArea(user),
         target_area: form.target_area,
         message_count: 1,
-        last_message_preview: form.first_message.slice(0, 120),
+        last_message_preview: previewText.slice(0, 120),
         last_message_at: new Date().toISOString(),
       });
 
@@ -170,6 +173,7 @@ export default function AdminInternalMessages({ user }) {
         sender_role: user.role,
         sender_area: AREA_LABELS[getUserArea(user)] || getUserArea(user),
         message: form.first_message,
+        attachments: uploadedAttachments,
       });
 
       setOpenCreate(false);
@@ -181,9 +185,11 @@ export default function AdminInternalMessages({ user }) {
     setCreating(false);
   };
 
-  const handleSendMessage = async (text) => {
+  const handleSendMessage = async (text, files = []) => {
     if (!selectedConversation) return;
     const actorName = user?.full_name || user?.email;
+    const uploadedAttachments = await uploadSupportImages(files);
+    const previewText = text.trim() || (uploadedAttachments.length > 0 ? 'Fotos adjuntas' : '');
     const newMessage = await base44.entities.InternalMessage.create({
       conversation_id: selectedConversation.id,
       sender_email: user.email,
@@ -191,11 +197,12 @@ export default function AdminInternalMessages({ user }) {
       sender_role: user.role,
       sender_area: AREA_LABELS[getUserArea(user)] || getUserArea(user),
       message: text,
+      attachments: uploadedAttachments,
     });
 
     await base44.entities.InternalConversation.update(selectedConversation.id, {
       message_count: Number(selectedConversation.message_count || 0) + 1,
-      last_message_preview: text.slice(0, 120),
+      last_message_preview: previewText.slice(0, 120),
       last_message_at: newMessage.created_date || new Date().toISOString(),
     });
   };
