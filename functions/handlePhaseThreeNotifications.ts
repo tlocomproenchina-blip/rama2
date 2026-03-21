@@ -246,9 +246,8 @@ async function handleRouteNotifications(base44, eventType, currentData, oldData)
   );
 
   if (assignmentChanged) {
-    const driver = currentData?.chofer_id ? await getEntityRecord(base44, 'Chofer', currentData.chofer_id) : null;
-    const driverName = currentData?.chofer_nombre || getDriverName(driver || {});
-    const driverEmail = driver?.email || driver?.user_email || '';
+    const driverName = currentData?.chofer_nombre || oldData?.chofer_nombre || 'Chofer';
+    const driverEmail = currentData?.chofer_email || currentData?.user_email || '';
     const variables = {
       chofer_nombre: driverName,
       route_name: routeCode,
@@ -305,8 +304,7 @@ async function handleRouteNotifications(base44, eventType, currentData, oldData)
       referenceId: routeId,
     });
 
-    const driver = currentData?.chofer_id ? await getEntityRecord(base44, 'Chofer', currentData.chofer_id) : null;
-    const driverEmail = driver?.email || driver?.user_email || '';
+    const driverEmail = currentData?.chofer_email || currentData?.user_email || '';
     await sendEmail(base44, {
       to: driverEmail,
       templateName: 'Base - Estado Ruta Actualizado',
