@@ -7,18 +7,12 @@ import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
+import NativeMobileHeader from '@/components/navigation/NativeMobileHeader';
 import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 import { usePlatform } from '@/hooks/usePlatform';
-
-
-
-
-
-
-
-
+...
 import { notifyAdmins, sendTemplatedEmail } from '@/components/NotificationUtils';
-import { Menu, Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 import ErrorBoundary from '@/components/common/ErrorBoundary';
@@ -440,7 +434,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className={`min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
+    <div data-native={isNative ? 'true' : 'false'} className={`min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
       <SkipToContent />
       <style>{`
         /* Respect safe areas */
@@ -454,6 +448,16 @@ export default function Layout({ children, currentPageName }) {
         button, a, [role="button"], [role="tab"] { -webkit-tap-highlight-color: transparent; }
         button, a, [role="button"], [role="tab"], nav { -webkit-user-select: none; user-select: none; }
         input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
+
+        [data-native="true"] main,
+        [data-native="true"] #main-content,
+        [data-native="true"] aside nav {
+          -webkit-overflow-scrolling: touch;
+        }
+
+        [data-native="true"] body {
+          overscroll-behavior-y: contain;
+        }
 
         /* Mobile responsiveness improvements */
         @media (max-width: 640px) {
@@ -537,7 +541,18 @@ export default function Layout({ children, currentPageName }) {
           </div>
         )}
         {/* Mobile Header */}
-        {user && !isNativeClient && (
+        {user && isNative && (
+          <NativeMobileHeader
+            user={user}
+            config={config}
+            currentPageName={currentPageName}
+            showMenu={!isNativeClient}
+            sidebarOpen={sidebarOpen}
+            onMenuOpen={() => setSidebarOpen(true)}
+          />
+        )}
+
+        {user && !isNative && !isNativeClient && (
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card transition-all duration-300">
             <div className="flex items-center justify-between gap-2">
@@ -595,9 +610,22 @@ export default function Layout({ children, currentPageName }) {
         `}</style>
 
          {/* Main Content */}
-        <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
+        <div
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 overflow-x-hidden w-full focus:outline-none"
+          style={isNative && user ? { paddingTop: 'calc(env(safe-area-inset-top) + 5.5rem)' } : undefined}
+        >
           <PullToRefresh enabled={!!user} onRefresh={() => window.location.reload()}>
-            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: isNativeClient ? 'calc(env(safe-area-inset-bottom) + 104px)' : 'calc(env(safe-area-inset-bottom) + 72px)' }}>
+            <div
+              className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]"
+              style={{
+                paddingTop: isNative && user ? '0.5rem' : undefined,
+                paddingBottom: isNativeClient
+                  ? 'calc(env(safe-area-inset-bottom) + 104px)'
+                  : 'calc(env(safe-area-inset-bottom) + 72px)'
+              }}
+            >
               {showBackButton && (
                 <div className="mb-3">
                   <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
