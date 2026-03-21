@@ -671,6 +671,8 @@ export default function AdminSupportTickets({ user }) {
                           (client.last_name || '').toLowerCase().includes(searchLower) ||
                           (client.email || '').toLowerCase().includes(searchLower) ||
                           (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
+                          (client.tracking_number || '').toLowerCase().includes(searchLower) ||
+                          (client.related_tracking || '').toLowerCase().includes(searchLower) ||
                           (client.whatsapp || '').toLowerCase().includes(searchLower) ||
                           (client.telefono || '').toLowerCase().includes(searchLower) ||
                           (client.phone || '').toLowerCase().includes(searchLower)
