@@ -234,23 +234,23 @@ export default function AdminActivityAudit() {
                   </div>
 
                   <div className="space-y-2">
-                    {Array.isArray(log.changed_fields) && log.changed_fields.length > 0 ? log.changed_fields.map((change, index) => (
+                    {Array.isArray(log.changed_fields) && log.changed_fields.filter((change) => !HIDDEN_FIELDS.has(change.field_name)).length > 0 ? log.changed_fields.filter((change) => !HIDDEN_FIELDS.has(change.field_name)).map((change, index) => (
                       <div key={`${log.id}-${index}`} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-3">
                         <div>
                           <p className="text-xs uppercase tracking-wide text-slate-400">Campo</p>
-                          <p className="mt-1 text-sm text-slate-700">{change.field_name || '—'}</p>
+                          <p className="mt-1 text-sm font-medium text-slate-700">{humanizeFieldName(change.field_name)}</p>
                         </div>
                         <div>
                           <p className="text-xs uppercase tracking-wide text-slate-400">Valor anterior</p>
-                          <p className="mt-1 text-sm text-rose-700 break-words">{change.old_value || '—'}</p>
+                          <p className="mt-1 text-sm text-rose-700 break-words">{formatReadableValue(change.field_name, change.old_value)}</p>
                         </div>
                         <div>
                           <p className="text-xs uppercase tracking-wide text-slate-400">Valor nuevo</p>
-                          <p className="mt-1 text-sm text-emerald-700 break-words">{change.new_value || '—'}</p>
+                          <p className="mt-1 text-sm text-emerald-700 break-words">{formatReadableValue(change.field_name, change.new_value)}</p>
                         </div>
                       </div>
                     )) : (
-                      <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-500">Sin cambios de campos para mostrar.</div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-500">Sin cambios relevantes para mostrar.</div>
                     )}
                   </div>
                 </CardContent>
