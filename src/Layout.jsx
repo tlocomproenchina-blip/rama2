@@ -12,7 +12,7 @@ import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 import { usePlatform } from '@/hooks/usePlatform';
 ...
 import { notifyAdmins, sendTemplatedEmail } from '@/components/NotificationUtils';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 import ErrorBoundary from '@/components/common/ErrorBoundary';
