@@ -100,6 +100,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
     items: group.items.filter((page) => visibleAdminPages.includes(page))
   })).filter((group) => group.items.length > 0), [visibleAdminPages]);
 
+  const adminRoleLabel = useMemo(() => {
+    if (!isAdmin) return 'Cliente';
+    return roleConfig?.role_name || getDefaultRoleConfig(user?.custom_role)?.role_name || 'Administrador';
+  }, [isAdmin, roleConfig, user?.custom_role]);
+
   const adminItemsByPage = useMemo(() => Object.fromEntries(filteredAdminMenuItems.map((item) => [item.page, item])), [filteredAdminMenuItems]);
   const clientItemsByPage = useMemo(() => Object.fromEntries(clientMenuItems.map((item) => [item.page, item])), []);
 
