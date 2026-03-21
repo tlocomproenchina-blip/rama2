@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Loader2, ShieldCheck, UserMinus, UserPlus, Search, Briefcase, Users, KeyRound, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { ROLE_PRESETS } from '@/lib/rolePermissions';
 import PageHero from '@/components/common/PageHero';
 
 export default function AdminAdministrators({ user }) {
@@ -172,11 +173,11 @@ export default function AdminAdministrators({ user }) {
                       <span className="block truncate text-slate-900">{adminRecord.full_name || adminRecord.email}</span>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <Badge className="bg-emerald-100 text-emerald-700">
-                          <ShieldCheck className="mr-1 h-3 w-3" /> Admin
+                          <ShieldCheck className="mr-1 h-3 w-3" /> {adminRecord.custom_role ? (ROLE_PRESETS[adminRecord.custom_role]?.role_name || adminRecord.custom_role) : 'Administrador'}
                         </Badge>
                         <Badge variant="outline" className="border-blue-200 text-blue-700">
                           <Briefcase className="mr-1 h-3 w-3" />
-                          {adminRecord.custom_role || 'sin área'}
+                          {adminRecord.custom_role ? 'Empleado interno' : 'Sin área'}
                         </Badge>
                       </div>
                     </div>

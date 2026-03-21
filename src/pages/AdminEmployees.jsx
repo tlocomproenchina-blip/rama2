@@ -235,7 +235,7 @@ export default function AdminEmployees({ user }) {
                       </Badge>
                       <Badge variant="outline" className="border-blue-200 text-blue-700">
                         <Briefcase className="mr-1 h-3 w-3" />
-                        {employee.custom_role || 'sin área'}
+                        {employee.custom_role ? (ROLE_PRESETS[employee.custom_role]?.role_name || employee.custom_role) : 'Sin área'}
                       </Badge>
                     </div>
                     <div className="flex items-start gap-3 rounded-xl bg-white p-3 shadow-sm">
