@@ -18,6 +18,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 
 export default function RequestConsolidation({ user }) {
   const navigate = useNavigate();
@@ -97,6 +99,13 @@ export default function RequestConsolidation({ user }) {
     }
   };
 
+  const selectionStats = React.useMemo(() => ({
+    available: packages.length,
+    selected: selectedPackages.length,
+    insured: packages.filter((pkg) => pkg.has_insurance).length,
+    air: packages.filter((pkg) => pkg.shipping_type === 'aereo').length,
+  }), [packages, selectedPackages]);
+
   const handleSubmit = async () => {
     if (selectedPackages.length === 0) {
       toast.error('Selecciona al menos un paquete');
@@ -148,7 +157,7 @@ export default function RequestConsolidation({ user }) {
   if (packages.length === 0) {
     return (
       <div className="max-w-4xl mx-auto">
-        <Card className="border-0 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-12 text-center">
             <Package className="h-16 w-16 mx-auto mb-4 text-slate-300" />
             <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin paquetes disponibles</h3>
@@ -161,14 +170,32 @@ export default function RequestConsolidation({ user }) {
 
   return (
     <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold text-slate-800">Solicitar Consolidación</h1>
-        <p className="text-xs md:text-sm text-slate-500">Selecciona los paquetes que deseas consolidar</p>
+      <ClientPageHero
+        icon={Package}
+        eyebrow="Gestión de envíos"
+        title="Solicitar Consolidación"
+        description="Selecciona tus paquetes recibidos y envía tu solicitud en una vista más clara y premium."
+        badges={[`${packages.length} disponibles`, `${selectedPackages.length} seleccionados`]}
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Tipo elegido</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-semibold text-slate-700">
+              {formData.shipping_type === 'maritimo' ? 'Marítimo' : 'Aéreo'}
+            </div>
+            <p className="text-sm text-muted-foreground">Periodo activo: {config?.consolidation_periods?.[0] || 30} días desde la recepción del primer paquete.</p>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Disponibles" value={selectionStats.available} subtitle="Paquetes listos" icon={Package} tone="blue" />
+        <PortalMetricCard title="Seleccionados" value={selectionStats.selected} subtitle="Incluidos en la solicitud" icon={CheckCircle} tone="amber" />
+        <PortalMetricCard title="Asegurados" value={selectionStats.insured} subtitle="Con valor FOB" icon={AlertCircle} tone="violet" />
+        <PortalMetricCard title="Aéreos" value={selectionStats.air} subtitle="En paquetes recibidos" icon={Plane} tone="blue" />
       </div>
 
       {/* Settings */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardHeader className="p-3 md:p-4 lg:p-6">
           <CardTitle className="text-base md:text-lg">Configuración de Consolidación</CardTitle>
         </CardHeader>
@@ -201,7 +228,7 @@ export default function RequestConsolidation({ user }) {
             </Select>
           </div>
 
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-blue-50/90 border-blue-200/80 shadow-sm">
             <CardContent className="p-3">
               <p className="text-xs md:text-sm text-blue-800">
                 <strong>Período:</strong> {config?.consolidation_periods?.[0] || 30} días desde la recepción del primer paquete
@@ -223,7 +250,7 @@ export default function RequestConsolidation({ user }) {
       </Card>
 
       {/* Package Selection */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardHeader className="border-b p-3 md:p-4 lg:p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3">
             <CardTitle className="text-base md:text-lg">Paquetes Disponibles ({packages.length})</CardTitle>
@@ -270,7 +297,7 @@ export default function RequestConsolidation({ user }) {
       </Card>
 
       {/* Info Alert */}
-      <Card className="border-blue-200 bg-blue-50">
+      <Card className="border-blue-200/70 bg-blue-50/90 shadow-card">
         <CardContent className="p-3 md:p-4">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-4 w-4 md:h-5 text-blue-600 mt-0.5 flex-shrink-0" />

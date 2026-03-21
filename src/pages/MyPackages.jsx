@@ -28,6 +28,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 
 export default function MyPackages({ user }) {
   const PAGE_SIZE = 200;
@@ -128,6 +131,13 @@ export default function MyPackages({ user }) {
     });
   }, [packages, search, statusFilter]);
 
+  const packageStats = React.useMemo(() => ({
+    total: packages.length,
+    preAlerta: packages.filter((pkg) => pkg.status === 'pre_alerta').length,
+    recibidos: packages.filter((pkg) => pkg.status === 'recibido').length,
+    entregados: packages.filter((pkg) => pkg.status === 'entregado').length,
+  }), [packages]);
+
   if (loading) {
     return (
       <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
@@ -139,24 +149,40 @@ export default function MyPackages({ user }) {
 
   return (
     <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-800">Mis Paquetes</h1>
-          <p className="text-xs md:text-sm text-slate-500">Gestiona y rastrea todos tus paquetes</p>
-        </div>
-        {user?.shipping_mark && (
+      <ClientPageHero
+        icon={Package}
+        eyebrow="Gestión de envíos"
+        title="Mis Paquetes"
+        description="Gestiona, filtra y revisa cada paquete en una vista más clara y premium."
+        badges={[`${packages.length} registros`, user?.shipping_mark ? 'Shipping Mark activo' : 'Asignación pendiente']}
+        action={user?.shipping_mark ? (
           <Link to={createPageUrl('PreAlert')}>
-            <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700">
+            <Button>
               <Plus className="h-4 w-4 mr-2" />
               Nueva Pre-alerta
             </Button>
           </Link>
-        )}
+        ) : null}
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Búsqueda rápida</p>
+            <p className="text-sm text-slate-700">Usa filtros por tracking o estado para ubicar tus paquetes más rápido.</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-medium text-slate-700">
+              Mostrando {filteredPackages.length} resultado(s)
+            </div>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Total" value={packageStats.total} subtitle="Paquetes registrados" icon={Package} tone="blue" />
+        <PortalMetricCard title="Pre-alertas" value={packageStats.preAlerta} subtitle="Pendientes de recepción" icon={Plus} tone="amber" />
+        <PortalMetricCard title="Recibidos" value={packageStats.recibidos} subtitle="Disponibles para gestión" icon={Ship} tone="violet" />
+        <PortalMetricCard title="Entregados" value={packageStats.entregados} subtitle="Procesos completados" icon={Plane} tone="blue" />
       </div>
 
       {/* Filters */}
-      <Card className="border-0 shadow-md">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardContent className="p-3 md:p-4">
           <div className="flex flex-col gap-3 md:gap-4">
             <div className="relative flex-1">
@@ -170,7 +196,7 @@ export default function MyPackages({ user }) {
             </div>
             <div>
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+              <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 rounded-[1.25rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur-sm">
                 <TabsTrigger value="all">Todos</TabsTrigger>
                 <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
                 <TabsTrigger value="recibido">Recibido</TabsTrigger>
@@ -186,7 +212,7 @@ export default function MyPackages({ user }) {
 
       {/* Packages List */}
       {filteredPackages.length === 0 ? (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-6 md:p-12 text-center">
             <Package className="h-12 md:h-16 w-12 md:w-16 mx-auto mb-3 md:mb-4 text-slate-300" />
             <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">No hay paquetes</h3>
@@ -205,9 +231,13 @@ export default function MyPackages({ user }) {
         </Card>
       ) : (
         <>
+        <ClientSectionHeader
+          title="Listado de paquetes"
+          description="Consulta el detalle de cada registro, sus fotos y el estado actual del proceso."
+        />
         <div className="grid gap-3 md:gap-4">
           {filteredPackages.map((pkg) => (
-            <Card key={pkg.id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
+            <Card key={pkg.id} className="border border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium">
               <CardContent className="p-3 md:p-4 lg:p-6">
                 <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                   {/* Main Info */}

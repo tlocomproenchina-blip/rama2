@@ -26,6 +26,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
 import { toast } from 'sonner';
 import { format, parse } from 'date-fns';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 
 export default function MyConsolidations({ user }) {
   const [consolidations, setConsolidations] = useState([]);
@@ -100,6 +103,13 @@ export default function MyConsolidations({ user }) {
     }
   };
 
+  const consolidationStats = React.useMemo(() => ({
+    total: consolidations.length,
+    pending: consolidations.filter((con) => con.status === 'pendiente_pago').length,
+    transit: consolidations.filter((con) => con.status === 'en_transito').length,
+    available: consolidations.filter((con) => con.status === 'disponible').length,
+  }), [consolidations]);
+
   const handleRefresh = async () => {
     const now = Date.now();
     const timeSinceLastRefresh = (now - lastRefreshTime) / 1000;
@@ -128,30 +138,42 @@ export default function MyConsolidations({ user }) {
 
   return (
     <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-800">Mis Consolidaciones</h1>
-          <p className="text-xs md:text-sm text-slate-500">Revisa tus paquetes consolidados y realiza pagos</p>
-        </div>
-        <Button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          variant="outline"
-          size="sm"
-          className="w-full md:w-auto"
-        >
-          {refreshing ? (
-            <><Loader2 className="h-3 w-3 md:h-4 mr-2 animate-spin" /> Actualizando...</>
-          ) : (
-            <><RefreshCw className="h-3 w-3 md:h-4 mr-2" /> Actualizar</>
-          )}
-        </Button>
+      <ClientPageHero
+        icon={Layers}
+        eyebrow="Gestión de envíos"
+        title="Mis Consolidaciones"
+        description="Revisa tus paquetes consolidados, estados y pagos en una vista más clara y ejecutiva."
+        badges={[`${consolidations.length} consolidaciones`, hasActivePaymentMethods ? 'Pagos activos' : 'Sin pagos manuales']}
+        action={
+          <Button onClick={handleRefresh} disabled={refreshing} variant="outline" size="sm">
+            {refreshing ? (
+              <><Loader2 className="h-3 w-3 md:h-4 mr-2 animate-spin" /> Actualizando...</>
+            ) : (
+              <><RefreshCw className="h-3 w-3 md:h-4 mr-2" /> Actualizar</>
+            )}
+          </Button>
+        }
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Estado rápido</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-semibold text-slate-700">
+              {consolidationStats.pending} pendiente(s) de pago
+            </div>
+            <p className="text-sm text-muted-foreground">Usa actualizar solo cuando necesites una verificación manual del estado.</p>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Total" value={consolidationStats.total} subtitle="Consolidaciones registradas" icon={Layers} tone="blue" />
+        <PortalMetricCard title="Pendiente pago" value={consolidationStats.pending} subtitle="Esperando acción" icon={CreditCard} tone="amber" />
+        <PortalMetricCard title="En tránsito" value={consolidationStats.transit} subtitle="Cargas activas" icon={Ship} tone="violet" />
+        <PortalMetricCard title="Disponibles" value={consolidationStats.available} subtitle="Listas para entrega" icon={CheckCircle2} tone="blue" />
       </div>
 
       {/* Consolidations List */}
       {consolidations.length === 0 ? (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-6 md:p-12 text-center">
             <Layers className="h-12 md:h-16 w-12 md:w-16 mx-auto mb-3 md:mb-4 text-slate-300" />
             <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">Sin consolidaciones</h3>
@@ -162,12 +184,16 @@ export default function MyConsolidations({ user }) {
         </Card>
       ) : (
                 <>
+                <ClientSectionHeader
+                  title="Listado de consolidaciones"
+                  description="Expande cada consolidación para revisar costos, paquetes incluidos y acciones disponibles."
+                />
                 <div className="space-y-3 md:space-y-4">
                   {consolidations.map((con) => (
-                    <Card key={con.id} className="border-0 shadow-lg overflow-hidden">
+                    <Card key={con.id} className="border border-border/70 bg-card/95 shadow-card overflow-hidden transition-all duration-200 hover:shadow-premium">
                       <Collapsible open={expandedId === con.id} onOpenChange={() => setExpandedId(expandedId === con.id ? null : con.id)}>
                         <CollapsibleTrigger asChild>
-                  <CardHeader className="p-3 md:p-4 lg:p-6 cursor-pointer hover:bg-slate-50 transition-colors">
+                  <CardHeader className="p-3 md:p-4 lg:p-6 cursor-pointer hover:bg-slate-50/80 transition-colors">
                     <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                       {/* Main Info */}
                       <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">

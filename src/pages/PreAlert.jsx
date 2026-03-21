@@ -24,6 +24,7 @@ import {
 import { toast } from 'sonner';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 import { logActionAudit } from '@/lib/actionAudit';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
 
 export default function PreAlert({ user }) {
   const navigate = useNavigate();
@@ -179,7 +180,7 @@ export default function PreAlert({ user }) {
   if (!hasShippingMark) {
     return (
       <div className="max-w-2xl mx-auto">
-        <Card className="border-amber-200 bg-amber-50">
+        <Card className="border-amber-200/70 bg-amber-50/90 shadow-card">
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-amber-500" />
             <h2 className="text-xl font-semibold text-amber-800 mb-2">
@@ -205,35 +206,44 @@ export default function PreAlert({ user }) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => navigate(createPageUrl('Dashboard'))}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Nueva Pre-alerta</h1>
-          <p className="text-slate-500">Registra tu paquete antes de enviarlo</p>
-        </div>
-      </div>
+      <ClientPageHero
+        icon={Package}
+        eyebrow="Gestión de envíos"
+        title="Nueva Pre-alerta"
+        description="Registra tu paquete antes de enviarlo con un flujo más claro y ordenado."
+        badges={[formData.shipping_type === 'maritimo' ? 'Marítimo' : 'Aéreo', formData.has_insurance ? 'Con seguro' : 'Sin seguro']}
+        action={
+          <Button variant="outline" onClick={() => navigate(createPageUrl('Dashboard'))}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
+          </Button>
+        }
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Shipping Mark</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 font-mono text-sm font-semibold text-slate-700">
+              {user?.shipping_mark}
+            </div>
+            <p className="text-sm text-muted-foreground">Periodo de consolidación estimado: {config?.consolidation_periods?.[0] || 30} días.</p>
+          </div>
+        }
+      />
 
-      {/* Consolidation Alert */}
-      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 flex items-start gap-4">
-        <Clock className="h-6 w-6 text-indigo-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <h3 className="font-semibold text-indigo-900 text-sm mb-1">Información de Consolidación</h3>
-          <p className="text-indigo-800 text-sm leading-relaxed">
-            Una vez recibido tu primer paquete, contarás con <span className="font-bold">{config?.consolidation_periods?.[0] || 30} días</span> para solicitar la consolidación. 
-            De lo contrario, realizaremos una consolidación automática con los paquetes disponibles en depósito. El envío mínimo es de 0.130 CBM o el equivalente a una caja de 50cm × 50cm × 50cm.
-          </p>
-        </div>
-      </div>
+      <Card className="border-indigo-200/70 bg-indigo-50/90 shadow-card">
+        <CardContent className="p-5 flex items-start gap-4">
+          <Clock className="h-6 w-6 text-indigo-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-semibold text-indigo-900 text-sm mb-1">Información de Consolidación</h3>
+            <p className="text-indigo-800 text-sm leading-relaxed">
+              Una vez recibido tu primer paquete, contarás con <span className="font-bold">{config?.consolidation_periods?.[0] || 30} días</span> para solicitar la consolidación. 
+              De lo contrario, realizaremos una consolidación automática con los paquetes disponibles en depósito. El envío mínimo es de 0.130 CBM o el equivalente a una caja de 50cm × 50cm × 50cm.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSubmit}>
-        <Card className="border-0 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-6 space-y-6">
             {/* Tracking Number */}
             <div className="space-y-2">
