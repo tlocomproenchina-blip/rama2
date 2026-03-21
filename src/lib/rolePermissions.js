@@ -51,7 +51,7 @@ export const ROLE_PRESETS = {
     role_code: 'equipo_y_acceso',
     role_name: 'Equipo y Acceso',
     description: 'Gestión de empleados, administradores, roles y auditoría.',
-    visible_pages: ['AdminDashboard', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit']
+    visible_pages: ['AdminDashboard', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance']
   }
 };
 
@@ -90,6 +90,7 @@ export const PAGE_LABELS = {
   AdminClients: 'Clientes',
   AdminEmployees: 'Empleados',
   AdminEmployeeAudit: 'Auditoría de Acciones',
+  AdminEmployeePerformance: 'Rendimiento Empleados',
   AdminEmailCampaigns: 'Enviar Emails',
   AdminEmailTemplates: 'Plantillas Email',
   AdminPromotions: 'Promociones',

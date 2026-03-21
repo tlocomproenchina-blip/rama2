@@ -18,6 +18,7 @@ import AdminEmployees from './pages/AdminEmployees';
 import AdminAdministrators from './pages/AdminAdministrators';
 import AdminRoles from './pages/AdminRoles';
 import AdminEmployeeAudit from './pages/AdminEmployeeAudit';
+import AdminEmployeePerformance from './pages/AdminEmployeePerformance';
 import AdminActivityAudit from './pages/AdminActivityAudit';
 import AdminVehiculos from './pages/AdminVehiculos';
 import AdminChoferes from './pages/AdminChoferes';
@@ -138,6 +139,11 @@ const AuthenticatedApp = () => {
       <Route path="/AdminEmployeeAudit" element={
         <LayoutWrapper currentPageName="AdminEmployeeAudit">
           <AdminEmployeeAudit />
+        </LayoutWrapper>
+      } />
+      <Route path="/AdminEmployeePerformance" element={
+        <LayoutWrapper currentPageName="AdminEmployeePerformance">
+          <AdminEmployeePerformance />
         </LayoutWrapper>
       } />
       <Route path="/AdminActivityAudit" element={
