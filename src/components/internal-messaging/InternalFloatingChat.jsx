@@ -185,21 +185,23 @@ export default function InternalFloatingChat({ user }) {
         </Card>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => setExpanded((prev) => !prev)}
-        className="flex max-w-[18rem] items-center gap-3 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-left shadow-2xl backdrop-blur"
-      >
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">
-          <MessageCircle className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-900">{activeConversation.title}</p>
-        </div>
-        <button type="button" onClick={(event) => { event.stopPropagation(); handleClose(); }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+      <div className="flex max-w-[18rem] items-center gap-3 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-left shadow-2xl backdrop-blur">
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">
+            <MessageCircle className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-slate-900">{activeConversation.title}</p>
+          </div>
+        </button>
+        <button type="button" onClick={handleClose} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700">
           <X className="h-4 w-4" />
         </button>
-      </button>
+      </div>
     </div>
   );
 }
