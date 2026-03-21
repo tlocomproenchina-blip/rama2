@@ -669,7 +669,11 @@ export default function AdminSupportTickets({ user }) {
                           !clientSearch ||
                           (client.first_name || '').toLowerCase().includes(searchLower) ||
                           (client.last_name || '').toLowerCase().includes(searchLower) ||
-                          (client.email || '').toLowerCase().includes(searchLower)
+                          (client.email || '').toLowerCase().includes(searchLower) ||
+                          (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
+                          (client.whatsapp || '').toLowerCase().includes(searchLower) ||
+                          (client.telefono || '').toLowerCase().includes(searchLower) ||
+                          (client.phone || '').toLowerCase().includes(searchLower)
                         );
                       })
                       .map((client) => (
