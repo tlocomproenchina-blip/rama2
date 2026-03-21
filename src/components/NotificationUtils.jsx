@@ -1,4 +1,5 @@
 import { base44 } from '@/components/api/ApiQueueManager';
+import { ensureBaseNotificationTemplates, markTemplateAsUsed, renderEmailTemplate } from '@/lib/notificationTemplates';
 
 // Reescritura completa del sistema de notificaciones por email
 // Objetivos:
@@ -43,7 +44,7 @@ async function createEmailLog({ to, subject, body, source = 'manual', status = '
   }
 }
 
-async function createInAppNotification({ user_email, title, message, type = 'system', icon = 'bell', reference_id = null, entity_type = 'System', priority = 'medium' }) {
+export async function sendInAppNotification({ user_email, title, message, type = 'system', icon = 'bell', reference_id = null, entity_type = 'System', priority = 'medium' }) {
   if (!user_email) return;
   try {
     await base44.entities.Notification.create({
@@ -78,7 +79,7 @@ export async function sendNotification({ from_name, to, subject, body, title, me
     });
     // 2) Log + notificación in-app (no bloquear si fallan)
     createEmailLog({ to, subject, body, status: 'sent' });
-    createInAppNotification({
+    sendInAppNotification({
       user_email: to,
       title: title || subject,
       message: message || body,
@@ -94,6 +95,53 @@ export async function sendNotification({ from_name, to, subject, body, title, me
     createEmailLog({ to, subject, body, status: 'failed' });
     throw err;
   }
+}
+
+export async function sendTemplatedEmail({
+  to,
+  templateName,
+  variables = {},
+  client = {},
+  user = {},
+  extraData = {},
+  fallbackSubject = '',
+  fallbackBody = '',
+  from_name,
+  title,
+  message,
+  type = 'general',
+  icon = 'alert',
+  referenceId = null,
+}) {
+  await ensureBaseNotificationTemplates();
+
+  const rendered = await renderEmailTemplate({
+    templateName,
+    variables,
+    client,
+    user,
+    extraData,
+    fallbackSubject,
+    fallbackBody,
+  });
+
+  const response = await sendNotification({
+    from_name,
+    to,
+    subject: rendered.subject,
+    body: rendered.body,
+    title: title || rendered.subject,
+    message: message || rendered.body,
+    type,
+    icon,
+    referenceId,
+  });
+
+  if (rendered.template) {
+    markTemplateAsUsed(rendered.template);
+  }
+
+  return response;
 }
 
 function inferEntityTypeFromType(type) {
