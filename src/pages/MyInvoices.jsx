@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,9 @@ import StripeCheckout from '@/components/payments/StripeCheckout';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 
 export default function MyInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
@@ -160,6 +163,13 @@ export default function MyInvoices({ user }) {
     return invoiceNumber.includes(term) || consolidationTracking.includes(term);
   });
 
+  const invoiceStats = useMemo(() => ({
+    total: invoices.length,
+    pendientes: invoices.filter((inv) => inv.status === 'pendiente').length,
+    revision: invoices.filter((inv) => inv.status === 'revision').length,
+    pagadas: invoices.filter((inv) => inv.status === 'pagada').length,
+  }), [invoices]);
+
   // Mostrar facturas "pendiente" si tienen link de Stripe O si hay otros métodos de pago habilitados
   const visibleInvoices = filteredInvoices.filter(inv => {
     if (inv.status !== 'pendiente') return true;
@@ -188,14 +198,31 @@ export default function MyInvoices({ user }) {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Mis Facturas</h1>
-          <p className="text-slate-500">Gestiona y descarga tus facturas</p>
-        </div>
+      <ClientPageHero
+        icon={FileText}
+        eyebrow="Finanzas y ayuda"
+        title="Mis Facturas"
+        description="Gestiona, busca y descarga tus facturas con una vista más clara y premium."
+        badges={[`${visibleInvoices.length} visibles`, config?.payments_enable_stripe === true ? 'Stripe activo' : 'Stripe inactivo']}
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Resumen financiero</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-semibold text-slate-700">
+              {invoiceStats.pendientes} pendiente(s) de pago
+            </div>
+            <p className="text-sm text-muted-foreground">Busca por número de factura o tracking para ubicar más rápido cada documento.</p>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Total" value={invoiceStats.total} subtitle="Facturas registradas" icon={FileText} tone="blue" />
+        <PortalMetricCard title="Pendientes" value={invoiceStats.pendientes} subtitle="Esperando pago" icon={CreditCard} tone="amber" />
+        <PortalMetricCard title="En revisión" value={invoiceStats.revision} subtitle="Pagos por validar" icon={Loader2} tone="violet" />
+        <PortalMetricCard title="Pagadas" value={invoiceStats.pagadas} subtitle="Documentos completados" icon={FileText} tone="blue" />
       </div>
 
-      <Card className="border-0 shadow-lg">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardContent className="p-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -210,7 +237,7 @@ export default function MyInvoices({ user }) {
       </Card>
 
       {visibleInvoices.length === 0 ? (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-16 w-16 text-slate-300 mb-4" />
             <p className="text-slate-500">No tienes facturas aún</p>
@@ -218,7 +245,12 @@ export default function MyInvoices({ user }) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <>
+          <ClientSectionHeader
+            title="Facturas disponibles"
+            description="Revisa cada factura, descarga su PDF o continúa con el pago correspondiente."
+          />
+          <div className="grid gap-4">
           {visibleInvoices.map(invoice => (
             <InvoiceCard
               key={invoice.id}

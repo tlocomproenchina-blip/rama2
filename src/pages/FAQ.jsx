@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { HelpCircle, Search, ChevronDown, MessageCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 
 export default function FAQ({ user }) {
   const [faqs, setFaqs] = useState([]);
@@ -63,6 +66,13 @@ export default function FAQ({ user }) {
 
   const categories = ['all', ...new Set(faqs.map(f => f.category))];
 
+  const faqStats = useMemo(() => ({
+    total: faqs.length,
+    visibles: filteredFAQs.length,
+    categorias: categories.length - 1,
+    pagos: faqs.filter((faq) => faq.category === 'pagos').length,
+  }), [faqs, filteredFAQs.length, categories.length]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -73,19 +83,32 @@ export default function FAQ({ user }) {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50">
-          <HelpCircle className="h-8 w-8 text-blue-600" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Preguntas Frecuentes</h1>
-          <p className="text-slate-500 mt-2">Encuentra respuestas a las preguntas más comunes</p>
-        </div>
+      <ClientPageHero
+        icon={HelpCircle}
+        eyebrow="Finanzas y ayuda"
+        title="Preguntas Frecuentes"
+        description="Encuentra respuestas rápidas en una vista más clara, ordenada y fácil de explorar."
+        badges={[`${faqStats.total} respuestas`, `${faqStats.categorias} categorías`]}
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Ayuda rápida</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-semibold text-slate-700">
+              {faqStats.visibles} resultado(s) visibles
+            </div>
+            <p className="text-sm text-muted-foreground">Filtra por categoría o busca palabras clave para encontrar respuestas al instante.</p>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Total" value={faqStats.total} subtitle="Preguntas publicadas" icon={HelpCircle} tone="blue" />
+        <PortalMetricCard title="Visibles" value={faqStats.visibles} subtitle="Resultados del filtro" icon={Search} tone="amber" />
+        <PortalMetricCard title="Categorías" value={faqStats.categorias} subtitle="Temas disponibles" icon={ChevronDown} tone="violet" />
+        <PortalMetricCard title="Pagos" value={faqStats.pagos} subtitle="Ayuda financiera" icon={MessageCircle} tone="blue" />
       </div>
 
       {/* Search */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardContent className="p-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
@@ -115,7 +138,7 @@ export default function FAQ({ user }) {
 
       {/* FAQ List */}
       {filteredFAQs.length === 0 ? (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <HelpCircle className="h-16 w-16 text-slate-300 mb-4" />
             <p className="text-slate-500 text-center">
@@ -124,14 +147,19 @@ export default function FAQ({ user }) {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <>
+          <ClientSectionHeader
+            title="Centro de ayuda"
+            description="Abre cualquier pregunta para ver la respuesta completa y encontrar orientación más rápido."
+          />
+          <div className="space-y-3">
           {filteredFAQs.map((faq) => (
             <Collapsible
               key={faq.id}
               open={openItems[faq.id]}
               onOpenChange={(open) => setOpenItems({ ...openItems, [faq.id]: open })}
             >
-              <Card className="border-0 shadow-lg overflow-hidden">
+              <Card className="border border-border/70 bg-card/95 shadow-card overflow-hidden">
                 <CollapsibleTrigger className="w-full">
                   <CardHeader className="hover:bg-slate-50 transition-colors">
                     <div className="flex items-start justify-between text-left">
@@ -162,10 +190,11 @@ export default function FAQ({ user }) {
             </Collapsible>
           ))}
         </div>
+        </>
       )}
 
       {/* Support CTA */}
-      <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
+      <Card className="border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-card">
         <CardContent className="p-6 text-center">
           <MessageCircle className="h-12 w-12 text-blue-600 mx-auto mb-3" />
           <h3 className="font-semibold text-slate-800 mb-2">¿No encontraste lo que buscabas?</h3>

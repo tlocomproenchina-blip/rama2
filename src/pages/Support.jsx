@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 
 export default function Support({ user }) {
   const [tickets, setTickets] = useState([]);
@@ -182,6 +185,13 @@ export default function Support({ user }) {
     urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600' }
   };
 
+  const supportStats = useMemo(() => ({
+    total: tickets.length,
+    abiertos: tickets.filter((ticket) => ticket.status === 'abierto').length,
+    enProceso: tickets.filter((ticket) => ticket.status === 'en_proceso').length,
+    resueltos: tickets.filter((ticket) => ticket.status === 'resuelto').length,
+  }), [tickets]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -192,21 +202,39 @@ export default function Support({ user }) {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Soporte</h1>
-          <p className="text-slate-500">Gestiona tus tickets de soporte</p>
-        </div>
-        <Button onClick={() => setShowNewTicket(true)} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Ticket
-        </Button>
+      <ClientPageHero
+        icon={MessageSquare}
+        eyebrow="Finanzas y ayuda"
+        title="Soporte"
+        description="Gestiona tus tickets y conversa con el equipo desde una vista más clara y premium."
+        badges={[`${tickets.length} tickets`, supportStats.abiertos > 0 ? 'Hay casos abiertos' : 'Sin casos abiertos']}
+        action={
+          <Button onClick={() => setShowNewTicket(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Ticket
+          </Button>
+        }
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Atención rápida</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-semibold text-slate-700">
+              {supportStats.abiertos + supportStats.enProceso} caso(s) activos
+            </div>
+            <p className="text-sm text-muted-foreground">Incluye tracking y detalle del problema para acelerar la respuesta.</p>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Total" value={supportStats.total} subtitle="Tickets registrados" icon={MessageSquare} tone="blue" />
+        <PortalMetricCard title="Abiertos" value={supportStats.abiertos} subtitle="Esperando atención" icon={AlertCircle} tone="amber" />
+        <PortalMetricCard title="En proceso" value={supportStats.enProceso} subtitle="En seguimiento" icon={Clock} tone="violet" />
+        <PortalMetricCard title="Resueltos" value={supportStats.resueltos} subtitle="Casos completados" icon={CheckCircle2} tone="blue" />
       </div>
 
       {/* Tickets List */}
       {tickets.length === 0 ? (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-12 text-center">
             <MessageSquare className="h-16 w-16 mx-auto mb-4 text-slate-300" />
             <h3 className="text-lg font-semibold text-slate-700 mb-2">No tienes tickets</h3>
@@ -217,7 +245,12 @@ export default function Support({ user }) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <>
+          <ClientSectionHeader
+            title="Tus tickets"
+            description="Abre cualquier ticket para revisar mensajes, estado y seguimiento de tu caso."
+          />
+          <div className="grid gap-4">
           {tickets.map((ticket) => {
             const statusInfo = statusConfig[ticket.status];
             const StatusIcon = statusInfo.icon;
@@ -259,6 +292,7 @@ export default function Support({ user }) {
             );
           })}
         </div>
+        </>
       )}
 
       {/* New Ticket Dialog */}
