@@ -10,7 +10,6 @@ import MobileBottomNav from '@/components/navigation/MobileBottomNav';
 import NativeMobileHeader from '@/components/navigation/NativeMobileHeader';
 import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 import { usePlatform } from '@/hooks/usePlatform';
-...
 import { notifyAdmins, sendTemplatedEmail } from '@/components/NotificationUtils';
 import { Loader2, ArrowLeft, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
