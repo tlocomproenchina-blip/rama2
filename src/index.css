@@ -158,13 +158,13 @@
     display: flex;
   }
 
-  .mobile-bottom-nav {
+  .native-select-root {
     display: none;
   }
 
-  .capacitor-ios .mobile-bottom-nav,
-  .capacitor-android .mobile-bottom-nav {
-    display: flex;
+  .capacitor-ios .native-select-root,
+  .capacitor-android .native-select-root {
+    display: block;
   }
 
   @media (prefers-reduced-motion: reduce) {

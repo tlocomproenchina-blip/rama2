@@ -663,6 +663,7 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       <MobileBottomNav />
+      <div className="native-select-root" style={{ display: 'none' }} />
 
       {/* Modals */}
       {showContract && (
