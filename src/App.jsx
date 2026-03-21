@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -13,8 +13,6 @@ import WarehouseReceive from './pages/WarehouseReceive';
 import WarehouseLocations from './pages/WarehouseLocations';
 import WarehouseDashboard from './pages/WarehouseDashboard';
 import WarehousePickPackShip from './pages/WarehousePickPackShip';
-import ClientAnalytics from './pages/ClientAnalytics';
-import AccountingDashboard from './pages/AccountingDashboard';
 import AdminEmployees from './pages/AdminEmployees';
 import AdminAdministrators from './pages/AdminAdministrators';
 import AdminRoles from './pages/AdminRoles';
@@ -26,11 +24,14 @@ import AdminChoferes from './pages/AdminChoferes';
 import AdminRutas from './pages/AdminRutas';
 import AdminCargaRutas from './pages/AdminCargaRutas';
 import AdminSeguimientoRutas from './pages/AdminSeguimientoRutas';
-import AdminLogistica from './pages/AdminLogistica';
-import AdminOperaciones from './pages/AdminOperaciones';
-import AdminSeguimiento from './pages/AdminSeguimiento';
 import AdminRutaDetalle from './pages/AdminRutaDetalle';
-import AdminInternalMessages from './pages/AdminInternalMessages';
+
+const ClientAnalytics = lazy(() => import('./pages/ClientAnalytics'));
+const AccountingDashboard = lazy(() => import('./pages/AccountingDashboard'));
+const AdminLogistica = lazy(() => import('./pages/AdminLogistica'));
+const AdminOperaciones = lazy(() => import('./pages/AdminOperaciones'));
+const AdminSeguimiento = lazy(() => import('./pages/AdminSeguimiento'));
+const AdminInternalMessages = lazy(() => import('./pages/AdminInternalMessages'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -127,12 +128,16 @@ const AuthenticatedApp = () => {
       } />
       <Route path="/ClientAnalytics" element={
         <LayoutWrapper currentPageName="ClientAnalytics">
-          <ClientAnalytics />
+          <RouteContent>
+            <ClientAnalytics />
+          </RouteContent>
         </LayoutWrapper>
       } />
       <Route path="/AccountingDashboard" element={
         <LayoutWrapper currentPageName="AccountingDashboard">
-          <AccountingDashboard />
+          <RouteContent>
+            <AccountingDashboard />
+          </RouteContent>
         </LayoutWrapper>
       } />
       <Route path="/AdminEmployees" element={
@@ -192,17 +197,23 @@ const AuthenticatedApp = () => {
       } />
       <Route path="/AdminLogistica" element={
         <LayoutWrapper currentPageName="AdminLogistica">
-          <AdminLogistica />
+          <RouteContent>
+            <AdminLogistica />
+          </RouteContent>
         </LayoutWrapper>
       } />
       <Route path="/AdminOperaciones" element={
         <LayoutWrapper currentPageName="AdminOperaciones">
-          <AdminOperaciones />
+          <RouteContent>
+            <AdminOperaciones />
+          </RouteContent>
         </LayoutWrapper>
       } />
       <Route path="/AdminSeguimiento" element={
         <LayoutWrapper currentPageName="AdminSeguimiento">
-          <AdminSeguimiento />
+          <RouteContent>
+            <AdminSeguimiento />
+          </RouteContent>
         </LayoutWrapper>
       } />
       <Route path="/AdminRutaDetalle" element={
@@ -212,7 +223,9 @@ const AuthenticatedApp = () => {
       } />
       <Route path="/AdminInternalMessages" element={
         <LayoutWrapper currentPageName="AdminInternalMessages">
-          <AdminInternalMessages />
+          <RouteContent>
+            <AdminInternalMessages />
+          </RouteContent>
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
