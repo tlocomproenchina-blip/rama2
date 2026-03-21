@@ -115,8 +115,11 @@ Deno.serve(async (req) => {
     const payload = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const metricDate = String(payload?.metric_date || getLocalDateString(new Date()));
 
-    const metrics = await base44.asServiceRole.entities.EmployeePerformanceMetric.filter({ metric_date: metricDate }, '-total_active_time_ms', 300);
-    const admins = await getAdminUsers(base44);
+    const [metrics, admins, existingAlerts] = await Promise.all([
+      base44.asServiceRole.entities.EmployeePerformanceMetric.filter({ metric_date: metricDate }, '-total_active_time_ms', 300),
+      getAdminUsers(base44),
+      base44.asServiceRole.entities.EmployeePerformanceAlert.filter({ metric_date: metricDate }, '-updated_date', 300),
+    ]);
     const savedAlerts = [];
 
     for (const metric of metrics || []) {
@@ -152,6 +155,14 @@ Deno.serve(async (req) => {
           const created = await base44.asServiceRole.entities.EmployeePerformanceAlert.create(payloadToSave);
           savedAlerts.push(created);
         }
+      }
+    }
+
+    const validAlertKeys = new Set(savedAlerts.map((item) => `${item.employee_email}::${item.alert_type}`));
+    for (const existingAlert of existingAlerts || []) {
+      const alertKey = `${existingAlert.employee_email}::${existingAlert.alert_type}`;
+      if (!validAlertKeys.has(alertKey)) {
+        await base44.asServiceRole.entities.EmployeePerformanceAlert.delete(existingAlert.id);
       }
     }
 

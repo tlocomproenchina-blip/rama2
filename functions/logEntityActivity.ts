@@ -1,6 +1,17 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 const IGNORED_FIELDS = new Set(['id', 'created_date', 'updated_date', 'created_by']);
+const AREA_ROLE_LABELS = {
+  operaciones: 'Operaciones',
+  almacen: 'Almacén',
+  contabilidad: 'Contabilidad',
+  soporte: 'Soporte',
+  marketing: 'Marketing',
+  logistica: 'Logística',
+  comunicaciones: 'Comunicaciones',
+  seguimiento: 'Seguimiento',
+  equipo_y_acceso: 'Equipo y Acceso',
+};
 
 function stringifyValue(value) {
   if (value === null || value === undefined || value === '') return '—';
@@ -70,6 +81,16 @@ function buildActionDetail(entityName, actionType, changedFields) {
   return `Campos modificados: ${fieldsPreview}`;
 }
 
+function getActorRoleLabel(actor) {
+  if (actor?.role === 'user') return 'cliente';
+  if (actor?.role === 'admin') return 'admin';
+  return String(actor?.role || 'system');
+}
+
+function getModuleLabel(entityName) {
+  return AREA_ROLE_LABELS[String(entityName || '').toLowerCase()] || entityName;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -99,8 +120,8 @@ Deno.serve(async (req) => {
       action_detail: actionDetail,
       actor_email: actor?.email || sourceData?.created_by || 'system',
       actor_name: actor?.full_name || 'Sistema',
-      actor_role: actor?.role || 'system',
-      module_name: entityName,
+      actor_role: getActorRoleLabel(actor),
+      module_name: getModuleLabel(entityName),
       session_id: String(payload?.session_id || ''),
       page_path: String(payload?.page_path || ''),
       duration_ms: Number(payload?.duration_ms || 0),

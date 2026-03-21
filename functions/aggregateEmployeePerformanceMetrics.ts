@@ -15,10 +15,29 @@ const AREA_ROLE_LABELS = {
   equipo_y_acceso: 'Equipo y Acceso',
 };
 
-function resolveEmployeeRole(log) {
+function resolveEmployeeRole(log, userRecord) {
+  if (userRecord?.role === 'user') return 'Cliente';
+  if (userRecord?.custom_role) {
+    return AREA_ROLE_LABELS[String(userRecord.custom_role).toLowerCase()] || String(userRecord.custom_role);
+  }
+  if (userRecord?.role === 'admin') return 'Administrador';
+
   const rawRole = String(log?.area_name || log?.area_code || log?.employee_role || log?.actor_role || '').trim();
   const normalized = rawRole.toLowerCase();
+  if (normalized === 'user' || normalized === 'cliente' || normalized === 'client') return 'Cliente';
+  if (normalized === 'admin') return 'Administrador';
   return AREA_ROLE_LABELS[normalized] || rawRole;
+}
+
+function isClientUser(log, userRecord) {
+  if (userRecord?.role) return userRecord.role !== 'admin';
+  const rawRole = String(log?.actor_role || log?.area_code || log?.area_name || '').toLowerCase();
+  return rawRole === 'user' || rawRole === 'cliente' || rawRole === 'client';
+}
+
+async function getUsersMap(base44) {
+  const users = await base44.asServiceRole.entities.User.list('-created_date', 1000);
+  return new Map((users || []).map((user) => [String(user.email || '').toLowerCase(), user]));
 }
 
 function getLocalDateString(value, timeZone = TIMEZONE) {
@@ -79,11 +98,11 @@ async function fetchLogsForDate(entityApi, dateFieldCandidates, metricDate) {
   return records;
 }
 
-function createBaseMetric(log) {
+function createBaseMetric(log, userRecord) {
   return {
     employee_email: String(log?.actor_email || ''),
-    employee_name: String(log?.actor_name || log?.actor_email || 'Sin nombre'),
-    employee_role: resolveEmployeeRole(log),
+    employee_name: String(log?.actor_name || userRecord?.full_name || log?.actor_email || 'Sin nombre'),
+    employee_role: resolveEmployeeRole(log, userRecord),
     first_activity_at: null,
     last_activity_at: null,
     total_session_time_ms: 0,
@@ -108,7 +127,7 @@ function createBaseMetric(log) {
   };
 }
 
-function applyActivityLog(metric, log) {
+function applyActivityLog(metric, log, userRecord) {
   const timestamp = toIso(log?.client_side_timestamp || log?.created_date);
   if (timestamp && (!metric.first_activity_at || timestamp < metric.first_activity_at)) metric.first_activity_at = timestamp;
   if (timestamp && (!metric.last_activity_at || timestamp > metric.last_activity_at)) metric.last_activity_at = timestamp;
@@ -136,12 +155,12 @@ function applyActivityLog(metric, log) {
   if (log?.page_name || log?.page_path) metric.page_set.add(String(log.page_name || log.page_path));
   if (log?.module_name) metric.module_set.add(String(log.module_name));
 
-  if (!metric.employee_name && log?.actor_name) metric.employee_name = String(log.actor_name);
-  const resolvedRole = resolveEmployeeRole(log);
-  if (!metric.employee_role || metric.employee_role === 'admin') metric.employee_role = resolvedRole;
+  if (!metric.employee_name && (log?.actor_name || userRecord?.full_name)) metric.employee_name = String(log.actor_name || userRecord?.full_name);
+  const resolvedRole = resolveEmployeeRole(log, userRecord);
+  if (!metric.employee_role || metric.employee_role === 'admin' || metric.employee_role === 'Administrador') metric.employee_role = resolvedRole;
 }
 
-function applyEntityLog(metric, log) {
+function applyEntityLog(metric, log, userRecord) {
   const timestamp = toIso(log?.client_side_timestamp || log?.created_date);
   if (timestamp && (!metric.first_activity_at || timestamp < metric.first_activity_at)) metric.first_activity_at = timestamp;
   if (timestamp && (!metric.last_activity_at || timestamp > metric.last_activity_at)) metric.last_activity_at = timestamp;
@@ -162,8 +181,8 @@ function applyEntityLog(metric, log) {
   if (log?.page_path) metric.page_set.add(String(log.page_path));
   if (log?.module_name || log?.entity_name) metric.module_set.add(String(log.module_name || log.entity_name));
 
-  if (!metric.employee_name && log?.actor_name) metric.employee_name = String(log.actor_name);
-  if (!metric.employee_role) metric.employee_role = resolveEmployeeRole(log);
+  if (!metric.employee_name && (log?.actor_name || userRecord?.full_name)) metric.employee_name = String(log.actor_name || userRecord?.full_name);
+  if (!metric.employee_role) metric.employee_role = resolveEmployeeRole(log, userRecord);
 }
 
 async function upsertMetric(base44, metricDate, metric) {
@@ -223,9 +242,11 @@ Deno.serve(async (req) => {
     const payload = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const metricDate = String(payload?.metric_date || getLocalDateString(new Date()));
 
-    const [employeeLogs, entityLogs] = await Promise.all([
+    const [employeeLogs, entityLogs, usersMap, existingMetrics] = await Promise.all([
       fetchLogsForDate(base44.asServiceRole.entities.EmployeeAuditLog, ['client_side_timestamp', 'created_date'], metricDate),
       fetchLogsForDate(base44.asServiceRole.entities.ActivityAuditLog, ['client_side_timestamp', 'created_date'], metricDate),
+      getUsersMap(base44),
+      base44.asServiceRole.entities.EmployeePerformanceMetric.filter({ metric_date: metricDate }, '-updated_date', 500),
     ]);
 
     const metricsByEmployee = new Map();
@@ -233,22 +254,34 @@ Deno.serve(async (req) => {
     for (const log of employeeLogs) {
       const email = String(log?.actor_email || '');
       if (!email) continue;
-      const metric = metricsByEmployee.get(email) || createBaseMetric(log);
-      applyActivityLog(metric, log);
+      const userRecord = usersMap.get(email.toLowerCase()) || null;
+      if (isClientUser(log, userRecord)) continue;
+      const metric = metricsByEmployee.get(email) || createBaseMetric(log, userRecord);
+      applyActivityLog(metric, log, userRecord);
       metricsByEmployee.set(email, metric);
     }
 
     for (const log of entityLogs) {
       const email = String(log?.actor_email || '');
       if (!email || email === 'system') continue;
-      const metric = metricsByEmployee.get(email) || createBaseMetric(log);
-      applyEntityLog(metric, log);
+      const userRecord = usersMap.get(email.toLowerCase()) || null;
+      if (isClientUser(log, userRecord)) continue;
+      const metric = metricsByEmployee.get(email) || createBaseMetric(log, userRecord);
+      applyEntityLog(metric, log, userRecord);
       metricsByEmployee.set(email, metric);
     }
 
     const saved = [];
     for (const metric of metricsByEmployee.values()) {
       saved.push(await upsertMetric(base44, metricDate, metric));
+    }
+
+    const validEmails = new Set(saved.map((item) => String(item.employee_email || '').toLowerCase()));
+    for (const existingMetric of existingMetrics || []) {
+      const email = String(existingMetric.employee_email || '').toLowerCase();
+      if (!validEmails.has(email)) {
+        await base44.asServiceRole.entities.EmployeePerformanceMetric.delete(existingMetric.id);
+      }
     }
 
     return Response.json({

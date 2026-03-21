@@ -11,6 +11,35 @@ function toSafeNumber(value) {
   return Math.round(parsed);
 }
 
+const AREA_ROLE_LABELS = {
+  operaciones: 'Operaciones',
+  almacen: 'Almacén',
+  contabilidad: 'Contabilidad',
+  soporte: 'Soporte',
+  marketing: 'Marketing',
+  logistica: 'Logística',
+  comunicaciones: 'Comunicaciones',
+  seguimiento: 'Seguimiento',
+  equipo_y_acceso: 'Equipo y Acceso',
+};
+
+function getActorRoleLabel(user) {
+  if (user?.role === 'user') return 'cliente';
+  if (user?.role === 'admin') return 'admin';
+  return toSafeString(user?.role, 'user');
+}
+
+function getAreaLabel(user) {
+  if (user?.role === 'user') return 'Cliente';
+  const customRole = toSafeString(user?.custom_role);
+  return AREA_ROLE_LABELS[customRole.toLowerCase()] || customRole || 'Administrador';
+}
+
+function getAreaCode(user) {
+  if (user?.role === 'user') return 'cliente';
+  return toSafeString(user?.custom_role, 'admin');
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -26,7 +55,7 @@ Deno.serve(async (req) => {
     const log = await base44.asServiceRole.entities.EmployeeAuditLog.create({
       actor_email: user.email,
       actor_name: actorName,
-      actor_role: toSafeString(user.role, 'user'),
+      actor_role: getActorRoleLabel(user),
       target_email: toSafeString(payload.target_email, user.email),
       target_name: toSafeString(payload.target_name, actorName),
       action_type: toSafeString(payload.action_type, 'activity_event'),
@@ -35,8 +64,8 @@ Deno.serve(async (req) => {
       page_name: toSafeString(payload.page_name, payload.module_name || ''),
       page_path: toSafeString(payload.page_path),
       reference_id: toSafeString(payload.reference_id),
-      area_code: toSafeString(payload.area_code, user.custom_role || user.role || ''),
-      area_name: toSafeString(payload.area_name, user.custom_role || user.role || ''),
+      area_code: toSafeString(payload.area_code, getAreaCode(user)),
+      area_name: toSafeString(payload.area_name, getAreaLabel(user)),
       session_id: toSafeString(payload.session_id),
       duration_ms: toSafeNumber(payload.duration_ms),
       active_time_ms: toSafeNumber(payload.active_time_ms),
