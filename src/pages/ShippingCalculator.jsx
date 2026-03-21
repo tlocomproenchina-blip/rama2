@@ -201,13 +201,6 @@ export default function ShippingCalculator({ user }) {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <PortalMetricCard title="Destinos" value={calculatorStats.destino} subtitle="Estados activos" icon={Package} tone="blue" />
-        <PortalMetricCard title="Tarifa" value={calculatorStats.tarifa} subtitle="Tarifa estimada" icon={DollarSign} tone="amber" />
-        <PortalMetricCard title="Total" value={calculatorStats.total} subtitle="Costo aproximado" icon={Calculator} tone="violet" />
-        <PortalMetricCard title="Unidad" value={calculatorStats.unidad} subtitle="Base de cálculo" icon={shippingType === 'maritimo' ? Ship : Plane} tone="blue" />
-      </div>
-
       <ClientSectionHeader
         title="Configura tu cálculo"
         description="Selecciona el destino y completa los datos para obtener una estimación inmediata."
