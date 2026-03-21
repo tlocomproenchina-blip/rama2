@@ -8,8 +8,7 @@ import { User, MapPin, Phone, Loader2, AlertCircle, DollarSign, Home } from 'luc
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
-import IOSStatePicker from '@/components/profile/IOSStatePicker';
-import { usePlatform } from '@/hooks/usePlatform';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ProfileSetupModal({ open, onComplete }) {
   const [formData, setFormData] = useState({
@@ -25,7 +24,6 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const [errors, setErrors] = useState({});
   const [stateConfigs, setStateConfigs] = useState([]);
   const [pricingConfig, setPricingConfig] = useState(null);
-  const { isIOS } = usePlatform();
 
   useEffect(() => {
     loadConfigs();
@@ -210,35 +208,24 @@ export default function ProfileSetupModal({ open, onComplete }) {
             <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
-            {isIOS ? (
-              <IOSStatePicker
-                value={formData.state}
-                onChange={(nextValue) => {
-                  setFormData((prev) => ({ ...prev, state: nextValue }));
-                  setErrors((prev) => ({ ...prev, state: null }));
-                }}
-                options={stateConfigs}
-                placeholder="Selecciona tu estado"
-                hasError={!!errors.state}
-              />
-            ) : (
-              <select
-                id="state"
-                value={formData.state}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, state: e.target.value }));
-                  setErrors((prev) => ({ ...prev, state: null }));
-                }}
-                className={`flex min-h-[48px] w-full rounded-md border px-4 py-3 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-ring sm:min-h-9 sm:px-3 sm:py-2 sm:text-sm ${errors.state ? 'border-red-300 bg-white' : 'border-input bg-white'}`}
-              >
-                <option value="">Selecciona tu estado</option>
+            <Select
+              value={formData.state}
+              onValueChange={(nextValue) => {
+                setFormData((prev) => ({ ...prev, state: nextValue }));
+                setErrors((prev) => ({ ...prev, state: null }));
+              }}
+            >
+              <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
+                <SelectValue placeholder="Selecciona tu estado" />
+              </SelectTrigger>
+              <SelectContent>
                 {stateConfigs.map((state) => (
-                  <option key={state.state_code} value={state.state_code}>
+                  <SelectItem key={state.state_code} value={state.state_code}>
                     {state.state_name}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-            )}
+              </SelectContent>
+            </Select>
             {errors.state && (
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" /> {errors.state}

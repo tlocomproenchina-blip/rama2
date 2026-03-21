@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
-import { Check, ChevronDown, ChevronUp } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Circle } from "lucide-react"
 
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { usePlatform } from "@/hooks/usePlatform"
 import { cn } from "@/lib/utils"
 
@@ -74,8 +75,12 @@ function findPlaceholder(children) {
   return placeholder
 }
 
+function findSelectedOption(options, value) {
+  return options.find((option) => option.value === value) || null
+}
+
 function Select({ children, value, defaultValue, onValueChange, disabled, ...props }) {
-  const { isNative } = usePlatform()
+  const { isNative, isIOS, isAndroid } = usePlatform()
   const isControlled = value !== undefined
   const [internalValue, setInternalValue] = React.useState(defaultValue ?? "")
 
@@ -90,7 +95,9 @@ function Select({ children, value, defaultValue, onValueChange, disabled, ...pro
     onValueChange?.(nextValue)
   }, [isControlled, onValueChange])
 
-  if (!isNative) {
+  const useMobilePicker = isIOS || isAndroid || isNative
+
+  if (!useMobilePicker) {
     return (
       <SelectPrimitive.Root
         value={value}
@@ -107,6 +114,7 @@ function Select({ children, value, defaultValue, onValueChange, disabled, ...pro
   return (
     <NativeSelectContext.Provider
       value={{
+        mode: "mobile",
         value: currentValue,
         onValueChange: handleValueChange,
         options,
@@ -132,37 +140,65 @@ SelectValue.displayName = SelectPrimitive.Value.displayName
 
 const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) => {
   const nativeSelect = React.useContext(NativeSelectContext)
+  const [open, setOpen] = React.useState(false)
 
-  if (nativeSelect) {
+  if (nativeSelect?.mode === "mobile") {
     const isDisabled = nativeSelect.disabled || props.disabled
+    const selectedOption = findSelectedOption(nativeSelect.options, nativeSelect.value)
 
     return (
-      <div className="relative">
-        <select
+      <>
+        <button
+          type="button"
           ref={ref}
-          value={nativeSelect.value}
-          onChange={(event) => nativeSelect.onValueChange(event.target.value)}
           disabled={isDisabled}
+          onClick={() => setOpen(true)}
           className={cn(
-            "flex min-h-[48px] w-full appearance-none touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-white/90 px-4 py-3 pr-10 text-base shadow-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:min-h-10 sm:px-3 sm:py-2 sm:pr-9 sm:text-sm",
-            !nativeSelect.value && "text-muted-foreground",
+            "flex min-h-[48px] w-full touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-white/90 px-4 py-3 text-base shadow-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:min-h-10 sm:px-3 sm:py-2 sm:text-sm",
+            !selectedOption && "text-muted-foreground",
             className
           )}
           {...props}
         >
-          {nativeSelect.placeholder ? (
-            <option value="" disabled>
-              {nativeSelect.placeholder}
-            </option>
-          ) : null}
-          {nativeSelect.options.map((option) => (
-            <option key={option.value} value={option.value} disabled={option.disabled}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50 sm:right-3" />
-      </div>
+          <span className="line-clamp-1">{selectedOption?.label || nativeSelect.placeholder}</span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </button>
+
+        <Drawer open={open} onOpenChange={setOpen}>
+          <DrawerContent className="rounded-t-[28px] bg-white">
+            <DrawerHeader className="border-b border-slate-200 pb-4">
+              <DrawerTitle className="text-left text-2xl font-medium text-slate-900">
+                {nativeSelect.placeholder || "Selecciona una opción"}
+              </DrawerTitle>
+            </DrawerHeader>
+            <div className="max-h-[70vh] overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+              {nativeSelect.options.map((option) => {
+                const isSelected = option.value === nativeSelect.value
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    disabled={option.disabled}
+                    onClick={() => {
+                      nativeSelect.onValueChange(option.value)
+                      setOpen(false)
+                    }}
+                    className="flex w-full items-center justify-between border-b border-slate-200 px-5 py-4 text-left text-xl text-slate-900 disabled:opacity-40"
+                  >
+                    <span>{option.label}</span>
+                    {isSelected ? (
+                      <Check className="h-6 w-6 text-slate-700" />
+                    ) : (
+                      <Circle className="h-6 w-6 text-slate-500" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      </>
     )
   }
 
