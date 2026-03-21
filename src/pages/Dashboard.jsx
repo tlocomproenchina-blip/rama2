@@ -4,6 +4,12 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Package, 
   Layers, 
@@ -16,7 +22,16 @@ import {
   Loader2,
   Building2,
   Edit2,
-  Phone
+  Phone,
+  DollarSign,
+  User,
+  Mail,
+  MessageCircle,
+  Eye,
+  FileText,
+  Send,
+  Plane,
+  Ship
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 
@@ -34,31 +49,38 @@ import OptimizedImage from '@/components/OptimizedImage';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
+import { format } from 'date-fns';
 
 export default function Dashboard({ user, refreshUser }) {
   const [packages, setPackages] = useState([]);
   const [consolidations, setConsolidations] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [config, setConfig] = useState(null);
+  const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [creatingTicket, setCreatingTicket] = useState(false);
+  const [newTicket, setNewTicket] = useState({ subject: '', category: 'otro', message: '' });
 
   const loadData = useCallback(async () => {
     if (!user || !user.email) return;
 
     try {
       setLoading(true);
-      const [configs, pkgs, cons, invs] = await Promise.all([
+      const [configs, pkgs, cons, invs, tkts] = await Promise.all([
         base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1),
         base44.entities.Package.filter({ client_email: user.email }, '-updated_date', 100),
         base44.entities.Consolidation.filter({ client_email: user.email }, '-updated_date', 50),
-        base44.entities.Invoice.filter({ client_email: user.email }, '-updated_date', 50)
+        base44.entities.Invoice.filter({ client_email: user.email }, '-updated_date', 50),
+        base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date', 10)
       ]);
 
       if (configs.length > 0) setConfig(configs[0]);
       setPackages(pkgs || []);
       setConsolidations(cons || []);
       setInvoices(invs || []);
+      setTickets(tkts || []);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       if (error.message?.includes('Rate limit')) {
@@ -101,6 +123,58 @@ export default function Dashboard({ user, refreshUser }) {
   const pendingApprovalCount = React.useMemo(() => (
     consolidations.filter(c => c.payment_validated && !c.shipment_approved && c.status !== 'en_transito' && c.status !== 'disponible' && c.status !== 'entregado').length
   ), [consolidations]);
+
+  const portalStats = React.useMemo(() => ({
+    totalPackages: packages.length,
+    inTransit: packages.filter(p => p.status === 'en_transito').length + consolidations.filter(c => c.status === 'en_transito').length,
+    pendingPayments: invoices.filter(i => i.status === 'pendiente').length,
+    openTickets: tickets.filter(t => t.status !== 'cerrado').length,
+  }), [packages, consolidations, invoices, tickets]);
+
+  const handleCreateTicket = async () => {
+    if (!newTicket.subject || !newTicket.message) {
+      toast.error('Por favor completa todos los campos');
+      return;
+    }
+
+    setCreatingTicket(true);
+    try {
+      const ticketNumber = `TKT-${Date.now().toString().slice(-8)}`;
+
+      await base44.entities.SupportTicket.create({
+        ticket_number: ticketNumber,
+        client_email: user.email,
+        subject: newTicket.subject,
+        category: newTicket.category,
+        status: 'abierto',
+        priority: 'media',
+        messages: [{
+          sender_email: user.email,
+          sender_name: user.full_name || user.email,
+          message: newTicket.message,
+          timestamp: new Date().toISOString(),
+          is_admin: false
+        }]
+      });
+
+      const { notifyAdmins } = await import('@/components/NotificationUtils');
+      notifyAdmins({
+        subject: `🎫 Nuevo ticket de soporte: ${ticketNumber}`,
+        body: `Cliente: ${user.full_name || user.email}\nAsunto: ${newTicket.subject}\nCategoría: ${newTicket.category}\n\nMensaje:\n${newTicket.message}`,
+        message: `Nuevo ticket de ${user.full_name || user.email}: ${newTicket.subject}`,
+        type: 'general',
+        icon: 'alert'
+      });
+
+      toast.success('Ticket creado exitosamente');
+      setShowTicketModal(false);
+      setNewTicket({ subject: '', category: 'otro', message: '' });
+      loadData();
+    } catch {
+      toast.error('Error al crear ticket');
+    }
+    setCreatingTicket(false);
+  };
 
   if (loading) {
     return (
@@ -331,52 +405,233 @@ export default function Dashboard({ user, refreshUser }) {
         </div>
       )}
 
-      <ClientSectionHeader
-        title="Paquetes recientes"
-        description="Consulta tus últimos movimientos y revisa el estado actual de cada envío."
-      />
-      <Card className="border-border/70 bg-card/95 shadow-card">
-        <CardHeader className="border-b border-slate-100/80 p-3 md:p-4 lg:p-6">
-          <CardTitle className="text-base md:text-lg font-semibold text-slate-800">Paquetes Recientes</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {packages.length === 0 ? (
-            <div className="p-4 md:p-8 text-center text-slate-500">
-              <Package className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-              <p>No tienes paquetes registrados</p>
-              {hasShippingMark && (
-                <Link to={createPageUrl('PreAlert')}>
-                  <Button className="mt-4">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Crear Pre-alerta
-                  </Button>
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-              {packages.slice(0, 5).map((pkg) => (
-                <div key={pkg.id} className="p-3 md:p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2 hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="p-2 bg-slate-100 rounded-lg flex-shrink-0">
-                      <Package className="h-4 w-4 md:h-5 text-slate-600" />
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 gap-2 rounded-[1.5rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur lg:grid-cols-5">
+          <TabsTrigger value="overview" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Resumen</TabsTrigger>
+          <TabsTrigger value="packages" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Paquetes</TabsTrigger>
+          <TabsTrigger value="invoices" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Facturas</TabsTrigger>
+          <TabsTrigger value="profile" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Mi Perfil</TabsTrigger>
+          <TabsTrigger value="support" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Soporte</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <PortalMetricCard title="Paquetes" value={portalStats.totalPackages} subtitle="Total registrados" icon={Package} tone="blue" />
+            <PortalMetricCard title="En tránsito" value={portalStats.inTransit} subtitle="Movimientos activos" icon={Truck} tone="amber" />
+            <PortalMetricCard title="Pagos pendientes" value={portalStats.pendingPayments} subtitle="Facturas por atender" icon={DollarSign} tone="violet" />
+            <PortalMetricCard title="Tickets abiertos" value={portalStats.openTickets} subtitle="Soporte en curso" icon={MessageCircle} tone="blue" />
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card className="border-border/70 bg-card/95 shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-blue-600" />
+                  Paquetes Recientes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {packages.length === 0 ? (
+                  <p className="text-sm text-slate-500 text-center py-8">No hay paquetes</p>
+                ) : (
+                  packages.slice(0, 5).map(pkg => (
+                    <div key={pkg.id} className="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                      <div className="flex items-start justify-between mb-2 gap-3">
+                        <span className="font-mono text-sm font-medium truncate">{pkg.tracking_number}</span>
+                        <StatusBadge status={pkg.status} size="sm" />
+                      </div>
+                      <p className="text-xs text-slate-600">{pkg.description}</p>
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-800 text-sm md:text-base truncate">{pkg.tracking_number}</p>
-                      <p className="text-xs md:text-sm text-slate-500 capitalize">
-                        {pkg.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}
-                      </p>
+                  ))
+                )}
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to={createPageUrl('MyPackages')}>Ver Todos los Paquetes</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/70 bg-card/95 shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-green-600" />
+                  Facturas Recientes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {invoices.length === 0 ? (
+                  <p className="text-sm text-slate-500 text-center py-8">No hay facturas</p>
+                ) : (
+                  invoices.slice(0, 5).map(inv => (
+                    <div key={inv.id} className="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                      <div className="flex items-start justify-between mb-2 gap-3">
+                        <span className="font-mono text-sm font-medium truncate">{inv.invoice_number}</span>
+                        <Badge className={
+                          inv.status === 'pagada' ? 'bg-green-100 text-green-700' :
+                          inv.status === 'pendiente' ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-700'
+                        }>
+                          {inv.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-800">${inv.total?.toFixed(2)}</p>
+                      <p className="text-xs text-slate-500">{format(new Date(inv.invoice_date), 'dd/MM/yyyy')}</p>
+                    </div>
+                  ))
+                )}
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to={createPageUrl('MyInvoices')}>Ver Todas las Facturas</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="packages" className="space-y-4">
+          <ClientSectionHeader
+            title="Mis Paquetes"
+            description="Consulta tus últimos movimientos y crea nuevas pre-alertas."
+            action={<Button asChild><Link to={createPageUrl('PreAlert')}>Nueva Pre-alerta</Link></Button>}
+          />
+          <div className="grid gap-4">
+            {packages.length === 0 ? (
+              <Card className="border-border/70 bg-card/95 shadow-card"><CardContent className="p-8 text-center text-slate-500">No hay paquetes disponibles.</CardContent></Card>
+            ) : packages.map(pkg => (
+              <Card key={pkg.id} className="border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium">
+                <CardContent className="p-5">
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="p-3 bg-blue-100 rounded-xl">
+                        {pkg.shipping_type === 'aereo' ? <Plane className="h-6 w-6 text-blue-600" /> : <Ship className="h-6 w-6 text-blue-600" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-mono font-semibold text-slate-800 truncate">{pkg.tracking_number}</p>
+                        <p className="text-sm text-slate-600 mt-1">{pkg.description}</p>
+                        {pkg.shipping_mark && <p className="text-xs text-slate-500 mt-1 font-mono">{pkg.shipping_mark}</p>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <StatusBadge status={pkg.status} />
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={createPageUrl('MyPackages')}><Eye className="h-4 w-4" /></Link>
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex-shrink-0">
-                    <StatusBadge status={pkg.status} />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Button variant="outline" className="w-full" asChild>
+            <Link to={createPageUrl('MyPackages')}>Ver Todos los Paquetes</Link>
+          </Button>
+        </TabsContent>
+
+        <TabsContent value="invoices" className="space-y-4">
+          <ClientSectionHeader title="Mis Facturas" description="Revisa montos, estados y accesos rápidos a tus documentos." />
+          <div className="grid gap-4">
+            {invoices.length === 0 ? (
+              <Card className="border-border/70 bg-card/95 shadow-card"><CardContent className="p-8 text-center text-slate-500">No hay facturas disponibles.</CardContent></Card>
+            ) : invoices.map(inv => (
+              <Card key={inv.id} className="border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium">
+                <CardContent className="p-5">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="p-3 bg-green-100 rounded-xl"><FileText className="h-6 w-6 text-green-600" /></div>
+                      <div>
+                        <p className="font-mono font-semibold text-slate-800">{inv.invoice_number}</p>
+                        <p className="text-sm text-slate-600 mt-1">{format(new Date(inv.invoice_date), 'dd/MM/yyyy')}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-sm text-slate-500">Total</p>
+                        <p className="text-xl font-bold text-slate-800">${inv.total?.toFixed(2)}</p>
+                      </div>
+                      <Badge className={
+                        inv.status === 'pagada' ? 'bg-green-100 text-green-700' :
+                        inv.status === 'pendiente' ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-700'
+                      }>{inv.status}</Badge>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={createPageUrl('MyInvoices')}><Eye className="h-4 w-4" /></Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Button variant="outline" className="w-full" asChild>
+            <Link to={createPageUrl('MyInvoices')}>Ver Todas las Facturas</Link>
+          </Button>
+        </TabsContent>
+
+        <TabsContent value="profile" className="space-y-4">
+          <Card className="border-border/70 bg-card/95 shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2"><User className="h-5 w-5 text-blue-600" />Mi Información</span>
+                <Button onClick={() => setShowEditProfile(true)} variant="outline" size="sm"><Edit2 className="h-4 w-4 mr-2" />Editar</Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid lg:grid-cols-2 gap-4">
+                <div className="space-y-1"><Label className="text-xs text-slate-500">Nombre Completo</Label><p className="font-medium text-slate-800">{user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : 'No especificado'}</p></div>
+                <div className="space-y-1"><Label className="text-xs text-slate-500 flex items-center gap-1"><Mail className="h-3 w-3" />Email</Label><p className="font-medium text-slate-800">{user.email}</p></div>
+                <div className="space-y-1"><Label className="text-xs text-slate-500 flex items-center gap-1"><MapPin className="h-3 w-3" />Ciudad</Label><p className="font-medium text-slate-800">{user.city || 'No especificado'}</p></div>
+                <div className="space-y-1"><Label className="text-xs text-slate-500 flex items-center gap-1"><Phone className="h-3 w-3" />WhatsApp</Label><p className="font-medium text-slate-800">{user.whatsapp || 'No especificado'}</p></div>
+                <div className="space-y-1"><Label className="text-xs text-slate-500">Shipping Mark</Label><p className="font-mono font-bold text-blue-600 text-lg">{user.shipping_mark || 'Pendiente de asignación'}</p></div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="support" className="space-y-4">
+          <ClientSectionHeader
+            title="Mis Tickets de Soporte"
+            description="Sigue tus casos abiertos o crea un nuevo ticket de ayuda."
+            action={<Button onClick={() => setShowTicketModal(true)}><MessageCircle className="h-4 w-4 mr-2" />Nuevo Ticket</Button>}
+          />
+          <div className="grid gap-4">
+            {tickets.length === 0 ? (
+              <Card className="border-border/70 bg-card/95 shadow-card">
+                <CardContent className="p-12 text-center">
+                  <MessageCircle className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+                  <h3 className="text-lg font-semibold text-slate-700 mb-2">No tienes tickets</h3>
+                  <p className="text-slate-500 mb-4">Crea un ticket si necesitas ayuda</p>
+                  <Button onClick={() => setShowTicketModal(true)} className="bg-blue-600 hover:bg-blue-700">Crear Ticket</Button>
+                </CardContent>
+              </Card>
+            ) : tickets.map(ticket => (
+              <Card key={ticket.id} className="border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium">
+                <CardContent className="p-5">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <p className="font-mono font-semibold text-slate-800">{ticket.ticket_number}</p>
+                        <Badge className={
+                          ticket.status === 'cerrado' ? 'bg-slate-100 text-slate-700' :
+                          ticket.status === 'resuelto' ? 'bg-green-100 text-green-700' :
+                          ticket.status === 'en_proceso' ? 'bg-blue-100 text-blue-700' :
+                          'bg-amber-100 text-amber-700'
+                        }>{ticket.status}</Badge>
+                        <Badge variant="outline">{ticket.priority}</Badge>
+                      </div>
+                      <p className="text-sm font-medium text-slate-700">{ticket.subject}</p>
+                      <p className="text-xs text-slate-500 mt-1">{format(new Date(ticket.created_date), 'dd/MM/yyyy HH:mm')}</p>
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={createPageUrl('Support')}><Eye className="h-4 w-4 mr-2" />Ver Detalles</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Button variant="outline" className="w-full" asChild>
+            <Link to={createPageUrl('Support')}>Ver Todos los Tickets</Link>
+          </Button>
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Profile Modal */}
       {showEditProfile && (
@@ -389,6 +644,58 @@ export default function Dashboard({ user, refreshUser }) {
           />
         </Suspense>
       )}
+
+      <Dialog open={showTicketModal} onOpenChange={setShowTicketModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Crear Ticket de Soporte</DialogTitle>
+            <DialogDescription>
+              Describe tu problema o pregunta y te responderemos lo antes posible
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Asunto *</Label>
+              <Input
+                placeholder="Describe brevemente tu consulta"
+                value={newTicket.subject}
+                onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoría</Label>
+              <Select value={newTicket.category} onValueChange={(val) => setNewTicket({ ...newTicket, category: val })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pago">Pagos</SelectItem>
+                  <SelectItem value="envio">Envíos</SelectItem>
+                  <SelectItem value="tracking">Tracking</SelectItem>
+                  <SelectItem value="consolidacion">Consolidación</SelectItem>
+                  <SelectItem value="actualizar_datos">Actualizar datos</SelectItem>
+                  <SelectItem value="otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Mensaje *</Label>
+              <Textarea
+                placeholder="Describe tu consulta con el mayor detalle posible..."
+                value={newTicket.message}
+                onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
+                rows={6}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTicketModal(false)}>Cancelar</Button>
+            <Button onClick={handleCreateTicket} disabled={creatingTicket} className="bg-blue-600 hover:bg-blue-700">
+              {creatingTicket ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> : <><Send className="h-4 w-4 mr-2" /> Crear Ticket</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
