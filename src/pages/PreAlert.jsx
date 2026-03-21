@@ -142,7 +142,7 @@ export default function PreAlert({ user }) {
         reference_id: newPackage.id,
         area_name: 'Operaciones',
         summary: `Reportó pre-alerta ${formData.tracking_number}`,
-        details: `Tipo: ${formData.shipping_type} · Descripción: ${formData.description}${formData.has_insurance ? ` · Asegurado FOB $${formData.fob_value}` : ''}`,
+        details: `Tracking: ${formData.tracking_number} · Tipo: ${formData.shipping_type} · Descripción: ${formData.description}${formData.has_insurance ? ` · Asegurado FOB $${formData.fob_value}` : ''}`,
         changed_fields: ['tracking_number', 'shipping_type', 'description', 'has_insurance'],
       });
 
