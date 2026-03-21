@@ -21,12 +21,12 @@ export default function RoleAreaSidebar({ roleOptions, roleConfigs, selectedRole
               type="button"
               variant="ghost"
               onClick={() => onSelectRole(roleCode)}
-              className={`h-auto w-full min-w-0 max-w-full items-start rounded-xl border px-3 py-2.5 text-left !whitespace-normal overflow-hidden ${isActive ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-50' : 'border-slate-100 bg-white text-slate-700 hover:bg-slate-50'}`}
+              className={`min-h-[92px] h-auto w-full min-w-0 max-w-full items-start rounded-xl border px-3 py-3 text-left !whitespace-normal ${isActive ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-50' : 'border-slate-100 bg-white text-slate-700 hover:bg-slate-50'}`}
             >
-              <div className="flex w-full min-w-0 items-start justify-between gap-2 overflow-hidden">
-                <div className="min-w-0 text-left">
-                  <p className="break-words text-sm font-medium leading-tight">{role?.role_name || roleCode}</p>
-                  <p className="mt-1 break-words text-[11px] leading-tight text-slate-500">{role?.description || 'Sin descripción'}</p>
+              <div className="flex w-full min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="break-words text-sm font-medium leading-snug">{role?.role_name || roleCode}</p>
+                  <p className="mt-1.5 break-words text-[11px] leading-snug text-slate-500">{role?.description || 'Sin descripción'}</p>
                 </div>
                 <Badge variant="outline" className={`shrink-0 self-start justify-center text-center tabular-nums min-w-8 px-0 text-[11px] ${isActive ? 'border-blue-200 text-blue-700' : ''}`}>
                   {selectedCount}
