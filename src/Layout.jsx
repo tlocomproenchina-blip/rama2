@@ -6,7 +6,9 @@ import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
+import MobileBottomNav from '@/components/navigation/MobileBottomNav';
 import { getDefaultRoleConfig } from '@/lib/rolePermissions';
+import { usePlatform } from '@/hooks/usePlatform';
 
 
 
@@ -48,8 +50,10 @@ export default function Layout({ children, currentPageName }) {
   const historyIndexRef = React.useRef(typeof window !== 'undefined' ? (window.history.state?.idx ?? 0) : 0);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isNative } = usePlatform();
   const isAdminPanel = user?.role === 'admin';
-  const hasDesktopSidebar = !!user;
+  const isNativeClient = isNative && user?.role === 'user';
+  const hasDesktopSidebar = !!user && !isNativeClient;
   const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ'].includes(currentPageName);
 
   const applyTuning = (cfg) => {
@@ -512,7 +516,7 @@ export default function Layout({ children, currentPageName }) {
       </Suspense>
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
       
-      {user && (
+      {user && !isNativeClient && (
         <div className={hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}>
           <Sidebar 
             user={user} 
@@ -533,7 +537,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
         )}
         {/* Mobile Header */}
-        {user && (
+        {user && !isNativeClient && (
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card transition-all duration-300">
             <div className="flex items-center justify-between gap-2">
@@ -593,7 +597,7 @@ export default function Layout({ children, currentPageName }) {
          {/* Main Content */}
         <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
           <PullToRefresh enabled={!!user} onRefresh={() => window.location.reload()}>
-            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
+            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: isNativeClient ? 'calc(env(safe-area-inset-bottom) + 104px)' : 'calc(env(safe-area-inset-bottom) + 72px)' }}>
               {showBackButton && (
                 <div className="mb-3">
                   <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
@@ -619,7 +623,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </main>
 
-
+      {isNativeClient && <MobileBottomNav />}
 
       {/* Modals */}
       {showContract && (
