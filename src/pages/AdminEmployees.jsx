@@ -230,12 +230,12 @@ export default function AdminEmployees({ user }) {
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-slate-800 truncate">{employee.full_name || employee.email}</h3>
-                      <Badge className="bg-emerald-100 text-emerald-700">
-                        <ShieldCheck className="mr-1 h-3 w-3" /> Admin
+                      <Badge className="bg-amber-100 text-amber-700">
+                        <ShieldCheck className="mr-1 h-3 w-3" /> {employee.custom_role ? (ROLE_PRESETS[employee.custom_role]?.role_name || employee.custom_role) : 'Administrador'}
                       </Badge>
                       <Badge variant="outline" className="border-blue-200 text-blue-700">
                         <Briefcase className="mr-1 h-3 w-3" />
-                        {employee.custom_role ? (ROLE_PRESETS[employee.custom_role]?.role_name || employee.custom_role) : 'Sin área'}
+                        Acceso admin
                       </Badge>
                     </div>
                     <div className="flex items-start gap-3 rounded-xl bg-white p-3 shadow-sm">
