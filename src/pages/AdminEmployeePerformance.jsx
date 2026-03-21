@@ -32,6 +32,7 @@ export default function AdminEmployeePerformance({ user }) {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [selectedEmail, setSelectedEmail] = useState('');
+  const validRoleNames = useMemo(() => Object.values(ROLE_PRESETS).map((role) => role.role_name), []);
 
   useEffect(() => {
     let active = true;
@@ -42,14 +43,16 @@ export default function AdminEmployeePerformance({ user }) {
         base44.entities.EmployeePerformanceAlert.filter({ metric_date: selectedDate }, '-updated_date', 100),
       ]);
       if (active) {
-        setMetrics(rows || []);
-        setAlerts(alertRows || []);
+        const nextMetrics = (rows || []).filter((item) => validRoleNames.includes(item.employee_role));
+        const nextAlerts = (alertRows || []).filter((item) => validRoleNames.includes(item.employee_role));
+        setMetrics(nextMetrics);
+        setAlerts(nextAlerts);
         setLoading(false);
       }
     };
     loadMetrics();
     return () => { active = false; };
-  }, [selectedDate]);
+  }, [selectedDate, validRoleNames]);
 
   const filteredMetrics = useMemo(() => {
     const term = String(search || '').toLowerCase();
