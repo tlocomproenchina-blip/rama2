@@ -113,7 +113,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
       {/* Mobile overlay */}
       {isOpen &&
       <div
-        className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm lg:hidden"
+        className="fixed inset-0 z-40 bg-slate-950/35 lg:hidden"
         onClick={onClose} />
 
       }
@@ -130,7 +130,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         `}
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.15rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.15rem)' }}
       >
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block">
           <div className="absolute inset-x-6 top-0 h-40 rounded-b-[2rem] bg-gradient-to-b from-white/90 to-transparent" />
           <div className="absolute -right-10 top-24 h-36 w-36 rounded-full bg-sky-200/35 blur-3xl" />
           <div className="absolute -left-10 bottom-24 h-36 w-36 rounded-full bg-blue-200/30 blur-3xl" />
