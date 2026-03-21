@@ -9,21 +9,17 @@ import { ensureBaseNotificationTemplates, markTemplateAsUsed, renderEmailTemplat
 // - Mantener API pública existente: sendNotification, notifyPackageStatus, notifyAdmins
 
 let CACHED_FROM_NAME = null;
-let CACHED_EXTERNAL_CONFIG = null;
 
 async function getExternalServicesConfig() {
-  if (CACHED_EXTERNAL_CONFIG) return CACHED_EXTERNAL_CONFIG;
   try {
     const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
     const cfg = cfgs?.[0] || {};
-    CACHED_EXTERNAL_CONFIG = {
+    return {
       enabled: cfg.external_services_enabled !== false,
       message: cfg.external_services_message || 'Modo demo activo: integraciones externas desactivadas.'
     };
-    return CACHED_EXTERNAL_CONFIG;
   } catch (_) {
-    CACHED_EXTERNAL_CONFIG = { enabled: true, message: '' };
-    return CACHED_EXTERNAL_CONFIG;
+    return { enabled: true, message: '' };
   }
 }
 

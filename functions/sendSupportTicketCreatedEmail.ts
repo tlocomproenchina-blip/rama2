@@ -38,6 +38,12 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'Ticket without client_email' });
     }
 
+    const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
+    const config = configs?.[0] || {};
+    if (config.external_services_enabled === false) {
+      return Response.json({ success: true, skipped: true, reason: config.external_services_message || 'Modo demo activo: email desactivado.' });
+    }
+
     const subject = `Nuevo Ticket de Soporte${ticket.ticket_number ? ' - ' + ticket.ticket_number : ''}`;
     const body = [
       'Hola,',
