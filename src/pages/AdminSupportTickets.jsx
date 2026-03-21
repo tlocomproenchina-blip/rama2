@@ -651,7 +651,7 @@ export default function AdminSupportTickets({ user }) {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
-                    placeholder="Buscar cliente por nombre o email..."
+                    placeholder="Buscar cliente por nombre, email, shipping mark o teléfono..."
                     value={clientSearch}
                     onChange={(e) => setClientSearch(e.target.value)}
                     className="pl-10"
