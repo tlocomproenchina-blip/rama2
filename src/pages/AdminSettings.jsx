@@ -420,7 +420,7 @@ export default function AdminSettings({ user }) {
 
       <Tabs defaultValue="tarifas" className="space-y-6">
         <div className="flex items-center justify-between">
-          <TabsList className="grid grid-cols-9 w-full rounded-2xl p-1">
+          <TabsList className="grid grid-cols-8 w-full rounded-2xl p-1">
             <TabsTrigger value="tarifas" className="flex items-center gap-2 text-xs">
               <DollarSign className="h-4 w-4" />
               <span className="hidden md:inline">Tarifas</span>
