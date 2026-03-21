@@ -13,14 +13,9 @@ export default function MobileBottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isNative =
-    typeof window !== "undefined" &&
-    window.Capacitor?.isNativePlatform?.() === true;
-
-  if (!isNative) return null;
-
   return (
     <nav
+      className="mobile-bottom-nav"
       style={{
         position: "fixed",
         bottom: 0,
@@ -29,7 +24,6 @@ export default function MobileBottomNav() {
         height: "64px",
         backgroundColor: "#ffffff",
         borderTop: "1px solid #e5e7eb",
-        display: "flex",
         alignItems: "center",
         justifyContent: "space-around",
         zIndex: 9999,
@@ -41,6 +35,7 @@ export default function MobileBottomNav() {
         return (
           <button
             key={tab.path}
+            type="button"
             onClick={() => navigate(tab.path)}
             style={{
               display: "flex",
