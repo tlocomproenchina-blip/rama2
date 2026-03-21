@@ -88,6 +88,7 @@ function Select({ children, value, defaultValue, onValueChange, disabled, ...pro
   const placeholder = React.useMemo(() => findPlaceholder(children), [children])
   const currentValue = isControlled ? (value ?? "") : internalValue
   const hasCoarsePointer = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)")?.matches
+  const hasTouchSupport = typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0)
 
   const handleValueChange = React.useCallback((nextValue) => {
     if (!isControlled) {
@@ -96,7 +97,7 @@ function Select({ children, value, defaultValue, onValueChange, disabled, ...pro
     onValueChange?.(nextValue)
   }, [isControlled, onValueChange])
 
-  const useMobilePicker = isIOS || isAndroid || isNative || hasCoarsePointer
+  const useMobilePicker = isIOS || isAndroid || isNative || hasCoarsePointer || hasTouchSupport
 
   if (!useMobilePicker) {
     return (
@@ -165,7 +166,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
           <ChevronDown className="h-4 w-4 opacity-50" />
         </button>
 
-        <Drawer open={open} onOpenChange={setOpen}>
+        <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
           <DrawerContent className="rounded-t-[28px] bg-white">
             <DrawerHeader className="border-b border-slate-200 pb-4">
               <DrawerTitle className="text-left text-2xl font-medium text-slate-900">
