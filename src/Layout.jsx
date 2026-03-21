@@ -4,6 +4,8 @@ import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/a
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
+import NotificationBell from '@/components/NotificationBell';
+import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 
 
@@ -494,6 +496,7 @@ export default function Layout({ children, currentPageName }) {
       
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
       <GlobalErrorListener />
+      {user?.role === 'admin' && <AdminNotificationCenter user={user} />}
       {user && (
         <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
       )}
@@ -520,6 +523,13 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       <main className={`flex-1 min-h-screen flex flex-col ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}`}>
+        {user && (
+          <div className="sticky top-0 z-20 hidden lg:flex justify-end px-6 pt-4">
+            <div className="rounded-[1.25rem] border border-white/80 bg-white/85 px-2 py-1 shadow-card backdrop-blur">
+              <NotificationBell user={user} />
+            </div>
+          </div>
+        )}
         {/* Mobile Header */}
         {user && (
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
@@ -538,7 +548,9 @@ export default function Layout({ children, currentPageName }) {
                 <h1 className="truncate font-display text-sm font-semibold text-slate-800">{config?.app_name || 'TLEC CARGO'}</h1>
                 <p className="truncate text-[11px] text-slate-500">{currentPageName || 'Panel'}</p>
               </div>
-              <div className={`h-11 w-11 rounded-2xl transition-all duration-200 ${sidebarOpen ? 'bg-sky-100/90' : 'bg-slate-100/80'}`} />
+              <div className="flex items-center justify-end">
+                <NotificationBell user={user} />
+              </div>
             </div>
           </div>
         </header>
