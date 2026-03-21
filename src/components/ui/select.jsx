@@ -4,6 +4,7 @@ import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
+import NativeSelect from "@/components/NativeSelect"
 import { usePlatform } from "@/hooks/usePlatform"
 import { cn } from "@/lib/utils"
 
@@ -137,32 +138,18 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
     const isDisabled = nativeSelect.disabled || props.disabled
 
     return (
-      <div className="relative">
-        <select
-          ref={ref}
-          value={nativeSelect.value}
-          onChange={(event) => nativeSelect.onValueChange(event.target.value)}
-          disabled={isDisabled}
-          className={cn(
-            "flex min-h-[48px] w-full appearance-none touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-white/90 px-4 py-3 pr-10 text-base shadow-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:min-h-10 sm:px-3 sm:py-2 sm:pr-9 sm:text-sm",
-            !nativeSelect.value && "text-muted-foreground",
-            className
-          )}
-          {...props}
-        >
-          {nativeSelect.placeholder ? (
-            <option value="" disabled>
-              {nativeSelect.placeholder}
-            </option>
-          ) : null}
-          {nativeSelect.options.map((option) => (
-            <option key={option.value} value={option.value} disabled={option.disabled}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50 sm:right-3" />
-      </div>
+      <NativeSelect
+        value={nativeSelect.value}
+        onChange={nativeSelect.onValueChange}
+        placeholder={nativeSelect.placeholder}
+        options={nativeSelect.options}
+        disabled={isDisabled}
+        className={cn(
+          "flex min-h-[48px] w-full appearance-none touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-white/90 px-4 py-3 pr-10 text-base shadow-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:min-h-10 sm:px-3 sm:py-2 sm:pr-9 sm:text-sm",
+          !nativeSelect.value && "text-muted-foreground",
+          className
+        )}
+      />
     )
   }
 

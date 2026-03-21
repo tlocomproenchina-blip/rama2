@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
-import MobileBottomNav from '@/components/navigation/MobileBottomNav';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import NativeMobileHeader from '@/components/navigation/NativeMobileHeader';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
 import { cacheManager } from '@/components/CacheManager';
