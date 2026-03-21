@@ -13,7 +13,7 @@ import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 
 
 
-import { notifyAdmins, sendInAppNotification, sendTemplatedEmail } from '@/components/NotificationUtils';
+import { notifyAdmins, sendTemplatedEmail } from '@/components/NotificationUtils';
 import { Menu, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -377,17 +377,6 @@ export default function Layout({ children, currentPageName }) {
         message: 'Tu cuenta ya está activa y lista para usarse.',
         type: 'system',
         icon: 'check'
-      });
-
-      await sendInAppNotification({
-        user_email: user.email,
-        title: 'Registro completado',
-        message: 'Tu perfil fue completado correctamente y tu cuenta ya está activa.',
-        type: 'system',
-        icon: 'check',
-        priority: 'medium',
-        reference_id: user.id,
-        entity_type: 'System'
       });
 
       notifyAdmins({
