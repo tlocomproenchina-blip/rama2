@@ -26,8 +26,12 @@ function replaceTemplateVariables(text, variables = {}) {
 
 async function getEntityRecord(base44, entityName, id) {
   if (!id) return null;
-  const rows = await base44.asServiceRole.entities[entityName].filter({ id }, '-updated_date', 1);
-  return rows?.[0] || null;
+  try {
+    const rows = await base44.asServiceRole.entities[entityName].filter({ id }, '-updated_date', 1);
+    return rows?.[0] || null;
+  } catch (_) {
+    return null;
+  }
 }
 
 async function getEmailTemplate(base44, name) {
