@@ -425,113 +425,20 @@ export default function ShippingCalculator({ user }) {
 
       {/* Results */}
       {selectedState && result && (
-        <>
+        <div className="space-y-4">
           <ClientSectionHeader
             title="Resultado estimado"
             description="Revisa el detalle del cálculo, la unidad facturable y el total aproximado."
           />
           <Card className="border-border/70 bg-gradient-to-br from-slate-50 to-white shadow-card">
-          <CardHeader>
-            <CardTitle>Detalles del Envío</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Desktop (md+) table layout */}
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Concepto</TableHead>
-                    <TableHead>Cálculo</TableHead>
-                    <TableHead className="text-right">Monto</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">Tarifa aplicada</TableCell>
-                    <TableCell>{result.rateType}</TableCell>
-                    <TableCell className="text-right">${result.finalRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Unidad facturable</TableCell>
-                    <TableCell>{result.chargedBy}</TableCell>
-                    <TableCell className="text-right">—</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Costo de envío</TableCell>
-                    <TableCell>{result.finalRate.toFixed(2)} × {result.billableWeight.toFixed(shippingType === 'aereo' ? 2 : 4)}</TableCell>
-                    <TableCell className="text-right">${result.shippingCost.toFixed(2)}</TableCell>
-                  </TableRow>
-                  {result.insuranceCost > 0 && (
-                    <TableRow>
-                      <TableCell className="font-medium">Seguro</TableCell>
-                      <TableCell>{(config?.insurance_percentage || 0)}% de FOB</TableCell>
-                      <TableCell className="text-right">${result.insuranceCost.toFixed(2)}</TableCell>
-                    </TableRow>
-                  )}
-                  <TableRow>
-                    <TableCell className="font-semibold">Total</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell className="text-right font-bold text-emerald-600">${result.totalCost.toFixed(2)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Mobile (sm) vertical layout */}
-            <div className="md:hidden space-y-2">
-              <div className="rounded-lg border p-3 bg-white">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">Tarifa aplicada</div>
-                  <div className="text-sm font-semibold">${result.finalRate.toFixed(2)}/{shippingType === 'aereo' ? 'kg' : 'CBM'}</div>
-                </div>
-                <div className="text-xs text-slate-500 mt-1">{result.rateType}</div>
-              </div>
-
-              <div className="rounded-lg border p-3 bg-white">
-                <div className="text-sm font-medium">Unidad facturable</div>
-                <div className="text-xs text-slate-500 mt-1">{result.chargedBy}</div>
-              </div>
-
-              <div className="rounded-lg border p-3 bg-white">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">Costo de envío</div>
-                  <div className="text-sm font-semibold">${result.shippingCost.toFixed(2)}</div>
-                </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  {result.finalRate.toFixed(2)} × {result.billableWeight.toFixed(shippingType === 'aereo' ? 2 : 4)}
-                </div>
-              </div>
-
-              {result.insuranceCost > 0 && (
-                <div className="rounded-lg border p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium">Seguro</div>
-                    <div className="text-sm font-semibold">${result.insuranceCost.toFixed(2)}</div>
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">{(config?.insurance_percentage || 0)}% de FOB</div>
-                </div>
-              )}
-
-              <div className="rounded-lg border p-3 bg-emerald-50 border-emerald-200">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold">Total</div>
-                  <div className="text-base font-bold text-emerald-700">${result.totalCost.toFixed(2)}</div>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-              <div>Peso volumétrico: {result.volumetricWeight.toFixed(2)} kg</div>
-              <div>CBM calculado: {result.cbm.toFixed(4)}</div>
-              {shippingType === 'maritimo' && result.minCbmApplied && (
-                <div className="col-span-2 text-amber-700">Se aplicó mínimo facturable de {result.minCbm.toFixed(4)} CBM</div>
-              )}
-              {result.stateName && (
-                <div className="col-span-2">Estado: {result.stateName}</div>
-              )}
-            </div>
-          </CardContent>
+            <CardHeader>
+              <CardTitle>Detalles del Envío</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+...
+            </CardContent>
           </Card>
-        </>
+        </div>
       )}
     </div>
   );
