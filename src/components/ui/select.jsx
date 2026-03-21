@@ -87,6 +87,7 @@ function Select({ children, value, defaultValue, onValueChange, disabled, ...pro
   const options = React.useMemo(() => collectNativeOptions(children), [children])
   const placeholder = React.useMemo(() => findPlaceholder(children), [children])
   const currentValue = isControlled ? (value ?? "") : internalValue
+  const hasCoarsePointer = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)")?.matches
 
   const handleValueChange = React.useCallback((nextValue) => {
     if (!isControlled) {
@@ -95,7 +96,7 @@ function Select({ children, value, defaultValue, onValueChange, disabled, ...pro
     onValueChange?.(nextValue)
   }, [isControlled, onValueChange])
 
-  const useMobilePicker = isIOS || isAndroid || isNative
+  const useMobilePicker = isIOS || isAndroid || isNative || hasCoarsePointer
 
   if (!useMobilePicker) {
     return (
