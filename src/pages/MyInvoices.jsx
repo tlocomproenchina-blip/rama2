@@ -251,7 +251,7 @@ export default function MyInvoices({ user }) {
             description="Revisa cada factura, descarga su PDF o continúa con el pago correspondiente."
           />
           <div className="grid gap-4">
-          {visibleInvoices.map(invoice => (
+            {visibleInvoices.map(invoice => (
             <InvoiceCard
               key={invoice.id}
               invoice={invoice}
@@ -280,8 +280,9 @@ export default function MyInvoices({ user }) {
                 );
               })()}
             />
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
 
       {processingPayment && (

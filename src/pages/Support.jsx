@@ -41,7 +41,7 @@ export default function Support({ user }) {
   if (!user) {
     return (
       <div className="max-w-xl mx-auto">
-        <Card className="border-0 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardHeader>
             <CardTitle>Inicia sesión para usar Soporte</CardTitle>
           </CardHeader>
@@ -259,7 +259,7 @@ export default function Support({ user }) {
             return (
               <Card 
                 key={ticket.id} 
-                className="border-0 shadow-md hover:shadow-lg transition-all cursor-pointer"
+                className="border border-border/70 bg-card/95 shadow-card hover:shadow-premium transition-all duration-200 cursor-pointer"
                 onClick={() => setSelectedTicket(ticket)}
               >
                 <CardContent className="p-5">
