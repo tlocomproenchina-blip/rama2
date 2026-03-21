@@ -137,7 +137,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </div>
         {/* Header */}
         <div className="relative border-b border-border/60 px-5 pb-5 pt-6">
-          <div className="rounded-[1.75rem] border border-white/80 bg-white/85 p-4 shadow-card backdrop-blur">
+          <div className="rounded-[1.75rem] border border-white/80 bg-white/85 p-4 shadow-card backdrop-blur transition-all duration-300 hover:shadow-premium">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 {config?.app_logo_url ? (
@@ -180,7 +180,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
         {/* User Info */}
         <div className="relative border-b border-border/60 px-5 py-4">
-          <div className="rounded-[1.5rem] border border-white/80 bg-white/78 p-4 shadow-sm backdrop-blur">
+          <div className="rounded-[1.5rem] border border-white/80 bg-white/78 p-4 shadow-sm backdrop-blur transition-all duration-300 hover:bg-white/88">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
@@ -196,7 +196,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </div>
 
         {/* Navigation */}
-        <nav className="relative flex-1 overflow-y-auto px-4 py-4 lg:py-5">
+        <nav className="relative flex-1 overflow-y-auto px-4 py-4 lg:py-5 [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
           <div className="rounded-[1.75rem] border border-white/75 bg-white/58 p-3 shadow-sm backdrop-blur transition-all duration-300">
           {isAdmin ? (
             filteredAdminGroups.map((group) => (

@@ -8,7 +8,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
   return (
     <div className="mt-5 first:mt-0">
       <div className="flex items-center gap-3 px-2 pb-2.5">
-        <div className="h-px flex-1 bg-slate-200" />
+        <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent" />
         <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
           {label}
         </div>
@@ -33,12 +33,16 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
                 onItemClick(item.page);
               }}
               className={[
-                'group relative flex min-h-[58px] items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 touch-manipulation will-change-transform',
+                'group relative flex min-h-[58px] items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 touch-manipulation will-change-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2',
                 isActive
                   ? 'border-primary/10 bg-gradient-to-r from-primary via-sky-500 to-blue-500 text-primary-foreground shadow-premium'
                   : 'border-transparent bg-white/60 text-slate-600 hover:-translate-y-0.5 hover:border-border/70 hover:bg-white hover:text-foreground hover:shadow-card'
               ].join(' ')}
             >
+              <div className={[
+                'absolute left-1.5 top-1/2 h-8 w-1 -translate-y-1/2 rounded-full transition-all duration-200',
+                isActive ? 'bg-white/85 opacity-100' : 'bg-primary/20 opacity-0 group-hover:opacity-100'
+              ].join(' ')} />
               <div className={[
                 'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-all duration-200',
                 isActive ? 'bg-white/18 text-white shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:bg-accent group-hover:text-foreground'

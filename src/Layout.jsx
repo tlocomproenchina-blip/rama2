@@ -540,6 +540,7 @@ export default function Layout({ children, currentPageName }) {
               <div className="min-w-0 flex-1 px-2 text-center">
                 <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-primary/70">Navegación</p>
                 <h1 className="truncate font-display text-sm font-semibold text-slate-800">{config?.app_name || 'TLEC CARGO'}</h1>
+                <p className="truncate text-[11px] text-slate-500">{currentPageName || 'Panel'}</p>
               </div>
               <div className={`h-11 w-11 rounded-2xl transition-all duration-200 ${sidebarOpen ? 'bg-sky-100/90' : 'bg-slate-100/80'}`} />
             </div>
@@ -557,6 +558,15 @@ export default function Layout({ children, currentPageName }) {
             header .rounded-lg, header .rounded-md { border-radius: 12px !important; }
             header svg { width: 24px; height: 24px; }
             aside nav { -webkit-overflow-scrolling: touch; }
+          }
+
+          aside nav::-webkit-scrollbar { width: 8px; }
+          aside nav::-webkit-scrollbar-track { background: transparent; }
+          aside nav::-webkit-scrollbar-thumb {
+            background: hsl(var(--border));
+            border-radius: 9999px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
           }
         `}</style>
 
