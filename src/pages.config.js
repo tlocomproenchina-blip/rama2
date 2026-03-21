@@ -50,9 +50,11 @@
 import AccountDisabled from './pages/AccountDisabled';
 import AccountingDashboard from './pages/AccountingDashboard';
 import AdminAccountsPayable from './pages/AdminAccountsPayable';
+import AdminActivityAudit from './pages/AdminActivityAudit';
 import AdminAdministrators from './pages/AdminAdministrators';
 import AdminAssistedPayments from './pages/AdminAssistedPayments';
 import AdminBlog from './pages/AdminBlog';
+import AdminCargaRutas from './pages/AdminCargaRutas';
 import AdminChoferes from './pages/AdminChoferes';
 import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
@@ -61,12 +63,16 @@ import AdminDelete from './pages/AdminDelete';
 import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
 import AdminEmailTemplates from './pages/AdminEmailTemplates';
 import AdminEmployeeAudit from './pages/AdminEmployeeAudit';
+import AdminEmployeePerformance from './pages/AdminEmployeePerformance';
 import AdminEmployees from './pages/AdminEmployees';
 import AdminFAQ from './pages/AdminFAQ';
 import AdminInsured from './pages/AdminInsured';
+import AdminInternalMessages from './pages/AdminInternalMessages';
 import AdminInvoices from './pages/AdminInvoices';
 import AdminKnowledgeBase from './pages/AdminKnowledgeBase';
+import AdminLogistica from './pages/AdminLogistica';
 import AdminMarketing from './pages/AdminMarketing';
+import AdminOperaciones from './pages/AdminOperaciones';
 import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
@@ -75,6 +81,10 @@ import AdminProviderPayments from './pages/AdminProviderPayments';
 import AdminProviders from './pages/AdminProviders';
 import AdminReferrals from './pages/AdminReferrals';
 import AdminRoles from './pages/AdminRoles';
+import AdminRutaDetalle from './pages/AdminRutaDetalle';
+import AdminRutas from './pages/AdminRutas';
+import AdminSeguimiento from './pages/AdminSeguimiento';
+import AdminSeguimientoRutas from './pages/AdminSeguimientoRutas';
 import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
 import AdminSupport from './pages/AdminSupport';
@@ -104,10 +114,6 @@ import WarehouseDashboard from './pages/WarehouseDashboard';
 import WarehouseLocations from './pages/WarehouseLocations';
 import WarehousePickPackShip from './pages/WarehousePickPackShip';
 import WarehouseReceive from './pages/WarehouseReceive';
-import AdminRutas from './pages/AdminRutas';
-import AdminCargaRutas from './pages/AdminCargaRutas';
-import AdminSeguimientoRutas from './pages/AdminSeguimientoRutas';
-import AdminLogistica from './pages/AdminLogistica';
 import __Layout from './Layout.jsx';
 
 
@@ -115,9 +121,11 @@ export const PAGES = {
     "AccountDisabled": AccountDisabled,
     "AccountingDashboard": AccountingDashboard,
     "AdminAccountsPayable": AdminAccountsPayable,
+    "AdminActivityAudit": AdminActivityAudit,
     "AdminAdministrators": AdminAdministrators,
     "AdminAssistedPayments": AdminAssistedPayments,
     "AdminBlog": AdminBlog,
+    "AdminCargaRutas": AdminCargaRutas,
     "AdminChoferes": AdminChoferes,
     "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
@@ -126,12 +134,16 @@ export const PAGES = {
     "AdminEmailCampaigns": AdminEmailCampaigns,
     "AdminEmailTemplates": AdminEmailTemplates,
     "AdminEmployeeAudit": AdminEmployeeAudit,
+    "AdminEmployeePerformance": AdminEmployeePerformance,
     "AdminEmployees": AdminEmployees,
     "AdminFAQ": AdminFAQ,
     "AdminInsured": AdminInsured,
+    "AdminInternalMessages": AdminInternalMessages,
     "AdminInvoices": AdminInvoices,
     "AdminKnowledgeBase": AdminKnowledgeBase,
+    "AdminLogistica": AdminLogistica,
     "AdminMarketing": AdminMarketing,
+    "AdminOperaciones": AdminOperaciones,
     "AdminPackages": AdminPackages,
     "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPayments": AdminPayments,
@@ -140,6 +152,10 @@ export const PAGES = {
     "AdminProviders": AdminProviders,
     "AdminReferrals": AdminReferrals,
     "AdminRoles": AdminRoles,
+    "AdminRutaDetalle": AdminRutaDetalle,
+    "AdminRutas": AdminRutas,
+    "AdminSeguimiento": AdminSeguimiento,
+    "AdminSeguimientoRutas": AdminSeguimientoRutas,
     "AdminSettings": AdminSettings,
     "AdminShipmentApprovals": AdminShipmentApprovals,
     "AdminSupport": AdminSupport,
@@ -169,10 +185,6 @@ export const PAGES = {
     "WarehouseLocations": WarehouseLocations,
     "WarehousePickPackShip": WarehousePickPackShip,
     "WarehouseReceive": WarehouseReceive,
-    "AdminRutas": AdminRutas,
-    "AdminCargaRutas": AdminCargaRutas,
-    "AdminSeguimientoRutas": AdminSeguimientoRutas,
-    "AdminLogistica": AdminLogistica,
 }
 
 export const pagesConfig = {

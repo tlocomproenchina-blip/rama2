@@ -94,24 +94,8 @@ export default function AdminClients({ user }) {
 
   }, []);
 
-  // Realtime updates: reflect user create/update/delete instantly
-  useEffect(() => {
-    let unsubscribe = null;
-    try {
-      unsubscribe = base44.entities.User.subscribe((event) => {
-        if (event.type === 'delete') {
-          setClients(prev => prev.filter(c => c.id !== event.id));
-        } else if (event.type === 'update') {
-          setClients(prev => prev.map(c => c.id === event.id ? event.data : c));
-        } else if (event.type === 'create') {
-          if (event.data?.role === 'user') {
-            setClients(prev => [event.data, ...prev]);
-          }
-        }
-      });
-    } catch (_) {}
-    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
-  }, []);
+  // Realtime directo sobre User desactivado para evitar errores de permisos en producción.
+
 
   const canViewClients = user?.role === 'admin';
 
@@ -134,15 +118,9 @@ export default function AdminClients({ user }) {
       if (append) setLoadingMore(true); else setLoading(true);
       let users = [];
       if (canViewClients) {
-        if (user?.role === 'admin') {
-          const skip = append ? clients.length : 0;
-          users = await base44.entities.User.filter({ role: 'user' }, '-created_date', PAGE_SIZE, skip);
-          setHasMore(users.length === PAGE_SIZE);
-        } else {
-          const res = await base44.functions.invoke('listClientsForSupport');
-          users = res.data || [];
-          setHasMore(false);
-        }
+        const res = await base44.functions.invoke('listClientsForSupport');
+        users = res.data || [];
+        setHasMore(false);
       }
 
       if (append) {
