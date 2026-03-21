@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Send, User, Shield } from 'lucide-react';
 import { format } from 'date-fns';
+import SupportImageUploader from '@/components/support/SupportImageUploader';
+import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPreview';
 
 export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled }) {
   const [newMessage, setNewMessage] = useState('');
+  const [attachments, setAttachments] = useState([]);
 
   const handleSend = () => {
-    if (!newMessage.trim()) return;
-    onSendMessage(newMessage);
+    if (!newMessage.trim() && attachments.length === 0) return;
+    onSendMessage(newMessage, attachments);
     setNewMessage('');
+    setAttachments([]);
   };
 
   return (
@@ -36,7 +39,8 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
                 <div className={`flex-1 ${isCurrentUser ? 'text-right' : ''}`}>
                   <div className={`inline-block max-w-[80%] ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'} rounded-2xl px-4 py-2`}>
                     <p className="text-sm font-medium mb-1">{msg.sender_name}</p>
-                    <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                    {msg.message ? <p className="text-sm whitespace-pre-wrap">{msg.message}</p> : null}
+                    <SupportAttachmentsPreview attachments={msg.attachments} />
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
                     {format(new Date(msg.timestamp), 'dd/MM/yyyy HH:mm')}
@@ -50,22 +54,25 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
 
       {/* Input */}
       {!disabled && (
-        <div className="flex gap-2">
-          <Textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Escribe tu mensaje..."
-            rows={3}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-          />
-          <Button onClick={handleSend} className="bg-blue-600 hover:bg-blue-700">
-            <Send className="h-4 w-4" />
-          </Button>
+        <div className="space-y-3">
+          <SupportImageUploader files={attachments} onChange={setAttachments} />
+          <div className="flex gap-2">
+            <Textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Escribe tu mensaje..."
+              rows={3}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+            <Button onClick={handleSend} className="bg-blue-600 hover:bg-blue-700">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
