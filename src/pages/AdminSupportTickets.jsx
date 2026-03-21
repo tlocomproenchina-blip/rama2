@@ -26,6 +26,8 @@ import {
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
 import TicketAssignmentDialog from '@/components/support/TicketAssignmentDialog';
+import SupportImageUploader from '@/components/support/SupportImageUploader';
+import { uploadSupportImages } from '@/components/support/supportUploadUtils';
 
 export default function AdminSupportTickets({ user }) {
   const [tickets, setTickets] = useState([]);
@@ -50,7 +52,8 @@ export default function AdminSupportTickets({ user }) {
     category: 'otro',
     priority: 'media',
     message: '',
-    related_tracking: ''
+    related_tracking: '',
+    attachments: []
   });
 
   const isAdmin = user?.role === 'admin';
@@ -105,12 +108,14 @@ export default function AdminSupportTickets({ user }) {
     }
 
     const ticketNumber = `TKT-${Date.now()}`;
+    const uploadedAttachments = await uploadSupportImages(newTicket.attachments);
     const firstMessage = {
       sender_email: user.email,
       sender_name: user.full_name || 'Administrador',
       message: newTicket.message,
       timestamp: new Date().toISOString(),
-      is_admin: true
+      is_admin: true,
+      attachments: uploadedAttachments
     };
 
     await base44.entities.SupportTicket.create({
@@ -138,7 +143,7 @@ export default function AdminSupportTickets({ user }) {
     toast.success('Ticket creado exitosamente');
     setShowNewTicket(false);
     setClientSearch('');
-    setNewTicket({ client_email: '', subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '' });
+    setNewTicket({ client_email: '', subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '', attachments: [] });
     loadData();
   };
 
@@ -228,13 +233,15 @@ export default function AdminSupportTickets({ user }) {
     }
   };
 
-  const handleSendMessage = async (message) => {
+  const handleSendMessage = async (message, files = []) => {
+    const uploadedAttachments = await uploadSupportImages(files);
     const newMessage = {
       sender_email: user.email,
       sender_name: user.full_name || user.email,
       message,
       timestamp: new Date().toISOString(),
-      is_admin: true
+      is_admin: true,
+      attachments: uploadedAttachments
     };
 
     const updatedMessages = [...(selectedTicket.messages || []), newMessage];
@@ -734,6 +741,14 @@ export default function AdminSupportTickets({ user }) {
                 onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
                 placeholder="Mensaje inicial del ticket..."
                 rows={5}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Fotos (opcional)</Label>
+              <SupportImageUploader
+                files={newTicket.attachments}
+                onChange={(attachments) => setNewTicket({ ...newTicket, attachments })}
               />
             </div>
           </div>
