@@ -23,6 +23,7 @@ import ErrorBoundary from '@/components/common/ErrorBoundary';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import PullToRefresh from '@/components/common/PullToRefresh';
 import SkipToContent from '@/components/common/SkipToContent';
+import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
 
 // Lazy loaded non-critical components
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
@@ -509,6 +510,7 @@ export default function Layout({ children, currentPageName }) {
       <Suspense fallback={null}>
         <ExperienceFeedbackWidget user={user} currentPageName={currentPageName} />
       </Suspense>
+      {user?.role === 'admin' && <InternalFloatingChat user={user} />}
       
       {user && (
         <div className={hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}>
