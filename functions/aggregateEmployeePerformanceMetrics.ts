@@ -14,23 +14,11 @@ const AREA_ROLE_LABELS = {
   seguimiento: 'Seguimiento',
   equipo_y_acceso: 'Equipo y Acceso',
 };
-const VALID_ROLE_NAMES = new Set(Object.values(AREA_ROLE_LABELS));
 
 function resolveEmployeeRole(log) {
   const rawRole = String(log?.area_name || log?.area_code || log?.employee_role || log?.actor_role || '').trim();
   const normalized = rawRole.toLowerCase();
   return AREA_ROLE_LABELS[normalized] || rawRole;
-}
-
-function resolveUserArea(user) {
-  const rawRole = String(user?.custom_role || '').trim();
-  const normalized = rawRole.toLowerCase();
-  return AREA_ROLE_LABELS[normalized] || '';
-}
-
-async function getEmployeeDirectory(base44) {
-  const users = await base44.asServiceRole.entities.User.filter({ role: 'admin' }, '-created_date', 300);
-  return new Map((users || []).map((user) => [String(user.email || '').toLowerCase(), user]));
 }
 
 function getLocalDateString(value, timeZone = TIMEZONE) {
@@ -235,10 +223,9 @@ Deno.serve(async (req) => {
     const payload = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
     const metricDate = String(payload?.metric_date || getLocalDateString(new Date()));
 
-    const [employeeLogs, entityLogs, employeeDirectory] = await Promise.all([
+    const [employeeLogs, entityLogs] = await Promise.all([
       fetchLogsForDate(base44.asServiceRole.entities.EmployeeAuditLog, ['client_side_timestamp', 'created_date'], metricDate),
       fetchLogsForDate(base44.asServiceRole.entities.ActivityAuditLog, ['client_side_timestamp', 'created_date'], metricDate),
-      getEmployeeDirectory(base44),
     ]);
 
     const metricsByEmployee = new Map();
@@ -261,20 +248,6 @@ Deno.serve(async (req) => {
 
     const saved = [];
     for (const metric of metricsByEmployee.values()) {
-      const userRecord = employeeDirectory.get(String(metric.employee_email || '').toLowerCase());
-      const resolvedArea = resolveUserArea(userRecord);
-
-      if (userRecord?.full_name) {
-        metric.employee_name = userRecord.full_name;
-      }
-      if (resolvedArea) {
-        metric.employee_role = resolvedArea;
-      }
-
-      if (!VALID_ROLE_NAMES.has(String(metric.employee_role || '').trim())) {
-        continue;
-      }
-
       saved.push(await upsertMetric(base44, metricDate, metric));
     }
 
