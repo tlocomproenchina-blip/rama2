@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -46,10 +46,59 @@ export default function NotificationBell({ user }) {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
 
+  const loadNotifications = useCallback(async () => {
+    if (!user?.email) return;
+    try {
+      const notifs = await base44.entities.Notification.filter(
+        { user_email: user.email },
+        '-created_date',
+        50
+      );
+
+      const seen = new Set();
+      const deduped = notifs.filter(n => {
+        const key = `${n.reference_id}-${n.title}-${n.message}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      setNotifications(deduped);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      setLoading(false);
+    }
+  }, [user?.email]);
+
   useEffect(() => {
-    // Do NOT load notifications on mount to avoid rate limiting
-    // Notifications will only load when user opens the dropdown
-  }, [user]);
+    loadNotifications();
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const unsubscribe = base44.entities.Notification.subscribe((event) => {
+      const data = event?.data;
+      if (!data || data.user_email !== user.email) return;
+
+      if (event.type === 'create') {
+        setNotifications((prev) => {
+          const exists = prev.some((item) => item.id === data.id);
+          if (exists) return prev;
+          return [data, ...prev];
+        });
+      }
+
+      if (event.type === 'update' || event.type === 'delete') {
+        loadNotifications();
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [user?.email, loadNotifications]);
 
   const playNotificationSound = () => {
     // Create a simple beep sound using Web Audio API
@@ -68,34 +117,6 @@ export default function NotificationBell({ user }) {
     
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.5);
-  };
-
-  const loadNotifications = async () => {
-    if (!user) return;
-    try {
-      const notifs = await base44.entities.Notification.filter(
-        { user_email: user.email },
-        '-created_date',
-        50 // Reduced from 100 to 50 to lighten the load
-      );
-      
-      // Deduplicate notifications by reference_id, title, and message
-      const seen = new Set();
-      const deduped = notifs.filter(n => {
-        const key = `${n.reference_id}-${n.title}-${n.message}`;
-        if (seen.has(key)) {
-          return false;
-        }
-        seen.add(key);
-        return true;
-      });
-      
-      setNotifications(deduped);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-      setLoading(false);
-    }
   };
 
   const handleNotificationClick = async (notif) => {
