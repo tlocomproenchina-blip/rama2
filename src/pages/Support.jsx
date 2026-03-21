@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
+import SupportImageUploader from '@/components/support/SupportImageUploader';
+import { uploadSupportImages } from '@/components/support/supportUploadUtils';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
@@ -33,7 +35,8 @@ export default function Support({ user }) {
     category: 'otro',
     priority: 'media',
     message: '',
-    related_tracking: ''
+    related_tracking: '',
+    attachments: []
   });
   const [creating, setCreating] = useState(false);
 
@@ -80,12 +83,14 @@ export default function Support({ user }) {
     
     try {
       const ticketNumber = `TKT-${Date.now()}`;
+      const uploadedAttachments = await uploadSupportImages(newTicket.attachments);
       const firstMessage = {
         sender_email: user.email,
         sender_name: user.full_name || user.email,
         message: newTicket.message,
         timestamp: new Date().toISOString(),
-        is_admin: false
+        is_admin: false,
+        attachments: uploadedAttachments
       };
 
       const ticketData = {
@@ -129,7 +134,7 @@ export default function Support({ user }) {
 
       toast.success('Ticket creado exitosamente. Te responderemos pronto.');
       setShowNewTicket(false);
-      setNewTicket({ subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '' });
+      setNewTicket({ subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '', attachments: [] });
       loadTickets();
     } catch (error) {
       console.error('Error al crear ticket:', error);
@@ -139,14 +144,16 @@ export default function Support({ user }) {
     }
   };
 
-  const handleSendMessage = async (message) => {
+  const handleSendMessage = async (message, files = []) => {
     if (!user?.email) { base44.auth.redirectToLogin(); return; }
+    const uploadedAttachments = await uploadSupportImages(files);
     const newMessage = {
       sender_email: user.email,
       sender_name: user.full_name || user.email,
       message,
       timestamp: new Date().toISOString(),
-      is_admin: false
+      is_admin: false,
+      attachments: uploadedAttachments
     };
 
     const updatedMessages = [...(selectedTicket.messages || []), newMessage];
@@ -361,6 +368,15 @@ export default function Support({ user }) {
                 onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
                 placeholder="Describe tu problema en detalle..."
                 rows={5}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Fotos (opcional)</Label>
+              <SupportImageUploader
+                files={newTicket.attachments}
+                onChange={(attachments) => setNewTicket({ ...newTicket, attachments })}
+                disabled={creating}
               />
             </div>
           </div>
