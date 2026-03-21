@@ -9,9 +9,17 @@ function stringifyValue(value) {
 }
 
 function getEntityLabel(entityName, data) {
-  if (entityName === 'Package') return data?.tracking_number || 'Paquete';
-  if (entityName === 'Ruta') return data?.codigo_ruta || 'Ruta';
-  return 'Registro';
+  return data?.tracking_number ||
+    data?.codigo_ruta ||
+    data?.consolidation_tracking ||
+    data?.ticket_number ||
+    data?.invoice_number ||
+    data?.shipping_mark ||
+    data?.name ||
+    data?.title ||
+    data?.subject ||
+    entityName ||
+    'Registro';
 }
 
 function getChangedFields(oldData, newData, actionType) {
@@ -45,6 +53,23 @@ function getChangedFields(oldData, newData, actionType) {
     .slice(0, 20);
 }
 
+function getActionLabel(actionType) {
+  if (actionType === 'create') return 'Creó';
+  if (actionType === 'update') return 'Actualizó';
+  if (actionType === 'delete') return 'Eliminó';
+  return 'Registró';
+}
+
+function buildActionDetail(entityName, actionType, changedFields) {
+  if (actionType === 'create') return `Creación de ${entityName}`;
+  if (actionType === 'delete') return `Eliminación de ${entityName}`;
+
+  if (!changedFields.length) return `Actualización de ${entityName} sin diferencias detectadas`;
+
+  const fieldsPreview = changedFields.slice(0, 5).map((field) => field.field_name).join(', ');
+  return `Campos modificados: ${fieldsPreview}`;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -53,7 +78,7 @@ Deno.serve(async (req) => {
     const entityName = String(event.entity_name || '');
     const actionType = String(event.type || '');
 
-    if (!['Package', 'Ruta'].includes(entityName) || !['create', 'update', 'delete'].includes(actionType)) {
+    if (!entityName || !['create', 'update', 'delete'].includes(actionType)) {
       return Response.json({ ok: true, ignored: true });
     }
 
@@ -63,15 +88,23 @@ Deno.serve(async (req) => {
     const sourceData = actionType === 'delete' ? oldData : newData;
     const changedFields = getChangedFields(oldData, newData, actionType);
     const entityLabel = getEntityLabel(entityName, sourceData || oldData || newData);
-    const summary = `${actionType === 'create' ? 'Creó' : actionType === 'update' ? 'Actualizó' : 'Eliminó'} ${entityName === 'Package' ? 'paquete' : 'ruta'} ${entityLabel}`;
+    const summary = `${getActionLabel(actionType)} ${entityName} ${entityLabel}`;
+    const actionDetail = buildActionDetail(entityName, actionType, changedFields);
 
     const log = await base44.asServiceRole.entities.ActivityAuditLog.create({
       entity_name: entityName,
       entity_id: String(event.entity_id || sourceData?.id || oldData?.id || ''),
       entity_label: entityLabel,
       action_type: actionType,
+      action_detail: actionDetail,
       actor_email: actor?.email || sourceData?.created_by || 'system',
       actor_name: actor?.full_name || 'Sistema',
+      actor_role: actor?.role || 'system',
+      module_name: entityName,
+      session_id: String(payload?.session_id || ''),
+      page_path: String(payload?.page_path || ''),
+      duration_ms: Number(payload?.duration_ms || 0),
+      client_side_timestamp: String(payload?.client_side_timestamp || new Date().toISOString()),
       summary,
       changed_fields: changedFields,
     });
