@@ -119,13 +119,17 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
       }
       
       {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        relative w-80 border-r border-border/60 bg-sidebar/95
-        transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        flex flex-col overflow-hidden shadow-[0_24px_60px_-24px_rgba(15,23,42,0.28)] backdrop-blur-xl
-      `}>
+      <aside
+        className={`
+          fixed left-2 top-2 bottom-2 z-50 lg:static lg:inset-y-0 lg:left-0
+          relative w-[min(20rem,calc(100vw-1rem))] lg:w-80 rounded-[2rem] lg:rounded-none
+          border border-white/70 lg:border-y-0 lg:border-l-0 lg:border-r lg:border-border/60 bg-sidebar/95
+          origin-left transform transition-all duration-300 ease-out motion-reduce:transition-none
+          ${isOpen ? 'translate-x-0 opacity-100 scale-100' : '-translate-x-[calc(100%+1rem)] opacity-0 scale-[0.985] lg:translate-x-0 lg:opacity-100 lg:scale-100'}
+          flex flex-col overflow-hidden shadow-[0_24px_60px_-24px_rgba(15,23,42,0.28)] backdrop-blur-xl
+        `}
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.15rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.15rem)' }}
+      >
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute inset-x-6 top-0 h-40 rounded-b-[2rem] bg-gradient-to-b from-white/90 to-transparent" />
           <div className="absolute -right-10 top-24 h-36 w-36 rounded-full bg-sky-200/35 blur-3xl" />
@@ -192,8 +196,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </div>
 
         {/* Navigation */}
-        <nav className="relative flex-1 overflow-y-auto px-4 py-5">
-          <div className="rounded-[1.75rem] border border-white/75 bg-white/58 p-3 shadow-sm backdrop-blur">
+        <nav className="relative flex-1 overflow-y-auto px-4 py-4 lg:py-5">
+          <div className="rounded-[1.75rem] border border-white/75 bg-white/58 p-3 shadow-sm backdrop-blur transition-all duration-300">
           {isAdmin ? (
             filteredAdminGroups.map((group) => (
               <SidebarNavGroup
@@ -223,8 +227,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </nav>
 
         {/* Logout */}
-        <div className="relative border-t border-border/60 px-4 py-4">
-          <div className="rounded-[1.5rem] border border-white/80 bg-white/82 p-2 shadow-sm backdrop-blur">
+        <div className="relative border-t border-border/60 px-4 pb-4 pt-3 lg:py-4">
+          <div className="rounded-[1.5rem] border border-white/80 bg-white/82 p-2 shadow-sm backdrop-blur transition-all duration-300">
             <Button
               variant="ghost"
               className="w-full justify-start rounded-xl text-muted-foreground hover:bg-accent/80 hover:text-foreground"

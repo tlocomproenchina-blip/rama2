@@ -527,21 +527,21 @@ export default function Layout({ children, currentPageName }) {
         {/* Mobile Header */}
         {user && (
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card">
+          <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card transition-all duration-300">
             <div className="flex items-center justify-between gap-2">
               <Button 
                 variant="ghost" 
                 size="icon"
-                className="h-11 w-11 rounded-2xl border border-border/70 bg-white/80 p-0 touch-manipulation select-none active:opacity-80"
+                className={`h-11 w-11 rounded-2xl border p-0 touch-manipulation select-none transition-all duration-200 active:opacity-80 ${sidebarOpen ? 'border-primary/20 bg-accent text-foreground shadow-sm' : 'border-border/70 bg-white/80'}`}
                 onClick={() => setSidebarOpen(true)}
               >
-                <Menu className="h-5 w-5" />
+                <Menu className={`h-5 w-5 transition-transform duration-200 ${sidebarOpen ? 'scale-95' : 'scale-100'}`} />
               </Button>
               <div className="min-w-0 flex-1 px-2 text-center">
                 <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-primary/70">Navegación</p>
                 <h1 className="truncate font-display text-sm font-semibold text-slate-800">{config?.app_name || 'TLEC CARGO'}</h1>
               </div>
-              <div className="h-11 w-11 rounded-2xl bg-slate-100/80" />
+              <div className={`h-11 w-11 rounded-2xl transition-all duration-200 ${sidebarOpen ? 'bg-sky-100/90' : 'bg-slate-100/80'}`} />
             </div>
           </div>
         </header>
@@ -556,6 +556,7 @@ export default function Layout({ children, currentPageName }) {
             header .h-10.w-10, header .h-9.w-9 { height: 48px !important; width: 48px !important; }
             header .rounded-lg, header .rounded-md { border-radius: 12px !important; }
             header svg { width: 24px; height: 24px; }
+            aside nav { -webkit-overflow-scrolling: touch; }
           }
         `}</style>
 

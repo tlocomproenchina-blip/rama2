@@ -33,7 +33,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
                 onItemClick(item.page);
               }}
               className={[
-                'group relative flex min-h-[56px] items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 touch-manipulation',
+                'group relative flex min-h-[58px] items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 touch-manipulation will-change-transform',
                 isActive
                   ? 'border-primary/10 bg-gradient-to-r from-primary via-sky-500 to-blue-500 text-primary-foreground shadow-premium'
                   : 'border-transparent bg-white/60 text-slate-600 hover:-translate-y-0.5 hover:border-border/70 hover:bg-white hover:text-foreground hover:shadow-card'
