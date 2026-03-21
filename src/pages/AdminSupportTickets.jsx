@@ -84,13 +84,30 @@ export default function AdminSupportTickets({ user }) {
       const skip = append ? tickets.length : 0;
       const results = await Promise.allSettled([
         base44.entities.SupportTicket.list('-created_date', pageSize, skip),
-        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve([user])
+        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve([user]),
+        base44.entities.Package.list('-updated_date', 1000)
       ]);
 
       const allT = results[0].status === 'fulfilled' ? results[0].value : [];
       const usersList = results[1].status === 'fulfilled' ? results[1].value : [user];
+      const packagesList = results[2].status === 'fulfilled' ? results[2].value : [];
       const nextStaff = (usersList || []).filter((member) => member.role === 'admin' || ['warehouse', 'customer_service', 'operations_manager'].includes(member.custom_role));
-      const nextClients = (usersList || []).filter((member) => member.role === 'user' && !member.custom_role);
+      const clientPackagesByEmail = (packagesList || []).reduce((acc, pkg) => {
+        if (!pkg?.client_email) return acc;
+        if (!acc[pkg.client_email]) acc[pkg.client_email] = [];
+        acc[pkg.client_email].push(pkg);
+        return acc;
+      }, {});
+      const nextClients = (usersList || [])
+        .filter((member) => member.role === 'user' && !member.custom_role)
+        .map((member) => {
+          const relatedPackages = clientPackagesByEmail[member.email] || [];
+          return {
+            ...member,
+            package_trackings: relatedPackages.map((pkg) => pkg.tracking_number).filter(Boolean),
+            package_shipping_marks: relatedPackages.map((pkg) => pkg.shipping_mark).filter(Boolean),
+          };
+        });
 
       setTickets((prev) => append ? [...prev, ...allT] : allT);
       setStaffUsers(nextStaff);
@@ -671,8 +688,8 @@ export default function AdminSupportTickets({ user }) {
                           (client.last_name || '').toLowerCase().includes(searchLower) ||
                           (client.email || '').toLowerCase().includes(searchLower) ||
                           (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
-                          (client.tracking_number || '').toLowerCase().includes(searchLower) ||
-                          (client.related_tracking || '').toLowerCase().includes(searchLower) ||
+                          (client.package_trackings || []).some((tracking) => (tracking || '').toLowerCase().includes(searchLower)) ||
+                          (client.package_shipping_marks || []).some((mark) => (mark || '').toLowerCase().includes(searchLower)) ||
                           (client.whatsapp || '').toLowerCase().includes(searchLower) ||
                           (client.telefono || '').toLowerCase().includes(searchLower) ||
                           (client.phone || '').toLowerCase().includes(searchLower)
