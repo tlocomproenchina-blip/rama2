@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { ROLE_PRESETS } from '@/lib/rolePermissions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -69,7 +70,7 @@ export default function AdminEmployeePerformance({ user }) {
     }
   }, [filteredMetrics, selectedEmail]);
 
-  const roleOptions = useMemo(() => Array.from(new Set(metrics.map((item) => item.employee_role).filter(Boolean))).sort(), [metrics]);
+  const roleOptions = useMemo(() => Object.values(ROLE_PRESETS).map((role) => role.role_name), []);
   const selectedMetric = filteredMetrics.find((item) => item.employee_email === selectedEmail) || null;
 
   const summary = useMemo(() => {

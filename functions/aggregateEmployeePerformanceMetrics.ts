@@ -3,6 +3,23 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 const TIMEZONE = 'America/Caracas';
 const BATCH_SIZE = 200;
 const MAX_RECORDS = 10000;
+const AREA_ROLE_LABELS = {
+  operaciones: 'Operaciones',
+  almacen: 'Almacén',
+  contabilidad: 'Contabilidad',
+  soporte: 'Soporte',
+  marketing: 'Marketing',
+  logistica: 'Logística',
+  comunicaciones: 'Comunicaciones',
+  seguimiento: 'Seguimiento',
+  equipo_y_acceso: 'Equipo y Acceso',
+};
+
+function resolveEmployeeRole(log) {
+  const rawRole = String(log?.area_name || log?.area_code || log?.employee_role || log?.actor_role || '').trim();
+  const normalized = rawRole.toLowerCase();
+  return AREA_ROLE_LABELS[normalized] || rawRole;
+}
 
 function getLocalDateString(value, timeZone = TIMEZONE) {
   const date = value ? new Date(value) : new Date();
@@ -66,7 +83,7 @@ function createBaseMetric(log) {
   return {
     employee_email: String(log?.actor_email || ''),
     employee_name: String(log?.actor_name || log?.actor_email || 'Sin nombre'),
-    employee_role: String(log?.actor_role || log?.area_name || log?.area_code || ''),
+    employee_role: resolveEmployeeRole(log),
     first_activity_at: null,
     last_activity_at: null,
     total_session_time_ms: 0,
@@ -120,7 +137,8 @@ function applyActivityLog(metric, log) {
   if (log?.module_name) metric.module_set.add(String(log.module_name));
 
   if (!metric.employee_name && log?.actor_name) metric.employee_name = String(log.actor_name);
-  if (!metric.employee_role && (log?.actor_role || log?.area_name)) metric.employee_role = String(log.actor_role || log.area_name);
+  const resolvedRole = resolveEmployeeRole(log);
+  if (!metric.employee_role || metric.employee_role === 'admin') metric.employee_role = resolvedRole;
 }
 
 function applyEntityLog(metric, log) {
@@ -145,7 +163,7 @@ function applyEntityLog(metric, log) {
   if (log?.module_name || log?.entity_name) metric.module_set.add(String(log.module_name || log.entity_name));
 
   if (!metric.employee_name && log?.actor_name) metric.employee_name = String(log.actor_name);
-  if (!metric.employee_role && log?.actor_role) metric.employee_role = String(log.actor_role);
+  if (!metric.employee_role) metric.employee_role = resolveEmployeeRole(log);
 }
 
 async function upsertMetric(base44, metricDate, metric) {
