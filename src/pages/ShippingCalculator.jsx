@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, Plane, Ship, Package, Loader2 } from 'lucide-react';
+import { Calculator, Plane, Ship, Package, Loader2, DollarSign } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
@@ -425,11 +425,12 @@ export default function ShippingCalculator({ user }) {
 
       {/* Results */}
       {selectedState && result && (
-        <ClientSectionHeader
-          title="Resultado estimado"
-          description="Revisa el detalle del cálculo, la unidad facturable y el total aproximado."
-        />
-        <Card className="border-border/70 bg-gradient-to-br from-slate-50 to-white shadow-card">
+        <>
+          <ClientSectionHeader
+            title="Resultado estimado"
+            description="Revisa el detalle del cálculo, la unidad facturable y el total aproximado."
+          />
+          <Card className="border-border/70 bg-gradient-to-br from-slate-50 to-white shadow-card">
           <CardHeader>
             <CardTitle>Detalles del Envío</CardTitle>
           </CardHeader>
@@ -529,7 +530,8 @@ export default function ShippingCalculator({ user }) {
               )}
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </>
       )}
     </div>
   );
