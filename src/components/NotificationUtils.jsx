@@ -160,26 +160,31 @@ export function getEmailQueueStats() {
 
 // Notificar a todos los administradores (usa backend listAdmins con service role)
 export async function notifyAdmins({ subject, body, message, type = 'system', icon = 'bell', referenceId = null }) {
-  const res = await base44.functions.invoke('listAdmins', {});
-  const admins = Array.isArray(res?.data?.admins) ? res.data.admins : [];
-  if (admins.length === 0) return { success: true, notified: 0 };
+  try {
+    const res = await base44.functions.invoke('listAdmins', {});
+    const admins = Array.isArray(res?.data?.admins) ? res.data.admins : [];
+    if (admins.length === 0) return { success: true, notified: 0 };
 
-  await Promise.all(
-    admins.map(async (a) => {
-      await sendNotification({
-        to: a.email,
-        subject,
-        body,
-        title: subject,
-        message: message || body,
-        type,
-        icon,
-        referenceId
-      });
-    })
-  );
+    await Promise.all(
+      admins.map(async (a) => {
+        await sendNotification({
+          to: a.email,
+          subject,
+          body,
+          title: subject,
+          message: message || body,
+          type,
+          icon,
+          referenceId
+        });
+      })
+    );
 
-  return { success: true, notified: admins.length };
+    return { success: true, notified: admins.length };
+  } catch (error) {
+    console.error('notifyAdmins failed:', error);
+    return { success: false, notified: 0 };
+  }
 }
 
 // Notificaciones estándar de estado de paquete (usada por AdminPackages)
