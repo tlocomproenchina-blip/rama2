@@ -154,10 +154,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                 )}
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">Panel</p>
-                  <h1 className="truncate text-lg font-bold text-foreground">
+                  <h1 className="truncate font-display text-lg font-bold text-foreground">
                     {config?.app_name || 'TLEC CARGO'}
                   </h1>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="truncate text-[12px] text-muted-foreground">
                     {config?.app_tagline || 'Sistema de Envíos'}
                   </p>
                 </div>
@@ -179,8 +179,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
           <div className="rounded-[1.5rem] border border-white/80 bg-white/78 p-4 shadow-sm backdrop-blur">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-foreground">{user?.full_name || user?.email}</p>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{user?.email}</p>
+                <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
+                <p className="mt-1 truncate text-[12px] text-muted-foreground">{user?.email}</p>
               </div>
               <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
               isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
