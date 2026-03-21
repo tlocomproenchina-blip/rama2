@@ -13,7 +13,7 @@ import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 
 
 
-import { notifyAdmins } from '@/components/NotificationUtils';
+import { notifyAdmins, sendInAppNotification, sendTemplatedEmail } from '@/components/NotificationUtils';
 import { Menu, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -365,6 +365,30 @@ export default function Layout({ children, currentPageName }) {
         ...(assignedShippingMark ? { shipping_mark: assignedShippingMark } : {})
       };
       setUser(updatedUser);
+
+      await sendTemplatedEmail({
+        to: user.email,
+        templateName: 'Base - Nuevo Cliente',
+        client: updatedUser,
+        extraData: { app_name: config?.app_name || 'TLEC CARGO' },
+        fallbackSubject: '¡Bienvenido a TLEC CARGO!',
+        fallbackBody: 'Hola {cliente_nombre}, tu cuenta ya está activa en TLEC CARGO.',
+        title: 'Bienvenido a TLEC CARGO',
+        message: 'Tu cuenta ya está activa y lista para usarse.',
+        type: 'system',
+        icon: 'check'
+      });
+
+      await sendInAppNotification({
+        user_email: user.email,
+        title: 'Registro completado',
+        message: 'Tu perfil fue completado correctamente y tu cuenta ya está activa.',
+        type: 'system',
+        icon: 'check',
+        priority: 'medium',
+        reference_id: user.id,
+        entity_type: 'System'
+      });
 
       notifyAdmins({
         subject: '👤 Nuevo usuario registrado',

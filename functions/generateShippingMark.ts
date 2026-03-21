@@ -13,6 +13,81 @@ const getRandomPart = (chars, length) => {
   return value;
 };
 
+const replaceTemplateVariables = (text, variables = {}) => {
+  let result = String(text || '');
+  Object.entries(variables).forEach(([key, value]) => {
+    result = result.split(`{${key}}`).join(String(value ?? ''));
+    result = result.split(`{{${key}}}`).join(String(value ?? ''));
+  });
+  return result;
+};
+
+const getPersonName = (person = {}) => {
+  if (person.first_name && person.last_name) return `${person.first_name} ${person.last_name}`;
+  return person.full_name || person.email || 'Usuario';
+};
+
+const notifyShippingMarkAssigned = async (base44, targetUser, shippingMark) => {
+  if (!targetUser?.email || !shippingMark) return;
+
+  const appConfigs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+  const appConfig = appConfigs?.[0] || {};
+  const templateRows = await base44.asServiceRole.entities.EmailTemplate.filter({ name: 'Base - Shipping Mark Asignado' }, '-updated_date', 1);
+  const template = templateRows?.[0] || null;
+  const fromName = appConfig.invoice_company_name || appConfig.app_name || 'TLEC CARGO';
+  const variables = {
+    cliente_nombre: getPersonName(targetUser),
+    shipping_mark: shippingMark,
+  };
+  const subject = replaceTemplateVariables(template?.subject || 'Tu Shipping Mark ha sido asignado', variables);
+  const body = replaceTemplateVariables(template?.body || 'Hola {cliente_nombre}, tu Shipping Mark es {shipping_mark}.', variables);
+
+  try {
+    await base44.integrations.Core.SendEmail({
+      to: targetUser.email,
+      subject,
+      body,
+      from_name: fromName,
+    });
+
+    await base44.asServiceRole.entities.EmailLog.create({
+      recipient_email: targetUser.email,
+      recipient_name: null,
+      sender_email: null,
+      from_name: fromName,
+      subject,
+      body_preview: body.slice(0, 200),
+      source: 'manual',
+      status: 'sent',
+      sent_date: new Date().toISOString(),
+    });
+  } catch (error) {
+    await base44.asServiceRole.entities.EmailLog.create({
+      recipient_email: targetUser.email,
+      recipient_name: null,
+      sender_email: null,
+      from_name: fromName,
+      subject,
+      body_preview: body.slice(0, 200),
+      source: 'manual',
+      status: 'failed',
+      sent_date: new Date().toISOString(),
+    });
+  }
+
+  await base44.asServiceRole.entities.Notification.create({
+    user_email: targetUser.email,
+    title: 'Shipping Mark asignado',
+    message: `Tu código asignado es ${shippingMark}.`,
+    type: 'system',
+    priority: 'high',
+    reference_id: targetUser.id,
+    entity_type: 'System',
+    icon: 'check',
+    read: false,
+  });
+};
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -126,6 +201,8 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.Package.update(pkg.id, { shipping_mark: shippingMark });
       }
     }
+
+    await notifyShippingMarkAssigned(base44, targetUser, shippingMark);
 
     return Response.json({ success: true, shipping_mark: shippingMark, assigned: true });
   } catch (error) {
