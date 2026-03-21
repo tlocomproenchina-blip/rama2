@@ -810,6 +810,11 @@ export default function AdminSupportTickets({ user }) {
                 <DialogTitle>{selectedTicket?.subject}</DialogTitle>
                 <p className="text-sm text-slate-500 font-mono mt-1">{selectedTicket?.ticket_number}</p>
                 <p className="text-sm text-slate-500 mt-1">Cliente: {selectedTicket?.client_email}</p>
+                {selectedTicket?.related_tracking && (
+                  <div className="mt-3 inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
+                    Tracking relacionado: {selectedTicket.related_tracking}
+                  </div>
+                )}
               </div>
               <Badge className={statusConfig[selectedTicket?.status]?.color}>
                 {statusConfig[selectedTicket?.status]?.label}
