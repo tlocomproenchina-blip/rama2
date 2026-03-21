@@ -1,5 +1,4 @@
 import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -8,6 +7,7 @@ import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
 import NativeMobileHeader from '@/components/navigation/NativeMobileHeader';
+import MobilePageTransition from '@/components/navigation/MobilePageTransition';
 import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 import { usePlatform } from '@/hooks/usePlatform';
 import { notifyAdmins, sendTemplatedEmail } from '@/components/NotificationUtils';
@@ -633,17 +633,13 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               )}
               <ErrorBoundary>
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={location.pathname + location.search}
-                    initial={{ opacity: 0, x: slideDirection > 0 ? 28 : -28 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: slideDirection > 0 ? -20 : 20 }}
-                    transition={{ duration: 0.22, ease: 'easeOut' }}
-                  >
-                    {React.cloneElement(children, { user, refreshUser: loadUser })}
-                  </motion.div>
-                </AnimatePresence>
+                <MobilePageTransition
+                  isNative={isNative}
+                  transitionKey={location.pathname + location.search}
+                  slideDirection={slideDirection}
+                >
+                  {React.cloneElement(children, { user, refreshUser: loadUser })}
+                </MobilePageTransition>
               </ErrorBoundary>
             </div>
           </PullToRefresh>
