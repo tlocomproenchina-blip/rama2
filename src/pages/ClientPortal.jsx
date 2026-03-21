@@ -41,6 +41,7 @@ import EditProfileModal from '@/components/EditProfileModal';
 import PortalHero from '@/components/client-portal/PortalHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import PremiumLoader from '@/components/common/PremiumLoader';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 
 export default function ClientPortal({ user, refreshUser }) {
   const navigate = useNavigate();
@@ -182,7 +183,7 @@ export default function ClientPortal({ user, refreshUser }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-8">
       <PortalHero user={user} onCreateTicket={() => setShowTicketModal(true)} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -194,19 +195,19 @@ export default function ClientPortal({ user, refreshUser }) {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="!grid w-full !grid-cols-2 gap-2 !bg-transparent !p-0 lg:!grid-cols-5 lg:!inline-flex">
-          <TabsTrigger value="overview" className="!flex w-full min-h-[60px] whitespace-normal text-center leading-tight">Resumen</TabsTrigger>
-          <TabsTrigger value="packages" className="!flex w-full min-h-[60px] whitespace-normal text-center leading-tight">Paquetes</TabsTrigger>
-          <TabsTrigger value="invoices" className="!flex w-full min-h-[60px] whitespace-normal text-center leading-tight">Facturas</TabsTrigger>
-          <TabsTrigger value="profile" className="!flex w-full min-h-[60px] whitespace-normal text-center leading-tight">Mi Perfil</TabsTrigger>
-          <TabsTrigger value="support" className="!flex w-full min-h-[60px] whitespace-normal text-center leading-tight">Soporte</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 gap-2 rounded-[1.5rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur lg:grid-cols-5">
+          <TabsTrigger value="overview" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Resumen</TabsTrigger>
+          <TabsTrigger value="packages" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Paquetes</TabsTrigger>
+          <TabsTrigger value="invoices" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Facturas</TabsTrigger>
+          <TabsTrigger value="profile" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Mi Perfil</TabsTrigger>
+          <TabsTrigger value="support" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Soporte</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Recent Packages */}
-            <Card className="border-0 shadow-lg">
+            <Card className="border-border/70 bg-card/95 shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-blue-600" />
@@ -238,7 +239,7 @@ export default function ClientPortal({ user, refreshUser }) {
             </Card>
 
             {/* Recent Invoices */}
-            <Card className="border-0 shadow-lg">
+            <Card className="border-border/70 bg-card/95 shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-green-600" />
@@ -283,16 +284,15 @@ export default function ClientPortal({ user, refreshUser }) {
 
         {/* Packages Tab */}
         <TabsContent value="packages" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-slate-800">Mis Paquetes</h2>
-            <Button onClick={() => navigate(createPageUrl('PreAlert'))} className="bg-blue-600 hover:bg-blue-700">
-              Nueva Pre-alerta
-            </Button>
-          </div>
+          <ClientSectionHeader
+            title="Mis Paquetes"
+            description="Consulta tus últimos movimientos y crea nuevas pre-alertas."
+            action={<Button onClick={() => navigate(createPageUrl('PreAlert'))}>Nueva Pre-alerta</Button>}
+          />
           
           <div className="grid gap-4">
             {packages.map(pkg => (
-              <Card key={pkg.id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
+              <Card key={pkg.id} className="border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium">
                 <CardContent className="p-5">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                     <div className="flex items-center gap-3 flex-1">
@@ -338,11 +338,14 @@ export default function ClientPortal({ user, refreshUser }) {
 
         {/* Invoices Tab */}
         <TabsContent value="invoices" className="space-y-4">
-          <h2 className="text-xl font-semibold text-slate-800">Mis Facturas</h2>
+          <ClientSectionHeader
+            title="Mis Facturas"
+            description="Revisa montos, estados y accesos rápidos a tus documentos."
+          />
           
           <div className="grid gap-4">
             {invoices.map(inv => (
-              <Card key={inv.id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
+              <Card key={inv.id} className="border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium">
                 <CardContent className="p-5">
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex items-center gap-3 flex-1">
@@ -458,17 +461,15 @@ export default function ClientPortal({ user, refreshUser }) {
 
         {/* Support Tab */}
         <TabsContent value="support" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-slate-800">Mis Tickets de Soporte</h2>
-            <Button onClick={() => setShowTicketModal(true)} className="bg-blue-600 hover:bg-blue-700">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Nuevo Ticket
-            </Button>
-          </div>
+          <ClientSectionHeader
+            title="Mis Tickets de Soporte"
+            description="Sigue tus casos abiertos o crea un nuevo ticket de ayuda."
+            action={<Button onClick={() => setShowTicketModal(true)}><MessageCircle className="h-4 w-4 mr-2" />Nuevo Ticket</Button>}
+          />
 
           <div className="grid gap-4">
             {tickets.length === 0 ? (
-              <Card className="border-0 shadow-md">
+              <Card className="border-border/70 bg-card/95 shadow-card">
                 <CardContent className="p-12 text-center">
                   <MessageCircle className="h-16 w-16 mx-auto mb-4 text-slate-300" />
                   <h3 className="text-lg font-semibold text-slate-700 mb-2">No tienes tickets</h3>
@@ -480,7 +481,7 @@ export default function ClientPortal({ user, refreshUser }) {
               </Card>
             ) : (
               tickets.map(ticket => (
-                <Card key={ticket.id} className="border-0 shadow-md hover:shadow-lg transition-shadow">
+                <Card key={ticket.id} className="border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium">
                   <CardContent className="p-5">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex-1">

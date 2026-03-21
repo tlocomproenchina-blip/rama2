@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Headphones, Sparkles, Tag } from 'lucide-react';
+import { ArrowRight, Headphones, Sparkles, Tag } from 'lucide-react';
 
 export default function PortalHero({ user, onCreateTicket }) {
   return (
