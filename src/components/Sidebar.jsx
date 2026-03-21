@@ -137,49 +137,58 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </div>
         {/* Header */}
         <div className="relative border-b border-border/60 px-5 pb-5 pt-6">
-          <div className="rounded-[1.75rem] border border-white/80 bg-white/85 p-4 shadow-card backdrop-blur transition-all duration-300 hover:shadow-premium">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                {config?.app_logo_url ? (
-                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-border/60">
-                    <OptimizedImage
-                      src={config.app_logo_url}
-                      alt="Logo"
-                      width={48}
-                      height={48}
-                      className="h-full w-full object-cover"
-                      priority={false}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 shadow-card">
-                    <Package className="h-5 w-5 text-white" />
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">Panel</p>
-                  <h1 className="truncate font-display text-lg font-bold text-foreground">
-                    {config?.app_name || 'TLEC CARGO'}
-                  </h1>
-                  <p className="truncate text-[12px] text-muted-foreground">
-                    {config?.app_tagline || 'Sistema de Envíos'}
-                  </p>
+          <div className="relative rounded-[1.75rem] border border-white/80 bg-white/85 p-4 shadow-card backdrop-blur transition-all duration-300 hover:shadow-premium">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-3 top-3 h-8 w-8 rounded-xl border border-border/70 bg-white/80 lg:hidden"
+              onClick={onClose}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+            <div className="flex items-center gap-3 min-w-0 pr-10 lg:pr-0">
+              {config?.app_logo_url ? (
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-border/60">
+                  <OptimizedImage
+                    src={config.app_logo_url}
+                    alt="Logo"
+                    width={48}
+                    height={48}
+                    className="h-full w-full object-cover"
+                    priority={false}
+                  />
                 </div>
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 shadow-card">
+                  <Package className="h-5 w-5 text-white" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">Panel</p>
+                <h1 className="truncate font-display text-lg font-bold text-foreground">
+                  {config?.app_name || 'TLEC CARGO'}
+                </h1>
+                <p className="truncate text-[12px] text-muted-foreground">
+                  {config?.app_tagline || 'Sistema de Envíos'}
+                </p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 rounded-2xl border border-border/70 bg-white/80 lg:hidden"
-                onClick={onClose}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+            </div>
+            <div className="mt-4 rounded-[1.35rem] border border-white/80 bg-white/78 p-3 shadow-sm backdrop-blur lg:hidden">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
+                <p className="mt-1 truncate text-[12px] text-muted-foreground">{user?.email}</p>
+                <span className={`mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
+                }>
+                  {isAdmin ? (roleConfig?.role_name || 'Administrador') : 'Cliente'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* User Info */}
-        <div className="relative border-b border-border/60 px-5 py-4">
+        <div className="relative hidden border-b border-border/60 px-5 py-4 lg:block">
           <div className="rounded-[1.5rem] border border-white/80 bg-white/78 p-4 shadow-sm backdrop-blur transition-all duration-300 hover:bg-white/88">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
