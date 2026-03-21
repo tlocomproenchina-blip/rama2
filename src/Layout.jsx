@@ -8,6 +8,7 @@ import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
 import NativeMobileHeader from '@/components/navigation/NativeMobileHeader';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
+import { cacheManager } from '@/components/CacheManager';
 import { getDefaultRoleConfig } from '@/lib/rolePermissions';
 import { usePlatform } from '@/hooks/usePlatform';
 import { notifyAdmins, sendTemplatedEmail } from '@/components/NotificationUtils';
@@ -200,10 +201,25 @@ export default function Layout({ children, currentPageName }) {
 
   async function loadConfig() {
     try {
+      const cachedConfig = cacheManager.get('layout_app_config_main');
+      if (cachedConfig) {
+        setConfig(cachedConfig);
+
+        const faviconUrl = cachedConfig.favicon_url || cachedConfig.app_logo_url;
+        if (faviconUrl) {
+          const link = document.querySelector("link[rel='icon']") || document.createElement('link');
+          link.rel = 'icon';
+          link.href = faviconUrl;
+          link.type = faviconUrl.endsWith('.ico') ? 'image/x-icon' : 'image/png';
+          document.head.appendChild(link);
+        }
+      }
+
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
       if (configs.length > 0) {
         const nextConfig = configs[0];
         setConfig(nextConfig);
+        cacheManager.set('layout_app_config_main', nextConfig, 3600000);
 
         const faviconUrl = nextConfig.favicon_url || nextConfig.app_logo_url;
         if (faviconUrl) {
