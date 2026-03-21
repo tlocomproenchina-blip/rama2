@@ -5,24 +5,13 @@ import { createPageUrl } from '@/utils';
 import { prefetchPageData } from '@/lib/adminPagePrefetch';
 
 export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage, flags, onItemClick }) {
-  const hasActivePage = pages.includes(currentPage);
-  const [isOpen, setIsOpen] = useState(hasActivePage);
-
-  useEffect(() => {
-    if (hasActivePage) {
-      setIsOpen(true);
-    }
-  }, [hasActivePage]);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div
-      className="mt-5 first:mt-0"
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(hasActivePage)}
-    >
+    <div className="mt-5 first:mt-0">
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => hasActivePage ? true : !prev)}
+        onClick={() => setIsOpen((prev) => !prev)}
         className="flex w-full items-center gap-3 px-2 pb-2.5 text-left"
       >
         <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent" />
