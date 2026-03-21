@@ -6,8 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Briefcase, Loader2, Mail, Search, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Briefcase, Loader2, Mail, Search, ShieldCheck, Trash2, UserCog, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { ROLE_OPTIONS, ROLE_PRESETS } from '@/lib/rolePermissions';
 import PageHero from '@/components/common/PageHero';
@@ -30,6 +40,8 @@ export default function AdminEmployees({ user }) {
   });
   const [saving, setSaving] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
 
   const loadEmployees = async () => {
     setLoading(true);
@@ -190,6 +202,39 @@ export default function AdminEmployees({ user }) {
     setInviting(false);
   };
 
+  const handleDeleteEmployee = async () => {
+    if (!employeeToDelete) return;
+    if (employeeToDelete.email === user?.email) {
+      toast.error('No puedes borrar tu propia cuenta aquí');
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await base44.functions.invoke('deleteUserCascade', { userId: employeeToDelete.id });
+      await createAuditLog({
+        target_email: employeeToDelete.email,
+        target_name: employeeToDelete.full_name || employeeToDelete.email,
+        action_type: 'delete_employee',
+        area_code: employeeToDelete.custom_role || '',
+        area_name: employeeToDelete.custom_role ? (ROLE_PRESETS[employeeToDelete.custom_role]?.role_name || employeeToDelete.custom_role) : 'Sin área',
+        summary: `Eliminó empleado ${employeeToDelete.full_name || employeeToDelete.email}`,
+        details: 'Se eliminó la cuenta del empleado y sus datos relacionados mediante borrado seguro',
+        changed_fields: ['user'],
+        reference_id: employeeToDelete.id,
+      });
+      setEmployees((prev) => prev.filter((item) => item.id !== employeeToDelete.id));
+      if (editingEmployee?.id === employeeToDelete.id) {
+        setEditingEmployee(null);
+      }
+      setEmployeeToDelete(null);
+      toast.success('Empleado eliminado');
+    } catch {
+      toast.error('No se pudo eliminar el empleado');
+    }
+    setDeleting(false);
+  };
+
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
@@ -247,9 +292,20 @@ export default function AdminEmployees({ user }) {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(employee)}>
-                    Editar empleado
-                  </Button>
+                  <div className="flex flex-col gap-2 sm:min-w-[180px]">
+                    <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => handleEdit(employee)}>
+                      Editar empleado
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                      onClick={() => setEmployeeToDelete(employee)}
+                      disabled={employee.email === user?.email}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Eliminar
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -340,15 +396,51 @@ export default function AdminEmployees({ user }) {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingEmployee(null)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Guardar cambios
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              variant="outline"
+              className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+              onClick={() => setEmployeeToDelete(editingEmployee)}
+              disabled={editingEmployee?.email === user?.email}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar empleado
             </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setEditingEmployee(null)}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Guardar cambios
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!employeeToDelete} onOpenChange={(open) => !open && !deleting && setEmployeeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar empleado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción borrará a {employeeToDelete?.full_name || employeeToDelete?.email} y sus datos relacionados. No se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                handleDeleteEmployee();
+              }}
+              disabled={deleting}
+              className="bg-rose-600 hover:bg-rose-700"
+            >
+              {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Eliminar definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
