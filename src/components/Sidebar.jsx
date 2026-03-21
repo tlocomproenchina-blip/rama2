@@ -121,10 +121,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
       {/* Sidebar */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50
-        w-80 border-r border-border/60 bg-sidebar/95
+        relative w-80 border-r border-border/60 bg-sidebar/95
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        flex flex-col shadow-[0_24px_60px_-24px_rgba(15,23,42,0.28)] backdrop-blur-xl
+        flex flex-col overflow-hidden shadow-[0_24px_60px_-24px_rgba(15,23,42,0.28)] backdrop-blur-xl
       `}>
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute inset-x-6 top-0 h-40 rounded-b-[2rem] bg-gradient-to-b from-white/90 to-transparent" />
