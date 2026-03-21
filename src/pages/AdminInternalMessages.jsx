@@ -49,28 +49,14 @@ export default function AdminInternalMessages({ user }) {
     let active = true;
     const loadData = async () => {
       setLoading(true);
-      const [conversationRows, packageRows, routeRows, userRows] = await Promise.all([
+      const [conversationRows, targetsResponse] = await Promise.all([
         base44.entities.InternalConversation.list('-updated_date', 300),
-        base44.entities.Package.list('-updated_date', 300),
-        base44.entities.Ruta.list('-updated_date', 200),
-        base44.entities.User.list('-created_date', 500),
+        base44.functions.invoke('getInternalMessagingTargets', {}),
       ]);
       if (!active) return;
-      const usersMap = new Map((userRows || []).map((item) => [String(item.email || '').toLowerCase(), item]));
       setConversations(conversationRows || []);
-      setPackages((packageRows || []).map((item) => {
-        const client = usersMap.get(String(item.client_email || '').toLowerCase());
-        const clientName = client?.full_name || `${client?.first_name || ''} ${client?.last_name || ''}`.trim() || item.client_email || 'Sin cliente';
-        const clientPhone = client?.whatsapp || client?.telefono || client?.phone || '';
-        const tracking = item.tracking_number || item.id;
-        const shippingMark = item.shipping_mark || '';
-        return {
-          id: item.id,
-          label: `${tracking}${shippingMark ? ` · ${shippingMark}` : ''}${clientName ? ` · ${clientName}` : ''}`,
-          searchText: [tracking, shippingMark, clientName, item.client_email, clientPhone].filter(Boolean).join(' '),
-        };
-      }));
-      setRoutes((routeRows || []).map((item) => ({ id: item.id, label: item.codigo_ruta || item.nombre || item.id, searchText: [item.codigo_ruta, item.nombre, item.id].filter(Boolean).join(' ') })));
+      setPackages(targetsResponse?.data?.packages || []);
+      setRoutes(targetsResponse?.data?.routes || []);
       setLoading(false);
     };
     loadData();
