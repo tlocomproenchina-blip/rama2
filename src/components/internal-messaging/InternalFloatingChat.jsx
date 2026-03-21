@@ -27,9 +27,9 @@ function saveDismissed(email, ids) {
 
 function isRelevantConversation(conversation, user) {
   if (!conversation || user?.role !== 'admin' || conversation.status !== 'open') return false;
-  const userArea = user?.custom_role || 'admin';
   const isCreator = conversation.created_by_email === user?.email;
-  return isCreator || userArea === 'admin' || conversation.target_area === 'all' || conversation.target_area === userArea;
+  const isParticipant = (conversation.participant_emails || []).includes(user?.email);
+  return isCreator || isParticipant;
 }
 
 function sortByRecent(items) {
@@ -157,6 +157,7 @@ export default function InternalFloatingChat({ user }) {
     });
 
     await base44.entities.InternalConversation.update(activeConversation.id, {
+      participant_emails: [...new Set([...(activeConversation.participant_emails || []), user.email])],
       message_count: Number(activeConversation.message_count || 0) + 1,
       last_message_preview: previewText.slice(0, 120),
       last_message_at: created.created_date || new Date().toISOString(),

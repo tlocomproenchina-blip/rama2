@@ -148,6 +148,7 @@ export default function AdminInternalMessages({ user }) {
         created_by_name: actorName,
         created_by_area: AREA_LABELS[getUserArea(user)] || getUserArea(user),
         target_area: form.target_area,
+        participant_emails: [user.email],
         message_count: 1,
         last_message_preview: previewText.slice(0, 120),
         last_message_at: new Date().toISOString(),
@@ -188,6 +189,7 @@ export default function AdminInternalMessages({ user }) {
     });
 
     await base44.entities.InternalConversation.update(selectedConversation.id, {
+      participant_emails: [...new Set([...(selectedConversation.participant_emails || []), user.email])],
       message_count: Number(selectedConversation.message_count || 0) + 1,
       last_message_preview: previewText.slice(0, 120),
       last_message_at: newMessage.created_date || new Date().toISOString(),
