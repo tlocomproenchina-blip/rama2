@@ -149,6 +149,15 @@
     }
   }
 
+  .mobile-bottom-nav {
+    display: none;
+  }
+
+  .capacitor-ios .mobile-bottom-nav,
+  .capacitor-android .mobile-bottom-nav {
+    display: flex;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html,
     html:focus-within {

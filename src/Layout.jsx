@@ -636,7 +636,7 @@ export default function Layout({ children, currentPageName }) {
               className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]"
               style={{
                 paddingTop: isNative && user ? '0.5rem' : undefined,
-                paddingBottom: isNativeClient
+                paddingBottom: isNative
                   ? 'calc(env(safe-area-inset-bottom) + 104px)'
                   : 'calc(env(safe-area-inset-bottom) + 72px)'
               }}
@@ -662,7 +662,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </main>
 
-      {isNativeClient && <MobileBottomNav />}
+      <MobileBottomNav />
 
       {/* Modals */}
       {showContract && (
