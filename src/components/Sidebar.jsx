@@ -121,9 +121,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-2 top-2 bottom-2 z-50 lg:static lg:inset-y-0 lg:left-0
-          relative w-[min(20rem,calc(100vw-1rem))] lg:w-80 rounded-[2rem] lg:rounded-none
-          border border-white/70 lg:border-y-0 lg:border-l-0 lg:border-r lg:border-border/60 bg-sidebar/95
+          fixed inset-y-0 left-0 z-50 lg:static lg:inset-y-0 lg:left-0
+          w-[min(20rem,calc(100vw-0.75rem))] lg:w-80 rounded-r-[2rem] lg:rounded-none
+          border-y-0 border-l-0 border-r border-border/60 bg-sidebar/95
           origin-left transform transition-all duration-300 ease-out motion-reduce:transition-none
           ${isOpen ? 'translate-x-0 opacity-100 scale-100' : '-translate-x-[calc(100%+1rem)] opacity-0 scale-[0.985] lg:translate-x-0 lg:opacity-100 lg:scale-100'}
           flex flex-col overflow-hidden shadow-[0_24px_60px_-24px_rgba(15,23,42,0.28)] backdrop-blur-xl
