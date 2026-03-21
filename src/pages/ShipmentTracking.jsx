@@ -9,9 +9,11 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import TrackingStatsCard from '@/components/shipment-tracking/TrackingStatsCard';
 import TrackingFilters from '@/components/shipment-tracking/TrackingFilters';
 import TrackingShipmentCard from '@/components/shipment-tracking/TrackingShipmentCard';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 
 export default function ShipmentTracking({ user }) {
   const queryClient = useQueryClient();
@@ -206,6 +208,13 @@ export default function ShipmentTracking({ user }) {
     return matchesSearch && matchesStatus && matchesType;
   });
 
+  const trackingStats = React.useMemo(() => ({
+    total: consolidations.length,
+    transit: consolidations.filter((item) => item.status === 'en_transito').length,
+    available: consolidations.filter((item) => item.status === 'disponible').length,
+    delivered: consolidations.filter((item) => item.status === 'entregado').length,
+  }), [consolidations]);
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -216,17 +225,34 @@ export default function ShipmentTracking({ user }) {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Seguimiento de Envíos</h1>
-        <p className="text-slate-500">Rastrea tus consolidaciones en tiempo real</p>
+      <ClientPageHero
+        icon={Truck}
+        eyebrow="Herramientas y consulta"
+        title="Seguimiento de Envíos"
+        description="Consulta tus consolidaciones y su estado en una vista más clara y premium."
+        badges={[`${filteredCons.length} resultados`, user?.role === 'admin' ? 'Vista administrativa' : 'Vista cliente']}
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Consulta rápida</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-semibold text-slate-700">
+              {trackingStats.transit} envío(s) en tránsito
+            </div>
+            <p className="text-sm text-muted-foreground">Filtra por tracking, email, shipping mark o estado para encontrar resultados al instante.</p>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Total" value={trackingStats.total} subtitle="Consolidaciones rastreables" icon={Package} tone="blue" />
+        <PortalMetricCard title="En tránsito" value={trackingStats.transit} subtitle="En movimiento" icon={Truck} tone="violet" />
+        <PortalMetricCard title="Disponible" value={trackingStats.available} subtitle="Listo para entrega" icon={MapPin} tone="amber" />
+        <PortalMetricCard title="Entregado" value={trackingStats.delivered} subtitle="Proceso finalizado" icon={CheckCircle2} tone="blue" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <TrackingStatsCard label="Total" value={consolidations.length} icon={Package} tone="blue" />
-        <TrackingStatsCard label="En Tránsito" value={consolidations.filter((item) => item.status === 'en_transito').length} icon={Truck} tone="indigo" />
-        <TrackingStatsCard label="Disponible" value={consolidations.filter((item) => item.status === 'disponible').length} icon={MapPin} tone="emerald" />
-        <TrackingStatsCard label="Entregado" value={consolidations.filter((item) => item.status === 'entregado').length} icon={CheckCircle2} tone="green" />
-      </div>
+      <ClientSectionHeader
+        title="Filtros y resultados"
+        description="Ajusta tus filtros y revisa el detalle de cada consolidación encontrada."
+      />
 
       <TrackingFilters
         search={search}
@@ -240,7 +266,7 @@ export default function ShipmentTracking({ user }) {
       />
 
       {filteredCons.length === 0 ? (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-12 text-center">
             <Package className="mx-auto mb-4 h-16 w-16 text-slate-300" />
             <h3 className="mb-2 text-lg font-semibold text-slate-700">Sin consolidaciones</h3>

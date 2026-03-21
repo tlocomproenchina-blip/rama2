@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import { base44 } from '@/api/base44Client';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -128,6 +131,13 @@ export default function Rates({ user }) {
     });
   };
 
+  const ratesStats = React.useMemo(() => ({
+    estados: states.length,
+    seguro: `${config?.insurance_percentage || 5}%`,
+    modos: [config?.shipping_type_air_enabled !== false, config?.shipping_type_sea_enabled !== false].filter(Boolean).length,
+    destino: stateConfig?.state_name || 'Sin estado',
+  }), [states.length, config, stateConfig]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -138,14 +148,37 @@ export default function Rates({ user }) {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">Tarifas de Envío</h1>
-        <p className="text-slate-500">Conoce nuestras tarifas competitivas para tu carga</p>
-        </div>
+      <ClientPageHero
+        icon={Calculator}
+        eyebrow="Herramientas y consulta"
+        title="Tarifas de Envío"
+        description="Consulta nuestras tarifas de forma más clara, ordenada y fácil de comparar."
+        badges={[`${ratesStats.estados} estados`, `${ratesStats.modos} modalidad(es)`]}
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Destino actual</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-semibold text-slate-700">
+              {ratesStats.destino}
+            </div>
+            <p className="text-sm text-muted-foreground">Selecciona tu estado para ver los valores ajustados según tu destino.</p>
+          </div>
+        }
+      />
 
-        {/* Selector de Estado */}
-        <div className="flex justify-center">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Estados" value={ratesStats.estados} subtitle="Cobertura activa" icon={Package} tone="blue" />
+        <PortalMetricCard title="Seguro" value={ratesStats.seguro} subtitle="Cobertura FOB" icon={ShieldCheck} tone="amber" />
+        <PortalMetricCard title="Modalidades" value={ratesStats.modos} subtitle="Tipos de envío" icon={Calculator} tone="violet" />
+        <PortalMetricCard title="Destino" value={ratesStats.destino} subtitle="Estado seleccionado" icon={DollarSign} tone="blue" />
+      </div>
+
+      <ClientSectionHeader
+        title="Consulta por destino"
+        description="Selecciona tu estado y compara tarifas para envío aéreo o marítimo."
+      />
+
+      {/* Selector de Estado */}
+      <div className="flex justify-center">
         <div className="w-full max-w-sm">
           <Select value={selectedCode} onValueChange={(v) => {
             setSelectedCode(v);
@@ -168,7 +201,7 @@ export default function Rates({ user }) {
       <div className={`grid grid-cols-1 ${config?.shipping_type_air_enabled !== false && config?.shipping_type_sea_enabled !== false ? 'lg:grid-cols-2' : ''} gap-6`}>
         {/* Air Shipping */}
         {config?.shipping_type_air_enabled !== false && (
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-white">
+        <Card className="border border-border/70 shadow-card bg-gradient-to-br from-blue-50 to-white">
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-3 bg-blue-100 rounded-xl">
@@ -238,7 +271,7 @@ export default function Rates({ user }) {
 
         {/* Sea Shipping */}
         {config?.shipping_type_sea_enabled !== false && (
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-indigo-50 to-white">
+        <Card className="border border-border/70 shadow-card bg-gradient-to-br from-indigo-50 to-white">
           <CardHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-3 bg-indigo-100 rounded-xl">
@@ -313,7 +346,7 @@ export default function Rates({ user }) {
         )}
       </div>
 
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-l-amber-500">
+      <Card className="shadow-card bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-l-amber-500">
         <CardContent className="p-6">
           <div className="flex items-start gap-3">
             <div className="p-3 bg-amber-100 rounded-full">
@@ -330,7 +363,7 @@ export default function Rates({ user }) {
       </Card>
 
       {/* Insurance */}
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-emerald-50 to-teal-50">
+      <Card className="border border-border/70 shadow-card bg-gradient-to-r from-emerald-50 to-teal-50">
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="p-3 bg-emerald-100 rounded-xl">
@@ -361,7 +394,7 @@ export default function Rates({ user }) {
       </Card>
 
       {/* Sensitive Cargo Info */}
-      <Card className="border-0 shadow-lg border-l-4 border-l-amber-500">
+      <Card className="shadow-card border-l-4 border-l-amber-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-amber-600" />
@@ -407,7 +440,7 @@ export default function Rates({ user }) {
       </Card>
 
       {/* Prohibited Items */}
-      <Card className="border-0 shadow-lg border-l-4 border-l-red-500 bg-red-50/50">
+      <Card className="shadow-card border-l-4 border-l-red-500 bg-red-50/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-red-700">
             🚫 No enviamos
@@ -421,7 +454,7 @@ export default function Rates({ user }) {
       </Card>
 
       {/* Payment Info */}
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-l-emerald-500">
+      <Card className="shadow-card bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-l-emerald-500">
         <CardContent className="p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-emerald-100 rounded-full">
@@ -436,7 +469,7 @@ export default function Rates({ user }) {
       </Card>
 
       {/* Additional Info */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border border-border/70 bg-card/95 shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-blue-600" />
@@ -466,7 +499,7 @@ export default function Rates({ user }) {
       </Card>
 
       {/* CTA */}
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+      <Card className="shadow-card bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
         <CardContent className="p-8 text-center">
           <h3 className="text-2xl font-bold mb-2">¿Listo para enviar?</h3>
           <p className="text-blue-100 mb-4">

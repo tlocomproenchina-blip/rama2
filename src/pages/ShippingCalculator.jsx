@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calculator, Plane, Ship, Package, Loader2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 
 export default function ShippingCalculator({ user }) {
   const [config, setConfig] = useState(null);
@@ -164,6 +167,13 @@ export default function ShippingCalculator({ user }) {
   // Auto-calculate when inputs change
   useEffect(() => { calculateShipping(); }, [shippingType, cargoCategory, includeInsurance, fobValue, inputMode, weight, dimensions.length, dimensions.width, dimensions.height, cbm, selectedState, pricingConfig, config, states]);
 
+  const calculatorStats = React.useMemo(() => ({
+    destino: states.length,
+    tarifa: result ? `$${result.finalRate.toFixed(2)}` : '—',
+    total: result ? `$${result.totalCost.toFixed(2)}` : '—',
+    unidad: result ? result.chargedBy : 'Sin cálculo',
+  }), [states.length, result]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -174,16 +184,37 @@ export default function ShippingCalculator({ user }) {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <Calculator className="h-6 w-6 text-blue-600" />
-          Calculadora de Envíos
-        </h1>
-        <p className="text-slate-500">Calcula el costo estimado de tu envío</p>
-        </div>
+      <ClientPageHero
+        icon={Calculator}
+        eyebrow="Herramientas y consulta"
+        title="Calculadora de Envíos"
+        description="Calcula el costo estimado de tu envío con una experiencia más clara y premium."
+        badges={[shippingType === 'maritimo' ? 'Marítimo' : 'Aéreo', includeInsurance ? 'Con seguro' : 'Sin seguro']}
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Resumen instantáneo</p>
+            <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-semibold text-slate-700">
+              {calculatorStats.total}
+            </div>
+            <p className="text-sm text-muted-foreground">Selecciona estado, tipo de envío y dimensiones para ver el cálculo completo.</p>
+          </div>
+        }
+      />
 
-        {/* Estado de destino (fijo) */}
-        <Card className="border-0 shadow bg-white">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Destinos" value={calculatorStats.destino} subtitle="Estados activos" icon={Package} tone="blue" />
+        <PortalMetricCard title="Tarifa" value={calculatorStats.tarifa} subtitle="Tarifa estimada" icon={DollarSign} tone="amber" />
+        <PortalMetricCard title="Total" value={calculatorStats.total} subtitle="Costo aproximado" icon={Calculator} tone="violet" />
+        <PortalMetricCard title="Unidad" value={calculatorStats.unidad} subtitle="Base de cálculo" icon={shippingType === 'maritimo' ? Ship : Plane} tone="blue" />
+      </div>
+
+      <ClientSectionHeader
+        title="Configura tu cálculo"
+        description="Selecciona el destino y completa los datos para obtener una estimación inmediata."
+      />
+
+      {/* Estado de destino (fijo) */}
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardContent className="p-4">
           <div className="grid gap-3 sm:grid-cols-[240px_1fr] items-center">
             <div className="text-sm text-slate-600">Estado de destino</div>
@@ -202,7 +233,7 @@ export default function ShippingCalculator({ user }) {
         </Card>
 
         {selectedState ? (
-          <Card className="border-0 shadow-lg">
+          <Card className="border-border/70 bg-card/95 shadow-card">
         <CardHeader>
           <CardTitle className="text-lg">Calculadora</CardTitle>
         </CardHeader>
@@ -394,7 +425,11 @@ export default function ShippingCalculator({ user }) {
 
       {/* Results */}
       {selectedState && result && (
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-white">
+        <ClientSectionHeader
+          title="Resultado estimado"
+          description="Revisa el detalle del cálculo, la unidad facturable y el total aproximado."
+        />
+        <Card className="border-border/70 bg-gradient-to-br from-slate-50 to-white shadow-card">
           <CardHeader>
             <CardTitle>Detalles del Envío</CardTitle>
           </CardHeader>
