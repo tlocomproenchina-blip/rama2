@@ -526,18 +526,23 @@ export default function Layout({ children, currentPageName }) {
       <main className={`flex-1 min-h-screen flex flex-col ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}`}>
         {/* Mobile Header */}
         {user && (
-        <header className="lg:hidden sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border px-4 py-3" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <div className="flex items-center justify-between gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-12 w-12 -ml-2 p-0 touch-manipulation select-none active:opacity-80"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="h-6 w-6" />
-            </Button>
-            <h1 className="text-sm font-semibold text-slate-800 flex-1 text-center truncate">{config?.app_name || 'TLEC CARGO'}</h1>
-
+        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card">
+            <div className="flex items-center justify-between gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-11 w-11 rounded-2xl border border-border/70 bg-white/80 p-0 touch-manipulation select-none active:opacity-80"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <div className="min-w-0 flex-1 px-2 text-center">
+                <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-primary/70">Navegación</p>
+                <h1 className="truncate text-sm font-semibold text-slate-800">{config?.app_name || 'TLEC CARGO'}</h1>
+              </div>
+              <div className="h-11 w-11 rounded-2xl bg-slate-100/80" />
+            </div>
           </div>
         </header>
         )}

@@ -113,7 +113,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
       {/* Mobile overlay */}
       {isOpen &&
       <div
-        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+        className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm lg:hidden"
         onClick={onClose} />
 
       }
@@ -121,51 +121,68 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
       {/* Sidebar */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50
-        w-72 border-r border-border/70 bg-gradient-to-b from-sky-50 via-white to-blue-50
+        w-80 border-r border-border/60 bg-sidebar/95
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        flex flex-col shadow-card
+        flex flex-col shadow-[0_24px_60px_-24px_rgba(15,23,42,0.28)] backdrop-blur-xl
       `}>
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute inset-x-6 top-0 h-40 rounded-b-[2rem] bg-gradient-to-b from-white/90 to-transparent" />
+          <div className="absolute -right-10 top-24 h-36 w-36 rounded-full bg-sky-200/35 blur-3xl" />
+          <div className="absolute -left-10 bottom-24 h-36 w-36 rounded-full bg-blue-200/30 blur-3xl" />
+        </div>
         {/* Header */}
-        <div className="bg-transparent p-6 border-b border-border/70">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {config?.app_logo_url ? (
-                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-white flex items-center justify-center">
-                  <OptimizedImage
-                    src={config.app_logo_url}
-                    alt="Logo"
-                    width={40}
-                    height={40}
-                    className="w-full h-full object-cover"
-                    priority={false}
-                  />
+        <div className="relative border-b border-border/60 px-5 pb-5 pt-6">
+          <div className="rounded-[1.75rem] border border-white/80 bg-white/85 p-4 shadow-card backdrop-blur">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                {config?.app_logo_url ? (
+                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-border/60">
+                    <OptimizedImage
+                      src={config.app_logo_url}
+                      alt="Logo"
+                      width={48}
+                      height={48}
+                      className="h-full w-full object-cover"
+                      priority={false}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 shadow-card">
+                    <Package className="h-5 w-5 text-white" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">Panel</p>
+                  <h1 className="truncate text-lg font-bold text-foreground">
+                    {config?.app_name || 'TLEC CARGO'}
+                  </h1>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {config?.app_tagline || 'Sistema de Envíos'}
+                  </p>
                 </div>
-              ) : (
-                <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-blue-500 rounded-xl flex items-center justify-center shadow-card">
-                  <Package className="h-5 w-5 text-white" />
-                </div>
-              )}
-              <div>
-                <h1 className="text-lg font-bold text-foreground">
-                  {config?.app_name || 'TLEC CARGO'}
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  {config?.app_tagline || 'Sistema de Envíos'}
-                </p>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-2xl border border-border/70 bg-white/80 lg:hidden"
+                onClick={onClose}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-
           </div>
         </div>
 
         {/* User Info */}
-        <div className="bg-transparent px-4 py-4 border-b border-border/70">
-          <div className="rounded-2xl border border-border/70 bg-white/80 p-3 shadow-sm">
-            <p className="text-sm font-medium text-foreground truncate">{user?.full_name || user?.email}</p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-            <div className="mt-2 flex items-center gap-2">
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+        <div className="relative border-b border-border/60 px-5 py-4">
+          <div className="rounded-[1.5rem] border border-white/80 bg-white/78 p-4 shadow-sm backdrop-blur">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground">{user?.full_name || user?.email}</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{user?.email}</p>
+              </div>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
               isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
               }>
                 {isAdmin ? 'Administrador' : 'Cliente'}
@@ -175,7 +192,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </div>
 
         {/* Navigation */}
-        <nav className="bg-transparent p-4 flex-1 overflow-y-auto space-y-1">
+        <nav className="relative flex-1 overflow-y-auto px-4 py-5">
+          <div className="rounded-[1.75rem] border border-white/75 bg-white/58 p-3 shadow-sm backdrop-blur">
           {isAdmin ? (
             filteredAdminGroups.map((group) => (
               <SidebarNavGroup
@@ -201,18 +219,20 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
               />
             ))
           )}
+          </div>
         </nav>
 
         {/* Logout */}
-        <div className="bg-transparent p-4 border-t border-border/70">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent"
-            onClick={handleLogout}>
-
-            <LogOut className="h-5 w-5 mr-3" />
-            Cerrar Sesión
-          </Button>
+        <div className="relative border-t border-border/60 px-4 py-4">
+          <div className="rounded-[1.5rem] border border-white/80 bg-white/82 p-2 shadow-sm backdrop-blur">
+            <Button
+              variant="ghost"
+              className="w-full justify-start rounded-xl text-muted-foreground hover:bg-accent/80 hover:text-foreground"
+              onClick={handleLogout}>
+              <LogOut className="mr-3 h-5 w-5" />
+              Cerrar Sesión
+            </Button>
+          </div>
         </div>
       </aside>
     </>);
