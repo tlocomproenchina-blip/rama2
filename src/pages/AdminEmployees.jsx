@@ -96,7 +96,6 @@ export default function AdminEmployees({ user }) {
     setSaving(true);
     try {
       const payload = {
-        role: 'admin',
         first_name: editData.first_name,
         last_name: editData.last_name,
         whatsapp: editData.whatsapp,
