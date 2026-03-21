@@ -10,6 +10,7 @@ import PageHero from '@/components/common/PageHero';
 import PerformanceMetricCard from '@/components/employee-performance/PerformanceMetricCard';
 import EmployeePerformanceChart from '@/components/employee-performance/EmployeePerformanceChart';
 import EmployeePerformanceLeaderboard from '@/components/employee-performance/EmployeePerformanceLeaderboard';
+import EmployeePerformanceAlertsPanel from '@/components/employee-performance/EmployeePerformanceAlertsPanel';
 import EmployeePerformanceTable from '@/components/employee-performance/EmployeePerformanceTable';
 import EmployeePerformanceDetail from '@/components/employee-performance/EmployeePerformanceDetail';
 
@@ -25,6 +26,7 @@ function getTodayInCaracas() {
 export default function AdminEmployeePerformance({ user }) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [selectedDate, setSelectedDate] = useState(getTodayInCaracas());
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -34,9 +36,13 @@ export default function AdminEmployeePerformance({ user }) {
     let active = true;
     const loadMetrics = async () => {
       setLoading(true);
-      const rows = await base44.entities.EmployeePerformanceMetric.filter({ metric_date: selectedDate }, '-total_active_time_ms', 300);
+      const [rows, alertRows] = await Promise.all([
+        base44.entities.EmployeePerformanceMetric.filter({ metric_date: selectedDate }, '-total_active_time_ms', 300),
+        base44.entities.EmployeePerformanceAlert.filter({ metric_date: selectedDate }, '-updated_date', 100),
+      ]);
       if (active) {
         setMetrics(rows || []);
+        setAlerts(alertRows || []);
         setLoading(false);
       }
     };
@@ -114,6 +120,8 @@ export default function AdminEmployeePerformance({ user }) {
         <EmployeePerformanceChart metrics={filteredMetrics} />
         <EmployeePerformanceLeaderboard metrics={filteredMetrics} />
       </section>
+
+      <EmployeePerformanceAlertsPanel alerts={alerts} />
 
       <Card className="border-0 shadow-lg">
         <CardHeader>
