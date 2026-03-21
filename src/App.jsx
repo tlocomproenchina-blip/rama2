@@ -4,8 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { unstable_HistoryRouter as Router, Route, Routes } from 'react-router-dom';
-import { createBrowserHistory } from 'history';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -33,7 +32,6 @@ const AdminLogistica = lazy(() => import('./pages/AdminLogistica'));
 const AdminOperaciones = lazy(() => import('./pages/AdminOperaciones'));
 const AdminSeguimiento = lazy(() => import('./pages/AdminSeguimiento'));
 const AdminInternalMessages = lazy(() => import('./pages/AdminInternalMessages'));
-const history = createBrowserHistory();
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -241,7 +239,7 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
-        <Router history={history}>
+        <Router>
           <NavigationTracker />
           <AuthenticatedApp />
         </Router>
