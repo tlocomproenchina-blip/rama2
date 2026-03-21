@@ -160,7 +160,7 @@ export default function AdminSettings({ user }) {
       // Load app config
       const appConfigs = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (appConfigs.length > 0) {
-        setAppConfig(appConfigs[0]);
+        setAppConfig((prev) => ({ ...prev, ...appConfigs[0] }));
       }
 
       // Load privacy config
