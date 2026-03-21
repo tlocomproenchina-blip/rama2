@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -8,25 +8,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Search, CheckCircle, Upload, User as UserIcon, Plane, Ship, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 
 export default function RegisterPackageModal({ open, onOpenChange, onCreated }) {
   const [shippingMark, setShippingMark] = useState('');
   const [foundUser, setFoundUser] = useState(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [description, setDescription] = useState('');
-  const [shippingType, setShippingType] = useState('aereo');
+  const [shippingType, setShippingType] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const enabledTypes = useEnabledShippingTypes();
 
   const resetForm = () => {
     setShippingMark('');
     setFoundUser(null);
     setTrackingNumber('');
     setDescription('');
-    setShippingType('aereo');
+    setShippingType('');
     setImageFiles([]);
   };
+
+  useEffect(() => {
+    if (enabledTypes.loading) return;
+
+    if (enabledTypes.aereo && shippingType !== 'aereo' && shippingType !== 'maritimo') {
+      setShippingType('aereo');
+      return;
+    }
+
+    if (!enabledTypes.aereo && enabledTypes.maritimo && shippingType !== 'maritimo') {
+      setShippingType('maritimo');
+      return;
+    }
+
+    if (!enabledTypes[shippingType]) {
+      setShippingType(enabledTypes.aereo ? 'aereo' : enabledTypes.maritimo ? 'maritimo' : '');
+    }
+  }, [enabledTypes, shippingType]);
 
   const handleSearch = async () => {
     if (!shippingMark.trim()) { toast.error('Ingresa el Shipping Mark'); return; }
@@ -134,11 +154,15 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             <Label>Tipo de envío</Label>
             <Select value={shippingType} onValueChange={setShippingType}>
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue placeholder="Selecciona el tipo de envío" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="aereo"><div className="flex items-center gap-2"><Plane className="h-4 w-4" /> Aéreo</div></SelectItem>
-                <SelectItem value="maritimo"><div className="flex items-center gap-2"><Ship className="h-4 w-4" /> Marítimo</div></SelectItem>
+                {enabledTypes.aereo && (
+                  <SelectItem value="aereo"><div className="flex items-center gap-2"><Plane className="h-4 w-4" /> Aéreo</div></SelectItem>
+                )}
+                {enabledTypes.maritimo && (
+                  <SelectItem value="maritimo"><div className="flex items-center gap-2"><Ship className="h-4 w-4" /> Marítimo</div></SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
