@@ -697,7 +697,7 @@ export default function AdminSupportTickets({ user }) {
                       })
                       .map((client) => (
                         <SelectItem key={client.email} value={client.email}>
-                          {client.first_name} {client.last_name} - {client.email}
+                          {client.first_name} {client.last_name} - {client.email}{client.package_trackings?.[0] ? ` - ${client.package_trackings[0]}` : ''}
                         </SelectItem>
                       ))}
                   </SelectContent>
