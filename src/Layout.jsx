@@ -280,35 +280,22 @@ export default function Layout({ children, currentPageName }) {
 
       // Check contract and profile for regular users
       if (currentUser.role === 'user') {
+        if (!currentPageName || currentPageName === 'Home' || currentPageName === 'ClientPortal') {
+          navigate(createPageUrl('Dashboard'));
+          setLoading(false);
+          return;
+        }
+
         if (!currentUser.contract_accepted) {
           setShowContract(true);
           setLoading(false);
           return;
-        } else if (!currentUser.profile_completed) {
+        }
+
+        if (!currentUser.profile_completed) {
           setShowProfile(true);
           setLoading(false);
           return;
-        } else {
-          // Check for missing fields and redirect to profile
-          const missingFields = [];
-          if (!currentUser.first_name) missingFields.push('first_name');
-          if (!currentUser.last_name) missingFields.push('last_name');
-          if (!currentUser.whatsapp) missingFields.push('whatsapp');
-          if (!currentUser.state) missingFields.push('state');
-          if (!currentUser.city) missingFields.push('city');
-          if (!currentUser.address) missingFields.push('address');
-          
-          if (missingFields.length > 0 && (!currentPageName || currentPageName === 'Home')) {
-            navigate(createPageUrl('Profile'));
-            setLoading(false);
-            return;
-          }
-
-          if (!missingFields.length && (!currentPageName || currentPageName === 'Home')) {
-            navigate(createPageUrl('Dashboard'));
-            setLoading(false);
-            return;
-          }
         }
       }
       
