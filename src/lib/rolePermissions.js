@@ -3,13 +3,13 @@ export const ROLE_PRESETS = {
     role_code: 'operaciones',
     role_name: 'Operaciones',
     description: 'Gestión operativa de paquetes, consolidaciones y seguimiento.',
-    visible_pages: ['AdminDashboard', 'AdminOperaciones', 'AdminLogistica', 'ClientAnalytics', 'AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'AdminConsolidate', 'AdminShipmentApprovals', 'ShipmentTracking']
+    visible_pages: ['AdminDashboard', 'AdminOperaciones', 'AdminLogistica', 'ClientAnalytics', 'AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'AdminConsolidate', 'AdminShipmentApprovals', 'ShipmentTracking', 'AdminInternalMessages']
   },
   almacen: {
     role_code: 'almacen',
     role_name: 'Almacén',
     description: 'Recepción, ubicaciones, picking y packing.',
-    visible_pages: ['AdminDashboard', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip']
+    visible_pages: ['AdminDashboard', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'AdminInternalMessages']
   },
   contabilidad: {
     role_code: 'contabilidad',
@@ -21,7 +21,7 @@ export const ROLE_PRESETS = {
     role_code: 'soporte',
     role_name: 'Soporte',
     description: 'Atención al cliente, tickets y ayuda.',
-    visible_pages: ['AdminDashboard', 'AdminClients', 'AdminSupportTickets', 'AdminFAQ', 'ClientAnalytics']
+    visible_pages: ['AdminDashboard', 'AdminClients', 'AdminSupportTickets', 'AdminInternalMessages', 'AdminFAQ', 'ClientAnalytics']
   },
   marketing: {
     role_code: 'marketing',
@@ -33,7 +33,7 @@ export const ROLE_PRESETS = {
     role_code: 'logistica',
     role_name: 'Logística',
     description: 'Vehículos, choferes, rutas, cargas y detalle operativo.',
-    visible_pages: ['AdminDashboard', 'AdminLogistica', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas']
+    visible_pages: ['AdminDashboard', 'AdminLogistica', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminInternalMessages']
   },
   comunicaciones: {
     role_code: 'comunicaciones',
@@ -45,7 +45,7 @@ export const ROLE_PRESETS = {
     role_code: 'seguimiento',
     role_name: 'Seguimiento',
     description: 'Monitoreo de rutas, tracking y avances de entrega.',
-    visible_pages: ['AdminDashboard', 'AdminSeguimiento', 'AdminLogistica', 'AdminRutas', 'AdminRutaDetalle', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'ShipmentTracking', 'AdminInsured']
+    visible_pages: ['AdminDashboard', 'AdminSeguimiento', 'AdminLogistica', 'AdminRutas', 'AdminRutaDetalle', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'ShipmentTracking', 'AdminInsured', 'AdminInternalMessages']
   },
   equipo_y_acceso: {
     role_code: 'equipo_y_acceso',
@@ -91,6 +91,7 @@ export const PAGE_LABELS = {
   AdminEmployees: 'Empleados',
   AdminEmployeeAudit: 'Auditoría de Acciones',
   AdminEmployeePerformance: 'Rendimiento Empleados',
+  AdminInternalMessages: 'Mensajería Interna',
   AdminEmailCampaigns: 'Enviar Emails',
   AdminEmailTemplates: 'Plantillas Email',
   AdminPromotions: 'Promociones',

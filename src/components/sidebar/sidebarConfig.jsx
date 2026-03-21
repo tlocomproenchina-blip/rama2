@@ -23,6 +23,7 @@ import {
   Settings2,
   History,
   BarChart3,
+  MessageSquareMore,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -78,6 +79,7 @@ export const adminMenuItems = [
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
+  { name: 'Mensajería Interna', page: 'AdminInternalMessages', icon: MessageSquareMore },
   { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
   { name: 'Clientes', page: 'AdminClients', icon: Users },
   { name: 'Empleados', page: 'AdminEmployees', icon: UserCheck },
@@ -100,7 +102,7 @@ export const adminGroups = [
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
-  { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminFAQ'] },
+  { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminInternalMessages', 'AdminFAQ'] },
   { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance'] },
   { label: 'GESTIÓN', items: ['AdminClients', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
