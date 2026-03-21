@@ -129,37 +129,63 @@ export default function AdminEmployees({ user }) {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
+    const normalizedEmail = inviteEmail.trim().toLowerCase();
     setInviting(true);
     try {
-      await base44.users.inviteUser(inviteEmail.trim(), 'admin');
+      const existingRows = await base44.entities.User.filter({ email: normalizedEmail }, '-created_date', 1);
+      const existingUser = existingRows?.[0];
 
-      if (inviteArea !== 'sin_area') {
-        try {
-          const rows = await base44.entities.User.filter({ email: inviteEmail.trim() }, '-created_date', 1);
-          const invitedUser = rows?.[0];
-          if (invitedUser?.id) {
-            await base44.entities.User.update(invitedUser.id, { custom_role: inviteArea });
-          }
-        } catch {}
+      if (existingUser?.id) {
+        await base44.entities.User.update(existingUser.id, {
+          role: 'admin',
+          custom_role: inviteArea === 'sin_area' ? null : inviteArea,
+        });
+
+        await createAuditLog({
+          target_email: normalizedEmail,
+          target_name: existingUser.full_name || normalizedEmail,
+          action_type: 'promote_employee',
+          area_code: inviteArea === 'sin_area' ? '' : inviteArea,
+          area_name: inviteArea === 'sin_area' ? 'Sin área' : ROLE_PRESETS[inviteArea]?.role_name || inviteArea,
+          summary: `Convirtió a empleado ${existingUser.full_name || normalizedEmail}`,
+          details: inviteArea === 'sin_area' ? 'Usuario existente convertido a empleado sin área asignada' : `Usuario existente convertido a empleado con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
+          changed_fields: ['role', 'custom_role'],
+        });
+
+        toast.success('Cliente convertido en empleado');
+      } else {
+        await base44.users.inviteUser(normalizedEmail, 'admin');
+
+        if (inviteArea !== 'sin_area') {
+          try {
+            const rows = await base44.entities.User.filter({ email: normalizedEmail }, '-created_date', 1);
+            const invitedUser = rows?.[0];
+            if (invitedUser?.id) {
+              await base44.entities.User.update(invitedUser.id, { custom_role: inviteArea });
+            }
+          } catch {}
+        }
+
+        await createAuditLog({
+          target_email: normalizedEmail,
+          target_name: '',
+          action_type: 'invite_employee',
+          area_code: inviteArea === 'sin_area' ? '' : inviteArea,
+          area_name: inviteArea === 'sin_area' ? 'Sin área' : ROLE_PRESETS[inviteArea]?.role_name || inviteArea,
+          summary: `Invitó empleado ${normalizedEmail}`,
+          details: inviteArea === 'sin_area' ? 'Invitación enviada sin área asignada' : `Invitación enviada con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
+          changed_fields: ['role', 'custom_role'],
+        });
+
+        toast.success('Invitación de empleado enviada');
       }
 
-      await createAuditLog({
-        target_email: inviteEmail.trim(),
-        target_name: '',
-        action_type: 'invite_employee',
-        area_code: inviteArea === 'sin_area' ? '' : inviteArea,
-        area_name: inviteArea === 'sin_area' ? 'Sin área' : ROLE_PRESETS[inviteArea]?.role_name || inviteArea,
-        summary: `Invitó empleado ${inviteEmail.trim()}`,
-        details: inviteArea === 'sin_area' ? 'Invitación enviada sin área asignada' : `Invitación enviada con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
-        changed_fields: ['role', 'custom_role'],
-      });
-      toast.success('Invitación de empleado enviada');
       setInviteEmail('');
       setInviteArea('sin_area');
       setOpenInvite(false);
       loadEmployees();
     } catch {
-      toast.error('No se pudo enviar la invitación');
+      toast.error('No se pudo procesar el empleado');
     }
     setInviting(false);
   };
