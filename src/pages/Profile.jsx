@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, MapPin, Phone, Save, Loader2, DollarSign, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
 
 export default function Profile({ user, refreshUser }) {
   const [formData, setFormData] = useState({
@@ -220,21 +221,31 @@ export default function Profile({ user, refreshUser }) {
   const pricingInfo = calculatePricing();
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-white/10 rounded-xl">
-            <User className="h-8 w-8" />
+      <ClientPageHero
+        icon={User}
+        eyebrow="Gestión básica"
+        title="Mi Perfil"
+        description="Actualiza tu información personal con una vista más clara y consistente."
+        badges={[
+          hasMissingFields ? 'Datos pendientes' : 'Perfil completo',
+          profileUpdatesDisabled && !hasMissingFields ? 'Edición restringida' : 'Edición disponible'
+        ].filter(Boolean)}
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Resumen de cuenta</p>
+            <p className="text-sm font-medium text-slate-800">{user?.email}</p>
+            {user?.shipping_mark ? (
+              <div className="rounded-2xl bg-slate-100/90 px-3 py-2 font-mono text-sm font-semibold text-slate-700">
+                {user.shipping_mark}
+              </div>
+            ) : null}
+            <p className="text-sm text-muted-foreground">Mantén tus datos listos para entregas, contacto y seguimiento.</p>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Mi Perfil</h1>
-            <p className="text-blue-100">Actualiza tu información personal</p>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Profile Form */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
@@ -418,7 +429,7 @@ export default function Profile({ user, refreshUser }) {
       </Card>
 
       {/* Account Info - Read Only */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardHeader>
           <CardTitle className="text-sm font-medium text-slate-600">Información de Cuenta</CardTitle>
         </CardHeader>

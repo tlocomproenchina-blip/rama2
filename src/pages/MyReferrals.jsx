@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Gift, Copy, Link2, Users, TrendingUp, DollarSign, Share2, Loader2, Info, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 
 export default function MyReferrals() {
   const [loading, setLoading] = useState(true);
@@ -149,19 +151,24 @@ export default function MyReferrals() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Gift className="h-6 w-6 text-fuchsia-600" /> Mis Referidos</h1>
-          <p className="text-slate-500">Comparte tu enlace para ganar créditos por el CBM de tus referidos.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => window.location.reload()}>Actualizar</Button>
-        </div>
-      </div>
+      <ClientPageHero
+        icon={Gift}
+        eyebrow="Gestión básica"
+        title="Mis Referidos"
+        description="Comparte tu enlace y sigue tus créditos con una experiencia más clara y ejecutiva."
+        badges={[isAgent ? 'Tarifa agente' : 'Programa estándar', `${referred.length} referidos`].filter(Boolean)}
+        action={<Button variant="outline" onClick={() => window.location.reload()}>Actualizar</Button>}
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Crédito por CBM</p>
+            <p className="text-3xl font-bold tracking-tight text-foreground">${earnPerCbm.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground">Tus créditos vencen en {expirationDays} días y se aplican según las reglas del programa.</p>
+          </div>
+        }
+      />
 
       {/* Cómo funciona */}
-      <Card className="border-0 shadow-md">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Info className="h-4 w-4 text-sky-600" />
@@ -199,7 +206,7 @@ export default function MyReferrals() {
       </Card>
 
       {/* Enlace de referidos */}
-      <Card className="border-0 shadow-md">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Tu enlace de referidos</CardTitle>
         </CardHeader>
@@ -221,16 +228,15 @@ export default function MyReferrals() {
         </CardContent>
       </Card>
 
-      {/* Métricas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-md"><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-slate-500">Clientes referidos</p><p className="text-3xl font-bold text-slate-800">{referred.length}</p></div><Users className="h-6 w-6 text-blue-600" /></CardContent></Card>
-        <Card className="border-0 shadow-md"><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-slate-500">CBM acumulado</p><p className="text-3xl font-bold text-slate-800">{totalCbm.toFixed(2)}</p></div><TrendingUp className="h-6 w-6 text-emerald-600" /></CardContent></Card>
-        <Card className="border-0 shadow-md"><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-slate-500">Créditos generados</p><p className="text-3xl font-bold text-slate-800">${totalCredits.toFixed(2)}</p></div><Gift className="h-6 w-6 text-fuchsia-600" /></CardContent></Card>
-        <Card className="border-0 shadow-md"><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-slate-500">Créditos disponibles</p><p className="text-3xl font-bold text-slate-800">${availableCredits.toFixed(2)}</p></div><DollarSign className="h-6 w-6 text-amber-600" /></CardContent></Card>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Clientes referidos" value={referred.length} subtitle="Contactos vinculados" icon={Users} tone="blue" />
+        <PortalMetricCard title="CBM acumulado" value={totalCbm.toFixed(2)} subtitle="Volumen total generado" icon={TrendingUp} tone="violet" />
+        <PortalMetricCard title="Créditos generados" value={`$${totalCredits.toFixed(2)}`} subtitle="Histórico del programa" icon={Gift} tone="amber" />
+        <PortalMetricCard title="Créditos disponibles" value={`$${availableCredits.toFixed(2)}`} subtitle={`Aplicados: $${appliedCredits.toFixed(2)}`} icon={DollarSign} tone="blue" />
       </div>
 
       {/* Últimas recompensas */}
-      <Card className="border-0 shadow-md">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardHeader className="pb-2"><CardTitle>Últimas recompensas</CardTitle></CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -268,7 +274,7 @@ export default function MyReferrals() {
       </Card>
 
       {/* Tus referidos */}
-      <Card className="border-0 shadow-md">
+      <Card className="border-border/70 bg-card/95 shadow-card">
         <CardHeader className="pb-2"><CardTitle>Tus referidos</CardTitle></CardHeader>
         <CardContent className="p-0">
           <Table>

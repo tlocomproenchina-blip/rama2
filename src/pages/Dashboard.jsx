@@ -31,6 +31,9 @@ const EditProfileModal = lazy(() => import('@/components/EditProfileModal'));
 import { toast } from 'sonner';
 import { HeaderSkeletonLoader } from '@/components/SkeletonLoaders';
 import OptimizedImage from '@/components/OptimizedImage';
+import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 
 export default function Dashboard({ user, refreshUser }) {
   const [packages, setPackages] = useState([]);
@@ -121,49 +124,45 @@ export default function Dashboard({ user, refreshUser }) {
 
   return (
     <div className="space-y-4 md:space-y-6 lg:space-y-8 w-full">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg md:rounded-2xl p-4 md:p-6 lg:p-8 text-white shadow-lg">
-        <div className="flex flex-col gap-3 md:gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg md:text-2xl lg:text-3xl font-bold mb-2 break-words">
-              ¡Bienvenido, {user?.first_name || 'Usuario'}!
-            </h1>
-            <p className="text-blue-100 text-xs md:text-sm lg:text-base mb-3 line-clamp-2">
-              {hasShippingMark 
-                ? 'Gestiona tus envíos y consulta el estado de tus paquetes' 
-                : 'Tu perfil está siendo procesado. Pronto recibirás tu Shipping Mark.'
-              }
-            </p>
-            {user?.city && user?.whatsapp && (
-              <div className="flex flex-wrap gap-2 md:gap-3 lg:gap-4 text-xs md:text-sm lg:text-base text-blue-100">
-                <div className="flex items-center gap-1 md:gap-1.5 lg:gap-2 min-w-0">
-                  <MapPin className="h-3 w-3 md:h-3.5 lg:h-4 flex-shrink-0" />
-                  <span className="truncate">{user.city}</span>
-                </div>
-                <div className="flex items-center gap-1 md:gap-1.5 lg:gap-2 min-w-0">
-                  <Phone className="h-3 w-3 md:h-3.5 lg:h-4 flex-shrink-0" />
-                  <span className="truncate">{user.whatsapp}</span>
-                </div>
-              </div>
-            )}
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowEditProfile(true)}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20 w-full md:w-auto mt-2 md:mt-0"
-          >
+      <ClientPageHero
+        icon={Package}
+        eyebrow="Panel del cliente"
+        title={`¡Bienvenido, ${user?.first_name || 'Usuario'}!`}
+        description={hasShippingMark
+          ? 'Gestiona tus envíos y consulta el estado de tus paquetes en una vista más clara y premium.'
+          : 'Tu perfil está siendo procesado. Pronto recibirás tu Shipping Mark.'}
+        badges={[hasShippingMark ? 'Shipping Mark activo' : 'Asignación pendiente'].filter(Boolean)}
+        action={
+          <Button variant="outline" size="sm" onClick={() => setShowEditProfile(true)}>
             <Edit2 className="h-4 w-4 mr-2" />
-            Editar Contacto
+            Editar contacto
           </Button>
-        </div>
-      </div>
+        }
+        aside={
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Resumen rápido</p>
+            {user?.city ? (
+              <div className="flex items-center gap-2 text-sm text-slate-700">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span>{user.city}</span>
+              </div>
+            ) : null}
+            {user?.whatsapp ? (
+              <div className="flex items-center gap-2 text-sm text-slate-700">
+                <Phone className="h-4 w-4 text-primary" />
+                <span>{user.whatsapp}</span>
+              </div>
+            ) : null}
+            <p className="text-sm text-muted-foreground">Mantén tus datos al día para agilizar soporte, entregas y notificaciones.</p>
+          </div>
+        }
+      />
 
 
 
       {/* Shipping Mark Card */}
       {hasShippingMark ? (
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-slate-50 to-white">
+        <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-3 md:p-4 lg:p-6">
             <div className="flex flex-col gap-4 md:gap-5 lg:flex-row lg:gap-6">
               {/* Shipping Mark */}
@@ -236,7 +235,7 @@ export default function Dashboard({ user, refreshUser }) {
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-amber-200 bg-amber-50">
+        <Card className="border-amber-200/70 bg-amber-50/90 shadow-card">
           <CardContent className="p-4 lg:p-6">
             <div className="flex items-start gap-3 lg:gap-4">
               <div className="p-2.5 lg:p-3 bg-amber-100 rounded-xl flex-shrink-0">
@@ -253,68 +252,16 @@ export default function Dashboard({ user, refreshUser }) {
         </Card>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 lg:gap-4">
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-2 md:p-3 lg:p-5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs md:text-xs lg:text-sm text-slate-500 truncate">Pre-alertas</p>
-                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-800">{stats.preAlerta}</p>
-              </div>
-              <div className="p-2 md:p-2.5 lg:p-3 bg-amber-100 rounded-lg lg:rounded-xl flex-shrink-0">
-                <AlertTriangle className="h-4 w-4 md:h-5 lg:h-6 lg:w-6 text-amber-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-2 md:p-3 lg:p-5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs md:text-xs lg:text-sm text-slate-500 truncate">Recibidos</p>
-                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-800">{stats.recibidos}</p>
-              </div>
-              <div className="p-2 md:p-2.5 lg:p-3 bg-blue-100 rounded-lg lg:rounded-xl flex-shrink-0">
-                <Package className="h-4 w-4 md:h-5 lg:h-6 lg:w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-2 md:p-3 lg:p-5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs md:text-xs lg:text-sm text-slate-500 truncate">En Tránsito</p>
-                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-800">{stats.enTransito}</p>
-              </div>
-              <div className="p-2 md:p-2.5 lg:p-3 bg-indigo-100 rounded-lg lg:rounded-xl flex-shrink-0">
-                <Truck className="h-4 w-4 md:h-5 lg:h-6 lg:w-6 text-indigo-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-2 md:p-3 lg:p-5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs md:text-xs lg:text-sm text-slate-500 truncate">Disponibles</p>
-                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-800">{stats.disponibles}</p>
-              </div>
-              <div className="p-2 md:p-2.5 lg:p-3 bg-emerald-100 rounded-lg lg:rounded-xl flex-shrink-0">
-                <MapPin className="h-4 w-4 md:h-5 lg:h-6 lg:w-6 text-emerald-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortalMetricCard title="Pre-alertas" value={stats.preAlerta} subtitle="Pendientes por recibir" icon={AlertTriangle} tone="amber" />
+        <PortalMetricCard title="Recibidos" value={stats.recibidos} subtitle="Paquetes en warehouse" icon={Package} tone="blue" />
+        <PortalMetricCard title="En tránsito" value={stats.enTransito} subtitle="Consolidaciones activas" icon={Truck} tone="violet" />
+        <PortalMetricCard title="Disponibles" value={stats.disponibles} subtitle="Listos para entrega" icon={MapPin} tone="blue" />
       </div>
 
       {/* Approval Alert */}
       {pendingApprovalCount > 0 && (
-        <Card className="border-2 border-blue-300 bg-blue-50 shadow-lg">
+        <Card className="border border-blue-200 bg-blue-50/90 shadow-card">
           <CardContent className="p-4 lg:p-6">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div className="flex items-start gap-3 lg:gap-4 flex-1">
@@ -384,9 +331,12 @@ export default function Dashboard({ user, refreshUser }) {
         </div>
       )}
 
-      {/* Recent Packages */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="border-b border-slate-100 p-3 md:p-4 lg:p-6">
+      <ClientSectionHeader
+        title="Paquetes recientes"
+        description="Consulta tus últimos movimientos y revisa el estado actual de cada envío."
+      />
+      <Card className="border-border/70 bg-card/95 shadow-card">
+        <CardHeader className="border-b border-slate-100/80 p-3 md:p-4 lg:p-6">
           <CardTitle className="text-base md:text-lg font-semibold text-slate-800">Paquetes Recientes</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
