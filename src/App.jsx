@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import RouteLoadingFallback from '@/components/common/RouteLoadingFallback';
 import WarehouseReceive from './pages/WarehouseReceive';
 import WarehouseLocations from './pages/WarehouseLocations';
 import WarehouseDashboard from './pages/WarehouseDashboard';
@@ -38,6 +39,12 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+const RouteContent = ({ children }) => (
+  <Suspense fallback={<RouteLoadingFallback />}>
+    {children}
+  </Suspense>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -71,7 +78,9 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
+          <RouteContent>
+            <MainPage />
+          </RouteContent>
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (
@@ -80,7 +89,9 @@ const AuthenticatedApp = () => {
           path={`/${path}`}
           element={
             <LayoutWrapper currentPageName={path}>
-              <Page />
+              <RouteContent>
+                <Page />
+              </RouteContent>
             </LayoutWrapper>
           }
         />
@@ -88,7 +99,9 @@ const AuthenticatedApp = () => {
       {Pages.Dashboard && (
         <Route path="/ClientPortal" element={
           <LayoutWrapper currentPageName="Dashboard">
-            <Pages.Dashboard />
+            <RouteContent>
+              <Pages.Dashboard />
+            </RouteContent>
           </LayoutWrapper>
         } />
       )}
