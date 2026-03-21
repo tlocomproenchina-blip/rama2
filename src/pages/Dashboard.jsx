@@ -1,9 +1,10 @@
-import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useCallback, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -113,18 +114,18 @@ export default function Dashboard({ user, refreshUser }) {
     await loadData();
   };
 
-  const stats = React.useMemo(() => ({
+  const stats = useMemo(() => ({
     preAlerta: packages.filter(p => p.status === 'pre_alerta').length,
     recibidos: packages.filter(p => p.status === 'recibido').length,
     enTransito: consolidations.filter(c => c.status === 'en_transito').length,
     disponibles: consolidations.filter(c => c.status === 'disponible').length,
   }), [packages, consolidations]);
 
-  const pendingApprovalCount = React.useMemo(() => (
+  const pendingApprovalCount = useMemo(() => (
     consolidations.filter(c => c.payment_validated && !c.shipment_approved && c.status !== 'en_transito' && c.status !== 'disponible' && c.status !== 'entregado').length
   ), [consolidations]);
 
-  const portalStats = React.useMemo(() => ({
+  const portalStats = useMemo(() => ({
     totalPackages: packages.length,
     inTransit: packages.filter(p => p.status === 'en_transito').length + consolidations.filter(c => c.status === 'en_transito').length,
     pendingPayments: invoices.filter(i => i.status === 'pendiente').length,
