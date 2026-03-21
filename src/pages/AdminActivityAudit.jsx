@@ -9,7 +9,136 @@ import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 
 function formatActionLabel(actionType) {
-  return String(actionType || 'sin_accion').replaceAll('_', ' ');
+  const labels = {
+    create: 'Creación',
+    update: 'Actualización',
+    delete: 'Eliminación',
+  };
+  return labels[actionType] || String(actionType || 'sin_accion').replaceAll('_', ' ');
+}
+
+const HIDDEN_FIELDS = new Set([
+  'id',
+  'app_id',
+  'created_by_id',
+  'is_sample',
+  'is_deleted',
+  'deleted_date',
+  'updated_date',
+  'created_date',
+  'environment',
+]);
+
+const FIELD_LABELS = {
+  reported: 'Reportado',
+  tracking_number: 'Número de tracking',
+  client_email: 'Correo del cliente',
+  shipping_mark: 'Shipping Mark',
+  shipping_type: 'Tipo de envío',
+  description: 'Descripción',
+  status: 'Estado',
+  has_insurance: 'Tiene seguro',
+  fob_value: 'Valor FOB',
+  invoice_url: 'Factura',
+  package_image_url: 'Imagen del paquete',
+  package_image_urls: 'Imágenes del paquete',
+  consolidation_id: 'Consolidación',
+  received_date: 'Fecha de recepción',
+  received_by: 'Recibido por',
+  warehouse_name: 'Almacén',
+  warehouse_city: 'Ciudad del almacén',
+  warehouse_country: 'País del almacén',
+  warehouse_location_code: 'Ubicación en almacén',
+  warehouse_location_name: 'Nombre de ubicación',
+  warehouse_zone: 'Zona de almacén',
+  actual_weight_kg: 'Peso real (kg)',
+  actual_length_cm: 'Largo real (cm)',
+  actual_width_cm: 'Ancho real (cm)',
+  actual_height_cm: 'Alto real (cm)',
+  actual_cbm: 'Volumen real (CBM)',
+  reception_notes: 'Notas de recepción',
+  codigo_ruta: 'Código de ruta',
+  tipo_ruta: 'Tipo de ruta',
+  origen: 'Origen',
+  destino: 'Destino',
+  fecha_salida: 'Fecha de salida',
+  fecha_estimada_entrega: 'Fecha estimada de entrega',
+  vehiculo_id: 'Vehículo asignado',
+  vehiculo_placa: 'Placa del vehículo',
+  chofer_id: 'Chofer asignado',
+  chofer_nombre: 'Nombre del chofer',
+  estado: 'Estado',
+  total_paradas: 'Total de paradas',
+  observaciones: 'Observaciones',
+};
+
+const VALUE_LABELS = {
+  reported: { true: 'Sí', false: 'No' },
+  has_insurance: { true: 'Sí', false: 'No' },
+  is_active: { true: 'Sí', false: 'No' },
+  status: {
+    pre_alerta: 'Pre-alerta',
+    recibido: 'Recibido',
+    consolidado: 'Consolidado',
+    en_transito: 'En tránsito',
+    disponible: 'Disponible',
+    entregado: 'Entregado',
+  },
+  shipping_type: {
+    aereo: 'Aéreo',
+    maritimo: 'Marítimo',
+  },
+  tipo_ruta: {
+    urbana: 'Urbana',
+    interurbana: 'Interurbana',
+  },
+  estado: {
+    planificada: 'Planificada',
+    asignada: 'Asignada',
+    en_curso: 'En curso',
+    completada: 'Completada',
+    cancelada: 'Cancelada',
+    pre_alerta: 'Pre-alerta',
+    recibido: 'Recibido',
+    consolidado: 'Consolidado',
+    en_transito: 'En tránsito',
+    disponible: 'Disponible',
+    entregado: 'Entregado',
+  },
+};
+
+function humanizeFieldName(fieldName) {
+  if (!fieldName) return '—';
+  if (FIELD_LABELS[fieldName]) return FIELD_LABELS[fieldName];
+  return String(fieldName)
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatReadableValue(fieldName, value) {
+  if (value === null || value === undefined || value === '') return '—';
+
+  const normalized = String(value).trim();
+
+  if (VALUE_LABELS[fieldName]?.[normalized] !== undefined) {
+    return VALUE_LABELS[fieldName][normalized];
+  }
+
+  if (normalized === 'true') return 'Sí';
+  if (normalized === 'false') return 'No';
+
+  if (fieldName?.includes('_date')) {
+    const parsed = new Date(normalized);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleString('es-VE');
+    }
+  }
+
+  if (normalized.startsWith('http')) return 'Archivo adjunto';
+
+  if (fieldName?.endsWith('_id')) return 'Referencia interna actualizada';
+
+  return normalized.replaceAll('_', ' ');
 }
 
 export default function AdminActivityAudit() {
@@ -90,7 +219,7 @@ export default function AdminActivityAudit() {
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold text-slate-800">{log.summary}</h3>
                         <Badge className="bg-blue-100 text-blue-700">{formatActionLabel(log.action_type)}</Badge>
-                        <Badge variant="outline">{log.entity_name}</Badge>
+                        <Badge variant="outline">{log.entity_name === 'Package' ? 'Paquete' : log.entity_name === 'Ruta' ? 'Ruta' : log.entity_name}</Badge>
                       </div>
                       <p className="text-sm text-slate-500 mt-1">{new Date(log.created_date).toLocaleString('es-VE')}</p>
                     </div>
