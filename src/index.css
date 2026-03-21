@@ -149,24 +149,6 @@
     }
   }
 
-  .mobile-bottom-nav {
-    display: none;
-  }
-
-  .capacitor-ios .mobile-bottom-nav,
-  .capacitor-android .mobile-bottom-nav {
-    display: flex;
-  }
-
-  .native-select-root {
-    display: none;
-  }
-
-  .capacitor-ios .native-select-root,
-  .capacitor-android .native-select-root {
-    display: block;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     html,
     html:focus-within {

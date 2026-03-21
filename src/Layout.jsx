@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
-import MobileBottomNav from '@/components/MobileBottomNav';
+import MobileBottomNav from '@/components/navigation/MobileBottomNav';
 import NativeMobileHeader from '@/components/navigation/NativeMobileHeader';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
 import { cacheManager } from '@/components/CacheManager';
@@ -636,7 +636,7 @@ export default function Layout({ children, currentPageName }) {
               className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]"
               style={{
                 paddingTop: isNative && user ? '0.5rem' : undefined,
-                paddingBottom: isNative
+                paddingBottom: isNativeClient
                   ? 'calc(env(safe-area-inset-bottom) + 104px)'
                   : 'calc(env(safe-area-inset-bottom) + 72px)'
               }}
@@ -662,8 +662,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
       </main>
 
-      <MobileBottomNav />
-      <div className="native-select-root" style={{ display: 'none' }} />
+      {isNativeClient && <MobileBottomNav />}
 
       {/* Modals */}
       {showContract && (
