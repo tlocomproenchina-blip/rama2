@@ -84,7 +84,6 @@ import AssistedPayment from './pages/AssistedPayment';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import ClientAnalytics from './pages/ClientAnalytics';
-import ClientPortal from './pages/ClientPortal';
 import Dashboard from './pages/Dashboard';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
@@ -150,7 +149,6 @@ export const PAGES = {
     "Blog": Blog,
     "BlogPost": BlogPost,
     "ClientAnalytics": ClientAnalytics,
-    "ClientPortal": ClientPortal,
     "Dashboard": Dashboard,
     "FAQ": FAQ,
     "Home": Home,

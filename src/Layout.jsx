@@ -305,7 +305,7 @@ export default function Layout({ children, currentPageName }) {
           }
 
           if (!missingFields.length && (!currentPageName || currentPageName === 'Home')) {
-            navigate(createPageUrl('ClientPortal'));
+            navigate(createPageUrl('Dashboard'));
             setLoading(false);
             return;
           }

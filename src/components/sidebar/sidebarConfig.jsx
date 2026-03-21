@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 
 export const clientMenuItems = [
-  { name: 'Mi Portal', page: 'ClientPortal', icon: LayoutDashboard },
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: 'Mi Perfil', page: 'Profile', icon: Users },
   { name: 'Mis Referidos', page: 'MyReferrals', icon: Gift },
@@ -105,7 +104,7 @@ export const adminGroups = [
 ];
 
 export const clientGroups = [
-  { label: 'PRINCIPAL', items: ['ClientPortal', 'Dashboard'] },
+  { label: 'PRINCIPAL', items: ['Dashboard'] },
   { label: 'ENVÍOS', items: ['MyPackages', 'PreAlert', 'RequestConsolidation', 'MyConsolidations'] },
   { label: 'PAGOS', items: ['MyInvoices', 'AssistedPayment'] },
   { label: 'SEGUIMIENTO', items: ['ShipmentTracking', 'ShippingCalculator'] },
