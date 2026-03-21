@@ -450,19 +450,15 @@ export default function Layout({ children, currentPageName }) {
 
         /* Mobile responsiveness improvements */
         @media (max-width: 640px) {
-          /* Make tab lists horizontally scrollable only when needed, without ugly visible scrollbars */
+          /* Keep tab lists clean on mobile without horizontal scroll */
           [role="tablist"] {
             display: flex;
+            flex-wrap: wrap;
             gap: 0.5rem;
-            overflow-x: auto !important;
-            white-space: nowrap !important;
-            -webkit-overflow-scrolling: touch;
-            scroll-snap-type: x proximity;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            overflow: visible !important;
+            white-space: normal !important;
           }
-          [role="tablist"]::-webkit-scrollbar { display: none; height: 0; }
-          [role="tablist"] > * { flex: 0 0 auto; scroll-snap-align: start; }
+          [role="tablist"] > * { flex: 0 0 auto; }
 
           /* Wrap common action rows/buttons instead of overflowing */
           .header-actions, .actions-row, .btn-row, .toolbar, .filters-row,
