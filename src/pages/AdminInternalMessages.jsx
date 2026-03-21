@@ -103,7 +103,8 @@ export default function AdminInternalMessages({ user }) {
     const term = String(search || '').toLowerCase();
     const area = getUserArea(user);
     return (conversations || []).filter((item) => {
-      const areaMatch = area === 'admin' || item.target_area === 'all' || item.target_area === area;
+      const isCreator = item.created_by_email === user?.email;
+      const areaMatch = isCreator || area === 'admin' || item.target_area === 'all' || item.target_area === area;
       const statusMatch = statusFilter === 'all' || item.status === statusFilter;
       const entityMatch = entityFilter === 'all' || item.entity_type === entityFilter;
       const haystack = [item.title, item.topic, item.entity_label, item.created_by_name].map((value) => String(value || '').toLowerCase()).join(' ');

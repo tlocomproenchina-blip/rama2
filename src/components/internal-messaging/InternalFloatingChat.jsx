@@ -28,7 +28,8 @@ function saveDismissed(email, ids) {
 function isRelevantConversation(conversation, user) {
   if (!conversation || user?.role !== 'admin' || conversation.status !== 'open') return false;
   const userArea = user?.custom_role || 'admin';
-  return userArea === 'admin' || conversation.target_area === 'all' || conversation.target_area === userArea;
+  const isCreator = conversation.created_by_email === user?.email;
+  return isCreator || userArea === 'admin' || conversation.target_area === 'all' || conversation.target_area === userArea;
 }
 
 function sortByRecent(items) {
