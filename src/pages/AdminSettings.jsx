@@ -906,7 +906,7 @@ export default function AdminSettings({ user }) {
                     <p className="text-sm text-slate-600">Apaga Stripe, PayPal, emails, push y webhooks externos sin afectar el resto de la app.</p>
                   </div>
                   <Switch
-                    checked={!!appConfig.external_services_enabled}
+                    checked={appConfig.external_services_enabled !== false}
                     onCheckedChange={(checked) => setAppConfig({ ...appConfig, external_services_enabled: checked })}
                   />
                 </div>
