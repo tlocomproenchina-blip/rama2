@@ -21,21 +21,13 @@ export default function AdminBlog({ user }) {
   const [topic, setTopic] = useState('');
   const [generating, setGenerating] = useState(false);
 
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="max-w-xl mx-auto">
-        <Card className="border-0 shadow">
-          <CardHeader><CardTitle>Acceso restringido</CardTitle></CardHeader>
-          <CardContent>Esta sección es solo para administradores.</CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const isAdmin = user?.role === 'admin';
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['admin-blog-posts'],
     queryFn: async () => base44.entities.BlogPost.list('-updated_date', 200),
     staleTime: 15_000,
+    enabled: isAdmin,
   });
 
   const filtered = useMemo(() => {
@@ -47,6 +39,17 @@ export default function AdminBlog({ user }) {
       (p.excerpt || '').toLowerCase().includes(q)
     );
   }, [posts, search]);
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-xl mx-auto">
+        <Card className="border-0 shadow">
+          <CardHeader><CardTitle>Acceso restringido</CardTitle></CardHeader>
+          <CardContent>Esta sección es solo para administradores.</CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const upsert = async (data) => {
     setSaving(true);

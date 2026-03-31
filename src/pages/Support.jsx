@@ -40,7 +40,26 @@ export default function Support({ user }) {
   });
   const [creating, setCreating] = useState(false);
 
-  // Requiere autenticación para usar Soporte
+  useEffect(() => {
+    if (user?.email) {
+      loadTickets();
+    }
+  }, [user?.email]);
+
+  const loadTickets = async () => {
+    if (!user?.email) return;
+    const allTickets = await base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date');
+    setTickets(allTickets);
+    setLoading(false);
+  };
+
+  const supportStats = useMemo(() => ({
+    total: tickets.length,
+    abiertos: tickets.filter((ticket) => ticket.status === 'abierto').length,
+    enProceso: tickets.filter((ticket) => ticket.status === 'en_proceso').length,
+    resueltos: tickets.filter((ticket) => ticket.status === 'resuelto').length,
+  }), [tickets]);
+
   if (!user) {
     return (
       <div className="max-w-xl mx-auto">
@@ -58,19 +77,6 @@ export default function Support({ user }) {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (user?.email) {
-      loadTickets();
-    }
-  }, [user?.email]);
-
-  const loadTickets = async () => {
-    if (!user?.email) return;
-    const allTickets = await base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date');
-    setTickets(allTickets);
-    setLoading(false);
-  };
 
   const handleCreateTicket = async () => {
     if (!user?.email) { base44.auth.redirectToLogin(); return; }
@@ -191,13 +197,6 @@ export default function Support({ user }) {
     alta: { label: 'Alta', color: 'bg-orange-100 text-orange-600' },
     urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600' }
   };
-
-  const supportStats = useMemo(() => ({
-    total: tickets.length,
-    abiertos: tickets.filter((ticket) => ticket.status === 'abierto').length,
-    enProceso: tickets.filter((ticket) => ticket.status === 'en_proceso').length,
-    resueltos: tickets.filter((ticket) => ticket.status === 'resuelto').length,
-  }), [tickets]);
 
   if (loading) {
     return (
