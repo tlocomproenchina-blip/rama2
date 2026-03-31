@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
+import AdminMobileBottomNav from '@/components/navigation/AdminMobileBottomNav';
 import NativeMobileHeader from '@/components/navigation/NativeMobileHeader';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
 import { cacheManager } from '@/components/CacheManager';
@@ -46,7 +47,8 @@ export default function Layout({ children, currentPageName }) {
   const { isNative } = usePlatform();
   const isAdminPanel = user?.role === 'admin';
   const isNativeClient = isNative && user?.role === 'user';
-  const hasDesktopSidebar = !!user && !isNativeClient;
+  const isNativeAdmin = isNative && user?.role === 'admin';
+  const hasDesktopSidebar = !!user && !isNativeClient && !isNativeAdmin;
   const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ'].includes(currentPageName);
 
   const applyTuning = (cfg) => {
@@ -532,7 +534,7 @@ export default function Layout({ children, currentPageName }) {
 
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
       
-      {user && !isNativeClient && (
+      {user && !isNativeClient && !isNativeAdmin && (
         <div className={hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}>
           <Sidebar 
             user={user} 
@@ -558,13 +560,13 @@ export default function Layout({ children, currentPageName }) {
             user={user}
             config={config}
             currentPageName={currentPageName}
-            showMenu={!isNativeClient}
+            showMenu={false}
             sidebarOpen={sidebarOpen}
             onMenuOpen={() => setSidebarOpen(true)}
           />
         )}
 
-        {user && !isNative && !isNativeClient && (
+        {user && !isNative && !isNativeClient && !isNativeAdmin && (
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card transition-all duration-300">
             <div className="flex items-center justify-between gap-2">
@@ -660,6 +662,7 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {isNativeClient && <MobileBottomNav />}
+      {isNativeAdmin && <AdminMobileBottomNav />}
 
       {/* Modals */}
       {showContract && (
