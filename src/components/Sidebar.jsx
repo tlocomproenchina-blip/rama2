@@ -173,17 +173,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                 </p>
               </div>
             </div>
-            <div className="mt-4 rounded-[1.35rem] border border-white/80 bg-white/78 p-3 shadow-sm backdrop-blur lg:hidden">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
-                <p className="mt-1 truncate text-[12px] text-muted-foreground">{user?.email}</p>
-                <span className={`mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
-                }>
-                  {isAdmin ? (roleConfig?.role_name || 'Administrador') : 'Cliente'}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
