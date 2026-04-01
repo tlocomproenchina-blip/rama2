@@ -20,26 +20,28 @@ export default function AdminPayments({ user }) {
   const [consolidations, setConsolidations] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('pending');
+  const pageSize = 30;
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (append = false) => {
     try {
-      const [cons, users] = await Promise.all([
-        base44.entities.Consolidation.list('-created_date'),
-        base44.entities.User.list()
-      ]);
-      setConsolidations(cons);
-      setClients(users);
+      if (append) setLoadingMore(true); else setLoading(true);
+      const skip = append ? consolidations.length : 0;
+      const cons = await base44.entities.Consolidation.list('-created_date', pageSize, skip);
+      setConsolidations((prev) => append ? [...prev, ...cons] : cons);
+      setHasMore(cons.length === pageSize);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Error al cargar datos');
     } finally {
-      setLoading(false);
+      if (append) setLoadingMore(false); else setLoading(false);
     }
   };
 
@@ -107,6 +109,11 @@ export default function AdminPayments({ user }) {
     toast.success('Estado actualizado y cliente notificado');
     loadData();
   };
+
+  useEffect(() => {
+    if (statusFilter !== 'pending' || clients.length > 0) return;
+    base44.entities.User.list('-created_date', 300).then(setClients).catch(() => {});
+  }, [statusFilter, clients.length]);
 
   const filteredCons = consolidations.filter(con => {
     const matchesSearch = 
@@ -272,6 +279,12 @@ export default function AdminPayments({ user }) {
             </Card>
           ))}
         </div>
+      )}
+
+      {hasMore && (
+        <Button variant="outline" className="w-full" onClick={() => loadData(true)} disabled={loadingMore}>
+          {loadingMore ? 'Cargando...' : 'Cargar más'}
+        </Button>
       )}
     </div>
   );

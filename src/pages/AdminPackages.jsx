@@ -67,6 +67,7 @@ export default function AdminPackages({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [userMarks, setUserMarks] = useState({});
 
   const loadPackages = useCallback(async (append = false, skipOverride = 0) => {
     if (append) setLoadingMore(true); else setLoading(true);
@@ -84,6 +85,19 @@ export default function AdminPackages({ user }) {
   useEffect(() => {
     loadPackages(false);
   }, [loadPackages]);
+
+  useEffect(() => {
+    const missingEmails = Array.from(new Set(packages.map(pkg => pkg.client_email).filter(Boolean))).filter((email) => !userMarks[email]);
+    if (missingEmails.length === 0) return;
+
+    base44.entities.User.list('-created_date', 300).then((users) => {
+      const nextMarks = {};
+      users.forEach((user) => {
+        if (user?.email) nextMarks[user.email] = user.shipping_mark || '';
+      });
+      setUserMarks((prev) => ({ ...prev, ...nextMarks }));
+    }).catch(() => {});
+  }, [packages, userMarks]);
 
   const handleReceive = async () => {
     if (!receiveModal) return;
@@ -414,7 +428,12 @@ export default function AdminPackages({ user }) {
     setTicketProcessing(false);
   };
 
-  const filteredPackages = useMemo(() => packages.filter(pkg => {
+  const enrichedPackages = useMemo(() => packages.map((pkg) => ({
+    ...pkg,
+    shipping_mark: pkg.shipping_mark || userMarks[pkg.client_email] || ''
+  })), [packages, userMarks]);
+
+  const filteredPackages = useMemo(() => enrichedPackages.filter(pkg => {
     // Basic search
     const matchesSearch = 
       pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
@@ -452,7 +471,7 @@ export default function AdminPackages({ user }) {
     }
 
     return matchesSearch && matchesStatus && matchesReported;
-    }), [packages, search, statusFilter, reportedFilter, advancedFilters]);
+    }), [enrichedPackages, search, statusFilter, reportedFilter, advancedFilters]);
 
     const simpleWindowSummary = useMemo(() => {
       if (!advancedFilters) return null;
