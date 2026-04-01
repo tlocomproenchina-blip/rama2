@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
@@ -17,8 +17,10 @@ import {
   Package,
   ShieldCheck,
   DollarSign,
-  Calculator
+  Calculator,
+  Download
 } from 'lucide-react';
+import jsPDF from 'jspdf';
 
 export default function Rates({ user }) {
   const [config, setConfig] = useState(null);
@@ -138,6 +140,108 @@ export default function Rates({ user }) {
     destino: stateConfig?.state_name || 'Sin estado',
   }), [states.length, config, stateConfig]);
 
+  const handleDownloadPdf = async () => {
+    if (!config) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    const companyName = config.app_name || 'TLEC CARGO';
+    const logoUrl = config.invoice_logo_url || config.app_logo_url;
+
+    if (logoUrl) {
+      try {
+        const response = await fetch(logoUrl);
+        const blob = await response.blob();
+        const dataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+        doc.addImage(dataUrl, 'PNG', 14, 12, 24, 24);
+      } catch {}
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text(companyName, logoUrl ? 44 : 14, 20);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Lista de precios y restricciones', logoUrl ? 44 : 14, 27);
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-VE')}`, pageWidth - 14, 20, { align: 'right' });
+    y = 44;
+
+    const addSectionTitle = (title) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text(title, 14, y);
+      y += 7;
+    };
+
+    const addLine = (text, indent = 0) => {
+      const lines = doc.splitTextToSize(text, pageWidth - 28 - indent);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(lines, 14 + indent, y);
+      y += (lines.length * 5) + 1;
+    };
+
+    const ensureSpace = (needed = 20) => {
+      if (y + needed > 280) {
+        doc.addPage();
+        y = 20;
+      }
+    };
+
+    const regularAir = stateConfig && pricingConfig
+      ? (pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + pricingConfig.door_to_door_cost)
+      : (config.rate_air_general || 0);
+    const sensitiveAir = stateConfig && pricingConfig
+      ? (pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + stateConfig.shipping_rate + pricingConfig.door_to_door_cost)
+      : (config.rate_air_sensitive || 0);
+    const regularSea = stateConfig?.final_rate_regular > 0
+      ? Number(stateConfig.final_rate_regular)
+      : stateConfig && pricingConfig
+        ? (pricingConfig.base_rate_regular * (1 + pricingConfig.profit_percentage / 100) + (stateConfig.shipping_rate || 0) + (pricingConfig.door_to_door_cost || 0))
+        : (config.rate_sea_general || 0);
+    const sensitiveSea = stateConfig?.final_rate_high > 0
+      ? Number(stateConfig.final_rate_high)
+      : stateConfig && pricingConfig
+        ? (pricingConfig.base_rate_high_risk * (1 + pricingConfig.profit_percentage / 100) + (stateConfig.shipping_rate || 0) + (pricingConfig.door_to_door_cost || 0))
+        : (config.rate_sea_sensitive || 0);
+
+    ensureSpace(40);
+    addSectionTitle('Tarifas vigentes');
+    addLine(`Destino seleccionado: ${stateConfig?.state_name || 'No seleccionado'}`);
+    if (config?.shipping_type_air_enabled !== false) {
+      addLine(`Aéreo general: $${regularAir.toFixed(2)} por kilogramo`, 4);
+      addLine(`Aéreo sensible: $${sensitiveAir.toFixed(2)} por kilogramo`, 4);
+      addLine('Tiempo estimado aéreo: 7-15 días', 4);
+    }
+    if (config?.shipping_type_sea_enabled !== false) {
+      addLine(`Marítimo general: $${regularSea.toFixed(2)} por CBM`, 4);
+      addLine(`Marítimo sensible: $${sensitiveSea.toFixed(2)} por CBM`, 4);
+      addLine('Tiempo estimado marítimo: 75-90 días', 4);
+    }
+    addLine(`Seguro opcional: ${config?.insurance_percentage || 5}% del valor FOB`, 4);
+
+    ensureSpace(35);
+    addSectionTitle('Restricciones y condiciones');
+    addLine('Facturación mínima marítima: 0.130 CBM o el equivalente a una caja de 50 cm × 50 cm × 50 cm.', 4);
+    addLine('Carga sensible incluye: baterías de litio, alimentos, cosméticos, agentes acuosos, réplicas o imitaciones, polvos, marcas chinas y mercancía de alto valor.', 4);
+    addLine('No enviamos: medicamentos, armas, pólvora, gas, motos, chalecos, fundas tácticas, botellas presurizadas, entre otros.', 4);
+
+    ensureSpace(28);
+    addSectionTitle('Notas importantes');
+    addLine('Peso volumétrico aéreo: CBM × 167 kg/m³.', 4);
+    addLine('CBM marítimo: (Largo × Ancho × Alto en metros).', 4);
+    addLine('El costo final se calcula según la unidad facturable correspondiente.', 4);
+    addLine('Pago contra entrega disponible.', 4);
+
+    doc.save(`lista-precios-${companyName.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -154,6 +258,12 @@ export default function Rates({ user }) {
         title="Tarifas de Envío"
         description="Consulta nuestras tarifas de forma más clara, ordenada y fácil de comparar."
         badges={[`${ratesStats.estados} estados`, `${ratesStats.modos} modalidad(es)`]}
+        actions={
+          <Button onClick={handleDownloadPdf} className="bg-primary hover:bg-primary/90">
+            <Download className="h-4 w-4" />
+            Descargar PDF
+          </Button>
+        }
         aside={
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Destino actual</p>
