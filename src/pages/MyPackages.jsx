@@ -55,10 +55,9 @@ export default function MyPackages({ user }) {
     if (user) {
       let debounceTimer;
       const unsubscribe = base44.entities.Package.subscribe((event) => {
-        const eventEmail = event?.data?.client_email;
-        if (eventEmail === user.email) {
+        if (event.data?.client_email === user.email) {
           clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => loadPackages(false), 1000);
+          debounceTimer = setTimeout(() => loadPackages(), 1000);
         }
       });
       

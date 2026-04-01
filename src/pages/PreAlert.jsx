@@ -47,9 +47,10 @@ export default function PreAlert({ user }) {
   }, []);
 
   const loadConfig = async () => {
-    const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+    const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
     if (configs.length > 0) {
       setConfig(configs[0]);
+      // Set default shipping type to first enabled option
       if (!formData.shipping_type) {
         if (configs[0].shipping_type_air_enabled !== false) {
           setFormData(prev => ({ ...prev, shipping_type: 'aereo' }));
@@ -65,7 +66,7 @@ export default function PreAlert({ user }) {
   const hasShippingMark = user?.shipping_mark && user.shipping_mark.length > 0;
 
   const validateTracking = async (tracking) => {
-    const existing = await base44.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
+    const existing = await base44.entities.Package.filter({ tracking_number: tracking });
     return existing.length === 0;
   };
 
