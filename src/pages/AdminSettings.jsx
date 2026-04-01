@@ -450,6 +450,26 @@ export default function AdminSettings({ user }) {
       }
     };
 
+    const formatMoney = (value) => `$${Number(value || 0).toFixed(2)}`;
+    const stateNameX = 16;
+    const regularX = 98;
+    const highRiskX = 148;
+    const rowHeight = 8;
+    const tableWidth = pageWidth - 28;
+
+    const drawRatesTableHeader = () => {
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(14, y, tableWidth, 9, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(51, 65, 85);
+      doc.text('Estado', stateNameX, y + 6);
+      doc.text('Regular', regularX, y + 6);
+      doc.text('Alto riesgo', highRiskX, y + 6);
+      y += 11;
+      doc.setTextColor(0, 0, 0);
+    };
+
     const activeStates = statesConfig.filter((state) => state.is_active);
 
     ensureSpace(30);
@@ -460,7 +480,8 @@ export default function AdminSettings({ user }) {
 
     ensureSpace(40);
     addSectionTitle('Tarifas por estado');
-    activeStates.forEach((state) => {
+    drawRatesTableHeader();
+    activeStates.forEach((state, index) => {
       const regular = state.final_rate_regular > 0
         ? Number(state.final_rate_regular)
         : ((Number(pricingConfig.base_rate_regular || 0) * (1 + Number(pricingConfig.profit_percentage || 0) / 100)) + Number(state.shipping_rate || 0) + Number(pricingConfig.door_to_door_cost || 0));
@@ -468,8 +489,24 @@ export default function AdminSettings({ user }) {
         ? Number(state.final_rate_high)
         : ((Number(pricingConfig.base_rate_high_risk || 0) * (1 + Number(pricingConfig.profit_percentage || 0) / 100)) + Number(state.shipping_rate || 0) + Number(pricingConfig.door_to_door_cost || 0));
 
-      ensureSpace(18);
-      addLine(`${state.state_name}: Regular $${regular.toFixed(2)} | Alto riesgo $${high.toFixed(2)}`, 4);
+      ensureSpace(14);
+      if (y + rowHeight > 280) {
+        doc.addPage();
+        y = 20;
+        drawRatesTableHeader();
+      }
+
+      if (index % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(14, y - 2, tableWidth, rowHeight, 1.5, 1.5, 'F');
+      }
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(state.state_name, stateNameX, y + 3);
+      doc.text(formatMoney(regular), regularX, y + 3);
+      doc.text(formatMoney(high), highRiskX, y + 3);
+      y += rowHeight;
     });
 
     doc.save(`lista-precios-admin-${companyName.toLowerCase().replace(/\s+/g, '-')}.pdf`);
