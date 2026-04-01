@@ -14,29 +14,23 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: insufficient permissions' }, { status: 403 });
     }
 
-    // Paginate to get all users
-    const PAGE = 50;
+    // Paginate to fetch all users with role=user
+    const PAGE_SIZE = 50;
     let allUsers = [];
     let skip = 0;
-    let batch = 0;
+    let batch = [];
 
-    while (true) {
-      console.info(`[Batch ${batch}] Fetching skip=${skip}, limit=${PAGE}`);
-      const chunk = await base44.asServiceRole.entities.User.filter({ role: 'user' }, '-created_date', PAGE, skip);
-      console.info(`[Batch ${batch}] Received ${chunk.length} records`);
-      allUsers = allUsers.concat(chunk);
-      console.info(`[Batch ${batch}] Running total: ${allUsers.length}`);
+    do {
+      console.log(`[Batch ${skip / PAGE_SIZE}] Fetching skip=${skip}, limit=${PAGE_SIZE}`);
+      batch = await base44.asServiceRole.entities.User.filter({ role: 'user' }, '-created_date', PAGE_SIZE, skip);
+      console.log(`[Batch ${skip / PAGE_SIZE}] Received ${batch.length} records`);
+      allUsers = allUsers.concat(batch);
+      console.log(`[Batch ${skip / PAGE_SIZE}] Running total: ${allUsers.length}`);
+      skip += PAGE_SIZE;
+    } while (batch.length === PAGE_SIZE);
 
-      if (chunk.length < PAGE) {
-        console.info(`[Batch ${batch}] Last batch, stopping pagination`);
-        break;
-      }
-      skip += PAGE;
-      batch++;
-    }
-
-    console.info(`Total users fetched: ${allUsers.length}`);
-    console.info(`Clients with role=user: ${allUsers.filter(u => u.role === 'user').length}`);
+    console.log(`Total users fetched: ${allUsers.length}`);
+    console.log(`Clients with role=user: ${allUsers.filter(u => u.role === 'user').length}`);
 
     const sanitized = allUsers.map((u) => ({
       id: u.id,
@@ -58,7 +52,7 @@ Deno.serve(async (req) => {
 
     return Response.json(sanitized);
   } catch (error) {
-    console.error('listClientsForSupport error:', error.message);
+    console.error('Error in listClientsForSupport:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

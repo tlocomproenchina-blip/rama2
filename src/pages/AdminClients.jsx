@@ -118,8 +118,8 @@ export default function AdminClients({ user }) {
       if (append) setLoadingMore(true); else setLoading(true);
       let users = [];
       if (canViewClients) {
-        const res = await base44.functions.invoke('listClientsForSupport');
-        users = res.data || [];
+        const res = await base44.functions.invoke('listClientsForSupport', {}, { priority: 'HIGH', opType: 'read' });
+        users = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
         setHasMore(false);
       }
 
