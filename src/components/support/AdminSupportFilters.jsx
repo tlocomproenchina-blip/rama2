@@ -23,7 +23,7 @@ export default function AdminSupportFilters({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar por número, asunto o email..."
+                placeholder="Buscar por número, asunto, email o shipping mark..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"

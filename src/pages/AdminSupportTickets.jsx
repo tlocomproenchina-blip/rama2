@@ -371,10 +371,13 @@ export default function AdminSupportTickets({ user }) {
     const tNum = (ticket.ticket_number || '').toLowerCase();
     const subj = (ticket.subject || '').toLowerCase();
     const email = (ticket.client_email || '').toLowerCase();
+    const client = clients.find((item) => item.email === ticket.client_email);
+    const shippingMark = (client?.shipping_mark || '').toLowerCase();
     const searchMatch =
       tNum.includes(searchLower) ||
       subj.includes(searchLower) ||
-      email.includes(searchLower);
+      email.includes(searchLower) ||
+      shippingMark.includes(searchLower);
     
     const statusMatch = filterStatus === 'all' || ticket.status === filterStatus;
     const priorityMatch = filterPriority === 'all' || ticket.priority === filterPriority;
