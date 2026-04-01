@@ -25,8 +25,10 @@ import {
   Clock,
   Trash2,
   HardDrive,
-  FlaskConical
+  FlaskConical,
+  Download
 } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
@@ -397,6 +399,90 @@ export default function AdminSettings({ user }) {
     state.state_name.toLowerCase().includes(stateSearch.toLowerCase())
   );
 
+  const handleDownloadPricePdf = async () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+    const companyName = appConfig.app_name || 'TLEC CARGO';
+    const logoUrl = appConfig.invoice_logo_url || appConfig.app_logo_url;
+
+    if (logoUrl) {
+      try {
+        const response = await fetch(logoUrl);
+        const blob = await response.blob();
+        const dataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+        doc.addImage(dataUrl, 'PNG', 14, 12, 24, 24);
+      } catch {}
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text(companyName, logoUrl ? 44 : 14, 20);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text('Lista de precios y restricciones', logoUrl ? 44 : 14, 27);
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-VE')}`, pageWidth - 14, 20, { align: 'right' });
+    y = 44;
+
+    const addSectionTitle = (title) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text(title, 14, y);
+      y += 7;
+    };
+
+    const addLine = (text, indent = 0) => {
+      const lines = doc.splitTextToSize(text, pageWidth - 28 - indent);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(lines, 14 + indent, y);
+      y += (lines.length * 5) + 1;
+    };
+
+    const ensureSpace = (needed = 20) => {
+      if (y + needed > 280) {
+        doc.addPage();
+        y = 20;
+      }
+    };
+
+    const activeStates = statesConfig.filter((state) => state.is_active);
+
+    ensureSpace(30);
+    addSectionTitle('Tarifas base');
+    addLine(`Carga regular: $${Number(pricingConfig.base_rate_regular || 0).toFixed(2)}`, 4);
+    addLine(`Carga alto riesgo: $${Number(pricingConfig.base_rate_high_risk || 0).toFixed(2)}`, 4);
+    addLine(`Beneficio: ${Number(pricingConfig.profit_percentage || 0).toFixed(2)}%`, 4);
+    addLine(`Puerta a puerta: $${Number(pricingConfig.door_to_door_cost || 0).toFixed(2)}`, 4);
+    addLine(`Seguro: ${Number(appConfig.insurance_percentage || 0).toFixed(2)}% del valor FOB`, 4);
+
+    ensureSpace(30);
+    addSectionTitle('Restricciones');
+    addLine('Facturación mínima marítima: 0.130 CBM o el equivalente a una caja de 50 cm × 50 cm × 50 cm.', 4);
+    addLine('Carga sensible incluye: baterías de litio, alimentos, cosméticos, agentes acuosos, réplicas o imitaciones, polvos, marcas chinas y mercancía de alto valor.', 4);
+    addLine('No enviamos: medicamentos, armas, pólvora, gas, motos, chalecos, fundas tácticas, botellas presurizadas, entre otros.', 4);
+
+    ensureSpace(40);
+    addSectionTitle('Tarifas por estado');
+    activeStates.forEach((state) => {
+      const regular = state.final_rate_regular > 0
+        ? Number(state.final_rate_regular)
+        : ((Number(pricingConfig.base_rate_regular || 0) * (1 + Number(pricingConfig.profit_percentage || 0) / 100)) + Number(state.shipping_rate || 0) + Number(pricingConfig.door_to_door_cost || 0));
+      const high = state.final_rate_high > 0
+        ? Number(state.final_rate_high)
+        : ((Number(pricingConfig.base_rate_high_risk || 0) * (1 + Number(pricingConfig.profit_percentage || 0) / 100)) + Number(state.shipping_rate || 0) + Number(pricingConfig.door_to_door_cost || 0));
+
+      ensureSpace(18);
+      addLine(`${state.state_name}: Regular $${regular.toFixed(2)} | Alto riesgo $${high.toFixed(2)}`, 4);
+    });
+
+    doc.save(`lista-precios-admin-${companyName.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -537,10 +623,16 @@ export default function AdminSettings({ user }) {
                 />
               </div>
 
-              <Button onClick={handleSavePricing} disabled={saving} className="w-full">
-                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar configuración
-              </Button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button onClick={handleSavePricing} disabled={saving} className="w-full">
+                  {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Guardar configuración
+                </Button>
+                <Button variant="outline" onClick={handleDownloadPricePdf} className="w-full sm:w-auto">
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar PDF
+                </Button>
+              </div>
 
               {/* Fórmula de Cálculo */}
               <div className="mt-8 p-4 md:p-6 bg-blue-50 rounded-xl border border-blue-200">
