@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,11 +43,24 @@ export default function MyConsolidations({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    loadConsolidations();
-    base44.entities.AppConfig.filter({ config_key: 'main' }).then(cfgs => setConfig(cfgs[0] || null));
-    // REAL-TIME SUBSCRIPTION DISABLED - Preventing rate limit errors
-    // Use manual refresh button instead
-  }, [user]);
+    if (!user?.email) return;
+    setLoading(true);
+    Promise.all([
+      base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', PAGE_SIZE, 0),
+      base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1)
+    ]).then(([cons, cfgs]) => {
+      setConsolidations(cons || []);
+      setHasMore((cons || []).length === PAGE_SIZE);
+      setConfig(cfgs?.[0] || null);
+    }).catch((error) => {
+      console.error('Error loading consolidations:', error);
+      toast.error('No se pudieron cargar las consolidaciones.');
+      setConsolidations([]);
+      setHasMore(false);
+    }).finally(() => {
+      setLoading(false);
+    });
+  }, [user?.email]);
 
   const loadConsolidations = async (append = false) => {
     if (!user) return;
