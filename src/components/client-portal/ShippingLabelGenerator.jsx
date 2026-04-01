@@ -213,7 +213,7 @@ function LabelContent({ shippingMark, form, logoUrl, companyName }) {
           <span style={{ fontWeight: 700, fontSize: 14 }}>海运</span>
         </div>
         <div style={{ width: 120, display: 'flex', borderLeft: '1px solid #999' }}>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid #999', fontSize: 18, fontWeight: 700 }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', borderRight: '1px solid #999', fontSize: 12, fontWeight: 700, paddingTop: 6 }}>
             的
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4px 6px' }}>
