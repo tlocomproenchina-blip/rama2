@@ -144,14 +144,7 @@ export default function AdminProviders() {
                 <Label>Puerta a Puerta</Label>
                 <Input type="number" step="0.01" value={editing.door_to_door_cost} onChange={e => setEditing({ ...editing, door_to_door_cost: e.target.value })} />
               </div>
-              <div>
-                <Label>+Tracking Regular</Label>
-                <Input type="number" step="0.01" value={editing.per_tracking_regular} onChange={e => setEditing({ ...editing, per_tracking_regular: e.target.value })} />
-              </div>
-              <div>
-                <Label>+Tracking Alto Riesgo</Label>
-                <Input type="number" step="0.01" value={editing.per_tracking_high} onChange={e => setEditing({ ...editing, per_tracking_high: e.target.value })} />
-              </div>
+
             </div>
 
             <div className="space-y-2">
