@@ -530,7 +530,10 @@ export default function AdminSupportTickets({ user }) {
       />
 
       <AdminSupportTicketDetailDialog
-        selectedTicket={selectedTicket}
+        selectedTicket={selectedTicket ? {
+          ...selectedTicket,
+          client: clients.find((client) => client.email === selectedTicket.client_email) || null
+        } : null}
         setSelectedTicket={setSelectedTicket}
         statusConfig={statusConfig}
         handleSendMessage={handleSendMessage}
