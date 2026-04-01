@@ -452,9 +452,8 @@ export default function AdminSettings({ user }) {
 
     const formatMoney = (value) => `$${Number(value || 0).toFixed(2)}`;
     const stateNameX = 16;
-    const shippingRateX = 82;
-    const regularX = 122;
-    const highRiskX = 166;
+    const regularX = 98;
+    const highRiskX = 148;
     const rowHeight = 7;
     const tableWidth = pageWidth - 28;
 
@@ -462,26 +461,16 @@ export default function AdminSettings({ user }) {
       doc.setFillColor(241, 245, 249);
       doc.roundedRect(14, y, tableWidth, 8, 2, 2, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       doc.setTextColor(51, 65, 85);
       doc.text('Estado', stateNameX, y + 5.5);
-      doc.text('Envío', shippingRateX, y + 5.5);
-      doc.text('Final Reg.', regularX, y + 5.5);
-      doc.text('Final Alto', highRiskX, y + 5.5);
+      doc.text('Regular', regularX, y + 5.5);
+      doc.text('Alto riesgo', highRiskX, y + 5.5);
       y += 9.2;
       doc.setTextColor(0, 0, 0);
     };
 
     const activeStates = statesConfig.filter((state) => state.is_active);
-
-    ensureSpace(45);
-    addSectionTitle('Configuración general de precios');
-    addLine(`Tarifa base regular: ${formatMoney(pricingConfig.base_rate_regular)}`, 4);
-    addLine(`Tarifa base alto riesgo: ${formatMoney(pricingConfig.base_rate_high_risk)}`, 4);
-    addLine(`Porcentaje de beneficio: ${Number(pricingConfig.profit_percentage || 0).toFixed(2)}%`, 4);
-    addLine(`Costo puerta a puerta: ${formatMoney(pricingConfig.door_to_door_cost)}`, 4);
-    addLine(`Puerta a puerta opcional: ${pricingConfig.is_door_to_door_optional ? 'Sí' : 'No'}`, 4);
-    addLine('Fórmula: tarifa base + beneficio + tarifa de envío + puerta a puerta = precio final', 4);
 
     ensureSpace(30);
     addSectionTitle('Restricciones');
@@ -513,9 +502,8 @@ export default function AdminSettings({ user }) {
       }
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
+      doc.setFontSize(10);
       doc.text(state.state_name, stateNameX, y + 3);
-      doc.text(formatMoney(state.shipping_rate), shippingRateX, y + 3);
       doc.text(formatMoney(regular), regularX, y + 3);
       doc.text(formatMoney(high), highRiskX, y + 3);
       y += rowHeight;
