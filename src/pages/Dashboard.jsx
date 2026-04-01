@@ -46,10 +46,13 @@ const EditProfileModal = lazy(() => import('@/components/EditProfileModal'));
 
 import { toast } from 'sonner';
 import { HeaderSkeletonLoader } from '@/components/SkeletonLoaders';
-import OptimizedImage from '@/components/OptimizedImage';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
+import ShippingMarkCard from '@/components/dashboard/client/ShippingMarkCard';
+import PendingShippingMarkCard from '@/components/dashboard/client/PendingShippingMarkCard';
+import ApprovalAlertCard from '@/components/dashboard/client/ApprovalAlertCard';
+import QuickActionsGrid from '@/components/dashboard/client/QuickActionsGrid';
 import { format } from 'date-fns';
 
 export default function Dashboard({ user, refreshUser }) {
@@ -245,96 +248,15 @@ export default function Dashboard({ user, refreshUser }) {
 
 
 
-      {/* Shipping Mark Card */}
       {hasShippingMark ? (
-        <Card className="border-border/70 bg-card/95 shadow-card">
-          <CardContent className="p-3 md:p-4 lg:p-6">
-            <div className="flex flex-col gap-4 md:gap-5 lg:flex-row lg:gap-6">
-              {/* Shipping Mark */}
-              <div className="flex-1 space-y-2 min-w-0">
-                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
-                  <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
-                  Tu Shipping Mark
-                </div>
-                <div className="flex items-center gap-2 md:gap-2.5 lg:gap-3 min-w-0">
-                  <span className="text-lg md:text-2xl lg:text-3xl font-bold text-slate-800 font-mono break-all">
-                    {user.shipping_mark}
-                  </span>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-8 w-8 flex-shrink-0"
-                    onClick={copyShippingMark}
-                  >
-                    <Copy className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Warehouse Address */}
-              <div className="flex-1 space-y-2 border-t md:border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 md:pt-4 lg:pt-0 lg:pl-6 min-w-0">
-                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
-                  <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
-                  Dirección del Warehouse
-                </div>
-                <div className="flex items-start gap-2 md:gap-2.5 lg:gap-3 min-w-0">
-                  <p className="text-slate-700 text-xs md:text-sm lg:text-base break-words flex-1 whitespace-pre-line">
-                    {config?.warehouse_address || 'Dirección no configurada'}
-                  </p>
-                  {config?.warehouse_address && (
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="h-8 w-8 flex-shrink-0"
-                      onClick={copyAddress}
-                    >
-                      <Copy className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Shipping Mark Example Image */}
-            {config?.shipping_mark_example_image_url && (
-              <div className="border-t border-slate-200 pt-4">
-                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm mb-3">
-                  <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
-                  Imagen de ejemplo del Shipping Mark
-                </div>
-                <div className="bg-slate-50 rounded-lg p-3 md:p-4">
-                  <p className="text-xs md:text-sm text-slate-600 mb-3 whitespace-pre-line">
-                    {config.shipping_mark_example_description || 'Esta imagen se mostrará a los usuarios como ejemplo de cómo debe quedar su shipping mark'}
-                  </p>
-                  <OptimizedImage
-                    src={config.shipping_mark_example_image_url}
-                    alt="Ejemplo de Shipping Mark"
-                    width={800}
-                    height={600}
-                    className="w-full max-w-md mx-auto rounded-lg border border-slate-200 shadow-sm"
-                    priority={false}
-                  />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ShippingMarkCard
+          user={user}
+          config={config}
+          onCopyShippingMark={copyShippingMark}
+          onCopyAddress={copyAddress}
+        />
       ) : (
-        <Card className="border-amber-200/70 bg-amber-50/90 shadow-card">
-          <CardContent className="p-4 lg:p-6">
-            <div className="flex items-start gap-3 lg:gap-4">
-              <div className="p-2.5 lg:p-3 bg-amber-100 rounded-xl flex-shrink-0">
-                <AlertTriangle className="h-5 w-5 lg:h-6 lg:w-6 text-amber-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-amber-800 text-sm lg:text-base">Shipping Mark Pendiente</h3>
-                <p className="text-amber-700 text-xs lg:text-sm mt-1">
-                  Tu perfil está completo. Un administrador te asignará tu Shipping Mark pronto.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <PendingShippingMarkCard />
       )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -344,31 +266,7 @@ export default function Dashboard({ user, refreshUser }) {
         <PortalMetricCard title="Disponibles" value={stats.disponibles} subtitle="Listos para entrega" icon={MapPin} tone="blue" />
       </div>
 
-      {/* Approval Alert */}
-      {pendingApprovalCount > 0 && (
-        <Card className="border border-blue-200 bg-blue-50/90 shadow-card">
-          <CardContent className="p-4 lg:p-6">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-              <div className="flex items-start gap-3 lg:gap-4 flex-1">
-                <div className="p-2.5 lg:p-3 bg-blue-200 rounded-lg lg:rounded-xl flex-shrink-0">
-                  <CheckCircle2 className="h-5 w-5 lg:h-6 lg:w-6 text-blue-700" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-blue-900 text-sm lg:text-lg">¡Consolidaciones listas para aprobar!</h3>
-                  <p className="text-blue-700 text-xs lg:text-base mt-1">
-                    Tienes {pendingApprovalCount} consolidación(es) esperando tu aprobación de despacho
-                  </p>
-                </div>
-              </div>
-              <Link to={createPageUrl('MyConsolidations')} className="w-full lg:w-auto">
-                <Button className="bg-blue-600 hover:bg-blue-700 w-full lg:w-auto">
-                  Ver Consolidaciones
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <ApprovalAlertCard pendingApprovalCount={pendingApprovalCount} />
 
       {/* Widgets Section */}
       {hasShippingMark && (
@@ -383,38 +281,7 @@ export default function Dashboard({ user, refreshUser }) {
         </Suspense>
       )}
 
-      {/* Quick Actions */}
-      {hasShippingMark && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 lg:gap-4">
-          <Link to={createPageUrl('PreAlert')}>
-            <Card className="border border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium cursor-pointer group">
-              <CardContent className="p-4 lg:p-6 flex items-center gap-3 lg:gap-4">
-                <div className="p-3 lg:p-4 bg-blue-100 rounded-lg lg:rounded-xl group-hover:bg-blue-200 transition-colors flex-shrink-0">
-                  <Plus className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-base lg:text-lg text-slate-800 truncate">Nueva Pre-alerta</h3>
-                  <p className="text-slate-500 text-xs lg:text-sm">Registra un nuevo paquete</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link to={createPageUrl('MyConsolidations')}>
-            <Card className="border border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium cursor-pointer group">
-              <CardContent className="p-4 lg:p-6 flex items-center gap-3 lg:gap-4">
-                <div className="p-3 lg:p-4 bg-purple-100 rounded-lg lg:rounded-xl group-hover:bg-purple-200 transition-colors flex-shrink-0">
-                  <Layers className="h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-semibold text-base lg:text-lg text-slate-800 truncate">Mis Consolidaciones</h3>
-                  <p className="text-slate-500 text-xs lg:text-sm">Ver todas tus consolidaciones</p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-      )}
+      {hasShippingMark && <QuickActionsGrid />}
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 gap-2 rounded-[1.5rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur lg:grid-cols-5">
