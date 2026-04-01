@@ -73,6 +73,7 @@ export default function AdminSupportTickets({ user }) {
     otro: 'customer_service'
   };
   const [hasMore, setHasMore] = useState(false);
+  const [openedTicketIds, setOpenedTicketIds] = useState([]);
 
   const loadData = useCallback(async (append = false) => {
     try {
@@ -338,6 +339,7 @@ export default function AdminSupportTickets({ user }) {
   const hasUnreadClientMessage = (ticket) => {
     const msgs = ticket.messages || [];
     if (msgs.length === 0) return false;
+    if (openedTicketIds.includes(ticket.id)) return false;
     return !msgs[msgs.length - 1].is_admin;
   };
 
@@ -576,7 +578,10 @@ export default function AdminSupportTickets({ user }) {
                           <div className="flex items-start gap-3 mb-3">
                             <div 
                               className="flex-1 cursor-pointer"
-                              onClick={() => setSelectedTicket(ticket)}
+                              onClick={() => {
+                                setSelectedTicket(ticket);
+                                setOpenedTicketIds((prev) => prev.includes(ticket.id) ? prev : [...prev, ticket.id]);
+                              }}
                             >
                               <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <h3 className="font-semibold text-slate-800">{ticket.subject}</h3>
