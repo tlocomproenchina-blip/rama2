@@ -1023,10 +1023,10 @@ Email: ${client.email}`;
                 !hasValidShippingMark(client) && client.profile_completed && !hasIncompleteData(client) ? 'border-l-4 border-l-amber-400' : ''
               }`}
             >
-              <CardContent className="p-4 lg:p-6">
-                <div className="flex min-w-0 flex-col lg:flex-row lg:items-center gap-4">
+              <CardContent className="overflow-hidden p-4 lg:p-6">
+                <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center">
                   {/* Avatar & Name */}
-                  <div className="flex min-w-0 items-center gap-4 flex-1">
+                  <div className="flex min-w-0 w-full items-start gap-4 flex-1">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                       {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
                     </div>
@@ -1045,7 +1045,7 @@ Email: ${client.email}`;
                   </div>
 
                   {/* Details */}
-                  <div className="min-w-0 flex flex-wrap items-center gap-2 text-sm">
+                  <div className="grid w-full grid-cols-1 gap-2 text-sm sm:flex sm:flex-wrap sm:items-center sm:gap-2">
                     {client.city && (
                       <Badge variant="outline" className="bg-slate-50">
                         <MapPin className="h-3 w-3 mr-1" />
@@ -1085,8 +1085,8 @@ Email: ${client.email}`;
                   </div>
 
                   {/* Actions */}
-                  <div className="grid grid-cols-1 gap-2 w-full sm:grid-cols-2 lg:flex lg:items-stretch">
-                    <div className="flex items-center gap-2 pb-2 border-b border-slate-200 sm:col-span-2 sm:pb-0 sm:pr-3 sm:border-b-0 lg:border-r">
+                  <div className="grid w-full grid-cols-1 gap-2">
+                    <div className="flex w-full items-center gap-2 pb-2 border-b border-slate-200">
                       <span className="text-xs text-slate-600">Activo</span>
                       <Switch
                         checked={client.is_active !== false}
