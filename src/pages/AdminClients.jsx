@@ -116,21 +116,26 @@ export default function AdminClients({ user }) {
    const loadClients = async (append = false) => {
     try {
       if (append) setLoadingMore(true); else setLoading(true);
-      let users = [];
-      // Usar SDK directo para evitar problemas con el ApiQueueManager
-      const res = await base44Direct.functions.invoke('listClientsForSupport', {});
-      users = Array.isArray(res?.data) ? res.data : [];
+      // Cargar clientes y paquetes en paralelo
+      const [clientsRes, packages] = await Promise.all([
+        base44Direct.functions.invoke('listClientsForSupport', {}),
+        append ? Promise.resolve(null) : base44Direct.entities.Package.list('-created_date', 5000)
+      ]);
+      const users = Array.isArray(clientsRes?.data) ? clientsRes.data : [];
       setHasMore(false);
 
       if (append) {
         setClients(prev => [...prev, ...users]);
       } else {
-        const packages = await base44Direct.entities.Package.list();
-        const counts = {};
-        packages.forEach(pkg => { counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1; });
-        setPackagesCount(counts);
+        if (packages) {
+          const counts = {};
+          packages.forEach(pkg => { counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1; });
+          setPackagesCount(counts);
+        }
         setClients(users);
       }
+    } catch (err) {
+      console.error('[AdminClients] loadClients error:', err);
     } finally {
       if (append) setLoadingMore(false); else setLoading(false);
     }
