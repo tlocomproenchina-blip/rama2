@@ -31,6 +31,7 @@ import AdminSupportStatsCards from '@/components/support/AdminSupportStatsCards'
 import AdminSupportFilters from '@/components/support/AdminSupportFilters';
 import AdminSupportTicketsList from '@/components/support/AdminSupportTicketsList';
 import AdminSupportAdminStats from '@/components/support/AdminSupportAdminStats';
+import AdminSupportKpiFilters from '@/components/support/AdminSupportKpiFilters';
 import AdminSupportRealtimeKpis from '@/components/support/AdminSupportRealtimeKpis';
 import AdminSupportChartsPanel from '@/components/support/AdminSupportChartsPanel';
 import AdminSupportNewTicketDialog from '@/components/support/AdminSupportNewTicketDialog';
@@ -52,6 +53,7 @@ export default function AdminSupportTickets({ user }) {
   const [assigning, setAssigning] = useState(false);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [clients, setClients] = useState([]);
+  const [kpiFilters, setKpiFilters] = useState({ range: 'all', agent: 'all', status: 'all' });
   const [clientSearch, setClientSearch] = useState('');
   const [newTicket, setNewTicket] = useState({
     client_email: '',
@@ -395,6 +397,29 @@ export default function AdminSupportTickets({ user }) {
     return new Date(b.created_date).getTime() - new Date(a.created_date).getTime();
   }), [tickets, search, filterStatus, filterPriority, filterAssigned]);
 
+  const filteredKpiTickets = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    return tickets.filter((ticket) => {
+      const ticketTime = new Date(ticket.updated_date || ticket.created_date).getTime();
+      const matchesRange =
+        kpiFilters.range === 'all' ||
+        (kpiFilters.range === 'today' && ticketTime >= startOfToday) ||
+        (kpiFilters.range === '7d' && ticketTime >= now.getTime() - (7 * 24 * 60 * 60 * 1000)) ||
+        (kpiFilters.range === '30d' && ticketTime >= now.getTime() - (30 * 24 * 60 * 60 * 1000));
+
+      const matchesAgent =
+        kpiFilters.agent === 'all' ||
+        (kpiFilters.agent === 'unassigned' && !ticket.assigned_to) ||
+        ticket.assigned_to === kpiFilters.agent;
+
+      const matchesStatus = kpiFilters.status === 'all' || ticket.status === kpiFilters.status;
+
+      return matchesRange && matchesAgent && matchesStatus;
+    });
+  }, [tickets, kpiFilters]);
+
   // Admin statistics — only show staff with tickets assigned
   const adminStats = useMemo(() => staffUsers.map(admin => {
     const adminTickets = tickets.filter(t => t.assigned_to === admin.email);
@@ -469,8 +494,9 @@ export default function AdminSupportTickets({ user }) {
         </TabsContent>
 
         <TabsContent value="stats" className="space-y-6">
-          <AdminSupportRealtimeKpis tickets={tickets} staffUsers={staffUsers} />
-          <AdminSupportChartsPanel tickets={tickets} staffUsers={staffUsers} />
+          <AdminSupportKpiFilters filters={kpiFilters} setFilters={setKpiFilters} staffUsers={staffUsers} />
+          <AdminSupportRealtimeKpis tickets={filteredKpiTickets} staffUsers={staffUsers} />
+          <AdminSupportChartsPanel tickets={filteredKpiTickets} staffUsers={staffUsers} />
           <AdminSupportAdminStats adminStats={adminStats} />
         </TabsContent>
       </Tabs>
