@@ -818,28 +818,29 @@ Email: ${client.email}`;
           
           {/* Date Filter */}
           <div className="flex flex-col gap-2 p-3 bg-slate-50 rounded-lg">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <span className="text-sm font-medium text-slate-700">Filtrar por rango de fechas:</span>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
                 <span className="text-xs text-slate-500">Desde</span>
                 <Input
                   type="date"
                   value={fromDate || ''}
                   onChange={(e) => { setFromDate(e.target.value); setQuickDate('all'); }}
-                  className="w-auto"
+                  className="w-full sm:w-auto"
                 />
                 <span className="text-xs text-slate-500">Hasta</span>
                 <Input
                   type="date"
                   value={toDate || ''}
                   onChange={(e) => { setToDate(e.target.value); setQuickDate('all'); }}
-                  className="w-auto"
+                  className="w-full sm:w-auto"
                 />
                 {(fromDate || toDate) && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => { setFromDate(''); setToDate(''); }}
+                    className="w-full sm:w-auto"
                   >
                     Limpiar
                   </Button>
@@ -972,10 +973,10 @@ Email: ${client.email}`;
             </div>
           </div>
           {/* State Filter */}
-          <div className="flex items-center gap-3 mt-2">
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
             <span className="text-sm text-slate-600">Estado:</span>
             <Select value={stateFilter} onValueChange={(v) => setStateFilter(v)}>
-              <SelectTrigger className="w-56">
+              <SelectTrigger className="w-full sm:w-56">
                 <SelectValue placeholder="Todos los estados" />
               </SelectTrigger>
               <SelectContent>
@@ -985,7 +986,7 @@ Email: ${client.email}`;
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={resetAllFilters} className="ml-auto">Limpiar filtros</Button>
+            <Button variant="outline" size="sm" onClick={resetAllFilters} className="w-full sm:ml-auto sm:w-auto">Limpiar filtros</Button>
             </div>
 
 
@@ -1084,8 +1085,8 @@ Email: ${client.email}`;
                   </div>
 
                   {/* Actions */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex items-stretch gap-2 w-full">
-                    <div className="flex items-center gap-2 pb-2 sm:pb-0 sm:pr-3 sm:border-r border-b sm:border-b-0 border-slate-200">
+                  <div className="grid grid-cols-1 gap-2 w-full sm:grid-cols-2 lg:flex lg:items-stretch">
+                    <div className="flex items-center gap-2 pb-2 border-b border-slate-200 sm:col-span-2 sm:pb-0 sm:pr-3 sm:border-b-0 lg:border-r">
                       <span className="text-xs text-slate-600">Activo</span>
                       <Switch
                         checked={client.is_active !== false}
