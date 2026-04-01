@@ -1024,28 +1024,28 @@ Email: ${client.email}`;
               }`}
             >
               <CardContent className="p-4 lg:p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                <div className="flex min-w-0 flex-col lg:flex-row lg:items-center gap-4">
                   {/* Avatar & Name */}
-                  <div className="flex items-center gap-4 flex-1">
+                  <div className="flex min-w-0 items-center gap-4 flex-1">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                       {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-800">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-semibold text-slate-800">
                         {client.first_name && client.last_name 
                           ? `${client.first_name} ${client.last_name}`
                           : client.email
                         }
                       </h3>
-                      <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                        <Mail className="h-3 w-3" />
-                        {client.email}
+                      <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-slate-500">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{client.email}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Details */}
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <div className="min-w-0 flex flex-wrap items-center gap-2 text-sm">
                     {client.city && (
                       <Badge variant="outline" className="bg-slate-50">
                         <MapPin className="h-3 w-3 mr-1" />
