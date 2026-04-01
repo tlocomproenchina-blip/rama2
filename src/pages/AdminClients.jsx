@@ -1044,42 +1044,42 @@ Email: ${client.email}`;
                   </div>
 
                   {/* Details */}
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <div className="flex flex-col items-start gap-2 text-sm lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
                     {client.city && (
-                      <Badge variant="outline" className="bg-slate-50">
+                      <Badge variant="outline" className="bg-slate-50 w-full justify-start lg:w-auto">
                         <MapPin className="h-3 w-3 mr-1" />
                         {client.city}
                       </Badge>
                     )}
                     {client.whatsapp && (
-                      <Badge variant="outline" className="bg-slate-50">
+                      <Badge variant="outline" className="bg-slate-50 w-full justify-start lg:w-auto">
                         <Phone className="h-3 w-3 mr-1" />
                         {client.whatsapp}
                       </Badge>
                     )}
                     {hasValidShippingMark(client) ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 w-full justify-start lg:w-auto">
                         <Tag className="h-3 w-3 mr-1" />
                         {client.shipping_mark}
                       </Badge>
                     ) : (
-                      <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 w-full justify-start lg:w-auto">
                         <Clock className="h-3 w-3 mr-1" />
                         Sin Shipping Mark
                       </Badge>
                     )}
                     {client.created_date && (
-                      <Badge variant="outline" className="bg-slate-50">
+                      <Badge variant="outline" className="bg-slate-50 w-full justify-start lg:w-auto">
                         <CalendarDays className="h-3 w-3 mr-1" />
                         {format(new Date(client.created_date), 'dd MMM yyyy', { locale: es })}
                       </Badge>
                     )}
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="w-full justify-start lg:w-auto">
                       <Package className="h-3 w-3 mr-1" />
                       {packagesCount[client.email] || 0} paquetes
                     </Badge>
                     {client.is_active === false && (
-                      <Badge className="bg-red-100 text-red-700 border-red-200">Inactivo</Badge>
+                      <Badge className="bg-red-100 text-red-700 border-red-200 w-full justify-start lg:w-auto">Inactivo</Badge>
                     )}
                   </div>
 
