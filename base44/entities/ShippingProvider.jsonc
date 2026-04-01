@@ -36,6 +36,11 @@
       "type": "number",
       "description": "Costo Puerta a Puerta (USD)"
     },
+    "consolidation_fee_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "Porcentaje de cargo por consolidaci\u00f3n aplicado al costo base calculado"
+    },
     "per_tracking_regular": {
       "type": "number",
       "default": 1,

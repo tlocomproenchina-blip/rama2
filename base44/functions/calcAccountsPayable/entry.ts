@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 function toNumber(n, def = 0) {
   const v = Number(n);
@@ -53,7 +53,7 @@ async function getClientState(base44, email) {
   }
 }
 
-async function ensureOrUpdateAP(base44, cons, providerTotal, breakdown, vendorName) {
+async function ensureOrUpdateAP(base44, cons, providerTotal, breakdown, vendorName, providerId, consolidationFeePercentageApplied, consolidationFeeAmount) {
 
   const existing = await base44.asServiceRole.entities.AccountsPayable.filter({
     related_consolidation_id: cons.id,
@@ -70,6 +70,9 @@ async function ensureOrUpdateAP(base44, cons, providerTotal, breakdown, vendorNa
       original_amount_due: providerTotal,
       balance_due: newBalance,
       status: newStatus,
+      shipping_provider_id: providerId,
+      consolidation_fee_percentage_applied: consolidationFeePercentageApplied,
+      consolidation_fee_amount: consolidationFeeAmount,
       cbm: breakdown.cbm,
       tracking_count: breakdown.tracking_count,
       risk_level: breakdown.risk_level,
@@ -81,6 +84,7 @@ async function ensureOrUpdateAP(base44, cons, providerTotal, breakdown, vendorNa
 
   const created = await base44.asServiceRole.entities.AccountsPayable.create({
     vendor_name: vendorName,
+    shipping_provider_id: providerId,
     description: `Flete marítimo consolidación ${cons.consolidation_tracking || cons.id}`,
     original_amount_due: providerTotal,
     currency: 'USD',
@@ -94,7 +98,9 @@ async function ensureOrUpdateAP(base44, cons, providerTotal, breakdown, vendorNa
     cbm: breakdown.cbm,
     tracking_count: breakdown.tracking_count,
     risk_level: breakdown.risk_level,
-    state_code: breakdown.state_code
+    state_code: breakdown.state_code,
+    consolidation_fee_percentage_applied: consolidationFeePercentageApplied,
+    consolidation_fee_amount: consolidationFeeAmount
   });
   return { action: 'created', ap: created };
 }
@@ -172,7 +178,10 @@ Deno.serve(async (req) => {
     // Provider formula: baseRate + stateRate + D2D + (perTracking × #trackings), multiplied by CBM
     const unitTotal = baseRate + stateRate + d2d + trackingCount * perTracking;
     const cbmMultiplier = cbm > 0 ? cbm : 1; // fallback to 1 if no CBM provided
-    const providerTotal = toNumber(unitTotal * cbmMultiplier, 0);
+    const subtotalBeforeConsolidation = toNumber(unitTotal * cbmMultiplier, 0);
+    const consolidationFeePercentageApplied = toNumber(provider?.consolidation_fee_percentage, 0);
+    const consolidationFeeAmount = toNumber(subtotalBeforeConsolidation * (consolidationFeePercentageApplied / 100), 0);
+    const providerTotal = toNumber(subtotalBeforeConsolidation + consolidationFeeAmount, 0);
 
     const breakdown = {
       cbm,
@@ -182,9 +191,25 @@ Deno.serve(async (req) => {
     };
 
     const vendorName = provider?.name || 'Proveedor Logística Marítima';
-    const result = await ensureOrUpdateAP(base44, cons, providerTotal, breakdown, vendorName);
+    const result = await ensureOrUpdateAP(
+      base44,
+      cons,
+      providerTotal,
+      breakdown,
+      vendorName,
+      provider?.id || null,
+      consolidationFeePercentageApplied,
+      consolidationFeeAmount
+    );
 
-    return Response.json({ success: true, provider_total: providerTotal, ...result });
+    return Response.json({
+      success: true,
+      provider_total: providerTotal,
+      subtotal_before_consolidation: subtotalBeforeConsolidation,
+      consolidation_fee_percentage_applied: consolidationFeePercentageApplied,
+      consolidation_fee_amount: consolidationFeeAmount,
+      ...result
+    });
   } catch (error) {
     return Response.json({ error: error?.message || String(error) }, { status: 500 });
   }

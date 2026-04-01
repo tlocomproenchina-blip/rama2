@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Nombre del proveedor (ej. Proveedor Log\u00edstica Mar\u00edtima)"
     },
+    "shipping_provider_id": {
+      "type": "string",
+      "description": "ID del proveedor log\u00edstico asociado (ShippingProvider)"
+    },
     "description": {
       "type": "string",
       "description": "Descripci\u00f3n del servicio/gasto (ej. Flete mar\u00edtimo consolidaci\u00f3n XYZ)"
@@ -101,6 +105,16 @@
     "tracking_count": {
       "type": "number",
       "description": "Cantidad de trackings consolidados"
+    },
+    "consolidation_fee_percentage_applied": {
+      "type": "number",
+      "default": 0,
+      "description": "Porcentaje de cargo por consolidaci\u00f3n aplicado al registro"
+    },
+    "consolidation_fee_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Monto calculado del cargo por consolidaci\u00f3n"
     }
   },
   "required": [

@@ -22,6 +22,7 @@ export default function AdminProviders() {
     base_rate_regular: '',
     base_rate_high_risk: '',
     door_to_door_cost: '',
+    consolidation_fee_percentage: '',
     per_tracking_regular: 1,
     per_tracking_high: 1,
     state_overrides: [],
@@ -47,7 +48,7 @@ export default function AdminProviders() {
   const save = async () => {
     const data = { ...editing };
     // Coerce numbers
-    ['base_rate_regular','base_rate_high_risk','door_to_door_cost','per_tracking_regular','per_tracking_high'].forEach(k => {
+    ['base_rate_regular','base_rate_high_risk','door_to_door_cost','consolidation_fee_percentage','per_tracking_regular','per_tracking_high'].forEach(k => {
       if (data[k] !== '' && data[k] !== undefined) data[k] = Number(data[k]);
     });
 
@@ -145,6 +146,10 @@ export default function AdminProviders() {
                 <Input type="number" step="0.01" value={editing.door_to_door_cost} onChange={e => setEditing({ ...editing, door_to_door_cost: e.target.value })} />
               </div>
               <div>
+                <Label>% Consolidación</Label>
+                <Input type="number" step="0.01" value={editing.consolidation_fee_percentage} onChange={e => setEditing({ ...editing, consolidation_fee_percentage: e.target.value })} />
+              </div>
+              <div>
                 <Label>+Tracking Regular</Label>
                 <Input type="number" step="0.01" value={editing.per_tracking_regular} onChange={e => setEditing({ ...editing, per_tracking_regular: e.target.value })} />
               </div>
@@ -231,6 +236,10 @@ export default function AdminProviders() {
                           <p className="text-slate-800">${(p.door_to_door_cost||0).toFixed?.(2) ?? Number(p.door_to_door_cost||0).toFixed(2)}</p>
                         </div>
                         <div>
+                          <p className="text-xs text-slate-500">% Consol.</p>
+                          <p className="text-slate-800">{Number(p.consolidation_fee_percentage || 0).toFixed(2)}%</p>
+                        </div>
+                        <div>
                           <p className="text-xs text-slate-500">+Reg</p>
                           <p className="text-slate-800">${(p.per_tracking_regular||0).toFixed?.(2) ?? Number(p.per_tracking_regular||0).toFixed(2)}</p>
                         </div>
@@ -259,6 +268,7 @@ export default function AdminProviders() {
                       <TableHead>Base Reg</TableHead>
                       <TableHead>Base High</TableHead>
                       <TableHead>D2D</TableHead>
+                      <TableHead>% Consol.</TableHead>
                       <TableHead>+Reg</TableHead>
                       <TableHead>+High</TableHead>
                       <TableHead></TableHead>
@@ -266,7 +276,7 @@ export default function AdminProviders() {
                   </TableHeader>
                   <TableBody>
                     {providers.length === 0 ? (
-                      <TableRow><TableCell colSpan={10} className="text-center text-slate-500">Sin proveedores</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={11} className="text-center text-slate-500">Sin proveedores</TableCell></TableRow>
                     ) : providers.map(p => (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{p.name}</TableCell>
@@ -276,6 +286,7 @@ export default function AdminProviders() {
                         <TableCell>${(p.base_rate_regular||0).toFixed?.(2) ?? Number(p.base_rate_regular||0).toFixed(2)}</TableCell>
                         <TableCell>${(p.base_rate_high_risk||0).toFixed?.(2) ?? Number(p.base_rate_high_risk||0).toFixed(2)}</TableCell>
                         <TableCell>${(p.door_to_door_cost||0).toFixed?.(2) ?? Number(p.door_to_door_cost||0).toFixed(2)}</TableCell>
+                        <TableCell>{Number(p.consolidation_fee_percentage || 0).toFixed(2)}%</TableCell>
                         <TableCell>${(p.per_tracking_regular||0).toFixed?.(2) ?? Number(p.per_tracking_regular||0).toFixed(2)}</TableCell>
                         <TableCell>${(p.per_tracking_high||0).toFixed?.(2) ?? Number(p.per_tracking_high||0).toFixed(2)}</TableCell>
                         <TableCell className="text-right space-x-2">
