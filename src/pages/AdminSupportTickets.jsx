@@ -76,7 +76,12 @@ export default function AdminSupportTickets({ user }) {
 
   const loadData = useCallback(async (append = false) => {
     try {
-      if (append) setLoadingMore(true); else setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
       const skip = append ? tickets.length : 0;
       const results = await Promise.allSettled([
         base44.entities.SupportTicket.list('-created_date', pageSize, skip),
@@ -94,12 +99,16 @@ export default function AdminSupportTickets({ user }) {
           package_shipping_marks: [],
         }));
 
-      setTickets((prev) => append ? [...prev, ...allT] : allT);
+      setTickets((prev) => (append ? [...prev, ...allT] : allT));
       setStaffUsers(nextStaff);
       setClients(nextClients);
       setHasMore(allT.length === pageSize);
     } finally {
-      if (append) setLoadingMore(false); else setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [isAdmin, pageSize, tickets.length, user]);
 
