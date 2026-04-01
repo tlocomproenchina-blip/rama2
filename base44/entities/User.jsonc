@@ -1,0 +1,10 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "push_subscription": {
+      "type": "object",
+      "description": "Suscripci\u00f3n web push del usuario"
+    }
+  }
+}

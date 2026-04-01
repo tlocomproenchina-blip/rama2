@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react';
+import PushNotificationManager from '@/components/PushNotificationManager';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -46,6 +47,17 @@ const RouteContent = ({ children }) => (
     {children}
   </Suspense>
 );
+
+const AppShell = () => {
+  const { user } = useAuth();
+
+  return (
+    <>
+      <AuthenticatedApp />
+      <PushNotificationManager user={user} />
+    </>
+  );
+};
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -241,7 +253,7 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <NavigationTracker />
-          <AuthenticatedApp />
+          <AppShell />
         </Router>
         <Toaster />
       </QueryClientProvider>
