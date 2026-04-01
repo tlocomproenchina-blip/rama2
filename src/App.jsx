@@ -49,12 +49,12 @@ const RouteContent = ({ children }) => (
 );
 
 const AppShell = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <>
       <AuthenticatedApp />
-      <PushNotificationManager user={user} />
+      {isAuthenticated && user?.role === 'user' ? <PushNotificationManager user={user} /> : null}
     </>
   );
 };

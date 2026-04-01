@@ -24,6 +24,19 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, skipped: true, reason: 'Same status' });
     }
 
+    const users = await base44.asServiceRole.entities.User.filter({ email: data.client_email });
+    if (!users.length || !users[0].push_subscription) {
+      return Response.json({ success: true, skipped: true, reason: 'No push subscription found' });
+    }
+
+    const subscription = users[0].push_subscription;
+    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      return Response.json({ error: 'VAPID keys not configured' }, { status: 500 });
+    }
+
     const title = data.status === 'recibido'
       ? '📦 Paquete recibido'
       : '📦 Paquete consolidado';
@@ -32,14 +45,24 @@ Deno.serve(async (req) => {
       ? `Tu paquete ${data.tracking_number} ya fue recibido en almacén.`
       : `Tu paquete ${data.tracking_number} fue consolidado exitosamente.`;
 
-    const functionResponse = await base44.asServiceRole.functions.invoke('sendPushNotification', {
-      userEmail: data.client_email,
+    const webpush = await import('npm:web-push@3.6.7');
+    webpush.default.setVapidDetails(
+      'mailto:admin@tleclogistics.com',
+      vapidPublicKey,
+      vapidPrivateKey
+    );
+
+    const pushPayload = JSON.stringify({
       title,
       body,
-      url: '/MyPackages'
+      url: '/MyPackages',
+      icon: '/icon-192x192.png',
+      tag: `package-status-${data.id || data.tracking_number}-${data.status}`
     });
 
-    return Response.json({ success: true, push: functionResponse?.data || null });
+    await webpush.default.sendNotification(subscription, pushPayload);
+
+    return Response.json({ success: true });
   } catch (error) {
     console.error('notifyPackageStatusPush error:', error);
     return Response.json({ error: error.message }, { status: 500 });
