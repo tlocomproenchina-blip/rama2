@@ -31,6 +31,8 @@ import AdminSupportStatsCards from '@/components/support/AdminSupportStatsCards'
 import AdminSupportFilters from '@/components/support/AdminSupportFilters';
 import AdminSupportTicketsList from '@/components/support/AdminSupportTicketsList';
 import AdminSupportAdminStats from '@/components/support/AdminSupportAdminStats';
+import AdminSupportRealtimeKpis from '@/components/support/AdminSupportRealtimeKpis';
+import AdminSupportChartsPanel from '@/components/support/AdminSupportChartsPanel';
 import AdminSupportNewTicketDialog from '@/components/support/AdminSupportNewTicketDialog';
 import AdminSupportTicketDetailDialog from '@/components/support/AdminSupportTicketDetailDialog';
 
@@ -467,6 +469,8 @@ export default function AdminSupportTickets({ user }) {
         </TabsContent>
 
         <TabsContent value="stats" className="space-y-6">
+          <AdminSupportRealtimeKpis tickets={tickets} staffUsers={staffUsers} />
+          <AdminSupportChartsPanel tickets={tickets} staffUsers={staffUsers} />
           <AdminSupportAdminStats adminStats={adminStats} />
         </TabsContent>
       </Tabs>
