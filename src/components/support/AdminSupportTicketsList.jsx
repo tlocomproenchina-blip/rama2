@@ -55,7 +55,10 @@ export default function AdminSupportTicketsList({
                       className="flex-1 cursor-pointer"
                       onClick={() => {
                         setSelectedTicket(ticket);
-                        setOpenedTicketIds((prev) => prev.includes(ticket.id) ? prev : [...prev, ticket.id]);
+                        const lastMessage = ticket.messages?.[ticket.messages.length - 1];
+                        if (!lastMessage) return;
+                        const lastMessageKey = `${ticket.id}:${lastMessage.timestamp}`;
+                        setOpenedTicketIds((prev) => prev.includes(lastMessageKey) ? prev : [...prev, lastMessageKey]);
                       }}
                     >
                       <div className="flex items-center gap-2 mb-2 flex-wrap">

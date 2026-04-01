@@ -78,7 +78,14 @@ export default function AdminSupportTickets({ user }) {
     otro: 'customer_service'
   };
   const [hasMore, setHasMore] = useState(false);
-  const [openedTicketIds, setOpenedTicketIds] = useState([]);
+  const [openedTicketIds, setOpenedTicketIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('adminSupportOpenedTicketIds');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const loadData = useCallback(async (append = false) => {
     try {
@@ -317,6 +324,10 @@ export default function AdminSupportTickets({ user }) {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    localStorage.setItem('adminSupportOpenedTicketIds', JSON.stringify(openedTicketIds));
+  }, [openedTicketIds]);
+
   const statusConfig = {
     abierto: { label: 'Abierto', color: 'bg-blue-100 text-blue-700', icon: AlertCircle },
     en_proceso: { label: 'En Proceso', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -344,8 +355,10 @@ export default function AdminSupportTickets({ user }) {
   const hasUnreadClientMessage = (ticket) => {
     const msgs = ticket.messages || [];
     if (msgs.length === 0) return false;
-    if (openedTicketIds.includes(ticket.id)) return false;
-    return !msgs[msgs.length - 1].is_admin;
+    const lastMessage = msgs[msgs.length - 1];
+    const lastMessageKey = `${ticket.id}:${lastMessage.timestamp}`;
+    if (openedTicketIds.includes(lastMessageKey)) return false;
+    return !lastMessage.is_admin;
   };
 
   // Filter tickets
