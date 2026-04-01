@@ -212,9 +212,14 @@ function LabelContent({ shippingMark, form, logoUrl, companyName }) {
           </svg>
           <span style={{ fontWeight: 700, fontSize: 14 }}>海运</span>
         </div>
-        <div style={{ width: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4px 8px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700 }}>箱数</div>
-          <div style={{ fontSize: 20, fontWeight: 900, marginTop: 2 }}>{form.boxCount || ''}</div>
+        <div style={{ width: 120, display: 'flex', borderLeft: '1px solid #999' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid #999', fontSize: 18, fontWeight: 700 }}>
+            的
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4px 6px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700 }}>箱数</div>
+            <div style={{ fontSize: 20, fontWeight: 900, marginTop: 2 }}>{form.boxCount || ''}</div>
+          </div>
         </div>
       </div>
 
