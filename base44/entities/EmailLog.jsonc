@@ -1,0 +1,114 @@
+{
+  "name": "EmailLog",
+  "type": "object",
+  "properties": {
+    "recipient_email": {
+      "type": "string",
+      "description": "Email del destinatario"
+    },
+    "recipient_name": {
+      "type": "string",
+      "description": "Nombre del destinatario"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email del remitente"
+    },
+    "from_name": {
+      "type": "string",
+      "description": "Nombre del remitente"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Asunto del email"
+    },
+    "body_preview": {
+      "type": "string",
+      "description": "Preview del cuerpo (primeros 200 caracteres)"
+    },
+    "campaign_id": {
+      "type": "string",
+      "description": "ID de la campa\u00f1a si aplica"
+    },
+    "campaign_name": {
+      "type": "string",
+      "description": "Nombre de la campa\u00f1a"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "campaign"
+      ],
+      "default": "manual",
+      "description": "Origen del env\u00edo"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "delivered",
+        "opened",
+        "clicked",
+        "bounced",
+        "failed"
+      ],
+      "default": "sent",
+      "description": "Estado del email"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de env\u00edo"
+    },
+    "delivered_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de entrega"
+    },
+    "opened_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de apertura"
+    },
+    "clicked_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de clic"
+    },
+    "bounced_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de rebote"
+    },
+    "bounce_reason": {
+      "type": "string",
+      "description": "Raz\u00f3n del rebote"
+    },
+    "click_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de clics"
+    },
+    "open_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de aperturas"
+    },
+    "conversion_value": {
+      "type": "number",
+      "default": 0,
+      "description": "Valor de conversi\u00f3n generado"
+    },
+    "converted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si gener\u00f3 conversi\u00f3n"
+    }
+  },
+  "required": [
+    "recipient_email",
+    "subject",
+    "sent_date"
+  ]
+}

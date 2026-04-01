@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 } from '@/api/base44Client';
+import { base44 as base44Queue } from '@/components/api/ApiQueueManager';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -40,6 +41,7 @@ export default function PreAlert({ user }) {
     fob_value: ''
   });
   const [invoiceFile, setInvoiceFile] = useState(null);
+  const [productPhoto, setProductPhoto] = useState(null);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -65,9 +67,43 @@ export default function PreAlert({ user }) {
   // Check if user has shipping mark
   const hasShippingMark = user?.shipping_mark && user.shipping_mark.length > 0;
 
+  const [trackingWarning, setTrackingWarning] = useState(null);
+  const [checkingTracking, setCheckingTracking] = useState(false);
+
   const validateTracking = async (tracking) => {
-    const existing = await base44.entities.Package.filter({ tracking_number: tracking });
-    return existing.length === 0;
+    try {
+      const { data } = await base44Queue.functions.invoke('checkDuplicates', {
+        action: 'check_field',
+        field: 'tracking',
+        value: tracking.trim()
+      });
+      if (data?.duplicate) {
+        const owner = data.matches?.[0];
+        const ownerInfo = owner ? ` (registrado por ${owner.client_email}, estado: ${owner.status})` : '';
+        setTrackingWarning(`Este tracking ya existe en el sistema${ownerInfo}`);
+        return false;
+      }
+      setTrackingWarning(null);
+      return true;
+    } catch (e) {
+      // Fallback: consulta directa
+      const existing = await base44.entities.Package.filter({ tracking_number: tracking.trim() });
+      if (existing.length > 0) {
+        setTrackingWarning('Este tracking ya existe en el sistema');
+        return false;
+      }
+      setTrackingWarning(null);
+      return true;
+    }
+  };
+
+  // Verificación en tiempo real al salir del campo
+  const handleTrackingBlur = async () => {
+    const t = formData.tracking_number.trim();
+    if (!t || t.length < 5) { setTrackingWarning(null); return; }
+    setCheckingTracking(true);
+    await validateTracking(t);
+    setCheckingTracking(false);
   };
 
   const handleSubmit = async (e) => {
@@ -81,6 +117,10 @@ export default function PreAlert({ user }) {
 
     if (!formData.description.trim()) {
       newErrors.description = 'Descripción requerida';
+    }
+
+    if (!productPhoto) {
+      newErrors.product_photo = 'La foto del producto es obligatoria';
     }
 
     if (formData.has_insurance && !formData.fob_value) {
@@ -108,8 +148,21 @@ export default function PreAlert({ user }) {
 
     try {
       let invoiceUrl = null;
+      let productPhotoUrl = null;
+
+      // Upload product photo (mandatory)
+      if (productPhoto) {
+        try {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file: productPhoto });
+          productPhotoUrl = file_url;
+        } catch (uploadError) {
+          toast.error('Error al subir la foto del producto.');
+          setSaving(false);
+          return;
+        }
+      }
       
-      // Upload file first if exists
+      // Upload invoice file if exists
       if (invoiceFile) {
         try {
           const { file_url } = await base44.integrations.Core.UploadFile({ file: invoiceFile });
@@ -131,6 +184,7 @@ export default function PreAlert({ user }) {
         has_insurance: formData.has_insurance,
         fob_value: formData.has_insurance ? parseFloat(formData.fob_value) : null,
         invoice_url: invoiceUrl,
+        product_image_url: productPhotoUrl,
         status: 'pre_alerta'
       });
 
@@ -250,16 +304,31 @@ export default function PreAlert({ user }) {
               <Label htmlFor="tracking" className="text-slate-700 font-medium">
                 Número de Tracking *
               </Label>
-              <Input
-                id="tracking"
-                value={formData.tracking_number}
-                onChange={(e) => {
-                  setFormData({ ...formData, tracking_number: e.target.value });
-                  setErrors({ ...errors, tracking_number: null });
-                }}
-                placeholder="Ingresa el número de tracking"
-                className={errors.tracking_number ? 'border-red-300' : ''}
-              />
+              <div className="relative">
+                <Input
+                  id="tracking"
+                  value={formData.tracking_number}
+                  onChange={(e) => {
+                    setFormData({ ...formData, tracking_number: e.target.value });
+                    setErrors({ ...errors, tracking_number: null });
+                    setTrackingWarning(null);
+                  }}
+                  onBlur={handleTrackingBlur}
+                  placeholder="Ingresa el número de tracking"
+                  className={errors.tracking_number || trackingWarning ? 'border-red-300' : ''}
+                />
+                {checkingTracking && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                  </div>
+                )}
+              </div>
+              {trackingWarning && !errors.tracking_number && (
+                <p className="text-sm text-amber-600 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {trackingWarning}
+                </p>
+              )}
               {errors.tracking_number && (
                 <p className="text-sm text-red-500 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
@@ -327,9 +396,53 @@ export default function PreAlert({ user }) {
                   {errors.description}
                 </p>
               )}
-            </div>
+              </div>
 
-            {/* Insurance Section */}
+              {/* Product Photo */}
+              <div className="space-y-2">
+                <Label className="text-slate-700 font-medium flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Foto del producto *
+                </Label>
+                <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${errors.product_photo ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => { const f = e.target.files?.[0] || null; setProductPhoto(f); if (f) setErrors(prev => ({ ...prev, product_photo: null })); }}
+                    className="hidden"
+                    id="product-photo-upload"
+                  />
+                  <label htmlFor="product-photo-upload" className="cursor-pointer">
+                    {productPhoto ? (
+                      <div className="space-y-2">
+                        <img
+                          src={URL.createObjectURL(productPhoto)}
+                          alt="Preview"
+                          className="max-h-32 mx-auto rounded-lg object-contain"
+                        />
+                        <div className="flex items-center justify-center gap-2 text-emerald-600">
+                          <CheckCircle className="h-4 w-4" />
+                          <span className="text-sm font-medium">{productPhoto.name}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-slate-500">
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                        <p className="text-sm">Click para subir foto del producto</p>
+                        <p className="text-xs text-slate-400 mt-1">JPG, PNG o similar</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+                {errors.product_photo && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.product_photo}
+                  </p>
+                )}
+              </div>
+
+              {/* Insurance Section */}
             <div className="border-t border-slate-100 pt-6">
               <div className="flex items-start space-x-3">
                 <Checkbox

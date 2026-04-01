@@ -1,0 +1,63 @@
+{
+  "name": "DesignFeedback",
+  "type": "object",
+  "properties": {
+    "page_name": {
+      "type": "string",
+      "description": "P\u00e1gina donde se envi\u00f3 el feedback"
+    },
+    "score": {
+      "type": "number",
+      "description": "Puntuaci\u00f3n de experiencia visual de 1 a 5"
+    },
+    "comment": {
+      "type": "string",
+      "description": "Comentario opcional del usuario"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario o guest"
+    },
+    "user_role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user",
+        "guest"
+      ],
+      "default": "guest",
+      "description": "Rol del remitente"
+    },
+    "sentiment": {
+      "type": "string",
+      "enum": [
+        "poor",
+        "ok",
+        "good",
+        "love"
+      ],
+      "description": "Clasificaci\u00f3n derivada de la puntuaci\u00f3n"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "reviewed"
+      ],
+      "default": "new",
+      "description": "Estado de revisi\u00f3n interna"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual"
+      ],
+      "default": "manual",
+      "description": "Origen del feedback"
+    }
+  },
+  "required": [
+    "page_name",
+    "score"
+  ]
+}

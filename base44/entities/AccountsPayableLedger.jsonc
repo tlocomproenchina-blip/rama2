@@ -1,0 +1,59 @@
+{
+  "name": "AccountsPayableLedger",
+  "type": "object",
+  "properties": {
+    "ap_id": {
+      "type": "string",
+      "description": "ID del AccountsPayable asociado"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "cargo",
+        "abono",
+        "ajuste"
+      ],
+      "description": "cargo=incrementa deuda, abono=disminuye, ajuste=correcci\u00f3n"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto del movimiento"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del movimiento"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "tarjeta",
+        "efectivo",
+        "nota_credito",
+        "cheque",
+        "otro"
+      ],
+      "default": "transferencia",
+      "description": "M\u00e9todo del pago/ajuste"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Referencia/comprobante"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detalle del movimiento"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Email del usuario que registr\u00f3 el movimiento"
+    }
+  },
+  "required": [
+    "ap_id",
+    "transaction_type",
+    "amount",
+    "transaction_date"
+  ]
+}

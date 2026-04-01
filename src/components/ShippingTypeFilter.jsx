@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 } from '@/api/base44Client';
 
 // Hook para obtener los tipos de envío habilitados
 export function useEnabledShippingTypes() {

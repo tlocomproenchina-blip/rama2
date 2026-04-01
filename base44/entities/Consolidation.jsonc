@@ -1,0 +1,140 @@
+{
+  "name": "Consolidation",
+  "type": "object",
+  "properties": {
+    "consolidation_tracking": {
+      "type": "string",
+      "description": "Consolidated tracking number"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "shipping_mark": {
+      "type": "string"
+    },
+    "package_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of package IDs included"
+    },
+    "tracking_numbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of tracking numbers included"
+    },
+    "shipping_type": {
+      "type": "string",
+      "enum": [
+        "aereo",
+        "maritimo"
+      ]
+    },
+    "real_weight_kg": {
+      "type": "number"
+    },
+    "length_cm": {
+      "type": "number"
+    },
+    "width_cm": {
+      "type": "number"
+    },
+    "height_cm": {
+      "type": "number"
+    },
+    "cbm": {
+      "type": "number"
+    },
+    "volumetric_weight": {
+      "type": "number"
+    },
+    "billable_weight": {
+      "type": "number"
+    },
+    "shipping_cost": {
+      "type": "number"
+    },
+    "insurance_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "total_cost": {
+      "type": "number"
+    },
+    "shipping_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de salida de la carga"
+    },
+    "estimated_delivery": {
+      "type": "string",
+      "format": "date",
+      "description": "Estimated delivery date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "en_transito",
+        "pago_validado",
+        "disponible",
+        "entregado"
+      ],
+      "default": "en_transito",
+      "description": "Estado: en_transito (consolidada y enviada) \u2192 pago_validado \u2192 disponible (para retiro) \u2192 entregado"
+    },
+    "payment_proof_url": {
+      "type": "string"
+    },
+    "payment_amount": {
+      "type": "number"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "binance",
+        "usdt_trc20",
+        "paypal",
+        "debito_internacional",
+        "wally",
+        "zinli",
+        "wise",
+        "skrill",
+        "pago_movil_usdt"
+      ]
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payment_validated": {
+      "type": "boolean",
+      "default": false
+    },
+    "payment_validated_by": {
+      "type": "string"
+    },
+    "payment_validation_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payment_rejection_comment": {
+      "type": "string"
+    },
+    "consolidation_period_days": {
+      "type": "number",
+      "description": "Per\u00edodo de consolidaci\u00f3n en d\u00edas",
+      "default": 30
+    },
+    "consolidation_request_id": {
+      "type": "string",
+      "description": "ID de la solicitud de consolidaci\u00f3n original"
+    }
+  },
+  "required": [
+    "client_email",
+    "shipping_type"
+  ]
+}

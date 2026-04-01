@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 const DEFAULT_PREFIX = 'TLEC-';
 const DEFAULT_LENGTH = 6;
@@ -165,22 +165,40 @@ Deno.serve(async (req) => {
 
     let shippingMark = '';
 
-    const availableCodes = await base44.asServiceRole.entities.ShippingMarkCode.filter({ status: 'available' }, 'created_date', 1);
-    const pooledCode = availableCodes?.[0] || null;
+    // Helper: verify a candidate SM is not already assigned to any user
+    const isUnique = async (candidate) => {
+      const existing = await base44.asServiceRole.entities.User.filter({ shipping_mark: candidate }, '-updated_date', 1);
+      return !existing?.length;
+    };
 
-    if (pooledCode?.code) {
-      shippingMark = String(pooledCode.code).trim().toUpperCase();
-      await base44.asServiceRole.entities.ShippingMarkCode.update(pooledCode.id, {
-        status: 'assigned',
-        assigned_to_email: targetUser.email || '',
-        assigned_date: new Date().toISOString()
-      });
-    } else {
+    // Try pool first
+    const availableCodes = await base44.asServiceRole.entities.ShippingMarkCode.filter({ status: 'available' }, 'created_date', 5);
+    for (const pooledCode of (availableCodes || [])) {
+      const candidate = String(pooledCode.code).trim().toUpperCase();
+      if (await isUnique(candidate)) {
+        shippingMark = candidate;
+        await base44.asServiceRole.entities.ShippingMarkCode.update(pooledCode.id, {
+          status: 'assigned',
+          assigned_to_email: targetUser.email || '',
+          assigned_date: new Date().toISOString()
+        });
+        break;
+      } else {
+        // Mark pool code as used/conflicted so it's not reused
+        await base44.asServiceRole.entities.ShippingMarkCode.update(pooledCode.id, {
+          status: 'assigned',
+          assigned_to_email: 'CONFLICTO-DUPLICADO',
+          assigned_date: new Date().toISOString()
+        });
+      }
+    }
+
+    // If pool didn't yield a unique code, generate random
+    if (!shippingMark) {
       let attempts = 0;
       while (attempts < 20) {
         const candidate = `${prefix}${getRandomPart(chars, length)}`;
-        const existing = await base44.asServiceRole.entities.User.filter({ shipping_mark: candidate }, '-updated_date', 1);
-        if (!existing?.length) {
+        if (await isUnique(candidate)) {
           shippingMark = candidate;
           break;
         }

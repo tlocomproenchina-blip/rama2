@@ -1,0 +1,111 @@
+{
+  "name": "AccountsPayable",
+  "type": "object",
+  "properties": {
+    "vendor_name": {
+      "type": "string",
+      "description": "Nombre del proveedor (ej. Proveedor Log\u00edstica Mar\u00edtima)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n del servicio/gasto (ej. Flete mar\u00edtimo consolidaci\u00f3n XYZ)"
+    },
+    "original_amount_due": {
+      "type": "number",
+      "description": "Monto total original a pagar al proveedor"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "description": "Moneda"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "parcial",
+        "pagado",
+        "vencido",
+        "disputa"
+      ],
+      "default": "pendiente",
+      "description": "Estado del AP"
+    },
+    "amount_paid": {
+      "type": "number",
+      "default": 0,
+      "description": "Monto acumulado pagado"
+    },
+    "balance_due": {
+      "type": "number",
+      "default": 0,
+      "description": "Saldo pendiente"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo pago (si aplica)"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Referencia/comprobante del \u00faltimo pago"
+    },
+    "invoice_from_vendor_url": {
+      "type": "string",
+      "description": "URL de factura del proveedor (opcional)"
+    },
+    "related_consolidation_id": {
+      "type": "string",
+      "description": "ID de la consolidaci\u00f3n asociada"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "flete_aereo",
+        "flete_maritimo",
+        "aduana",
+        "transporte_local",
+        "almacenaje",
+        "seguro",
+        "otros"
+      ],
+      "default": "flete_maritimo",
+      "description": "Categor\u00eda contable"
+    },
+    "account_code": {
+      "type": "string",
+      "default": "501-01 Fletes",
+      "description": "Cuenta contable"
+    },
+    "cost_center": {
+      "type": "string",
+      "default": "Operaciones",
+      "description": "Centro de costos"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "regular",
+        "alto"
+      ],
+      "description": "Riesgo de la consolidaci\u00f3n"
+    },
+    "state_code": {
+      "type": "string",
+      "description": "Estado usado para tarifa de env\u00edo"
+    },
+    "cbm": {
+      "type": "number",
+      "description": "Volumen en CBM"
+    },
+    "tracking_count": {
+      "type": "number",
+      "description": "Cantidad de trackings consolidados"
+    }
+  },
+  "required": [
+    "vendor_name",
+    "description",
+    "original_amount_due"
+  ]
+}

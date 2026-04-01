@@ -7,7 +7,7 @@ import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 
 export default function RecentPaymentsWidget({ invoices }) {
-  const paidInvoices = (invoices || [])
+  const paidInvoices = invoices
     .filter(inv => inv.status === 'pagada' && inv.payment_date)
     .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
     .slice(0, 3);
@@ -57,7 +57,7 @@ export default function RecentPaymentsWidget({ invoices }) {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold text-emerald-600">
-                      ${Number(invoice.total || 0).toFixed(2)}
+                      ${invoice.total.toFixed(2)}
                     </p>
                     <Badge className="bg-green-100 text-green-800 text-xs mt-1">
                       <CheckCircle className="h-3 w-3 mr-1" />

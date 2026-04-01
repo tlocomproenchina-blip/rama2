@@ -1,0 +1,33 @@
+{
+  "name": "ClientNote",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente"
+    },
+    "note": {
+      "type": "string",
+      "description": "Contenido de la nota"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Email del admin que cre\u00f3 la nota"
+    },
+    "note_type": {
+      "type": "string",
+      "enum": [
+        "general",
+        "payment",
+        "shipping",
+        "support"
+      ],
+      "default": "general",
+      "description": "Tipo de nota"
+    }
+  },
+  "required": [
+    "client_email",
+    "note"
+  ]
+}

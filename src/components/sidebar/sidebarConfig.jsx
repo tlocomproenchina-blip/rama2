@@ -24,6 +24,8 @@ import {
   History,
   BarChart3,
   MessageSquareMore,
+  ShieldAlert,
+  DollarSign,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -67,6 +69,8 @@ export const adminMenuItems = [
   { name: 'Cuentas por Pagar', page: 'AdminAccountsPayable', icon: Wallet },
   { name: 'Pagos Proveedores', page: 'AdminProviderPayments', icon: CreditCard },
   { name: 'Proveedores', page: 'AdminProviders', icon: Users },
+  { name: 'CBM Almacén China', page: 'AdminCbmIngresos', icon: Package },
+  { name: 'Dashboard Ingresos', page: 'AdminRevenueDashboard', icon: DollarSign },
   { name: 'Enviar Emails', page: 'AdminEmailCampaigns', icon: Mail },
   { name: 'Plantillas Email', page: 'AdminEmailTemplates', icon: FileText },
   { name: 'Alertas de Pago', page: 'AdminPaymentAlerts', icon: AlertTriangle },
@@ -88,6 +92,7 @@ export const adminMenuItems = [
   { name: 'Auditoría de Acciones', page: 'AdminEmployeeAudit', icon: History },
   { name: 'Rendimiento Empleados', page: 'AdminEmployeePerformance', icon: BarChart3 },
   { name: 'Referidos', page: 'AdminReferrals', icon: Gift },
+  { name: 'Detector Duplicados', page: 'AdminDuplicates', icon: ShieldAlert },
   { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
   { name: 'Configuración', page: 'AdminSettings', icon: Settings },
@@ -98,13 +103,13 @@ export const adminGroups = [
   { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
-  { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders'] },
+  { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminCbmIngresos'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
   { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminInternalMessages', 'AdminFAQ'] },
   { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance'] },
-  { label: 'GESTIÓN', items: ['AdminClients', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
+  { label: 'GESTIÓN', items: ['AdminClients', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
 
 export const clientGroups = [

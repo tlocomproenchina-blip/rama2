@@ -7,7 +7,7 @@ import { createPageUrl } from '@/utils';
 import { format, differenceInDays, parse } from 'date-fns';
 
 export default function DeliveryTimesWidget({ consolidations }) {
-  const inTransitConsolidations = (consolidations || [])
+  const inTransitConsolidations = consolidations
     .filter(c => c.status === 'en_transito' && c.estimated_delivery)
     .sort((a, b) => {
       const da = typeof a.estimated_delivery === 'string' ? parse(a.estimated_delivery, 'yyyy-MM-dd', new Date()) : new Date(a.estimated_delivery);

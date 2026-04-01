@@ -1,0 +1,94 @@
+{
+  "name": "WarehouseLocation",
+  "type": "object",
+  "properties": {
+    "warehouse_id": {
+      "type": "string",
+      "description": "ID del almac\u00e9n o sede a la que pertenece la ubicaci\u00f3n"
+    },
+    "warehouse_name": {
+      "type": "string",
+      "description": "Nombre del almac\u00e9n o sede"
+    },
+    "warehouse_city": {
+      "type": "string",
+      "description": "Ciudad del almac\u00e9n"
+    },
+    "warehouse_country": {
+      "type": "string",
+      "description": "Pa\u00eds del almac\u00e9n"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nombre visible de la ubicaci\u00f3n"
+    },
+    "code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico corto de la ubicaci\u00f3n"
+    },
+    "zone": {
+      "type": "string",
+      "enum": [
+        "recepcion",
+        "almacenamiento_general",
+        "picking",
+        "despacho",
+        "danados"
+      ],
+      "description": "Zona operativa del almac\u00e9n"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "estanteria",
+        "piso",
+        "pallet_rack",
+        "zona_granel"
+      ],
+      "description": "Tipo f\u00edsico de ubicaci\u00f3n"
+    },
+    "capacity_units": {
+      "type": "number",
+      "description": "Capacidad m\u00e1xima en cantidad de paquetes"
+    },
+    "capacity_volume_cbm": {
+      "type": "number",
+      "description": "Capacidad m\u00e1xima en volumen CBM"
+    },
+    "capacity_weight_kg": {
+      "type": "number",
+      "description": "Capacidad m\u00e1xima en peso kg"
+    },
+    "current_units": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad actual de paquetes asignados"
+    },
+    "current_volume_cbm": {
+      "type": "number",
+      "default": 0,
+      "description": "Volumen actual ocupado en CBM"
+    },
+    "current_weight_kg": {
+      "type": "number",
+      "default": 0,
+      "description": "Peso actual ocupado en kg"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la ubicaci\u00f3n est\u00e1 disponible"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas internas de la ubicaci\u00f3n"
+    }
+  },
+  "required": [
+    "warehouse_id",
+    "name",
+    "code",
+    "zone",
+    "type"
+  ]
+}

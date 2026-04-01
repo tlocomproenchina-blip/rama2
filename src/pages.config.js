@@ -47,8 +47,8 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import { lazy } from 'react';
 import AccountDisabled from './pages/AccountDisabled';
+import AccountingDashboard from './pages/AccountingDashboard';
 import AdminAccountsPayable from './pages/AdminAccountsPayable';
 import AdminActivityAudit from './pages/AdminActivityAudit';
 import AdminAdministrators from './pages/AdminAdministrators';
@@ -67,9 +67,12 @@ import AdminEmployeePerformance from './pages/AdminEmployeePerformance';
 import AdminEmployees from './pages/AdminEmployees';
 import AdminFAQ from './pages/AdminFAQ';
 import AdminInsured from './pages/AdminInsured';
+import AdminInternalMessages from './pages/AdminInternalMessages';
 import AdminInvoices from './pages/AdminInvoices';
 import AdminKnowledgeBase from './pages/AdminKnowledgeBase';
+import AdminLogistica from './pages/AdminLogistica';
 import AdminMarketing from './pages/AdminMarketing';
+import AdminOperaciones from './pages/AdminOperaciones';
 import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPayments from './pages/AdminPayments';
@@ -80,6 +83,7 @@ import AdminReferrals from './pages/AdminReferrals';
 import AdminRoles from './pages/AdminRoles';
 import AdminRutaDetalle from './pages/AdminRutaDetalle';
 import AdminRutas from './pages/AdminRutas';
+import AdminSeguimiento from './pages/AdminSeguimiento';
 import AdminSeguimientoRutas from './pages/AdminSeguimientoRutas';
 import AdminSettings from './pages/AdminSettings';
 import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
@@ -89,6 +93,7 @@ import AdminVehiculos from './pages/AdminVehiculos';
 import AssistedPayment from './pages/AssistedPayment';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
+import ClientAnalytics from './pages/ClientAnalytics';
 import Dashboard from './pages/Dashboard';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
@@ -106,13 +111,6 @@ import ShippingCalculator from './pages/ShippingCalculator';
 import Support from './pages/Support';
 import TermsOfService from './pages/TermsOfService';
 import WarehouseDashboard from './pages/WarehouseDashboard';
-
-const AccountingDashboard = lazy(() => import('./pages/AccountingDashboard'));
-const ClientAnalytics = lazy(() => import('./pages/ClientAnalytics'));
-const AdminInternalMessages = lazy(() => import('./pages/AdminInternalMessages'));
-const AdminLogistica = lazy(() => import('./pages/AdminLogistica'));
-const AdminOperaciones = lazy(() => import('./pages/AdminOperaciones'));
-const AdminSeguimiento = lazy(() => import('./pages/AdminSeguimiento'));
 import WarehouseLocations from './pages/WarehouseLocations';
 import WarehousePickPackShip from './pages/WarehousePickPackShip';
 import WarehouseReceive from './pages/WarehouseReceive';

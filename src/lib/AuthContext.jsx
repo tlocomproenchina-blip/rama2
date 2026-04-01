@@ -116,9 +116,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const navigateToLogin = useCallback(() => {
-    const currentPath = window.location.pathname;
-    const nextUrl = currentPath === '/' ? '/ClientPortal' : window.location.href;
-    base44.auth.redirectToLogin(nextUrl);
+    base44.auth.redirectToLogin(window.location.href);
   }, []);
 
   const value = useMemo(() => ({

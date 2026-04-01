@@ -50,6 +50,7 @@ import OptimizedImage from '@/components/OptimizedImage';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
+import ShippingLabelGenerator from '@/components/client-portal/ShippingLabelGenerator';
 import { format } from 'date-fns';
 
 export default function Dashboard({ user, refreshUser }) {
@@ -67,9 +68,9 @@ export default function Dashboard({ user, refreshUser }) {
   const loadData = useCallback(async () => {
     if (!user || !user.email) return;
 
-    setLoading(true);
     try {
-      const [configs, pkgs, cons, invs, tkts] = await Promise.allSettled([
+      setLoading(true);
+      const [configs, pkgs, cons, invs, tkts] = await Promise.all([
         base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1),
         base44.entities.Package.filter({ client_email: user.email }, '-updated_date', 100),
         base44.entities.Consolidation.filter({ client_email: user.email }, '-updated_date', 50),
@@ -77,30 +78,20 @@ export default function Dashboard({ user, refreshUser }) {
         base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date', 10)
       ]);
 
-      if (configs.status === 'fulfilled' && configs.value.length > 0) setConfig(configs.value[0]);
-      if (pkgs.status === 'fulfilled') setPackages(pkgs.value || []);
-      if (cons.status === 'fulfilled') setConsolidations(cons.value || []);
-      if (invs.status === 'fulfilled') setInvoices(invs.value || []);
-      if (tkts.status === 'fulfilled') setTickets(tkts.value || []);
-
-      const hasFailedRequest = [configs, pkgs, cons, invs, tkts].some(result => result.status === 'rejected');
-      if (hasFailedRequest) {
-        toast.error('Parte de tu panel no pudo cargarse, pero ya puedes seguir usando la app.');
-      }
+      if (configs.length > 0) setConfig(configs[0]);
+      setPackages(pkgs || []);
+      setConsolidations(cons || []);
+      setInvoices(invs || []);
+      setTickets(tkts || []);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      setPackages([]);
-      setConsolidations([]);
-      setInvoices([]);
-      setTickets([]);
       if (error.message?.includes('Rate limit')) {
         toast.error('Demasiadas solicitudes. Espera un momento y recarga la página.');
       } else {
         toast.error('Error al cargar datos. Por favor recarga la página.');
       }
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, [user?.email]);
 
   useEffect(() => {
@@ -250,73 +241,89 @@ export default function Dashboard({ user, refreshUser }) {
         <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-3 md:p-4 lg:p-6">
             <div className="flex flex-col gap-4 md:gap-5 lg:flex-row lg:gap-6">
-              {/* Shipping Mark */}
-              <div className="flex-1 space-y-2 min-w-0">
-                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
-                  <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
-                  Tu Shipping Mark
-                </div>
-                <div className="flex items-center gap-2 md:gap-2.5 lg:gap-3 min-w-0">
-                  <span className="text-lg md:text-2xl lg:text-3xl font-bold text-slate-800 font-mono break-all">
-                    {user.shipping_mark}
-                  </span>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-8 w-8 flex-shrink-0"
-                    onClick={copyShippingMark}
-                  >
-                    <Copy className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                  </Button>
+              {/* Left: Shipping Mark + Address */}
+              <div className="flex-1 space-y-4 min-w-0">
+                <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+                  {/* Shipping Mark */}
+                  <div className="flex-1 space-y-2 min-w-0">
+                    <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
+                      <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
+                      Tu Shipping Mark
+                    </div>
+                    <div className="flex items-center gap-2 md:gap-2.5 lg:gap-3 min-w-0">
+                      <span className="text-lg md:text-2xl lg:text-3xl font-bold text-slate-800 font-mono break-all">
+                        {user.shipping_mark}
+                      </span>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8 flex-shrink-0"
+                        onClick={copyShippingMark}
+                      >
+                        <Copy className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Warehouse Address */}
+                  <div className="flex-1 space-y-2 border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-6 min-w-0">
+                    <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
+                      <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
+                      Dirección del Warehouse
+                    </div>
+                    <div className="flex items-start gap-2 md:gap-2.5 lg:gap-3 min-w-0">
+                      <p className="text-slate-700 text-xs md:text-sm lg:text-base break-words flex-1 whitespace-pre-line">
+                        {config?.warehouse_address || 'Dirección no configurada'}
+                      </p>
+                      {config?.warehouse_address && (
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-8 w-8 flex-shrink-0"
+                          onClick={copyAddress}
+                        >
+                          <Copy className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Warehouse Address */}
-              <div className="flex-1 space-y-2 border-t md:border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 md:pt-4 lg:pt-0 lg:pl-6 min-w-0">
-                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
-                  <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
-                  Dirección del Warehouse
-                </div>
-                <div className="flex items-start gap-2 md:gap-2.5 lg:gap-3 min-w-0">
-                  <p className="text-slate-700 text-xs md:text-sm lg:text-base break-words flex-1 whitespace-pre-line">
-                    {config?.warehouse_address || 'Dirección no configurada'}
-                  </p>
-                  {config?.warehouse_address && (
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="h-8 w-8 flex-shrink-0"
-                      onClick={copyAddress}
-                    >
-                      <Copy className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
             </div>
 
-            {/* Shipping Mark Example Image */}
-            {config?.shipping_mark_example_image_url && (
-              <div className="border-t border-slate-200 pt-4">
-                <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm mb-3">
-                  <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
-                  Imagen de ejemplo del Shipping Mark
-                </div>
+            {/* Ejemplo Shipping Mark + Etiqueta lado a lado */}
+            <div className="border-t border-slate-200 pt-4 mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Shipping Mark Example Image */}
+              {config?.shipping_mark_example_image_url && (
                 <div className="bg-slate-50 rounded-lg p-3 md:p-4">
-                  <p className="text-xs md:text-sm text-slate-600 mb-3 whitespace-pre-line">
-                    {config.shipping_mark_example_description || 'Esta imagen se mostrará a los usuarios como ejemplo de cómo debe quedar su shipping mark'}
+                  <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm mb-2">
+                    <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
+                    Ejemplo del Shipping Mark
+                  </div>
+                  <p className="text-xs text-slate-600 mb-3 whitespace-pre-line">
+                    {config.shipping_mark_example_description || 'Así debe quedar tu shipping mark en la web'}
                   </p>
                   <OptimizedImage
                     src={config.shipping_mark_example_image_url}
                     alt="Ejemplo de Shipping Mark"
                     width={800}
                     height={600}
-                    className="w-full max-w-md mx-auto rounded-lg border border-slate-200 shadow-sm"
+                    className="w-full rounded-lg border border-slate-200 shadow-sm"
                     priority={false}
                   />
                 </div>
+              )}
+
+              {/* Generate Label */}
+              <div className="bg-slate-50 rounded-lg p-4 flex flex-col items-center justify-center text-center">
+                <div className="flex items-center justify-center gap-2 text-slate-500 text-xs md:text-sm mb-2">
+                  📦 Etiqueta de Envío
+                </div>
+                <p className="text-xs text-slate-500 mb-3">Genera tu etiqueta en chino para pegar en tus cajas</p>
+                <ShippingLabelGenerator user={user} config={config} />
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -376,9 +383,9 @@ export default function Dashboard({ user, refreshUser }) {
           {[1,2,3].map(i => <div key={i} className="h-48 bg-slate-200 rounded-lg animate-pulse" />)}
         </div>}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-4">
-            <ActiveConsolidationsWidget consolidations={consolidations || []} />
-            <RecentPaymentsWidget invoices={invoices || []} />
-            <DeliveryTimesWidget consolidations={consolidations || []} />
+            <ActiveConsolidationsWidget consolidations={consolidations} />
+            <RecentPaymentsWidget invoices={invoices} />
+            <DeliveryTimesWidget consolidations={consolidations} />
           </div>
         </Suspense>
       )}

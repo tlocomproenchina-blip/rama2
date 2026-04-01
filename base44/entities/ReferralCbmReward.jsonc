@@ -1,0 +1,36 @@
+{
+  "name": "ReferralCbmReward",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string"
+    },
+    "referrer_user_id": {
+      "type": "string"
+    },
+    "referred_user_id": {
+      "type": "string"
+    },
+    "cbm_rewarded": {
+      "type": "number"
+    },
+    "credit_generated": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "reversed"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "referrer_user_id",
+    "referred_user_id",
+    "cbm_rewarded",
+    "credit_generated"
+  ]
+}

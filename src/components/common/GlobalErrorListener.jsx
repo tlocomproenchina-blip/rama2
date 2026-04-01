@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { AlertTriangle, RefreshCcw, Copy, Send } from 'lucide-react';
+import { AlertTriangle, RefreshCcw, Copy, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { notifyAdmins } from '@/components/NotificationUtils';
@@ -194,6 +194,9 @@ export default function GlobalErrorListener() {
               </Button>
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => window.location.reload()}>
                 <RefreshCcw className="h-3 w-3" /> Reintentar
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-amber-700 hover:text-amber-900" onClick={() => setErrorInfo(null)}>
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>

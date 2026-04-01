@@ -1,0 +1,69 @@
+{
+  "name": "BlogPost",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del art\u00edculo"
+    },
+    "slug": {
+      "type": "string",
+      "description": "Slug \u00fanico para URL"
+    },
+    "excerpt": {
+      "type": "string",
+      "description": "Resumen corto (meta description)"
+    },
+    "content": {
+      "type": "string",
+      "description": "Contenido en Markdown/HTML"
+    },
+    "cover_image_url": {
+      "type": "string",
+      "description": "Imagen de portada"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published"
+      ],
+      "default": "draft"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "author_name": {
+      "type": "string",
+      "default": "TLEC CARGO"
+    },
+    "seo_title": {
+      "type": "string",
+      "description": "T\u00edtulo SEO opcional"
+    },
+    "seo_description": {
+      "type": "string",
+      "description": "Descripci\u00f3n SEO opcional"
+    },
+    "canonical_url": {
+      "type": "string",
+      "description": "URL can\u00f3nica (si aplica)"
+    },
+    "reading_time_minutes": {
+      "type": "number",
+      "description": "Tiempo estimado de lectura"
+    }
+  },
+  "required": [
+    "title",
+    "slug"
+  ]
+}

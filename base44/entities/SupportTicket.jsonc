@@ -1,0 +1,112 @@
+{
+  "name": "SupportTicket",
+  "type": "object",
+  "properties": {
+    "ticket_number": {
+      "type": "string",
+      "description": "N\u00famero \u00fanico del ticket"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente que cre\u00f3 el ticket"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Asunto del ticket"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "abierto",
+        "en_proceso",
+        "resuelto",
+        "cerrado"
+      ],
+      "default": "abierto",
+      "description": "Estado del ticket"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "baja",
+        "media",
+        "alta",
+        "urgente"
+      ],
+      "default": "media",
+      "description": "Prioridad del ticket"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "pago",
+        "envio",
+        "tracking",
+        "consolidacion",
+        "actualizar_datos",
+        "otro"
+      ],
+      "default": "otro",
+      "description": "Categor\u00eda del ticket"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sender_email": {
+            "type": "string"
+          },
+          "sender_name": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "is_admin": {
+            "type": "boolean"
+          },
+          "attachments": {
+            "type": "array",
+            "maxItems": 3,
+            "default": [],
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "default": [],
+      "description": "Historial de mensajes del ticket"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Email del administrador asignado"
+    },
+    "related_tracking": {
+      "type": "string",
+      "description": "N\u00famero de tracking relacionado si aplica"
+    },
+    "resolved_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de resoluci\u00f3n"
+    }
+  },
+  "required": [
+    "client_email",
+    "subject"
+  ]
+}

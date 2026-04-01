@@ -1,0 +1,112 @@
+{
+  "name": "EmployeeAuditLog",
+  "type": "object",
+  "properties": {
+    "actor_email": {
+      "type": "string",
+      "description": "Email del usuario que realiz\u00f3 la acci\u00f3n"
+    },
+    "actor_name": {
+      "type": "string",
+      "description": "Nombre del usuario que realiz\u00f3 la acci\u00f3n"
+    },
+    "actor_role": {
+      "type": "string",
+      "description": "Rol del usuario que realiz\u00f3 la acci\u00f3n"
+    },
+    "target_email": {
+      "type": "string",
+      "description": "Email del objetivo relacionado con la acci\u00f3n"
+    },
+    "target_name": {
+      "type": "string",
+      "description": "Nombre del objetivo relacionado con la acci\u00f3n"
+    },
+    "action_type": {
+      "type": "string",
+      "description": "Tipo de acci\u00f3n auditada"
+    },
+    "activity_kind": {
+      "type": "string",
+      "enum": [
+        "page_view",
+        "page_exit",
+        "heartbeat",
+        "manual_action",
+        "entity_change"
+      ],
+      "default": "manual_action",
+      "description": "Clase de actividad registrada"
+    },
+    "module_name": {
+      "type": "string",
+      "description": "M\u00f3dulo donde ocurri\u00f3 la acci\u00f3n"
+    },
+    "page_name": {
+      "type": "string",
+      "description": "Nombre l\u00f3gico de la p\u00e1gina o vista"
+    },
+    "page_path": {
+      "type": "string",
+      "description": "Ruta exacta donde ocurri\u00f3 la acci\u00f3n"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "ID de referencia del registro afectado"
+    },
+    "area_code": {
+      "type": "string",
+      "description": "C\u00f3digo del \u00e1rea o rol relacionado"
+    },
+    "area_name": {
+      "type": "string",
+      "description": "Nombre del \u00e1rea o rol relacionado"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Identificador de sesi\u00f3n para agrupar actividades"
+    },
+    "duration_ms": {
+      "type": "number",
+      "description": "Duraci\u00f3n total del evento en milisegundos"
+    },
+    "active_time_ms": {
+      "type": "number",
+      "description": "Tiempo activo detectado en milisegundos"
+    },
+    "idle_time_ms": {
+      "type": "number",
+      "description": "Tiempo inactivo detectado en milisegundos"
+    },
+    "client_side_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Marca de tiempo generada desde el cliente"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Resumen corto de la acci\u00f3n"
+    },
+    "details": {
+      "type": "string",
+      "description": "Detalle adicional de la auditor\u00eda"
+    },
+    "changed_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Campos o elementos afectados en la acci\u00f3n"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Informaci\u00f3n adicional de contexto para an\u00e1lisis"
+    }
+  },
+  "required": [
+    "actor_email",
+    "action_type",
+    "summary"
+  ]
+}

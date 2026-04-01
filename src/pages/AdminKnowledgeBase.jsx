@@ -28,8 +28,7 @@ const STATUS = [
   { key: "archived", label: "Archivado" },
 ];
 
-export default function AdminKnowledgeBase({ user: userProp }) {
-  const [user, setUser] = useState(userProp || null);
+export default function AdminKnowledgeBase({ user }) {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [q, setQ] = useState("");
@@ -46,19 +45,7 @@ export default function AdminKnowledgeBase({ user: userProp }) {
   const [docUrl, setDocUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (userProp) setUser(userProp);
-  }, [userProp]);
-
-  useEffect(() => {
-    if (!user) {
-      base44.auth.me().then(u => setUser(u)).catch(() => {});
-    }
-  }, []);
-
-  useEffect(() => {
-    if (user?.role === 'admin') loadData();
-  }, [user?.role]);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -171,15 +158,7 @@ export default function AdminKnowledgeBase({ user: userProp }) {
     }
   };
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-
-  if (user.role !== "admin") {
+  if (user?.role !== "admin") {
     return (
       <div className="max-w-2xl mx-auto">
         <Card>

@@ -18,12 +18,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
-    const config = configs?.[0] || {};
-    if (config.external_services_enabled === false) {
-      return Response.json({ error: config.external_services_message || 'Modo demo activo: Stripe desactivado.' }, { status: 503 });
-    }
-
     const publishableKey = getPublishableKey();
     if (!publishableKey) {
       return Response.json({ error: 'Stripe publishable key not set. Please configure STRIPE_PUBLISHABLE_KEY.' }, { status: 500 });

@@ -1,0 +1,64 @@
+{
+  "name": "StateConfig",
+  "type": "object",
+  "properties": {
+    "state_code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico del estado (min\u00fasculas, sin espacios)",
+      "enum": [
+        "zulia",
+        "tachira",
+        "falcon",
+        "lara",
+        "trujillo",
+        "merida",
+        "barinas",
+        "apure",
+        "guarico",
+        "anzoategui",
+        "delta_amacuro",
+        "amazonas",
+        "bolivar",
+        "miranda",
+        "caracas",
+        "vargas",
+        "aragua",
+        "carabobo",
+        "cojedes",
+        "yaracuy",
+        "portuguesa",
+        "monagas",
+        "sucre",
+        "nueva_esparta"
+      ]
+    },
+    "state_name": {
+      "type": "string",
+      "description": "Nombre del estado"
+    },
+    "shipping_rate": {
+      "type": "number",
+      "description": "Tarifa de env\u00edo para este estado ($)",
+      "default": 0
+    },
+    "final_rate_regular": {
+      "type": "number",
+      "description": "Tarifa final por unidad (USD) para carga regular en este estado (si se define, sustituye el c\u00e1lculo global)",
+      "default": 0
+    },
+    "final_rate_high": {
+      "type": "number",
+      "description": "Tarifa final por unidad (USD) para carga de alto riesgo en este estado (si se define, sustituye el c\u00e1lculo global)",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "Si el estado est\u00e1 activo para env\u00edos",
+      "default": true
+    }
+  },
+  "required": [
+    "state_code",
+    "state_name"
+  ]
+}

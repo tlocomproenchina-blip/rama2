@@ -35,7 +35,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import AdvancedSearch from '@/components/admin/AdvancedSearch';
 import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
 import PackageImportDialog from '@/components/imports/PackageImportDialog';
+import BulkPhotoUploadModal from '@/components/admin/BulkPhotoUploadModal';
 import MobilePackageCard from '@/components/admin/MobilePackageCard';
+import StalePackagesPanel from '@/components/admin/StalePackagesPanel';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 export default function AdminPackages({ user }) {
@@ -67,7 +69,7 @@ export default function AdminPackages({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [userMarks, setUserMarks] = useState({});
+  const [bulkPhotoModalOpen, setBulkPhotoModalOpen] = useState(false);
 
   const loadPackages = useCallback(async (append = false, skipOverride = 0) => {
     if (append) setLoadingMore(true); else setLoading(true);
@@ -85,19 +87,6 @@ export default function AdminPackages({ user }) {
   useEffect(() => {
     loadPackages(false);
   }, [loadPackages]);
-
-  useEffect(() => {
-    const missingEmails = Array.from(new Set(packages.map(pkg => pkg.client_email).filter(Boolean))).filter((email) => !userMarks[email]);
-    if (missingEmails.length === 0) return;
-
-    base44.entities.User.list('-created_date', 300).then((users) => {
-      const nextMarks = {};
-      users.forEach((user) => {
-        if (user?.email) nextMarks[user.email] = user.shipping_mark || '';
-      });
-      setUserMarks((prev) => ({ ...prev, ...nextMarks }));
-    }).catch(() => {});
-  }, [packages, userMarks]);
 
   const handleReceive = async () => {
     if (!receiveModal) return;
@@ -428,18 +417,72 @@ export default function AdminPackages({ user }) {
     setTicketProcessing(false);
   };
 
-  const enrichedPackages = useMemo(() => packages.map((pkg) => ({
-    ...pkg,
-    shipping_mark: pkg.shipping_mark || userMarks[pkg.client_email] || ''
-  })), [packages, userMarks]);
+  // Server-side search when local results are empty
+  useEffect(() => {
+    if (!search || search.length < 3) return;
+    const q = search.toLowerCase();
+    const hasLocal = packages.some(pkg =>
+      pkg.tracking_number.toLowerCase().includes(q) ||
+      (pkg.shipping_mark || '').toLowerCase().includes(q) ||
+      (pkg.client_email || '').toLowerCase().includes(q)
+    );
+    if (hasLocal) return;
 
-  const filteredPackages = useMemo(() => enrichedPackages.filter(pkg => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        // Search by tracking
+        let found = await base44.entities.Package.filter({ tracking_number: search.trim() }, '-created_date', 5);
+        // If not found, search by shipping_mark (contains)
+        if ((!found || found.length === 0)) {
+          // Load users that match the search to find their packages
+          let allUsers = [];
+          let skip = 0;
+          while (true) {
+            const batch = await base44.entities.User.list('-created_date', 200, skip);
+            if (!batch || batch.length === 0) break;
+            allUsers = allUsers.concat(batch);
+            if (batch.length < 200) break;
+            skip += 200;
+          }
+          const matchingEmails = allUsers
+            .filter(u => u.role === 'user' && (
+              (u.shipping_mark || '').toLowerCase().includes(q) ||
+              (u.email || '').toLowerCase().includes(q) ||
+              (u.full_name || '').toLowerCase().includes(q)
+            ))
+            .map(u => u.email);
+          if (matchingEmails.length > 0) {
+            const results = [];
+            for (const email of matchingEmails.slice(0, 5)) {
+              const pkgs = await base44.entities.Package.filter({ client_email: email }, '-created_date', 50);
+              if (pkgs) results.push(...pkgs);
+            }
+            found = results;
+          }
+        }
+        if (!cancelled && found && found.length > 0) {
+          setPackages(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const newPkgs = found.filter(p => !existingIds.has(p.id));
+            return [...newPkgs, ...prev];
+          });
+          toast.success(`${found.length} paquete(s) encontrado(s)`);
+        }
+      } catch (_) {}
+    }, 600);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [search]);
+
+  const filteredPackages = useMemo(() => packages.filter(pkg => {
     // Basic search
     const matchesSearch = 
       pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
       (pkg.shipping_mark || '').toLowerCase().includes(search.toLowerCase()) ||
-      (pkg.client_email || '').toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || pkg.status === statusFilter;
+      (pkg.client_email || '').toLowerCase().includes(search.toLowerCase()) ||
+      (pkg.description || '').toLowerCase().includes(search.toLowerCase());
+    const isStale = statusFilter === 'stale' && pkg.status === 'pre_alerta' && pkg.created_date && (Date.now() - new Date(pkg.created_date).getTime()) >= 7 * 24 * 60 * 60 * 1000;
+    const matchesStatus = statusFilter === 'all' || statusFilter === 'stale' ? (statusFilter === 'all' ? true : isStale) : pkg.status === statusFilter;
     const matchesReported = reportedFilter === 'all' || (reportedFilter === 'reported' ? pkg.reported === true : pkg.reported !== true);
 
     // Advanced filters
@@ -471,7 +514,7 @@ export default function AdminPackages({ user }) {
     }
 
     return matchesSearch && matchesStatus && matchesReported;
-    }), [enrichedPackages, search, statusFilter, reportedFilter, advancedFilters]);
+    }), [packages, search, statusFilter, reportedFilter, advancedFilters]);
 
     const simpleWindowSummary = useMemo(() => {
       if (!advancedFilters) return null;
@@ -526,13 +569,14 @@ export default function AdminPackages({ user }) {
             <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
 
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
-                <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
-                  <TabsTrigger value="all">Todos</TabsTrigger>
-                  <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
-                  <TabsTrigger value="recibido">Recibido</TabsTrigger>
-                  <TabsTrigger value="consolidado">Consolidado</TabsTrigger>
-                  <TabsTrigger value="en_transito">Tránsito</TabsTrigger>
-                  <TabsTrigger value="entregado">Entregado</TabsTrigger>
+                <TabsList className="flex w-full gap-0 p-1">
+                  <TabsTrigger value="all" className="flex-1 text-center">Todos</TabsTrigger>
+                  <TabsTrigger value="pre_alerta" className="flex-1 text-center">Pre-alerta</TabsTrigger>
+                  <TabsTrigger value="recibido" className="flex-1 text-center">Recibido</TabsTrigger>
+
+                  <TabsTrigger value="consolidado" className="flex-1 text-center">Consolidado</TabsTrigger>
+                  <TabsTrigger value="en_transito" className="flex-1 text-center">Tránsito</TabsTrigger>
+                  <TabsTrigger value="entregado" className="flex-1 text-center">Entregado</TabsTrigger>
                 </TabsList>
               </Tabs>
 
@@ -580,6 +624,7 @@ export default function AdminPackages({ user }) {
                 <Upload className="h-4 w-4 mr-2" />
                 Importar
               </Button>
+
               <Button
                 onClick={handleExportPreAlerta}
                 variant="outline"
@@ -684,14 +729,24 @@ export default function AdminPackages({ user }) {
       />
 
       {/* Barra de búsqueda superior */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <Input
-          placeholder="Búsqueda rápida por tracking, shipping mark o email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10 w-full h-11"
-        />
+      <div className="flex flex-col sm:flex-row gap-2 mb-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Búsqueda rápida por tracking, shipping mark o email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 w-full h-11"
+          />
+        </div>
+        <Button
+          onClick={() => setBulkPhotoModalOpen(true)}
+          variant="outline"
+          className="h-11 border-emerald-200 text-emerald-600 hover:bg-emerald-50 gap-2 whitespace-nowrap"
+        >
+          <ImageIcon className="h-4 w-4" />
+          Carga Masiva Fotos
+        </Button>
       </div>
 
       {/* Resumen ventana 7 días (búsqueda por email o shipping mark) */}
@@ -714,6 +769,9 @@ export default function AdminPackages({ user }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Stale packages reminder panel */}
+      <StalePackagesPanel onNotified={() => loadPackages(false)} />
 
       {/* Mobile Packages List (stacked) */}
       <div className="grid gap-3 2xl:hidden">
@@ -837,6 +895,16 @@ export default function AdminPackages({ user }) {
                         >
                           <CheckCircle className="h-4 w-4 mr-1" />
                           Recibir
+                        </Button>
+                      )}
+                      {pkg.product_image_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setViewImage(pkg.product_image_url)}
+                          className="w-full justify-start text-violet-600 hover:text-violet-700 border-violet-200"
+                        >
+                          <Eye className="h-4 w-4" /> Producto
                         </Button>
                       )}
                       {pkg.package_image_url && (
@@ -1012,7 +1080,14 @@ export default function AdminPackages({ user }) {
                 <p className="text-sm font-medium text-slate-700">Fotos actuales</p>
                 <div className="grid grid-cols-3 gap-2">
                   {(editImageModal.package_image_urls && editImageModal.package_image_urls.length > 0 ? editImageModal.package_image_urls : (editImageModal.package_image_url ? [editImageModal.package_image_url] : [])).map((url, idx) => (
-                    <img key={idx} src={url} alt={`Actual ${idx+1}`} className="w-full h-24 object-cover rounded-lg" />
+                    <img
+                      key={idx}
+                      src={url}
+                      alt={`Actual ${idx+1}`}
+                      className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity ring-offset-2 hover:ring-2 hover:ring-blue-400"
+                      onClick={() => window.open(url, '_blank')}
+                      title="Click para abrir en tamaño completo"
+                    />
                   ))}
                 </div>
               </div>
@@ -1187,6 +1262,12 @@ export default function AdminPackages({ user }) {
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
         onImported={() => loadPackages(false)}
+      />
+
+      <BulkPhotoUploadModal
+        open={bulkPhotoModalOpen}
+        onOpenChange={setBulkPhotoModalOpen}
+        onCompleted={() => loadPackages(false)}
       />
     </div>
   );

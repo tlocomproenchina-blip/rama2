@@ -1,0 +1,151 @@
+{
+  "name": "Invoice",
+  "type": "object",
+  "properties": {
+    "invoice_number": {
+      "type": "string",
+      "description": "N\u00famero \u00fanico de factura"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente"
+    },
+    "consolidation_id": {
+      "type": "string",
+      "description": "ID de la consolidaci\u00f3n"
+    },
+    "consolidation_tracking": {
+      "type": "string",
+      "description": "Tracking de la consolidaci\u00f3n"
+    },
+    "invoice_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de emisi\u00f3n"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de vencimiento"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "details": {
+            "type": "object"
+          }
+        }
+      },
+      "description": "Items de la factura"
+    },
+    "subtotal": {
+      "type": "number",
+      "description": "Subtotal antes de impuestos"
+    },
+    "tax": {
+      "type": "number",
+      "default": 0,
+      "description": "Impuestos"
+    },
+    "total": {
+      "type": "number",
+      "description": "Total a pagar"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "revision",
+        "pagada",
+        "vencida",
+        "cancelada"
+      ],
+      "default": "pendiente",
+      "description": "Estado de la factura"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "M\u00e9todo de pago utilizado"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de pago"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Referencia del pago"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "description": "ID del payment intent de Stripe"
+    },
+    "stripe_invoice_id": {
+      "type": "string",
+      "description": "ID de la factura de Stripe"
+    },
+    "stripe_hosted_invoice_url": {
+      "type": "string",
+      "description": "URL hospedada de la factura de Stripe"
+    },
+    "stripe_invoice_pdf_url": {
+      "type": "string",
+      "description": "URL directa del PDF de la factura de Stripe"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas adicionales"
+    },
+    "payment_history": {
+      "type": "array",
+      "default": [],
+      "description": "Historial de pagos Stripe asociados a la factura",
+      "items": {
+        "type": "object",
+        "properties": {
+          "method_brand": {
+            "type": "string"
+          },
+          "last4": {
+            "type": "string"
+          },
+          "amount_paid": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payment_intent_id": {
+            "type": "string"
+          },
+          "charge_id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "client_email",
+    "consolidation_id",
+    "total"
+  ]
+}

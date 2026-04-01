@@ -24,12 +24,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
-    const config = configs?.[0] || {};
-    if (config.external_services_enabled === false) {
-      return Response.json({ error: config.external_services_message || 'Modo demo activo: Stripe desactivado.' }, { status: 503 });
-    }
-
     const stripeSecret = getStripeSecretKey();
     if (!stripeSecret) {
       return Response.json({ error: 'Stripe secret key is not set. Please configure STRIPE_SECRET_KEY.' }, { status: 500 });

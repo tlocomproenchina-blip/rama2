@@ -1,0 +1,31 @@
+{
+  "name": "ShippingMarkCode",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico disponible para asignaci\u00f3n autom\u00e1tica"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "assigned"
+      ],
+      "default": "available",
+      "description": "Estado del c\u00f3digo"
+    },
+    "assigned_to_email": {
+      "type": "string",
+      "description": "Email del cliente al que se asign\u00f3 el c\u00f3digo"
+    },
+    "assigned_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de asignaci\u00f3n"
+    }
+  },
+  "required": [
+    "code"
+  ]
+}

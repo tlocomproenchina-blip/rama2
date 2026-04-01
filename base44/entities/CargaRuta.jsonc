@@ -1,0 +1,75 @@
+{
+  "name": "CargaRuta",
+  "type": "object",
+  "properties": {
+    "ruta_id": {
+      "type": "string",
+      "description": "ID de la ruta asociada"
+    },
+    "tipo_carga": {
+      "type": "string",
+      "enum": [
+        "paquete",
+        "carga_completa"
+      ],
+      "description": "Tipo de carga asociada"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "ID del paquete cuando aplique"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Tracking del paquete cuando aplique"
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripci\u00f3n de la carga"
+    },
+    "cliente_email": {
+      "type": "string",
+      "description": "Cliente asociado a la carga"
+    },
+    "peso_kg": {
+      "type": "number",
+      "default": 0,
+      "description": "Peso de la carga en kilogramos"
+    },
+    "volumen_m3": {
+      "type": "number",
+      "default": 0,
+      "description": "Volumen de la carga en metros c\u00fabicos"
+    },
+    "cantidad_bultos": {
+      "type": "number",
+      "default": 1,
+      "description": "Cantidad de bultos o unidades"
+    },
+    "estado_entrega": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "en_transito",
+        "entrega_parcial",
+        "entregada",
+        "incidencia"
+      ],
+      "default": "pendiente",
+      "description": "Estado actual de entrega de esta carga"
+    },
+    "destino_entrega": {
+      "type": "string",
+      "description": "Direcci\u00f3n o destino final de entrega"
+    },
+    "observaciones": {
+      "type": "string",
+      "description": "Notas de entrega o manipulaci\u00f3n"
+    }
+  },
+  "required": [
+    "ruta_id",
+    "tipo_carga",
+    "descripcion",
+    "estado_entrega"
+  ]
+}

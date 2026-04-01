@@ -18,13 +18,6 @@ Deno.serve(async (req) => {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
-    const base44 = createClientFromRequest(req);
-    const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
-    const config = configs?.[0] || {};
-    if (config.external_services_enabled === false) {
-      return Response.json({ received: true, skipped: true, reason: config.external_services_message || 'Modo demo activo' });
-    }
-
     // Raw body and signature for webhook verification
     const rawBody = await req.text();
     const sig = req.headers.get('stripe-signature') || req.headers.get('Stripe-Signature');
@@ -46,7 +39,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // Base44 client already initialized above
+    // Only initialize Base44 client AFTER verifying Stripe authenticity
+    const base44 = createClientFromRequest(req);
 
     switch (event.type) {
       case 'payment_intent.succeeded': {

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { User, MapPin, Phone, Loader2, AlertCircle, DollarSign, Home } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
+import { base44 as base44Queue } from '@/components/api/ApiQueueManager';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -106,36 +107,49 @@ export default function ProfileSetupModal({ open, onComplete }) {
   const handleSubmit = async () => {
     if (!validate()) return;
 
-    // Verificar duplicados por WhatsApp (normalizado)
+    setSaving(true);
     try {
       const me = await base44.auth.me();
-      const { data } = await base44.functions.invoke('checkWhatsappUnique', {
+
+      // Verificar duplicados por cédula
+      const { data: cedulaCheck } = await base44Queue.functions.invoke('checkDuplicates', {
+        action: 'check_field',
+        field: 'cedula',
+        value: formData.cedula,
+        exclude_user_id: me?.id
+      });
+      if (cedulaCheck?.duplicate) {
+        setErrors((prev) => ({ ...prev, cedula: 'Ya existe un cliente registrado con esa cédula' }));
+        toast.error('Esa cédula ya está registrada');
+        setSaving(false);
+        return;
+      }
+
+      // Verificar duplicados por WhatsApp
+      const { data: waCheck } = await base44.functions.invoke('checkWhatsappUnique', {
         whatsapp: formData.whatsapp,
         current_user_id: me?.id
       });
-      if (!data?.unique) {
+      if (!waCheck?.unique) {
         setErrors((prev) => ({ ...prev, whatsapp: 'Ya existe un cliente registrado con ese WhatsApp' }));
         toast.error('Ese número de WhatsApp ya está registrado');
+        setSaving(false);
         return;
       }
-    } catch (e) {
-      // Si el endpoint falla, no bloquear el flujo por error de red; pero mostrar mensaje
-      console.error('checkWhatsappUnique error', e);
-    }
 
-    setSaving(true);
-    try {
+      // Todo limpio, guardar perfil
       const payload = { ...formData, whatsapp_normalized: getDigits(formData.whatsapp) };
       await onComplete(payload);
     } catch (error) {
       console.error('Error saving profile:', error);
+      toast.error('Error al verificar datos. Intenta de nuevo.');
     }
     setSaving(false);
   };
 
   const pricingInfo = calculatePricing();
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) base44.auth.logout(); }}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
@@ -208,24 +222,22 @@ export default function ProfileSetupModal({ open, onComplete }) {
             <Label htmlFor="state" className="text-slate-700 flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
-            <Select
+            <select
+              id="state"
               value={formData.state}
-              onValueChange={(nextValue) => {
-                setFormData((prev) => ({ ...prev, state: nextValue }));
+              onChange={(e) => {
+                setFormData((prev) => ({ ...prev, state: e.target.value }));
                 setErrors((prev) => ({ ...prev, state: null }));
               }}
+              className={`flex min-h-[48px] w-full rounded-md border px-4 py-3 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-ring sm:min-h-9 sm:px-3 sm:py-2 sm:text-sm ${errors.state ? 'border-red-300 bg-white' : 'border-input bg-white'}`}
             >
-              <SelectTrigger className={errors.state ? 'border-red-300' : ''}>
-                <SelectValue placeholder="Selecciona tu estado" />
-              </SelectTrigger>
-              <SelectContent>
-                {stateConfigs.map((state) => (
-                  <SelectItem key={state.state_code} value={state.state_code}>
-                    {state.state_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value="">Selecciona tu estado</option>
+              {stateConfigs.map((state) => (
+                <option key={state.state_code} value={state.state_code}>
+                  {state.state_name}
+                </option>
+              ))}
+            </select>
             {errors.state && (
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" /> {errors.state}
@@ -273,7 +285,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
               onChange={(e) => setFormData({ ...formData, whatsapp: sanitizeWhatsApp(e.target.value) })}
               placeholder="+58 412 1234567"
               inputMode="tel"
-              pattern="^\\+?\\d*$"
+              type="tel"
               className={errors.whatsapp ? 'border-red-300' : ''}
             />
             <p className="text-xs text-slate-500">

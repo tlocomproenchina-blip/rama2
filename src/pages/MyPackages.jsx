@@ -71,25 +71,15 @@ export default function MyPackages({ user }) {
   const loadPackages = async (append = false) => {
     if (!user) return;
     if (append) setLoadingMore(true); else setLoading(true);
-    try {
-      const skip = append ? packages.length : 0;
-      const pkgs = await base44.entities.Package.filter({ client_email: user.email }, '-created_date', PAGE_SIZE, skip);
-      if (append) {
-        setPackages((prev) => [...prev, ...pkgs]);
-      } else {
-        setPackages(pkgs);
-      }
-      setHasMore(pkgs.length === PAGE_SIZE);
-    } catch (error) {
-      console.error('Error loading packages:', error);
-      toast.error('No se pudieron cargar los paquetes.');
-      if (!append) {
-        setPackages([]);
-        setHasMore(false);
-      }
-    } finally {
-      if (append) setLoadingMore(false); else setLoading(false);
+    const skip = append ? packages.length : 0;
+    const pkgs = await base44.entities.Package.filter({ client_email: user.email }, '-created_date', PAGE_SIZE, skip);
+    if (append) {
+      setPackages((prev) => [...prev, ...pkgs]);
+    } else {
+      setPackages(pkgs);
     }
+    setHasMore(pkgs.length === PAGE_SIZE);
+    if (append) setLoadingMore(false); else setLoading(false);
   };
 
 

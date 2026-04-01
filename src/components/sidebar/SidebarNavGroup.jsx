@@ -8,7 +8,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="mt-5 first:mt-0">
+    <div className="mt-5 first:mt-0" data-tour-group={label}>
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -33,6 +33,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
               return (
                 <Link
                   key={item.page}
+                  data-tour={item.page}
                   to={createPageUrl(item.page)}
                   onMouseEnter={() => prefetchPageData(item.page)}
                   onFocus={() => prefetchPageData(item.page)}

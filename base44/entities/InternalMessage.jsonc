@@ -1,0 +1,50 @@
+{
+  "name": "InternalMessage",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID de la conversaci\u00f3n interna"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email del remitente"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Nombre del remitente"
+    },
+    "sender_role": {
+      "type": "string",
+      "description": "Rol general del remitente"
+    },
+    "sender_area": {
+      "type": "string",
+      "description": "\u00c1rea operativa del remitente"
+    },
+    "message": {
+      "type": "string",
+      "description": "Contenido del mensaje"
+    },
+    "attachments": {
+      "type": "array",
+      "default": [],
+      "description": "Fotos adjuntas al mensaje",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "conversation_id",
+    "sender_email"
+  ]
+}

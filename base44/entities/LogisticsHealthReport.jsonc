@@ -1,0 +1,54 @@
+{
+  "name": "LogisticsHealthReport",
+  "type": "object",
+  "properties": {
+    "checked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del diagn\u00f3stico"
+    },
+    "active_routes": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de rutas activas"
+    },
+    "total_loads": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad total de cargas evaluadas"
+    },
+    "resource_conflicts": {
+      "type": "number",
+      "default": 0,
+      "description": "Conflictos de veh\u00edculo o chofer"
+    },
+    "duplicate_packages": {
+      "type": "number",
+      "default": 0,
+      "description": "Paquetes asignados m\u00e1s de una vez"
+    },
+    "capacity_alerts": {
+      "type": "number",
+      "default": 0,
+      "description": "Alertas por sobrecarga"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "warning",
+        "critical"
+      ],
+      "default": "healthy",
+      "description": "Nivel de severidad del diagn\u00f3stico"
+    },
+    "summary_text": {
+      "type": "string",
+      "description": "Resumen legible del diagn\u00f3stico"
+    }
+  },
+  "required": [
+    "checked_at",
+    "severity"
+  ]
+}

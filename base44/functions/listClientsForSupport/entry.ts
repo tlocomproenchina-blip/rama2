@@ -14,19 +14,46 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: insufficient permissions' }, { status: 403 });
     }
 
-    // Fetch all users with role=user using large batches to minimize roundtrips
-    const PAGE_SIZE = 200;
+    // Paginate through ALL users using list() with explicit skip
     let allUsers = [];
     let skip = 0;
-    let batch;
+    const batchSize = 50; // Use smaller batches for reliability
+    const maxIterations = 100; // Safety limit
 
-    do {
-      batch = await base44.asServiceRole.entities.User.filter({ role: 'user' }, '-created_date', PAGE_SIZE, skip);
+    for (let i = 0; i < maxIterations; i++) {
+      console.log(`[Batch ${i}] Fetching skip=${skip}, limit=${batchSize}`);
+      const batch = await base44.asServiceRole.entities.User.list(
+        '-created_date',
+        batchSize,
+        skip
+      );
+      
+      const batchLen = Array.isArray(batch) ? batch.length : 0;
+      console.log(`[Batch ${i}] Received ${batchLen} records`);
+      
+      if (!Array.isArray(batch) || batch.length === 0) {
+        console.log(`[Batch ${i}] Empty batch, stopping pagination`);
+        break;
+      }
+      
       allUsers = allUsers.concat(batch);
-      skip += PAGE_SIZE;
-    } while (batch.length === PAGE_SIZE);
+      console.log(`[Batch ${i}] Running total: ${allUsers.length}`);
+      
+      if (batch.length < batchSize) {
+        console.log(`[Batch ${i}] Partial batch (${batch.length} < ${batchSize}), stopping`);
+        break;
+      }
+      
+      skip += batchSize;
+    }
 
-    const sanitized = allUsers.map((u) => ({
+    console.log(`Total users fetched: ${allUsers.length}`);
+
+    // Filter to only regular users with valid id/email
+    const clients = allUsers.filter((u) => u && u.id && u.email && u.role === 'user');
+    console.log(`Clients with role=user: ${clients.length}`);
+
+    const sanitized = clients.map((u) => ({
       id: u.id,
       email: u.email,
       full_name: u.full_name || null,
@@ -46,7 +73,7 @@ Deno.serve(async (req) => {
 
     return Response.json(sanitized);
   } catch (error) {
-    console.error('Error in listClientsForSupport:', error);
+    console.error('listClientsForSupport error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

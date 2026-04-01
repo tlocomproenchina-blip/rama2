@@ -1,0 +1,54 @@
+{
+  "name": "KnowledgeBase",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Titulo del articulo"
+    },
+    "content": {
+      "type": "string",
+      "description": "Contenido enriquecido (HTML/Markdown)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "envios",
+        "pagos",
+        "soporte",
+        "faqs",
+        "politicas"
+      ],
+      "default": "general",
+      "description": "Categoria del conocimiento"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Etiquetas"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "archived"
+      ],
+      "default": "draft",
+      "description": "Estado de publicacion"
+    },
+    "document_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL de documento adjunto (opcional)"
+    }
+  },
+  "required": [
+    "title",
+    "content"
+  ]
+}

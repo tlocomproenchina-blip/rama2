@@ -1,0 +1,32 @@
+{
+  "name": "PrivacyConfig",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "description": "Clave \u00fanica de configuraci\u00f3n",
+      "default": "main"
+    },
+    "data_retention_days": {
+      "type": "number",
+      "description": "D\u00edas de retenci\u00f3n de datos antes de eliminaci\u00f3n autom\u00e1tica",
+      "default": 90
+    },
+    "auto_delete_images": {
+      "type": "boolean",
+      "description": "Eliminar autom\u00e1ticamente im\u00e1genes de paquetes despu\u00e9s de la entrega",
+      "default": true
+    },
+    "privacy_policy": {
+      "type": "string",
+      "description": "Pol\u00edtica de privacidad completa"
+    },
+    "terms_of_service": {
+      "type": "string",
+      "description": "T\u00e9rminos de servicio"
+    }
+  },
+  "required": [
+    "config_key"
+  ]
+}

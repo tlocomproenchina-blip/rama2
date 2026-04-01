@@ -1,15 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
-    const config = configs?.[0] || {};
-    if (config.external_services_enabled === false) {
-      return Response.json({ success: true, skipped: true, reason: config.external_services_message || 'Modo demo activo: push desactivado.' });
-    }
-
     const { userEmail, title, body, url } = await req.json();
 
     if (!userEmail || !title) {

@@ -30,7 +30,6 @@ export default function AdminInvoices({ user }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [consolidations, setConsolidations] = useState([]);
-  const [consolidationsLoading, setConsolidationsLoading] = useState(false);
   const [selectedConsolidation, setSelectedConsolidation] = useState('');
   const [processing, setProcessing] = useState(false);
   const [deleteInvoice, setDeleteInvoice] = useState(null);
@@ -50,12 +49,8 @@ export default function AdminInvoices({ user }) {
 
   useEffect(() => {
     loadInvoices(false);
-  }, []);
-
-  useEffect(() => {
-    if (!showCreateModal || consolidations.length > 0 || consolidationsLoading) return;
     loadConsolidations();
-  }, [showCreateModal, consolidations.length, consolidationsLoading]);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -68,7 +63,14 @@ export default function AdminInvoices({ user }) {
     if (append) setLoadingMore(true); else setLoading(true);
     const skip = append ? invoices.length : 0;
     const data = await base44.entities.Invoice.list('-invoice_date', pageSize, skip);
-    const nextList = append ? [...invoices, ...data] : data;
+    const clientEmails = Array.from(new Set((data || []).map(inv => inv.client_email).filter(Boolean)));
+    const users = clientEmails.length ? await base44.entities.User.list() : [];
+    const usersMap = new Map(users.map(u => [u.email, u]));
+    const enrichedData = (data || []).map(inv => ({
+      ...inv,
+      shipping_mark: usersMap.get(inv.client_email)?.shipping_mark || ''
+    }));
+    const nextList = append ? [...invoices, ...enrichedData] : enrichedData;
 
     const nextStats = {
       total: nextList.length,
@@ -84,13 +86,8 @@ export default function AdminInvoices({ user }) {
   };
 
   const loadConsolidations = async () => {
-    try {
-      setConsolidationsLoading(true);
-      const data = await base44.entities.Consolidation.list('-created_date', 200);
-      setConsolidations(data);
-    } finally {
-      setConsolidationsLoading(false);
-    }
+    const data = await base44.entities.Consolidation.list('-created_date');
+    setConsolidations(data);
   };
 
   const handleCreateInvoice = async () => {
@@ -823,7 +820,7 @@ export default function AdminInvoices({ user }) {
               <Label>Seleccionar Consolidación</Label>
               <Select value={selectedConsolidation} onValueChange={setSelectedConsolidation}>
                 <SelectTrigger>
-                  <SelectValue placeholder={consolidationsLoading ? 'Cargando consolidaciones...' : 'Selecciona una consolidación'} />
+                  <SelectValue placeholder="Selecciona una consolidación" />
                 </SelectTrigger>
                 <SelectContent>
                   {consolidations.map(cons => (

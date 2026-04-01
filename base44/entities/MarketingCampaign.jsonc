@@ -1,0 +1,112 @@
+{
+  "name": "MarketingCampaign",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la campa\u00f1a"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n de la campa\u00f1a"
+    },
+    "campaign_type": {
+      "type": "string",
+      "enum": [
+        "email",
+        "notification",
+        "both"
+      ],
+      "default": "email",
+      "description": "Tipo de campa\u00f1a"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "scheduled",
+        "sent",
+        "cancelled"
+      ],
+      "default": "draft",
+      "description": "Estado de la campa\u00f1a"
+    },
+    "target_segment": {
+      "type": "string",
+      "enum": [
+        "all",
+        "new_customers",
+        "returning_customers",
+        "high_value",
+        "inactive",
+        "custom"
+      ],
+      "default": "all",
+      "description": "Segmento objetivo"
+    },
+    "custom_filter": {
+      "type": "object",
+      "description": "Filtros personalizados para segmentaci\u00f3n"
+    },
+    "email_subject": {
+      "type": "string",
+      "description": "Asunto del email"
+    },
+    "email_body": {
+      "type": "string",
+      "description": "Cuerpo del email"
+    },
+    "notification_title": {
+      "type": "string",
+      "description": "T\u00edtulo de la notificaci\u00f3n"
+    },
+    "notification_message": {
+      "type": "string",
+      "description": "Mensaje de la notificaci\u00f3n"
+    },
+    "promotion_id": {
+      "type": "string",
+      "description": "ID de promoci\u00f3n asociada"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha programada de env\u00edo"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de env\u00edo real"
+    },
+    "recipients_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de destinatarios"
+    },
+    "opened_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cu\u00e1ntos abrieron"
+    },
+    "clicked_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cu\u00e1ntos hicieron clic"
+    },
+    "converted_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cu\u00e1ntos convirtieron"
+    },
+    "revenue_generated": {
+      "type": "number",
+      "default": 0,
+      "description": "Ingresos generados"
+    }
+  },
+  "required": [
+    "name",
+    "campaign_type",
+    "target_segment"
+  ]
+}

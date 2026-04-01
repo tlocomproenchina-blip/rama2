@@ -1,0 +1,39 @@
+{
+  "name": "ClientExportHistory",
+  "type": "object",
+  "properties": {
+    "filename": {
+      "type": "string",
+      "description": "Nombre del archivo generado"
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "URI privado del archivo generado"
+    },
+    "from_iso": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Inicio del rango (UTC)"
+    },
+    "to_iso": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fin del rango (UTC)"
+    },
+    "record_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de registros exportados"
+    },
+    "triggered_by": {
+      "type": "string",
+      "description": "Email del admin que gener\u00f3 el reporte"
+    }
+  },
+  "required": [
+    "filename",
+    "file_uri",
+    "from_iso",
+    "to_iso"
+  ]
+}

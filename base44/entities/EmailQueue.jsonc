@@ -1,0 +1,77 @@
+{
+  "name": "EmailQueue",
+  "type": "object",
+  "properties": {
+    "recipient_email": {
+      "type": "string",
+      "description": "Destinatario"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Asunto del email"
+    },
+    "body": {
+      "type": "string",
+      "description": "Cuerpo del email (HTML o texto)"
+    },
+    "from_name": {
+      "type": "string",
+      "description": "Nombre del remitente"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sending",
+        "sent",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Estado de procesamiento"
+    },
+    "attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Intentos de env\u00edo"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "\u00daltimo error"
+    },
+    "scheduled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cu\u00e1ndo debe procesarse"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de env\u00edo"
+    },
+    "batch_id": {
+      "type": "string",
+      "description": "Lote de procesamiento"
+    },
+    "priority": {
+      "type": "number",
+      "default": 0,
+      "description": "Mayor = antes"
+    },
+    "source": {
+      "type": "string",
+      "default": "manual",
+      "description": "Origen"
+    },
+    "campaign_id": {
+      "type": "string"
+    },
+    "campaign_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "recipient_email",
+    "subject",
+    "body"
+  ]
+}

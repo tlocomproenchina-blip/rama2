@@ -1,0 +1,357 @@
+{
+  "name": "AppConfig",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "description": "Unique config key"
+    },
+    "app_name": {
+      "type": "string",
+      "default": "TLEC CARGO",
+      "description": "Nombre de la aplicaci\u00f3n que aparece en el sidebar"
+    },
+    "app_tagline": {
+      "type": "string",
+      "default": "Sistema de Env\u00edos",
+      "description": "Eslogan que aparece en el sidebar"
+    },
+    "app_logo_url": {
+      "type": "string",
+      "description": "URL del logo de la aplicaci\u00f3n (1:1 ratio)"
+    },
+    "favicon_url": {
+      "type": "string",
+      "description": "URL del favicon/icono de pesta\u00f1a"
+    },
+    "warehouse_address": {
+      "type": "string"
+    },
+    "shipping_mark_example_image_url": {
+      "type": "string",
+      "description": "URL de imagen de ejemplo de c\u00f3mo debe quedar el shipping mark"
+    },
+    "shipping_mark_example_description": {
+      "type": "string",
+      "default": "Esta imagen se mostrar\u00e1 a los usuarios como ejemplo de c\u00f3mo debe quedar su shipping mark",
+      "description": "Texto descriptivo que aparece junto a la imagen de ejemplo del Shipping Mark"
+    },
+    "contract_text": {
+      "type": "string",
+      "description": "Legal contract text"
+    },
+    "rate_air_general": {
+      "type": "number",
+      "description": "Rate per kg for air general cargo"
+    },
+    "rate_air_sensitive": {
+      "type": "number",
+      "description": "Rate per kg for air sensitive cargo"
+    },
+    "rate_sea_general": {
+      "type": "number",
+      "description": "Rate per CBM for sea general cargo"
+    },
+    "rate_sea_sensitive": {
+      "type": "number",
+      "description": "Rate per CBM for sea sensitive cargo"
+    },
+    "insurance_percentage": {
+      "type": "number",
+      "description": "Insurance percentage of FOB"
+    },
+    "invoice_company_name": {
+      "type": "string",
+      "default": "TLEC CARGO",
+      "description": "Company name shown on invoices"
+    },
+    "invoice_company_tagline": {
+      "type": "string",
+      "default": "Sistema de Envios Internacionales",
+      "description": "Tagline shown on invoices"
+    },
+    "invoice_logo_url": {
+      "type": "string",
+      "description": "URL of company logo for invoices (1:1 ratio)"
+    },
+    "invoice_overdue_days": {
+      "type": "number",
+      "default": 7,
+      "description": "N\u00famero de d\u00edas para considerar una factura vencida"
+    },
+    "payment_alert_days": {
+      "type": "number",
+      "default": 7,
+      "description": "N\u00famero de d\u00edas para generar alertas de pagos pendientes"
+    },
+    "wallet_binance": {
+      "type": "string"
+    },
+    "wallet_usdt_trc20": {
+      "type": "string"
+    },
+    "binance_instructions": {
+      "type": "string"
+    },
+    "usdt_instructions": {
+      "type": "string"
+    },
+    "wallet_paypal": {
+      "type": "string"
+    },
+    "paypal_instructions": {
+      "type": "string"
+    },
+    "wallet_debito_internacional": {
+      "type": "string"
+    },
+    "debito_internacional_instructions": {
+      "type": "string"
+    },
+    "wallet_wally": {
+      "type": "string"
+    },
+    "wally_instructions": {
+      "type": "string"
+    },
+    "wallet_zinli": {
+      "type": "string"
+    },
+    "zinli_instructions": {
+      "type": "string"
+    },
+    "wallet_wise": {
+      "type": "string"
+    },
+    "wise_instructions": {
+      "type": "string"
+    },
+    "wallet_skrill": {
+      "type": "string"
+    },
+    "skrill_instructions": {
+      "type": "string"
+    },
+    "wallet_pago_movil_usdt": {
+      "type": "string"
+    },
+    "pago_movil_usdt_instructions": {
+      "type": "string"
+    },
+    "wallet_zelle": {
+      "type": "string"
+    },
+    "zelle_instructions": {
+      "type": "string"
+    },
+    "shipping_mark_prefix": {
+      "type": "string",
+      "default": "",
+      "description": "Prefijo opcional para Shipping Mark (vac\u00edo para asignaci\u00f3n manual)"
+    },
+    "shipping_mark_auto_assign_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Habilita la asignaci\u00f3n autom\u00e1tica de Shipping Mark"
+    },
+    "shipping_mark_auto_assign_prefix": {
+      "type": "string",
+      "default": "TLEC-",
+      "description": "Prefijo usado para generar Shipping Mark autom\u00e1tico"
+    },
+    "shipping_mark_auto_assign_length": {
+      "type": "number",
+      "default": 6,
+      "description": "Longitud de la parte aleatoria del Shipping Mark autom\u00e1tico"
+    },
+    "shipping_mark_auto_assign_chars": {
+      "type": "string",
+      "default": "ABCDEFGHJKLMNPQRSTUVWXYZ23456789",
+      "description": "Caracteres permitidos para generar Shipping Mark autom\u00e1tico"
+    },
+    "consolidation_periods": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "default": [
+        15,
+        20,
+        30
+      ],
+      "description": "Per\u00edodos de consolidaci\u00f3n disponibles en d\u00edas"
+    },
+    "whatsapp_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Activar bot\u00f3n de soporte WhatsApp"
+    },
+    "whatsapp_number": {
+      "type": "string",
+      "description": "N\u00famero de WhatsApp (sin + ni espacios, ej: 584121234567)"
+    },
+    "whatsapp_message": {
+      "type": "string",
+      "default": "Hola, necesito ayuda con mi env\u00edo",
+      "description": "Mensaje predeterminado para WhatsApp"
+    },
+    "whatsapp_icon_url": {
+      "type": "string",
+      "description": "URL del icono personalizado para el bot\u00f3n WhatsApp"
+    },
+    "chatbot_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Activar asistente virtual de atenci\u00f3n al cliente"
+    },
+    "shipping_type_air_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Habilitar env\u00edo a\u00e9reo en el sistema"
+    },
+    "shipping_type_sea_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Habilitar env\u00edo mar\u00edtimo en el sistema"
+    },
+    "allow_profile_updates": {
+      "type": "boolean",
+      "default": true,
+      "description": "Permitir que los clientes actualicen sus datos de perfil"
+    },
+    "payments_enable_stripe": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_enable_binance": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_enable_usdt_trc20": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_enable_paypal": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_enable_debito_internacional": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_enable_wally": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_enable_zinli": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_enable_wise": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_enable_skrill": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_enable_pago_movil_usdt": {
+      "type": "boolean",
+      "default": true
+    },
+    "payments_stripe_sync_mode": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "confirm",
+        "button"
+      ],
+      "default": "auto",
+      "description": "C\u00f3mo sincronizar con Stripe al marcar como pagada: auto, pedir confirmaci\u00f3n o bot\u00f3n separado"
+    },
+    "payments_stripe_details_mode": {
+      "type": "string",
+      "enum": [
+        "none",
+        "metadata",
+        "description"
+      ],
+      "default": "none",
+      "description": "Qu\u00e9 detalles guardar en Stripe al marcar pagada fuera de banda"
+    },
+    "payments_stripe_error_mode": {
+      "type": "string",
+      "enum": [
+        "revert",
+        "keep_and_alert",
+        "retry_then_revert"
+      ],
+      "default": "keep_and_alert",
+      "description": "Comportamiento ante errores de Stripe al sincronizar"
+    },
+    "maintenance_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cerrar la aplicaci\u00f3n para usuarios (solo admins acceden)"
+    },
+    "maintenance_message": {
+      "type": "string",
+      "default": "Estamos realizando mantenimiento. Por favor, int\u00e9ntalo m\u00e1s tarde.",
+      "description": "Mensaje mostrado en la pantalla de mantenimiento"
+    },
+    "maintenance_image_url": {
+      "type": "string",
+      "description": "Imagen a mostrar en la pantalla de mantenimiento"
+    },
+    "admin_dashboard_prefs": {
+      "type": "object",
+      "description": "Preferencias globales del dashboard de administrador",
+      "properties": {
+        "showClients": {
+          "type": "boolean",
+          "default": true
+        },
+        "showPackages": {
+          "type": "boolean",
+          "default": true
+        },
+        "showStatusPie": {
+          "type": "boolean",
+          "default": true
+        },
+        "showRecent": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "default": {}
+    },
+    "payments_assisted_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Habilitar Pago Asistido"
+    },
+    "payments_assisted_fee_percentage": {
+      "type": "number",
+      "default": 5,
+      "description": "Porcentaje de comisi\u00f3n para Pago Asistido"
+    },
+    "payments_assisted_instructions": {
+      "type": "string",
+      "description": "Instrucciones visibles para Pago Asistido"
+    },
+    "demo_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Modo demo: desactiva integraciones externas (Stripe, PayPal, emails, push, webhooks)"
+    },
+    "demo_mode_message": {
+      "type": "string",
+      "default": "Modo demo activo: integraciones externas desactivadas.",
+      "description": "Mensaje mostrado cuando el modo demo est\u00e1 activo"
+    }
+  },
+  "required": [
+    "config_key"
+  ]
+}

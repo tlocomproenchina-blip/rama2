@@ -1,0 +1,42 @@
+{
+  "name": "RoleConfig",
+  "type": "object",
+  "properties": {
+    "role_code": {
+      "type": "string",
+      "enum": [
+        "operaciones",
+        "almacen",
+        "contabilidad",
+        "soporte",
+        "marketing"
+      ],
+      "description": "C\u00f3digo interno del rol por \u00e1rea"
+    },
+    "role_name": {
+      "type": "string",
+      "description": "Nombre visible del rol"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n del alcance del rol"
+    },
+    "visible_pages": {
+      "type": "array",
+      "description": "P\u00e1ginas permitidas para este rol",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Define si el rol est\u00e1 activo"
+    }
+  },
+  "required": [
+    "role_code",
+    "role_name"
+  ]
+}

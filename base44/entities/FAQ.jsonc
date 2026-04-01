@@ -1,0 +1,40 @@
+{
+  "name": "FAQ",
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string",
+      "description": "Pregunta frecuente"
+    },
+    "answer": {
+      "type": "string",
+      "description": "Respuesta a la pregunta"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "envios",
+        "pagos",
+        "tracking",
+        "consolidacion"
+      ],
+      "default": "general",
+      "description": "Categor\u00eda de la pregunta"
+    },
+    "order": {
+      "type": "number",
+      "default": 0,
+      "description": "Orden de visualizaci\u00f3n"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la pregunta est\u00e1 activa"
+    }
+  },
+  "required": [
+    "question",
+    "answer"
+  ]
+}

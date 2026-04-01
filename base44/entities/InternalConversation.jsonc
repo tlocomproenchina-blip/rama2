@@ -1,0 +1,97 @@
+{
+  "name": "InternalConversation",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo breve de la conversaci\u00f3n"
+    },
+    "topic": {
+      "type": "string",
+      "description": "Resumen o motivo principal"
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "Package",
+        "Ruta"
+      ],
+      "description": "Tipo de registro relacionado"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID del paquete o ruta relacionado"
+    },
+    "entity_label": {
+      "type": "string",
+      "description": "Etiqueta visible del paquete o ruta"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "resolved"
+      ],
+      "default": "open",
+      "description": "Estado de la conversaci\u00f3n"
+    },
+    "created_by_email": {
+      "type": "string",
+      "description": "Email de quien abri\u00f3 la conversaci\u00f3n"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Nombre de quien abri\u00f3 la conversaci\u00f3n"
+    },
+    "created_by_area": {
+      "type": "string",
+      "description": "\u00c1rea de quien abri\u00f3 la conversaci\u00f3n"
+    },
+    "target_area": {
+      "type": "string",
+      "enum": [
+        "all",
+        "operaciones",
+        "almacen",
+        "contabilidad",
+        "soporte",
+        "marketing",
+        "logistica",
+        "comunicaciones",
+        "seguimiento",
+        "equipo_y_acceso"
+      ],
+      "default": "all",
+      "description": "\u00c1rea principal a la que va dirigida"
+    },
+    "participant_emails": {
+      "type": "array",
+      "default": [],
+      "description": "Correos de los participantes activos del chat",
+      "items": {
+        "type": "string"
+      }
+    },
+    "message_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de mensajes"
+    },
+    "last_message_preview": {
+      "type": "string",
+      "description": "Vista previa del \u00faltimo mensaje"
+    },
+    "last_message_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo mensaje"
+    }
+  },
+  "required": [
+    "title",
+    "entity_type",
+    "entity_id",
+    "entity_label",
+    "created_by_email"
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "name": "Package",
+  "type": "object",
+  "properties": {
+    "tracking_number": {
+      "type": "string",
+      "description": "Unique tracking number"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Client email who owns this package"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Client's shipping mark"
+    },
+    "shipping_type": {
+      "type": "string",
+      "enum": [
+        "aereo",
+        "maritimo"
+      ],
+      "description": "Type of shipping"
+    },
+    "description": {
+      "type": "string",
+      "description": "Package description"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pre_alerta",
+        "recibido",
+        "consolidado",
+        "en_transito",
+        "disponible",
+        "entregado"
+      ],
+      "default": "pre_alerta"
+    },
+    "has_insurance": {
+      "type": "boolean",
+      "default": false
+    },
+    "fob_value": {
+      "type": "number",
+      "description": "FOB value for insurance"
+    },
+    "invoice_url": {
+      "type": "string",
+      "description": "Invoice file URL"
+    },
+    "product_image_url": {
+      "type": "string",
+      "description": "Foto del producto subida por el cliente en la pre-alerta"
+    },
+    "package_image_url": {
+      "type": "string",
+      "description": "Legacy single image URL (kept for backwards compatibility)"
+    },
+    "package_image_urls": {
+      "type": "array",
+      "description": "Up to 3 image URLs for the received package",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3,
+      "default": []
+    },
+    "consolidation_id": {
+      "type": "string",
+      "description": "ID of consolidation if consolidated"
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_by": {
+      "type": "string"
+    },
+    "reported": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marcado como reportado para control interno"
+    },
+    "warehouse_id": {
+      "type": "string",
+      "description": "ID del almac\u00e9n o sede donde est\u00e1 el paquete"
+    },
+    "warehouse_name": {
+      "type": "string",
+      "description": "Nombre del almac\u00e9n o sede"
+    },
+    "warehouse_city": {
+      "type": "string",
+      "description": "Ciudad del almac\u00e9n"
+    },
+    "warehouse_country": {
+      "type": "string",
+      "description": "Pa\u00eds del almac\u00e9n"
+    },
+    "warehouse_location_id": {
+      "type": "string",
+      "description": "ID de la ubicaci\u00f3n de almac\u00e9n asignada"
+    },
+    "warehouse_location_code": {
+      "type": "string",
+      "description": "C\u00f3digo de la ubicaci\u00f3n de almac\u00e9n"
+    },
+    "warehouse_location_name": {
+      "type": "string",
+      "description": "Nombre de la ubicaci\u00f3n de almac\u00e9n"
+    },
+    "warehouse_zone": {
+      "type": "string",
+      "description": "Zona operativa donde est\u00e1 ubicado el paquete"
+    },
+    "actual_weight_kg": {
+      "type": "number",
+      "description": "Peso real del paquete al recibirlo"
+    },
+    "actual_length_cm": {
+      "type": "number",
+      "description": "Largo real del paquete en cm"
+    },
+    "actual_width_cm": {
+      "type": "number",
+      "description": "Ancho real del paquete en cm"
+    },
+    "actual_height_cm": {
+      "type": "number",
+      "description": "Alto real del paquete en cm"
+    },
+    "actual_cbm": {
+      "type": "number",
+      "description": "Volumen real del paquete en CBM"
+    },
+    "reception_notes": {
+      "type": "string",
+      "description": "Notas internas al momento de recibir o ubicar el paquete"
+    }
+  },
+  "required": [
+    "tracking_number",
+    "client_email",
+    "shipping_type",
+    "description"
+  ]
+}

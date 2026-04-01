@@ -24,7 +24,8 @@ import {
   FileText,
   Clock,
   Trash2,
-  HardDrive
+  HardDrive,
+  FlaskConical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
@@ -103,12 +104,12 @@ export default function AdminSettings({ user }) {
       maintenance_mode: false,
       maintenance_message: 'Estamos realizando mantenimiento. Por favor, inténtalo más tarde.',
       maintenance_image_url: '',
-      external_services_enabled: true,
-      external_services_message: 'Modo demo activo: integraciones externas desactivadas.',
       shipping_mark_auto_assign_enabled: false,
       shipping_mark_auto_assign_prefix: 'TLEC-',
       shipping_mark_auto_assign_length: 6,
-      shipping_mark_auto_assign_chars: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+      shipping_mark_auto_assign_chars: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
+      demo_mode: false,
+      demo_mode_message: 'Modo demo activo: integraciones externas desactivadas.'
    });
 
   // Privacy Config
@@ -160,7 +161,7 @@ export default function AdminSettings({ user }) {
       // Load app config
       const appConfigs = await base44.entities.AppConfig.filter({ config_key: 'main' });
       if (appConfigs.length > 0) {
-        setAppConfig((prev) => ({ ...prev, ...appConfigs[0] }));
+        setAppConfig(appConfigs[0]);
       }
 
       // Load privacy config
@@ -899,27 +900,46 @@ export default function AdminSettings({ user }) {
                 </Button>
               </div>
 
+              {/* Modo Demo */}
               <div className="p-4 md:p-6 bg-amber-50 rounded-xl border border-amber-200 space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="font-semibold text-slate-800 text-lg">Modo demo / APIs externas</h3>
-                    <p className="text-sm text-slate-600">Apaga Stripe, PayPal, emails, push y webhooks externos sin afectar el resto de la app.</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-100 rounded-lg">
+                      <FlaskConical className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-800 text-lg">Modo Demo / APIs externas</h3>
+                      <p className="text-sm text-slate-600">Desactiva integraciones externas como Stripe, PayPal, envío de emails, notificaciones push y webhooks sin afectar la funcionalidad principal.</p>
+                    </div>
                   </div>
                   <Switch
-                    checked={appConfig.external_services_enabled !== false}
-                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, external_services_enabled: checked })}
+                    checked={!!appConfig.demo_mode}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, demo_mode: checked })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Mensaje cuando esté apagado</Label>
-                  <Textarea
-                    value={appConfig.external_services_message || ''}
-                    onChange={(e) => setAppConfig({ ...appConfig, external_services_message: e.target.value })}
-                    rows={2}
-                    placeholder="Modo demo activo: integraciones externas desactivadas."
-                  />
-                </div>
+                {appConfig.demo_mode && (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-white rounded-lg border border-amber-200">
+                      <p className="text-sm text-amber-800">
+                        <strong>Cuando está activo:</strong> Se muestra un banner en toda la app. Las llamadas a Stripe, PayPal, envío de correos, notificaciones push y webhooks se bloquean o simulan.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Mensaje mostrado</Label>
+                      <Input
+                        value={appConfig.demo_mode_message || ''}
+                        onChange={(e) => setAppConfig({ ...appConfig, demo_mode_message: e.target.value })}
+                        placeholder="Modo demo activo: integraciones externas desactivadas."
+                      />
+                    </div>
+                  </div>
+                )}
+                <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                  {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Guardar configuración
+                </Button>
               </div>
+
               <div className="space-y-2">
                 <Label>Nombre de la aplicación</Label>
                 <Input

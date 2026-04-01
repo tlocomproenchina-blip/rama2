@@ -1,0 +1,61 @@
+{
+  "name": "Chofer",
+  "type": "object",
+  "properties": {
+    "nombres": {
+      "type": "string",
+      "description": "Nombres del chofer"
+    },
+    "apellidos": {
+      "type": "string",
+      "description": "Apellidos del chofer"
+    },
+    "cedula": {
+      "type": "string",
+      "description": "Documento de identidad del chofer"
+    },
+    "telefono": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "licencia": {
+      "type": "string",
+      "description": "N\u00famero de licencia"
+    },
+    "categoria_licencia": {
+      "type": "string",
+      "description": "Categor\u00eda de licencia"
+    },
+    "fecha_vencimiento_licencia": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de vencimiento de la licencia"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "disponible",
+        "en_ruta",
+        "suspendido",
+        "inactivo"
+      ],
+      "default": "disponible",
+      "description": "Estado operativo del chofer"
+    },
+    "direccion": {
+      "type": "string",
+      "description": "Direcci\u00f3n del chofer"
+    },
+    "observaciones": {
+      "type": "string",
+      "description": "Notas internas del chofer"
+    }
+  },
+  "required": [
+    "nombres",
+    "apellidos",
+    "cedula",
+    "telefono",
+    "estado"
+  ]
+}

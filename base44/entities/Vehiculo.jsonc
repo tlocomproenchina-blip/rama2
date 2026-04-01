@@ -1,0 +1,71 @@
+{
+  "name": "Vehiculo",
+  "type": "object",
+  "properties": {
+    "placa": {
+      "type": "string",
+      "description": "Placa \u00fanica del veh\u00edculo"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "camion",
+        "van",
+        "moto",
+        "pickup",
+        "otro"
+      ],
+      "description": "Tipo de veh\u00edculo"
+    },
+    "marca": {
+      "type": "string",
+      "description": "Marca del veh\u00edculo"
+    },
+    "modelo": {
+      "type": "string",
+      "description": "Modelo del veh\u00edculo"
+    },
+    "anio": {
+      "type": "number",
+      "description": "A\u00f1o del veh\u00edculo"
+    },
+    "capacidad_peso_kg": {
+      "type": "number",
+      "default": 0,
+      "description": "Capacidad m\u00e1xima en kilogramos"
+    },
+    "capacidad_volumen_m3": {
+      "type": "number",
+      "default": 0,
+      "description": "Capacidad m\u00e1xima en metros c\u00fabicos"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "disponible",
+        "en_ruta",
+        "mantenimiento",
+        "inactivo"
+      ],
+      "default": "disponible",
+      "description": "Estado operativo del veh\u00edculo"
+    },
+    "chofer_id": {
+      "type": "string",
+      "description": "ID del chofer asignado"
+    },
+    "chofer_nombre": {
+      "type": "string",
+      "description": "Nombre del chofer asignado"
+    },
+    "observaciones": {
+      "type": "string",
+      "description": "Notas internas del veh\u00edculo"
+    }
+  },
+  "required": [
+    "placa",
+    "tipo",
+    "estado"
+  ]
+}

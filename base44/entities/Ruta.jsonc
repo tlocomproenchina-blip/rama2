@@ -1,0 +1,80 @@
+{
+  "name": "Ruta",
+  "type": "object",
+  "properties": {
+    "codigo_ruta": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico de la ruta"
+    },
+    "tipo_ruta": {
+      "type": "string",
+      "enum": [
+        "urbana",
+        "interurbana"
+      ],
+      "description": "Tipo de ruta"
+    },
+    "origen": {
+      "type": "string",
+      "description": "Punto de origen"
+    },
+    "destino": {
+      "type": "string",
+      "description": "Punto de destino principal"
+    },
+    "fecha_salida": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de salida"
+    },
+    "fecha_estimada_entrega": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora estimada de entrega"
+    },
+    "vehiculo_id": {
+      "type": "string",
+      "description": "ID del veh\u00edculo asignado"
+    },
+    "vehiculo_placa": {
+      "type": "string",
+      "description": "Placa del veh\u00edculo asignado"
+    },
+    "chofer_id": {
+      "type": "string",
+      "description": "ID del chofer asignado"
+    },
+    "chofer_nombre": {
+      "type": "string",
+      "description": "Nombre del chofer asignado"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "planificada",
+        "asignada",
+        "en_curso",
+        "completada",
+        "cancelada"
+      ],
+      "default": "planificada",
+      "description": "Estado de la ruta"
+    },
+    "total_paradas": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad total de paradas previstas"
+    },
+    "observaciones": {
+      "type": "string",
+      "description": "Notas operativas de la ruta"
+    }
+  },
+  "required": [
+    "codigo_ruta",
+    "tipo_ruta",
+    "origen",
+    "destino",
+    "estado"
+  ]
+}

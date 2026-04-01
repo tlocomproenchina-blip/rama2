@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { base44 as base44Direct } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +30,13 @@ import {
   Download,
   Filter,
   UserCheck,
-  UserX
-,
-  CreditCard
+  UserX,
+  CreditCard,
+  CalendarDays
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 import { Textarea } from "@/components/ui/textarea";
@@ -45,7 +46,6 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { toast } from 'sonner';
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal';
 import ClientImportDialog from '@/components/imports/ClientImportDialog';
-import { getAdminPrefetchData, prefetchAdminClients, invalidateAdminClientsCache, subscribeAdminPrefetch } from '@/lib/adminPrefetchCache';
 
 export default function AdminClients({ user }) {
   const [clients, setClients] = useState([]);
@@ -90,29 +90,10 @@ export default function AdminClients({ user }) {
 
 
 
-  // Use prefetched data if available, otherwise load fresh
   useEffect(() => {
-    const prefetched = getAdminPrefetchData();
-    if (prefetched.clients && prefetched.packagesCount) {
-      setClients(prefetched.clients);
-      setPackagesCount(prefetched.packagesCount);
-      setLoading(false);
-      // Refresh in background
-      loadClients();
-    } else if (prefetched.loading) {
-      // Prefetch is in progress, subscribe to it
-      const unsub = subscribeAdminPrefetch((data) => {
-        if (!data.loading && data.clients) {
-          setClients(data.clients);
-          setPackagesCount(data.packagesCount || {});
-          setLoading(false);
-          unsub();
-        }
-      });
-    } else {
-      loadClients();
-    }
+    loadClients();
     loadStateConfigs();
+
   }, []);
 
   // Realtime directo sobre User desactivado para evitar errores de permisos en producción.
@@ -137,20 +118,22 @@ export default function AdminClients({ user }) {
    const loadClients = async (append = false) => {
     try {
       if (append) setLoadingMore(true); else setLoading(true);
-      // Force fresh fetch and update cache
-      invalidateAdminClientsCache();
-      await prefetchAdminClients(true);
-      const data = getAdminPrefetchData();
-      
-      if (append) {
-        setClients(prev => [...prev, ...(data.clients || [])]);
-      } else {
-        setClients(data.clients || []);
-        setPackagesCount(data.packagesCount || {});
+      let users = [];
+      if (canViewClients) {
+        const res = await base44.functions.invoke('listClientsForSupport');
+        users = res.data || [];
+        setHasMore(false);
       }
-      setHasMore(false);
-    } catch (err) {
-      console.error('[AdminClients] loadClients error:', err);
+
+      if (append) {
+        setClients(prev => [...prev, ...users]);
+      } else {
+        const packages = await base44.entities.Package.list();
+        const counts = {};
+        packages.forEach(pkg => { counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1; });
+        setPackagesCount(counts);
+        setClients(users);
+      }
     } finally {
       if (append) setLoadingMore(false); else setLoading(false);
     }
@@ -614,29 +597,52 @@ Email: ${client.email}`;
     setExclusiveKey(value === 'all' ? 'all' : (value === 'with' ? 'with_whatsapp' : 'without_whatsapp'));
   };
 
+  // Pre-compute: if search matches exactly one client by email/SM/fullname, show only that one
+  const qTextPre = normalizeText(search);
+  const qAlnumPre = normalizeAlnum(search);
+  const exactEmailMatch = qTextPre ? clients.filter(c => normalizeText(c.email || '') === qTextPre) : [];
+  const exactSMMatch = qAlnumPre ? clients.filter(c => normalizeAlnum(c.shipping_mark || '') === qAlnumPre) : [];
+  const exactFullMatch = qTextPre ? clients.filter(c => {
+    const fn = normalizeText(`${c.first_name || ''} ${c.last_name || ''}`.trim());
+    return fn && fn === qTextPre;
+  }) : [];
+  const hasExactMatch = (exactEmailMatch.length === 1 || exactSMMatch.length === 1 || exactFullMatch.length === 1);
+  const exactIds = hasExactMatch ? new Set([
+    ...exactEmailMatch.map(c => c.id),
+    ...exactSMMatch.map(c => c.id),
+    ...exactFullMatch.map(c => c.id)
+  ]) : null;
+
   const filteredClients = clients.filter(client => {
   // Map stored value (code or name) to code for filtering
   const clientStateCode = (client.state && client.state.includes(' ')) ? null : client.state;
-    // Normalized search: text (accent/case-insensitive), alphanumeric (no spaces/symbols), and digits-only
-    const qText = normalizeText(search);
-    const qAlnum = normalizeAlnum(search);
-    const qDigits = getDigits(search);
 
-    const email = normalizeText(client.email || '');
-    const first = normalizeText(client.first_name || '');
-    const last = normalizeText(client.last_name || '');
-    const full = `${first} ${last}`.trim();
-    const cityNorm = normalizeText(client.city || '');
-    const whatsappDigits = getDigits(client.whatsapp || '');
-    const phoneDigits = getDigits(client.phone || '');
-    const shippingMarkNorm = normalizeAlnum(client.shipping_mark || '');
-    const fullNameAlnum = normalizeAlnum((client.first_name || '') + (client.last_name || ''));
+    // If there's an exact match, only show that client
+    if (exactIds) {
+      if (!exactIds.has(client.id)) return false;
+    } else {
+      // Normalized search: text (accent/case-insensitive), alphanumeric (no spaces/symbols), and digits-only
+      const qText = normalizeText(search);
+      const qAlnum = normalizeAlnum(search);
+      const qDigits = getDigits(search);
 
-    const matchesText = qText === '' || email.includes(qText) || first.includes(qText) || last.includes(qText) || full.includes(qText) || cityNorm.includes(qText);
-    const matchesDigits = qDigits !== '' && (whatsappDigits.includes(qDigits) || phoneDigits.includes(qDigits));
-    const matchesAlnum = qAlnum !== '' && (shippingMarkNorm.includes(qAlnum) || fullNameAlnum.includes(qAlnum));
+      const email = normalizeText(client.email || '');
+      const first = normalizeText(client.first_name || '');
+      const last = normalizeText(client.last_name || '');
+      const full = `${first} ${last}`.trim();
+      const cityNorm = normalizeText(client.city || '');
+      const whatsappDigits = getDigits(client.whatsapp || '');
+      const phoneDigits = getDigits(client.phone || '');
+      const shippingMarkNorm = normalizeAlnum(client.shipping_mark || '');
+      const fullNameAlnum = normalizeAlnum((client.first_name || '') + (client.last_name || ''));
 
-    const matchesSearch = matchesText || matchesDigits || matchesAlnum;
+      const matchesText = qText === '' || email.includes(qText) || first.includes(qText) || last.includes(qText) || full.includes(qText) || cityNorm.includes(qText);
+      const matchesDigits = qDigits !== '' && (whatsappDigits.includes(qDigits) || phoneDigits.includes(qDigits));
+      const matchesAlnum = qAlnum !== '' && (shippingMarkNorm.includes(qAlnum) || fullNameAlnum.includes(qAlnum));
+
+      const matchesSearch = matchesText || matchesDigits || matchesAlnum;
+      if (!matchesSearch) return false;
+    }
 
     // Date filters (range or quick)
     let matchesRange = true;
@@ -681,7 +687,7 @@ Email: ${client.email}`;
     // State
     const matchesState = stateFilter === 'all' ? true : clientStateCode === stateFilter;
 
-    return matchesSearch && matchesRange && matchesQuick && matchesCategory && matchesState;
+    return matchesRange && matchesQuick && matchesCategory && matchesState;
   });
 
   if (loading) {
@@ -1021,7 +1027,7 @@ Email: ${client.email}`;
                   {/* Avatar & Name */}
                   <div className="flex items-center gap-4 flex-1">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                      {(client.first_name?.[0] || client.email[0]).toUpperCase()}
+                      {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
                     </div>
                     <div>
                       <h3 className="font-semibold text-slate-800">
@@ -1060,6 +1066,12 @@ Email: ${client.email}`;
                       <Badge className="bg-amber-100 text-amber-700 border-amber-200">
                         <Clock className="h-3 w-3 mr-1" />
                         Sin Shipping Mark
+                      </Badge>
+                    )}
+                    {client.created_date && (
+                      <Badge variant="outline" className="bg-slate-50">
+                        <CalendarDays className="h-3 w-3 mr-1" />
+                        {format(new Date(client.created_date), 'dd MMM yyyy', { locale: es })}
                       </Badge>
                     )}
                     <Badge variant="outline">

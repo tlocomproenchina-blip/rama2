@@ -1,0 +1,88 @@
+{
+  "name": "Promotion",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la promoci\u00f3n"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n de la oferta"
+    },
+    "discount_type": {
+      "type": "string",
+      "enum": [
+        "percentage",
+        "fixed_amount"
+      ],
+      "description": "Tipo de descuento"
+    },
+    "discount_value": {
+      "type": "number",
+      "description": "Valor del descuento (% o monto fijo)"
+    },
+    "applies_to": {
+      "type": "string",
+      "enum": [
+        "shipping",
+        "insurance",
+        "total"
+      ],
+      "default": "total",
+      "description": "A qu\u00e9 se aplica el descuento"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de inicio"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de finalizaci\u00f3n"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la promoci\u00f3n est\u00e1 activa"
+    },
+    "promo_code": {
+      "type": "string",
+      "description": "C\u00f3digo promocional opcional"
+    },
+    "min_purchase": {
+      "type": "number",
+      "default": 0,
+      "description": "Monto m\u00ednimo de compra"
+    },
+    "max_uses": {
+      "type": "number",
+      "description": "M\u00e1ximo de usos permitidos"
+    },
+    "current_uses": {
+      "type": "number",
+      "default": 0,
+      "description": "Usos actuales"
+    },
+    "target_segment": {
+      "type": "string",
+      "enum": [
+        "all",
+        "new_customers",
+        "returning_customers",
+        "high_value",
+        "inactive"
+      ],
+      "default": "all",
+      "description": "Segmento objetivo"
+    }
+  },
+  "required": [
+    "name",
+    "discount_type",
+    "discount_value",
+    "start_date",
+    "end_date"
+  ]
+}

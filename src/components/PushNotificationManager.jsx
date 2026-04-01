@@ -107,10 +107,6 @@ export default function PushNotificationManager({ user }) {
     return null;
   }
 
-  if (!user || user.role !== 'user') {
-    return null;
-  }
-
   return (
     <Card className="border-blue-200 bg-blue-50">
       <CardHeader>

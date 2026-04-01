@@ -1,0 +1,39 @@
+{
+  "name": "PricingConfig",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "description": "Clave \u00fanica de configuraci\u00f3n",
+      "default": "main"
+    },
+    "base_rate_regular": {
+      "type": "number",
+      "description": "Tarifa base para carga regular ($)",
+      "default": 690
+    },
+    "base_rate_high_risk": {
+      "type": "number",
+      "description": "Tarifa base para carga alto riesgo ($)",
+      "default": 790
+    },
+    "profit_percentage": {
+      "type": "number",
+      "description": "Porcentaje de beneficio (%)",
+      "default": 10
+    },
+    "door_to_door_cost": {
+      "type": "number",
+      "description": "Costo del servicio puerta a puerta ($)",
+      "default": 20
+    },
+    "is_door_to_door_optional": {
+      "type": "boolean",
+      "description": "Si el servicio puerta a puerta es opcional",
+      "default": true
+    }
+  },
+  "required": [
+    "config_key"
+  ]
+}

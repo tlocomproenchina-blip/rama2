@@ -1,0 +1,80 @@
+{
+  "name": "AssistedPaymentRequest",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente solicitante"
+    },
+    "link_url": {
+      "type": "string",
+      "description": "Enlace de Alibaba, WeChat o Alipay"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "alibaba",
+        "wechat",
+        "alipay",
+        "otro"
+      ],
+      "default": "otro",
+      "description": "Plataforma del enlace"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto base a pagar (USD)"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "fee_percentage": {
+      "type": "number",
+      "description": "Porcentaje aplicado en el momento de la solicitud"
+    },
+    "fee_amount": {
+      "type": "number",
+      "description": "Monto de la comisi\u00f3n"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Monto total a pagar (base + comisi\u00f3n)"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Soporte/imagen opcional"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas del cliente"
+    },
+    "admin_comment": {
+      "type": "string",
+      "description": "Comentario del administrador"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "en_proceso",
+        "pagado",
+        "rechazado"
+      ],
+      "default": "pendiente"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Referencia o n\u00famero asociado"
+    },
+    "invoice_id": {
+      "type": "string",
+      "description": "ID de la factura generada (Invoice)"
+    }
+  },
+  "required": [
+    "client_email",
+    "link_url",
+    "amount"
+  ]
+}

@@ -21,7 +21,7 @@ export default function AdminBlog({ user }) {
   const [topic, setTopic] = useState('');
   const [generating, setGenerating] = useState(false);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user && user.role === 'admin';
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ['admin-blog-posts'],

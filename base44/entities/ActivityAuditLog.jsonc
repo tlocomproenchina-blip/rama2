@@ -1,0 +1,93 @@
+{
+  "name": "ActivityAuditLog",
+  "type": "object",
+  "properties": {
+    "entity_name": {
+      "type": "string",
+      "description": "Entidad auditada"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID del registro afectado"
+    },
+    "entity_label": {
+      "type": "string",
+      "description": "Etiqueta visible del registro"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "description": "Tipo de cambio realizado"
+    },
+    "action_detail": {
+      "type": "string",
+      "description": "Descripci\u00f3n m\u00e1s detallada de la acci\u00f3n realizada"
+    },
+    "actor_email": {
+      "type": "string",
+      "description": "Usuario que realiz\u00f3 el cambio"
+    },
+    "actor_name": {
+      "type": "string",
+      "description": "Nombre del usuario que realiz\u00f3 el cambio"
+    },
+    "actor_role": {
+      "type": "string",
+      "description": "Rol del usuario que realiz\u00f3 el cambio"
+    },
+    "module_name": {
+      "type": "string",
+      "description": "M\u00f3dulo funcional donde ocurri\u00f3 la acci\u00f3n"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Identificador de sesi\u00f3n para agrupar acciones"
+    },
+    "page_path": {
+      "type": "string",
+      "description": "Ruta o p\u00e1gina donde ocurri\u00f3 la acci\u00f3n"
+    },
+    "duration_ms": {
+      "type": "number",
+      "description": "Duraci\u00f3n asociada a la acci\u00f3n en milisegundos"
+    },
+    "client_side_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Marca de tiempo generada desde el cliente"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Resumen corto del cambio"
+    },
+    "changed_fields": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "field_name": {
+            "type": "string"
+          },
+          "old_value": {
+            "type": "string"
+          },
+          "new_value": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Lista de cambios campo por campo"
+    }
+  },
+  "required": [
+    "entity_name",
+    "entity_id",
+    "action_type",
+    "summary"
+  ]
+}

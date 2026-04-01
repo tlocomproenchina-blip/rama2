@@ -1,0 +1,77 @@
+{
+  "name": "EmailTemplate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la plantilla"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n de la plantilla"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "bienvenida",
+        "paquetes",
+        "consolidacion",
+        "pagos",
+        "marketing"
+      ],
+      "default": "general",
+      "description": "Categor\u00eda de la plantilla"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Asunto del email"
+    },
+    "body": {
+      "type": "string",
+      "description": "Cuerpo del email (HTML)"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          }
+        }
+      },
+      "default": [],
+      "description": "Adjuntos de la plantilla"
+    },
+    "is_default": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si es una plantilla predeterminada del sistema"
+    },
+    "usage_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de veces que se ha usado"
+    },
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Variables disponibles: {cliente_nombre}, {tracking}, {shipping_mark}, etc."
+    }
+  },
+  "required": [
+    "name",
+    "subject",
+    "body"
+  ]
+}

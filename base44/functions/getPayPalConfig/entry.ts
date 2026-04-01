@@ -6,12 +6,6 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
-    const config = configs?.[0] || {};
-    if (config.external_services_enabled === false) {
-      return Response.json({ error: config.external_services_message || 'Modo demo activo: PayPal desactivado.' }, { status: 503 });
-    }
-
     const clientId = Deno.env.get('PAYPAL_CLIENT_ID');
     if (!clientId) return Response.json({ error: 'PAYPAL_CLIENT_ID no configurado' }, { status: 500 });
 

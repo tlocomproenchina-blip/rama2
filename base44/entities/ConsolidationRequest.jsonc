@@ -1,0 +1,68 @@
+{
+  "name": "ConsolidationRequest",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark del cliente"
+    },
+    "package_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de paquetes seleccionados por el cliente"
+    },
+    "tracking_numbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "N\u00fameros de tracking seleccionados"
+    },
+    "shipping_type": {
+      "type": "string",
+      "enum": [
+        "aereo",
+        "maritimo"
+      ],
+      "description": "Tipo de env\u00edo preferido"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobada",
+        "consolidada",
+        "cancelada"
+      ],
+      "default": "pendiente",
+      "description": "Estado: pendiente \u2192 aprobada (lista para consolidar) \u2192 consolidada"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas del cliente"
+    },
+    "consolidation_id": {
+      "type": "string",
+      "description": "ID de la consolidaci\u00f3n creada"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Email del admin que aprob\u00f3"
+    },
+    "approved_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de aprobaci\u00f3n"
+    }
+  },
+  "required": [
+    "client_email",
+    "shipping_type"
+  ]
+}

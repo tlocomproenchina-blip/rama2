@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * Componente de imagen optimizado para mobile
@@ -7,15 +7,14 @@ import React, { memo, useState, useEffect, useRef } from 'react';
  * - Formato WebP con fallback
  * - Error handling
  */
-function OptimizedImage({
+export default function OptimizedImage({
   src,
   alt,
   width,
   height,
   className,
   onLoad,
-  priority = false,
-  sizes = '100vw'
+  priority = false
 }) {
   const [imageSrc, setImageSrc] = useState(priority ? src : null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -71,7 +70,7 @@ function OptimizedImage({
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
         fetchpriority={priority ? 'high' : 'auto'}
-        sizes={sizes}
+        sizes="100vw"
         className={`w-full h-full object-cover transition-opacity duration-300 ${
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
@@ -79,5 +78,3 @@ function OptimizedImage({
     </div>
   );
 }
-
-export default memo(OptimizedImage);

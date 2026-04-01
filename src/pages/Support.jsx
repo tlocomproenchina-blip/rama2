@@ -48,43 +48,10 @@ export default function Support({ user }) {
 
   const loadTickets = async () => {
     if (!user?.email) return;
-    setLoading(true);
-    try {
-      const allTickets = await base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date');
-      setTickets(allTickets);
-    } catch (error) {
-      console.error('Error loading support tickets:', error);
-      setTickets([]);
-      toast.error('No se pudieron cargar los tickets.');
-    } finally {
-      setLoading(false);
-    }
+    const allTickets = await base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date');
+    setTickets(allTickets);
+    setLoading(false);
   };
-
-  const supportStats = useMemo(() => ({
-    total: tickets.length,
-    abiertos: tickets.filter((ticket) => ticket.status === 'abierto').length,
-    enProceso: tickets.filter((ticket) => ticket.status === 'en_proceso').length,
-    resueltos: tickets.filter((ticket) => ticket.status === 'resuelto').length,
-  }), [tickets]);
-
-  if (!user) {
-    return (
-      <div className="max-w-xl mx-auto">
-        <Card className="border-border/70 bg-card/95 shadow-card">
-          <CardHeader>
-            <CardTitle>Inicia sesión para usar Soporte</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-slate-600">Necesitas una cuenta para crear y ver tus tickets.</p>
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => base44.auth.redirectToLogin()}>
-              Iniciar sesión
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   const handleCreateTicket = async () => {
     if (!user?.email) { base44.auth.redirectToLogin(); return; }
@@ -176,17 +143,17 @@ export default function Support({ user }) {
       status: selectedTicket.status === 'resuelto' ? 'abierto' : selectedTicket.status
     });
 
-    // Notify admin
-    if (selectedTicket.assigned_to) {
-      base44.entities.Notification.create({
-        user_email: selectedTicket.assigned_to,
-        title: '💬 Nuevo mensaje en ticket',
+    // Notify ALL admins about client response
+    import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
+      notifyAdmins({
+        subject: '💬 Nuevo mensaje de cliente en ticket',
+        body: `El cliente ${user.full_name || user.email} ha respondido en el ticket ${selectedTicket.ticket_number}:\n\nAsunto: ${selectedTicket.subject}\n\nMensaje:\n${message}`,
         message: `${user.full_name || user.email} respondió en ${selectedTicket.ticket_number}`,
         type: 'general',
         icon: 'alert',
-        reference_id: selectedTicket.id
-      }).catch(err => console.error(err));
-    }
+        referenceId: selectedTicket.id
+      });
+    });
 
     setSelectedTicket({ ...selectedTicket, messages: updatedMessages });
     loadTickets();
@@ -205,6 +172,32 @@ export default function Support({ user }) {
     alta: { label: 'Alta', color: 'bg-orange-100 text-orange-600' },
     urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600' }
   };
+
+  const supportStats = useMemo(() => ({
+    total: tickets.length,
+    abiertos: tickets.filter((ticket) => ticket.status === 'abierto').length,
+    enProceso: tickets.filter((ticket) => ticket.status === 'en_proceso').length,
+    resueltos: tickets.filter((ticket) => ticket.status === 'resuelto').length,
+  }), [tickets]);
+
+  // Requiere autenticación para usar Soporte
+  if (!user) {
+    return (
+      <div className="max-w-xl mx-auto">
+        <Card className="border-border/70 bg-card/95 shadow-card">
+          <CardHeader>
+            <CardTitle>Inicia sesión para usar Soporte</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-slate-600">Necesitas una cuenta para crear y ver tus tickets.</p>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => base44.auth.redirectToLogin()}>
+              Iniciar sesión
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -405,8 +398,15 @@ export default function Support({ user }) {
                 <DialogTitle>{selectedTicket?.subject}</DialogTitle>
                 <p className="text-sm text-slate-500 font-mono mt-1">{selectedTicket?.ticket_number}</p>
                 {selectedTicket?.related_tracking && (
-                  <div className="mt-3 inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
-                    Tracking relacionado: {selectedTicket.related_tracking}
+                  <div className="mt-3 space-y-1">
+                    <p className="text-xs text-slate-500">Tracking relacionado:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedTicket.related_tracking.split(',').map((tn, i) => (
+                        <Badge key={i} variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          {tn.trim()}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

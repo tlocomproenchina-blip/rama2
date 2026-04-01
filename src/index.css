@@ -131,11 +131,16 @@
   }
 
   @media (max-width: 640px) {
-    button,
+    button:not([role="switch"]),
     [role="button"],
     a[role="button"] {
       min-height: 44px;
       min-width: 44px;
+    }
+
+    button[role="switch"] {
+      min-height: unset;
+      min-width: unset;
     }
 
     .relative > svg.absolute + input,

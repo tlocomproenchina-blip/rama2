@@ -1,5 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react';
-import PushNotificationManager from '@/components/PushNotificationManager';
+import { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -9,11 +8,12 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import RouteLoadingFallback from '@/components/common/RouteLoadingFallback';
 import WarehouseReceive from './pages/WarehouseReceive';
 import WarehouseLocations from './pages/WarehouseLocations';
 import WarehouseDashboard from './pages/WarehouseDashboard';
 import WarehousePickPackShip from './pages/WarehousePickPackShip';
+import ClientAnalytics from './pages/ClientAnalytics';
+import AccountingDashboard from './pages/AccountingDashboard';
 import AdminEmployees from './pages/AdminEmployees';
 import AdminAdministrators from './pages/AdminAdministrators';
 import AdminRoles from './pages/AdminRoles';
@@ -25,14 +25,14 @@ import AdminChoferes from './pages/AdminChoferes';
 import AdminRutas from './pages/AdminRutas';
 import AdminCargaRutas from './pages/AdminCargaRutas';
 import AdminSeguimientoRutas from './pages/AdminSeguimientoRutas';
+import AdminLogistica from './pages/AdminLogistica';
+import AdminOperaciones from './pages/AdminOperaciones';
+import AdminSeguimiento from './pages/AdminSeguimiento';
 import AdminRutaDetalle from './pages/AdminRutaDetalle';
-
-const ClientAnalytics = lazy(() => import('./pages/ClientAnalytics'));
-const AccountingDashboard = lazy(() => import('./pages/AccountingDashboard'));
-const AdminLogistica = lazy(() => import('./pages/AdminLogistica'));
-const AdminOperaciones = lazy(() => import('./pages/AdminOperaciones'));
-const AdminSeguimiento = lazy(() => import('./pages/AdminSeguimiento'));
-const AdminInternalMessages = lazy(() => import('./pages/AdminInternalMessages'));
+import AdminInternalMessages from './pages/AdminInternalMessages';
+import AdminCbmIngresos from './pages/AdminCbmIngresos';
+import AdminDuplicates from './pages/AdminDuplicates';
+import AdminRevenueDashboard from './pages/AdminRevenueDashboard';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -41,23 +41,6 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
-
-const RouteContent = ({ children }) => (
-  <Suspense fallback={<RouteLoadingFallback />}>
-    {children}
-  </Suspense>
-);
-
-const AppShell = () => {
-  const { user, isAuthenticated } = useAuth();
-
-  return (
-    <>
-      <AuthenticatedApp />
-      {isAuthenticated && user?.role === 'user' ? <PushNotificationManager user={user} /> : null}
-    </>
-  );
-};
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -91,9 +74,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
-          <RouteContent>
-            <MainPage />
-          </RouteContent>
+          <MainPage />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (
@@ -102,9 +83,7 @@ const AuthenticatedApp = () => {
           path={`/${path}`}
           element={
             <LayoutWrapper currentPageName={path}>
-              <RouteContent>
-                <Page />
-              </RouteContent>
+              <Page />
             </LayoutWrapper>
           }
         />
@@ -112,9 +91,7 @@ const AuthenticatedApp = () => {
       {Pages.Dashboard && (
         <Route path="/ClientPortal" element={
           <LayoutWrapper currentPageName="Dashboard">
-            <RouteContent>
-              <Pages.Dashboard />
-            </RouteContent>
+            <Pages.Dashboard />
           </LayoutWrapper>
         } />
       )}
@@ -140,16 +117,12 @@ const AuthenticatedApp = () => {
       } />
       <Route path="/ClientAnalytics" element={
         <LayoutWrapper currentPageName="ClientAnalytics">
-          <RouteContent>
-            <ClientAnalytics />
-          </RouteContent>
+          <ClientAnalytics />
         </LayoutWrapper>
       } />
       <Route path="/AccountingDashboard" element={
         <LayoutWrapper currentPageName="AccountingDashboard">
-          <RouteContent>
-            <AccountingDashboard />
-          </RouteContent>
+          <AccountingDashboard />
         </LayoutWrapper>
       } />
       <Route path="/AdminEmployees" element={
@@ -209,23 +182,17 @@ const AuthenticatedApp = () => {
       } />
       <Route path="/AdminLogistica" element={
         <LayoutWrapper currentPageName="AdminLogistica">
-          <RouteContent>
-            <AdminLogistica />
-          </RouteContent>
+          <AdminLogistica />
         </LayoutWrapper>
       } />
       <Route path="/AdminOperaciones" element={
         <LayoutWrapper currentPageName="AdminOperaciones">
-          <RouteContent>
-            <AdminOperaciones />
-          </RouteContent>
+          <AdminOperaciones />
         </LayoutWrapper>
       } />
       <Route path="/AdminSeguimiento" element={
         <LayoutWrapper currentPageName="AdminSeguimiento">
-          <RouteContent>
-            <AdminSeguimiento />
-          </RouteContent>
+          <AdminSeguimiento />
         </LayoutWrapper>
       } />
       <Route path="/AdminRutaDetalle" element={
@@ -235,9 +202,22 @@ const AuthenticatedApp = () => {
       } />
       <Route path="/AdminInternalMessages" element={
         <LayoutWrapper currentPageName="AdminInternalMessages">
-          <RouteContent>
-            <AdminInternalMessages />
-          </RouteContent>
+          <AdminInternalMessages />
+        </LayoutWrapper>
+      } />
+      <Route path="/AdminCbmIngresos" element={
+        <LayoutWrapper currentPageName="AdminCbmIngresos">
+          <AdminCbmIngresos />
+        </LayoutWrapper>
+      } />
+      <Route path="/AdminDuplicates" element={
+        <LayoutWrapper currentPageName="AdminDuplicates">
+          <AdminDuplicates />
+        </LayoutWrapper>
+      } />
+      <Route path="/AdminRevenueDashboard" element={
+        <LayoutWrapper currentPageName="AdminRevenueDashboard">
+          <AdminRevenueDashboard />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />
@@ -253,7 +233,7 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <NavigationTracker />
-          <AppShell />
+          <AuthenticatedApp />
         </Router>
         <Toaster />
       </QueryClientProvider>

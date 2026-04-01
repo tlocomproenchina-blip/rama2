@@ -1,0 +1,78 @@
+{
+  "name": "RuntimeMetrics",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente/empleado que reporta"
+    },
+    "role": {
+      "type": "string",
+      "description": "Rol del usuario (admin, user, etc.)"
+    },
+    "page_name": {
+      "type": "string",
+      "description": "P\u00e1gina actual del cliente"
+    },
+    "queue_length": {
+      "type": "number",
+      "description": "Longitud de la cola local"
+    },
+    "active_reads": {
+      "type": "number",
+      "description": "Lecturas activas locales"
+    },
+    "active_writes": {
+      "type": "number",
+      "description": "Escrituras activas locales"
+    },
+    "max_reads": {
+      "type": "number",
+      "description": "L\u00edmite de lecturas configurado"
+    },
+    "max_writes": {
+      "type": "number",
+      "description": "L\u00edmite de escrituras configurado"
+    },
+    "failure_count": {
+      "type": "number",
+      "description": "Errores recientes (rate limit)"
+    },
+    "circuit_state": {
+      "type": "string",
+      "enum": [
+        "CLOSED",
+        "OPEN",
+        "HALF_OPEN"
+      ],
+      "description": "Estado del circuit breaker"
+    },
+    "cache_size": {
+      "type": "number",
+      "description": "Tama\u00f1o del cache local"
+    },
+    "inflight_size": {
+      "type": "number",
+      "description": "Operaciones en vuelo deduplicadas"
+    },
+    "latency_ms_avg": {
+      "type": "number",
+      "description": "Latencia promedio estimada (ms)",
+      "default": 0
+    },
+    "device_cores": {
+      "type": "number",
+      "description": "N\u00facleos reportados por el navegador"
+    },
+    "is_mobile": {
+      "type": "boolean",
+      "description": "Si el cliente es m\u00f3vil",
+      "default": false
+    }
+  },
+  "required": [
+    "queue_length",
+    "active_reads",
+    "active_writes"
+  ]
+}

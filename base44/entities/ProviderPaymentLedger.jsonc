@@ -1,0 +1,53 @@
+{
+  "name": "ProviderPaymentLedger",
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "ID del proveedor (ShippingProvider)"
+    },
+    "provider_name": {
+      "type": "string"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "pago",
+        "ajuste",
+        "reversion"
+      ],
+      "default": "pago"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "tarjeta",
+        "efectivo",
+        "nota_credito",
+        "cheque",
+        "otro"
+      ],
+      "default": "transferencia"
+    },
+    "reference": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_name",
+    "transaction_type",
+    "amount",
+    "transaction_date"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "name": "RuntimeTuning",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "description": "Clave de la configuraci\u00f3n",
+      "default": "global"
+    },
+    "max_reads": {
+      "type": "number",
+      "description": "L\u00edmite de lecturas concurrentes"
+    },
+    "max_writes": {
+      "type": "number",
+      "description": "L\u00edmite de escrituras concurrentes"
+    },
+    "min_interval_ms": {
+      "type": "number",
+      "description": "Intervalo m\u00ednimo entre escrituras (ms)"
+    },
+    "backoff_delays": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Backoff en ms"
+    },
+    "circuit_breaker_threshold": {
+      "type": "number",
+      "description": "Errores 429 antes de abrir breaker"
+    },
+    "circuit_open_minutes": {
+      "type": "number",
+      "description": "Minutos de apertura del breaker"
+    },
+    "ui_degradation_mode": {
+      "type": "string",
+      "enum": [
+        "off",
+        "light",
+        "aggressive"
+      ],
+      "default": "off",
+      "description": "Modo de degradaci\u00f3n UI"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Motivo/heur\u00edstica"
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "Email que realiz\u00f3 el ajuste"
+    }
+  },
+  "required": [
+    "config_key"
+  ]
+}

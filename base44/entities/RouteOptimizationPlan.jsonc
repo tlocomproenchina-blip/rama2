@@ -1,0 +1,100 @@
+{
+  "name": "RouteOptimizationPlan",
+  "type": "object",
+  "properties": {
+    "route_id": {
+      "type": "string",
+      "description": "ID de la ruta optimizada"
+    },
+    "route_code": {
+      "type": "string",
+      "description": "C\u00f3digo de la ruta"
+    },
+    "optimization_mode": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "automatic"
+      ],
+      "default": "manual",
+      "description": "C\u00f3mo se gener\u00f3 la optimizaci\u00f3n"
+    },
+    "objective": {
+      "type": "string",
+      "enum": [
+        "distance"
+      ],
+      "default": "distance",
+      "description": "Objetivo principal de optimizaci\u00f3n"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "insufficient_data",
+        "error"
+      ],
+      "default": "ready",
+      "description": "Estado del c\u00e1lculo"
+    },
+    "origin_label": {
+      "type": "string",
+      "description": "Origen usado para el c\u00e1lculo"
+    },
+    "stop_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad total de entregas consideradas"
+    },
+    "optimized_stop_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de paradas optimizadas con ubicaci\u00f3n v\u00e1lida"
+    },
+    "missing_location_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de cargas sin ubicaci\u00f3n suficiente"
+    },
+    "ordered_load_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Orden sugerido de cargas"
+    },
+    "ordered_stop_labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Orden sugerido de destinos"
+    },
+    "total_distance_km": {
+      "type": "number",
+      "default": 0,
+      "description": "Distancia total estimada en kil\u00f3metros"
+    },
+    "estimated_duration_min": {
+      "type": "number",
+      "default": 0,
+      "description": "Duraci\u00f3n estimada en minutos"
+    },
+    "summary_text": {
+      "type": "string",
+      "description": "Resumen legible de la optimizaci\u00f3n"
+    },
+    "calculated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del c\u00e1lculo"
+    }
+  },
+  "required": [
+    "route_id",
+    "status",
+    "calculated_at"
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "name": "ShippingProvider",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del proveedor"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "aereo",
+        "maritimo"
+      ],
+      "default": "maritimo",
+      "description": "Modo de env\u00edo soportado"
+    },
+    "is_default_for_mode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si es el proveedor predeterminado para el modo"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "base_rate_regular": {
+      "type": "number",
+      "description": "Tarifa base regular (USD por unidad: kg o CBM seg\u00fan modo)"
+    },
+    "base_rate_high_risk": {
+      "type": "number",
+      "description": "Tarifa base alto riesgo (USD por unidad)"
+    },
+    "door_to_door_cost": {
+      "type": "number",
+      "description": "Costo Puerta a Puerta (USD)"
+    },
+    "per_tracking_regular": {
+      "type": "number",
+      "default": 1,
+      "description": "+ por tracking (regular)"
+    },
+    "per_tracking_high": {
+      "type": "number",
+      "default": 1,
+      "description": "+ por tracking (alto riesgo)"
+    },
+    "state_overrides": {
+      "type": "array",
+      "description": "Overrides por estado: si no existe, usar StateConfig",
+      "items": {
+        "type": "object",
+        "properties": {
+          "state_code": {
+            "type": "string",
+            "description": "C\u00f3digo del estado (min\u00fasculas)"
+          },
+          "shipping_rate": {
+            "type": "number",
+            "description": "Tarifa de env\u00edo USD para este estado"
+          }
+        },
+        "required": [
+          "state_code",
+          "shipping_rate"
+        ]
+      },
+      "default": []
+    },
+    "account_code": {
+      "type": "string",
+      "default": "501-01 Fletes"
+    },
+    "cost_center": {
+      "type": "string",
+      "default": "Operaciones"
+    }
+  },
+  "required": [
+    "name",
+    "mode"
+  ]
+}

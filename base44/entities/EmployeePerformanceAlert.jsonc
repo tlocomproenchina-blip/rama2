@@ -1,0 +1,77 @@
+{
+  "name": "EmployeePerformanceAlert",
+  "type": "object",
+  "properties": {
+    "alert_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha local en la que se gener\u00f3 la alerta"
+    },
+    "metric_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la m\u00e9trica analizada"
+    },
+    "employee_email": {
+      "type": "string",
+      "description": "Email del empleado evaluado"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Nombre del empleado evaluado"
+    },
+    "employee_role": {
+      "type": "string",
+      "description": "Rol del empleado evaluado"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium",
+      "description": "Nivel de severidad de la alerta"
+    },
+    "alert_type": {
+      "type": "string",
+      "description": "Tipo de alerta detectada"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo breve de la alerta"
+    },
+    "message": {
+      "type": "string",
+      "description": "Explicaci\u00f3n clara del patr\u00f3n detectado"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "reviewed",
+        "resolved"
+      ],
+      "default": "new",
+      "description": "Estado de seguimiento de la alerta"
+    },
+    "evidence": {
+      "type": "object",
+      "description": "Datos resumidos usados para generar la alerta"
+    },
+    "notified_admins": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si ya se notific\u00f3 al equipo admin"
+    }
+  },
+  "required": [
+    "alert_date",
+    "metric_date",
+    "employee_email",
+    "alert_type",
+    "title",
+    "message"
+  ]
+}

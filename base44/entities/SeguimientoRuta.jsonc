@@ -1,0 +1,52 @@
+{
+  "name": "SeguimientoRuta",
+  "type": "object",
+  "properties": {
+    "ruta_id": {
+      "type": "string",
+      "description": "ID de la ruta relacionada"
+    },
+    "carga_ruta_id": {
+      "type": "string",
+      "description": "ID de la carga espec\u00edfica relacionada, si aplica"
+    },
+    "fecha_hora": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del evento"
+    },
+    "estado": {
+      "type": "string",
+      "enum": [
+        "salida",
+        "en_transito",
+        "detenido",
+        "entrega_parcial",
+        "entregada",
+        "incidencia"
+      ],
+      "description": "Estado reportado en el seguimiento"
+    },
+    "ubicacion": {
+      "type": "string",
+      "description": "Ubicaci\u00f3n registrada en el evento"
+    },
+    "comentario": {
+      "type": "string",
+      "description": "Detalle del evento o novedad"
+    },
+    "evidencia_url": {
+      "type": "string",
+      "description": "URL de evidencia fotogr\u00e1fica o documento"
+    },
+    "registrado_por": {
+      "type": "string",
+      "description": "Usuario que registr\u00f3 el evento"
+    }
+  },
+  "required": [
+    "ruta_id",
+    "fecha_hora",
+    "estado"
+  ]
+}

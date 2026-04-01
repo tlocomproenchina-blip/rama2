@@ -1,0 +1,129 @@
+{
+  "name": "EmployeePerformanceMetric",
+  "type": "object",
+  "properties": {
+    "metric_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha local de la m\u00e9trica consolidada"
+    },
+    "employee_email": {
+      "type": "string",
+      "description": "Email del empleado auditado"
+    },
+    "employee_name": {
+      "type": "string",
+      "description": "Nombre del empleado auditado"
+    },
+    "employee_role": {
+      "type": "string",
+      "description": "Rol del empleado auditado"
+    },
+    "first_activity_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Primera actividad detectada del d\u00eda"
+    },
+    "last_activity_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima actividad detectada del d\u00eda"
+    },
+    "work_span_ms": {
+      "type": "number",
+      "description": "Ventana total entre la primera y \u00faltima actividad"
+    },
+    "total_session_time_ms": {
+      "type": "number",
+      "description": "Suma total de duraci\u00f3n capturada en eventos"
+    },
+    "total_active_time_ms": {
+      "type": "number",
+      "description": "Tiempo activo agregado"
+    },
+    "total_idle_time_ms": {
+      "type": "number",
+      "description": "Tiempo inactivo agregado"
+    },
+    "active_efficiency_pct": {
+      "type": "number",
+      "description": "Porcentaje de tiempo activo sobre el tiempo medido"
+    },
+    "total_events": {
+      "type": "number",
+      "description": "Cantidad total de eventos auditados"
+    },
+    "page_views": {
+      "type": "number",
+      "description": "Cantidad de ingresos a p\u00e1ginas"
+    },
+    "page_exits": {
+      "type": "number",
+      "description": "Cantidad de salidas de p\u00e1ginas"
+    },
+    "heartbeats": {
+      "type": "number",
+      "description": "Cantidad de pulsos de actividad"
+    },
+    "manual_actions": {
+      "type": "number",
+      "description": "Acciones manuales registradas"
+    },
+    "entity_changes": {
+      "type": "number",
+      "description": "Cambios en entidades realizados"
+    },
+    "entity_creates": {
+      "type": "number",
+      "description": "Creaciones de registros"
+    },
+    "entity_updates": {
+      "type": "number",
+      "description": "Actualizaciones de registros"
+    },
+    "entity_deletes": {
+      "type": "number",
+      "description": "Eliminaciones de registros"
+    },
+    "unique_sessions": {
+      "type": "number",
+      "description": "Cantidad de sesiones \u00fanicas"
+    },
+    "unique_pages": {
+      "type": "number",
+      "description": "Cantidad de p\u00e1ginas \u00fanicas visitadas"
+    },
+    "unique_modules": {
+      "type": "number",
+      "description": "Cantidad de m\u00f3dulos \u00fanicos utilizados"
+    },
+    "most_active_page": {
+      "type": "string",
+      "description": "P\u00e1gina con m\u00e1s actividad del d\u00eda"
+    },
+    "most_active_module": {
+      "type": "string",
+      "description": "M\u00f3dulo con m\u00e1s actividad del d\u00eda"
+    },
+    "action_counts": {
+      "type": "object",
+      "description": "Conteo por tipo de acci\u00f3n"
+    },
+    "module_counts": {
+      "type": "object",
+      "description": "Conteo por m\u00f3dulo usado"
+    },
+    "page_counts": {
+      "type": "object",
+      "description": "Conteo por p\u00e1gina visitada"
+    },
+    "entity_counts": {
+      "type": "object",
+      "description": "Conteo por entidad modificada"
+    }
+  },
+  "required": [
+    "metric_date",
+    "employee_email"
+  ]
+}

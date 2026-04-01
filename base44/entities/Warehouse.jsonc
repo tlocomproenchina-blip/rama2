@@ -1,0 +1,41 @@
+{
+  "name": "Warehouse",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del almac\u00e9n o sede"
+    },
+    "code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico del almac\u00e9n"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad donde opera el almac\u00e9n"
+    },
+    "country": {
+      "type": "string",
+      "description": "Pa\u00eds donde opera el almac\u00e9n"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n f\u00edsica del almac\u00e9n"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la sede est\u00e1 activa"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas internas del almac\u00e9n"
+    }
+  },
+  "required": [
+    "name",
+    "code",
+    "city",
+    "country"
+  ]
+}

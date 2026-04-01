@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, TrendingUp, Wallet, AlertTriangle, ArrowRight, FileText, CreditCard } from 'lucide-react';
+import { Loader2, TrendingUp, Wallet, AlertTriangle, ArrowRight, FileText, CreditCard, Package } from 'lucide-react';
 import AccountingMetricCard from '@/components/accounting/AccountingMetricCard';
 import MonthlyRevenueChart from '@/components/accounting/MonthlyRevenueChart';
 import ReceivablesOverview from '@/components/accounting/ReceivablesOverview';
@@ -199,6 +199,12 @@ export default function AccountingDashboard({ user }) {
             <Link to="/AdminProviderPayments" className="block">
               <Button variant="outline" className="w-full justify-between">
                 <span className="flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Pagos proveedores</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link to="/AdminCbmIngresos" className="block">
+              <Button variant="outline" className="w-full justify-between">
+                <span className="flex items-center gap-2"><Package className="h-4 w-4" /> CBM Almacén China</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

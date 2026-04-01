@@ -1,0 +1,78 @@
+{
+  "name": "Notification",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario que recibe la notificaci\u00f3n"
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo de la notificaci\u00f3n"
+    },
+    "message": {
+      "type": "string",
+      "description": "Mensaje de la notificaci\u00f3n"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "package",
+        "consolidation",
+        "request",
+        "system"
+      ],
+      "description": "Tipo de notificaci\u00f3n"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium",
+      "description": "Nivel de prioridad"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "ID de paquete, consolidaci\u00f3n, etc."
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "Package",
+        "Consolidation",
+        "ConsolidationRequest",
+        "System"
+      ],
+      "description": "Tipo de entidad relacionada"
+    },
+    "read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si ha sido le\u00edda"
+    },
+    "icon": {
+      "type": "string",
+      "enum": [
+        "package",
+        "truck",
+        "check",
+        "alert",
+        "dollar",
+        "bell",
+        "info"
+      ],
+      "default": "bell",
+      "description": "\u00cdcono a mostrar"
+    }
+  },
+  "required": [
+    "user_email",
+    "title",
+    "message",
+    "type"
+  ]
+}

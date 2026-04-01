@@ -26,12 +26,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
-    const config = configs?.[0] || {};
-    if (config.external_services_enabled === false) {
-      return Response.json({ error: config.external_services_message || 'Modo demo activo: PayPal desactivado.' }, { status: 503 });
-    }
-
     const body = await req.json().catch(() => ({}));
     const { invoice_id, currency = 'USD', return_url, cancel_url } = body || {};
     if (!invoice_id) {

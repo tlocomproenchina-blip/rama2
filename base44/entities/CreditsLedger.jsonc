@@ -1,0 +1,48 @@
+{
+  "name": "CreditsLedger",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Usuario due\u00f1o del cr\u00e9dito"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "referral_cbm",
+        "manual_adjustment",
+        "reversal"
+      ],
+      "default": "referral_cbm"
+    },
+    "amount_usd": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "available",
+        "applied",
+        "expired",
+        "reversed"
+      ],
+      "default": "available"
+    },
+    "related_invoice_id": {
+      "type": "string"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "source",
+    "amount_usd",
+    "status"
+  ]
+}

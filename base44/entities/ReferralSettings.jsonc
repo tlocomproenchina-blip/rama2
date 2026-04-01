@@ -1,0 +1,83 @@
+{
+  "name": "ReferralSettings",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica de configuraci\u00f3n"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "referrer_credit_per_cbm": {
+      "type": "number",
+      "default": 15
+    },
+    "referred_first_invoice_bonus": {
+      "type": "number",
+      "default": 0
+    },
+    "credit_expiration_days": {
+      "type": "number",
+      "default": 60
+    },
+    "min_invoice_subtotal_usd": {
+      "type": "number",
+      "default": 95
+    },
+    "max_credit_apply_percent": {
+      "type": "number",
+      "default": 0.3
+    },
+    "max_credit_apply_usd": {
+      "type": "number",
+      "description": "Tope fijo opcional por factura"
+    },
+    "code_prefix": {
+      "type": "string",
+      "default": "TLEC-"
+    },
+    "code_length": {
+      "type": "number",
+      "default": 8
+    },
+    "allow_multiple_referrals_per_user": {
+      "type": "boolean",
+      "default": false
+    },
+    "anti_fraud_require_invoice_paid": {
+      "type": "boolean",
+      "default": false
+    },
+    "invoice_unpaid_grace_days": {
+      "type": "number",
+      "default": 15
+    },
+    "agent_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activar tarifa especial para agentes"
+    },
+    "agent_referrer_credit_per_cbm": {
+      "type": "number",
+      "default": 25,
+      "description": "$ por CBM para agentes"
+    },
+    "agent_role_codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "agente",
+        "agent"
+      ],
+      "description": "C\u00f3digos de rol (role o custom_role) que califican como Agente"
+    }
+  },
+  "required": [
+    "config_key"
+  ]
+}

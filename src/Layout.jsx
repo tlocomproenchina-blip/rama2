@@ -1,27 +1,34 @@
-import React, { useState, useEffect, Suspense, lazy, useCallback, useRef } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
-import MobileBottomNav from '@/components/navigation/MobileBottomNav';
-import NativeMobileHeader from '@/components/navigation/NativeMobileHeader';
-import MobilePageTransition from '@/components/navigation/MobilePageTransition';
-import { cacheManager } from '@/components/CacheManager';
 import { getDefaultRoleConfig } from '@/lib/rolePermissions';
-import { usePlatform } from '@/hooks/usePlatform';
+
+
+
+
+
+
+
+
 import { notifyAdmins, sendTemplatedEmail } from '@/components/NotificationUtils';
-import { Loader2, ArrowLeft, Menu } from 'lucide-react';
+import { Menu, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import PullToRefresh from '@/components/common/PullToRefresh';
-import { prefetchAdminClients } from '@/lib/adminPrefetchCache';
-import { startBackgroundModulePreload, prefetchModuleGroup } from '@/lib/adminPagePrefetch';
 import SkipToContent from '@/components/common/SkipToContent';
 import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
+import DemoModeBanner from '@/components/common/DemoModeBanner';
+
+// Lazy loaded onboarding tour
+const GuidedTour = lazy(() => import('@/components/onboarding/GuidedTour'));
+const TourTriggerButton = lazy(() => import('@/components/onboarding/TourTriggerButton'));
 
 // Lazy loaded non-critical components
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
@@ -32,6 +39,7 @@ const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
 
+
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
   const [config, setConfig] = useState(null);
@@ -41,15 +49,13 @@ export default function Layout({ children, currentPageName }) {
   const [showContract, setShowContract] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [isInstalledApp, setIsInstalledApp] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const [slideDirection, setSlideDirection] = useState(1);
   const historyIndexRef = React.useRef(typeof window !== 'undefined' ? (window.history.state?.idx ?? 0) : 0);
   const navigate = useNavigate();
   const location = useLocation();
-  const { isNative } = usePlatform();
   const isAdminPanel = user?.role === 'admin';
-  const isNativeClient = isNative && user?.role === 'user';
-  const isNativeAdmin = false;
-  const hasDesktopSidebar = !!user && !isNativeClient;
+  const hasDesktopSidebar = !!user;
   const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ'].includes(currentPageName);
 
   const applyTuning = (cfg) => {
@@ -122,11 +128,11 @@ export default function Layout({ children, currentPageName }) {
   // Ajuste inicial + suscripción a RuntimeTuning para autoescalado
   useEffect(() => {
     setApiTuning({
-      maxReads: 160,
-      maxWrites: 60,
-      minIntervalMs: 40,
-      backoffDelays: [5000, 10000, 20000, 40000, 80000],
-      circuitBreakerThreshold: 150,
+      maxReads: 1600,
+      maxWrites: 600,
+      minIntervalMs: 10,
+      backoffDelays: [2000, 4000, 8000, 16000, 32000],
+      circuitBreakerThreshold: 1500,
       circuitOpenMinutes: 1
     });
 
@@ -135,11 +141,11 @@ export default function Layout({ children, currentPageName }) {
       try {
         const TARGET = {
           config_key: 'global',
-          max_reads: 160,
-          max_writes: 60,
-          min_interval_ms: 40,
-          backoff_delays: [5000, 10000, 20000, 40000, 80000],
-          circuit_breaker_threshold: 150,
+          max_reads: 1600,
+          max_writes: 600,
+          min_interval_ms: 10,
+          backoff_delays: [2000, 4000, 8000, 16000, 32000],
+          circuit_breaker_threshold: 1500,
           circuit_open_minutes: 1,
           ui_degradation_mode: 'off',
         };
@@ -203,25 +209,10 @@ export default function Layout({ children, currentPageName }) {
 
   async function loadConfig() {
     try {
-      const cachedConfig = cacheManager.get('layout_app_config_main');
-      if (cachedConfig) {
-        setConfig(cachedConfig);
-
-        const faviconUrl = cachedConfig.favicon_url || cachedConfig.app_logo_url;
-        if (faviconUrl) {
-          const link = document.querySelector("link[rel='icon']") || document.createElement('link');
-          link.rel = 'icon';
-          link.href = faviconUrl;
-          link.type = faviconUrl.endsWith('.ico') ? 'image/x-icon' : 'image/png';
-          document.head.appendChild(link);
-        }
-      }
-
       const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
       if (configs.length > 0) {
         const nextConfig = configs[0];
         setConfig(nextConfig);
-        cacheManager.set('layout_app_config_main', nextConfig, 3600000);
 
         const faviconUrl = nextConfig.favicon_url || nextConfig.app_logo_url;
         if (faviconUrl) {
@@ -284,13 +275,6 @@ export default function Layout({ children, currentPageName }) {
       }
 
       // Redirect admin to AccountingDashboard when landing on Home/Dashboard or no page specified
-      // Precarga de módulos admin en segundo plano
-      if (currentUser.role === 'admin') {
-        prefetchAdminClients();
-        prefetchModuleGroup(['AdminDashboard', 'AccountingDashboard', 'AdminPackages', 'AdminInvoices', 'AdminPayments', 'AdminSupport', 'AdminConsolidate', 'AdminClients']);
-        startBackgroundModulePreload();
-      }
-
       if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Home')) {
         navigate(createPageUrl('AccountingDashboard'));
         setLoading(false);
@@ -355,11 +339,6 @@ export default function Layout({ children, currentPageName }) {
     loadConfig();
   }, [currentPageName, navigate]);
 
-  useEffect(() => {
-    if (user?.role !== 'admin') return;
-    prefetchModuleGroup(['AdminDashboard', 'AccountingDashboard', 'AdminPackages', 'AdminInvoices', 'AdminPayments', 'AdminSupport', 'AdminConsolidate', 'AdminClients']);
-  }, [user?.role, location.pathname]);
-
   const handleContractAccept = useCallback(async () => {
     await base44.auth.updateMe({
       contract_accepted: true,
@@ -395,6 +374,9 @@ export default function Layout({ children, currentPageName }) {
         ...(assignedShippingMark ? { shipping_mark: assignedShippingMark } : {})
       };
       setUser(updatedUser);
+
+      // Show onboarding tour for new users
+      setTimeout(() => setShowTour(true), 1500);
 
       await sendTemplatedEmail({
         to: user.email,
@@ -463,7 +445,8 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div data-native={isNative ? 'true' : 'false'} className={`min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
+    <div className={`min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
+      {config?.demo_mode && <DemoModeBanner message={config?.demo_mode_message || 'Modo demo activo: integraciones externas desactivadas.'} />}
       <SkipToContent />
       <style>{`
         /* Respect safe areas */
@@ -477,16 +460,6 @@ export default function Layout({ children, currentPageName }) {
         button, a, [role="button"], [role="tab"] { -webkit-tap-highlight-color: transparent; }
         button, a, [role="button"], [role="tab"], nav { -webkit-user-select: none; user-select: none; }
         input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
-
-        [data-native="true"] main,
-        [data-native="true"] #main-content,
-        [data-native="true"] aside nav {
-          -webkit-overflow-scrolling: touch;
-        }
-
-        [data-native="true"] body {
-          overscroll-behavior-y: contain;
-        }
 
         /* Mobile responsiveness improvements */
         @media (max-width: 640px) {
@@ -546,8 +519,20 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
+
+      {/* Guided Tour */}
+      {user && (
+        <Suspense fallback={null}>
+          <GuidedTour
+            open={showTour}
+            onClose={() => { setShowTour(false); setSidebarOpen(false); }}
+            isAdmin={user?.role === 'admin'}
+            onOpenSidebar={() => setSidebarOpen(true)}
+          />
+        </Suspense>
+      )}
       
-      {user && !isNativeClient && !isNativeAdmin && (
+      {user && (
         <div className={hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}>
           <Sidebar 
             user={user} 
@@ -561,25 +546,17 @@ export default function Layout({ children, currentPageName }) {
 
       <main className={`flex-1 min-h-screen flex flex-col ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}`}>
         {user && (
-          <div className="sticky top-0 z-20 hidden lg:flex justify-end px-6 pt-4">
+          <div className="sticky top-0 z-20 hidden lg:flex justify-end items-center gap-2 px-6 pt-4">
+            <Suspense fallback={null}>
+              <TourTriggerButton onClick={() => setShowTour(true)} />
+            </Suspense>
             <div className="rounded-[1.25rem] border border-white/80 bg-white/85 px-2 py-1 shadow-card backdrop-blur">
               <NotificationBell user={user} />
             </div>
           </div>
         )}
         {/* Mobile Header */}
-        {user && isNative && (
-          <NativeMobileHeader
-            user={user}
-            config={config}
-            currentPageName={currentPageName}
-            showMenu={false}
-            sidebarOpen={sidebarOpen}
-            onMenuOpen={() => setSidebarOpen(true)}
-          />
-        )}
-
-        {user && !isNative && !isNativeClient && !isNativeAdmin && (
+        {user && (
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card transition-all duration-300">
             <div className="flex items-center justify-between gap-2">
@@ -596,7 +573,10 @@ export default function Layout({ children, currentPageName }) {
                 <h1 className="truncate font-display text-sm font-semibold text-slate-800">{config?.app_name || 'TLEC CARGO'}</h1>
                 <p className="truncate text-[11px] text-slate-500">{currentPageName || 'Panel'}</p>
               </div>
-              <div className="flex items-center justify-end">
+              <div className="flex items-center justify-end gap-1.5">
+                <Suspense fallback={null}>
+                  <TourTriggerButton onClick={() => setShowTour(true)} />
+                </Suspense>
                 <NotificationBell user={user} />
               </div>
             </div>
@@ -637,22 +617,9 @@ export default function Layout({ children, currentPageName }) {
         `}</style>
 
          {/* Main Content */}
-        <div
-          id="main-content"
-          tabIndex={-1}
-          className="flex-1 overflow-x-hidden w-full focus:outline-none"
-          style={isNative && user ? { paddingTop: 'calc(env(safe-area-inset-top) + 5.5rem)' } : undefined}
-        >
+        <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
           <PullToRefresh enabled={!!user} onRefresh={() => window.location.reload()}>
-            <div
-              className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]"
-              style={{
-                paddingTop: isNative && user ? '0.5rem' : undefined,
-                paddingBottom: isNativeClient
-                  ? 'calc(env(safe-area-inset-bottom) + 104px)'
-                  : 'calc(env(safe-area-inset-bottom) + 72px)'
-              }}
-            >
+            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
               {showBackButton && (
                 <div className="mb-3">
                   <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
@@ -661,20 +628,24 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               )}
               <ErrorBoundary>
-                <MobilePageTransition
-                  isNative={isNative}
-                  transitionKey={location.pathname + location.search}
-                  slideDirection={slideDirection}
-                >
-                  {React.cloneElement(children, { user, refreshUser: loadUser })}
-                </MobilePageTransition>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={location.pathname + location.search}
+                    initial={{ opacity: 0, x: slideDirection > 0 ? 28 : -28 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: slideDirection > 0 ? -20 : 20 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                  >
+                    {React.cloneElement(children, { user, refreshUser: loadUser })}
+                  </motion.div>
+                </AnimatePresence>
               </ErrorBoundary>
             </div>
           </PullToRefresh>
         </div>
       </main>
 
-      {isNativeClient && <MobileBottomNav />}
+
 
       {/* Modals */}
       {showContract && (

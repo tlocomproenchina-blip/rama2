@@ -87,6 +87,12 @@ export default function MobilePackageCard({
             </Button>
           )}
 
+          {pkg.product_image_url && (
+            <Button size="sm" variant="outline" onClick={() => onViewImage(pkg.product_image_url)} className="w-full justify-start gap-2 text-violet-600 hover:text-violet-700 border-violet-200">
+              <Eye className="h-4 w-4" /> Foto Producto
+            </Button>
+          )}
+
           {gallery.length > 0 && (
             <div className="grid gap-2 sm:grid-cols-2">
               {gallery.map((url, idx) => (

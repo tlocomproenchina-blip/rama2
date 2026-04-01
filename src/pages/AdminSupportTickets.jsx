@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { base44 as base44Direct } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,8 +29,7 @@ import TicketAssignmentDialog from '@/components/support/TicketAssignmentDialog'
 import SupportImageUploader from '@/components/support/SupportImageUploader';
 import { uploadSupportImages } from '@/components/support/supportUploadUtils';
 
-export default function AdminSupportTickets({ user: userProp }) {
-  const [user, setUser] = useState(userProp || null);
+export default function AdminSupportTickets({ user }) {
   const [tickets, setTickets] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +45,6 @@ export default function AdminSupportTickets({ user: userProp }) {
   const [assigning, setAssigning] = useState(false);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [clients, setClients] = useState([]);
-  const [clientsLoading, setClientsLoading] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
   const [newTicket, setNewTicket] = useState({
     client_email: '',
@@ -78,39 +75,31 @@ export default function AdminSupportTickets({ user: userProp }) {
   const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
-    if (userProp) setUser(userProp);
-  }, [userProp]);
-
-  useEffect(() => {
-    if (!user) {
-      base44Direct.auth.me().then(u => { setUser(u); }).catch(() => {});
-      return;
-    }
     loadData();
-  }, [user?.email]);
+  }, []);
 
-  useEffect(() => {
-    if (!showNewTicket || !isAdmin || clients.length > 0 || clientsLoading) return;
-    loadClientsForNewTicket();
-  }, [showNewTicket, isAdmin, clients.length, clientsLoading]);
-
-  const loadClientsForNewTicket = async () => {
+  const loadData = async (append = false) => {
     try {
-      setClientsLoading(true);
-      const [usersList, packagesList] = await Promise.all([
-        base44.entities.User.list('-created_date', 300),
+      if (append) setLoadingMore(true); else setLoading(true);
+      const skip = append ? tickets.length : 0;
+      const results = await Promise.allSettled([
+        base44.entities.SupportTicket.list('-created_date', pageSize, skip),
+        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve([user]),
         base44.entities.Package.list('-updated_date', 1000)
       ]);
 
+      const allT = results[0].status === 'fulfilled' ? results[0].value : [];
+      const usersList = results[1].status === 'fulfilled' ? results[1].value : [user];
+      const packagesList = results[2].status === 'fulfilled' ? results[2].value : [];
+      const nextStaff = (usersList || []).filter((member) => member.role === 'admin' || ['warehouse', 'customer_service', 'operations_manager'].includes(member.custom_role));
       const clientPackagesByEmail = (packagesList || []).reduce((acc, pkg) => {
         if (!pkg?.client_email) return acc;
         if (!acc[pkg.client_email]) acc[pkg.client_email] = [];
         acc[pkg.client_email].push(pkg);
         return acc;
       }, {});
-
       const nextClients = (usersList || [])
-        .filter((member) => member?.role === 'user' && !member?.custom_role)
+        .filter((member) => member.role === 'user' && !member.custom_role)
         .map((member) => {
           const relatedPackages = clientPackagesByEmail[member.email] || [];
           return {
@@ -120,27 +109,9 @@ export default function AdminSupportTickets({ user: userProp }) {
           };
         });
 
-      setClients(nextClients);
-    } finally {
-      setClientsLoading(false);
-    }
-  };
-
-  const loadData = async (append = false) => {
-    try {
-      if (append) setLoadingMore(true); else setLoading(true);
-      const skip = append ? tickets.length : 0;
-      const [ticketsResult, usersResult] = await Promise.allSettled([
-        base44.entities.SupportTicket.list('-created_date', pageSize, skip),
-        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve(user ? [user] : [])
-      ]);
-
-      const allT = ticketsResult.status === 'fulfilled' ? ticketsResult.value : [];
-      const usersList = usersResult.status === 'fulfilled' ? (usersResult.value || []) : (user ? [user] : []);
-      const nextStaff = (usersList || []).filter((member) => member?.role === 'admin' || ['warehouse', 'customer_service', 'operations_manager'].includes(member?.custom_role));
-
       setTickets((prev) => append ? [...prev, ...allT] : allT);
       setStaffUsers(nextStaff);
+      setClients(nextClients);
       setHasMore(allT.length === pageSize);
     } finally {
       if (append) setLoadingMore(false); else setLoading(false);
@@ -327,23 +298,21 @@ export default function AdminSupportTickets({ user: userProp }) {
     urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600' }
   };
 
-  const filteredClientOptions = useMemo(() => {
-    const searchLower = (clientSearch || '').toLowerCase();
-    return clients.filter((client) => {
-      if (!clientSearch) return true;
-      return (
-        (client.first_name || '').toLowerCase().includes(searchLower) ||
-        (client.last_name || '').toLowerCase().includes(searchLower) ||
-        (client.email || '').toLowerCase().includes(searchLower) ||
-        (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
-        (client.package_trackings || []).some((tracking) => (tracking || '').toLowerCase().includes(searchLower)) ||
-        (client.package_shipping_marks || []).some((mark) => (mark || '').toLowerCase().includes(searchLower)) ||
-        (client.whatsapp || '').toLowerCase().includes(searchLower) ||
-        (client.telefono || '').toLowerCase().includes(searchLower) ||
-        (client.phone || '').toLowerCase().includes(searchLower)
-      );
-    });
-  }, [clients, clientSearch]);
+  // Helper: get timestamp of last client (non-admin) message
+  const getLastClientMessageTime = (ticket) => {
+    const msgs = ticket.messages || [];
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (!msgs[i].is_admin) return new Date(msgs[i].timestamp).getTime();
+    }
+    return 0;
+  };
+
+  // Helper: check if last message is from client (unread by admin)
+  const hasUnreadClientMessage = (ticket) => {
+    const msgs = ticket.messages || [];
+    if (msgs.length === 0) return false;
+    return !msgs[msgs.length - 1].is_admin;
+  };
 
   // Filter tickets
   const filteredTickets = tickets.filter(ticket => {
@@ -364,9 +333,20 @@ export default function AdminSupportTickets({ user: userProp }) {
       ticket.assigned_to === filterAssigned;
 
     return searchMatch && statusMatch && priorityMatch && assignedMatch;
+  }).sort((a, b) => {
+    // Tickets with unread client messages first
+    const aUnread = hasUnreadClientMessage(a) ? 1 : 0;
+    const bUnread = hasUnreadClientMessage(b) ? 1 : 0;
+    if (bUnread !== aUnread) return bUnread - aUnread;
+    // Then by last client message time (most recent first)
+    const aTime = getLastClientMessageTime(a);
+    const bTime = getLastClientMessageTime(b);
+    if (aTime !== bTime) return bTime - aTime;
+    // Fallback: by creation date
+    return new Date(b.created_date).getTime() - new Date(a.created_date).getTime();
   });
 
-  // Admin statistics
+  // Admin statistics — only show staff with tickets assigned
   const adminStats = staffUsers.map(admin => {
     const adminTickets = tickets.filter(t => t.assigned_to === admin.email);
     return {
@@ -377,7 +357,7 @@ export default function AdminSupportTickets({ user: userProp }) {
       resuelto: adminTickets.filter(t => t.status === 'resuelto').length,
       cerrado: adminTickets.filter(t => t.status === 'cerrado').length
     };
-  });
+  }).filter(stat => stat.total > 0);
 
   if (loading) {
     return (
@@ -557,10 +537,12 @@ export default function AdminSupportTickets({ user: userProp }) {
                 const assignedAdmin = staffUsers.find(a => a.email === ticket.assigned_to);
                 const assignedRole = assignedAdmin?.role === 'admin' ? 'admin' : assignedAdmin?.custom_role;
 
+                const isUnread = hasUnreadClientMessage(ticket);
+
                 return (
                   <Card 
                     key={ticket.id} 
-                    className="border-0 shadow-md hover:shadow-lg transition-all"
+                    className={`border-0 shadow-md hover:shadow-lg transition-all ${isUnread ? 'ring-2 ring-blue-400 border-l-4 border-l-blue-500' : ''}`}
                   >
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-4">
@@ -577,6 +559,11 @@ export default function AdminSupportTickets({ user: userProp }) {
                                   <StatusIcon className="h-3 w-3" />
                                   {statusInfo.label}
                                 </Badge>
+                                {isUnread && (
+                                  <Badge className="bg-blue-500 text-white text-[10px] px-2 py-0.5 animate-pulse flex items-center gap-1">
+                                    💬 Nuevo mensaje
+                                  </Badge>
+                                )}
                               </div>
                               <p className="text-sm text-slate-500 font-mono mb-2">{ticket.ticket_number}</p>
                               <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
@@ -588,7 +575,7 @@ export default function AdminSupportTickets({ user: userProp }) {
                                 {ticket.related_tracking && (
                                   <>
                                     <span>•</span>
-                                    <span>Tracking: {ticket.related_tracking}</span>
+                                    <span className="truncate max-w-[200px]" title={ticket.related_tracking}>Tracking: {ticket.related_tracking.split(',').length} paquete(s)</span>
                                   </>
                                 )}
                               </div>
@@ -632,7 +619,6 @@ export default function AdminSupportTickets({ user: userProp }) {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="abierto">Abierto</SelectItem>
                               <SelectItem value="en_proceso">En Proceso</SelectItem>
                               <SelectItem value="resuelto">Resuelto</SelectItem>
                               <SelectItem value="cerrado">Cerrado</SelectItem>
@@ -723,10 +709,26 @@ export default function AdminSupportTickets({ user: userProp }) {
                 </div>
                 <Select value={newTicket.client_email} onValueChange={(value) => setNewTicket({ ...newTicket, client_email: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder={clientsLoading ? 'Cargando clientes...' : 'Selecciona un cliente'} />
+                    <SelectValue placeholder="Selecciona un cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredClientOptions.map((client) => (
+                    {clients
+                      .filter(client => {
+                        const searchLower = (clientSearch || '').toLowerCase();
+                        return (
+                          !clientSearch ||
+                          (client.first_name || '').toLowerCase().includes(searchLower) ||
+                          (client.last_name || '').toLowerCase().includes(searchLower) ||
+                          (client.email || '').toLowerCase().includes(searchLower) ||
+                          (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
+                          (client.package_trackings || []).some((tracking) => (tracking || '').toLowerCase().includes(searchLower)) ||
+                          (client.package_shipping_marks || []).some((mark) => (mark || '').toLowerCase().includes(searchLower)) ||
+                          (client.whatsapp || '').toLowerCase().includes(searchLower) ||
+                          (client.telefono || '').toLowerCase().includes(searchLower) ||
+                          (client.phone || '').toLowerCase().includes(searchLower)
+                        );
+                      })
+                      .map((client) => (
                         <SelectItem key={client.email} value={client.email}>
                           {client.first_name} {client.last_name} - {client.email}{client.package_trackings?.[0] ? ` - ${client.package_trackings[0]}` : ''}
                         </SelectItem>
@@ -842,8 +844,15 @@ export default function AdminSupportTickets({ user: userProp }) {
                 <p className="text-sm text-slate-500 font-mono mt-1">{selectedTicket?.ticket_number}</p>
                 <p className="text-sm text-slate-500 mt-1">Cliente: {selectedTicket?.client_email}</p>
                 {selectedTicket?.related_tracking && (
-                  <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 break-all">
-                    Tracking relacionado: {selectedTicket.related_tracking}
+                  <div className="mt-3 space-y-1">
+                    <p className="text-xs text-slate-500">Tracking relacionado:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedTicket.related_tracking.split(',').map((tn, i) => (
+                        <Badge key={i} variant="outline" className="font-mono text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          {tn.trim()}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -855,7 +864,7 @@ export default function AdminSupportTickets({ user: userProp }) {
           <TicketChat
             messages={selectedTicket?.messages || []}
             onSendMessage={handleSendMessage}
-            currentUserEmail={user?.email}
+            currentUserEmail={user.email}
             disabled={selectedTicket?.status === 'cerrado'}
           />
         </DialogContent>

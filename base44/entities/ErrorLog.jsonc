@@ -1,0 +1,73 @@
+{
+  "name": "ErrorLog",
+  "type": "object",
+  "properties": {
+    "fingerprint": {
+      "type": "string",
+      "description": "Hash \u00fanico del error para deduplicar"
+    },
+    "message": {
+      "type": "string",
+      "description": "Mensaje del error"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nombre/Tipo del error"
+    },
+    "stack": {
+      "type": "string",
+      "description": "Stack trace (truncado)"
+    },
+    "component_stack": {
+      "type": "string",
+      "description": "React component stack (truncado)"
+    },
+    "url": {
+      "type": "string",
+      "description": "URL donde ocurri\u00f3"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "Navegador del usuario"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario si est\u00e1 autenticado"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warn",
+        "info"
+      ],
+      "default": "error"
+    },
+    "tag": {
+      "type": "string",
+      "description": "Etiqueta opcional"
+    },
+    "count": {
+      "type": "number",
+      "default": 1,
+      "description": "Veces que se vio este error"
+    },
+    "first_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Primera vez visto"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima vez visto"
+    },
+    "extra": {
+      "type": "object",
+      "description": "Datos adicionales"
+    }
+  },
+  "required": [
+    "fingerprint"
+  ]
+}

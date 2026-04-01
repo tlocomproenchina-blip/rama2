@@ -1,0 +1,70 @@
+{
+  "name": "ProviderPayment",
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "ID del proveedor (ShippingProvider)"
+    },
+    "provider_name": {
+      "type": "string",
+      "description": "Nombre del proveedor"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del pago"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "tarjeta",
+        "efectivo",
+        "nota_credito",
+        "cheque",
+        "otro"
+      ],
+      "default": "transferencia",
+      "description": "M\u00e9todo de pago"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Referencia o comprobante"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Monto total pagado"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas adicionales"
+    },
+    "allocations": {
+      "type": "array",
+      "description": "Distribuci\u00f3n del pago por AP",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ap_id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ap_id",
+          "amount"
+        ]
+      },
+      "default": []
+    }
+  },
+  "required": [
+    "provider_name",
+    "payment_date",
+    "total_amount",
+    "method"
+  ]
+}
