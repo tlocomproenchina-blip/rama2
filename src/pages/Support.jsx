@@ -48,9 +48,17 @@ export default function Support({ user }) {
 
   const loadTickets = async () => {
     if (!user?.email) return;
-    const allTickets = await base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date');
-    setTickets(allTickets);
-    setLoading(false);
+    setLoading(true);
+    try {
+      const allTickets = await base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date');
+      setTickets(allTickets);
+    } catch (error) {
+      console.error('Error loading support tickets:', error);
+      setTickets([]);
+      toast.error('No se pudieron cargar los tickets.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const supportStats = useMemo(() => ({

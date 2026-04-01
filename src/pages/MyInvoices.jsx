@@ -54,14 +54,24 @@ export default function MyInvoices({ user }) {
   const loadInvoices = async (append = false) => {
     const skip = append ? invoices.length : 0;
     if (append) setLoadingMore(true); else setLoading(true);
-    const data = await base44.entities.Invoice.filter({ client_email: user.email }, '-invoice_date', PAGE_SIZE, skip);
-    if (append) {
-      setInvoices(prev => [...prev, ...data]);
-    } else {
-      setInvoices(data);
+    try {
+      const data = await base44.entities.Invoice.filter({ client_email: user.email }, '-invoice_date', PAGE_SIZE, skip);
+      if (append) {
+        setInvoices(prev => [...prev, ...data]);
+      } else {
+        setInvoices(data);
+      }
+      setHasMore(data.length === PAGE_SIZE);
+    } catch (error) {
+      console.error('Error loading invoices:', error);
+      toast.error('No se pudieron cargar las facturas.');
+      if (!append) {
+        setInvoices([]);
+        setHasMore(false);
+      }
+    } finally {
+      if (append) setLoadingMore(false); else setLoading(false);
     }
-    setHasMore(data.length === PAGE_SIZE);
-    if (append) setLoadingMore(false); else setLoading(false);
   };
 
   const handlePayOnline = async (invoice) => {

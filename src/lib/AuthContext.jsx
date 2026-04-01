@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }) => {
 
   const navigateToLogin = useCallback(() => {
     const currentPath = window.location.pathname;
-    const nextUrl = currentPath === '/' ? '/Dashboard' : window.location.href;
+    const nextUrl = currentPath === '/' ? '/ClientPortal' : window.location.href;
     base44.auth.redirectToLogin(nextUrl);
   }, []);
 

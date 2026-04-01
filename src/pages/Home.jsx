@@ -48,7 +48,7 @@ export default function Home({ user }) {
 
   const handleAuthClick = () => {
     try { setAuthLoading(true); } catch {}
-    base44.auth.redirectToLogin('/Dashboard');
+    base44.auth.redirectToLogin(createPageUrl('ClientPortal'));
   };
 
 
