@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,7 @@ export default function GlobalErrorListener() {
   const [showDialog, setShowDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [sending, setSending] = useState(false);
+  const dismissedErrorIdsRef = useRef(new Set());
 
   useEffect(() => {
     const hash = (str) => { let h = 5381; for (let i=0;i<str.length;i++) h=((h<<5)+h) ^ str.charCodeAt(i); return (h>>>0).toString(36); };
@@ -96,11 +97,23 @@ export default function GlobalErrorListener() {
       persist(details);
     };
 
+    const handleSoftError = (event) => {
+      const details = {
+        type: 'soft-error',
+        ...event.detail,
+      };
+      if (dismissedErrorIdsRef.current.has(details.errorId)) return;
+      setErrorInfo(details);
+      persist(details);
+    };
+
     window.addEventListener('error', handleWindowError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('app:soft-error', handleSoftError);
     return () => {
       window.removeEventListener('error', handleWindowError);
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('app:soft-error', handleSoftError);
     };
   }, []);
 
@@ -195,7 +208,10 @@ export default function GlobalErrorListener() {
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => window.location.reload()}>
                 <RefreshCcw className="h-3 w-3" /> Reintentar
               </Button>
-              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-amber-700 hover:text-amber-900" onClick={() => setErrorInfo(null)}>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-amber-700 hover:text-amber-900" onClick={() => {
+                if (errorInfo?.errorId) dismissedErrorIdsRef.current.add(errorInfo.errorId);
+                setErrorInfo(null);
+              }}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
