@@ -27,8 +27,8 @@ import InternalFloatingChat from '@/components/internal-messaging/InternalFloati
 import DemoModeBanner from '@/components/common/DemoModeBanner';
 
 // Lazy loaded onboarding tour
-const GuidedTour = lazy(() => import('@/components/onboarding/GuidedTour'));
-const TourTriggerButton = lazy(() => import('@/components/onboarding/TourTriggerButton'));
+const GuidedTour = lazy(() => import('@/components/onboarding/GuidedTour.jsx'));
+const TourTriggerButton = lazy(() => import('@/components/onboarding/TourTriggerButton.jsx'));
 
 // Lazy loaded non-critical components
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
