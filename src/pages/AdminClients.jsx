@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 as base44Direct } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,11 +90,9 @@ export default function AdminClients({ user }) {
 
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      loadClients();
-      loadStateConfigs();
-    }
-  }, [user?.role]);
+    loadClients();
+    loadStateConfigs();
+  }, []);
 
   // Realtime directo sobre User desactivado para evitar errores de permisos en producción.
 
@@ -118,20 +117,15 @@ export default function AdminClients({ user }) {
     try {
       if (append) setLoadingMore(true); else setLoading(true);
       let users = [];
-      if (user?.role === 'admin') {
-        const res = await base44.functions.invoke('listClientsForSupport', {});
-        const rawData = res?.data?.data ?? res?.data ?? res;
-        users = Array.isArray(rawData) ? rawData : [];
-        console.log('[AdminClients] Received users:', users.length, 'raw type:', typeof res?.data, 'is array:', Array.isArray(res?.data));
-        setHasMore(false);
-      } else {
-        console.warn('[AdminClients] Not admin, skipping load. user:', user?.role);
-      }
+      // Usar SDK directo para evitar problemas con el ApiQueueManager
+      const res = await base44Direct.functions.invoke('listClientsForSupport', {});
+      users = Array.isArray(res?.data) ? res.data : [];
+      setHasMore(false);
 
       if (append) {
         setClients(prev => [...prev, ...users]);
       } else {
-        const packages = await base44.entities.Package.list();
+        const packages = await base44Direct.entities.Package.list();
         const counts = {};
         packages.forEach(pkg => { counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1; });
         setPackagesCount(counts);
