@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,40 +74,25 @@ export default function AdminSupportTickets({ user }) {
   };
   const [hasMore, setHasMore] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async (append = false) => {
+  const loadData = useCallback(async (append = false) => {
     try {
       if (append) setLoadingMore(true); else setLoading(true);
       const skip = append ? tickets.length : 0;
       const results = await Promise.allSettled([
         base44.entities.SupportTicket.list('-created_date', pageSize, skip),
-        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve([user]),
-        base44.entities.Package.list('-updated_date', 1000)
+        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve([user])
       ]);
 
       const allT = results[0].status === 'fulfilled' ? results[0].value : [];
       const usersList = results[1].status === 'fulfilled' ? results[1].value : [user];
-      const packagesList = results[2].status === 'fulfilled' ? results[2].value : [];
       const nextStaff = (usersList || []).filter((member) => member.role === 'admin' || ['warehouse', 'customer_service', 'operations_manager'].includes(member.custom_role));
-      const clientPackagesByEmail = (packagesList || []).reduce((acc, pkg) => {
-        if (!pkg?.client_email) return acc;
-        if (!acc[pkg.client_email]) acc[pkg.client_email] = [];
-        acc[pkg.client_email].push(pkg);
-        return acc;
-      }, {});
       const nextClients = (usersList || [])
         .filter((member) => member.role === 'user' && !member.custom_role)
-        .map((member) => {
-          const relatedPackages = clientPackagesByEmail[member.email] || [];
-          return {
-            ...member,
-            package_trackings: relatedPackages.map((pkg) => pkg.tracking_number).filter(Boolean),
-            package_shipping_marks: relatedPackages.map((pkg) => pkg.shipping_mark).filter(Boolean),
-          };
-        });
+        .map((member) => ({
+          ...member,
+          package_trackings: [],
+          package_shipping_marks: [],
+        }));
 
       setTickets((prev) => append ? [...prev, ...allT] : allT);
       setStaffUsers(nextStaff);
@@ -116,7 +101,7 @@ export default function AdminSupportTickets({ user }) {
     } finally {
       if (append) setLoadingMore(false); else setLoading(false);
     }
-  };
+  }, [isAdmin, pageSize, tickets.length, user]);
 
   const handleCreateTicket = async () => {
     if (!newTicket.client_email || !newTicket.subject.trim() || !newTicket.message.trim()) {
@@ -157,11 +142,23 @@ export default function AdminSupportTickets({ user }) {
       reference_id: ticketNumber
     }).catch(err => console.error(err));
 
+    setTickets((prev) => [{
+      ticket_number: ticketNumber,
+      client_email: newTicket.client_email,
+      subject: newTicket.subject,
+      category: newTicket.category,
+      priority: newTicket.priority,
+      related_tracking: newTicket.related_tracking || null,
+      status: 'abierto',
+      assigned_to: user.email,
+      messages: [firstMessage],
+      created_date: new Date().toISOString(),
+      updated_date: new Date().toISOString()
+    }, ...prev]);
     toast.success('Ticket creado exitosamente');
     setShowNewTicket(false);
     setClientSearch('');
     setNewTicket({ client_email: '', subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '', attachments: [] });
-    loadData();
   };
 
   const handleAssignTicket = async () => {
@@ -203,10 +200,24 @@ export default function AdminSupportTickets({ user }) {
         reference_id: assigningTicket.id
       }).catch(err => console.error(err));
 
+      setTickets((prev) => prev.map((item) => item.id === assigningTicket.id ? {
+        ...item,
+        assigned_to: selectedAssignee,
+        status: assigningTicket.status === 'abierto' ? 'en_proceso' : assigningTicket.status,
+        messages: [...(assigningTicket.messages || []), systemMessage],
+        updated_date: new Date().toISOString()
+      } : item));
+      if (selectedTicket?.id === assigningTicket.id) {
+        setSelectedTicket((prev) => prev ? {
+          ...prev,
+          assigned_to: selectedAssignee,
+          status: assigningTicket.status === 'abierto' ? 'en_proceso' : assigningTicket.status,
+          messages: [...(assigningTicket.messages || []), systemMessage]
+        } : prev);
+      }
       toast.success('Ticket asignado exitosamente');
       setAssigningTicket(null);
       setSelectedAssignee('');
-      loadData();
     } catch {
       toast.error('No se pudo asignar el ticket');
     }
@@ -243,8 +254,8 @@ export default function AdminSupportTickets({ user }) {
       if (selectedTicket?.id === ticket.id) {
         setSelectedTicket({ ...selectedTicket, ...updates });
       }
+      setTickets((prev) => prev.map((item) => item.id === ticket.id ? { ...item, ...updates, updated_date: new Date().toISOString() } : item));
       toast.success('Estado actualizado');
-      loadData();
     } catch {
       toast.error('No se pudo actualizar el estado');
     }
@@ -287,6 +298,10 @@ export default function AdminSupportTickets({ user }) {
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const statusConfig = {
     abierto: { label: 'Abierto', color: 'bg-blue-100 text-blue-700', icon: AlertCircle },
     en_proceso: { label: 'En Proceso', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -318,7 +333,7 @@ export default function AdminSupportTickets({ user }) {
   };
 
   // Filter tickets
-  const filteredTickets = tickets.filter(ticket => {
+  const filteredTickets = useMemo(() => tickets.filter(ticket => {
     const searchLower = (search || '').toLowerCase();
     const tNum = (ticket.ticket_number || '').toLowerCase();
     const subj = (ticket.subject || '').toLowerCase();
@@ -347,10 +362,10 @@ export default function AdminSupportTickets({ user }) {
     if (aTime !== bTime) return bTime - aTime;
     // Fallback: by creation date
     return new Date(b.created_date).getTime() - new Date(a.created_date).getTime();
-  });
+  }), [tickets, search, filterStatus, filterPriority, filterAssigned]);
 
   // Admin statistics — only show staff with tickets assigned
-  const adminStats = staffUsers.map(admin => {
+  const adminStats = useMemo(() => staffUsers.map(admin => {
     const adminTickets = tickets.filter(t => t.assigned_to === admin.email);
     return {
       admin,
@@ -360,8 +375,7 @@ export default function AdminSupportTickets({ user }) {
       resuelto: adminTickets.filter(t => t.status === 'resuelto').length,
       cerrado: adminTickets.filter(t => t.status === 'cerrado').length
     };
-  }).filter(stat => stat.total > 0);
-
+  }).filter(stat => stat.total > 0), [staffUsers, tickets]);
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">

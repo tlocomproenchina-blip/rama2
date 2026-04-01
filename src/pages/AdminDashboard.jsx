@@ -51,10 +51,10 @@ export default function AdminDashboard({ user }) {
       const [packages, consolidations, allConsolidations, users, invoices, supportTickets, cfg, notifications] = await Promise.all([
         base44.entities.Package.list('-created_date', packagesLimit),
         base44.entities.Consolidation.list('-created_date', consolidationsLimit),
-        base44.entities.Consolidation.list('-created_date', 500),
-        base44.entities.User.filter({ role: 'user' }),
+        base44.entities.Consolidation.list('-created_date', 200),
+        base44.entities.User.filter({ role: 'user' }, '-updated_date', 200),
         base44.entities.Invoice.list('-created_date', invoicesLimit),
-        base44.entities.SupportTicket.list('-created_date', 200),
+        base44.entities.SupportTicket.list('-created_date', 100),
         base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1),
         user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([])
       ]);
