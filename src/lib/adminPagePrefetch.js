@@ -140,6 +140,8 @@ let warming = false;
 
 export async function prefetchPageData(pageName, { force = false } = {}) {
   if (!pageName || !PREFETCHERS[pageName]) return;
+  const user = await base44.auth.me();
+  if (user?.role !== 'admin') return;
   const lastRunAt = prefetched.get(pageName) || 0;
   if (!force && Date.now() - lastRunAt < PREFETCH_COOLDOWN_MS) return;
   prefetched.set(pageName, Date.now());
@@ -155,6 +157,8 @@ export function startBackgroundModulePreload(pageNames = MODULES_TO_KEEP_WARM) {
 
   const run = async () => {
     if (warming) return;
+    const user = await base44.auth.me();
+    if (user?.role !== 'admin') return;
     warming = true;
     try {
       await prefetchModuleGroup(pageNames, { force: true });

@@ -89,6 +89,10 @@ export default function Dashboard({ user, refreshUser }) {
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      setPackages([]);
+      setConsolidations([]);
+      setInvoices([]);
+      setTickets([]);
       if (error.message?.includes('Rate limit')) {
         toast.error('Demasiadas solicitudes. Espera un momento y recarga la página.');
       } else {
