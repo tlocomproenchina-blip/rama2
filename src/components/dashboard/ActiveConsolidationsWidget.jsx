@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
 export default function ActiveConsolidationsWidget({ consolidations }) {
-  const activeConsolidations = consolidations.filter(c => 
+  const activeConsolidations = (consolidations || []).filter(c => 
     c.status !== 'entregado'
   );
 
@@ -56,8 +56,8 @@ export default function ActiveConsolidationsWidget({ consolidations }) {
                       {consolidation.consolidation_tracking}
                     </span>
                   </div>
-                  <Badge className={statusColors[consolidation.status]}>
-                    {statusLabels[consolidation.status]}
+                  <Badge className={statusColors[consolidation.status] || 'bg-slate-100 text-slate-700'}>
+                    {statusLabels[consolidation.status] || consolidation.status || 'Sin estado'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-500">
