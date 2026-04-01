@@ -712,7 +712,7 @@ Email: ${client.email}`;
             <Button 
               onClick={() => setImportModalOpen(true)}
               variant="outline"
-              className="w-full min-w-0"
+              className="w-full sm:w-auto"
             >
               <Upload className="h-4 w-4 mr-2" />
               Importar Clientes
@@ -1023,80 +1023,79 @@ Email: ${client.email}`;
               }`}
             >
               <CardContent className="p-4 lg:p-6">
-                <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                   {/* Avatar & Name */}
-                  <div className="flex min-w-0 items-start gap-3 flex-1">
+                  <div className="flex items-center gap-4 flex-1">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                       {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate font-semibold text-slate-800">
+                    <div>
+                      <h3 className="font-semibold text-slate-800">
                         {client.first_name && client.last_name 
                           ? `${client.first_name} ${client.last_name}`
                           : client.email
                         }
                       </h3>
-                      <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-slate-500">
-                        <Mail className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{client.email}</span>
+                      <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+                        <Mail className="h-3 w-3" />
+                        {client.email}
                       </div>
                     </div>
                   </div>
 
                   {/* Details */}
-                  <div className="flex min-w-0 flex-col items-start gap-2 text-sm lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
                     {client.city && (
-                      <Badge variant="outline" className="bg-slate-50 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
-                        <MapPin className="h-3 w-3 mr-1 shrink-0" />
-                        <span className="truncate">{client.city}</span>
+                      <Badge variant="outline" className="bg-slate-50">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {client.city}
                       </Badge>
                     )}
                     {client.whatsapp && (
-                      <Badge variant="outline" className="bg-slate-50 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
-                        <Phone className="h-3 w-3 mr-1 shrink-0" />
-                        <span className="truncate">{client.whatsapp}</span>
+                      <Badge variant="outline" className="bg-slate-50">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {client.whatsapp}
                       </Badge>
                     )}
                     {hasValidShippingMark(client) ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
-                        <Tag className="h-3 w-3 mr-1 shrink-0" />
-                        <span className="truncate">{client.shipping_mark}</span>
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                        <Tag className="h-3 w-3 mr-1" />
+                        {client.shipping_mark}
                       </Badge>
                     ) : (
-                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
-                        <Clock className="h-3 w-3 mr-1 shrink-0" />
-                        <span className="truncate">Sin Shipping Mark</span>
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Sin Shipping Mark
                       </Badge>
                     )}
                     {client.created_date && (
-                      <Badge variant="outline" className="bg-slate-50 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
-                        <CalendarDays className="h-3 w-3 mr-1 shrink-0" />
-                        <span className="truncate">{format(new Date(client.created_date), 'dd MMM yyyy', { locale: es })}</span>
+                      <Badge variant="outline" className="bg-slate-50">
+                        <CalendarDays className="h-3 w-3 mr-1" />
+                        {format(new Date(client.created_date), 'dd MMM yyyy', { locale: es })}
                       </Badge>
                     )}
-                    <Badge variant="outline" className="w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
-                      <Package className="h-3 w-3 mr-1 shrink-0" />
-                      <span className="truncate">{packagesCount[client.email] || 0} paquetes</span>
+                    <Badge variant="outline">
+                      <Package className="h-3 w-3 mr-1" />
+                      {packagesCount[client.email] || 0} paquetes
                     </Badge>
                     {client.is_active === false && (
-                      <Badge className="bg-red-100 text-red-700 border-red-200 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto"><span className="truncate">Inactivo</span></Badge>
+                      <Badge className="bg-red-100 text-red-700 border-red-200">Inactivo</Badge>
                     )}
                   </div>
 
                   {/* Actions */}
-                  <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-stretch">
-                    <div className="col-span-2 flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 sm:col-span-3 lg:col-span-1 lg:justify-start lg:pr-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex items-stretch gap-2 w-full">
+                    <div className="flex items-center gap-2 pb-2 sm:pb-0 sm:pr-3 sm:border-r border-b sm:border-b-0 border-slate-200">
                       <span className="text-xs text-slate-600">Activo</span>
                       <Switch
                         checked={client.is_active !== false}
                         onCheckedChange={(checked) => handleToggleActive(client, checked)}
                       />
                     </div>
-
                     <Button 
                      variant="outline" 
                      size="sm"
-                     className="w-full min-w-0"
+                     className="w-full sm:w-auto"
                      onClick={(e) => {
                        e.stopPropagation();
                        handleCopyClientInfo(client);
@@ -1112,7 +1111,7 @@ Email: ${client.email}`;
                        setPackageClient(client);
                        setAddingPackage(true);
                      }}
-                     className="w-full min-w-0 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                     className="w-full sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Paquete
@@ -1120,7 +1119,7 @@ Email: ${client.email}`;
                     <Button 
                      variant="outline" 
                      size="sm"
-                     className="w-full min-w-0"
+                     className="w-full sm:w-auto"
                      onClick={() => setViewClient(client)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
@@ -1129,7 +1128,7 @@ Email: ${client.email}`;
                     <Button 
                      variant="outline" 
                      size="sm"
-                     className="w-full min-w-0"
+                     className="w-full sm:w-auto"
                      onClick={() => handleEdit(client)}
                     >
                       <Edit2 className="h-4 w-4 mr-1" />
