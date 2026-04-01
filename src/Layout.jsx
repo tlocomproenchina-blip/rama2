@@ -6,7 +6,6 @@ import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
-import AdminMobileBottomNav from '@/components/navigation/AdminMobileBottomNav';
 import NativeMobileHeader from '@/components/navigation/NativeMobileHeader';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
 import { cacheManager } from '@/components/CacheManager';
@@ -49,8 +48,8 @@ export default function Layout({ children, currentPageName }) {
   const { isNative } = usePlatform();
   const isAdminPanel = user?.role === 'admin';
   const isNativeClient = isNative && user?.role === 'user';
-  const isNativeAdmin = isNative && user?.role === 'admin';
-  const hasDesktopSidebar = !!user && !isNativeClient && !isNativeAdmin;
+  const isNativeAdmin = false;
+  const hasDesktopSidebar = !!user && !isNativeClient;
   const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ'].includes(currentPageName);
 
   const applyTuning = (cfg) => {
@@ -676,7 +675,6 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {isNativeClient && <MobileBottomNav />}
-      {isNativeAdmin && <AdminMobileBottomNav />}
 
       {/* Modals */}
       {showContract && (
