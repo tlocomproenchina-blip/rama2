@@ -818,29 +818,28 @@ Email: ${client.email}`;
           
           {/* Date Filter */}
           <div className="flex flex-col gap-2 p-3 bg-slate-50 rounded-lg">
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-slate-700">Filtrar por rango de fechas:</span>
-              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
+              <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500">Desde</span>
                 <Input
                   type="date"
                   value={fromDate || ''}
                   onChange={(e) => { setFromDate(e.target.value); setQuickDate('all'); }}
-                  className="w-full sm:w-auto"
+                  className="w-auto"
                 />
                 <span className="text-xs text-slate-500">Hasta</span>
                 <Input
                   type="date"
                   value={toDate || ''}
                   onChange={(e) => { setToDate(e.target.value); setQuickDate('all'); }}
-                  className="w-full sm:w-auto"
+                  className="w-auto"
                 />
                 {(fromDate || toDate) && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => { setFromDate(''); setToDate(''); }}
-                    className="w-full sm:w-auto"
                   >
                     Limpiar
                   </Button>
@@ -973,10 +972,10 @@ Email: ${client.email}`;
             </div>
           </div>
           {/* State Filter */}
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3 mt-2">
             <span className="text-sm text-slate-600">Estado:</span>
             <Select value={stateFilter} onValueChange={(v) => setStateFilter(v)}>
-              <SelectTrigger className="w-full sm:w-56">
+              <SelectTrigger className="w-56">
                 <SelectValue placeholder="Todos los estados" />
               </SelectTrigger>
               <SelectContent>
@@ -986,7 +985,7 @@ Email: ${client.email}`;
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={resetAllFilters} className="w-full sm:ml-auto sm:w-auto">Limpiar filtros</Button>
+            <Button variant="outline" size="sm" onClick={resetAllFilters} className="ml-auto">Limpiar filtros</Button>
             </div>
 
 
@@ -1023,29 +1022,29 @@ Email: ${client.email}`;
                 !hasValidShippingMark(client) && client.profile_completed && !hasIncompleteData(client) ? 'border-l-4 border-l-amber-400' : ''
               }`}
             >
-              <CardContent className="overflow-hidden p-4 lg:p-6">
-                <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center">
+              <CardContent className="p-4 lg:p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                   {/* Avatar & Name */}
-                  <div className="flex min-w-0 w-full items-start gap-4 flex-1">
+                  <div className="flex items-center gap-4 flex-1">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                       {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate font-semibold text-slate-800">
+                    <div>
+                      <h3 className="font-semibold text-slate-800">
                         {client.first_name && client.last_name 
                           ? `${client.first_name} ${client.last_name}`
                           : client.email
                         }
                       </h3>
-                      <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-slate-500">
-                        <Mail className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{client.email}</span>
+                      <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+                        <Mail className="h-3 w-3" />
+                        {client.email}
                       </div>
                     </div>
                   </div>
 
                   {/* Details */}
-                  <div className="grid w-full grid-cols-1 gap-2 text-sm sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
                     {client.city && (
                       <Badge variant="outline" className="bg-slate-50">
                         <MapPin className="h-3 w-3 mr-1" />
@@ -1085,8 +1084,8 @@ Email: ${client.email}`;
                   </div>
 
                   {/* Actions */}
-                  <div className="grid w-full grid-cols-1 gap-2">
-                    <div className="flex w-full items-center gap-2 pb-2 border-b border-slate-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex items-stretch gap-2 w-full">
+                    <div className="flex items-center gap-2 pb-2 sm:pb-0 sm:pr-3 sm:border-r border-b sm:border-b-0 border-slate-200">
                       <span className="text-xs text-slate-600">Activo</span>
                       <Switch
                         checked={client.is_active !== false}
