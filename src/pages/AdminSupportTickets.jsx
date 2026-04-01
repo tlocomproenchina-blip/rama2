@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 as base44Direct } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,8 @@ import TicketAssignmentDialog from '@/components/support/TicketAssignmentDialog'
 import SupportImageUploader from '@/components/support/SupportImageUploader';
 import { uploadSupportImages } from '@/components/support/supportUploadUtils';
 
-export default function AdminSupportTickets({ user }) {
+export default function AdminSupportTickets({ user: userProp }) {
+  const [user, setUser] = useState(userProp || null);
   const [tickets, setTickets] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,8 +77,16 @@ export default function AdminSupportTickets({ user }) {
   const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
+    if (userProp) setUser(userProp);
+  }, [userProp]);
+
+  useEffect(() => {
+    if (!user) {
+      base44Direct.auth.me().then(u => { setUser(u); }).catch(() => {});
+      return;
+    }
     loadData();
-  }, []);
+  }, [user?.email]);
 
   const loadData = async (append = false) => {
     try {
@@ -84,12 +94,12 @@ export default function AdminSupportTickets({ user }) {
       const skip = append ? tickets.length : 0;
       const results = await Promise.allSettled([
         base44.entities.SupportTicket.list('-created_date', pageSize, skip),
-        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve([user]),
+        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve(user ? [user] : []),
         base44.entities.Package.list('-updated_date', 1000)
       ]);
 
       const allT = results[0].status === 'fulfilled' ? results[0].value : [];
-      const usersList = results[1].status === 'fulfilled' ? results[1].value : [user];
+      const usersList = results[1].status === 'fulfilled' ? (results[1].value || []) : (user ? [user] : []);
       const packagesList = results[2].status === 'fulfilled' ? results[2].value : [];
       const nextStaff = (usersList || []).filter((member) => member.role === 'admin' || ['warehouse', 'customer_service', 'operations_manager'].includes(member.custom_role));
       const clientPackagesByEmail = (packagesList || []).reduce((acc, pkg) => {
@@ -824,7 +834,7 @@ export default function AdminSupportTickets({ user }) {
           <TicketChat
             messages={selectedTicket?.messages || []}
             onSendMessage={handleSendMessage}
-            currentUserEmail={user.email}
+            currentUserEmail={user?.email}
             disabled={selectedTicket?.status === 'cerrado'}
           />
         </DialogContent>
