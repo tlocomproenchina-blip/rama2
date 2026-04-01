@@ -453,14 +453,6 @@ export default function AdminSettings({ user }) {
     const activeStates = statesConfig.filter((state) => state.is_active);
 
     ensureSpace(30);
-    addSectionTitle('Tarifas base');
-    addLine(`Carga regular: $${Number(pricingConfig.base_rate_regular || 0).toFixed(2)}`, 4);
-    addLine(`Carga alto riesgo: $${Number(pricingConfig.base_rate_high_risk || 0).toFixed(2)}`, 4);
-    addLine(`Beneficio: ${Number(pricingConfig.profit_percentage || 0).toFixed(2)}%`, 4);
-    addLine(`Puerta a puerta: $${Number(pricingConfig.door_to_door_cost || 0).toFixed(2)}`, 4);
-    addLine(`Seguro: ${Number(appConfig.insurance_percentage || 0).toFixed(2)}% del valor FOB`, 4);
-
-    ensureSpace(30);
     addSectionTitle('Restricciones');
     addLine('Facturación mínima marítima: 0.130 CBM o el equivalente a una caja de 50 cm × 50 cm × 50 cm.', 4);
     addLine('Carga sensible incluye: baterías de litio, alimentos, cosméticos, agentes acuosos, réplicas o imitaciones, polvos, marcas chinas y mercancía de alto valor.', 4);
