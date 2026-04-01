@@ -821,7 +821,7 @@ export default function AdminSupportTickets({ user: userProp }) {
                 <p className="text-sm text-slate-500 font-mono mt-1">{selectedTicket?.ticket_number}</p>
                 <p className="text-sm text-slate-500 mt-1">Cliente: {selectedTicket?.client_email}</p>
                 {selectedTicket?.related_tracking && (
-                  <div className="mt-3 inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
+                  <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 break-all">
                     Tracking relacionado: {selectedTicket.related_tracking}
                   </div>
                 )}

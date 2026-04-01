@@ -37,7 +37,7 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
                   )}
                 </Avatar>
                 <div className={`flex-1 ${isCurrentUser ? 'text-right' : ''}`}>
-                  <div className={`inline-block max-w-[80%] ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'} rounded-2xl px-4 py-2`}>
+                  <div className={`inline-block max-w-[80%] break-words overflow-hidden ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'} rounded-2xl px-4 py-2`}>
                     <p className="text-sm font-medium mb-1">{msg.sender_name}</p>
                     {msg.message ? <p className="text-sm whitespace-pre-wrap">{msg.message}</p> : null}
                     <SupportAttachmentsPreview attachments={msg.attachments} />
