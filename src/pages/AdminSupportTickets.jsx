@@ -261,7 +261,7 @@ export default function AdminSupportTickets({ user }) {
       attachments: uploadedAttachments
     };
 
-    const updatedMessages = [...(selectedTicket.messages || []), newMessage];
+    const updatedMessages = [...(selectedTicket?.messages || []), newMessage];
     try {
       await base44.entities.SupportTicket.update(selectedTicket.id, {
         messages: updatedMessages
@@ -276,11 +276,14 @@ export default function AdminSupportTickets({ user }) {
         reference_id: selectedTicket.id
       }).catch(err => console.error(err));
 
-      setSelectedTicket({ ...selectedTicket, messages: updatedMessages });
-      loadData();
+      const nextSelectedTicket = { ...selectedTicket, messages: updatedMessages };
+      setSelectedTicket(nextSelectedTicket);
+      setTickets((prev) => prev.map((ticket) => ticket.id === selectedTicket.id ? { ...ticket, messages: updatedMessages, updated_date: new Date().toISOString() } : ticket));
       toast.success('Respuesta enviada');
+      return true;
     } catch {
       toast.error('No se pudo enviar la respuesta');
+      return false;
     }
   };
 
@@ -835,7 +838,7 @@ export default function AdminSupportTickets({ user }) {
       />
 
       {/* Ticket Detail Dialog */}
-      <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
+      <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-start justify-between">

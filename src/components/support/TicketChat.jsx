@@ -10,12 +10,21 @@ import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPr
 export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled }) {
   const [newMessage, setNewMessage] = useState('');
   const [attachments, setAttachments] = useState([]);
+  const [sending, setSending] = useState(false);
 
-  const handleSend = () => {
-    if (!newMessage.trim() && attachments.length === 0) return;
-    onSendMessage(newMessage, attachments);
+  const handleSend = async () => {
+    if ((!newMessage.trim() && attachments.length === 0) || sending) return;
+    const messageToSend = newMessage;
+    const attachmentsToSend = attachments;
     setNewMessage('');
     setAttachments([]);
+    setSending(true);
+    const success = await onSendMessage(messageToSend, attachmentsToSend);
+    if (!success) {
+      setNewMessage(messageToSend);
+      setAttachments(attachmentsToSend);
+    }
+    setSending(false);
   };
 
   return (
@@ -62,6 +71,7 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Escribe tu mensaje..."
               rows={3}
+              disabled={sending}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -69,8 +79,8 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
                 }
               }}
             />
-            <Button onClick={handleSend} className="bg-blue-600 hover:bg-blue-700">
-              <Send className="h-4 w-4" />
+            <Button onClick={handleSend} disabled={sending} className="bg-blue-600 hover:bg-blue-700">
+              {sending ? <Send className="h-4 w-4 opacity-50" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
         </div>
