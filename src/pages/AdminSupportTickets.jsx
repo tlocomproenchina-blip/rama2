@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { base44 as base44Direct } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +47,7 @@ export default function AdminSupportTickets({ user: userProp }) {
   const [assigning, setAssigning] = useState(false);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [clients, setClients] = useState([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
   const [newTicket, setNewTicket] = useState({
     client_email: '',
@@ -88,28 +89,28 @@ export default function AdminSupportTickets({ user: userProp }) {
     loadData();
   }, [user?.email]);
 
-  const loadData = async (append = false) => {
+  useEffect(() => {
+    if (!showNewTicket || !isAdmin || clients.length > 0 || clientsLoading) return;
+    loadClientsForNewTicket();
+  }, [showNewTicket, isAdmin, clients.length, clientsLoading]);
+
+  const loadClientsForNewTicket = async () => {
     try {
-      if (append) setLoadingMore(true); else setLoading(true);
-      const skip = append ? tickets.length : 0;
-      const results = await Promise.allSettled([
-        base44.entities.SupportTicket.list('-created_date', pageSize, skip),
-        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve(user ? [user] : []),
+      setClientsLoading(true);
+      const [usersList, packagesList] = await Promise.all([
+        base44.entities.User.list('-created_date', 300),
         base44.entities.Package.list('-updated_date', 1000)
       ]);
 
-      const allT = results[0].status === 'fulfilled' ? results[0].value : [];
-      const usersList = results[1].status === 'fulfilled' ? (results[1].value || []) : (user ? [user] : []);
-      const packagesList = results[2].status === 'fulfilled' ? results[2].value : [];
-      const nextStaff = (usersList || []).filter((member) => member.role === 'admin' || ['warehouse', 'customer_service', 'operations_manager'].includes(member.custom_role));
       const clientPackagesByEmail = (packagesList || []).reduce((acc, pkg) => {
         if (!pkg?.client_email) return acc;
         if (!acc[pkg.client_email]) acc[pkg.client_email] = [];
         acc[pkg.client_email].push(pkg);
         return acc;
       }, {});
+
       const nextClients = (usersList || [])
-        .filter((member) => member.role === 'user' && !member.custom_role)
+        .filter((member) => member?.role === 'user' && !member?.custom_role)
         .map((member) => {
           const relatedPackages = clientPackagesByEmail[member.email] || [];
           return {
@@ -119,9 +120,27 @@ export default function AdminSupportTickets({ user: userProp }) {
           };
         });
 
+      setClients(nextClients);
+    } finally {
+      setClientsLoading(false);
+    }
+  };
+
+  const loadData = async (append = false) => {
+    try {
+      if (append) setLoadingMore(true); else setLoading(true);
+      const skip = append ? tickets.length : 0;
+      const [ticketsResult, usersResult] = await Promise.allSettled([
+        base44.entities.SupportTicket.list('-created_date', pageSize, skip),
+        isAdmin ? base44.entities.User.list('-created_date', 300) : Promise.resolve(user ? [user] : [])
+      ]);
+
+      const allT = ticketsResult.status === 'fulfilled' ? ticketsResult.value : [];
+      const usersList = usersResult.status === 'fulfilled' ? (usersResult.value || []) : (user ? [user] : []);
+      const nextStaff = (usersList || []).filter((member) => member?.role === 'admin' || ['warehouse', 'customer_service', 'operations_manager'].includes(member?.custom_role));
+
       setTickets((prev) => append ? [...prev, ...allT] : allT);
       setStaffUsers(nextStaff);
-      setClients(nextClients);
       setHasMore(allT.length === pageSize);
     } finally {
       if (append) setLoadingMore(false); else setLoading(false);
@@ -307,6 +326,24 @@ export default function AdminSupportTickets({ user: userProp }) {
     alta: { label: 'Alta', color: 'bg-orange-100 text-orange-600' },
     urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600' }
   };
+
+  const filteredClientOptions = useMemo(() => {
+    const searchLower = (clientSearch || '').toLowerCase();
+    return clients.filter((client) => {
+      if (!clientSearch) return true;
+      return (
+        (client.first_name || '').toLowerCase().includes(searchLower) ||
+        (client.last_name || '').toLowerCase().includes(searchLower) ||
+        (client.email || '').toLowerCase().includes(searchLower) ||
+        (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
+        (client.package_trackings || []).some((tracking) => (tracking || '').toLowerCase().includes(searchLower)) ||
+        (client.package_shipping_marks || []).some((mark) => (mark || '').toLowerCase().includes(searchLower)) ||
+        (client.whatsapp || '').toLowerCase().includes(searchLower) ||
+        (client.telefono || '').toLowerCase().includes(searchLower) ||
+        (client.phone || '').toLowerCase().includes(searchLower)
+      );
+    });
+  }, [clients, clientSearch]);
 
   // Filter tickets
   const filteredTickets = tickets.filter(ticket => {
@@ -686,26 +723,10 @@ export default function AdminSupportTickets({ user: userProp }) {
                 </div>
                 <Select value={newTicket.client_email} onValueChange={(value) => setNewTicket({ ...newTicket, client_email: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un cliente" />
+                    <SelectValue placeholder={clientsLoading ? 'Cargando clientes...' : 'Selecciona un cliente'} />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients
-                      .filter(client => {
-                        const searchLower = (clientSearch || '').toLowerCase();
-                        return (
-                          !clientSearch ||
-                          (client.first_name || '').toLowerCase().includes(searchLower) ||
-                          (client.last_name || '').toLowerCase().includes(searchLower) ||
-                          (client.email || '').toLowerCase().includes(searchLower) ||
-                          (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
-                          (client.package_trackings || []).some((tracking) => (tracking || '').toLowerCase().includes(searchLower)) ||
-                          (client.package_shipping_marks || []).some((mark) => (mark || '').toLowerCase().includes(searchLower)) ||
-                          (client.whatsapp || '').toLowerCase().includes(searchLower) ||
-                          (client.telefono || '').toLowerCase().includes(searchLower) ||
-                          (client.phone || '').toLowerCase().includes(searchLower)
-                        );
-                      })
-                      .map((client) => (
+                    {filteredClientOptions.map((client) => (
                         <SelectItem key={client.email} value={client.email}>
                           {client.first_name} {client.last_name} - {client.email}{client.package_trackings?.[0] ? ` - ${client.package_trackings[0]}` : ''}
                         </SelectItem>
