@@ -1,5 +1,18 @@
 import { base44 } from '@/components/api/ApiQueueManager';
 
+const BG_REFRESH_MS = 120000;
+const PREFETCH_COOLDOWN_MS = 30000;
+const MODULES_TO_KEEP_WARM = [
+  'AccountingDashboard',
+  'AdminDashboard',
+  'AdminSupport',
+  'AdminConsolidate',
+  'AdminPayments',
+  'AdminInvoices',
+  'AdminPackages',
+  'AdminClients'
+];
+
 const PREFETCHERS = {
   AdminOperaciones: async () => {
     await Promise.all([
@@ -68,14 +81,95 @@ const PREFETCHERS = {
       base44.entities.WarehouseLocation.list('code', 200),
     ]);
   },
+  AccountingDashboard: async () => {
+    await Promise.all([
+      base44.entities.Invoice.list('-updated_date', 80),
+      base44.entities.AccountsPayable.list('-updated_date', 80),
+    ]);
+  },
+  AdminDashboard: async () => {
+    await Promise.all([
+      base44.entities.Package.list('-created_date', 20),
+      base44.entities.Consolidation.list('-created_date', 20),
+      base44.entities.Invoice.list('-created_date', 20),
+      base44.entities.SupportTicket.list('-created_date', 40),
+    ]);
+  },
+  AdminSupport: async () => {
+    await Promise.all([
+      base44.entities.SupportTicket.list('-created_date', 40),
+      base44.entities.User.filter({ role: 'user' }, '-created_date', 80),
+    ]);
+  },
+  AdminConsolidate: async () => {
+    await Promise.all([
+      base44.entities.ConsolidationRequest.filter({ status: 'pendiente' }, '-created_date', 40),
+      base44.entities.Package.filter({ status: 'pre_alerta' }, '-created_date', 80),
+      base44.entities.Package.filter({ status: 'recibido' }, '-created_date', 80),
+    ]);
+  },
+  AdminPayments: async () => {
+    await Promise.all([
+      base44.entities.Consolidation.list('-created_date', 40),
+      base44.entities.User.list('-created_date', 120),
+    ]);
+  },
+  AdminInvoices: async () => {
+    await Promise.all([
+      base44.entities.Invoice.list('-invoice_date', 40),
+      base44.entities.Consolidation.list('-created_date', 80),
+    ]);
+  },
+  AdminPackages: async () => {
+    await Promise.all([
+      base44.entities.Package.list('-created_date', 40),
+      base44.entities.User.list('-created_date', 120),
+    ]);
+  },
+  AdminClients: async () => {
+    await Promise.all([
+      base44.functions.invoke('listClientsForSupport', {}, { opType: 'read', dedupeKey: 'prefetch:clients-support' }),
+      base44.entities.Package.list('-updated_date', 120),
+    ]);
+  },
 };
 
 const prefetched = new Map();
+let keepWarmTimer = null;
+let warming = false;
 
-export async function prefetchPageData(pageName) {
+export async function prefetchPageData(pageName, { force = false } = {}) {
   if (!pageName || !PREFETCHERS[pageName]) return;
   const lastRunAt = prefetched.get(pageName) || 0;
-  if (Date.now() - lastRunAt < 30000) return;
+  if (!force && Date.now() - lastRunAt < PREFETCH_COOLDOWN_MS) return;
   prefetched.set(pageName, Date.now());
   await PREFETCHERS[pageName]();
+}
+
+export async function prefetchModuleGroup(pageNames = [], options = {}) {
+  await Promise.all((pageNames || []).filter((name) => PREFETCHERS[name]).map((name) => prefetchPageData(name, options)));
+}
+
+export function startBackgroundModulePreload(pageNames = MODULES_TO_KEEP_WARM) {
+  if (keepWarmTimer) return;
+
+  const run = async () => {
+    if (warming) return;
+    warming = true;
+    try {
+      await prefetchModuleGroup(pageNames, { force: true });
+    } finally {
+      warming = false;
+    }
+  };
+
+  run();
+  keepWarmTimer = window.setInterval(run, BG_REFRESH_MS);
+}
+
+export function stopBackgroundModulePreload() {
+  if (keepWarmTimer) {
+    window.clearInterval(keepWarmTimer);
+    keepWarmTimer = null;
+  }
 }

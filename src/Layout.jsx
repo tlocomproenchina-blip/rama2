@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useCallback, useRef } from 'react';
 import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -20,6 +20,7 @@ import ErrorBoundary from '@/components/common/ErrorBoundary';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import PullToRefresh from '@/components/common/PullToRefresh';
 import { prefetchAdminClients } from '@/lib/adminPrefetchCache';
+import { startBackgroundModulePreload, prefetchModuleGroup } from '@/lib/adminPagePrefetch';
 import SkipToContent from '@/components/common/SkipToContent';
 import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
 
@@ -284,9 +285,11 @@ export default function Layout({ children, currentPageName }) {
       }
 
       // Redirect admin to AccountingDashboard when landing on Home/Dashboard or no page specified
-      // Prefetch admin clients data in background
+      // Precarga de módulos admin en segundo plano
       if (currentUser.role === 'admin') {
         prefetchAdminClients();
+        prefetchModuleGroup(['AdminDashboard', 'AccountingDashboard', 'AdminPackages', 'AdminInvoices', 'AdminPayments', 'AdminSupport', 'AdminConsolidate', 'AdminClients']);
+        startBackgroundModulePreload();
       }
 
       if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Home')) {
@@ -352,6 +355,11 @@ export default function Layout({ children, currentPageName }) {
     loadUser();
     loadConfig();
   }, [currentPageName, navigate]);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
+    prefetchModuleGroup(['AdminDashboard', 'AccountingDashboard', 'AdminPackages', 'AdminInvoices', 'AdminPayments', 'AdminSupport', 'AdminConsolidate', 'AdminClients']);
+  }, [user?.role, location.pathname]);
 
   const handleContractAccept = useCallback(async () => {
     await base44.auth.updateMe({
