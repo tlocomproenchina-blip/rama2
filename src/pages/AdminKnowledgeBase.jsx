@@ -158,7 +158,15 @@ export default function AdminKnowledgeBase({ user }) {
     }
   };
 
-  if (user?.role !== "admin") {
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (user.role !== "admin") {
     return (
       <div className="max-w-2xl mx-auto">
         <Card>
