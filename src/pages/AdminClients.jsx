@@ -45,6 +45,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { toast } from 'sonner';
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal';
 import ClientImportDialog from '@/components/imports/ClientImportDialog';
+import { getAdminPrefetchData, prefetchAdminClients, invalidateAdminClientsCache, subscribeAdminPrefetch } from '@/lib/adminPrefetchCache';
 
 export default function AdminClients({ user }) {
   const [clients, setClients] = useState([]);
@@ -89,8 +90,28 @@ export default function AdminClients({ user }) {
 
 
 
+  // Use prefetched data if available, otherwise load fresh
   useEffect(() => {
-    loadClients();
+    const prefetched = getAdminPrefetchData();
+    if (prefetched.clients && prefetched.packagesCount) {
+      setClients(prefetched.clients);
+      setPackagesCount(prefetched.packagesCount);
+      setLoading(false);
+      // Refresh in background
+      loadClients();
+    } else if (prefetched.loading) {
+      // Prefetch is in progress, subscribe to it
+      const unsub = subscribeAdminPrefetch((data) => {
+        if (!data.loading && data.clients) {
+          setClients(data.clients);
+          setPackagesCount(data.packagesCount || {});
+          setLoading(false);
+          unsub();
+        }
+      });
+    } else {
+      loadClients();
+    }
     loadStateConfigs();
   }, []);
 
@@ -116,24 +137,18 @@ export default function AdminClients({ user }) {
    const loadClients = async (append = false) => {
     try {
       if (append) setLoadingMore(true); else setLoading(true);
-      // Cargar clientes y paquetes en paralelo
-      const [clientsRes, packages] = await Promise.all([
-        base44Direct.functions.invoke('listClientsForSupport', {}),
-        append ? Promise.resolve(null) : base44Direct.entities.Package.list('-created_date', 5000)
-      ]);
-      const users = Array.isArray(clientsRes?.data) ? clientsRes.data : [];
-      setHasMore(false);
-
+      // Force fresh fetch and update cache
+      invalidateAdminClientsCache();
+      await prefetchAdminClients(true);
+      const data = getAdminPrefetchData();
+      
       if (append) {
-        setClients(prev => [...prev, ...users]);
+        setClients(prev => [...prev, ...(data.clients || [])]);
       } else {
-        if (packages) {
-          const counts = {};
-          packages.forEach(pkg => { counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1; });
-          setPackagesCount(counts);
-        }
-        setClients(users);
+        setClients(data.clients || []);
+        setPackagesCount(data.packagesCount || {});
       }
+      setHasMore(false);
     } catch (err) {
       console.error('[AdminClients] loadClients error:', err);
     } finally {

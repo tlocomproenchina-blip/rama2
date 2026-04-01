@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import PullToRefresh from '@/components/common/PullToRefresh';
+import { prefetchAdminClients } from '@/lib/adminPrefetchCache';
 import SkipToContent from '@/components/common/SkipToContent';
 import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
 
@@ -283,6 +284,11 @@ export default function Layout({ children, currentPageName }) {
       }
 
       // Redirect admin to AccountingDashboard when landing on Home/Dashboard or no page specified
+      // Prefetch admin clients data in background
+      if (currentUser.role === 'admin') {
+        prefetchAdminClients();
+      }
+
       if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Home')) {
         navigate(createPageUrl('AccountingDashboard'));
         setLoading(false);
