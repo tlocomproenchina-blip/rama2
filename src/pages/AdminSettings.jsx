@@ -402,7 +402,7 @@ export default function AdminSettings({ user }) {
   const handleDownloadPricePdf = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    let y = 20;
+    let y = 16;
     const companyName = appConfig.app_name || 'TLEC CARGO';
     const logoUrl = appConfig.invoice_logo_url || appConfig.app_logo_url;
 
@@ -415,58 +415,58 @@ export default function AdminSettings({ user }) {
           reader.onloadend = () => resolve(reader.result);
           reader.readAsDataURL(blob);
         });
-        doc.addImage(dataUrl, 'PNG', 14, 12, 24, 24);
+        doc.addImage(dataUrl, 'PNG', 12, 10, 18, 18);
       } catch {}
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text(companyName, logoUrl ? 44 : 14, 20);
+    doc.setFontSize(16);
+    doc.text(companyName, logoUrl ? 34 : 12, 16);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text('Lista de precios y restricciones', logoUrl ? 44 : 14, 27);
-    doc.text(`Fecha: ${new Date().toLocaleDateString('es-VE')}`, pageWidth - 14, 20, { align: 'right' });
-    y = 44;
+    doc.setFontSize(9);
+    doc.text('Lista de precios y restricciones', logoUrl ? 34 : 12, 22);
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-VE')}`, pageWidth - 12, 16, { align: 'right' });
+    y = 32;
 
     const addSectionTitle = (title) => {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.text(title, 14, y);
-      y += 7;
+      doc.setFontSize(11);
+      doc.text(title, 12, y);
+      y += 5;
     };
 
     const addLine = (text, indent = 0) => {
-      const lines = doc.splitTextToSize(text, pageWidth - 28 - indent);
+      const lines = doc.splitTextToSize(text, pageWidth - 24 - indent);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(lines, 14 + indent, y);
-      y += (lines.length * 5) + 1;
+      doc.setFontSize(8.5);
+      doc.text(lines, 12 + indent, y);
+      y += (lines.length * 4) + 0.5;
     };
 
     const ensureSpace = (needed = 20) => {
-      if (y + needed > 280) {
+      if (y + needed > 285) {
         doc.addPage();
-        y = 20;
+        y = 16;
       }
     };
 
     const formatMoney = (value) => `$${Number(value || 0).toFixed(2)}`;
-    const stateNameX = 16;
-    const regularX = 98;
-    const highRiskX = 148;
-    const rowHeight = 8;
-    const tableWidth = pageWidth - 28;
+    const stateNameX = 14;
+    const regularX = 95;
+    const highRiskX = 140;
+    const rowHeight = 6.2;
+    const tableWidth = pageWidth - 24;
 
     const drawRatesTableHeader = () => {
       doc.setFillColor(241, 245, 249);
-      doc.roundedRect(14, y, tableWidth, 9, 2, 2, 'F');
+      doc.roundedRect(12, y, tableWidth, 7, 2, 2, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(8.5);
       doc.setTextColor(51, 65, 85);
-      doc.text('Estado', stateNameX, y + 6);
-      doc.text('Regular', regularX, y + 6);
-      doc.text('Alto riesgo', highRiskX, y + 6);
-      y += 11;
+      doc.text('Estado', stateNameX, y + 4.8);
+      doc.text('Regular', regularX, y + 4.8);
+      doc.text('Alto riesgo', highRiskX, y + 4.8);
+      y += 8.5;
       doc.setTextColor(0, 0, 0);
     };
 
@@ -489,23 +489,23 @@ export default function AdminSettings({ user }) {
         ? Number(state.final_rate_high)
         : ((Number(pricingConfig.base_rate_high_risk || 0) * (1 + Number(pricingConfig.profit_percentage || 0) / 100)) + Number(state.shipping_rate || 0) + Number(pricingConfig.door_to_door_cost || 0));
 
-      ensureSpace(14);
-      if (y + rowHeight > 280) {
+      ensureSpace(10);
+      if (y + rowHeight > 285) {
         doc.addPage();
-        y = 20;
+        y = 16;
         drawRatesTableHeader();
       }
 
       if (index % 2 === 0) {
         doc.setFillColor(248, 250, 252);
-        doc.roundedRect(14, y - 2, tableWidth, rowHeight, 1.5, 1.5, 'F');
+        doc.roundedRect(12, y - 1.4, tableWidth, rowHeight, 1.5, 1.5, 'F');
       }
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(state.state_name, stateNameX, y + 3);
-      doc.text(formatMoney(regular), regularX, y + 3);
-      doc.text(formatMoney(high), highRiskX, y + 3);
+      doc.setFontSize(8.5);
+      doc.text(state.state_name, stateNameX, y + 2.6);
+      doc.text(formatMoney(regular), regularX, y + 2.6);
+      doc.text(formatMoney(high), highRiskX, y + 2.6);
       y += rowHeight;
     });
 
