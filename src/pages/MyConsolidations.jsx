@@ -53,14 +53,24 @@ export default function MyConsolidations({ user }) {
     if (!user) return;
     const skip = append ? consolidations.length : 0;
     if (append) setLoadingMore(true); else setLoading(true);
-    const cons = await base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', PAGE_SIZE, skip);
-    if (append) {
-      setConsolidations(prev => [...prev, ...cons]);
-    } else {
-      setConsolidations(cons);
+    try {
+      const cons = await base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', PAGE_SIZE, skip);
+      if (append) {
+        setConsolidations(prev => [...prev, ...cons]);
+      } else {
+        setConsolidations(cons);
+      }
+      setHasMore(cons.length === PAGE_SIZE);
+    } catch (error) {
+      console.error('Error loading consolidations:', error);
+      toast.error('No se pudieron cargar las consolidaciones.');
+      if (!append) {
+        setConsolidations([]);
+        setHasMore(false);
+      }
+    } finally {
+      if (append) setLoadingMore(false); else setLoading(false);
     }
-    setHasMore(cons.length === PAGE_SIZE);
-    if (append) setLoadingMore(false); else setLoading(false);
   };
 
   const canPay = (con) => {

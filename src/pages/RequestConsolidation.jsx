@@ -40,47 +40,51 @@ export default function RequestConsolidation({ user }) {
 
   const loadData = async () => {
     if (!user) return;
-    
-    const [pkgs, pendingRequests, approvedRequests, configs] = await Promise.all([
-      base44.entities.Package.filter({ 
-        client_email: user.email, 
-        status: 'recibido'
-      }),
-      base44.entities.ConsolidationRequest.filter({
-        client_email: user.email,
-        status: 'pendiente'
-      }),
-      base44.entities.ConsolidationRequest.filter({
-        client_email: user.email,
-        status: 'aprobada'
-      }),
-      base44.entities.AppConfig.filter({ config_key: 'main' })
-    ]);
-    
-    // Get IDs of packages in pending or approved requests (hidden from selection)
-    const packagesInRequests = new Set();
-    ;[pendingRequests, approvedRequests].forEach(list => {
-      (list || []).forEach(req => {
-        req.package_ids?.forEach(id => packagesInRequests.add(id));
+    setLoading(true);
+    try {
+      const [pkgs, pendingRequests, approvedRequests, configs] = await Promise.all([
+        base44.entities.Package.filter({ 
+          client_email: user.email, 
+          status: 'recibido'
+        }),
+        base44.entities.ConsolidationRequest.filter({
+          client_email: user.email,
+          status: 'pendiente'
+        }),
+        base44.entities.ConsolidationRequest.filter({
+          client_email: user.email,
+          status: 'aprobada'
+        }),
+        base44.entities.AppConfig.filter({ config_key: 'main' })
+      ]);
+      
+      const packagesInRequests = new Set();
+      [pendingRequests, approvedRequests].forEach(list => {
+        (list || []).forEach(req => {
+          req.package_ids?.forEach(id => packagesInRequests.add(id));
+        });
       });
-    });
-    
-    // Filter out packages already in consolidations or pending requests
-    const available = pkgs.filter(p => !p.consolidation_id && !packagesInRequests.has(p.id));
-    
-    setPackages(available);
-    if (configs.length > 0) {
-      setConfig(configs[0]);
-      // Set default shipping type to first enabled option
-      if (!formData.shipping_type) {
-        if (configs[0].shipping_type_air_enabled !== false) {
-          setFormData(prev => ({ ...prev, shipping_type: 'aereo' }));
-        } else if (configs[0].shipping_type_sea_enabled !== false) {
-          setFormData(prev => ({ ...prev, shipping_type: 'maritimo' }));
+      
+      const available = pkgs.filter(p => !p.consolidation_id && !packagesInRequests.has(p.id));
+      
+      setPackages(available);
+      if (configs.length > 0) {
+        setConfig(configs[0]);
+        if (!formData.shipping_type) {
+          if (configs[0].shipping_type_air_enabled !== false) {
+            setFormData(prev => ({ ...prev, shipping_type: 'aereo' }));
+          } else if (configs[0].shipping_type_sea_enabled !== false) {
+            setFormData(prev => ({ ...prev, shipping_type: 'maritimo' }));
+          }
         }
       }
+    } catch (error) {
+      console.error('Error loading consolidation request data:', error);
+      setPackages([]);
+      toast.error('No se pudo cargar este módulo.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const togglePackage = (pkgId) => {
