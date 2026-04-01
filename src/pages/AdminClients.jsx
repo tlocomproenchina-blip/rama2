@@ -712,7 +712,7 @@ Email: ${client.email}`;
             <Button 
               onClick={() => setImportModalOpen(true)}
               variant="outline"
-              className="w-full sm:w-auto"
+              className="w-full min-w-0"
             >
               <Upload className="h-4 w-4 mr-2" />
               Importar Clientes
@@ -1023,22 +1023,22 @@ Email: ${client.email}`;
               }`}
             >
               <CardContent className="p-4 lg:p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
                   {/* Avatar & Name */}
-                  <div className="flex items-center gap-4 flex-1">
+                  <div className="flex min-w-0 items-start gap-3 flex-1">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                       {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-800">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-semibold text-slate-800">
                         {client.first_name && client.last_name 
                           ? `${client.first_name} ${client.last_name}`
                           : client.email
                         }
                       </h3>
-                      <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                        <Mail className="h-3 w-3" />
-                        {client.email}
+                      <div className="mt-1 flex min-w-0 items-center gap-2 text-sm text-slate-500">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{client.email}</span>
                       </div>
                     </div>
                   </div>
@@ -1084,18 +1084,19 @@ Email: ${client.email}`;
                   </div>
 
                   {/* Actions */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex items-stretch gap-2 w-full">
-                    <div className="flex items-center gap-2 pb-2 sm:pb-0 sm:pr-3 sm:border-r border-b sm:border-b-0 border-slate-200">
+                  <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-stretch">
+                    <div className="col-span-2 flex items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 sm:col-span-3 lg:col-span-1 lg:justify-start lg:pr-3">
                       <span className="text-xs text-slate-600">Activo</span>
                       <Switch
                         checked={client.is_active !== false}
                         onCheckedChange={(checked) => handleToggleActive(client, checked)}
                       />
                     </div>
+
                     <Button 
                      variant="outline" 
                      size="sm"
-                     className="w-full sm:w-auto"
+                     className="w-full min-w-0"
                      onClick={(e) => {
                        e.stopPropagation();
                        handleCopyClientInfo(client);
@@ -1111,7 +1112,7 @@ Email: ${client.email}`;
                        setPackageClient(client);
                        setAddingPackage(true);
                      }}
-                     className="w-full sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                     className="w-full min-w-0 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Paquete
@@ -1119,7 +1120,7 @@ Email: ${client.email}`;
                     <Button 
                      variant="outline" 
                      size="sm"
-                     className="w-full sm:w-auto"
+                     className="w-full min-w-0"
                      onClick={() => setViewClient(client)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
@@ -1128,7 +1129,7 @@ Email: ${client.email}`;
                     <Button 
                      variant="outline" 
                      size="sm"
-                     className="w-full sm:w-auto"
+                     className="w-full min-w-0"
                      onClick={() => handleEdit(client)}
                     >
                       <Edit2 className="h-4 w-4 mr-1" />
