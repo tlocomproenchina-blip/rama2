@@ -119,7 +119,11 @@ export default function AdminClients({ user }) {
       let users = [];
       if (canViewClients) {
         const res = await base44.functions.invoke('listClientsForSupport', {}, { priority: 'HIGH', opType: 'read' });
-        users = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
+        // El ApiQueueManager devuelve {data: axios_response} donde axios_response = {data: array_real}
+        // Entonces el array puede estar en res.data.data, res.data, o res directamente
+        const rawData = res?.data?.data ?? res?.data ?? res;
+        users = Array.isArray(rawData) ? rawData : [];
+        console.log('[AdminClients] Received users:', users.length);
         setHasMore(false);
       }
 
