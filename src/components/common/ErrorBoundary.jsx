@@ -9,11 +9,21 @@ export default class ErrorBoundary extends React.Component {
     this.state = { hasError: false, error: null, errorInfo: null, errorId: null };
   }
 
-  static getDerivedStateFromError() {
+  static getDerivedStateFromError(error) {
+    const isDynamicImportError = String(error?.message || '').includes('Failed to fetch dynamically imported module');
+    if (isDynamicImportError) {
+      return { hasError: false, error: null, errorInfo: null };
+    }
     return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
+    const isDynamicImportError = String(error?.message || '').includes('Failed to fetch dynamically imported module');
+    if (isDynamicImportError) {
+      console.warn('[ErrorBoundary] Lazy import skipped:', error?.message);
+      return;
+    }
+
     // Log to console
     console.error('[ErrorBoundary] Captured error:', error, errorInfo);
 
