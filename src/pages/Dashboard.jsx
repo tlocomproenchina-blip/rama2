@@ -67,9 +67,9 @@ export default function Dashboard({ user, refreshUser }) {
   const loadData = useCallback(async () => {
     if (!user || !user.email) return;
 
+    setLoading(true);
     try {
-      setLoading(true);
-      const [configs, pkgs, cons, invs, tkts] = await Promise.all([
+      const [configs, pkgs, cons, invs, tkts] = await Promise.allSettled([
         base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1),
         base44.entities.Package.filter({ client_email: user.email }, '-updated_date', 100),
         base44.entities.Consolidation.filter({ client_email: user.email }, '-updated_date', 50),
@@ -77,11 +77,16 @@ export default function Dashboard({ user, refreshUser }) {
         base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date', 10)
       ]);
 
-      if (configs.length > 0) setConfig(configs[0]);
-      setPackages(pkgs || []);
-      setConsolidations(cons || []);
-      setInvoices(invs || []);
-      setTickets(tkts || []);
+      if (configs.status === 'fulfilled' && configs.value.length > 0) setConfig(configs.value[0]);
+      if (pkgs.status === 'fulfilled') setPackages(pkgs.value || []);
+      if (cons.status === 'fulfilled') setConsolidations(cons.value || []);
+      if (invs.status === 'fulfilled') setInvoices(invs.value || []);
+      if (tkts.status === 'fulfilled') setTickets(tkts.value || []);
+
+      const hasFailedRequest = [configs, pkgs, cons, invs, tkts].some(result => result.status === 'rejected');
+      if (hasFailedRequest) {
+        toast.error('Parte de tu panel no pudo cargarse, pero ya puedes seguir usando la app.');
+      }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       if (error.message?.includes('Rate limit')) {
@@ -89,8 +94,9 @@ export default function Dashboard({ user, refreshUser }) {
       } else {
         toast.error('Error al cargar datos. Por favor recarga la página.');
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user?.email]);
 
   useEffect(() => {
