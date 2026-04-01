@@ -1044,42 +1044,42 @@ Email: ${client.email}`;
                   </div>
 
                   {/* Details */}
-                  <div className="flex flex-col items-start gap-2 text-sm lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
+                  <div className="flex min-w-0 flex-col items-start gap-2 text-sm lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
                     {client.city && (
-                      <Badge variant="outline" className="bg-slate-50 w-full justify-start lg:w-auto">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {client.city}
+                      <Badge variant="outline" className="bg-slate-50 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
+                        <MapPin className="h-3 w-3 mr-1 shrink-0" />
+                        <span className="truncate">{client.city}</span>
                       </Badge>
                     )}
                     {client.whatsapp && (
-                      <Badge variant="outline" className="bg-slate-50 w-full justify-start lg:w-auto">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {client.whatsapp}
+                      <Badge variant="outline" className="bg-slate-50 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
+                        <Phone className="h-3 w-3 mr-1 shrink-0" />
+                        <span className="truncate">{client.whatsapp}</span>
                       </Badge>
                     )}
                     {hasValidShippingMark(client) ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 w-full justify-start lg:w-auto">
-                        <Tag className="h-3 w-3 mr-1" />
-                        {client.shipping_mark}
+                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
+                        <Tag className="h-3 w-3 mr-1 shrink-0" />
+                        <span className="truncate">{client.shipping_mark}</span>
                       </Badge>
                     ) : (
-                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 w-full justify-start lg:w-auto">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Sin Shipping Mark
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
+                        <Clock className="h-3 w-3 mr-1 shrink-0" />
+                        <span className="truncate">Sin Shipping Mark</span>
                       </Badge>
                     )}
                     {client.created_date && (
-                      <Badge variant="outline" className="bg-slate-50 w-full justify-start lg:w-auto">
-                        <CalendarDays className="h-3 w-3 mr-1" />
-                        {format(new Date(client.created_date), 'dd MMM yyyy', { locale: es })}
+                      <Badge variant="outline" className="bg-slate-50 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
+                        <CalendarDays className="h-3 w-3 mr-1 shrink-0" />
+                        <span className="truncate">{format(new Date(client.created_date), 'dd MMM yyyy', { locale: es })}</span>
                       </Badge>
                     )}
-                    <Badge variant="outline" className="w-full justify-start lg:w-auto">
-                      <Package className="h-3 w-3 mr-1" />
-                      {packagesCount[client.email] || 0} paquetes
+                    <Badge variant="outline" className="w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto">
+                      <Package className="h-3 w-3 mr-1 shrink-0" />
+                      <span className="truncate">{packagesCount[client.email] || 0} paquetes</span>
                     </Badge>
                     {client.is_active === false && (
-                      <Badge className="bg-red-100 text-red-700 border-red-200 w-full justify-start lg:w-auto">Inactivo</Badge>
+                      <Badge className="bg-red-100 text-red-700 border-red-200 w-full min-w-0 max-w-full justify-start overflow-hidden lg:w-auto"><span className="truncate">Inactivo</span></Badge>
                     )}
                   </div>
 
