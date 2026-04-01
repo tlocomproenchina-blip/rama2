@@ -28,7 +28,8 @@ const STATUS = [
   { key: "archived", label: "Archivado" },
 ];
 
-export default function AdminKnowledgeBase({ user }) {
+export default function AdminKnowledgeBase({ user: userProp }) {
+  const [user, setUser] = useState(userProp || null);
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [q, setQ] = useState("");
@@ -45,7 +46,19 @@ export default function AdminKnowledgeBase({ user }) {
   const [docUrl, setDocUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    if (userProp) setUser(userProp);
+  }, [userProp]);
+
+  useEffect(() => {
+    if (!user) {
+      base44.auth.me().then(u => setUser(u)).catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'admin') loadData();
+  }, [user?.role]);
 
   const loadData = async () => {
     setLoading(true);
