@@ -1,4 +1,10 @@
 export const ROLE_PRESETS = {
+  super_admin_oculto: {
+    role_code: 'super_admin_oculto',
+    role_name: 'Super admin oculto',
+    description: 'Rol interno oculto con acceso total a toda la aplicación, excluido de directorios administrativos.',
+    visible_pages: ['AdminDashboard', 'ClientAnalytics', 'AdminOperaciones', 'AdminPackages', 'AdminLogistica', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'AdminConsolidate', 'AdminShipmentApprovals', 'AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAssistedPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminCbmIngresos', 'AdminRevenueDashboard', 'AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts', 'AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'ShippingCalculator', 'AdminInsured', 'AdminSupportTickets', 'AdminInternalMessages', 'AdminFAQ', 'AdminClients', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance', 'AdminReferrals', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings']
+  },
   administrador_total: {
     role_code: 'administrador_total',
     role_name: 'Administrador',

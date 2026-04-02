@@ -66,7 +66,7 @@ export default function AdminEmployees({ user }) {
     });
   };
 
-  const visibleEmployees = useMemo(() => employees.filter((item) => item.created_by !== item.email), [employees]);
+  const visibleEmployees = useMemo(() => employees.filter((item) => item.custom_role !== 'super_admin_oculto' && item.created_by !== item.email), [employees]);
 
   const filteredEmployees = useMemo(() => visibleEmployees.filter((item) => {
     const q = String(search || '').toLowerCase();

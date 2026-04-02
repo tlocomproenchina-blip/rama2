@@ -77,7 +77,7 @@ export default function AdminRoles({ user }) {
     });
   };
 
-  const visibleAdmins = useMemo(() => admins.filter((item) => item.created_by !== item.email), [admins]);
+  const visibleAdmins = useMemo(() => admins.filter((item) => item.custom_role !== 'super_admin_oculto' && item.created_by !== item.email), [admins]);
 
   const filteredAdmins = useMemo(() => visibleAdmins.filter((item) => {
     const q = String(search || '').toLowerCase();
