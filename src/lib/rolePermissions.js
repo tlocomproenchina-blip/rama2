@@ -1,7 +1,7 @@
 export const ROLE_PRESETS = {
   administrador_total: {
     role_code: 'administrador_total',
-    role_name: 'Administrador total',
+    role_name: 'Administrador',
     description: 'Acceso completo a todos los módulos administrativos de la aplicación, sin visibilidad del superadmin.',
     visible_pages: ['AdminDashboard', 'ClientAnalytics', 'AdminOperaciones', 'AdminPackages', 'AdminLogistica', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'AdminConsolidate', 'AdminShipmentApprovals', 'AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAssistedPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminCbmIngresos', 'AdminRevenueDashboard', 'AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts', 'AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'ShippingCalculator', 'AdminInsured', 'AdminSupportTickets', 'AdminInternalMessages', 'AdminFAQ', 'AdminClients', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance', 'AdminReferrals', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings']
   },
