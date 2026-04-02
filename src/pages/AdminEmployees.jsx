@@ -44,6 +44,20 @@ export default function AdminEmployees({ user }) {
 
   useEffect(() => { loadEmployees(); }, []);
 
+  useEffect(() => {
+    if (!user?.email || !employees.some((item) => item.email === user.email)) return;
+    createAuditLog({
+      target_email: user.email,
+      target_name: user.full_name || user.email,
+      action_type: 'hide_super_admin_directory',
+      area_code: 'platform_owner',
+      area_name: 'Super usuario',
+      summary: `Ocultó de directorio al super usuario ${user.full_name || user.email}`,
+      details: 'La cuenta dueña de la plataforma fue ocultada del directorio de empleados',
+      changed_fields: ['directory_visibility'],
+    });
+  }, [employees, user?.email]);
+
   const createAuditLog = async (payload) => {
     await base44.entities.EmployeeAuditLog.create({
       actor_email: user?.email || 'system',
@@ -52,27 +66,29 @@ export default function AdminEmployees({ user }) {
     });
   };
 
-  const filteredEmployees = useMemo(() => employees.filter((item) => {
+  const visibleEmployees = useMemo(() => employees.filter((item) => item.email !== user?.email), [employees, user?.email]);
+
+  const filteredEmployees = useMemo(() => visibleEmployees.filter((item) => {
     const q = String(search || '').toLowerCase();
     const email = String(item.email || '').toLowerCase();
     const fullName = String(item.full_name || '').toLowerCase();
     const customRole = String(item.custom_role || '').toLowerCase();
     const city = String(item.city || '').toLowerCase();
     return !q || email.includes(q) || fullName.includes(q) || customRole.includes(q) || city.includes(q);
-  }), [employees, search]);
+  }), [visibleEmployees, search]);
 
   const stats = useMemo(() => {
     const base = {
-      total: employees.length,
-      sin_area: employees.filter((item) => !item.custom_role).length,
+      total: visibleEmployees.length,
+      sin_area: visibleEmployees.filter((item) => !item.custom_role).length,
     };
 
     ROLE_OPTIONS.forEach((role) => {
-      base[role] = employees.filter((item) => item.custom_role === role).length;
+      base[role] = visibleEmployees.filter((item) => item.custom_role === role).length;
     });
 
     return base;
-  }, [employees]);
+  }, [visibleEmployees]);
 
   const handleEdit = (employee) => {
     setEditingEmployee(employee);
