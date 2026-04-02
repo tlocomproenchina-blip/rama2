@@ -65,7 +65,6 @@ const VENEZUELAN_STATES = [
 export default function AdminSettings({ user }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const pricingLocked = !!appConfig?.admin_dashboard_prefs?.pricing_locked;
   
   // Pricing Config
   const [pricingConfig, setPricingConfig] = useState({
@@ -529,6 +528,8 @@ export default function AdminSettings({ user }) {
     const total = (base * (1 + benefit / 100)) + state + doorToDoor;
     return total.toFixed(2);
   };
+
+  const pricingLocked = !!appConfig?.admin_dashboard_prefs?.pricing_locked;
 
   return (
     <div className="space-y-4 md:space-y-6 max-w-6xl mx-auto">
