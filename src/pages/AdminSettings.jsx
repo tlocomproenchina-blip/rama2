@@ -181,6 +181,14 @@ export default function AdminSettings({ user }) {
   const handleSavePricing = async () => {
     setSaving(true);
     try {
+      const appConfigs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      const pricingLocked = !!appConfigs?.[0]?.admin_dashboard_prefs?.pricing_locked;
+
+      if (pricingLocked) {
+        toast.error('Debes comunicarte con tu administrador CARGOFY para realizar modificaciones en las tarifas');
+        return;
+      }
+
       const existing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
       if (existing.length > 0) {
         await base44.entities.PricingConfig.update(existing[0].id, { ...pricingConfig, config_key: 'main' });
