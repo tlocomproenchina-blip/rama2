@@ -131,6 +131,7 @@ export default function AdminSettings({ user }) {
   // Cache clear countdown
   const [clearing, setClearing] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(10);
+  const pricingLocked = appConfig?.admin_dashboard_prefs?.pricing_locked ?? false;
 
   useEffect(() => {
     loadAllConfigs();
@@ -603,6 +604,29 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
+              {pricingLocked && (
+                <div style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: 12,
+                  padding: "16px 20px",
+                  marginBottom: 20,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  pointerEvents: "none",
+                }}>
+                  <span style={{ fontSize: 28 }}>🔒</span>
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#dc2626", fontSize: 14 }}>
+                      Módulo bloqueado
+                    </div>
+                    <div style={{ color: "#991b1b", fontSize: 13, marginTop: 2 }}>
+                      Requieres autorización del administrador de CARGOFY para realizar alguna modificación
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Tarifa base Regular ($)</Label>
@@ -610,6 +634,12 @@ export default function AdminSettings({ user }) {
                     type="number"
                     value={pricingConfig.base_rate_regular}
                     onChange={(e) => setPricingConfig({ ...pricingConfig, base_rate_regular: parseFloat(e.target.value) || 0 })}
+                    disabled={pricingLocked}
+                    style={{
+                      opacity: pricingLocked ? 0.5 : 1,
+                      cursor: pricingLocked ? "not-allowed" : "text",
+                      backgroundColor: pricingLocked ? "#f3f4f6" : "",
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -618,6 +648,12 @@ export default function AdminSettings({ user }) {
                     type="number"
                     value={pricingConfig.base_rate_high_risk}
                     onChange={(e) => setPricingConfig({ ...pricingConfig, base_rate_high_risk: parseFloat(e.target.value) || 0 })}
+                    disabled={pricingLocked}
+                    style={{
+                      opacity: pricingLocked ? 0.5 : 1,
+                      cursor: pricingLocked ? "not-allowed" : "text",
+                      backgroundColor: pricingLocked ? "#f3f4f6" : "",
+                    }}
                   />
                 </div>
               </div>
@@ -629,6 +665,12 @@ export default function AdminSettings({ user }) {
                     type="number"
                     value={pricingConfig.profit_percentage}
                     onChange={(e) => setPricingConfig({ ...pricingConfig, profit_percentage: parseFloat(e.target.value) || 0 })}
+                    disabled={pricingLocked}
+                    style={{
+                      opacity: pricingLocked ? 0.5 : 1,
+                      cursor: pricingLocked ? "not-allowed" : "text",
+                      backgroundColor: pricingLocked ? "#f3f4f6" : "",
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -637,6 +679,12 @@ export default function AdminSettings({ user }) {
                     type="number"
                     value={pricingConfig.door_to_door_cost}
                     onChange={(e) => setPricingConfig({ ...pricingConfig, door_to_door_cost: parseFloat(e.target.value) || 0 })}
+                    disabled={pricingLocked}
+                    style={{
+                      opacity: pricingLocked ? 0.5 : 1,
+                      cursor: pricingLocked ? "not-allowed" : "text",
+                      backgroundColor: pricingLocked ? "#f3f4f6" : "",
+                    }}
                   />
                 </div>
               </div>
@@ -653,7 +701,12 @@ export default function AdminSettings({ user }) {
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button onClick={handleSavePricing} disabled={saving} className="w-full">
+                <Button
+                  onClick={handleSavePricing}
+                  disabled={saving || pricingLocked}
+                  className="w-full"
+                  style={{ opacity: pricingLocked ? 0.4 : 1, cursor: pricingLocked ? "not-allowed" : "pointer" }}
+                >
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Guardar configuración
                 </Button>
