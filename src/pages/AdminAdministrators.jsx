@@ -33,6 +33,20 @@ export default function AdminAdministrators({ user }) {
 
   useEffect(() => { loadAdmins(); }, []);
 
+  useEffect(() => {
+    if (!user?.email || !admins.some((admin) => admin.email === user.email)) return;
+    createAuditLog({
+      target_email: user.email,
+      target_name: user.full_name || user.email,
+      action_type: 'hide_super_admin_directory',
+      area_code: 'platform_owner',
+      area_name: 'Super usuario',
+      summary: `Ocultó de directorio al super usuario ${user.full_name || user.email}`,
+      details: 'La cuenta dueña de la plataforma fue ocultada del directorio de administradores',
+      changed_fields: ['directory_visibility'],
+    });
+  }, [admins, user?.email]);
+
   const createAuditLog = async (payload) => {
     await base44.entities.EmployeeAuditLog.create({
       actor_email: user?.email || 'system',
@@ -41,18 +55,20 @@ export default function AdminAdministrators({ user }) {
     });
   };
 
-  const filteredAdmins = useMemo(() => admins.filter((admin) => {
+  const visibleAdmins = useMemo(() => admins.filter((admin) => admin.email !== user?.email), [admins, user?.email]);
+
+  const filteredAdmins = useMemo(() => visibleAdmins.filter((admin) => {
     const q = String(search || '').toLowerCase();
     const email = String(admin.email || '').toLowerCase();
     const fullName = String(admin.full_name || '').toLowerCase();
     return !q || email.includes(q) || fullName.includes(q);
-  }), [admins, search]);
+  }), [visibleAdmins, search]);
 
   const stats = useMemo(() => ({
-    total: admins.length,
-    conArea: admins.filter((item) => !!item.custom_role).length,
-    sinArea: admins.filter((item) => !item.custom_role).length,
-  }), [admins]);
+    total: visibleAdmins.length,
+    conArea: visibleAdmins.filter((item) => !!item.custom_role).length,
+    sinArea: visibleAdmins.filter((item) => !item.custom_role).length,
+  }), [visibleAdmins]);
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
