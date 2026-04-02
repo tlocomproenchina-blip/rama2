@@ -529,8 +529,6 @@ export default function AdminSettings({ user }) {
     return total.toFixed(2);
   };
 
-  const pricingLocked = !!appConfig?.admin_dashboard_prefs?.pricing_locked;
-
   return (
     <div className="space-y-4 md:space-y-6 max-w-6xl mx-auto">
       <div>
@@ -605,12 +603,6 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
-              {pricingLocked && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                  🔒 Requieres autorización del administrador de CARGOFY para realizar alguna modificación
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Tarifa base Regular ($)</Label>
@@ -618,8 +610,6 @@ export default function AdminSettings({ user }) {
                     type="number"
                     value={pricingConfig.base_rate_regular}
                     onChange={(e) => setPricingConfig({ ...pricingConfig, base_rate_regular: parseFloat(e.target.value) || 0 })}
-                    disabled={pricingLocked}
-                    className={pricingLocked ? 'opacity-50 cursor-not-allowed' : ''}
                   />
                 </div>
                 <div className="space-y-2">
@@ -628,8 +618,6 @@ export default function AdminSettings({ user }) {
                     type="number"
                     value={pricingConfig.base_rate_high_risk}
                     onChange={(e) => setPricingConfig({ ...pricingConfig, base_rate_high_risk: parseFloat(e.target.value) || 0 })}
-                    disabled={pricingLocked}
-                    className={pricingLocked ? 'opacity-50 cursor-not-allowed' : ''}
                   />
                 </div>
               </div>
@@ -641,8 +629,6 @@ export default function AdminSettings({ user }) {
                     type="number"
                     value={pricingConfig.profit_percentage}
                     onChange={(e) => setPricingConfig({ ...pricingConfig, profit_percentage: parseFloat(e.target.value) || 0 })}
-                    disabled={pricingLocked}
-                    className={pricingLocked ? 'opacity-50 cursor-not-allowed' : ''}
                   />
                 </div>
                 <div className="space-y-2">
@@ -651,8 +637,6 @@ export default function AdminSettings({ user }) {
                     type="number"
                     value={pricingConfig.door_to_door_cost}
                     onChange={(e) => setPricingConfig({ ...pricingConfig, door_to_door_cost: parseFloat(e.target.value) || 0 })}
-                    disabled={pricingLocked}
-                    className={pricingLocked ? 'opacity-50 cursor-not-allowed' : ''}
                   />
                 </div>
               </div>
@@ -665,13 +649,11 @@ export default function AdminSettings({ user }) {
                 <Switch
                   checked={pricingConfig.is_door_to_door_optional}
                   onCheckedChange={(checked) => setPricingConfig({ ...pricingConfig, is_door_to_door_optional: checked })}
-                  disabled={pricingLocked}
-                  className={pricingLocked ? 'opacity-50 cursor-not-allowed' : ''}
                 />
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button onClick={handleSavePricing} disabled={saving || pricingLocked} className="w-full">
+                <Button onClick={handleSavePricing} disabled={saving} className="w-full">
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Guardar configuración
                 </Button>
