@@ -168,6 +168,10 @@ export default function AdminEmployees({ user }) {
           changed_fields: ['role', 'custom_role'],
         });
 
+        if (inviteArea === 'administrador_total') {
+          await base44.entities.User.update(existingUser.id, { role: 'admin', custom_role: 'administrador_total' });
+        }
+
         toast.success('Cliente convertido en empleado');
       } else {
         await base44.users.inviteUser(normalizedEmail, 'admin');
@@ -300,6 +304,7 @@ export default function AdminEmployees({ user }) {
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
               El empleado será invitado con acceso administrativo y podrás seguir editándolo desde este módulo.
+              {inviteArea === 'administrador_total' ? ' Tendrá acceso completo a toda la aplicación administrativa, sin ver al superadmin.' : ''}
             </div>
           </div>
 
