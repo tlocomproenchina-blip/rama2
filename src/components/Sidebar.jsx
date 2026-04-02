@@ -50,7 +50,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
   useEffect(() => {
     let active = true;
     const loadRoleConfig = async () => {
-      if (user?.role !== 'admin' || !user?.custom_role) {
+      const isSuperAdmin = user?.role === 'admin' && user?.created_by === user?.email;
+      if (user?.role !== 'admin' || !user?.custom_role || isSuperAdmin) {
         if (active) setRoleConfig(null);
         return;
       }
@@ -90,9 +91,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
   const visibleAdminPages = useMemo(() => {
     if (user?.role !== 'admin') return [];
-    if (!user?.custom_role) return adminMenuItems.map((item) => item.page);
+    const isSuperAdmin = user?.created_by === user?.email;
+    if (!user?.custom_role || isSuperAdmin) return adminMenuItems.map((item) => item.page);
     return roleConfig?.visible_pages || [];
-  }, [user?.role, user?.custom_role, roleConfig]);
+  }, [user?.role, user?.custom_role, user?.created_by, user?.email, roleConfig]);
 
   const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
   const filteredAdminGroups = useMemo(() => adminGroups.map((group) => ({

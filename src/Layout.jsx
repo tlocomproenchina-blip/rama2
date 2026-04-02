@@ -239,7 +239,8 @@ export default function Layout({ children, currentPageName }) {
       setUser(currentUser);
 
       let resolvedRoleConfig = null;
-      if (currentUser?.role === 'admin' && currentUser?.custom_role) {
+      const isSuperAdmin = currentUser?.role === 'admin' && currentUser?.created_by === currentUser?.email;
+      if (currentUser?.role === 'admin' && currentUser?.custom_role && !isSuperAdmin) {
         try {
           const roleRows = await base44.entities.RoleConfig.filter({ role_code: currentUser.custom_role, is_active: true }, '-updated_date', 1);
           resolvedRoleConfig = roleRows?.[0] || getDefaultRoleConfig(currentUser.custom_role);

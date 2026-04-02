@@ -55,7 +55,7 @@ export default function AdminAdministrators({ user }) {
     });
   };
 
-  const visibleAdmins = useMemo(() => admins.filter((admin) => admin.email !== user?.email), [admins, user?.email]);
+  const visibleAdmins = useMemo(() => admins.filter((admin) => admin.created_by !== admin.email), [admins]);
 
   const filteredAdmins = useMemo(() => visibleAdmins.filter((admin) => {
     const q = String(search || '').toLowerCase();
