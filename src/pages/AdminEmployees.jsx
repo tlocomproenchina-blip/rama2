@@ -35,7 +35,7 @@ export default function AdminEmployees({ user }) {
     setLoading(true);
     try {
       const rows = await base44.entities.User.filter({ role: 'admin' }, '-created_date', 300);
-      setEmployees(rows || []);
+      setEmployees((rows || []).filter((item) => item?.custom_role !== 'super_admin_oculto'));
     } catch {
       toast.error('No se pudieron cargar los empleados');
     }

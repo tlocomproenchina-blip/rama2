@@ -67,7 +67,7 @@ export const ROLE_PRESETS = {
   }
 };
 
-export const ROLE_OPTIONS = Object.keys(ROLE_PRESETS);
+export const ROLE_OPTIONS = Object.keys(ROLE_PRESETS).filter((roleCode) => roleCode !== 'super_admin_oculto');
 
 export const PAGE_LABELS = {
   AdminDashboard: 'Dashboard Admin',
