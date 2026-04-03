@@ -91,7 +91,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
   const visibleAdminPages = useMemo(() => {
     if (user?.role !== 'admin') return [];
     if (!user?.custom_role) return adminMenuItems.map((item) => item.page);
-    return roleConfig?.visible_pages || [];
+    return roleConfig?.visible_pages?.length ? roleConfig.visible_pages : adminMenuItems.map((item) => item.page);
   }, [user?.role, user?.custom_role, roleConfig]);
 
   const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
