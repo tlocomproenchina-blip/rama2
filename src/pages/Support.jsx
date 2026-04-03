@@ -40,6 +40,9 @@ export default function Support({ user }) {
   });
   const [creating, setCreating] = useState(false);
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const ticketIdFromUrl = urlParams.get('ticket');
+
   useEffect(() => {
     if (user?.email) {
       loadTickets();
@@ -50,6 +53,12 @@ export default function Support({ user }) {
     if (!user?.email) return;
     const allTickets = await base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date');
     setTickets(allTickets);
+    if (ticketIdFromUrl) {
+      const matchedTicket = allTickets.find(ticket => ticket.id === ticketIdFromUrl);
+      if (matchedTicket) {
+        setSelectedTicket(matchedTicket);
+      }
+    }
     setLoading(false);
   };
 

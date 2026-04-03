@@ -25,7 +25,7 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-function buildEmailBody({ clientName, trackingNumber, companyName, deliveryAddress, appName }) {
+function buildEmailBody({ clientName, trackingNumber, companyName, deliveryAddress, appName, supportUrl }) {
   return `
     <div style="font-family: Arial, sans-serif; color: #1e293b; line-height: 1.6; max-width: 760px; margin: 0 auto;">
       <h2 style="margin: 0 0 16px; color: #0f172a;">Solicitud de comprobante de entrega</h2>
@@ -36,7 +36,8 @@ function buildEmailBody({ clientName, trackingNumber, companyName, deliveryAddre
         <p style="margin: 0 0 8px;"><strong>Compañía:</strong> ${escapeHtml(companyName)}</p>
         <p style="margin: 0;"><strong>Dirección:</strong> ${escapeHtml(deliveryAddress)}</p>
       </div>
-      <p>Por favor responde este correo adjuntando capturas o fotos donde se vea claramente la entrega del paquete.</p>
+      <p>Hemos creado un ticket de soporte urgente con esta solicitud para que nos envíes el comprobante directamente desde tu cuenta.</p>
+      <p><a href="${supportUrl}" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 18px; border-radius: 10px; font-weight: 600;">Abrir ticket de soporte</a></p>
       <p>Las imágenes deben verse como en los ejemplos que te mostramos a continuación:</p>
       <div style="display: grid; gap: 16px; margin: 24px 0;">
         <div>
@@ -71,6 +72,9 @@ Deno.serve(async (req) => {
       return createdDate && createdDate <= thresholdDate && !pkg.delivery_proof_request_sent_date;
     });
 
+    const appId = Deno.env.get('BASE44_APP_ID');
+    const appOwner = req.headers.get('x-base44-app-owner') || req.headers.get('X-Base44-App-Owner') || '';
+
     let sent = 0;
     const skipped = [];
 
@@ -87,18 +91,45 @@ Deno.serve(async (req) => {
       const companyName = pkg.shipping_company || pkg.company || pkg.carrier || 'No especificada';
       const deliveryAddress = pkg.shipping_address || pkg.delivery_address || pkg.address || client.address || 'No especificada';
 
+      const now = new Date();
+      const ticketNumber = `TK-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      const initialMessage = `Solicitud automática de comprobante de entrega.\n\nTracking: ${pkg.tracking_number || 'N/A'}\nCompañía: ${companyName}\nDirección: ${deliveryAddress}`;
+
+      const ticket = await base44.asServiceRole.entities.SupportTicket.create({
+        ticket_number: ticketNumber,
+        client_email: client.email,
+        subject: `Solicitud urgente de comprobante - ${pkg.tracking_number || 'Tracking'}`,
+        status: 'abierto',
+        priority: 'urgente',
+        category: 'tracking',
+        related_tracking: pkg.tracking_number || '',
+        messages: [{
+          sender_email: 'admin',
+          sender_name: 'Administrador',
+          message: initialMessage,
+          timestamp: now.toISOString(),
+          is_admin: true,
+          attachments: []
+        }]
+      });
+
+      const supportUrl = appOwner
+        ? `https://app.base44.com/apps/${appOwner}/${appId}/Support?ticket=${ticket.id}`
+        : `/Support?ticket=${ticket.id}`;
+
       const body = buildEmailBody({
         clientName,
         trackingNumber: pkg.tracking_number || 'N/A',
         companyName,
         deliveryAddress,
         appName,
+        supportUrl,
       });
 
       await base44.asServiceRole.integrations.Core.SendEmail({
         from_name: appName,
         to: client.email,
-        subject: `Solicitud de comprobante de entrega - ${pkg.tracking_number || 'Tracking'}`,
+        subject: `URGENTE: solicitud de comprobante - ${pkg.tracking_number || 'Tracking'}`,
         body,
       });
 
