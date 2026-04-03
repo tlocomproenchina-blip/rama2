@@ -13,6 +13,7 @@ export default function useAttentionFlags({ user }) {
       return [
         { key: 'AdminSupportTickets', entity: 'SupportTicket' },
         { key: 'AdminPackages', entity: 'Package' },
+        { key: 'AdminPreAlerts', entity: 'Package', stalePreAlertsOnly: true },
         { key: 'AdminPayments', entity: 'Consolidation' },
       ];
     }
@@ -37,7 +38,20 @@ export default function useAttentionFlags({ user }) {
       try {
         let latestMs = 0;
 
-        if (w.key === 'AdminPackages') {
+        if (w.stalePreAlertsOnly) {
+          let allRows = [];
+          let skip = 0;
+          while (true) {
+            const batch = await base44.entities.Package.filter({ status: 'pre_alerta' }, '-created_date', 200, skip);
+            if (!batch?.length) break;
+            allRows = allRows.concat(batch);
+            if (batch.length < 200) break;
+            skip += 200;
+          }
+          const cutoffMs = Date.now() - (7 * 24 * 60 * 60 * 1000);
+          const latestStale = allRows.find((row) => new Date(row.created_date || 0).getTime() <= cutoffMs);
+          latestMs = latestStale ? new Date(latestStale.updated_date || latestStale.created_date || 0).getTime() : 0;
+        } else if (w.key === 'AdminPackages') {
           const auditRows = await base44.entities.ActivityAuditLog.filter({ entity_name: 'Package' }, '-created_date', 50);
           const relevantAudit = (auditRows || []).find((row) => {
             const changedFields = Array.isArray(row?.changed_fields) ? row.changed_fields : [];
