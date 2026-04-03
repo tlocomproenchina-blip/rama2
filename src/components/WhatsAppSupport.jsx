@@ -34,7 +34,7 @@ export default function WhatsAppSupport() {
   return (
     <button
       onClick={handleWhatsAppClick}
-      className="fixed bottom-6 right-6 z-30 bg-green-500 hover:bg-green-600 text-white rounded-full p-4 shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center"
+      className="fixed bottom-5 right-5 z-30 bg-green-500 hover:bg-green-600 text-white rounded-full p-4 shadow-lg transition-all duration-300 hover:scale-110 flex items-center justify-center lg:bottom-6 lg:right-6"
       title="Soporte por WhatsApp"
     >
       {config.whatsapp_icon_url ? (
