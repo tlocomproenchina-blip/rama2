@@ -24,7 +24,13 @@ export default function AdminSupportNewTicketDialog({
         <DialogHeader>
           <DialogTitle>Crear Ticket para Cliente</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <form
+          className="space-y-4 py-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCreateTicket();
+          }}
+        >
           <div className="space-y-2">
             <Label>Cliente *</Label>
             <div className="space-y-2">
@@ -137,10 +143,10 @@ export default function AdminSupportNewTicketDialog({
               onChange={(attachments) => setNewTicket({ ...newTicket, attachments })}
             />
           </div>
-        </div>
+        </form>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setShowNewTicket(false)}>Cancelar</Button>
-          <Button onClick={handleCreateTicket} className="bg-blue-600 hover:bg-blue-700">Crear Ticket</Button>
+          <Button type="button" variant="outline" onClick={() => setShowNewTicket(false)}>Cancelar</Button>
+          <Button type="submit" className="bg-blue-600 hover:bg-blue-700">Crear Ticket</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
