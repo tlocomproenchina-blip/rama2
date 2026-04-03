@@ -24,7 +24,7 @@ export default function AdminAdministrators({ user }) {
     setLoading(true);
     try {
       const rows = await base44.entities.User.filter({ role: 'admin' }, '-created_date', 200);
-      setAdmins((rows || []).filter((item) => item.custom_role !== 'super_admin_oculto'));
+      setAdmins(rows || []);
     } catch {
       toast.error('No se pudieron cargar los administradores');
     }

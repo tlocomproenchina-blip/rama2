@@ -53,12 +53,6 @@ export const ROLE_PRESETS = {
     description: 'Gestión de empleados, administradores, roles y auditoría.',
     visible_pages: ['AdminDashboard', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance']
   },
-  super_admin_oculto: {
-    role_code: 'super_admin_oculto',
-    role_name: 'Super Admin',
-    description: 'Acceso total interno del propietario de la app.',
-    visible_pages: ['AdminDashboard', 'ClientAnalytics', 'AdminOperaciones', 'AdminPackages', 'AdminLogistica', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'AdminConsolidate', 'AdminShipmentApprovals', 'AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAssistedPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminCbmIngresos', 'AdminRevenueDashboard', 'AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts', 'AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'ShippingCalculator', 'AdminInsured', 'AdminSupportTickets', 'AdminInternalMessages', 'AdminFAQ', 'AdminClients', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance', 'AdminReferrals', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings']
-  }
 };
 
 export const ROLE_OPTIONS = Object.keys(ROLE_PRESETS);
