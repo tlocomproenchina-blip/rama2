@@ -34,6 +34,25 @@ export default function StalePackagesPanel() {
   const [trackingsWithTickets, setTrackingsWithTickets] = useState(new Set());
   const [sendingManualEmail, setSendingManualEmail] = useState(false);
 
+  const refreshOpenTickets = async () => {
+    try {
+      const [open, inProgress] = await Promise.all([
+        base44.entities.SupportTicket.filter({ status: 'abierto' }, '-created_date', 200),
+        base44.entities.SupportTicket.filter({ status: 'en_proceso' }, '-created_date', 200),
+      ]);
+      const trackingSet = new Set();
+      [...open, ...inProgress].forEach(t => {
+        if (t.related_tracking) {
+          t.related_tracking.split(',').forEach(tn => {
+            const trimmed = tn.trim();
+            if (trimmed) trackingSet.add(trimmed);
+          });
+        }
+      });
+      setTrackingsWithTickets(trackingSet);
+    } catch (_) {}
+  };
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -176,6 +195,7 @@ export default function StalePackagesPanel() {
       if (skipped.length > 0) {
         toast.message(`${skipped.length} pre-alerta(s) no se pudieron enviar`);
       }
+      await refreshOpenTickets();
       setSelected([]);
       const refreshed = stalePackages.map(pkg => selected.includes(pkg.id)
         ? { ...pkg, delivery_proof_request_sent_date: new Date().toISOString() }
@@ -348,20 +368,12 @@ export default function StalePackagesPanel() {
 
       <StaleTicketDialog
         open={ticketDialog.open}
+        onCreated={refreshOpenTickets}
         onOpenChange={(v) => {
           setTicketDialog(prev => ({ ...prev, open: v }));
           if (!v) {
             // Refresh ticket status after closing dialog
-            Promise.all([
-              base44.entities.SupportTicket.filter({ status: 'abierto' }, '-created_date', 200),
-              base44.entities.SupportTicket.filter({ status: 'en_proceso' }, '-created_date', 200),
-            ]).then(([a, b]) => {
-              const set = new Set();
-              [...a, ...b].forEach(t => {
-                if (t.related_tracking) t.related_tracking.split(',').forEach(tn => { const trimmed = tn.trim(); if (trimmed) set.add(trimmed); });
-              });
-              setTrackingsWithTickets(set);
-            }).catch(() => {});
+            refreshOpenTickets();
           }
         }}
         clientEmail={ticketDialog.email}

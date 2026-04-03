@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Ticket } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function StaleTicketDialog({ open, onOpenChange, clientEmail, trackingNumbers }) {
+export default function StaleTicketDialog({ open, onOpenChange, clientEmail, trackingNumbers, onCreated }) {
   const [extraMessage, setExtraMessage] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -42,6 +42,7 @@ export default function StaleTicketDialog({ open, onOpenChange, clientEmail, tra
       });
 
       toast.success(`Ticket creado para ${clientEmail}`);
+      onCreated?.();
       setExtraMessage('');
       onOpenChange(false);
     } catch (err) {
