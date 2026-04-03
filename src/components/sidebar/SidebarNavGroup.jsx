@@ -6,6 +6,7 @@ import { prefetchPageData } from '@/lib/adminPagePrefetch';
 
 export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage, flags, onItemClick }) {
   const [isOpen, setIsOpen] = useState(false);
+  const hasGroupNotification = pages.some((page) => flags?.[page]);
 
   return (
     <div className="mt-5 first:mt-0" data-tour-group={label}>
@@ -15,8 +16,13 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
         className="flex w-full items-center gap-3 px-2 pb-2.5 text-left"
       >
         <div className="h-px flex-1 bg-gradient-to-r from-slate-200 to-transparent" />
-        <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
-          {label}
+        <div className="flex items-center gap-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+            {label}
+          </div>
+          {hasGroupNotification && (
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-sm" />
+          )}
         </div>
         <ChevronDown className={['h-4 w-4 text-slate-300 transition-transform duration-200', isOpen ? 'rotate-180' : 'rotate-0'].join(' ')} />
       </button>
