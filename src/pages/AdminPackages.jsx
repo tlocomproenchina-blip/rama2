@@ -37,7 +37,6 @@ import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
 import PackageImportDialog from '@/components/imports/PackageImportDialog';
 import BulkPhotoUploadModal from '@/components/admin/BulkPhotoUploadModal';
 import MobilePackageCard from '@/components/admin/MobilePackageCard';
-import StalePackagesPanel from '@/components/admin/StalePackagesPanel';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 export default function AdminPackages({ user }) {
@@ -571,7 +570,6 @@ export default function AdminPackages({ user }) {
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
                 <TabsList className="flex w-full gap-0 p-1">
                   <TabsTrigger value="all" className="flex-1 text-center">Todos</TabsTrigger>
-                  <TabsTrigger value="pre_alerta" className="flex-1 text-center">Pre-alerta</TabsTrigger>
                   <TabsTrigger value="recibido" className="flex-1 text-center">Recibido</TabsTrigger>
 
                   <TabsTrigger value="consolidado" className="flex-1 text-center">Consolidado</TabsTrigger>
@@ -769,9 +767,6 @@ export default function AdminPackages({ user }) {
           </CardContent>
         </Card>
       )}
-
-      {/* Stale packages reminder panel */}
-      <StalePackagesPanel onNotified={() => loadPackages(false)} />
 
       {/* Mobile Packages List (stacked) */}
       <div className="grid gap-3 2xl:hidden">

@@ -33,6 +33,7 @@ import AdminInternalMessages from './pages/AdminInternalMessages';
 import AdminCbmIngresos from './pages/AdminCbmIngresos';
 import AdminDuplicates from './pages/AdminDuplicates';
 import AdminRevenueDashboard from './pages/AdminRevenueDashboard';
+import AdminPreAlerts from './pages/AdminPreAlerts';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -218,6 +219,11 @@ const AuthenticatedApp = () => {
       <Route path="/AdminRevenueDashboard" element={
         <LayoutWrapper currentPageName="AdminRevenueDashboard">
           <AdminRevenueDashboard />
+        </LayoutWrapper>
+      } />
+      <Route path="/AdminPreAlerts" element={
+        <LayoutWrapper currentPageName="AdminPreAlerts">
+          <AdminPreAlerts />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

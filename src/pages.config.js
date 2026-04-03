@@ -75,6 +75,7 @@ import AdminMarketing from './pages/AdminMarketing';
 import AdminOperaciones from './pages/AdminOperaciones';
 import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
+import AdminPreAlerts from './pages/AdminPreAlerts';
 import AdminPayments from './pages/AdminPayments';
 import AdminPromotions from './pages/AdminPromotions';
 import AdminProviderPayments from './pages/AdminProviderPayments';
@@ -146,6 +147,7 @@ export const PAGES = {
     "AdminOperaciones": AdminOperaciones,
     "AdminPackages": AdminPackages,
     "AdminPaymentAlerts": AdminPaymentAlerts,
+    "AdminPreAlerts": AdminPreAlerts,
     "AdminPayments": AdminPayments,
     "AdminPromotions": AdminPromotions,
     "AdminProviderPayments": AdminProviderPayments,
