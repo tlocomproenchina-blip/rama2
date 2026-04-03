@@ -24,7 +24,7 @@ export default function AdminAdministrators({ user }) {
     setLoading(true);
     try {
       const rows = await base44.entities.User.filter({ role: 'admin' }, '-created_date', 200);
-      setAdmins((rows || []).filter((item) => item?.custom_role !== 'super_admin_oculto'));
+      setAdmins(rows || []);
     } catch {
       toast.error('No se pudieron cargar los administradores');
     }
@@ -32,20 +32,6 @@ export default function AdminAdministrators({ user }) {
   };
 
   useEffect(() => { loadAdmins(); }, []);
-
-  useEffect(() => {
-    if (!user?.email || !admins.some((admin) => admin.email === user.email)) return;
-    createAuditLog({
-      target_email: user.email,
-      target_name: user.full_name || user.email,
-      action_type: 'hide_super_admin_directory',
-      area_code: 'platform_owner',
-      area_name: 'Super usuario',
-      summary: `Ocultó de directorio al super usuario ${user.full_name || user.email}`,
-      details: 'La cuenta dueña de la plataforma fue ocultada del directorio de administradores',
-      changed_fields: ['directory_visibility'],
-    });
-  }, [admins, user?.email]);
 
   const createAuditLog = async (payload) => {
     await base44.entities.EmployeeAuditLog.create({
@@ -55,20 +41,18 @@ export default function AdminAdministrators({ user }) {
     });
   };
 
-  const visibleAdmins = useMemo(() => admins.filter((admin) => admin.custom_role !== 'super_admin_oculto' && admin.created_by !== admin.email), [admins]);
-
-  const filteredAdmins = useMemo(() => visibleAdmins.filter((admin) => {
+  const filteredAdmins = useMemo(() => admins.filter((admin) => {
     const q = String(search || '').toLowerCase();
     const email = String(admin.email || '').toLowerCase();
     const fullName = String(admin.full_name || '').toLowerCase();
     return !q || email.includes(q) || fullName.includes(q);
-  }), [visibleAdmins, search]);
+  }), [admins, search]);
 
   const stats = useMemo(() => ({
-    total: visibleAdmins.length,
-    conArea: visibleAdmins.filter((item) => !!item.custom_role).length,
-    sinArea: visibleAdmins.filter((item) => !item.custom_role).length,
-  }), [visibleAdmins]);
+    total: admins.length,
+    conArea: admins.filter((item) => !!item.custom_role).length,
+    sinArea: admins.filter((item) => !item.custom_role).length,
+  }), [admins]);
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;

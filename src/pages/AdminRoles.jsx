@@ -34,7 +34,7 @@ export default function AdminRoles({ user }) {
         base44.entities.RoleConfig.list('-updated_date', 50)
       ]);
 
-      setAdmins((adminUsers || []).filter((item) => item?.custom_role !== 'super_admin_oculto'));
+      setAdmins(adminUsers || []);
 
       const mappedConfigs = { ...ROLE_PRESETS };
       (configRows || []).forEach((row) => {
@@ -55,20 +55,6 @@ export default function AdminRoles({ user }) {
 
   useEffect(() => { loadData(); }, []);
 
-  useEffect(() => {
-    if (!user?.email || !admins.some((item) => item.email === user.email)) return;
-    createAuditLog({
-      target_email: user.email,
-      target_name: user.full_name || user.email,
-      action_type: 'hide_super_admin_directory',
-      area_code: 'platform_owner',
-      area_name: 'Super usuario',
-      summary: `Ocultó de directorio al super usuario ${user.full_name || user.email}`,
-      details: 'La cuenta dueña de la plataforma fue ocultada del módulo de roles por área',
-      changed_fields: ['directory_visibility'],
-    });
-  }, [admins, user?.email]);
-
   const createAuditLog = async (payload) => {
     await base44.entities.EmployeeAuditLog.create({
       actor_email: user?.email || 'system',
@@ -77,22 +63,20 @@ export default function AdminRoles({ user }) {
     });
   };
 
-  const visibleAdmins = useMemo(() => admins.filter((item) => item.custom_role !== 'super_admin_oculto' && item.created_by !== item.email), [admins]);
-
-  const filteredAdmins = useMemo(() => visibleAdmins.filter((item) => {
+  const filteredAdmins = useMemo(() => admins.filter((item) => {
     const q = String(search || '').toLowerCase();
     const email = String(item.email || '').toLowerCase();
     const fullName = String(item.full_name || '').toLowerCase();
     const customRole = String(item.custom_role || '').toLowerCase();
     return !q || email.includes(q) || fullName.includes(q) || customRole.includes(q);
-  }), [visibleAdmins, search]);
+  }), [admins, search]);
 
   const stats = useMemo(() => ({
-    admins: visibleAdmins.length,
-    assigned: visibleAdmins.filter((item) => !!item.custom_role).length,
+    admins: admins.length,
+    assigned: admins.filter((item) => !!item.custom_role).length,
     modules: PERMISSION_PAGES.length,
     areas: ROLE_OPTIONS.length,
-  }), [visibleAdmins]);
+  }), [admins]);
 
   const handleAreaChange = async (targetUser, nextRole) => {
     if (targetUser.email === user?.email) {

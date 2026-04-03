@@ -35,7 +35,7 @@ export default function AdminEmployees({ user }) {
     setLoading(true);
     try {
       const rows = await base44.entities.User.filter({ role: 'admin' }, '-created_date', 300);
-      setEmployees((rows || []).filter((item) => item?.custom_role !== 'super_admin_oculto'));
+      setEmployees(rows || []);
     } catch {
       toast.error('No se pudieron cargar los empleados');
     }
@@ -43,20 +43,6 @@ export default function AdminEmployees({ user }) {
   };
 
   useEffect(() => { loadEmployees(); }, []);
-
-  useEffect(() => {
-    if (!user?.email || !employees.some((item) => item.email === user.email)) return;
-    createAuditLog({
-      target_email: user.email,
-      target_name: user.full_name || user.email,
-      action_type: 'hide_super_admin_directory',
-      area_code: 'platform_owner',
-      area_name: 'Super usuario',
-      summary: `Ocultó de directorio al super usuario ${user.full_name || user.email}`,
-      details: 'La cuenta dueña de la plataforma fue ocultada del directorio de empleados',
-      changed_fields: ['directory_visibility'],
-    });
-  }, [employees, user?.email]);
 
   const createAuditLog = async (payload) => {
     await base44.entities.EmployeeAuditLog.create({
@@ -66,29 +52,27 @@ export default function AdminEmployees({ user }) {
     });
   };
 
-  const visibleEmployees = useMemo(() => employees.filter((item) => item.custom_role !== 'super_admin_oculto' && item.created_by !== item.email), [employees]);
-
-  const filteredEmployees = useMemo(() => visibleEmployees.filter((item) => {
+  const filteredEmployees = useMemo(() => employees.filter((item) => {
     const q = String(search || '').toLowerCase();
     const email = String(item.email || '').toLowerCase();
     const fullName = String(item.full_name || '').toLowerCase();
     const customRole = String(item.custom_role || '').toLowerCase();
     const city = String(item.city || '').toLowerCase();
     return !q || email.includes(q) || fullName.includes(q) || customRole.includes(q) || city.includes(q);
-  }), [visibleEmployees, search]);
+  }), [employees, search]);
 
   const stats = useMemo(() => {
     const base = {
-      total: visibleEmployees.length,
-      sin_area: visibleEmployees.filter((item) => !item.custom_role).length,
+      total: employees.length,
+      sin_area: employees.filter((item) => !item.custom_role).length,
     };
 
     ROLE_OPTIONS.forEach((role) => {
-      base[role] = visibleEmployees.filter((item) => item.custom_role === role).length;
+      base[role] = employees.filter((item) => item.custom_role === role).length;
     });
 
     return base;
-  }, [visibleEmployees]);
+  }, [employees]);
 
   const handleEdit = (employee) => {
     setEditingEmployee(employee);
@@ -167,10 +151,6 @@ export default function AdminEmployees({ user }) {
           details: inviteArea === 'sin_area' ? 'Usuario existente convertido a empleado sin área asignada' : `Usuario existente convertido a empleado con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
           changed_fields: ['role', 'custom_role'],
         });
-
-        if (inviteArea === 'administrador_total') {
-          await base44.entities.User.update(existingUser.id, { role: 'admin', custom_role: 'administrador_total' });
-        }
 
         toast.success('Cliente convertido en empleado');
       } else {
@@ -304,7 +284,6 @@ export default function AdminEmployees({ user }) {
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
               El empleado será invitado con acceso administrativo y podrás seguir editándolo desde este módulo.
-              {inviteArea === 'administrador_total' ? ' Tendrá acceso completo a toda la aplicación administrativa, sin ver al superadmin.' : ''}
             </div>
           </div>
 
