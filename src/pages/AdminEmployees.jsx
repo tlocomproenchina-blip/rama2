@@ -20,6 +20,9 @@ export default function AdminEmployees({ user }) {
   const [openInvite, setOpenInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteArea, setInviteArea] = useState('sin_area');
+  const [directoryResults, setDirectoryResults] = useState([]);
+  const [searchingDirectory, setSearchingDirectory] = useState(false);
+  const [selectedDirectoryUser, setSelectedDirectoryUser] = useState(null);
   const [editData, setEditData] = useState({
     first_name: '',
     last_name: '',
@@ -127,61 +130,66 @@ export default function AdminEmployees({ user }) {
     setSaving(false);
   };
 
+  const handleSearchDirectory = async (query) => {
+    const normalizedQuery = query.trim().toLowerCase();
+    setInviteEmail(query);
+    setSelectedDirectoryUser(null);
+
+    if (!normalizedQuery) {
+      setDirectoryResults([]);
+      return;
+    }
+
+    setSearchingDirectory(true);
+    try {
+      const rows = await base44.entities.User.list('-created_date', 300);
+      const filtered = (rows || []).filter((item) => {
+        const email = String(item.email || '').toLowerCase();
+        const fullName = String(item.full_name || '').toLowerCase();
+        return email.includes(normalizedQuery) || fullName.includes(normalizedQuery);
+      });
+      setDirectoryResults(filtered);
+    } catch {
+      toast.error('No se pudo buscar en el directorio');
+    }
+    setSearchingDirectory(false);
+  };
+
   const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
-    const normalizedEmail = inviteEmail.trim().toLowerCase();
+    const normalizedEmail = (selectedDirectoryUser?.email || inviteEmail).trim().toLowerCase();
+    if (!normalizedEmail) return;
+
     setInviting(true);
     try {
       const existingRows = await base44.entities.User.filter({ email: normalizedEmail }, '-created_date', 1);
       const existingUser = existingRows?.[0];
 
-      if (existingUser?.id) {
-        await base44.entities.User.update(existingUser.id, {
-          role: 'admin',
-          custom_role: inviteArea === 'sin_area' ? null : inviteArea,
-        });
-
-        await createAuditLog({
-          target_email: normalizedEmail,
-          target_name: existingUser.full_name || normalizedEmail,
-          action_type: 'promote_employee',
-          area_code: inviteArea === 'sin_area' ? '' : inviteArea,
-          area_name: inviteArea === 'sin_area' ? 'Sin área' : ROLE_PRESETS[inviteArea]?.role_name || inviteArea,
-          summary: `Convirtió a empleado ${existingUser.full_name || normalizedEmail}`,
-          details: inviteArea === 'sin_area' ? 'Usuario existente convertido a empleado sin área asignada' : `Usuario existente convertido a empleado con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
-          changed_fields: ['role', 'custom_role'],
-        });
-
-        toast.success('Cliente convertido en empleado');
-      } else {
-        await base44.users.inviteUser(normalizedEmail, 'admin');
-
-        if (inviteArea !== 'sin_area') {
-          try {
-            const rows = await base44.entities.User.filter({ email: normalizedEmail }, '-created_date', 1);
-            const invitedUser = rows?.[0];
-            if (invitedUser?.id) {
-              await base44.entities.User.update(invitedUser.id, { custom_role: inviteArea });
-            }
-          } catch {}
-        }
-
-        await createAuditLog({
-          target_email: normalizedEmail,
-          target_name: '',
-          action_type: 'invite_employee',
-          area_code: inviteArea === 'sin_area' ? '' : inviteArea,
-          area_name: inviteArea === 'sin_area' ? 'Sin área' : ROLE_PRESETS[inviteArea]?.role_name || inviteArea,
-          summary: `Invitó empleado ${normalizedEmail}`,
-          details: inviteArea === 'sin_area' ? 'Invitación enviada sin área asignada' : `Invitación enviada con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
-          changed_fields: ['role', 'custom_role'],
-        });
-
-        toast.success('Invitación de empleado enviada');
+      if (!existingUser?.id) {
+        toast.error('Debes seleccionar una cuenta ya registrada en el directorio');
+        return;
       }
 
+      await base44.entities.User.update(existingUser.id, {
+        role: 'admin',
+        custom_role: inviteArea === 'sin_area' ? null : inviteArea,
+      });
+
+      await createAuditLog({
+        target_email: normalizedEmail,
+        target_name: existingUser.full_name || normalizedEmail,
+        action_type: 'promote_employee',
+        area_code: inviteArea === 'sin_area' ? '' : inviteArea,
+        area_name: inviteArea === 'sin_area' ? 'Sin área' : ROLE_PRESETS[inviteArea]?.role_name || inviteArea,
+        summary: `Convirtió a empleado ${existingUser.full_name || normalizedEmail}`,
+        details: inviteArea === 'sin_area' ? 'Usuario registrado convertido a empleado sin área asignada' : `Usuario registrado convertido a empleado con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
+        changed_fields: ['role', 'custom_role'],
+      });
+
+      toast.success('Rol asignado correctamente');
       setInviteEmail('');
       setInviteArea('sin_area');
+      setDirectoryResults([]);
+      setSelectedDirectoryUser(null);
       setOpenInvite(false);
       loadEmployees();
     } catch {
@@ -201,7 +209,6 @@ export default function AdminEmployees({ user }) {
         badge="Gestión de empleados internos"
         title="Empleados"
         description="Visualiza, busca y edita a los empleados del sistema, incluyendo la asignación directa del rol por área."
-        actions={<Button onClick={() => setOpenInvite(true)}>Agregar empleado</Button>}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -218,6 +225,9 @@ export default function AdminEmployees({ user }) {
           <CardDescription>Usa el buscador para encontrar y editar empleados rápidamente.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setOpenInvite(true)}>Asignar rol</Button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre, email, ciudad o área" className="pl-10" />
@@ -260,14 +270,42 @@ export default function AdminEmployees({ user }) {
       <Dialog open={openInvite} onOpenChange={setOpenInvite}>
         <DialogContent className="max-w-md border-0 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl">Agregar empleado</DialogTitle>
+            <DialogTitle className="text-xl">Asignar rol a cuenta registrada</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
             <div className="space-y-2">
-              <Label>Email</Label>
-              <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="empleado@empresa.com" />
+              <Label>Buscar en directorio</Label>
+              <Input
+                value={inviteEmail}
+                onChange={(e) => handleSearchDirectory(e.target.value)}
+                placeholder="Busca por nombre o correo"
+              />
             </div>
+
+            <div className="max-h-56 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-2">
+              {searchingDirectory ? (
+                <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-blue-600" /></div>
+              ) : directoryResults.length > 0 ? (
+                directoryResults.map((item) => {
+                  const isSelected = selectedDirectoryUser?.id === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSelectedDirectoryUser(item)}
+                      className={`w-full rounded-lg border px-3 py-2 text-left transition ${isSelected ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                    >
+                      <p className="text-sm font-medium text-slate-800">{item.full_name || item.email}</p>
+                      <p className="text-xs text-slate-500">{item.email}</p>
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="py-4 text-center text-sm text-slate-500">No hay cuentas registradas para mostrar.</p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Rol por área</Label>
               <Select value={inviteArea} onValueChange={setInviteArea}>
@@ -283,15 +321,15 @@ export default function AdminEmployees({ user }) {
               </Select>
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
-              El empleado será invitado con acceso administrativo y podrás seguir editándolo desde este módulo.
+              Selecciona una cuenta existente del directorio para asignarle acceso administrativo y su rol por área.
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenInvite(false)}>Cancelar</Button>
-            <Button onClick={handleInvite} disabled={inviting} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleInvite} disabled={inviting || !selectedDirectoryUser} className="bg-blue-600 hover:bg-blue-700">
               {inviting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Enviar invitación
+              Asignar rol
             </Button>
           </DialogFooter>
         </DialogContent>
