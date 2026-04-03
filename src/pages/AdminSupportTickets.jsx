@@ -392,16 +392,19 @@ export default function AdminSupportTickets({ user }) {
 
     return searchMatch && statusMatch && priorityMatch && assignedMatch;
   }).sort((a, b) => {
-    // Tickets with unread client messages first
+    const aUpdated = new Date(a.updated_date || a.created_date || 0).getTime();
+    const bUpdated = new Date(b.updated_date || b.created_date || 0).getTime();
+    if (aUpdated !== bUpdated) return bUpdated - aUpdated;
+
     const aUnread = hasUnreadClientMessage(a) ? 1 : 0;
     const bUnread = hasUnreadClientMessage(b) ? 1 : 0;
     if (bUnread !== aUnread) return bUnread - aUnread;
-    // Then by last client message time (most recent first)
+
     const aTime = getLastClientMessageTime(a);
     const bTime = getLastClientMessageTime(b);
     if (aTime !== bTime) return bTime - aTime;
-    // Fallback: by creation date
-    return new Date(b.created_date).getTime() - new Date(a.created_date).getTime();
+
+    return new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime();
   }), [tickets, search, filterStatus, filterPriority, filterAssigned]);
 
   const filteredKpiTickets = useMemo(() => {
