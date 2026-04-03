@@ -172,7 +172,7 @@ export default function AdminAdministrators({ user }) {
                       <span className="block truncate text-slate-900">{adminRecord.full_name || adminRecord.email}</span>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <Badge className="bg-amber-100 text-amber-700">
-                          <ShieldCheck className="mr-1 h-3 w-3" /> {adminRecord.custom_role ? (ROLE_PRESETS[adminRecord.custom_role]?.role_name || adminRecord.custom_role) : 'Administrador'}
+                          <ShieldCheck className="mr-1 h-3 w-3" /> {adminRecord.custom_role && ROLE_PRESETS[adminRecord.custom_role]?.role_name ? ROLE_PRESETS[adminRecord.custom_role].role_name : 'Administrador'}
                         </Badge>
                         <Badge variant="outline" className="border-blue-200 text-blue-700">
                           <Briefcase className="mr-1 h-3 w-3" />

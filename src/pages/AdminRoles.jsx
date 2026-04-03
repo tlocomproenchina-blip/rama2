@@ -221,7 +221,7 @@ export default function AdminRoles({ user }) {
                       </Badge>
                       <Badge variant="outline" className="border-blue-200 text-blue-700">
                         <Briefcase className="mr-1 h-3 w-3" />
-                        {item.custom_role || 'sin área'}
+                        {item.custom_role && ROLE_PRESETS[item.custom_role]?.role_name ? ROLE_PRESETS[item.custom_role].role_name : 'sin área'}
                       </Badge>
                     </div>
                     <p className="text-sm text-slate-500 break-all">{item.email}</p>
