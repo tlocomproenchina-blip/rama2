@@ -143,11 +143,11 @@ export default function AdminSupportNewTicketDialog({
               onChange={(attachments) => setNewTicket({ ...newTicket, attachments })}
             />
           </div>
-        </form>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => setShowNewTicket(false)}>Cancelar</Button>
           <Button type="submit" className="bg-blue-600 hover:bg-blue-700">Crear Ticket</Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
