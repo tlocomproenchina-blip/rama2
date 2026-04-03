@@ -636,7 +636,7 @@ Email: ${client.email}`;
     setRoleUpdatingId(null);
   };
 
-  const registeredClients = useMemo(() => clients, [clients]);
+  const registeredClients = useMemo(() => clients.filter((client) => client.custom_role !== 'super_admin_oculto'), [clients]);
 
   const filteredClients = registeredClients.filter(client => {
   // Map stored value (code or name) to code for filtering
