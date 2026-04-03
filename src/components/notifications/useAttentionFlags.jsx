@@ -45,9 +45,19 @@ export default function useAttentionFlags({ user }) {
         if (!latest) { next[w.key] = false; latestMap[w.key] = 0; return; }
         let relevantLatest = latest;
         if (w.key === 'AdminPackages' && Array.isArray(rows)) {
-          relevantLatest = rows.find((row) => row.delivery_proof_request_sent_date !== (row.updated_date || row.created_date)) || latest;
+          relevantLatest = rows.find((row) => {
+            if (!row?.delivery_proof_request_sent_date) return true;
+            const updatedMs = new Date(row.updated_date || row.created_date || 0).getTime();
+            const reminderMs = new Date(row.delivery_proof_request_sent_date).getTime();
+            return Math.abs(updatedMs - reminderMs) > 1000;
+          });
         }
-        const latestDate = relevantLatest?.updated_date || relevantLatest?.created_date;
+        if (!relevantLatest) {
+          next[w.key] = false;
+          latestMap[w.key] = 0;
+          return;
+        }
+        const latestDate = relevantLatest.updated_date || relevantLatest.created_date;
         const latestMs = latestDate ? new Date(latestDate).getTime() : 0;
         latestMap[w.key] = latestMs;
 
