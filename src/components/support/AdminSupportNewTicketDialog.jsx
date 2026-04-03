@@ -49,34 +49,54 @@ export default function AdminSupportNewTicketDialog({
                   className="pl-10"
                 />
               </div>
-              <Select value={newTicket.client_email} onValueChange={(value) => setNewTicket({ ...newTicket, client_email: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients
-                    .filter((client) => {
-                      const searchLower = (clientSearch || '').toLowerCase();
-                      return (
-                        !clientSearch ||
-                        (client.first_name || '').toLowerCase().includes(searchLower) ||
-                        (client.last_name || '').toLowerCase().includes(searchLower) ||
-                        (client.email || '').toLowerCase().includes(searchLower) ||
-                        (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
-                        (client.package_trackings || []).some((tracking) => (tracking || '').toLowerCase().includes(searchLower)) ||
-                        (client.package_shipping_marks || []).some((mark) => (mark || '').toLowerCase().includes(searchLower)) ||
-                        (client.whatsapp || '').toLowerCase().includes(searchLower) ||
-                        (client.telefono || '').toLowerCase().includes(searchLower) ||
-                        (client.phone || '').toLowerCase().includes(searchLower)
-                      );
-                    })
-                    .map((client) => (
-                      <SelectItem key={client.email} value={client.email}>
+              <div className="max-h-56 overflow-y-auto rounded-xl border border-border/80 bg-white/90">
+                {clients
+                  .filter((client) => {
+                    const searchLower = (clientSearch || '').toLowerCase();
+                    return (
+                      !clientSearch ||
+                      (client.first_name || '').toLowerCase().includes(searchLower) ||
+                      (client.last_name || '').toLowerCase().includes(searchLower) ||
+                      (client.email || '').toLowerCase().includes(searchLower) ||
+                      (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
+                      (client.package_trackings || []).some((tracking) => (tracking || '').toLowerCase().includes(searchLower)) ||
+                      (client.package_shipping_marks || []).some((mark) => (mark || '').toLowerCase().includes(searchLower)) ||
+                      (client.whatsapp || '').toLowerCase().includes(searchLower) ||
+                      (client.telefono || '').toLowerCase().includes(searchLower) ||
+                      (client.phone || '').toLowerCase().includes(searchLower)
+                    );
+                  })
+                  .map((client) => {
+                    const isSelected = newTicket.client_email === client.email;
+                    return (
+                      <button
+                        key={client.email}
+                        type="button"
+                        onClick={() => setNewTicket({ ...newTicket, client_email: client.email })}
+                        className={`w-full border-b border-border/60 px-3 py-3 text-left text-sm last:border-b-0 ${isSelected ? 'bg-accent text-accent-foreground' : 'bg-transparent text-slate-700'}`}
+                      >
                         {client.first_name} {client.last_name} - {client.email}{client.package_trackings?.[0] ? ` - ${client.package_trackings[0]}` : ''}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                      </button>
+                    );
+                  })}
+                {clients.filter((client) => {
+                  const searchLower = (clientSearch || '').toLowerCase();
+                  return (
+                    !clientSearch ||
+                    (client.first_name || '').toLowerCase().includes(searchLower) ||
+                    (client.last_name || '').toLowerCase().includes(searchLower) ||
+                    (client.email || '').toLowerCase().includes(searchLower) ||
+                    (client.shipping_mark || '').toLowerCase().includes(searchLower) ||
+                    (client.package_trackings || []).some((tracking) => (tracking || '').toLowerCase().includes(searchLower)) ||
+                    (client.package_shipping_marks || []).some((mark) => (mark || '').toLowerCase().includes(searchLower)) ||
+                    (client.whatsapp || '').toLowerCase().includes(searchLower) ||
+                    (client.telefono || '').toLowerCase().includes(searchLower) ||
+                    (client.phone || '').toLowerCase().includes(searchLower)
+                  );
+                }).length === 0 && (
+                  <div className="px-3 py-3 text-sm text-slate-500">No se encontraron clientes</div>
+                )}
+              </div>
             </div>
           </div>
 
