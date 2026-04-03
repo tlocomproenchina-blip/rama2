@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Clock, ChevronDown, ChevronUp, PackageOpen, Copy, Ticket } from 'lucide-react';
+import { Loader2, Clock, ChevronDown, ChevronUp, PackageOpen, Copy, Ticket, Mail } from 'lucide-react';
 import StaleTicketDialog from './StaleTicketDialog';
 import { toast } from 'sonner';
 
@@ -32,6 +32,7 @@ export default function StalePackagesPanel() {
   const [expandedGroups, setExpandedGroups] = useState(new Set());
   const [ticketDialog, setTicketDialog] = useState({ open: false, email: '', trackings: [] });
   const [trackingsWithTickets, setTrackingsWithTickets] = useState(new Set());
+  const [sendingManualEmail, setSendingManualEmail] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +162,33 @@ export default function StalePackagesPanel() {
 
   const displayedGroups = expanded ? groups : groups.slice(0, 3);
 
+  const handleSendManualEmail = async () => {
+    const selPkgs = stalePackages.filter(p => selected.includes(p.id));
+    if (selPkgs.length === 0) return;
+    setSendingManualEmail(true);
+    try {
+      const response = await base44.functions.invoke('sendDeliveryProofReminderManual', {
+        packageIds: selPkgs.map(p => p.id)
+      });
+      const sent = response?.data?.sent || 0;
+      const skipped = response?.data?.skipped || [];
+      toast.success(`Correo enviado manualmente a ${sent} pre-alerta(s)`);
+      if (skipped.length > 0) {
+        toast.message(`${skipped.length} pre-alerta(s) no se pudieron enviar`);
+      }
+      setSelected([]);
+      const refreshed = stalePackages.map(pkg => selected.includes(pkg.id)
+        ? { ...pkg, delivery_proof_request_sent_date: new Date().toISOString() }
+        : pkg
+      );
+      setStalePackages(refreshed);
+    } catch (err) {
+      toast.error('Error al enviar correo manual: ' + (err?.message || 'desconocido'));
+    } finally {
+      setSendingManualEmail(false);
+    }
+  };
+
   return (
     <Card className="border-0 shadow-md border-l-4 border-l-amber-400 bg-amber-50/40">
       <CardContent className="p-4 space-y-3">
@@ -194,6 +222,16 @@ export default function StalePackagesPanel() {
             >
               <Ticket className="h-4 w-4" />
               Crear Ticket
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={selected.length === 0 || sendingManualEmail}
+              onClick={handleSendManualEmail}
+              className="gap-1"
+            >
+              {sendingManualEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+              Enviar Email
             </Button>
             <Button
               size="sm"
