@@ -62,8 +62,7 @@ Deno.serve(async (req) => {
     const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
     if (configs?.[0]?.app_name) appName = configs[0].app_name;
 
-    const appId = Deno.env.get('BASE44_APP_ID');
-    const appOwner = req.headers.get('x-base44-app-owner') || req.headers.get('X-Base44-App-Owner') || '';
+    const appBaseUrl = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || 'https://tleccargo.com';
 
     let sent = 0;
     const skipped = [];
@@ -109,9 +108,7 @@ Deno.serve(async (req) => {
         }]
       });
 
-      const supportUrl = appOwner
-        ? `https://app.base44.com/apps/${appOwner}/${appId}/Support?ticket=${ticket.id}`
-        : `/Support?ticket=${ticket.id}`;
+      const supportUrl = `https://tleccargo.com/Support?ticket=${ticket.id}`;
 
       const emailBody = buildEmailBody({
         clientName,
