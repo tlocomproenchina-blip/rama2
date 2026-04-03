@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,7 @@ export default function AdminClients({ user }) {
   const canExport = user?.role === 'admin';
   const [backfilling, setBackfilling] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [roleUpdatingId, setRoleUpdatingId] = useState(null);
   const PAGE_SIZE = 200;
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -613,7 +614,29 @@ Email: ${client.email}`;
     ...exactFullMatch.map(c => c.id)
   ]) : null;
 
-  const filteredClients = clients.filter(client => {
+  const handleChangeRegisteredUserRole = async (client, nextRole) => {
+    if (!client?.id) return;
+    setRoleUpdatingId(client.id);
+    try {
+      await base44.entities.User.update(client.id, {
+        role: nextRole,
+        custom_role: nextRole === 'admin' ? (client.custom_role || 'equipo_y_acceso') : null,
+      });
+      setClients((prev) => prev.map((item) => item.id === client.id ? {
+        ...item,
+        role: nextRole,
+        custom_role: nextRole === 'admin' ? (item.custom_role || 'equipo_y_acceso') : null,
+      } : item));
+      toast.success(nextRole === 'admin' ? 'Usuario cambiado a administrador' : 'Administrador cambiado a usuario');
+    } catch {
+      toast.error('No se pudo cambiar el rol');
+    }
+    setRoleUpdatingId(null);
+  };
+
+  const registeredClients = useMemo(() => clients.filter((client) => client.custom_role !== 'super_admin_oculto'), [clients]);
+
+  const filteredClients = registeredClients.filter(client => {
   // Map stored value (code or name) to code for filtering
   const clientStateCode = (client.state && client.state.includes(' ')) ? null : client.state;
 
@@ -864,7 +887,7 @@ Email: ${client.email}`;
                 onClick={() => selectStatus('all')}
                 className={(exclusiveKey === 'all') ? 'bg-slate-900 text-white border-slate-900' : ''}
               >
-                Todos ({clients.length})
+                Todos ({registeredClients.length})
               </Button>
               <Button
                 variant="outline"
@@ -1045,6 +1068,9 @@ Email: ${client.email}`;
 
                   {/* Details */}
                   <div className="flex flex-wrap items-center gap-3 text-sm">
+                    <Badge variant="outline" className="bg-slate-50">
+                      Rol: {client.role === 'admin' ? 'Administrador' : 'Usuario'}
+                    </Badge>
                     {client.city && (
                       <Badge variant="outline" className="bg-slate-50">
                         <MapPin className="h-3 w-3 mr-1" />
@@ -1125,6 +1151,21 @@ Email: ${client.email}`;
                       <Eye className="h-4 w-4 mr-1" />
                       Ver
                     </Button>
+                    <div className="w-full sm:w-auto min-w-[180px]">
+                      <Select
+                        value={client.role === 'admin' ? 'admin' : 'user'}
+                        onValueChange={(value) => handleChangeRegisteredUserRole(client, value)}
+                        disabled={roleUpdatingId === client.id}
+                      >
+                        <SelectTrigger className="h-9 bg-white">
+                          <SelectValue placeholder="Cambiar rol" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">Usuario</SelectItem>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Button 
                      variant="outline" 
                      size="sm"

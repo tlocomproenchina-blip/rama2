@@ -115,7 +115,6 @@ export default function AdminAdministrators({ user }) {
         badge="Acceso administrativo"
         title="Administradores"
         description="Gestiona administradores, revisa si tienen área asignada y accede al módulo de Roles para controlar permisos por área."
-        actions={<Button onClick={() => setOpenInvite(true)}><UserPlus className="mr-2 h-4 w-4" /> Invitar administrador</Button>}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

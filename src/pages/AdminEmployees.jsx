@@ -201,7 +201,6 @@ export default function AdminEmployees({ user }) {
         badge="Gestión de empleados internos"
         title="Empleados"
         description="Visualiza, busca y edita a los empleados del sistema, incluyendo la asignación directa del rol por área."
-        actions={<Button onClick={() => setOpenInvite(true)}>Agregar empleado</Button>}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
