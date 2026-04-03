@@ -1071,7 +1071,7 @@ Email: ${client.email}`;
                   {/* Details */}
                   <div className="flex flex-wrap items-center gap-3 text-sm">
                     <Badge variant="outline" className="bg-slate-50">
-                      Rol: {client.role === 'admin' ? (ROLE_PRESETS[client.custom_role]?.role_name || 'Administrador') : 'Usuario'}
+                      Rol: {client.role === 'admin' ? (ROLE_PRESETS[client.custom_role]?.role_name || 'Administrador') : 'Cliente'}
                     </Badge>
                     {client.city && (
                       <Badge variant="outline" className="bg-slate-50">
@@ -1163,7 +1163,7 @@ Email: ${client.email}`;
                           <SelectValue placeholder="Cambiar rol" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="user">Usuario</SelectItem>
+                          <SelectItem value="user">Cliente</SelectItem>
                           {ROLE_OPTIONS.filter((role) => role !== 'super_admin_oculto').map((role) => (
                             <SelectItem key={role} value={role}>{ROLE_PRESETS[role]?.role_name || role}</SelectItem>
                           ))}
