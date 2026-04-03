@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Search, CheckCircle, Upload, User as UserIcon, Plane, Ship, Image as ImageIcon, Loader2, AlertCircle, FileText, Box } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { sanitizePackageData } from '@/lib/inputSanitizers';
 
 export default function RegisterPackageModal({ open, onOpenChange, onCreated }) {
   const [shippingMark, setShippingMark] = useState('');
@@ -165,12 +166,18 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         imageUrls = uploaded;
       }
 
+      const sanitizedPackage = sanitizePackageData({
+        tracking_number: trackingNumber,
+        shipping_mark: shippingMark,
+        description,
+      });
+
       const created = await base44.entities.Package.create({
-        tracking_number: trackingNumber.trim(),
+        tracking_number: sanitizedPackage.tracking_number,
         client_email: foundUser.email,
-        shipping_mark: shippingMark.trim(),
+        shipping_mark: sanitizedPackage.shipping_mark,
         shipping_type: shippingType,
-        description: description?.trim() || '',
+        description: sanitizedPackage.description || '',
         package_image_urls: (imageUrls || []).slice(0,3),
         package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : undefined,
         // status por defecto = pre_alerta (definido en el esquema)
@@ -181,16 +188,21 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         const now = new Date();
         const mes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         try {
+          const sanitizedCbmData = sanitizePackageData({
+            shipping_mark: shippingMark,
+            tracking_number: trackingNumber,
+            invoice_number: invoiceNumber,
+          });
           await base44.entities.CbmIngreso.create({
             fecha: now.toISOString(),
             cbm: parseFloat(cbmValue) || 0,
             mes,
             client_email: foundUser.email,
             client_name: foundUser.full_name || foundUser.first_name || foundUser.email,
-            shipping_mark: shippingMark.trim(),
-            tracking_numbers: [trackingNumber.trim()],
-            invoice_number: invoiceNumber.trim() || undefined,
-            descripcion: `Ingreso desde registro de paquete - ${trackingNumber.trim()}`,
+            shipping_mark: sanitizedCbmData.shipping_mark,
+            tracking_numbers: [sanitizedCbmData.tracking_number],
+            invoice_number: sanitizedCbmData.invoice_number || undefined,
+            descripcion: `Ingreso desde registro de paquete - ${sanitizedCbmData.tracking_number}`,
           });
           toast.success('Ingreso CBM registrado');
         } catch (cbmErr) {

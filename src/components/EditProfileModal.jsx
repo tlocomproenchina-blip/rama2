@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { base44 } from '@/api/base44Client';
 import { MapPin, Phone, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
 
 export default function EditProfileModal({ open, onClose, user, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -54,7 +55,8 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
     
     setSaving(true);
     try {
-      await base44.auth.updateMe(formData);
+      const sanitizedProfile = sanitizeClientProfileData(formData);
+      await base44.auth.updateMe({ ...sanitizedProfile, whatsapp_normalized: getDigits(sanitizedProfile.whatsapp) });
       toast.success('✅ Datos actualizados correctamente');
       onUpdate();
       onClose();
@@ -135,7 +137,7 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
               id="whatsapp"
               value={formData.whatsapp}
               onChange={(e) => {
-                setFormData({ ...formData, whatsapp: e.target.value });
+                setFormData({ ...formData, whatsapp: sanitizeWhatsApp(e.target.value) });
                 setErrors({ ...errors, whatsapp: null });
               }}
               placeholder="+58 412 1234567"

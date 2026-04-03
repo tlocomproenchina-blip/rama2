@@ -10,6 +10,7 @@ import { base44 } from '@/api/base44Client';
 import { base44 as base44Queue } from '@/components/api/ApiQueueManager';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
 
 export default function ProfileSetupModal({ open, onComplete }) {
   const [formData, setFormData] = useState({
@@ -89,20 +90,6 @@ export default function ProfileSetupModal({ open, onComplete }) {
     };
   };
 
-  // Normalizador de WhatsApp a dígitos
-  const getDigits = (s) => (s || '').replace(/\D/g, '');
-  
-  // Permitir solo dígitos y un '+' opcional al inicio
-  const sanitizeWhatsApp = (v) => {
-    let s = String(v || '').replace(/[^\d+]/g, '');
-    if (s.startsWith('+')) {
-      s = '+' + s.slice(1).replace(/[+]/g, '');
-    } else {
-      s = s.replace(/[+]/g, '');
-    }
-    return s;
-  };
-
 
   const handleSubmit = async () => {
     if (!validate()) return;
@@ -138,7 +125,8 @@ export default function ProfileSetupModal({ open, onComplete }) {
       }
 
       // Todo limpio, guardar perfil
-      const payload = { ...formData, whatsapp_normalized: getDigits(formData.whatsapp) };
+      const sanitizedProfile = sanitizeClientProfileData(formData);
+      const payload = { ...sanitizedProfile, whatsapp_normalized: getDigits(sanitizedProfile.whatsapp) };
       await onComplete(payload);
     } catch (error) {
       console.error('Error saving profile:', error);

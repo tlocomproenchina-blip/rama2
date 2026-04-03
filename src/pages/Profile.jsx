@@ -11,6 +11,7 @@ import { User, MapPin, Phone, Save, Loader2, DollarSign, CheckCircle2 } from 'lu
 import { toast } from 'sonner';
 import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
 
 export default function Profile({ user, refreshUser }) {
   const [formData, setFormData] = useState({
@@ -112,20 +113,6 @@ export default function Profile({ user, refreshUser }) {
     };
   };
 
-  // Normalizador de WhatsApp a dígitos
-  const getDigits = (s) => (s || '').replace(/\D/g, '');
-  
-  // Permitir solo dígitos y un '+' opcional al inicio
-  const sanitizeWhatsApp = (v) => {
-    let s = String(v || '').replace(/[^\d+]/g, '');
-    if (s.startsWith('+')) {
-      s = '+' + s.slice(1).replace(/[+]/g, '');
-    } else {
-      s = s.replace(/[+]/g, '');
-    }
-    return s;
-  };
-
   // Cierra overlays de Radix (Select/Popover) antes de desmontar/cerrar
   const closeRadixOverlays = () => {
     try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); } catch {}
@@ -185,9 +172,10 @@ export default function Profile({ user, refreshUser }) {
     setSaving(true);
     
     try {
-       await base44.auth.updateMe({ ...formData, whatsapp_normalized: getDigits(formData.whatsapp) });
-       // En apps antiguas, podría no existir el campo. Este update lo persistirá si está permitido
-       
+      const sanitizedProfile = sanitizeClientProfileData(formData);
+      await base44.auth.updateMe({ ...sanitizedProfile, whatsapp_normalized: getDigits(sanitizedProfile.whatsapp) });
+      // En apps antiguas, podría no existir el campo. Este update lo persistirá si está permitido
+
 
        setShowSuccess(true);
        setTimeout(() => setShowSuccess(false), 3000);

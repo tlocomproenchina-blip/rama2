@@ -48,6 +48,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { toast } from 'sonner';
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal';
 import ClientImportDialog from '@/components/imports/ClientImportDialog';
+import { getDigits, sanitizeClientProfileData } from '@/lib/inputSanitizers';
 
 export default function AdminClients({ user }) {
   const [clients, setClients] = useState([]);
@@ -160,38 +161,35 @@ export default function AdminClients({ user }) {
     setSaving(true);
 
     try {
-      // Shipping Mark manual: sin prefijo forzado ni validación de formato
-      if (typeof editData.shipping_mark === 'string') {
-        editData.shipping_mark = editData.shipping_mark.trim();
-      }
+      const sanitizedEditData = sanitizeClientProfileData(editData);
 
-      const waNorm = getDigits(editData.whatsapp || editClient.whatsapp || '');
-      await base44.entities.User.update(editClient.id, { ...editData, whatsapp_normalized: waNorm });
+      const waNorm = getDigits(sanitizedEditData.whatsapp || editClient.whatsapp || '');
+      await base44.entities.User.update(editClient.id, { ...sanitizedEditData, whatsapp_normalized: waNorm });
 
       // Notify client about profile changes
       const changedFields = [];
-      if (editData.first_name !== editClient.first_name) changedFields.push('Nombre');
-      if (editData.last_name !== editClient.last_name) changedFields.push('Apellido');
-      if (editData.city !== editClient.city) changedFields.push('Ciudad');
-      if (editData.whatsapp !== editClient.whatsapp) changedFields.push('WhatsApp');
+      if (sanitizedEditData.first_name !== editClient.first_name) changedFields.push('Nombre');
+      if (sanitizedEditData.last_name !== editClient.last_name) changedFields.push('Apellido');
+      if (sanitizedEditData.city !== editClient.city) changedFields.push('Ciudad');
+      if (sanitizedEditData.whatsapp !== editClient.whatsapp) changedFields.push('WhatsApp');
       
       if (changedFields.length > 0) {
         const { sendNotification } = await import('@/components/NotificationUtils');
         sendNotification({
           to: editClient.email,
           subject: '✏️ Actualización de Datos',
-          body: `Se han actualizado los siguientes datos de tu cuenta:\n\n${changedFields.join(', ')}\n\nNombre: ${editData.first_name || ''} ${editData.last_name || ''}\nCiudad: ${editData.city || ''}\nWhatsApp: ${editData.whatsapp || ''}\n\nSi no solicitaste estos cambios, contacta con soporte.`,
+          body: `Se han actualizado los siguientes datos de tu cuenta:\n\n${changedFields.join(', ')}\n\nNombre: ${sanitizedEditData.first_name || ''} ${sanitizedEditData.last_name || ''}\nCiudad: ${sanitizedEditData.city || ''}\nWhatsApp: ${sanitizedEditData.whatsapp || ''}\n\nSi no solicitaste estos cambios, contacta con soporte.`,
           message: `Se actualizaron: ${changedFields.join(', ')}`,
           type: 'general',
           icon: 'alert'
-        });
+          });
       }
 
       // If shipping mark was assigned, update existing packages and notify client
-      if (editData.shipping_mark && !editClient.shipping_mark) {
+      if (sanitizedEditData.shipping_mark && !editClient.shipping_mark) {
         const clientPackages = await base44.entities.Package.filter({ client_email: editClient.email });
         for (const pkg of clientPackages) {
-          await base44.entities.Package.update(pkg.id, { shipping_mark: editData.shipping_mark });
+          await base44.entities.Package.update(pkg.id, { shipping_mark: sanitizedEditData.shipping_mark });
         }
 
         // Notify client
@@ -199,27 +197,34 @@ export default function AdminClients({ user }) {
         sendNotification({
           to: editClient.email,
           subject: '🎉 Shipping Mark Asignado',
-          body: `¡Hola ${editData.first_name || 'Usuario'}!\n\nTu Shipping Mark ha sido asignado:\n\n${editData.shipping_mark}\n\nYa puedes comenzar a enviar tus paquetes. Usa este código en todas tus compras online.\n\nDirección del warehouse: Disponible en tu panel de control.`,
-          message: `Tu Shipping Mark es: ${editData.shipping_mark}. Ya puedes realizar envíos.`,
+          body: `¡Hola ${sanitizedEditData.first_name || 'Usuario'}!\n\nTu Shipping Mark ha sido asignado:\n\n${sanitizedEditData.shipping_mark}\n\nYa puedes comenzar a enviar tus paquetes. Usa este código en todas tus compras online.\n\nDirección del warehouse: Disponible en tu panel de control.`,
+          message: `Tu Shipping Mark es: ${sanitizedEditData.shipping_mark}. Ya puedes realizar envíos.`,
           type: 'general',
           icon: 'check'
         });
-      } else if (editData.shipping_mark && editData.shipping_mark !== editClient.shipping_mark) {
+      } else if (sanitizedEditData.shipping_mark && sanitizedEditData.shipping_mark !== editClient.shipping_mark) {
         // Shipping Mark modified
         const { sendNotification } = await import('@/components/NotificationUtils');
         sendNotification({
           to: editClient.email,
           subject: '🔄 Shipping Mark Modificado',
-          body: `Tu Shipping Mark ha sido modificado:\n\nAnterior: ${editClient.shipping_mark}\nNuevo: ${editData.shipping_mark}\n\nPor favor usa el nuevo Shipping Mark para tus próximos envíos.`,
-          message: `Nuevo Shipping Mark: ${editData.shipping_mark}`,
+          body: `Tu Shipping Mark ha sido modificado:\n\nAnterior: ${editClient.shipping_mark}\nNuevo: ${sanitizedEditData.shipping_mark}\n\nPor favor usa el nuevo Shipping Mark para tus próximos envíos.`,
+          message: `Nuevo Shipping Mark: ${sanitizedEditData.shipping_mark}`,
           type: 'general',
           icon: 'alert'
         });
       }
 
-      toast.success('Cliente actualizado y notificado');
+      const updatedClient = {
+        ...editClient,
+        ...sanitizedEditData,
+        whatsapp_normalized: waNorm,
+      };
+
+      setClients((prev) => prev.map((client) => client.id === editClient.id ? updatedClient : client));
+      setViewClient((prev) => prev?.id === editClient.id ? updatedClient : prev);
       setEditClient(null);
-      loadClients();
+      toast.success('Cliente actualizado y notificado');
     } catch (error) {
       toast.error('Error al guardar');
     }
@@ -556,6 +561,7 @@ Email: ${client.email}`;
   const normalizeText = (str) => removeDiacritics(str).toLowerCase().replace(/\s+/g, ' ').trim();
   const normalizeAlnum = (str) => normalizeText(str).replace(/[^a-z0-9]/g, '');
   const getDigits = (str) => (str || '').replace(/\D/g, '');
+  const stripSpecialCharacters = (str) => removeDiacritics(str).replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
 
   const resetAllFilters = () => {
     setSearch('');
