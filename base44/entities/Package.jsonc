@@ -138,6 +138,19 @@
     "reception_notes": {
       "type": "string",
       "description": "Notas internas al momento de recibir o ubicar el paquete"
+    },
+    "shipping_company": {
+      "type": "string",
+      "description": "Compa\u00f1\u00eda de transporte del tracking"
+    },
+    "shipping_address": {
+      "type": "string",
+      "description": "Direcci\u00f3n de entrega asociada al tracking"
+    },
+    "delivery_proof_request_sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en la que se envi\u00f3 la solicitud autom\u00e1tica del comprobante de entrega"
     }
   },
   "required": [
