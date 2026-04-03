@@ -90,7 +90,9 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
   const visibleAdminPages = useMemo(() => {
     if (user?.role !== 'admin') return [];
-    if (!user?.custom_role) return adminMenuItems.map((item) => item.page);
+    if (!user?.custom_role || user?.custom_role === 'super_admin') {
+      return adminMenuItems.map((item) => item.page);
+    }
     return roleConfig?.visible_pages || [];
   }, [user?.role, user?.custom_role, roleConfig]);
 
