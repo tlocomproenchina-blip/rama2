@@ -33,7 +33,8 @@ import {
   UserCheck,
   UserX,
   CreditCard,
-  CalendarDays
+  CalendarDays,
+  Crown
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { format } from 'date-fns';
@@ -1071,7 +1072,12 @@ Email: ${client.email}`;
                   {/* Details */}
                   <div className="flex flex-wrap items-center gap-3 text-sm">
                     <Badge variant="outline" className="bg-slate-50">
-                      Rol: {client.role === 'admin' ? (ROLE_PRESETS[client.custom_role]?.role_name || 'Administrador') : 'Cliente'}
+                      Rol: {client.role === 'admin' ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Crown className="h-3 w-3 text-amber-500" />
+                          {ROLE_PRESETS[client.custom_role]?.role_name || 'Administrador'}
+                        </span>
+                      ) : 'Cliente'}
                     </Badge>
                     {client.city && (
                       <Badge variant="outline" className="bg-slate-50">
@@ -1164,7 +1170,8 @@ Email: ${client.email}`;
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="user">Cliente</SelectItem>
-                          {ROLE_OPTIONS.filter((role) => role !== 'super_admin_oculto').map((role) => (
+                          <SelectItem value="equipo_y_acceso">👑 Administrador</SelectItem>
+                          {ROLE_OPTIONS.filter((role) => role !== 'super_admin_oculto' && role !== 'equipo_y_acceso').map((role) => (
                             <SelectItem key={role} value={role}>{ROLE_PRESETS[role]?.role_name || role}</SelectItem>
                           ))}
                         </SelectContent>
