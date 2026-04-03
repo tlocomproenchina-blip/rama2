@@ -57,6 +57,24 @@ export default function Home({ user }) {
     <div className="min-h-screen bg-background">
       <HomeHeader onLogin={handleAuthClick} />
       <Hero onLogin={handleAuthClick} />
+      {user?.role === 'user' && (
+        <div className="px-4 pt-4 md:px-6 lg:px-8">
+          <div className="mx-auto max-w-screen-sm">
+            <div className="rounded-3xl border border-border/70 bg-white/90 p-4 shadow-card backdrop-blur">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Acceso rápido</p>
+                  <h2 className="mt-1 text-lg font-bold text-foreground">Entrar al portal del cliente</h2>
+                  <p className="text-sm text-muted-foreground">Consulta paquetes, facturas, soporte y perfil desde una experiencia móvil más directa.</p>
+                </div>
+                <Link to={createPageUrl('Dashboard')}>
+                  <Button className="w-full sm:w-auto">Abrir portal</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <RecentOperationsPanel user={user} />
       <React.Suspense fallback={<PremiumLoader title="Cargando contenido" description="Estamos preparando la experiencia visual de la página principal." />}>
         <Features />
