@@ -37,9 +37,15 @@ export default function AdminSupportNewTicketDialog({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
+                  type="text"
                   placeholder="Buscar cliente por nombre, email, shipping mark o teléfono..."
                   value={clientSearch}
                   onChange={(e) => setClientSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                    }
+                  }}
                   className="pl-10"
                 />
               </div>
@@ -77,6 +83,7 @@ export default function AdminSupportNewTicketDialog({
           <div className="space-y-2">
             <Label>Asunto *</Label>
             <Input
+              type="text"
               value={newTicket.subject}
               onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
               placeholder="Describe brevemente el problema"
@@ -120,6 +127,7 @@ export default function AdminSupportNewTicketDialog({
           <div className="space-y-2">
             <Label>Tracking Relacionado (opcional)</Label>
             <Input
+              type="text"
               value={newTicket.related_tracking}
               onChange={(e) => setNewTicket({ ...newTicket, related_tracking: e.target.value })}
               placeholder="Ej: TLEC-123456"
