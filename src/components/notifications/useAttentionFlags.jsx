@@ -35,42 +35,41 @@ export default function useAttentionFlags({ user }) {
 
     await Promise.all(watches.map(async (w) => {
       try {
-        let rows = [];
-        if (w.query) {
-          rows = await base44.entities[w.entity].filter(w.query, '-updated_date', w.key === 'AdminPackages' ? 50 : 1);
-        } else {
-          rows = await base44.entities[w.entity].list('-updated_date', w.key === 'AdminPackages' ? 50 : 1);
-        }
-        const latest = Array.isArray(rows) ? rows[0] : undefined;
-        if (!latest) { next[w.key] = false; latestMap[w.key] = 0; return; }
-        let relevantLatest = latest;
-        if (w.key === 'AdminPackages' && Array.isArray(rows)) {
-          relevantLatest = rows.find((row) => {
-            if (!row?.delivery_proof_request_sent_date) return true;
-            const updatedMs = new Date(row.updated_date || row.created_date || 0).getTime();
-            const reminderMs = new Date(row.delivery_proof_request_sent_date).getTime();
-            return Math.abs(updatedMs - reminderMs) > 1000;
+        let latestMs = 0;
+
+        if (w.key === 'AdminPackages') {
+          const auditRows = await base44.entities.ActivityAuditLog.filter({ entity_name: 'Package' }, '-created_date', 50);
+          const relevantAudit = (auditRows || []).find((row) => {
+            const changedFields = Array.isArray(row?.changed_fields) ? row.changed_fields : [];
+            if (!changedFields.length) return false;
+            return changedFields.some((field) => field?.field_name && field.field_name !== 'delivery_proof_request_sent_date');
           });
+          latestMs = relevantAudit?.created_date ? new Date(relevantAudit.created_date).getTime() : 0;
+        } else {
+          let rows = [];
+          if (w.query) {
+            rows = await base44.entities[w.entity].filter(w.query, '-updated_date', 1);
+          } else {
+            rows = await base44.entities[w.entity].list('-updated_date', 1);
+          }
+          const latest = Array.isArray(rows) ? rows[0] : undefined;
+          latestMs = latest ? new Date(latest.updated_date || latest.created_date || 0).getTime() : 0;
         }
-        if (!relevantLatest) {
+
+        latestMap[w.key] = latestMs;
+        if (!latestMs) {
           next[w.key] = false;
-          latestMap[w.key] = 0;
           return;
         }
-        const latestDate = relevantLatest.updated_date || relevantLatest.created_date;
-        const latestMs = latestDate ? new Date(latestDate).getTime() : 0;
-        latestMap[w.key] = latestMs;
 
         let seenStr = sessionStorage.getItem(`attentionSeen:${w.key}`);
         let seenMs = Number(seenStr);
         if (!seenStr || !Number.isFinite(seenMs)) {
-          // Primera vez: fijamos visto al último timestamp conocido del servidor para evitar falsos positivos
           sessionStorage.setItem(`attentionSeen:${w.key}`, String(latestMs));
           seenMs = latestMs;
         }
         next[w.key] = latestMs > seenMs;
       } catch (_e) {
-        // En caso de error en una fuente, no encendemos el punto para evitar falsos positivos
         next[w.key] = false;
         latestMap[w.key] = 0;
       }
