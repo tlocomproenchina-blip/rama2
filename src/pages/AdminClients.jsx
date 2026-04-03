@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { ROLE_OPTIONS, ROLE_PRESETS } from '@/lib/rolePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -618,16 +619,17 @@ Email: ${client.email}`;
     if (!client?.id) return;
     setRoleUpdatingId(client.id);
     try {
+      const isAdminRole = nextRole !== 'user';
       await base44.entities.User.update(client.id, {
-        role: nextRole,
-        custom_role: nextRole === 'admin' ? (client.custom_role || 'equipo_y_acceso') : null,
+        role: isAdminRole ? 'admin' : 'user',
+        custom_role: isAdminRole ? nextRole : null,
       });
       setClients((prev) => prev.map((item) => item.id === client.id ? {
         ...item,
-        role: nextRole,
-        custom_role: nextRole === 'admin' ? (item.custom_role || 'equipo_y_acceso') : null,
+        role: isAdminRole ? 'admin' : 'user',
+        custom_role: isAdminRole ? nextRole : null,
       } : item));
-      toast.success(nextRole === 'admin' ? 'Usuario cambiado a administrador' : 'Administrador cambiado a usuario');
+      toast.success(isAdminRole ? 'Usuario movido a equipo con el rol seleccionado' : 'Usuario cambiado a cliente');
     } catch {
       toast.error('No se pudo cambiar el rol');
     }
@@ -1069,7 +1071,7 @@ Email: ${client.email}`;
                   {/* Details */}
                   <div className="flex flex-wrap items-center gap-3 text-sm">
                     <Badge variant="outline" className="bg-slate-50">
-                      Rol: {client.role === 'admin' ? 'Administrador' : 'Usuario'}
+                      Rol: {client.role === 'admin' ? (ROLE_PRESETS[client.custom_role]?.role_name || 'Administrador') : 'Usuario'}
                     </Badge>
                     {client.city && (
                       <Badge variant="outline" className="bg-slate-50">
@@ -1153,7 +1155,7 @@ Email: ${client.email}`;
                     </Button>
                     <div className="w-full sm:w-auto min-w-[180px]">
                       <Select
-                        value={client.role === 'admin' ? 'admin' : 'user'}
+                        value={client.role === 'admin' ? (client.custom_role || 'equipo_y_acceso') : 'user'}
                         onValueChange={(value) => handleChangeRegisteredUserRole(client, value)}
                         disabled={roleUpdatingId === client.id}
                       >
@@ -1162,7 +1164,9 @@ Email: ${client.email}`;
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="user">Usuario</SelectItem>
-                          <SelectItem value="admin">Administrador</SelectItem>
+                          {ROLE_OPTIONS.filter((role) => role !== 'super_admin_oculto').map((role) => (
+                            <SelectItem key={role} value={role}>{ROLE_PRESETS[role]?.role_name || role}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
