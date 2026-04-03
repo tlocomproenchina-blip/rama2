@@ -20,7 +20,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
         </div>
         <ChevronDown className={['h-4 w-4 text-slate-300 transition-transform duration-200', isOpen ? 'rotate-180' : 'rotate-0'].join(' ')} />
       </button>
-      <div className={['grid transition-all duration-200', isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'].join(' ')}>
+      <div className={['grid transition-[grid-template-rows,opacity] duration-150 ease-out', isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'].join(' ')}>
         <div className="overflow-hidden">
           <div className="space-y-2 pb-1">
             {pages.map((page) => {
@@ -37,9 +37,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
                   to={createPageUrl(item.page)}
                   onMouseEnter={() => prefetchPageData(item.page)}
                   onFocus={() => prefetchPageData(item.page)}
-                  onTouchStart={() => prefetchPageData(item.page)}
                   onClick={() => {
-                    prefetchPageData(item.page);
                     onItemClick(item.page);
                   }}
                   className={[

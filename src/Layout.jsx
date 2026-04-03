@@ -570,10 +570,10 @@ export default function Layout({ children, currentPageName }) {
               <Button 
                 variant="ghost" 
                 size="icon"
-                className={`h-11 w-11 rounded-2xl border p-0 touch-manipulation select-none transition-all duration-200 active:opacity-80 ${sidebarOpen ? 'border-primary/20 bg-accent text-foreground shadow-sm' : 'border-border/70 bg-white/80'}`}
+                className={`h-11 w-11 rounded-2xl border p-0 touch-manipulation select-none transition-colors duration-150 active:opacity-80 ${sidebarOpen ? 'border-primary/20 bg-accent text-foreground shadow-sm' : 'border-border/70 bg-white/80'}`}
                 onClick={() => setSidebarOpen(true)}
               >
-                <Menu className={`h-5 w-5 transition-transform duration-200 ${sidebarOpen ? 'scale-95' : 'scale-100'}`} />
+                <Menu className="h-5 w-5" />
               </Button>
               <div className="min-w-0 flex-1 px-2 text-center">
                 <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-primary/70">Navegación</p>

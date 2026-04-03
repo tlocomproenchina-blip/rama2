@@ -124,8 +124,8 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
           fixed inset-y-0 left-0 z-50 lg:static lg:inset-y-0 lg:left-0
           w-[min(20rem,calc(100vw-0.75rem))] lg:w-80 rounded-r-[2rem] lg:rounded-none
           border-y-0 border-l-0 border-r border-border/60 bg-sidebar/95
-          origin-left transform transition-transform transition-opacity duration-200 ease-out motion-reduce:transition-none will-change-transform
-          ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+0.5rem)] opacity-0 lg:translate-x-0 lg:opacity-100'}
+          origin-left transform-gpu transition-transform duration-150 ease-out motion-reduce:transition-none will-change-transform
+          ${isOpen ? 'translate-x-0' : '-translate-x-[calc(100%+0.5rem)] lg:translate-x-0'}
           flex flex-col overflow-hidden shadow-[0_18px_42px_-24px_rgba(15,23,42,0.24)] lg:backdrop-blur-xl
         `}
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.15rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.15rem)' }}
