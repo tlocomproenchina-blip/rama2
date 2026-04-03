@@ -1,0 +1,9 @@
+# Nombre de tu Proyecto o Web
+> Breve descripción de qué trata tu sitio (máximo 2 frases).
+
+## Secciones Clave
+- [Título del contenido 1](https://tuweb.com/pagina-1): Descripción corta de qué encontrará la IA aquí.
+- [Guía de Importación](https://tuweb.com/guia): Todo sobre logística desde China.
+
+## Recursos adicionales
+- [FAQ](https://tuweb.com/faq): Preguntas frecuentes para entrenamiento.
