@@ -65,8 +65,7 @@ export default function useAttentionFlags({ user }) {
         let seenStr = sessionStorage.getItem(`attentionSeen:${w.key}`);
         let seenMs = Number(seenStr);
         if (!seenStr || !Number.isFinite(seenMs)) {
-          sessionStorage.setItem(`attentionSeen:${w.key}`, String(latestMs));
-          seenMs = latestMs;
+          seenMs = 0;
         }
         next[w.key] = latestMs > seenMs;
       } catch (_e) {
