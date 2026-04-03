@@ -136,7 +136,7 @@ export default function Support({ user }) {
 
   const handleSendMessage = async (message, files = []) => {
     if (!user?.email) { base44.auth.redirectToLogin(); return; }
-    const uploadedAttachments = await uploadSupportImages(files);
+    const uploadedAttachments = await uploadSupportImages(files, getTicketPhotoLimit(selectedTicket));
     const newMessage = {
       sender_email: user.email,
       sender_name: user.full_name || user.email,
@@ -166,6 +166,15 @@ export default function Support({ user }) {
 
     setSelectedTicket({ ...selectedTicket, messages: updatedMessages });
     loadTickets();
+  };
+
+  const getTicketPhotoLimit = (ticket) => {
+    const trackingCount = (ticket?.related_tracking || '')
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean).length;
+
+    return Math.max(1, trackingCount || 3);
   };
 
   const statusConfig = {
@@ -429,6 +438,7 @@ export default function Support({ user }) {
             onSendMessage={handleSendMessage}
             currentUserEmail={user.email}
             disabled={selectedTicket?.status === 'cerrado'}
+            maxFiles={getTicketPhotoLimit(selectedTicket)}
           />
         </DialogContent>
       </Dialog>

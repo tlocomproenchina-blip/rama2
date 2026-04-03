@@ -46,6 +46,7 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
           onSendMessage={handleSendMessage}
           currentUserEmail={user.email}
           disabled={selectedTicket?.status === 'cerrado'}
+          maxFiles={Math.max(1, (selectedTicket?.related_tracking || '').split(',').map(item => item.trim()).filter(Boolean).length || 3)}
         />
       </DialogContent>
     </Dialog>

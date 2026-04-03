@@ -288,7 +288,11 @@ export default function AdminSupportTickets({ user }) {
   };
 
   const handleSendMessage = async (message, files = []) => {
-    const uploadedAttachments = await uploadSupportImages(files);
+    const trackingCount = (selectedTicket?.related_tracking || '')
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean).length;
+    const uploadedAttachments = await uploadSupportImages(files, Math.max(1, trackingCount || 3));
     const newMessage = {
       sender_email: user.email,
       sender_name: user.full_name || user.email,

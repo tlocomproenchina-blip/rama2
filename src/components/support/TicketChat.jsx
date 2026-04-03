@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import SupportImageUploader from '@/components/support/SupportImageUploader';
 import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPreview';
 
-export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled }) {
+export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3 }) {
   const [newMessage, setNewMessage] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [sending, setSending] = useState(false);
@@ -64,7 +64,7 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
       {/* Input */}
       {!disabled && (
         <div className="space-y-3">
-          <SupportImageUploader files={attachments} onChange={setAttachments} />
+          <SupportImageUploader files={attachments} onChange={setAttachments} maxFiles={maxFiles} />
           <div className="flex gap-2">
             <Textarea
               value={newMessage}

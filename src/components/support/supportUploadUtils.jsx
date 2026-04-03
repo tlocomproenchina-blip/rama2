@@ -1,7 +1,7 @@
 import { base44 } from '@/components/api/ApiQueueManager';
 
-export async function uploadSupportImages(files) {
-  const safeFiles = Array.from(files || []).slice(0, 3);
+export async function uploadSupportImages(files, maxFiles = 3) {
+  const safeFiles = Array.from(files || []).slice(0, maxFiles);
   if (safeFiles.length === 0) return [];
 
   const uploaded = await Promise.all(
