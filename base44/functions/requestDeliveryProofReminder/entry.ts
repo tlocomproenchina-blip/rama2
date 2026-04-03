@@ -1,8 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
-const EXAMPLE_IMAGE_ONE = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/b8d912ede_2259E82C-F0BF-436E-9770-7EA64C78BCE6.png';
-const EXAMPLE_IMAGE_TWO = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/2484aa300_WhatsAppImage2026-04-03at12951PM.jpg';
-const EXAMPLE_IMAGE_THREE = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/d11b83368_WhatsAppImage2026-04-03at12833PM.jpg';
+const EXAMPLE_IMAGE_ONE = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/2484aa300_WhatsAppImage2026-04-03at12951PM.jpg';
+const EXAMPLE_IMAGE_TWO = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/d11b83368_WhatsAppImage2026-04-03at12833PM.jpg';
 
 function getCaracasDateMinusDays(days) {
   const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -47,10 +46,6 @@ function buildEmailBody({ clientName, trackingNumber, companyName, deliveryAddre
         <div>
           <p style="margin: 0 0 8px; font-weight: 600;">Foto 2 - Debe verse así</p>
           <img src="${EXAMPLE_IMAGE_TWO}" alt="Ejemplo 2 de comprobante de entrega" style="width: 100%; max-width: 320px; border-radius: 12px; border: 1px solid #e2e8f0;" />
-        </div>
-        <div>
-          <p style="margin: 0 0 8px; font-weight: 600;">Foto 3 - Debe verse así</p>
-          <img src="${EXAMPLE_IMAGE_THREE}" alt="Ejemplo 3 de comprobante de entrega" style="width: 100%; max-width: 320px; border-radius: 12px; border: 1px solid #e2e8f0;" />
         </div>
       </div>
       <p>Si ya nos enviaste esta información, puedes ignorar este mensaje.</p>
