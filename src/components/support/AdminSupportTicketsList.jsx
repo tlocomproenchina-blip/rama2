@@ -1,4 +1,5 @@
 import React from 'react';
+import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,8 @@ export default function AdminSupportTicketsList({
         const assignedAdmin = staffUsers.find((a) => a.email === ticket.assigned_to);
         const assignedRole = assignedAdmin?.role === 'admin' ? 'admin' : assignedAdmin?.custom_role;
         const isUnread = hasUnreadClientMessage(ticket);
+        const lastMessage = ticket.messages?.[ticket.messages.length - 1];
+        const lastMessageDate = lastMessage?.timestamp ? format(new Date(lastMessage.timestamp), 'dd/MM/yyyy HH:mm') : null;
 
         return (
           <Card
@@ -81,6 +84,12 @@ export default function AdminSupportTicketsList({
                         <span>Categoría: {ticket.category}</span>
                         <span>•</span>
                         <span>{ticket.messages?.length || 0} mensajes</span>
+                        {lastMessageDate && (
+                          <>
+                            <span>•</span>
+                            <span>Último mensaje: {lastMessageDate}</span>
+                          </>
+                        )}
                         {ticket.related_tracking && (
                           <>
                             <span>•</span>
