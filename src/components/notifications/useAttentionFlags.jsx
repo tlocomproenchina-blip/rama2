@@ -37,13 +37,17 @@ export default function useAttentionFlags({ user }) {
       try {
         let rows = [];
         if (w.query) {
-          rows = await base44.entities[w.entity].filter(w.query, '-updated_date', 1);
+          rows = await base44.entities[w.entity].filter(w.query, '-updated_date', w.key === 'AdminPackages' ? 50 : 1);
         } else {
-          rows = await base44.entities[w.entity].list('-updated_date', 1);
+          rows = await base44.entities[w.entity].list('-updated_date', w.key === 'AdminPackages' ? 50 : 1);
         }
         const latest = Array.isArray(rows) ? rows[0] : undefined;
         if (!latest) { next[w.key] = false; latestMap[w.key] = 0; return; }
-        const latestDate = latest.updated_date || latest.created_date;
+        let relevantLatest = latest;
+        if (w.key === 'AdminPackages' && Array.isArray(rows)) {
+          relevantLatest = rows.find((row) => row.delivery_proof_request_sent_date !== (row.updated_date || row.created_date)) || latest;
+        }
+        const latestDate = relevantLatest?.updated_date || relevantLatest?.created_date;
         const latestMs = latestDate ? new Date(latestDate).getTime() : 0;
         latestMap[w.key] = latestMs;
 
