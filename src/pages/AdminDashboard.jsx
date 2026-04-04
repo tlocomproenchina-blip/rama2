@@ -75,13 +75,18 @@ export default function AdminDashboard({ user }) {
         base44.functions.invoke('listClientsForSupport', {})
       ]);
 
+      const invoicedConsolidationIds = new Set(
+        (invoices || []).map((invoice) => invoice.consolidation_id).filter(Boolean)
+      );
+      const trackableConsolidations = allConsolidations.filter((item) => invoicedConsolidationIds.has(item.id));
+
       const recentPackages = allPackages.slice(0, packagesLimit);
       const resolvedUsers = Array.isArray(usersSupport?.data) ? usersSupport.data : usersPage;
 
       setHasMorePackages(allPackages.length > packagesLimit);
       setHasMoreConsolidations(consolidations.length === consolidationsLimit);
       setHasMoreInvoices(invoices.length === invoicesLimit);
-      setData({ packages: allPackages, consolidations, allConsolidations, users: resolvedUsers, invoices, notifications, supportTickets });
+      setData({ packages: allPackages, consolidations, allConsolidations: trackableConsolidations, users: resolvedUsers, invoices, notifications, supportTickets });
       setRecentPackagesCache(recentPackages);
       if (Array.isArray(cfg) && cfg.length > 0) setAppConfig(cfg[0]);
     } catch (error) {
@@ -115,7 +120,7 @@ export default function AdminDashboard({ user }) {
 
   const rangeStats = React.useMemo(() => ({
     packagesReceived: pkgsR.filter(p => p.status === 'recibido').length,
-    packagesInTransit: pkgsR.filter(p => p.status === 'en_transito').length,
+    packagesInTransit: consR.filter(c => c.status === 'en_transito').length,
     shipmentsPie: [
       { name: 'En tránsito', value: consR.filter(c => c.status === 'en_transito').length },
       { name: 'Disponible', value: consR.filter(c => c.status === 'disponible').length },
