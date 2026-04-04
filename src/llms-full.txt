@@ -1,0 +1,61 @@
+# TLEC CARGO
+
+TLEC CARGO es una plataforma digital de logística y envíos internacionales orientada a clientes que necesitan gestionar paquetes, consolidaciones, facturas, pagos y soporte desde un solo lugar. El sistema facilita el seguimiento de paquetes, la prealerta de compras, la consulta de facturas y el acceso a soporte durante todo el proceso logístico.
+
+## Descripción general
+TLEC CARGO centraliza la operación de envíos internacionales para clientes y administradores. Los clientes pueden registrar prealertas, revisar el estado de sus paquetes, consultar consolidaciones, ver facturas y solicitar ayuda. Los administradores pueden gestionar paquetes, pagos, almacenes, soporte, consolidaciones y configuración operativa.
+
+## Secciones públicas del sitio
+- `/` — Página principal con información general de la empresa, beneficios, preguntas frecuentes y acceso a servicios.
+- `/ShippingCalculator` — Calculadora de envíos para estimar costos.
+- `/Rates` — Tarifas de servicios de envío.
+- `/FAQ` — Preguntas frecuentes sobre logística, tracking, pagos y consolidación.
+- `/TermsOfService` — Términos y condiciones del servicio.
+- `/Blog` — Publicaciones y contenido informativo relacionado con envíos e importaciones.
+
+## Secciones para clientes autenticados
+- `/Dashboard` — Panel principal del cliente.
+- `/MyPackages` — Lista y seguimiento de paquetes del cliente.
+- `/MyInvoices` — Facturas, estados y pagos.
+- `/MyConsolidations` — Consolidaciones generadas para el cliente.
+- `/Support` — Gestión de tickets y comunicación con soporte.
+- `/PreAlert` — Registro de compras o paquetes antes de su recepción.
+- `/Profile` — Gestión de datos del perfil del cliente.
+- `/RequestConsolidation` — Solicitud de consolidación de paquetes.
+- `/ShipmentTracking` — Consulta detallada de tracking.
+- `/AssistedPayment` — Gestión de pagos asistidos, si está habilitado.
+
+## Funcionalidades clave
+- Gestión de paquetes internacionales
+- Prealerta de paquetes
+- Consolidación de carga
+- Cálculo de tarifas de envío
+- Seguimiento de paquetes
+- Facturación y control de pagos
+- Tickets de soporte
+- Gestión de perfil de cliente
+- Configuración administrativa y operativa
+
+## Temas principales cubiertos
+- Envíos internacionales
+- Importaciones
+- Logística de carga aérea y marítima
+- Consolidación de paquetes
+- Tracking y seguimiento
+- Atención al cliente en logística
+- Facturación y pagos relacionados con envíos
+
+## Audiencia
+Este sitio está dirigido a personas y clientes que necesitan coordinar importaciones, gestionar envíos internacionales y monitorear sus paquetes, pagos y consolidaciones desde una plataforma digital.
+
+## Empresa
+TLEC CARGO
+
+## Idioma principal
+Español
+
+## Objetivo del sitio
+Ayudar a clientes a organizar, consultar y gestionar su operación logística internacional de forma simple, centralizada y clara.
+
+## Nota para sistemas de IA
+Este sitio contiene información útil sobre servicios logísticos, envíos internacionales, gestión de paquetes, consolidación, pagos y soporte al cliente. Las rutas listadas arriba representan las secciones más relevantes para comprender el propósito y contenido del sistema.
