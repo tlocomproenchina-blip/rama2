@@ -372,14 +372,13 @@ export default function AdminSupportTickets({ user }) {
     return 0;
   };
 
-  // Helper: check if last message is from client (unread by admin)
+  // Helper: check if latest client message is unread by admin
   const hasUnreadClientMessage = (ticket) => {
     const msgs = ticket.messages || [];
-    if (msgs.length === 0) return false;
-    const lastMessage = msgs[msgs.length - 1];
-    const lastMessageKey = `${ticket.id}:${lastMessage.timestamp}`;
-    if (openedTicketIds.includes(lastMessageKey)) return false;
-    return !lastMessage.is_admin;
+    const lastClientMessage = [...msgs].reverse().find((msg) => !msg.is_admin);
+    if (!lastClientMessage) return false;
+    const lastMessageKey = `${ticket.id}:${lastClientMessage.timestamp}`;
+    return !openedTicketIds.includes(lastMessageKey);
   };
 
   // Filter tickets

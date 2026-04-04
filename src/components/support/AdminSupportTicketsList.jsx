@@ -59,9 +59,9 @@ export default function AdminSupportTicketsList({
                       className="flex-1 cursor-pointer"
                       onClick={() => {
                         setSelectedTicket(ticket);
-                        const lastMessage = ticket.messages?.[ticket.messages.length - 1];
-                        if (!lastMessage) return;
-                        const lastMessageKey = `${ticket.id}:${lastMessage.timestamp}`;
+                        const lastClientMessage = [...(ticket.messages || [])].reverse().find((msg) => !msg.is_admin);
+                        if (!lastClientMessage) return;
+                        const lastMessageKey = `${ticket.id}:${lastClientMessage.timestamp}`;
                         setOpenedTicketIds((prev) => prev.includes(lastMessageKey) ? prev : [...prev, lastMessageKey]);
                       }}
                     >
