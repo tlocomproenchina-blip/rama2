@@ -63,7 +63,7 @@ export default function AdminDashboard({ user }) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [allPackages, consolidations, allConsolidations, users, invoices, supportTickets, cfg, notifications] = await Promise.all([
+      const [allPackages, consolidations, allConsolidations, usersPage, invoices, supportTickets, cfg, notifications, usersSupport] = await Promise.all([
         loadAllPackages(),
         base44.entities.Consolidation.list('-created_date', consolidationsLimit),
         base44.entities.Consolidation.list('-created_date', 200),
@@ -71,15 +71,17 @@ export default function AdminDashboard({ user }) {
         base44.entities.Invoice.list('-created_date', invoicesLimit),
         base44.entities.SupportTicket.list('-created_date', 100),
         base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1),
-        user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([])
+        user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([]),
+        base44.functions.invoke('listClientsForSupport', {})
       ]);
 
       const recentPackages = allPackages.slice(0, packagesLimit);
+      const resolvedUsers = Array.isArray(usersSupport?.data) ? usersSupport.data : usersPage;
 
       setHasMorePackages(allPackages.length > packagesLimit);
       setHasMoreConsolidations(consolidations.length === consolidationsLimit);
       setHasMoreInvoices(invoices.length === invoicesLimit);
-      setData({ packages: allPackages, consolidations, allConsolidations, users, invoices, notifications, supportTickets });
+      setData({ packages: allPackages, consolidations, allConsolidations, users: resolvedUsers, invoices, notifications, supportTickets });
       setRecentPackagesCache(recentPackages);
       if (Array.isArray(cfg) && cfg.length > 0) setAppConfig(cfg[0]);
     } catch (error) {
@@ -182,7 +184,7 @@ export default function AdminDashboard({ user }) {
       
       // Clientes
       totalClients: data.users.length,
-      activeClients: new Set(data.packages.map(p => p.client_email)).size,
+      activeClients: data.users.filter(u => u.is_active !== false).length,
       
       // Facturas
       unpaidInvoices: data.invoices.filter(i => i.status === 'pendiente').length,
