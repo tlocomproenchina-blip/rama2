@@ -90,6 +90,14 @@ export default function AdminSupportTickets({ user }) {
       return [];
     }
   });
+  const [manuallyUnreadTicketIds, setManuallyUnreadTicketIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('adminSupportManuallyUnreadTicketIds');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const loadData = useCallback(async (append = false) => {
     try {
@@ -331,13 +339,13 @@ export default function AdminSupportTickets({ user }) {
   const handleMarkAsUnread = (ticket) => {
     const messages = ticket?.messages || [];
     const lastClientMessage = [...messages].reverse().find((msg) => !msg.is_admin);
-    if (!lastClientMessage) {
-      toast.error('Este ticket no tiene mensajes del cliente para marcar como no visto');
-      return;
+
+    if (lastClientMessage) {
+      const lastMessageKey = `${ticket.id}:${lastClientMessage.timestamp}`;
+      setOpenedTicketIds((prev) => prev.filter((item) => item !== lastMessageKey));
     }
 
-    const lastMessageKey = `${ticket.id}:${lastClientMessage.timestamp}`;
-    setOpenedTicketIds((prev) => prev.filter((item) => item !== lastMessageKey));
+    setManuallyUnreadTicketIds((prev) => prev.includes(ticket.id) ? prev : [...prev, ticket.id]);
     toast.success('Ticket marcado como no visto');
   };
 
@@ -348,6 +356,10 @@ export default function AdminSupportTickets({ user }) {
   useEffect(() => {
     localStorage.setItem('adminSupportOpenedTicketIds', JSON.stringify(openedTicketIds));
   }, [openedTicketIds]);
+
+  useEffect(() => {
+    localStorage.setItem('adminSupportManuallyUnreadTicketIds', JSON.stringify(manuallyUnreadTicketIds));
+  }, [manuallyUnreadTicketIds]);
 
   const statusConfig = {
     abierto: { label: 'Abierto', color: 'bg-blue-100 text-blue-700', icon: AlertCircle },
@@ -372,8 +384,9 @@ export default function AdminSupportTickets({ user }) {
     return 0;
   };
 
-  // Helper: check if latest client message is unread by admin
+  // Helper: check if ticket should show as unread by admin
   const hasUnreadClientMessage = (ticket) => {
+    if (manuallyUnreadTicketIds.includes(ticket.id)) return true;
     const msgs = ticket.messages || [];
     const lastClientMessage = [...msgs].reverse().find((msg) => !msg.is_admin);
     if (!lastClientMessage) return false;
@@ -501,6 +514,7 @@ export default function AdminSupportTickets({ user }) {
             hasUnreadClientMessage={hasUnreadClientMessage}
             setSelectedTicket={setSelectedTicket}
             setOpenedTicketIds={setOpenedTicketIds}
+            setManuallyUnreadTicketIds={setManuallyUnreadTicketIds}
             setAssigningTicket={setAssigningTicket}
             setSelectedAssignRole={setSelectedAssignRole}
             setSelectedAssignee={setSelectedAssignee}

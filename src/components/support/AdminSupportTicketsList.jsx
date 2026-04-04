@@ -16,6 +16,7 @@ export default function AdminSupportTicketsList({
   hasUnreadClientMessage,
   setSelectedTicket,
   setOpenedTicketIds,
+  setManuallyUnreadTicketIds,
   setAssigningTicket,
   setSelectedAssignRole,
   setSelectedAssignee,
@@ -59,6 +60,7 @@ export default function AdminSupportTicketsList({
                       className="flex-1 cursor-pointer"
                       onClick={() => {
                         setSelectedTicket(ticket);
+                        setManuallyUnreadTicketIds((prev) => prev.filter((item) => item !== ticket.id));
                         const lastClientMessage = [...(ticket.messages || [])].reverse().find((msg) => !msg.is_admin);
                         if (!lastClientMessage) return;
                         const lastMessageKey = `${ticket.id}:${lastClientMessage.timestamp}`;
