@@ -1,663 +1,281 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Package, Truck, DollarSign, Users, AlertCircle, CheckCircle2, Clock, TrendingUp, Eye, Bell, UserCheck, UserX } from 'lucide-react';
-import { createPageUrl } from '@/utils';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import StatusBadge from '@/components/StatusBadge';
-import ApiSystemPanel from '@/components/api/ApiSystemPanel';
-import KeyStat from '@/components/dashboard/KeyStat';
-import PieChartCard from '@/components/dashboard/PieChartCard';
-import RecentActivity from '@/components/dashboard/RecentActivity';
-import DashboardCustomizer from '@/components/dashboard/DashboardCustomizer';
-import AdminPlatformOverview from '@/components/dashboard/AdminPlatformOverview';
-import AdminDashboardHero from '@/components/dashboard/AdminDashboardHero';
+import { base44 } from '@/components/api/ApiQueueManager';
+import { createPageUrl } from '@/utils';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import PremiumLoader from '@/components/common/PremiumLoader';
+import AdminDashboardMetricCard from '@/components/dashboard/AdminDashboardMetricCard';
+import AdminDashboardSectionCard from '@/components/dashboard/AdminDashboardSectionCard';
+import AdminDashboardQuickLink from '@/components/dashboard/AdminDashboardQuickLink';
+import StatusBadge from '@/components/StatusBadge';
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  Package,
+  RefreshCw,
+  Ticket,
+  TrendingUp,
+  Truck,
+  Users,
+} from 'lucide-react';
 
 export default function AdminDashboard({ user }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     packages: [],
     consolidations: [],
-    allConsolidations: [],
     users: [],
     invoices: [],
+    supportTickets: [],
     notifications: [],
-    supportTickets: []
   });
-
-  // Paginación (cargar bajo demanda)
-  const [packagesLimit, setPackagesLimit] = useState(10);
-  const [consolidationsLimit, setConsolidationsLimit] = useState(10);
-  const [invoicesLimit, setInvoicesLimit] = useState(10);
-  const [hasMorePackages, setHasMorePackages] = useState(false);
-  const [hasMoreConsolidations, setHasMoreConsolidations] = useState(false);
-  const [hasMoreInvoices, setHasMoreInvoices] = useState(false);
-  const [range, setRange] = useState('7d');
-  const [showCustomizer, setShowCustomizer] = useState(false);
-  const [appConfig, setAppConfig] = useState(null);
-
-  const [invFilter, setInvFilter] = useState('pendiente');
-  const [consFilter, setConsFilter] = useState('todas');
-  const [notifFilter, setNotifFilter] = useState('todas');
-  const [mainTab, setMainTab] = useState('resumen');
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [packages, consolidations, allConsolidations, users, invoices, supportTickets, cfg, notifications] = await Promise.all([
-        base44.entities.Package.list('-created_date', packagesLimit),
-        base44.entities.Consolidation.list('-created_date', consolidationsLimit),
-        base44.entities.Consolidation.list('-created_date', 200),
+      const [packages, consolidations, users, invoices, supportTickets, notifications] = await Promise.all([
+        base44.entities.Package.list('-created_date', 120),
+        base44.entities.Consolidation.list('-created_date', 120),
         base44.entities.User.filter({ role: 'user' }, '-updated_date', 200),
-        base44.entities.Invoice.list('-created_date', invoicesLimit),
-        base44.entities.SupportTicket.list('-created_date', 100),
-        base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1),
-        user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([])
+        base44.entities.Invoice.list('-created_date', 120),
+        base44.entities.SupportTicket.list('-updated_date', 80),
+        user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([]),
       ]);
 
-      setHasMorePackages(packages.length === packagesLimit);
-      setHasMoreConsolidations(consolidations.length === consolidationsLimit);
-      setHasMoreInvoices(invoices.length === invoicesLimit);
-      setData({ packages, consolidations, allConsolidations, users, invoices, notifications, supportTickets });
-      if (Array.isArray(cfg) && cfg.length > 0) setAppConfig(cfg[0]);
+      setData({ packages, consolidations, users, invoices, supportTickets, notifications });
     } catch (error) {
-      console.error('Error loading dashboard:', error);
+      console.error('Error loading admin dashboard:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [packagesLimit, consolidationsLimit, invoicesLimit, user?.email]);
+  }, [user?.email]);
 
   useEffect(() => {
-    if (mainTab === 'resumen') {
-      loadData();
-    }
-  }, [mainTab, loadData]);
+    loadData();
+  }, [loadData]);
 
-  const filterByRange = (arr, r) => {
-    if (!Array.isArray(arr)) return [];
-    const now = new Date();
-    const start = new Date();
-    if (r === 'today') { start.setHours(0,0,0,0); }
-    else if (r === '7d') { start.setTime(now.getTime() - 7*24*60*60*1000); }
-    else if (r === '30d') { start.setTime(now.getTime() - 30*24*60*60*1000); }
-    else { start.setTime(0); }
-    return arr.filter(it => new Date(it.created_date) >= start);
-  };
-
-  const pkgsR = React.useMemo(() => filterByRange(data.packages, range), [data.packages, range]);
-  const consR = React.useMemo(() => filterByRange(data.consolidations, range), [data.consolidations, range]);
-
-  const clientsActive = React.useMemo(() => data.users.filter(u => u.is_active !== false).length, [data.users]);
-  const clientsInactive = React.useMemo(() => data.users.filter(u => u.is_active === false).length, [data.users]);
-
-  const rangeStats = React.useMemo(() => ({
-    packagesReceived: pkgsR.filter(p => p.status === 'recibido').length,
-    packagesInTransit: pkgsR.filter(p => p.status === 'en_transito').length,
-    shipmentsPie: [
-      { name: 'En tránsito', value: consR.filter(c => c.status === 'en_transito').length },
-      { name: 'Disponible', value: consR.filter(c => c.status === 'disponible').length },
-      { name: 'Entregado', value: consR.filter(c => c.status === 'entregado').length },
-      { name: 'Pago validado', value: consR.filter(c => c.payment_validated).length }
-    ]
-  }), [pkgsR, consR]);
-
-  const rangeLabel = range === 'today' ? 'Hoy' : range === '7d' ? '7 días' : range === '30d' ? '30 días' : 'Todo el tiempo';
-
-  const recentActivity = React.useMemo(() => {
-    const items = [];
-    pkgsR.slice(0, 100).forEach(p => items.push({
-      type: 'package',
-      title: `Paquete ${p.tracking_number}`,
-      description: p.client_email,
-      date: p.created_date
-    }));
-    consR.slice(0, 100).forEach(c => items.push({
-      type: 'consolidation',
-      title: `Consolidación ${c.consolidation_tracking || ''}`.trim(),
-      description: c.status,
-      date: c.created_date
-    }));
-    return items.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
-  }, [pkgsR, consR]);
-
-  const stats = useMemo(() => {
+  const metrics = useMemo(() => {
     const today = new Date();
-    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
-    
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const activeClients = data.users.filter((item) => item.is_active !== false).length;
+    const inactiveClients = data.users.filter((item) => item.is_active === false).length;
+    const preAlerts = data.packages.filter((item) => item.status === 'pre_alerta').length;
+    const received = data.packages.filter((item) => item.status === 'recibido').length;
+    const inTransit = data.packages.filter((item) => item.status === 'en_transito').length;
+    const availableConsolidations = data.consolidations.filter((item) => item.status === 'disponible').length;
+    const pendingValidation = data.consolidations.filter((item) => item.payment_proof_url && !item.payment_validated).length;
+    const openTickets = data.supportTickets.filter((item) => item.status === 'abierto').length;
+    const overdueInvoices = data.invoices.filter((item) => item.status === 'pendiente' && item.due_date && new Date(item.due_date) < today).length;
+    const monthRevenue = data.consolidations
+      .filter((item) => item.payment_validated && item.payment_validation_date && new Date(item.payment_validation_date) >= monthStart)
+      .reduce((sum, item) => sum + Number(item.total_cost || 0), 0);
+    const totalRevenue = data.consolidations
+      .filter((item) => item.payment_validated)
+      .reduce((sum, item) => sum + Number(item.total_cost || 0), 0);
+
     return {
-      // Paquetes
-      totalPackages: data.packages.length,
-      preAlertas: data.packages.filter(p => p.status === 'pre_alerta').length,
-      received: data.packages.filter(p => p.status === 'recibido').length,
-      inTransit: data.packages.filter(p => p.status === 'en_transito').length,
-      
-      // Consolidaciones
-      totalConsolidations: data.allConsolidations.length,
-      pendingPayment: data.allConsolidations.filter(c => c.status === 'en_transito' && !c.payment_validated).length,
-      pendingValidation: data.allConsolidations.filter(c => c.payment_proof_url && !c.payment_validated).length,
-      available: data.allConsolidations.filter(c => c.status === 'disponible').length,
-      
-      // Ingresos
-      totalRevenue: data.allConsolidations
-        .filter(c => c.payment_validated)
-        .reduce((sum, c) => sum + (c.total_cost || 0), 0),
-      pendingRevenue: data.allConsolidations
-        .filter(c => !c.payment_validated)
-        .reduce((sum, c) => sum + (c.total_cost || 0), 0),
-      monthRevenue: data.allConsolidations
-        .filter(c => c.payment_validated && new Date(c.payment_validation_date) >= lastMonth)
-        .reduce((sum, c) => sum + (c.total_cost || 0), 0),
-      projectedMonthlyRevenue: (() => {
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        const validatedThisMonth = data.allConsolidations
-          .filter(c => c.payment_validated && c.payment_validation_date && new Date(c.payment_validation_date) >= monthStart)
-          .reduce((sum, c) => sum + Number(c.total_cost || 0), 0);
-        const elapsedDays = Math.max(1, today.getDate());
-        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-        return (validatedThisMonth / elapsedDays) * daysInMonth;
-      })(),
-      totalShippingVolume: data.allConsolidations.reduce((sum, c) => sum + Number(c.cbm || 0), 0),
-      openSupportTickets: data.supportTickets.filter(t => t.status === 'abierto').length,
-      
-      // Clientes
-      totalClients: data.users.length,
-      activeClients: new Set(data.packages.map(p => p.client_email)).size,
-      
-      // Facturas
-      unpaidInvoices: data.invoices.filter(i => i.status === 'pendiente').length,
-      overdueInvoices: data.invoices.filter(i => 
-        i.status === 'pendiente' && new Date(i.due_date) < today
-      ).length
+      activeClients,
+      inactiveClients,
+      preAlerts,
+      received,
+      inTransit,
+      availableConsolidations,
+      pendingValidation,
+      openTickets,
+      overdueInvoices,
+      monthRevenue,
+      totalRevenue,
     };
   }, [data]);
 
-  const recentPackages = useMemo(() => data.packages, [data.packages]);
+  const urgentItems = useMemo(() => {
+    const items = [];
+    if (metrics.pendingValidation > 0) {
+      items.push({ title: 'Pagos por validar', count: metrics.pendingValidation, to: createPageUrl('AdminPayments'), tone: 'rose' });
+    }
+    if (metrics.overdueInvoices > 0) {
+      items.push({ title: 'Facturas vencidas', count: metrics.overdueInvoices, to: createPageUrl('AdminInvoices'), tone: 'amber' });
+    }
+    if (metrics.openTickets > 0) {
+      items.push({ title: 'Tickets abiertos', count: metrics.openTickets, to: createPageUrl('AdminSupportTickets'), tone: 'violet' });
+    }
+    if (metrics.preAlerts > 0) {
+      items.push({ title: 'Pre-alertas pendientes', count: metrics.preAlerts, to: createPageUrl('AdminPreAlerts'), tone: 'blue' });
+    }
+    return items;
+  }, [metrics]);
 
-  const invoicesByFilter = useMemo(() => {
-    let list = data.invoices;
-    if (invFilter === 'pendiente') {
-      list = list.filter(i => i.status === 'pendiente');
-    } else if (invFilter === 'vencida') {
-      const today = new Date();
-      list = list.filter(i => i.status === 'pendiente' && new Date(i.due_date) < today);
-    }
-    return list;
-  }, [data.invoices, invFilter]);
-
-  const recentConsolidations = useMemo(() => {
-    let list = data.consolidations;
-    if (consFilter !== 'todas') {
-      list = list.filter(c => c.status === consFilter);
-    }
-    return list;
-  }, [data.consolidations, consFilter]);
-
-  const notificationsSummary = useMemo(() => {
-    let list = data.notifications || [];
-    if (notifFilter === 'no_leidas') list = list.filter(n => !n.read);
-    return list.slice(0, 5);
-  }, [data.notifications, notifFilter]);
-
-  const urgentActions = useMemo(() => {
-    const actions = [];
-    
-    if (stats.pendingValidation > 0) {
-      actions.push({
-        title: 'Pagos por validar',
-        count: stats.pendingValidation,
-        icon: AlertCircle,
-        color: 'text-red-600',
-        bgColor: 'bg-red-50',
-        link: createPageUrl('AdminPayments')
-      });
-    }
-    
-    if (stats.overdueInvoices > 0) {
-      actions.push({
-        title: 'Facturas vencidas',
-        count: stats.overdueInvoices,
-        icon: DollarSign,
-        color: 'text-orange-600',
-        bgColor: 'bg-orange-50',
-        link: createPageUrl('AdminInvoices')
-      });
-    }
-    
-    if (stats.preAlertas > 10) {
-      actions.push({
-        title: 'Pre-alertas pendientes',
-        count: stats.preAlertas,
-        icon: Clock,
-        color: 'text-yellow-600',
-        bgColor: 'bg-yellow-50',
-        link: createPageUrl('AdminPackages')
-      });
-    }
-    
-    return actions;
-  }, [stats]);
+  const recentPackages = useMemo(() => data.packages.slice(0, 6), [data.packages]);
+  const recentConsolidations = useMemo(() => data.consolidations.slice(0, 6), [data.consolidations]);
+  const recentTickets = useMemo(() => data.supportTickets.slice(0, 5), [data.supportTickets]);
 
   if (loading) {
-    return <PremiumLoader title="Cargando dashboard" description="Estamos preparando tus métricas y accesos rápidos." />;
+    return <PremiumLoader title="Cargando dashboard" description="Estamos preparando el nuevo panel administrativo." />;
   }
 
   return (
     <div className="space-y-6">
-      <AdminDashboardHero
-        mainTab={mainTab}
-        range={range}
-        setRange={setRange}
-        onRefresh={loadData}
-        onCustomize={() => setShowCustomizer(true)}
-        onTabChange={setMainTab}
-      />
+      <section className="overflow-hidden rounded-[calc(var(--radius)+0.75rem)] border border-border/70 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white shadow-premium">
+        <div className="grid gap-6 p-6 md:p-8 lg:grid-cols-[1.4fr_0.9fr] lg:items-end">
+          <div>
+            <Badge className="border-white/10 bg-white/10 text-white hover:bg-white/10">Dashboard administrativo</Badge>
+            <h1 className="mt-4 text-3xl font-bold md:text-5xl">Centro operativo de TLEC Cargo</h1>
+            <p className="mt-3 max-w-2xl text-sm text-blue-100/90 md:text-base">
+              Un panel nuevo desde cero para ver clientes, paquetes, consolidaciones, ingresos y tareas pendientes en un solo lugar.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button onClick={loadData} className="bg-white text-slate-900 hover:bg-white/90">
+                <RefreshCw className="mr-2 h-4 w-4" /> Actualizar dashboard
+              </Button>
+              <Link to={createPageUrl('AdminPackages')}>
+                <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
+                  Ver operaciones <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
 
-      {mainTab === 'api' ? (
-        <ApiSystemPanel />
-      ) : (
-        <>
-      <AdminPlatformOverview
-        totalShippingVolume={stats.totalShippingVolume}
-        projectedMonthlyRevenue={stats.projectedMonthlyRevenue}
-        openSupportTickets={stats.openSupportTickets}
-      />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
+              <p className="text-xs uppercase tracking-[0.22em] text-blue-100/80">Ingresos cobrados</p>
+              <p className="mt-3 text-3xl font-bold">${metrics.totalRevenue.toFixed(2)}</p>
+              <p className="mt-2 text-sm text-blue-100/80">Acumulado validado</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
+              <p className="text-xs uppercase tracking-[0.22em] text-blue-100/80">Ingresos del mes</p>
+              <p className="mt-3 text-3xl font-bold">${metrics.monthRevenue.toFixed(2)}</p>
+              <p className="mt-2 text-sm text-blue-100/80">Validaciones del mes actual</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Acciones Urgentes */}
-      {urgentActions.length > 0 && (
-        <Card className="border border-rose-200/70 bg-gradient-to-br from-rose-50 to-white shadow-card">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-              Acciones Urgentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3">
-              {urgentActions.map((action, idx) => (
-                <Link key={idx} to={action.link}>
-                  <div className={`flex items-center justify-between p-4 rounded-lg ${action.bgColor} hover:opacity-80 transition-opacity cursor-pointer`}>
-                    <div className="flex items-center gap-3">
-                      <action.icon className={`h-6 w-6 ${action.color}`} />
-                      <div>
-                        <p className="font-semibold text-slate-800">{action.title}</p>
-                        <p className="text-sm text-slate-600">{action.count} pendiente{action.count !== 1 ? 's' : ''}</p>
-                      </div>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminDashboardMetricCard title="Clientes activos" value={metrics.activeClients} subtitle="Usuarios habilitados para operar" icon={Users} tone="emerald" badge={`${metrics.inactiveClients} inactivos`} />
+        <AdminDashboardMetricCard title="Paquetes recibidos" value={metrics.received} subtitle="Ingresados en almacén" icon={Package} tone="blue" badge={`${metrics.preAlerts} pre-alertas`} />
+        <AdminDashboardMetricCard title="Carga en tránsito" value={metrics.inTransit} subtitle="Paquetes moviéndose actualmente" icon={Truck} tone="violet" badge={`${metrics.availableConsolidations} disponibles`} />
+        <AdminDashboardMetricCard title="Pagos por validar" value={metrics.pendingValidation} subtitle="Comprobantes pendientes de revisión" icon={DollarSign} tone="amber" badge={`${metrics.overdueInvoices} facturas vencidas`} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <AdminDashboardSectionCard
+          title="Atención inmediata"
+          description="Accesos rápidos a lo más urgente del día."
+          action={<Badge variant="outline">{urgentItems.length} alertas</Badge>}
+        >
+          {urgentItems.length === 0 ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+              Todo está bajo control por ahora.
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {urgentItems.map((item) => (
+                <Link key={item.title} to={item.to} className="rounded-2xl border border-border/70 bg-slate-50 p-4 transition-colors hover:bg-slate-100">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.title}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Requiere revisión del equipo.</p>
                     </div>
-                    <Badge className={`${action.color} bg-white`}>
-                      {action.count}
-                    </Badge>
+                    <Badge>{item.count}</Badge>
                   </div>
                 </Link>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Métricas Clave (personalizables) */}
-      {((appConfig?.admin_dashboard_prefs || {}).showClients !== false || (appConfig?.admin_dashboard_prefs || {}).showPackages !== false) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {(appConfig?.admin_dashboard_prefs?.showClients ?? true) && (
-            <KeyStat title="Clientes activos" value={clientsActive} icon={UserCheck} accent="bg-emerald-100 text-emerald-700" />
           )}
-          {(appConfig?.admin_dashboard_prefs?.showClients ?? true) && (
-            <KeyStat title="Clientes inactivos" value={clientsInactive} icon={UserX} accent="bg-rose-100 text-rose-700" />
-          )}
-          {(appConfig?.admin_dashboard_prefs?.showPackages ?? true) && (
-            <KeyStat title="Paquetes en tránsito" value={rangeStats.packagesInTransit} icon={Truck} accent="bg-indigo-100 text-indigo-700" />
-          )}
-          {(appConfig?.admin_dashboard_prefs?.showPackages ?? true) && (
-            <KeyStat title="Paquetes recibidos" value={rangeStats.packagesReceived} icon={Package} accent="bg-blue-100 text-blue-700" />
-          )}
-        </div>
-      )}
+        </AdminDashboardSectionCard>
 
-      {/* Estado general de envíos + Actividad */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {(appConfig?.admin_dashboard_prefs?.showStatusPie ?? true) && (
-          <PieChartCard title={`Estado general de envíos (${rangeLabel})`} data={rangeStats.shipmentsPie} />
-        )}
-        {(appConfig?.admin_dashboard_prefs?.showRecent ?? true) && (
-          <RecentActivity items={recentActivity} />
-        )}
-      </div>
-
-      {/* Métricas Principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Total Paquetes</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.totalPackages}</p>
-                <div className="flex gap-2 mt-2">
-                  <Badge variant="outline" className="text-xs">
-                    {stats.preAlertas} pre-alertas
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {stats.received} recibidos
-                  </Badge>
-                </div>
-              </div>
-              <div className="p-4 bg-blue-100 rounded-xl">
-                <Package className="h-8 w-8 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Consolidaciones</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.totalConsolidations}</p>
-                <div className="flex gap-2 mt-2">
-                  <Badge variant="outline" className="text-xs">
-                    {stats.available} disponibles
-                  </Badge>
-                  <Badge variant="outline" className="text-xs text-red-600">
-                    {stats.pendingValidation} validar
-                  </Badge>
-                </div>
-              </div>
-              <div className="p-4 bg-purple-100 rounded-xl">
-                <Truck className="h-8 w-8 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Ingresos del Mes</p>
-                <p className="text-3xl font-bold text-green-600">${stats.monthRevenue.toFixed(2)}</p>
-                <p className="text-xs text-slate-500 mt-2">
-                  Total: ${stats.totalRevenue.toFixed(2)}
-                </p>
-              </div>
-              <div className="p-4 bg-green-100 rounded-xl">
-                <TrendingUp className="h-8 w-8 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Clientes</p>
-                <p className="text-3xl font-bold text-slate-800">{stats.totalClients}</p>
-                <p className="text-xs text-slate-500 mt-2">
-                  {stats.activeClients} activos
-                </p>
-              </div>
-              <div className="p-4 bg-indigo-100 rounded-xl">
-                <Users className="h-8 w-8 text-indigo-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Pagos Pendientes */}
-        </>
-      )}
-      {mainTab !== 'api' && (
-        <>
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Resumen de Pagos
-            </CardTitle>
-            <Link to={createPageUrl('AdminPayments')}>
-              <Button variant="outline" size="sm">
-                Ver todos
-              </Button>
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">Pendientes de Pago</p>
-                  <p className="text-2xl font-bold text-yellow-700">{stats.pendingPayment}</p>
-                </div>
-                <Clock className="h-8 w-8 text-yellow-600" />
-              </div>
-              <p className="text-xs text-slate-600 mt-2">
-                ${stats.pendingRevenue.toFixed(2)} por cobrar
-              </p>
-            </div>
-
-            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">Por Validar</p>
-                  <p className="text-2xl font-bold text-orange-700">{stats.pendingValidation}</p>
-                </div>
-                <AlertCircle className="h-8 w-8 text-orange-600" />
-              </div>
-            </div>
-
-            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-600">Validados</p>
-                  <p className="text-2xl font-bold text-green-700">
-                    {data.consolidations.filter(c => c.payment_validated).length}
-                  </p>
-                </div>
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Paquetes Recientes */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Paquetes Recientes
-            </CardTitle>
-            <Link to={createPageUrl('AdminPackages')}>
-              <Button variant="outline" size="sm">
-                <Eye className="h-4 w-4 mr-2" />
-                Ver todos
-              </Button>
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {recentPackages.length === 0 ? (
-            <p className="text-center text-slate-500 py-8">No hay paquetes</p>
-          ) : (
-            <>
-              <div className="space-y-3">
-                {recentPackages.map((pkg) => (
-                  <div key={pkg.id} className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                    <div className="min-w-0 space-y-2">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="font-medium text-slate-800 break-all">{pkg.tracking_number}</p>
-                        <StatusBadge status={pkg.status} size="sm" />
-                      </div>
-                      <p className="text-sm text-slate-600 break-all">{pkg.client_email}</p>
-                      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-xs text-slate-500">
-                          {new Date(pkg.created_date).toLocaleDateString()}
-                        </p>
-                        <Badge variant="outline" className="text-xs w-fit max-w-full whitespace-nowrap">
-                          {pkg.shipping_type === 'aereo' ? '✈️ Aéreo' : '🚢 Marítimo'}
-                        </Badge>
-                      </div>
-                    </div>
+        <AdminDashboardSectionCard
+          title="Resumen de soporte"
+          description="Tickets recientes con el estado actual."
+          action={<Link to={createPageUrl('AdminSupportTickets')}><Button variant="outline" size="sm">Abrir soporte</Button></Link>}
+        >
+          <div className="space-y-3">
+            {recentTickets.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay tickets recientes.</p>
+            ) : recentTickets.map((ticket) => (
+              <div key={ticket.id} className="rounded-2xl border border-border/70 bg-slate-50 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900">{ticket.subject}</p>
+                    <p className="mt-1 text-sm text-muted-foreground break-all">{ticket.client_email}</p>
                   </div>
-                ))}
-              </div>
-              {hasMorePackages && (
-                <div className="mt-4 text-center">
-                  <Button variant="outline" size="sm" onClick={() => setPackagesLimit((v) => v + 10)}>Cargar más</Button>
+                  <StatusBadge status={ticket.status} size="sm" />
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Facturas Pendientes */}
-      <Card className="shadow-lg overflow-hidden">
-        <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
-            <CardTitle className="flex items-center gap-2 min-w-0">
-              <DollarSign className="h-5 w-5 shrink-0" />
-              Facturas
-            </CardTitle>
-            <Tabs value={invFilter} onValueChange={setInvFilter}>
-              <TabsList className="w-full sm:w-auto flex-nowrap overflow-x-auto justify-start">
-                <TabsTrigger value="pendiente">Pendientes</TabsTrigger>
-                <TabsTrigger value="vencida">Vencidas</TabsTrigger>
-                <TabsTrigger value="todas">Todas</TabsTrigger>
-              </TabsList>
-            </Tabs>
+              </div>
+            ))}
           </div>
-        </CardHeader>
-        <CardContent>
-          {invoicesByFilter.length === 0 ? (
-            <p className="text-sm text-slate-500">No hay facturas</p>
-          ) : (
-            <>
-              <div className="space-y-3">
-                {invoicesByFilter.map(inv => (
-                  <div key={inv.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-800 truncate">{inv.invoice_number} • {inv.client_email}</p>
-                      <p className="text-xs text-slate-500">Fecha: {new Date(inv.invoice_date).toLocaleDateString()} • Vence: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-3">
-                      <Badge variant="outline">${(inv.total || 0).toFixed(2)}</Badge>
-                      <Link to={createPageUrl('AdminInvoices')}>
-                        <Button size="sm" variant="outline">Ver</Button>
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {hasMoreInvoices && (
-                <div className="mt-4 text-center">
-                  <Button variant="outline" size="sm" onClick={() => setInvoicesLimit((v) => v + 10)}>Cargar más</Button>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+        </AdminDashboardSectionCard>
+      </section>
 
-      {/* Consolidaciones Recientes */}
-      <Card className="shadow-lg overflow-hidden">
-        <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
-            <CardTitle className="flex items-center gap-2 min-w-0">
-              <Truck className="h-5 w-5 shrink-0" />
-              Consolidaciones Recientes
-            </CardTitle>
-            <Tabs value={consFilter} onValueChange={setConsFilter} className="w-full sm:w-auto">
-              <TabsList className="w-full sm:w-auto flex-nowrap overflow-x-auto overflow-y-hidden justify-start whitespace-nowrap bg-slate-100/70 p-0.5 rounded-xl">
-                <TabsTrigger value="todas" className="min-w-[88px] flex-1 text-center px-3">Todas</TabsTrigger>
-                <TabsTrigger value="en_transito" className="min-w-[104px] flex-1 text-center px-3">En tránsito</TabsTrigger>
-                <TabsTrigger value="disponible" className="min-w-[96px] flex-1 text-center px-3">Disponible</TabsTrigger>
-                <TabsTrigger value="entregado" className="min-w-[92px] flex-1 text-center px-3">Entregado</TabsTrigger>
-              </TabsList>
-            </Tabs>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <AdminDashboardSectionCard
+          title="Paquetes recientes"
+          description="Últimos movimientos registrados en el sistema."
+          action={<Link to={createPageUrl('AdminPackages')}><Button variant="outline" size="sm">Ver paquetes</Button></Link>}
+        >
+          <div className="space-y-3">
+            {recentPackages.map((pkg) => (
+              <div key={pkg.id} className="rounded-2xl border border-border/70 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900 break-all">{pkg.tracking_number}</p>
+                    <p className="mt-1 text-sm text-muted-foreground break-all">{pkg.client_email}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{pkg.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}</Badge>
+                    <StatusBadge status={pkg.status} size="sm" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </CardHeader>
-        <CardContent>
-          {recentConsolidations.length === 0 ? (
-            <p className="text-sm text-slate-500">No hay consolidaciones</p>
-          ) : (
-            <>
-              <div className="space-y-3">
-                {recentConsolidations.map(cons => (
-                  <div key={cons.id} className="flex flex-col gap-3 p-3 bg-slate-50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-800 break-all sm:truncate">{cons.consolidation_tracking || 'Sin tracking'} • {cons.client_email}</p>
-                      <p className="text-xs text-slate-500">{new Date(cons.created_date).toLocaleString()}</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 sm:ml-3">
-                      <Badge variant="outline">${(cons.total_cost || 0).toFixed(2)}</Badge>
-                      <StatusBadge status={cons.status} size="sm" />
-                    </div>
+        </AdminDashboardSectionCard>
+
+        <AdminDashboardSectionCard
+          title="Consolidaciones recientes"
+          description="Salidas y cargas con actividad más reciente."
+          action={<Link to={createPageUrl('ShipmentTracking')}><Button variant="outline" size="sm">Ver consolidaciones</Button></Link>}
+        >
+          <div className="space-y-3">
+            {recentConsolidations.map((item) => (
+              <div key={item.id} className="rounded-2xl border border-border/70 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900 break-all">{item.consolidation_tracking || 'Sin tracking'}</p>
+                    <p className="mt-1 text-sm text-muted-foreground break-all">{item.client_email}</p>
                   </div>
-                ))}
-              </div>
-              {hasMoreConsolidations && (
-                <div className="mt-4 text-center">
-                  <Button variant="outline" size="sm" onClick={() => setConsolidationsLimit((v) => v + 10)}>Cargar más</Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">${Number(item.total_cost || 0).toFixed(2)}</Badge>
+                    <StatusBadge status={item.status} size="sm" />
+                  </div>
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            ))}
+          </div>
+        </AdminDashboardSectionCard>
+      </section>
 
+      <section>
+        <AdminDashboardSectionCard title="Accesos rápidos" description="Navegación directa a las áreas clave del equipo.">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <AdminDashboardQuickLink to={createPageUrl('AdminPackages')} title="Operaciones de paquetes" description="Revisa ingresos, estados y seguimientos." icon={Package} tone="blue" />
+            <AdminDashboardQuickLink to={createPageUrl('AdminPayments')} title="Validación de pagos" description="Confirma comprobantes y pagos pendientes." icon={CheckCircle2} tone="emerald" />
+            <AdminDashboardQuickLink to={createPageUrl('AdminClients')} title="Gestión de clientes" description="Administra usuarios, estados y datos." icon={Users} tone="violet" />
+            <AdminDashboardQuickLink to={createPageUrl('AdminSupportTickets')} title="Mesa de ayuda" description="Da seguimiento a tickets y solicitudes." icon={Ticket} tone="amber" />
+          </div>
+        </AdminDashboardSectionCard>
+      </section>
 
-      {/* Links Rápidos */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Link to={createPageUrl('AdminPackages')}>
-          <Card className="cursor-pointer border-border/70 bg-gradient-to-br from-blue-50 via-white to-white shadow-card transition-all hover:-translate-y-0.5 hover:shadow-premium">
-            <CardContent className="p-6 text-center">
-              <Package className="h-10 w-10 text-blue-600 mx-auto mb-3" />
-              <p className="font-semibold text-slate-800">Gestionar Paquetes</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to={createPageUrl('AdminPayments')}>
-          <Card className="cursor-pointer border-border/70 bg-gradient-to-br from-emerald-50 via-white to-white shadow-card transition-all hover:-translate-y-0.5 hover:shadow-premium">
-            <CardContent className="p-6 text-center">
-              <DollarSign className="h-10 w-10 text-green-600 mx-auto mb-3" />
-              <p className="font-semibold text-slate-800">Validar Pagos</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to={createPageUrl('AdminClients')}>
-          <Card className="cursor-pointer border-border/70 bg-gradient-to-br from-violet-50 via-white to-white shadow-card transition-all hover:-translate-y-0.5 hover:shadow-premium">
-            <CardContent className="p-6 text-center">
-              <Users className="h-10 w-10 text-purple-600 mx-auto mb-3" />
-              <p className="font-semibold text-slate-800">Ver Clientes</p>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-        </>
-      )}
-      <DashboardCustomizer 
-        open={showCustomizer} 
-        onOpenChange={setShowCustomizer}
-        prefs={appConfig?.admin_dashboard_prefs}
-        onSave={async (p) => {
-          try {
-            if (appConfig?.id) {
-              await base44.entities.AppConfig.update(appConfig.id, { admin_dashboard_prefs: p });
-              setAppConfig(prev => ({ ...(prev || {}), admin_dashboard_prefs: p }));
-            }
-          } catch (e) {}
-          setShowCustomizer(false);
-        }}
-      />
+      <section className="grid gap-4 md:grid-cols-3">
+        <AdminDashboardMetricCard title="Tickets abiertos" value={metrics.openTickets} subtitle="Casos pendientes de atención" icon={Ticket} tone="rose" />
+        <AdminDashboardMetricCard title="Facturas vencidas" value={metrics.overdueInvoices} subtitle="Clientes con pagos atrasados" icon={Clock} tone="amber" />
+        <AdminDashboardMetricCard title="Ingresos del mes" value={`$${metrics.monthRevenue.toFixed(2)}`} subtitle="Total validado en el mes actual" icon={TrendingUp} tone="slate" />
+      </section>
     </div>
   );
 }
