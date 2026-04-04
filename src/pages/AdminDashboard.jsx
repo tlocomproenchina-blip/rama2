@@ -60,11 +60,6 @@ export default function AdminDashboard({ user }) {
     return allPackages;
   };
 
-  const loadAllClients = async () => {
-    const res = await base44.functions.invoke('listClientsForSupport');
-    return res.data || [];
-  };
-
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -72,7 +67,7 @@ export default function AdminDashboard({ user }) {
         loadAllPackages(),
         base44.entities.Consolidation.list('-created_date', consolidationsLimit),
         base44.entities.Consolidation.list('-created_date', 200),
-        loadAllClients(),
+        base44.entities.User.filter({ role: 'user' }, '-updated_date', 200),
         base44.entities.Invoice.list('-created_date', invoicesLimit),
         base44.entities.SupportTicket.list('-created_date', 100),
         base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1),
