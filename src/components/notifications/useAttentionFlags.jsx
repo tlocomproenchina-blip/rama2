@@ -13,7 +13,6 @@ export default function useAttentionFlags({ user }) {
       return [
         { key: 'AdminSupportTickets', entity: 'SupportTicket' },
         { key: 'AdminPackages', entity: 'Package' },
-        { key: 'AdminPreAlerts', entity: 'Package', stalePreAlertsOnly: true },
         { key: 'AdminPayments', entity: 'Consolidation' },
       ];
     }
