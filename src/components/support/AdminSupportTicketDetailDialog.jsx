@@ -1,9 +1,11 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Mail } from 'lucide-react';
 import TicketChat from '@/components/support/TicketChat';
 
-export default function AdminSupportTicketDetailDialog({ selectedTicket, setSelectedTicket, statusConfig, handleSendMessage, user }) {
+export default function AdminSupportTicketDetailDialog({ selectedTicket, setSelectedTicket, statusConfig, handleSendMessage, handleMarkAsUnread, user }) {
   const client = selectedTicket?.client;
   const clientName = [client?.first_name, client?.last_name].filter(Boolean).join(' ') || client?.full_name || 'Sin nombre';
   const clientPhone = client?.whatsapp || client?.phone || client?.phone_number || 'Sin número';
@@ -36,9 +38,14 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
                 </div>
               )}
             </div>
-            <Badge className={statusConfig[selectedTicket?.status]?.color}>
-              {statusConfig[selectedTicket?.status]?.label}
-            </Badge>
+            <div className="flex flex-col items-end gap-2">
+              <Badge className={statusConfig[selectedTicket?.status]?.color}>
+                {statusConfig[selectedTicket?.status]?.label}
+              </Badge>
+              <Button variant="outline" size="sm" onClick={() => handleMarkAsUnread(selectedTicket)}>
+                <Mail className="mr-2 h-4 w-4" /> Marcar no visto
+              </Button>
+            </div>
           </div>
         </DialogHeader>
         <TicketChat

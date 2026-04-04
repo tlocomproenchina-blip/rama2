@@ -328,6 +328,19 @@ export default function AdminSupportTickets({ user }) {
     }
   };
 
+  const handleMarkAsUnread = (ticket) => {
+    const messages = ticket?.messages || [];
+    const lastClientMessage = [...messages].reverse().find((msg) => !msg.is_admin);
+    if (!lastClientMessage) {
+      toast.error('Este ticket no tiene mensajes del cliente para marcar como no visto');
+      return;
+    }
+
+    const lastMessageKey = `${ticket.id}:${lastClientMessage.timestamp}`;
+    setOpenedTicketIds((prev) => prev.filter((item) => item !== lastMessageKey));
+    toast.success('Ticket marcado como no visto');
+  };
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -547,6 +560,7 @@ export default function AdminSupportTickets({ user }) {
         setSelectedTicket={setSelectedTicket}
         statusConfig={statusConfig}
         handleSendMessage={handleSendMessage}
+        handleMarkAsUnread={handleMarkAsUnread}
         user={user}
       />
     </div>
