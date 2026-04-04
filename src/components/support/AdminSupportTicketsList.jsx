@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageSquare, UserCheck } from 'lucide-react';
+import { Mail, MessageSquare, UserCheck } from 'lucide-react';
 
 export default function AdminSupportTicketsList({
   filteredTickets,
@@ -19,7 +19,8 @@ export default function AdminSupportTicketsList({
   setAssigningTicket,
   setSelectedAssignRole,
   setSelectedAssignee,
-  handleStatusChange
+  handleStatusChange,
+  handleMarkAsUnread
 }) {
   if (filteredTickets.length === 0) {
     return (
@@ -117,6 +118,12 @@ export default function AdminSupportTicketsList({
                 </div>
 
                 <div className="flex flex-col gap-2">
+                  {!isUnread && (
+                    <Button variant="outline" size="sm" onClick={() => handleMarkAsUnread(ticket)}>
+                      <Mail className="h-4 w-4 mr-1" />
+                      No visto
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

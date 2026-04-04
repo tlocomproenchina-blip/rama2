@@ -506,6 +506,7 @@ export default function AdminSupportTickets({ user }) {
             setSelectedAssignRole={setSelectedAssignRole}
             setSelectedAssignee={setSelectedAssignee}
             handleStatusChange={handleStatusChange}
+            handleMarkAsUnread={handleMarkAsUnread}
           />
           {hasMore && (
             <div className="flex justify-center">
@@ -560,7 +561,6 @@ export default function AdminSupportTickets({ user }) {
         setSelectedTicket={setSelectedTicket}
         statusConfig={statusConfig}
         handleSendMessage={handleSendMessage}
-        handleMarkAsUnread={handleMarkAsUnread}
         user={user}
       />
     </div>
