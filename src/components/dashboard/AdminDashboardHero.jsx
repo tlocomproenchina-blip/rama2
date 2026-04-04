@@ -20,7 +20,7 @@ export default function AdminDashboardHero({ mainTab, range, setRange, onRefresh
               <Sparkles className="mr-1 h-3.5 w-3.5" /> Centro de control premium
             </Badge>
             <div>
-              <h1 className="text-3xl font-bold text-foreground md:text-4xl">Panel de Control</h1>
+              <h1 className="text-3xl font-bold text-slate-800 md:text-4xl">Panel de Control</h1>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
                 {mainTab === 'api' ? 'Estado del sistema y cola de API.' : 'Vista ejecutiva de operaciones, pagos, clientes y actividad reciente.'}
               </p>
