@@ -76,11 +76,16 @@ export default function useAttentionFlags({ user }) {
           return;
         }
 
-        let seenStr = sessionStorage.getItem(`attentionSeen:${w.key}`);
+        const storageKey = `attentionSeen:${w.key}`;
+        let seenStr = sessionStorage.getItem(storageKey);
         let seenMs = Number(seenStr);
+
         if (!seenStr || !Number.isFinite(seenMs)) {
-          seenMs = 0;
+          sessionStorage.setItem(storageKey, String(latestMs));
+          next[w.key] = false;
+          return;
         }
+
         next[w.key] = latestMs > seenMs;
       } catch (_e) {
         next[w.key] = false;
@@ -115,7 +120,12 @@ export default function useAttentionFlags({ user }) {
 
   const markSeen = React.useCallback((pageKey) => {
     if (!pageKey) return;
-    const latestMs = Number(latestByKey[pageKey]) || Date.now();
+    const latestMs = Number(latestByKey[pageKey]);
+    if (!Number.isFinite(latestMs) || latestMs <= 0) {
+      sessionStorage.setItem(`attentionSeen:${pageKey}`, String(Date.now()));
+      setFlags(prev => ({ ...prev, [pageKey]: false }));
+      return;
+    }
     sessionStorage.setItem(`attentionSeen:${pageKey}`, String(latestMs));
     setFlags(prev => ({ ...prev, [pageKey]: false }));
   }, [latestByKey]);
