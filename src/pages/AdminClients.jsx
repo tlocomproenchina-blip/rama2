@@ -125,7 +125,7 @@ export default function AdminClients({ user }) {
       let users = [];
       if (canViewClients) {
         const res = await base44.functions.invoke('listClientsForSupport');
-        users = (res.data || []).filter((client) => client.custom_role !== 'super_admin_oculto');
+        users = res.data || [];
         setHasMore(false);
       }
 

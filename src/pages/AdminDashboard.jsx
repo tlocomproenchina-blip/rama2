@@ -44,50 +44,25 @@ export default function AdminDashboard({ user }) {
   const [consFilter, setConsFilter] = useState('todas');
   const [notifFilter, setNotifFilter] = useState('todas');
   const [mainTab, setMainTab] = useState('resumen');
-  const [recentPackagesCache, setRecentPackagesCache] = useState([]);
-
-  const loadAllPackages = async () => {
-    let allPackages = [];
-    let skip = 0;
-
-    while (true) {
-      const batch = await base44.entities.Package.list('-created_date', 200, skip);
-      allPackages = allPackages.concat(batch);
-      if (batch.length < 200) break;
-      skip += 200;
-    }
-
-    return allPackages;
-  };
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [allPackages, consolidations, allConsolidations, usersPage, invoices, supportTickets, cfg, notifications, usersSupport] = await Promise.all([
-        loadAllPackages(),
+      const [packages, consolidations, allConsolidations, users, invoices, supportTickets, cfg, notifications] = await Promise.all([
+        base44.entities.Package.list('-created_date', packagesLimit),
         base44.entities.Consolidation.list('-created_date', consolidationsLimit),
         base44.entities.Consolidation.list('-created_date', 200),
         base44.entities.User.filter({ role: 'user' }, '-updated_date', 200),
         base44.entities.Invoice.list('-created_date', invoicesLimit),
         base44.entities.SupportTicket.list('-created_date', 100),
         base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1),
-        user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([]),
-        base44.functions.invoke('listClientsForSupport', {})
+        user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([])
       ]);
 
-      const invoicedConsolidationIds = new Set(
-        (invoices || []).map((invoice) => invoice.consolidation_id).filter(Boolean)
-      );
-      const trackableConsolidations = allConsolidations.filter((item) => invoicedConsolidationIds.has(item.id));
-
-      const recentPackages = allPackages.slice(0, packagesLimit);
-      const resolvedUsers = Array.isArray(usersSupport?.data) ? usersSupport.data : usersPage;
-
-      setHasMorePackages(allPackages.length > packagesLimit);
+      setHasMorePackages(packages.length === packagesLimit);
       setHasMoreConsolidations(consolidations.length === consolidationsLimit);
       setHasMoreInvoices(invoices.length === invoicesLimit);
-      setData({ packages: allPackages, consolidations, allConsolidations: trackableConsolidations, users: resolvedUsers, invoices, notifications, supportTickets });
-      setRecentPackagesCache(recentPackages);
+      setData({ packages, consolidations, allConsolidations, users, invoices, notifications, supportTickets });
       if (Array.isArray(cfg) && cfg.length > 0) setAppConfig(cfg[0]);
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -113,14 +88,14 @@ export default function AdminDashboard({ user }) {
   };
 
   const pkgsR = React.useMemo(() => filterByRange(data.packages, range), [data.packages, range]);
-  const consR = React.useMemo(() => filterByRange(data.allConsolidations, range), [data.allConsolidations, range]);
+  const consR = React.useMemo(() => filterByRange(data.consolidations, range), [data.consolidations, range]);
 
   const clientsActive = React.useMemo(() => data.users.filter(u => u.is_active !== false).length, [data.users]);
   const clientsInactive = React.useMemo(() => data.users.filter(u => u.is_active === false).length, [data.users]);
 
   const rangeStats = React.useMemo(() => ({
     packagesReceived: pkgsR.filter(p => p.status === 'recibido').length,
-    packagesInTransit: consR.filter(c => c.status === 'en_transito').length,
+    packagesInTransit: pkgsR.filter(p => p.status === 'en_transito').length,
     shipmentsPie: [
       { name: 'En tránsito', value: consR.filter(c => c.status === 'en_transito').length },
       { name: 'Disponible', value: consR.filter(c => c.status === 'disponible').length },
@@ -189,7 +164,7 @@ export default function AdminDashboard({ user }) {
       
       // Clientes
       totalClients: data.users.length,
-      activeClients: data.users.filter(u => u.is_active !== false).length,
+      activeClients: new Set(data.packages.map(p => p.client_email)).size,
       
       // Facturas
       unpaidInvoices: data.invoices.filter(i => i.status === 'pendiente').length,
@@ -199,7 +174,7 @@ export default function AdminDashboard({ user }) {
     };
   }, [data]);
 
-  const recentPackages = useMemo(() => recentPackagesCache, [recentPackagesCache]);
+  const recentPackages = useMemo(() => data.packages, [data.packages]);
 
   const invoicesByFilter = useMemo(() => {
     let list = data.invoices;
