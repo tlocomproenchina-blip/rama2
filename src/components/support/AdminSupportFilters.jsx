@@ -13,12 +13,14 @@ export default function AdminSupportFilters({
   setFilterPriority,
   filterAssigned,
   setFilterAssigned,
+  filterDate,
+  setFilterDate,
   staffUsers
 }) {
   return (
     <Card className="border-0 shadow-md">
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
           <div className="lg:col-span-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -66,6 +68,17 @@ export default function AdminSupportFilters({
                   {admin.full_name || admin.email}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterDate} onValueChange={setFilterDate}>
+            <SelectTrigger>
+              <SelectValue placeholder="Fecha" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las fechas</SelectItem>
+              <SelectItem value="today">Hoy</SelectItem>
+              <SelectItem value="7d">Últimos 7 días</SelectItem>
+              <SelectItem value="30d">Últimos 30 días</SelectItem>
             </SelectContent>
           </Select>
         </div>
