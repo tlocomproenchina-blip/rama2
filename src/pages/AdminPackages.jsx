@@ -73,13 +73,13 @@ export default function AdminPackages({ user }) {
   const loadPackages = useCallback(async (append = false, skipOverride = 0) => {
     if (append) setLoadingMore(true); else setLoading(true);
     const skip = append ? skipOverride : 0;
-    const pkgs = await base44.entities.Package.list('-created_date', pageSize, skip);
+    const pkgs = await base44.entities.Package.list('-created_date', 200, skip);
     if (append) {
       setPackages(prev => [...prev, ...pkgs]);
     } else {
       setPackages(pkgs);
     }
-    setHasMore(pkgs.length === pageSize);
+    setHasMore(pkgs.length === 200);
     if (append) setLoadingMore(false); else setLoading(false);
   }, []);
 
