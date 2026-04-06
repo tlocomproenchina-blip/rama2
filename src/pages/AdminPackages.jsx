@@ -69,6 +69,7 @@ export default function AdminPackages({ user }) {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [bulkPhotoModalOpen, setBulkPhotoModalOpen] = useState(false);
+  const [clientSearchEmails, setClientSearchEmails] = useState([]);
 
   const loadPackages = useCallback(async (append = false, skipOverride = 0) => {
     if (append) setLoadingMore(true); else setLoading(true);
@@ -182,6 +183,7 @@ export default function AdminPackages({ user }) {
     setAdvancedFilters(null);
     setSearch('');
     setStatusFilter('all');
+    setClientSearchEmails([]);
   };
 
   const handleSelectAll = (checked) => {
@@ -460,13 +462,40 @@ export default function AdminPackages({ user }) {
             found = results;
           }
         }
-        if (!cancelled && found && found.length > 0) {
-          setPackages(prev => {
-            const existingIds = new Set(prev.map(p => p.id));
-            const newPkgs = found.filter(p => !existingIds.has(p.id));
-            return [...newPkgs, ...prev];
-          });
-          toast.success(`${found.length} paquete(s) encontrado(s)`);
+        if (!cancelled) {
+          const emails = [];
+          if (found && found.length > 0) {
+            setPackages(prev => {
+              const existingIds = new Set(prev.map(p => p.id));
+              const newPkgs = found.filter(p => !existingIds.has(p.id));
+              return [...newPkgs, ...prev];
+            });
+            found.forEach((pkg) => {
+              if (pkg?.client_email) emails.push(pkg.client_email);
+            });
+            toast.success(`${found.length} paquete(s) encontrado(s)`);
+          }
+          if (!emails.length) {
+            let allUsers = [];
+            let skip = 0;
+            while (true) {
+              const batch = await base44.entities.User.list('-created_date', 200, skip);
+              if (!batch || batch.length === 0) break;
+              allUsers = allUsers.concat(batch);
+              if (batch.length < 200) break;
+              skip += 200;
+            }
+            allUsers
+              .filter(u => u.role === 'user' && (
+                (u.shipping_mark || '').toLowerCase().includes(q) ||
+                (u.email || '').toLowerCase().includes(q) ||
+                (u.full_name || '').toLowerCase().includes(q)
+              ))
+              .forEach((u) => {
+                if (u.email) emails.push(u.email);
+              });
+          }
+          setClientSearchEmails(Array.from(new Set(emails)));
         }
       } catch (_) {}
     }, 600);
@@ -475,11 +504,14 @@ export default function AdminPackages({ user }) {
 
   const filteredPackages = useMemo(() => packages.filter(pkg => {
     // Basic search
+    const normalizedSearch = search.toLowerCase();
+    const matchesClientSearch = clientSearchEmails.length === 0 || clientSearchEmails.includes(pkg.client_email);
     const matchesSearch = 
-      pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
-      (pkg.shipping_mark || '').toLowerCase().includes(search.toLowerCase()) ||
-      (pkg.client_email || '').toLowerCase().includes(search.toLowerCase()) ||
-      (pkg.description || '').toLowerCase().includes(search.toLowerCase());
+      pkg.tracking_number.toLowerCase().includes(normalizedSearch) ||
+      (pkg.shipping_mark || '').toLowerCase().includes(normalizedSearch) ||
+      (pkg.client_email || '').toLowerCase().includes(normalizedSearch) ||
+      (pkg.description || '').toLowerCase().includes(normalizedSearch) ||
+      matchesClientSearch;
     const isPreAlertNotReceived = statusFilter === 'pre_alerta_no_recibido' && pkg.status === 'pre_alerta' && !pkg.received_date;
     const isStale = statusFilter === 'stale' && pkg.status === 'pre_alerta' && pkg.created_date && (Date.now() - new Date(pkg.created_date).getTime()) >= 7 * 24 * 60 * 60 * 1000;
     const matchesStatus = statusFilter === 'all'
@@ -520,7 +552,7 @@ export default function AdminPackages({ user }) {
     }
 
     return matchesSearch && matchesStatus && matchesReported;
-    }), [packages, search, statusFilter, reportedFilter, advancedFilters]);
+    }), [packages, search, statusFilter, reportedFilter, advancedFilters, clientSearchEmails]);
 
     const simpleWindowSummary = useMemo(() => {
       if (!advancedFilters) return null;
