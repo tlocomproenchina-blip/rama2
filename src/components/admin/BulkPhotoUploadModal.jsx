@@ -142,17 +142,33 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
       const file = filesToScan[i];
       try {
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        const res = await base44.integrations.Core.InvokeLLM({
-          prompt: 'Analiza esta imagen de un paquete. Busca códigos de barras, QR o números de tracking visibles. Devuelve SOLO los dígitos del código, SIN espacios, SIN guiones, SIN letras. Si hay varios códigos numéricos, devuelve el que tenga más dígitos. Ejemplo: si ves "4652 0792 5317 399" devuelve "465207925317399".',
+        let res = await base44.integrations.Core.InvokeLLM({
+          prompt: 'Analiza esta foto de un paquete aunque esté borrosa, movida, oscura, con reflejos o parcialmente cortada. Busca cualquier código de barras, QR, etiqueta logística o número de tracking visible. Prioriza el código principal de envío. Reconstruye visualmente los dígitos si algunos están poco claros pero el patrón general es evidente. Devuelve SOLO un valor final sin explicación. Si identificas un código de barras o tracking, devuelve únicamente letras y números sin espacios, sin guiones y sin símbolos. Si no hay suficiente evidencia visual, devuelve una cadena vacía.',
           file_urls: [file_url],
           response_json_schema: {
             type: 'object',
             properties: {
-              tracking: { type: 'string', description: 'Solo dígitos del código de barras/QR/tracking, sin espacios ni caracteres especiales. Vacío si no se encontró.' }
+              tracking: { type: 'string', description: 'Código final detectado del envío usando solo letras y números, sin espacios ni símbolos. Vacío si no se pudo leer con suficiente confianza.' }
             }
           }
         });
-        const rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
+
+        let rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
+
+        if (!rawTracking) {
+          res = await base44.integrations.Core.InvokeLLM({
+            prompt: 'Segunda pasada de lectura difícil. La imagen puede estar muy borrosa. Examina cuidadosamente etiquetas, bordes, zonas desenfocadas y números parcialmente visibles. Intenta inferir el tracking más probable solo si la evidencia visual es razonable y consistente. Si encuentras varios, devuelve el identificador logístico principal más largo. Responde únicamente con letras y números sin espacios ni guiones. Si no es posible leerlo con un mínimo de confianza, devuelve una cadena vacía.',
+            file_urls: [file_url],
+            response_json_schema: {
+              type: 'object',
+              properties: {
+                tracking: { type: 'string', description: 'Tracking o código logístico final usando solo letras y números. Vacío si no se puede leer.' }
+              }
+            }
+          });
+          rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
+        }
+
         results[file.name] = { tracking: rawTracking };
       } catch (err) {
         results[file.name] = { tracking: null };
@@ -164,7 +180,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     const found = Object.values(results).filter(r => r.tracking).length;
     const notFound = Object.values(results).filter(r => !r.tracking).length;
     if (found > 0) toast.success(`${found} código(s) detectados`);
-    if (notFound > 0) toast.warning(`${notFound} imagen(es) sin código — se usará el nombre del archivo`);
+    if (notFound > 0) toast.warning(`${notFound} imagen(es) difíciles — se usará el nombre del archivo si hace falta`);
   };
 
   // Group files by tracking number (barcode results take priority over filename)
@@ -472,7 +488,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                   <Scan className="h-5 w-5 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold">QR / Código de barra</p>
-                    <p className="text-[11px] leading-tight opacity-75">IA lee las fotos</p>
+                    <p className="text-[11px] leading-tight opacity-75">IA reforzada para fotos borrosas</p>
                   </div>
                 </button>
               </div>
