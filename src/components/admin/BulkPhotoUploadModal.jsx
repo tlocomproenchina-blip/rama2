@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Loader2, CheckCircle, AlertCircle, Image as ImageIcon, X, Search, User, AlertTriangle, Copy, FileText, Box, Scan, FileImage } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 function extractTrackingFromFilename(filename) {
@@ -16,6 +17,23 @@ function extractTrackingFromFilename(filename) {
   return name.replace(/[_-](\d{1,2}|front|back|lado|frente|atras)$/i, '').trim().replace(/\s+/g, '');
 }
 
+function SelectClientInline({ tracking, options, value, onChange }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="flex h-10 min-h-10 w-full rounded-xl border border-border/80 bg-white/90 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring"
+    >
+      <option value="">Selecciona cliente para {tracking}</option>
+      {(options || []).map((user) => (
+        <option key={user.id} value={user.email}>
+          {(user.full_name || user.first_name || user.email)}{user.shipping_mark ? ` · ${user.shipping_mark}` : ''}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }) {
   const [files, setFiles] = useState([]);
   const [processing, setProcessing] = useState(false);
@@ -24,6 +42,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
   const [clientSearch, setClientSearch] = useState('');
   const [clientResults, setClientResults] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedClientsByTracking, setSelectedClientsByTracking] = useState({});
   const [searchingClients, setSearchingClients] = useState(false);
   const searchTimeout = useRef(null);
 
@@ -36,6 +55,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     setClientSearch('');
     setClientResults([]);
     setSelectedClient(null);
+    setSelectedClientsByTracking({});
     setCbmValue('');
     setInvoiceNumber('');
     setScanningBarcodes(false);
@@ -210,18 +230,11 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     const total = trackings.length;
     const resultsList = [];
 
-    // Load all users once for matching
-    let allUsers = [];
-    let skip = 0;
-    while (true) {
-      const batch = await base44.entities.User.list('-created_date', 200, skip);
-      if (!batch || batch.length === 0) break;
-      allUsers = allUsers.concat(batch);
-      if (batch.length < 200) break;
-      skip += 200;
-    }
     const usersByEmail = {};
-    allUsers.filter(u => u.role === 'user').forEach(u => { usersByEmail[u.email] = u; });
+    clientResults.filter(u => u.role === 'user').forEach(u => { usersByEmail[u.email] = u; });
+    if (selectedClient?.email) {
+      usersByEmail[selectedClient.email] = selectedClient;
+    }
 
     // If a client is selected, filter only their packages
     const clientFilter = selectedClient ? selectedClient.email : null;
@@ -231,82 +244,40 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
       const photos = grouped[tracking].slice(0, 3); // max 3 photos per tracking
 
       try {
-        // Check if package exists with this tracking
-        const filterQuery = clientFilter
-          ? { tracking_number: tracking, client_email: clientFilter }
-          : { tracking_number: tracking };
-        const existing = await base44.entities.Package.filter(filterQuery, '-created_date', 1);
+        const imageUrls = [];
+        for (const photo of photos) {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file: photo });
+          imageUrls.push(file_url);
+        }
 
-        if (existing && existing[0]) {
-          // Package exists — upload photos and mark as received
-          const imageUrls = [];
-          for (const photo of photos) {
-            const { file_url } = await base44.integrations.Core.UploadFile({ file: photo });
-            imageUrls.push(file_url);
-          }
+        const existing = await base44.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
+        const assignedClientEmail = selectedClientsByTracking[tracking] || clientFilter || '';
 
-          const updateData = {
-            package_image_urls: imageUrls.slice(0, 3),
-            package_image_url: imageUrls[0] || null,
-          };
-
-          // If pre_alerta, mark as received
-          if (existing[0].status === 'pre_alerta') {
-            updateData.status = 'recibido';
-            updateData.received_date = new Date().toISOString();
-          }
-
-          await base44.entities.Package.update(existing[0].id, updateData);
-
-          const client = usersByEmail[existing[0].client_email];
-
+        if (!existing?.[0] && !assignedClientEmail) {
           resultsList.push({
             tracking,
-            status: 'not_found',
-            photos: 0,
+            status: 'missing_client',
+            photos: imageUrls.length,
             clientName: null,
             markedReceived: false
           });
-        } else if (clientFilter) {
-          // Client selected but package not found for this client
-          if (duplicateWarnings[tracking]) {
-            const existingPkg = duplicateWarnings[tracking];
-            resultsList.push({
-              tracking,
-              status: 'duplicate_skipped',
-              photos: 0,
-              clientName: existingPkg.client_email,
-              markedReceived: false
-            });
-          } else {
-            const imageUrls = [];
-            for (const photo of photos) {
-              const { file_url } = await base44.integrations.Core.UploadFile({ file: photo });
-              imageUrls.push(file_url);
-            }
+        } else {
+          const response = await base44.functions.invoke('processReceptionPhoto', {
+            tracking_number: tracking,
+            client_email: assignedClientEmail,
+            package_image_url: imageUrls[0] || null,
+          });
 
-            const clientUser = usersByEmail[clientFilter];
-            await base44.entities.Package.create({
-              tracking_number: tracking,
-              client_email: clientFilter,
-              shipping_mark: clientUser?.shipping_mark || '',
-              shipping_type: 'maritimo',
-              description: 'Paquete registrado via carga masiva de fotos',
-              status: 'recibido',
-              reported: true,
-              received_date: new Date().toISOString(),
-              package_image_urls: imageUrls.slice(0, 3),
-              package_image_url: imageUrls[0] || null,
-            });
+          const processedPackage = response?.data?.package;
+          const client = usersByEmail[processedPackage?.client_email] || usersByEmail[assignedClientEmail];
 
-            resultsList.push({
-              tracking,
-              status: 'created',
-              photos: imageUrls.length,
-              clientName: clientUser?.full_name || clientUser?.first_name || clientFilter,
-              markedReceived: true
-            });
-          }
+          resultsList.push({
+            tracking,
+            status: response?.data?.created ? 'created' : 'updated',
+            photos: imageUrls.length,
+            clientName: client?.full_name || client?.first_name || processedPackage?.client_email || assignedClientEmail,
+            markedReceived: true
+          });
         }
       } catch (err) {
         resultsList.push({
@@ -375,7 +346,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     const updatedCount = resultsList.filter(r => r.status === 'updated').length;
     const createdCount = resultsList.filter(r => r.status === 'created').length;
     const dupSkipped = resultsList.filter(r => r.status === 'duplicate_skipped').length;
-    const failCount = resultsList.filter(r => r.status === 'not_found' || r.status === 'error').length;
+    const failCount = resultsList.filter(r => r.status === 'not_found' || r.status === 'error' || r.status === 'missing_client').length;
 
     if (updatedCount > 0) {
       toast.success(`${updatedCount} paquete(s) actualizados con fotos`);
@@ -635,31 +606,44 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                 {Object.entries(grouped).map(([tracking, photos]) => {
                   const isDup = !!duplicateWarnings[tracking];
                   return (
-                    <div key={tracking} className={`px-3 py-2 flex items-center justify-between ${isDup ? 'bg-amber-50/50' : ''}`}>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          {isDup && <Copy className="h-3 w-3 text-amber-500 flex-shrink-0" />}
-                          <p className={`font-mono text-sm font-medium ${isDup ? 'text-amber-700' : 'text-slate-800'}`}>{tracking}</p>
+                    <div key={tracking} className={`px-3 py-2 space-y-2 ${isDup ? 'bg-amber-50/50' : ''}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            {isDup && <Copy className="h-3 w-3 text-amber-500 flex-shrink-0" />}
+                            <p className={`font-mono text-sm font-medium ${isDup ? 'text-amber-700' : 'text-slate-800'}`}>{tracking}</p>
+                          </div>
+                          <p className="text-xs text-slate-500">{photos.length} foto(s): {photos.map(f => f.name).join(', ')}</p>
+                          {isDup && (
+                            <p className="text-[10px] text-amber-600 mt-0.5">
+                              Ya existe para: {duplicateWarnings[tracking].client_email} — se actualizará
+                            </p>
+                          )}
                         </div>
-                        <p className="text-xs text-slate-500">{photos.length} foto(s): {photos.map(f => f.name).join(', ')}</p>
-                        {isDup && (
-                          <p className="text-[10px] text-amber-600 mt-0.5">
-                            Ya existe para: {duplicateWarnings[tracking].client_email} — se actualizará
-                          </p>
-                        )}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Badge variant={isDup ? 'secondary' : 'outline'} className={`text-xs ${isDup ? 'bg-amber-100 text-amber-700' : ''}`}>
+                            {photos.length} 📷
+                          </Badge>
+                          <button
+                            onClick={() => removeTrackingGroup(tracking)}
+                            className="h-6 w-6 flex items-center justify-center rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Eliminar este tracking"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <Badge variant={isDup ? 'secondary' : 'outline'} className={`text-xs ${isDup ? 'bg-amber-100 text-amber-700' : ''}`}>
-                          {photos.length} 📷
-                        </Badge>
-                        <button
-                          onClick={() => removeTrackingGroup(tracking)}
-                          className="h-6 w-6 flex items-center justify-center rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                          title="Eliminar este tracking"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      {!isDup && !selectedClient && (
+                        <div className="space-y-1">
+                          <Label className="text-xs text-slate-500">Cliente para paquete nuevo</Label>
+                          <SelectClientInline
+                            tracking={tracking}
+                            options={clientResults}
+                            value={selectedClientsByTracking[tracking] || ''}
+                            onChange={(email) => setSelectedClientsByTracking((prev) => ({ ...prev, [tracking]: email }))}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -730,6 +714,9 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                       )}
                       {r.status === 'not_found' && (
                         <p className="text-xs text-slate-500">Tracking no encontrado en el sistema</p>
+                      )}
+                      {r.status === 'missing_client' && (
+                        <p className="text-xs text-amber-600">Debes seleccionar un cliente para crear este paquete</p>
                       )}
                       {r.status === 'error' && (
                         <p className="text-xs text-red-600">{r.error}</p>
