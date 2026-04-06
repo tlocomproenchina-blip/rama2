@@ -17,6 +17,21 @@ function extractTrackingFromFilename(filename) {
   return name.replace(/[_-](\d{1,2}|front|back|lado|frente|atras)$/i, '').trim().replace(/\s+/g, '');
 }
 
+function getTrackingOverlapScore(a = '', b = '') {
+  const left = String(a).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const right = String(b).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!left || !right) return 0;
+  const shorter = left.length <= right.length ? left : right;
+  const longer = left.length > right.length ? left : right;
+  for (let size = shorter.length; size >= 9; size -= 1) {
+    for (let start = 0; start <= shorter.length - size; start += 1) {
+      const chunk = shorter.slice(start, start + size);
+      if (longer.includes(chunk)) return size;
+    }
+  }
+  return 0;
+}
+
 function SelectClientInline({ tracking, options, value, onChange }) {
   return (
     <select
@@ -110,6 +125,26 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     }
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadKnownTrackings = async () => {
+      const rows = [];
+      let skip = 0;
+      while (true) {
+        const batch = await base44.entities.Package.list('-created_date', 200, skip);
+        if (!batch?.length) break;
+        rows.push(...batch);
+        if (batch.length < 200) break;
+        skip += 200;
+      }
+      if (!cancelled) {
+        setKnownTrackings(rows.map((pkg) => pkg.tracking_number).filter(Boolean));
+      }
+    };
+    loadKnownTrackings();
+    return () => { cancelled = true; };
+  }, []);
+
   const removeFile = (idx) => {
     setFiles(prev => prev.filter((_, i) => i !== idx));
   };
@@ -131,6 +166,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
   const [scanningBarcodes, setScanningBarcodes] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [barcodeResults, setBarcodeResults] = useState({});
+  const [knownTrackings, setKnownTrackings] = useState([]);
 
 
 
@@ -169,7 +205,21 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
           rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
         }
 
-        results[file.name] = { tracking: rawTracking };
+        let matchedTracking = rawTracking;
+        if (rawTracking && knownTrackings.length > 0) {
+          let bestMatch = rawTracking;
+          let bestScore = 0;
+          knownTrackings.forEach((registeredTracking) => {
+            const score = getTrackingOverlapScore(rawTracking, registeredTracking);
+            if (score > bestScore) {
+              bestScore = score;
+              bestMatch = registeredTracking;
+            }
+          });
+          matchedTracking = bestScore >= 9 ? bestMatch : rawTracking;
+        }
+
+        results[file.name] = { tracking: matchedTracking, raw_tracking: rawTracking };
       } catch (err) {
         results[file.name] = { tracking: null };
       }
@@ -630,6 +680,11 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                             <p className={`font-mono text-sm font-medium ${isDup ? 'text-amber-700' : 'text-slate-800'}`}>{tracking}</p>
                           </div>
                           <p className="text-xs text-slate-500">{photos.length} foto(s): {photos.map(f => f.name).join(', ')}</p>
+                          {trackingMode === 'barcode' && photos[0] && barcodeResults[photos[0].name]?.raw_tracking && barcodeResults[photos[0].name]?.raw_tracking !== tracking && (
+                            <p className="text-[10px] text-blue-600 mt-0.5">
+                              Leído: {barcodeResults[photos[0].name].raw_tracking} → Coincidencia: {tracking}
+                            </p>
+                          )}
                           {isDup && (
                             <p className="text-[10px] text-amber-600 mt-0.5">
                               Ya existe para: {duplicateWarnings[tracking].client_email} — se actualizará
