@@ -35,26 +35,26 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
           <p className="text-center text-slate-400 py-8">No hay mensajes aún</p>
         ) : (
           messages?.map((msg, idx) => {
-            const isCurrentUser = msg.sender_email === currentUserEmail;
+            const isEmployeeMessage = msg.is_admin;
             return (
-              <div key={idx} className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                <Avatar className={`h-8 w-8 flex items-center justify-center ${msg.is_admin ? 'bg-blue-100' : 'bg-slate-100'}`}>
-                  {msg.is_admin ? (
-                    <Shield className="h-4 w-4 text-blue-600" />
+              <div key={idx} className={`flex gap-3 ${isEmployeeMessage ? '' : 'flex-row-reverse'}`}>
+                <Avatar className={`h-8 w-8 flex items-center justify-center ${isEmployeeMessage ? 'bg-slate-100' : 'bg-green-100'}`}>
+                  {isEmployeeMessage ? (
+                    <Shield className="h-4 w-4 text-slate-600" />
                   ) : (
-                    <User className="h-4 w-4 text-slate-600" />
+                    <User className="h-4 w-4 text-green-700" />
                   )}
                 </Avatar>
-                <div className={`flex-1 ${isCurrentUser ? 'text-right' : ''}`}>
-                  <div className={`inline-block max-w-[80%] ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'} rounded-2xl px-4 py-2`}>
-                    <div className={`mb-1 flex items-center gap-2 text-[11px] ${isCurrentUser ? 'justify-end text-blue-100' : 'justify-between text-slate-500'}`}>
-                      <p className="text-sm font-medium">{msg.sender_name}</p>
-                      <span>{format(new Date(msg.timestamp), 'dd/MM/yyyy HH:mm')}</span>
+                <div className={`flex-1 ${isEmployeeMessage ? 'text-left' : 'text-right'}`}>
+                    <div className={`inline-block max-w-[80%] ${isEmployeeMessage ? 'bg-slate-100 text-slate-800' : 'bg-green-500 text-white'} rounded-2xl px-4 py-2`}>
+                      <div className={`mb-1 flex items-center gap-2 text-[11px] ${isEmployeeMessage ? 'justify-between text-slate-500' : 'justify-end text-green-50'}`}>
+                        <p className="text-sm font-medium">{msg.sender_name}</p>
+                        <span>{format(new Date(msg.timestamp), 'dd/MM/yyyy HH:mm')}</span>
+                      </div>
+                      {msg.message ? <p className="text-sm whitespace-pre-wrap">{msg.message}</p> : null}
+                      <SupportAttachmentsPreview attachments={msg.attachments} />
                     </div>
-                    {msg.message ? <p className="text-sm whitespace-pre-wrap">{msg.message}</p> : null}
-                    <SupportAttachmentsPreview attachments={msg.attachments} />
                   </div>
-                </div>
               </div>
             );
           })
