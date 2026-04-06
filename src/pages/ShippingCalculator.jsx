@@ -26,6 +26,7 @@ export default function ShippingCalculator({ user }) {
   const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
   const MIN_CBM = 0.13;
+  const DENSITY_LIMIT_KG_PER_CBM = 499;
 
   useEffect(() => {
     loadConfig();
@@ -100,6 +101,8 @@ export default function ShippingCalculator({ user }) {
     let billableWeight = 0;
     let chargedBy = '';
     let rateType = '';
+    let densityKgPerCbm = 0;
+    let maritimeMultiplier = 1;
 
     if (shippingType === 'aereo') {
       rateType = isSensitive ? 'Aéreo Sensible' : 'Aéreo General';
@@ -108,6 +111,8 @@ export default function ShippingCalculator({ user }) {
     } else {
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
       const usedCbm = Math.max(calculatedCbm, MIN_CBM);
+      densityKgPerCbm = usedCbm > 0 ? realWeight / usedCbm : 0;
+      maritimeMultiplier = densityKgPerCbm > DENSITY_LIMIT_KG_PER_CBM ? 2 : 1;
       billableWeight = usedCbm;
       chargedBy = `${usedCbm.toFixed(4)} CBM${usedCbm > calculatedCbm ? ' (mínimo facturable)' : ''}`;
     }
@@ -115,7 +120,8 @@ export default function ShippingCalculator({ user }) {
     const selectedStateConfig = findStateByCodeOrName(states, selectedState);
     const stateShipping = selectedStateConfig?.shipping_rate || 0;
     const { regular: finalRegular, high: finalHigh } = getFinalRatesForState(stateShipping);
-    const finalRate = isSensitive ? finalHigh : finalRegular;
+    const baseRate = isSensitive ? finalHigh : finalRegular;
+    const finalRate = shippingType === 'maritimo' ? baseRate * maritimeMultiplier : baseRate;
     const shippingCost = finalRate * billableWeight;
 
     const fob = parseFloat(fobValue) || 0;
@@ -123,18 +129,20 @@ export default function ShippingCalculator({ user }) {
     const totalCost = shippingCost + insuranceCost;
 
     setResult({
-      rateType,
-      finalRate,
-      volumetricWeight,
-      cbm: calculatedCbm,
-      billableWeight,
-      chargedBy,
-      shippingCost,
-      insuranceCost,
-      totalCost,
-      stateName: selectedStateConfig?.state_name || null,
-      minCbmApplied: shippingType === 'maritimo' && calculatedCbm < MIN_CBM,
-      minCbm: MIN_CBM
+    rateType,
+    finalRate,
+    volumetricWeight,
+    cbm: calculatedCbm,
+    billableWeight,
+    chargedBy,
+    shippingCost,
+    insuranceCost,
+    totalCost,
+    stateName: selectedStateConfig?.state_name || null,
+    minCbmApplied: shippingType === 'maritimo' && calculatedCbm < MIN_CBM,
+    minCbm: MIN_CBM,
+    densityKgPerCbm,
+    maritimeMultiplier
     });
   };
 
@@ -242,37 +250,46 @@ export default function ShippingCalculator({ user }) {
             </div>
 
             <div className="space-y-2">
-              <Label>Método de Cálculo</Label>
-              <div className="grid grid-cols-2 gap-2">
+            <Label>Método de Cálculo</Label>
+            <div className={`grid gap-2 ${shippingType === 'maritimo' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              <button
+                type="button"
+                onClick={() => setInputMode('dimensions')}
+                className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${inputMode === 'dimensions' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
+              >
+                Por Dimensiones
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('cbm')}
+                className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${inputMode === 'cbm' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
+              >
+                Por CBM
+              </button>
+              {shippingType === 'maritimo' && (
                 <button
                   type="button"
-                  onClick={() => setInputMode('dimensions')}
-                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${inputMode === 'dimensions' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
+                  onClick={() => setInputMode('weight')}
+                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${inputMode === 'weight' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
                 >
-                  Por Dimensiones
+                  Por Peso
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setInputMode('cbm')}
-                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${inputMode === 'cbm' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
-                >
-                  Por CBM
-                </button>
-              </div>
+              )}
+            </div>
             </div>
 
-            {shippingType === 'aereo' && (
-              <div className="space-y-2">
-                <Label>Peso Real (kg)</Label>
-                <Input type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="1.0" />
-              </div>
+            {(shippingType === 'aereo' || shippingType === 'maritimo') && (
+            <div className="space-y-2">
+              <Label>Peso Real (kg)</Label>
+              <Input type="number" step="0.01" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="1.0" />
+            </div>
             )}
 
             {inputMode === 'cbm' && (
-              <div className="space-y-2">
-                <Label>CBM (Metros Cúbicos)</Label>
-                <Input type="number" step="0.0001" value={cbm} onChange={(e) => setCbm(e.target.value)} placeholder="0.0000" />
-              </div>
+            <div className="space-y-2">
+              <Label>CBM (Metros Cúbicos)</Label>
+              <Input type="number" step="0.0001" value={cbm} onChange={(e) => setCbm(e.target.value)} placeholder="0.0000" />
+            </div>
             )}
 
             {shippingType === 'aereo' ? (
@@ -282,10 +299,13 @@ export default function ShippingCalculator({ user }) {
                 <p className="text-xs text-blue-600 mt-2">Fórmula: CBM × 167 kg/m³</p>
               </div>
             ) : (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 space-y-2">
                 <p className="text-sm font-medium text-indigo-800 mb-1">Envío Marítimo</p>
-                <p className="text-sm text-indigo-700">Se calcula por volumen en CBM.</p>
-                <p className="text-xs text-indigo-600 mt-2">Fórmula: (L × A × H) / 1,000,000</p>
+                <p className="text-sm text-indigo-700">Se calcula por volumen en CBM y también puedes validar el peso de la carga.</p>
+                <p className="text-xs text-indigo-600">Fórmula: (L × A × H) / 1,000,000</p>
+                <div className="rounded-lg bg-white/70 border border-indigo-200 px-3 py-2 text-sm text-indigo-800">
+                  1 CBM cubre hasta 499 kg. Luego de ese peso, se factura x2 el costo del envío.
+                </div>
               </div>
             )}
 
@@ -372,6 +392,11 @@ export default function ShippingCalculator({ user }) {
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2">CBM calculado: {result.cbm.toFixed(4)}</div>
                 {shippingType === 'maritimo' && result.minCbmApplied && (
                   <div className="rounded-lg bg-amber-50 px-3 py-2 text-amber-700 md:col-span-2">Se aplicó mínimo facturable de {result.minCbm.toFixed(4)} CBM</div>
+                )}
+                {shippingType === 'maritimo' && result.densityKgPerCbm > 0 && (
+                  <div className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-700 md:col-span-2">
+                    Densidad calculada: {result.densityKgPerCbm.toFixed(2)} kg/m³. 1 CBM cubre hasta 499 kg y luego de ese peso se factura x2 el costo del envío.
+                  </div>
                 )}
                 {result.stateName && (
                   <div className="rounded-lg bg-slate-100/80 px-3 py-2 md:col-span-2">Estado: {result.stateName}</div>
