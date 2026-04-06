@@ -480,8 +480,15 @@ export default function AdminPackages({ user }) {
       (pkg.shipping_mark || '').toLowerCase().includes(search.toLowerCase()) ||
       (pkg.client_email || '').toLowerCase().includes(search.toLowerCase()) ||
       (pkg.description || '').toLowerCase().includes(search.toLowerCase());
+    const isPreAlertNotReceived = statusFilter === 'pre_alerta_no_recibido' && pkg.status === 'pre_alerta' && !pkg.received_date;
     const isStale = statusFilter === 'stale' && pkg.status === 'pre_alerta' && pkg.created_date && (Date.now() - new Date(pkg.created_date).getTime()) >= 7 * 24 * 60 * 60 * 1000;
-    const matchesStatus = statusFilter === 'all' || statusFilter === 'stale' ? (statusFilter === 'all' ? true : isStale) : pkg.status === statusFilter;
+    const matchesStatus = statusFilter === 'all'
+      ? true
+      : statusFilter === 'pre_alerta_no_recibido'
+        ? isPreAlertNotReceived
+        : statusFilter === 'stale'
+          ? isStale
+          : pkg.status === statusFilter;
     const matchesReported = reportedFilter === 'all' || (reportedFilter === 'reported' ? pkg.reported === true : pkg.reported !== true);
 
     // Advanced filters
@@ -568,10 +575,10 @@ export default function AdminPackages({ user }) {
             <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
 
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
-                <TabsList className="flex w-full gap-0 p-1">
+                <TabsList className="flex w-full gap-0 p-1 flex-wrap">
                   <TabsTrigger value="all" className="flex-1 text-center">Todos</TabsTrigger>
+                  <TabsTrigger value="pre_alerta_no_recibido" className="flex-1 text-center">Pre-alerta</TabsTrigger>
                   <TabsTrigger value="recibido" className="flex-1 text-center">Recibido</TabsTrigger>
-
                   <TabsTrigger value="consolidado" className="flex-1 text-center">Consolidado</TabsTrigger>
                   <TabsTrigger value="en_transito" className="flex-1 text-center">Tránsito</TabsTrigger>
                   <TabsTrigger value="entregado" className="flex-1 text-center">Entregado</TabsTrigger>
