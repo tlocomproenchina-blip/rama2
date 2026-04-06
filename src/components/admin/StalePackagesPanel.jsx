@@ -328,6 +328,7 @@ export default function StalePackagesPanel() {
                               </span>
                             )}
                             <span className="text-xs text-red-400 font-medium flex-shrink-0">{getDaysAgo(pkg.created_date)}d</span>
+                            <span className="text-xs text-amber-600 flex-shrink-0">Notif: {formatDate(pkg.delivery_proof_request_sent_date)}</span>
                             <span className="text-xs text-slate-400 flex-shrink-0">{formatDate(pkg.created_date)}</span>
                           </div>
                         ))}
