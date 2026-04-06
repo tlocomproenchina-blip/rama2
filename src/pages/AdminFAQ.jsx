@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, HelpCircle, Loader2, MoveUp, MoveDown } from 'lucide-react';
+import { Plus, Edit, Trash2, HelpCircle, Loader2, MoveUp, MoveDown, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminFAQ({ user }) {
@@ -17,6 +17,7 @@ export default function AdminFAQ({ user }) {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingFaq, setEditingFaq] = useState(null);
+  const [search, setSearch] = useState('');
   const [formData, setFormData] = useState({
     question: '',
     answer: '',
@@ -127,6 +128,18 @@ export default function AdminFAQ({ user }) {
     consolidacion: 'bg-orange-100 text-orange-800'
   };
 
+  const normalizeText = (text) => String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, '');
+
+  const filteredFaqs = faqs.filter((faq) => {
+    const query = normalizeText(search);
+    if (!query) return true;
+    return normalizeText(faq.question).includes(query) || normalizeText(faq.answer).includes(query);
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -148,18 +161,32 @@ export default function AdminFAQ({ user }) {
         </Button>
       </div>
 
-      {faqs.length === 0 ? (
+      <Card className="border-0 shadow-lg">
+        <CardContent className="p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por pregunta o respuesta..."
+              className="pl-10"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {filteredFaqs.length === 0 ? (
         <Card className="border-0 shadow-lg">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <HelpCircle className="h-16 w-16 text-slate-300 mb-4" />
             <p className="text-slate-500 text-center">
-              No hay preguntas frecuentes.<br />Crea la primera pregunta para tus clientes.
+              {search ? 'No se encontraron preguntas con ese criterio.' : 'No hay preguntas frecuentes.\nCrea la primera pregunta para tus clientes.'}
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          {faqs.map((faq) => (
+          {filteredFaqs.map((faq) => (
             <Card key={faq.id} className={`border-0 shadow-lg ${!faq.is_active ? 'opacity-60' : ''}`}>
               <CardHeader>
                 <div className="flex items-start justify-between">
