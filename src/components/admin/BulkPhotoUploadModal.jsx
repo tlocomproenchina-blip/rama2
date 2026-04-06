@@ -143,7 +143,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
       try {
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         let res = await base44.integrations.Core.InvokeLLM({
-          prompt: 'Analiza esta foto de un paquete aunque esté borrosa, movida, oscura, con reflejos o parcialmente cortada. Busca cualquier código de barras, QR, etiqueta logística o número de tracking visible. Prioriza el código principal de envío. Reconstruye visualmente los dígitos si algunos están poco claros pero el patrón general es evidente. Devuelve SOLO un valor final sin explicación. Si identificas un código de barras o tracking, devuelve únicamente letras y números sin espacios, sin guiones y sin símbolos. Si no hay suficiente evidencia visual, devuelve una cadena vacía.',
+          prompt: 'Analiza esta foto de un paquete aunque esté borrosa, movida, oscura, con reflejos o parcialmente cortada. Busca cualquier código de barras, QR, etiqueta logística o número de tracking visible. Prioriza el código principal de envío. Muy importante: conserva todas las letras y todos los números que formen parte del código completo, aunque las letras estén al inicio, en el medio o al final. No conviertas el resultado a solo números. Si el código visible es alfanumérico, devuélvelo completo exactamente en formato alfanumérico continuo, sin espacios ni guiones. Reconstruye visualmente letras y dígitos si algunos están poco claros pero el patrón general es evidente. Devuelve SOLO un valor final sin explicación. Si identificas un código de barras o tracking, devuelve únicamente letras y números sin espacios, sin guiones y sin símbolos. Si no hay suficiente evidencia visual, devuelve una cadena vacía.',
           file_urls: [file_url],
           response_json_schema: {
             type: 'object',
@@ -157,7 +157,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
 
         if (!rawTracking) {
           res = await base44.integrations.Core.InvokeLLM({
-            prompt: 'Segunda pasada de lectura difícil. La imagen puede estar muy borrosa. Examina cuidadosamente etiquetas, bordes, zonas desenfocadas y números parcialmente visibles. Intenta inferir el tracking más probable solo si la evidencia visual es razonable y consistente. Si encuentras varios, devuelve el identificador logístico principal más largo. Responde únicamente con letras y números sin espacios ni guiones. Si no es posible leerlo con un mínimo de confianza, devuelve una cadena vacía.',
+            prompt: 'Segunda pasada de lectura difícil. La imagen puede estar muy borrosa. Examina cuidadosamente etiquetas, bordes, zonas desenfocadas, reflejos y caracteres parcialmente visibles. Conserva cualquier letra y cualquier número que pertenezcan al código real, sin importar su posición. Si el código es alfanumérico, devuélvelo completo y no elimines letras. Si encuentras varios, devuelve el identificador logístico principal más largo y coherente. Responde únicamente con letras y números sin espacios ni guiones. Si no es posible leerlo con un mínimo de confianza, devuelve una cadena vacía.',
             file_urls: [file_url],
             response_json_schema: {
               type: 'object',
@@ -488,7 +488,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                   <Scan className="h-5 w-5 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold">QR / Código de barra</p>
-                    <p className="text-[11px] leading-tight opacity-75">IA reforzada para fotos borrosas</p>
+                    <p className="text-[11px] leading-tight opacity-75">IA reforzada para códigos alfanuméricos y fotos borrosas</p>
                   </div>
                 </button>
               </div>
