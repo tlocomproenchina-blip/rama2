@@ -251,7 +251,7 @@ export default function ShippingCalculator({ user }) {
 
             <div className="space-y-2">
             <Label>Método de Cálculo</Label>
-            <div className={`grid gap-2 ${shippingType === 'maritimo' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setInputMode('dimensions')}
@@ -266,15 +266,6 @@ export default function ShippingCalculator({ user }) {
               >
                 Por CBM
               </button>
-              {shippingType === 'maritimo' && (
-                <button
-                  type="button"
-                  onClick={() => setInputMode('weight')}
-                  className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${inputMode === 'weight' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:border-slate-300 text-slate-600'}`}
-                >
-                  Por Peso
-                </button>
-              )}
             </div>
             </div>
 
