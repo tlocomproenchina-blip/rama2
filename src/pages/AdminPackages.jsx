@@ -505,13 +505,14 @@ export default function AdminPackages({ user }) {
   const filteredPackages = useMemo(() => packages.filter(pkg => {
     // Basic search
     const normalizedSearch = search.toLowerCase();
-    const matchesClientSearch = clientSearchEmails.length === 0 || clientSearchEmails.includes(pkg.client_email);
-    const matchesSearch = 
+    const hasSearch = normalizedSearch.trim().length > 0;
+    const directSearchMatch =
       pkg.tracking_number.toLowerCase().includes(normalizedSearch) ||
       (pkg.shipping_mark || '').toLowerCase().includes(normalizedSearch) ||
       (pkg.client_email || '').toLowerCase().includes(normalizedSearch) ||
-      (pkg.description || '').toLowerCase().includes(normalizedSearch) ||
-      matchesClientSearch;
+      (pkg.description || '').toLowerCase().includes(normalizedSearch);
+    const clientDerivedMatch = clientSearchEmails.length > 0 && clientSearchEmails.includes(pkg.client_email);
+    const matchesSearch = !hasSearch || directSearchMatch || clientDerivedMatch;
     const isPreAlertNotReceived = statusFilter === 'pre_alerta_no_recibido' && pkg.status === 'pre_alerta' && !pkg.received_date;
     const isStale = statusFilter === 'stale' && pkg.status === 'pre_alerta' && pkg.created_date && (Date.now() - new Date(pkg.created_date).getTime()) >= 7 * 24 * 60 * 60 * 1000;
     const matchesStatus = statusFilter === 'all'
