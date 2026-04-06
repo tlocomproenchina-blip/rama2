@@ -70,6 +70,10 @@ export default function AdminPackages({ user }) {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [bulkPhotoModalOpen, setBulkPhotoModalOpen] = useState(false);
   const [clientSearchEmails, setClientSearchEmails] = useState([]);
+  const [editPreAlertModal, setEditPreAlertModal] = useState(null);
+  const [preAlertInsurance, setPreAlertInsurance] = useState(false);
+  const [preAlertFobValue, setPreAlertFobValue] = useState('');
+  const [preAlertInvoiceFile, setPreAlertInvoiceFile] = useState(null);
 
   const loadPackages = useCallback(async (append = false, skipOverride = 0) => {
     if (append) setLoadingMore(true); else setLoading(true);
@@ -382,6 +386,39 @@ export default function AdminPackages({ user }) {
     } catch {
       toast.error('No se pudo buscar el tracking escaneado');
     }
+  };
+
+  const openPreAlertEditor = (pkg) => {
+    setEditPreAlertModal(pkg);
+    setPreAlertInsurance(!!pkg?.has_insurance);
+    setPreAlertFobValue(pkg?.fob_value != null ? String(pkg.fob_value) : '');
+    setPreAlertInvoiceFile(null);
+  };
+
+  const handleSavePreAlertDetails = async () => {
+    if (!editPreAlertModal) return;
+    setProcessing(true);
+    try {
+      let invoiceUrl = editPreAlertModal.invoice_url || null;
+      if (preAlertInvoiceFile) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: preAlertInvoiceFile });
+        invoiceUrl = file_url;
+      }
+
+      await base44.entities.Package.update(editPreAlertModal.id, {
+        has_insurance: preAlertInsurance,
+        fob_value: preAlertFobValue === '' ? null : Number(preAlertFobValue),
+        invoice_url: invoiceUrl,
+      });
+
+      toast.success('Datos de seguro actualizados');
+      setEditPreAlertModal(null);
+      setPreAlertInvoiceFile(null);
+      loadPackages(false);
+    } catch (_) {
+      toast.error('No se pudo guardar');
+    }
+    setProcessing(false);
   };
 
   const confirmCreateTicket = async () => {
@@ -923,14 +960,25 @@ export default function AdminPackages({ user }) {
                         Ticket
                       </Button>
                       {pkg.status === 'pre_alerta' && (
-                        <Button 
-                          size="sm" 
-                          onClick={() => setReceiveModal(pkg)}
-                          className="w-full justify-start bg-blue-600 hover:bg-blue-700"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Recibir
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openPreAlertEditor(pkg)}
+                            className="w-full justify-start"
+                          >
+                            <Shield className="h-4 w-4 mr-1" />
+                            Seguro / Factura
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            onClick={() => setReceiveModal(pkg)}
+                            className="w-full justify-start bg-blue-600 hover:bg-blue-700"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Recibir
+                          </Button>
+                        </>
                       )}
                       {pkg.product_image_url && (
                         <Button
@@ -1032,6 +1080,60 @@ export default function AdminPackages({ user }) {
         )}
 
         {/* Receive Modal */}
+      <Dialog open={!!editPreAlertModal} onOpenChange={() => setEditPreAlertModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Seguro y factura</DialogTitle>
+            <DialogDescription>
+              Tracking: {editPreAlertModal?.tracking_number}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-3 rounded-lg border p-3">
+              <Checkbox
+                id="prealert-insurance"
+                checked={preAlertInsurance}
+                onCheckedChange={setPreAlertInsurance}
+              />
+              <Label htmlFor="prealert-insurance" className="cursor-pointer">Asegurar esta carga</Label>
+            </div>
+            <div className="space-y-2">
+              <Label>Valor FOB</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Ej: 120"
+                value={preAlertFobValue}
+                onChange={(e) => setPreAlertFobValue(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Factura</Label>
+              <Input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => setPreAlertInvoiceFile(e.target.files?.[0] || null)}
+              />
+              {editPreAlertModal?.invoice_url && !preAlertInvoiceFile && (
+                <a href={editPreAlertModal.invoice_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 underline">
+                  Ver factura actual
+                </a>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPreAlertModal(null)} disabled={processing}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSavePreAlertDetails} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
+              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!receiveModal} onOpenChange={() => setReceiveModal(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
