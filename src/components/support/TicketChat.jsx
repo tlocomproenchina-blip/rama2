@@ -6,6 +6,7 @@ import { Send, User, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import SupportImageUploader from '@/components/support/SupportImageUploader';
 import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPreview';
+import QuickMessagePicker from '@/components/support/QuickMessagePicker';
 
 export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3 }) {
   const [newMessage, setNewMessage] = useState('');
@@ -64,6 +65,7 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
       {/* Input */}
       {!disabled && (
         <div className="space-y-3">
+          <QuickMessagePicker onPick={(message) => setNewMessage(message)} />
           <SupportImageUploader files={attachments} onChange={setAttachments} maxFiles={maxFiles} />
           <div className="flex gap-2">
             <Textarea

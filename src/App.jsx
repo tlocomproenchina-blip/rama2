@@ -34,6 +34,7 @@ import AdminCbmIngresos from './pages/AdminCbmIngresos';
 import AdminDuplicates from './pages/AdminDuplicates';
 import AdminRevenueDashboard from './pages/AdminRevenueDashboard';
 import AdminPreAlerts from './pages/AdminPreAlerts';
+import AdminSupportQuickMessages from './pages/AdminSupportQuickMessages';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -224,6 +225,11 @@ const AuthenticatedApp = () => {
       <Route path="/AdminPreAlerts" element={
         <LayoutWrapper currentPageName="AdminPreAlerts">
           <AdminPreAlerts />
+        </LayoutWrapper>
+      } />
+      <Route path="/AdminSupportQuickMessages" element={
+        <LayoutWrapper currentPageName="AdminSupportQuickMessages">
+          <AdminSupportQuickMessages />
         </LayoutWrapper>
       } />
       <Route path="*" element={<PageNotFound />} />

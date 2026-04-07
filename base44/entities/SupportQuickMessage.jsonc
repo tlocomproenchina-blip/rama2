@@ -1,0 +1,41 @@
+{
+  "name": "SupportQuickMessage",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo corto del mensaje"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "saludo",
+        "seguimiento",
+        "pago",
+        "tracking",
+        "cierre",
+        "otro"
+      ],
+      "default": "otro",
+      "description": "Categor\u00eda del mensaje"
+    },
+    "message": {
+      "type": "string",
+      "description": "Contenido del mensaje predeterminado"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si est\u00e1 disponible para usar"
+    },
+    "order": {
+      "type": "number",
+      "default": 0,
+      "description": "Orden de visualizaci\u00f3n"
+    }
+  },
+  "required": [
+    "title",
+    "message"
+  ]
+}
