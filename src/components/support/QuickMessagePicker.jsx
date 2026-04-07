@@ -50,7 +50,7 @@ export default function QuickMessagePicker({ onPick }) {
         disabled={!selectedId}
         onClick={() => {
           const selected = filteredMessages.find((item) => item.id === selectedId);
-          if (selected) onPick(selected.message);
+          if (selected) onPick(selected);
         }}
       >
         Usar

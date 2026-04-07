@@ -65,7 +65,10 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
       {/* Input */}
       {!disabled && (
         <div className="space-y-3">
-          <QuickMessagePicker onPick={(message) => setNewMessage(message)} />
+          <QuickMessagePicker onPick={(selected) => {
+            setNewMessage(selected.message || '');
+            setAttachments((selected.image_urls || []).map((url, index) => ({ url, name: `imagen-${index + 1}` })));
+          }} />
           <SupportImageUploader files={attachments} onChange={setAttachments} maxFiles={maxFiles} />
           <div className="flex gap-2">
             <Textarea

@@ -23,6 +23,14 @@
       "type": "string",
       "description": "Contenido del mensaje predeterminado"
     },
+    "image_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Im\u00e1genes opcionales del mensaje"
+    },
     "is_active": {
       "type": "boolean",
       "default": true,

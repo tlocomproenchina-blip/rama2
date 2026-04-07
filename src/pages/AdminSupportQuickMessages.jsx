@@ -10,11 +10,13 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import SupportImageUploader from '@/components/support/SupportImageUploader';
 
 const initialForm = {
   title: '',
   category: 'otro',
   message: '',
+  image_urls: [],
   is_active: true,
   order: 0,
 };
@@ -59,11 +61,12 @@ export default function AdminSupportQuickMessages() {
   const handleEdit = (item) => {
     setEditing(item);
     setForm({
-      title: item.title || '',
-      category: item.category || 'otro',
-      message: item.message || '',
-      is_active: !!item.is_active,
-      order: item.order || 0,
+    title: item.title || '',
+    category: item.category || 'otro',
+    message: item.message || '',
+    image_urls: item.image_urls || [],
+    is_active: !!item.is_active,
+    order: item.order || 0,
     });
     setOpen(true);
   };
@@ -103,8 +106,15 @@ export default function AdminSupportQuickMessages() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <p className="text-sm text-slate-700 whitespace-pre-wrap">{item.message}</p>
+              {!!item.image_urls?.length && (
+                <div className="flex flex-wrap gap-3">
+                  {item.image_urls.map((url) => (
+                    <img key={url} src={url} alt="Referencia" className="h-24 w-24 rounded-lg border object-cover" />
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -143,6 +153,14 @@ export default function AdminSupportQuickMessages() {
             <div className="space-y-2">
               <Label>Mensaje</Label>
               <Textarea rows={6} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Imágenes opcionales</Label>
+              <SupportImageUploader
+                files={(form.image_urls || []).map((url, index) => ({ url, name: `imagen-${index + 1}` }))}
+                onChange={(files) => setForm({ ...form, image_urls: files.map((file) => file.url).filter(Boolean) })}
+                maxFiles={3}
+              />
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label>Activo</Label>
