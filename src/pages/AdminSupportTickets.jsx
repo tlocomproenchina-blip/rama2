@@ -580,7 +580,7 @@ export default function AdminSupportTickets({ user }) {
 
       <AdminSupportTicketDetailDialog
         selectedTicket={selectedTicket ? {
-          ...selectedTicket,
+          ...tickets.find((ticket) => ticket.id === selectedTicket.id) || selectedTicket,
           client: clients.find((client) => client.email === selectedTicket.client_email) || null
         } : null}
         setSelectedTicket={setSelectedTicket}
