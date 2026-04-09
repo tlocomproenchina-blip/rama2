@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import TicketChat from '@/components/support/TicketChat';
 
-export default function AdminSupportTicketDetailDialog({ selectedTicket, setSelectedTicket, statusConfig, handleSendMessage, user, setOpenedTicketIds, setManuallyUnreadTicketIds }) {
+export default function AdminSupportTicketDetailDialog({ selectedTicket, setSelectedTicket, statusConfig, handleSendMessage, handleStatusChange, user, setOpenedTicketIds, setManuallyUnreadTicketIds }) {
   const client = selectedTicket?.client;
   const clientName = [client?.first_name, client?.last_name].filter(Boolean).join(' ') || client?.full_name || 'Sin nombre';
   const clientPhone = client?.whatsapp || client?.phone || client?.phone_number || 'Sin número';
@@ -56,6 +56,14 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
           currentUserEmail={user.email}
           disabled={selectedTicket?.status === 'cerrado'}
           maxFiles={Math.max(1, (selectedTicket?.related_tracking || '').split(',').map(item => item.trim()).filter(Boolean).length || 3)}
+          status={selectedTicket?.status}
+          onStatusChange={(value) => handleStatusChange?.(selectedTicket, value)}
+          statusOptions={[
+            { value: 'abierto', label: 'Abierto' },
+            { value: 'en_proceso', label: 'En Proceso' },
+            { value: 'resuelto', label: 'Resuelto' },
+            { value: 'cerrado', label: 'Cerrado' }
+          ]}
         />
       </DialogContent>
     </Dialog>

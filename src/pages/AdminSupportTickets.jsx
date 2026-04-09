@@ -586,6 +586,7 @@ export default function AdminSupportTickets({ user }) {
         setSelectedTicket={setSelectedTicket}
         statusConfig={statusConfig}
         handleSendMessage={handleSendMessage}
+        handleStatusChange={handleStatusChange}
         user={user}
         setOpenedTicketIds={setOpenedTicketIds}
         setManuallyUnreadTicketIds={setManuallyUnreadTicketIds}

@@ -7,8 +7,9 @@ import { format } from 'date-fns';
 import SupportImageUploader from '@/components/support/SupportImageUploader';
 import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPreview';
 import QuickMessagePicker from '@/components/support/QuickMessagePicker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3 }) {
+export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3, status, onStatusChange, statusOptions = [] }) {
   const [newMessage, setNewMessage] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [sending, setSending] = useState(false);
@@ -65,6 +66,20 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
       {/* Input */}
       {!disabled && (
         <div className="space-y-3">
+          {!!statusOptions.length && onStatusChange && (
+            <div className="flex justify-end">
+              <Select value={status} onValueChange={onStatusChange}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <QuickMessagePicker onPick={(selected) => {
             setNewMessage(selected.message || '');
             setAttachments((selected.image_urls || []).map((url, index) => ({ url, name: `imagen-${index + 1}` })));
