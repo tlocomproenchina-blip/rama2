@@ -587,6 +587,8 @@ export default function AdminSupportTickets({ user }) {
         statusConfig={statusConfig}
         handleSendMessage={handleSendMessage}
         user={user}
+        setOpenedTicketIds={setOpenedTicketIds}
+        setManuallyUnreadTicketIds={setManuallyUnreadTicketIds}
       />
     </div>
   );

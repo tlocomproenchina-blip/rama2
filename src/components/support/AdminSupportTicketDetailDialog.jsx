@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import TicketChat from '@/components/support/TicketChat';
 
-export default function AdminSupportTicketDetailDialog({ selectedTicket, setSelectedTicket, statusConfig, handleSendMessage, user }) {
+export default function AdminSupportTicketDetailDialog({ selectedTicket, setSelectedTicket, statusConfig, handleSendMessage, user, setOpenedTicketIds, setManuallyUnreadTicketIds }) {
   const client = selectedTicket?.client;
   const clientName = [client?.first_name, client?.last_name].filter(Boolean).join(' ') || client?.full_name || 'Sin nombre';
   const clientPhone = client?.whatsapp || client?.phone || client?.phone_number || 'Sin número';
   const clientShippingMark = client?.shipping_mark || 'Sin shipping mark';
+
+  useEffect(() => {
+    if (!selectedTicket?.id) return;
+    const lastClientMessage = [...(selectedTicket.messages || [])].reverse().find((msg) => !msg.is_admin);
+    if (!lastClientMessage) return;
+    const lastMessageKey = `${selectedTicket.id}:${lastClientMessage.timestamp}`;
+    setOpenedTicketIds?.((prev) => prev.includes(lastMessageKey) ? prev : [...prev, lastMessageKey]);
+    setManuallyUnreadTicketIds?.((prev) => prev.filter((item) => item !== selectedTicket.id));
+  }, [selectedTicket?.id, selectedTicket?.messages, setOpenedTicketIds, setManuallyUnreadTicketIds]);
 
   return (
     <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
