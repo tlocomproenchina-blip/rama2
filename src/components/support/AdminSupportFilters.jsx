@@ -13,6 +13,8 @@ export default function AdminSupportFilters({
   setFilterPriority,
   filterAssigned,
   setFilterAssigned,
+  filterRead,
+  setFilterRead,
   filterDate,
   setFilterDate,
   staffUsers
@@ -20,7 +22,7 @@ export default function AdminSupportFilters({
   return (
     <Card className="border-0 shadow-md">
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
           <div className="lg:col-span-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -68,6 +70,16 @@ export default function AdminSupportFilters({
                   {admin.full_name || admin.email}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterRead} onValueChange={setFilterRead}>
+            <SelectTrigger>
+              <SelectValue placeholder="Lectura" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="unread">No leídos</SelectItem>
+              <SelectItem value="read">Leídos</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterDate} onValueChange={setFilterDate}>

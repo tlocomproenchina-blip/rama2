@@ -47,6 +47,7 @@ export default function AdminSupportTickets({ user }) {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterAssigned, setFilterAssigned] = useState('all');
+  const [filterRead, setFilterRead] = useState('all');
   const [filterDate, setFilterDate] = useState('all');
   const [assigningTicket, setAssigningTicket] = useState(null);
   const [selectedAssignRole, setSelectedAssignRole] = useState('customer_service');
@@ -416,6 +417,11 @@ export default function AdminSupportTickets({ user }) {
       (filterAssigned === 'unassigned' && !ticket.assigned_to) ||
       ticket.assigned_to === filterAssigned;
 
+    const readMatch =
+      filterRead === 'all' ||
+      (filterRead === 'unread' && hasUnreadClientMessage(ticket)) ||
+      (filterRead === 'read' && !hasUnreadClientMessage(ticket));
+
     const ticketTime = new Date(ticket.updated_date || ticket.created_date || 0).getTime();
     const now = Date.now();
     const startOfToday = new Date().setHours(0, 0, 0, 0);
@@ -425,7 +431,7 @@ export default function AdminSupportTickets({ user }) {
       (filterDate === '7d' && ticketTime >= now - (7 * 24 * 60 * 60 * 1000)) ||
       (filterDate === '30d' && ticketTime >= now - (30 * 24 * 60 * 60 * 1000));
 
-    return searchMatch && statusMatch && priorityMatch && assignedMatch && dateMatch;
+    return searchMatch && statusMatch && priorityMatch && assignedMatch && readMatch && dateMatch;
   }).sort((a, b) => {
     const aUpdated = new Date(a.updated_date || a.created_date || 0).getTime();
     const bUpdated = new Date(b.updated_date || b.created_date || 0).getTime();
@@ -440,7 +446,7 @@ export default function AdminSupportTickets({ user }) {
     if (aTime !== bTime) return bTime - aTime;
 
     return new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime();
-  }), [tickets, search, filterStatus, filterPriority, filterAssigned, filterDate]);
+  }), [tickets, search, filterStatus, filterPriority, filterAssigned, filterRead, filterDate, manuallyUnreadTicketIds, openedTicketIds]);
 
   const filteredKpiTickets = useMemo(() => {
     const now = new Date();
@@ -512,6 +518,8 @@ export default function AdminSupportTickets({ user }) {
             setFilterPriority={setFilterPriority}
             filterAssigned={filterAssigned}
             setFilterAssigned={setFilterAssigned}
+            filterRead={filterRead}
+            setFilterRead={setFilterRead}
             filterDate={filterDate}
             setFilterDate={setFilterDate}
             staffUsers={staffUsers}
