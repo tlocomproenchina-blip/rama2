@@ -11,8 +11,15 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
 
   useEffect(() => {
     if (!selectedTicket?.id) return;
-    const lastClientMessage = [...(selectedTicket.messages || [])].reverse().find((msg) => !msg.is_admin);
+    const messages = selectedTicket.messages || [];
+    const lastClientMessage = [...messages].reverse().find((msg) => !msg.is_admin);
     if (!lastClientMessage) return;
+
+    const lastAdminMessage = [...messages].reverse().find((msg) => msg.is_admin);
+    const lastClientTime = new Date(lastClientMessage.timestamp || 0).getTime();
+    const lastAdminTime = new Date(lastAdminMessage?.timestamp || 0).getTime();
+    if (lastAdminTime >= lastClientTime) return;
+
     const lastMessageKey = `${selectedTicket.id}:${lastClientMessage.timestamp}`;
     setOpenedTicketIds?.((prev) => prev.includes(lastMessageKey) ? prev : [...prev, lastMessageKey]);
     setManuallyUnreadTicketIds?.((prev) => prev.filter((item) => item !== selectedTicket.id));

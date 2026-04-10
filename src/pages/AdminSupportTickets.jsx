@@ -392,6 +392,13 @@ export default function AdminSupportTickets({ user }) {
     const msgs = ticket.messages || [];
     const lastClientMessage = [...msgs].reverse().find((msg) => !msg.is_admin);
     if (!lastClientMessage) return false;
+
+    const lastAdminMessage = [...msgs].reverse().find((msg) => msg.is_admin);
+    const lastClientTime = new Date(lastClientMessage.timestamp || 0).getTime();
+    const lastAdminTime = new Date(lastAdminMessage?.timestamp || 0).getTime();
+
+    if (lastAdminTime >= lastClientTime) return false;
+
     const lastMessageKey = `${ticket.id}:${lastClientMessage.timestamp}`;
     return !openedTicketIds.includes(lastMessageKey);
   };
