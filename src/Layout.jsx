@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy, useCallback } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -134,11 +134,11 @@ export default function Layout({ children, currentPageName }) {
   // Ajuste inicial + suscripción a RuntimeTuning para autoescalado
   useEffect(() => {
     setApiTuning({
-      maxReads: 1600,
-      maxWrites: 600,
-      minIntervalMs: 10,
-      backoffDelays: [2000, 4000, 8000, 16000, 32000],
-      circuitBreakerThreshold: 1500,
+      maxReads: 2200,
+      maxWrites: 900,
+      minIntervalMs: 5,
+      backoffDelays: [1000, 2000, 4000, 8000, 16000],
+      circuitBreakerThreshold: 2500,
       circuitOpenMinutes: 1
     });
 
@@ -147,11 +147,11 @@ export default function Layout({ children, currentPageName }) {
       try {
         const TARGET = {
           config_key: 'global',
-          max_reads: 1600,
-          max_writes: 600,
-          min_interval_ms: 10,
-          backoff_delays: [2000, 4000, 8000, 16000, 32000],
-          circuit_breaker_threshold: 1500,
+          max_reads: 2200,
+          max_writes: 900,
+          min_interval_ms: 5,
+          backoff_delays: [1000, 2000, 4000, 8000, 16000],
+          circuit_breaker_threshold: 2500,
           circuit_open_minutes: 1,
           ui_degradation_mode: 'off',
         };

@@ -34,11 +34,11 @@ Deno.serve(async (req) => {
 
     // Heurística de tuning
     let target = {
-      max_reads: 24,
-      max_writes: 8,
-      min_interval_ms: 60,
-      backoff_delays: [500, 1000, 2000, 4000, 8000],
-      circuit_breaker_threshold: 12,
+      max_reads: 80,
+      max_writes: 28,
+      min_interval_ms: 20,
+      backoff_delays: [1000, 2000, 4000, 8000, 16000],
+      circuit_breaker_threshold: 40,
       circuit_open_minutes: 1,
       ui_degradation_mode: 'off',
       reason: 'baseline'
@@ -47,10 +47,10 @@ Deno.serve(async (req) => {
     if (p95Queue > 120 || avgWrites > 10) {
       target = {
         ...target,
-        max_reads: 48,
-        max_writes: 16,
-        min_interval_ms: 30,
-        circuit_breaker_threshold: 20,
+        max_reads: 160,
+        max_writes: 56,
+        min_interval_ms: 10,
+        circuit_breaker_threshold: 80,
         ui_degradation_mode: p90Fails > 5 ? 'light' : 'off',
         reason: 'elevated_load'
       };
@@ -59,10 +59,10 @@ Deno.serve(async (req) => {
     if (p95Queue > 300 || avgWrites > 14) {
       target = {
         ...target,
-        max_reads: 64,
-        max_writes: 24,
-        min_interval_ms: 20,
-        circuit_breaker_threshold: 30,
+        max_reads: 260,
+        max_writes: 96,
+        min_interval_ms: 5,
+        circuit_breaker_threshold: 140,
         ui_degradation_mode: p90Fails > 8 ? 'aggressive' : 'light',
         reason: 'extreme_load'
       };
@@ -71,10 +71,10 @@ Deno.serve(async (req) => {
     if (p95Queue < 10 && avgWrites < 3 && avgReads < 8) {
       target = {
         ...target,
-        max_reads: 16,
-        max_writes: 6,
-        min_interval_ms: 80,
-        circuit_breaker_threshold: 8,
+        max_reads: 60,
+        max_writes: 20,
+        min_interval_ms: 25,
+        circuit_breaker_threshold: 30,
         ui_degradation_mode: 'off',
         reason: 'low_load'
       };

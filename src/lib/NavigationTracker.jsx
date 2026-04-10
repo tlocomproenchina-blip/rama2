@@ -6,8 +6,8 @@ import { pagesConfig } from '@/pages.config';
 
 const SESSION_KEY = 'employee_activity_session_id';
 const IDLE_THRESHOLD_MS = 60000;
-const SAMPLE_INTERVAL_MS = 15000;
-const HEARTBEAT_INTERVAL_MS = 60000;
+const SAMPLE_INTERVAL_MS = 30000;
+const HEARTBEAT_INTERVAL_MS = 180000;
 
 function getAuditSessionId() {
     try {
@@ -144,11 +144,11 @@ export default function NavigationTracker() {
         };
 
         const heartbeat = window.setInterval(() => {
-            if (!currentPageRef.current) return;
+            if (!currentPageRef.current || document.hidden) return;
 
             flushSampleRef.current();
             const sampledDuration = activeTimeRef.current + idleTimeRef.current;
-            if (sampledDuration <= 0) return;
+            if (sampledDuration < HEARTBEAT_INTERVAL_MS / 2 || activeTimeRef.current <= 0) return;
 
             base44.functions.invoke('trackEmployeeActivity', buildAuditPayload({
                 user,
@@ -158,7 +158,7 @@ export default function NavigationTracker() {
                 durationMs: sampledDuration,
                 activeTimeMs: activeTimeRef.current,
                 idleTimeMs: idleTimeRef.current,
-            })).catch(() => {});
+            }), { dedupeKey: `track-heartbeat-${currentPageRef.current.path}` }).catch(() => {});
 
             activeTimeRef.current = 0;
             idleTimeRef.current = 0;

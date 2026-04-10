@@ -14,46 +14,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: insufficient permissions' }, { status: 403 });
     }
 
-    // Paginate through ALL users using list() with explicit skip
-    let allUsers = [];
-    let skip = 0;
-    const batchSize = 50; // Use smaller batches for reliability
-    const maxIterations = 100; // Safety limit
+    const clients = await base44.asServiceRole.entities.User.filter({ role: 'user' }, '-created_date', 300, 0);
 
-    for (let i = 0; i < maxIterations; i++) {
-      console.log(`[Batch ${i}] Fetching skip=${skip}, limit=${batchSize}`);
-      const batch = await base44.asServiceRole.entities.User.list(
-        '-created_date',
-        batchSize,
-        skip
-      );
-      
-      const batchLen = Array.isArray(batch) ? batch.length : 0;
-      console.log(`[Batch ${i}] Received ${batchLen} records`);
-      
-      if (!Array.isArray(batch) || batch.length === 0) {
-        console.log(`[Batch ${i}] Empty batch, stopping pagination`);
-        break;
-      }
-      
-      allUsers = allUsers.concat(batch);
-      console.log(`[Batch ${i}] Running total: ${allUsers.length}`);
-      
-      if (batch.length < batchSize) {
-        console.log(`[Batch ${i}] Partial batch (${batch.length} < ${batchSize}), stopping`);
-        break;
-      }
-      
-      skip += batchSize;
-    }
-
-    console.log(`Total users fetched: ${allUsers.length}`);
-
-    // Filter to only regular users with valid id/email
-    const clients = allUsers.filter((u) => u && u.id && u.email && u.role === 'user');
-    console.log(`Clients with role=user: ${clients.length}`);
-
-    const sanitized = clients.map((u) => ({
+    const sanitized = (clients || []).filter((u) => u && u.id && u.email).map((u) => ({
       id: u.id,
       email: u.email,
       full_name: u.full_name || null,
