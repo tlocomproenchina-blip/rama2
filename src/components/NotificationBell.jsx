@@ -55,15 +55,23 @@ export default function NotificationBell({ user }) {
         50
       );
 
-      const seen = new Set();
-      const deduped = notifs.filter(n => {
-        const key = `${n.reference_id}-${n.title}-${n.message}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+      const dedupedMap = new Map();
+      for (const notif of notifs) {
+        const key = `${notif.user_email}|${notif.reference_id || ''}|${notif.title || ''}|${notif.type || ''}`;
+        const existing = dedupedMap.get(key);
+        if (!existing) {
+          dedupedMap.set(key, notif);
+          continue;
+        }
 
-      setNotifications(deduped);
+        const keepUnread = !notif.read && existing.read;
+        const keepNewest = new Date(notif.created_date || 0).getTime() > new Date(existing.created_date || 0).getTime();
+        if (keepUnread || keepNewest) {
+          dedupedMap.set(key, notif);
+        }
+      }
+
+      setNotifications(Array.from(dedupedMap.values()));
       setLoading(false);
     } catch (error) {
       console.error('Error loading notifications:', error);
@@ -82,15 +90,7 @@ export default function NotificationBell({ user }) {
       const data = event?.data;
       if (!data || data.user_email !== user.email) return;
 
-      if (event.type === 'create') {
-        setNotifications((prev) => {
-          const exists = prev.some((item) => item.id === data.id);
-          if (exists) return prev;
-          return [data, ...prev];
-        });
-      }
-
-      if (event.type === 'update' || event.type === 'delete') {
+      if (event.type === 'create' || event.type === 'update' || event.type === 'delete') {
         loadNotifications();
       }
     });
@@ -162,7 +162,7 @@ export default function NotificationBell({ user }) {
    setNotifications(notifications.filter(n => n.id !== notifId));
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <DropdownMenu open={open} onOpenChange={(isOpen) => {

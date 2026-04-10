@@ -65,17 +65,10 @@ export default function NotificationCenter({ user }) {
       if (!data || data.user_email !== user.email) return;
 
       if (event.type === 'create') {
-        setNotifications((prev) => {
-          const exists = prev.some(n => n.id === data.id);
-          if (!exists && !data.read) {
-            setUnreadCount((c) => c + 1);
-          }
-          return exists ? prev : [data, ...prev];
-        });
         setLastRefresh(Date.now());
+        loadNotifications();
         toast.message(data.title || 'Nueva notificación', { description: data.message });
       } else if (event.type === 'update' || event.type === 'delete') {
-        // Mantener sincronizado el panel ante cambios
         loadNotifications();
       }
     });
