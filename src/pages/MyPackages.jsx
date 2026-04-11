@@ -196,10 +196,11 @@ export default function MyPackages({ user }) {
             </div>
             <div>
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 rounded-[1.25rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur-sm">
+              <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 rounded-[1.25rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur-sm">
                 <TabsTrigger value="all">Todos</TabsTrigger>
                 <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
                 <TabsTrigger value="recibido">Recibido</TabsTrigger>
+                <TabsTrigger value="rechazado">Rechazado</TabsTrigger>
                 <TabsTrigger value="consolidado">Consolidado</TabsTrigger>
                 <TabsTrigger value="en_transito">En Tránsito</TabsTrigger>
                 <TabsTrigger value="entregado">Entregado</TabsTrigger>

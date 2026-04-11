@@ -211,6 +211,11 @@ export async function notifyPackageStatus(pkg, newStatus) {
       subject: '📥 Paquete recibido en warehouse',
       body: `Tu paquete ${pkg.tracking_number} ha sido recibido en nuestro almacén.`,
       icon: 'package'
+    },
+    rechazado: {
+      subject: '⛔ Paquete rechazado en almacén',
+      body: `Tu paquete ${pkg.tracking_number} fue recibido en almacén, pero fue rechazado y no podrá exportarse. Por favor contacta a soporte para más información.`,
+      icon: 'alert'
     }
   };
 

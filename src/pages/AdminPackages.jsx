@@ -747,6 +747,7 @@ export default function AdminPackages({ user }) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="recibido">Recibido</SelectItem>
+                      <SelectItem value="rechazado">Rechazado</SelectItem>
                       <SelectItem value="en_transito">En Tránsito</SelectItem>
                       <SelectItem value="disponible">Disponible</SelectItem>
                       <SelectItem value="entregado">Entregado</SelectItem>
@@ -1051,6 +1052,7 @@ export default function AdminPackages({ user }) {
                            </SelectTrigger>
                            <SelectContent>
                              <SelectItem value="recibido">Recibido</SelectItem>
+                             <SelectItem value="rechazado">Rechazado</SelectItem>
                              <SelectItem value="en_transito">En Tránsito</SelectItem>
                              <SelectItem value="disponible">Disponible</SelectItem>
                              <SelectItem value="entregado">Entregado</SelectItem>
