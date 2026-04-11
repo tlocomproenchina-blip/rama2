@@ -92,8 +92,12 @@ export default function AdminPackages({ user }) {
     loadPackages(false);
   }, [loadPackages]);
 
-  const handleReceive = async () => {
+  const handleReceive = async (nextStatus = 'recibido') => {
     if (!receiveModal) return;
+    if (!imageFiles || imageFiles.length === 0) {
+      toast.error('Debes cargar al menos una foto como evidencia');
+      return;
+    }
     setProcessing(true);
 
     try {
@@ -108,25 +112,35 @@ export default function AdminPackages({ user }) {
       }
 
       await base44.entities.Package.update(receiveModal.id, {
-        status: 'recibido',
+        status: nextStatus,
         package_image_urls: (imageUrls || []).slice(0,3),
         package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : null,
         received_date: new Date().toISOString(),
         received_by: user.email
       });
 
-      // Notify client
       const { sendNotification } = await import('@/components/NotificationUtils');
-      sendNotification({
-        to: receiveModal.client_email,
-        subject: '📦 Tu paquete ha sido recibido',
-        body: `¡Buenas noticias! Tu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.\n\nPronto será procesado para consolidación.`,
-        type: 'package',
-        icon: 'check',
-        referenceId: receiveModal.id
-      });
+      if (nextStatus === 'rechazado') {
+        sendNotification({
+          to: receiveModal.client_email,
+          subject: '⛔ Tu paquete fue rechazado',
+          body: `Tu paquete con tracking ${receiveModal.tracking_number} fue recibido en nuestro almacén, pero fue rechazado y no podrá exportarse. Hemos guardado evidencia fotográfica de la recepción. Por favor contacta a soporte para más información.`,
+          type: 'package',
+          icon: 'alert',
+          referenceId: receiveModal.id
+        });
+      } else {
+        sendNotification({
+          to: receiveModal.client_email,
+          subject: '📦 Tu paquete ha sido recibido',
+          body: `¡Buenas noticias! Tu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.\n\nPronto será procesado para consolidación.`,
+          type: 'package',
+          icon: 'check',
+          referenceId: receiveModal.id
+        });
+      }
 
-      toast.success('Paquete marcado como recibido');
+      toast.success(nextStatus === 'rechazado' ? 'Paquete marcado como rechazado' : 'Paquete marcado como recibido');
       setReceiveModal(null);
       setImageFiles([]);
       loadPackages(false);
@@ -1139,7 +1153,7 @@ export default function AdminPackages({ user }) {
       <Dialog open={!!receiveModal} onOpenChange={() => setReceiveModal(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirmar Recepción</DialogTitle>
+            <DialogTitle>Confirmar Recepción o Rechazo</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="p-4 bg-slate-50 rounded-lg">
@@ -1171,6 +1185,7 @@ export default function AdminPackages({ user }) {
                     <div className="text-slate-500">
                       <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
                       <p className="text-sm">Click para subir foto</p>
+                      <p className="text-xs mt-1 text-amber-600">Obligatorio para recibir o rechazar</p>
                     </div>
                   )}
                 </label>
@@ -1181,7 +1196,11 @@ export default function AdminPackages({ user }) {
             <Button variant="outline" onClick={() => setReceiveModal(null)}>
               Cancelar
             </Button>
-            <Button onClick={handleReceive} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => handleReceive('rechazado')} disabled={processing} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Rechazado
+            </Button>
+            <Button onClick={() => handleReceive('recibido')} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
               {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
               Confirmar Recepción
             </Button>
