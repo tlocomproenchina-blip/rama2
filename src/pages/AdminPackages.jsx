@@ -1202,7 +1202,7 @@ export default function AdminPackages({ user }) {
             </Button>
             <Button onClick={() => handleReceive('recibido')} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
               {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-              Confirmar Recepción
+              Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>
