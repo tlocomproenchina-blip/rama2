@@ -124,7 +124,7 @@ export default function AdminPackages({ user }) {
         sendNotification({
           to: receiveModal.client_email,
           subject: '⛔ Tu paquete fue rechazado',
-          body: `Tu paquete con tracking ${receiveModal.tracking_number} fue recibido en nuestro almacén, pero fue rechazado y no podrá exportarse. Hemos guardado evidencia fotográfica de la recepción. Por favor contacta a soporte para más información.`,
+          body: `Tu paquete con tracking ${receiveModal.tracking_number} fue recibido en nuestro almacén, pero fue rechazado y no podrá exportarse. Hemos guardado evidencia fotográfica de la recepción. Si deseas enviarlo a otra dirección, por favor comunícate con soporte para ayudarte con el proceso.`,
           type: 'package',
           icon: 'alert',
           referenceId: receiveModal.id
