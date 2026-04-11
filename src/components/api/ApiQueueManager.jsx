@@ -32,7 +32,7 @@ class ApiQueueManager {
     this.backoffDelays = [2000, 4000, 8000, 16000, 32000];
     this.circuitBreakerThreshold = 1000;
     this.circuitOpenMinutes = 2;
-    this.OPERATION_TIMEOUT_MS = 45000; // 45s seguridad contra cuelgues
+    this.OPERATION_TIMEOUT_MS = 30000; // 30s seguridad contra cuelgues
     // Realtime + caché granular
     this.cacheDisabledFor = new Set();
     this.entitySubscriptions = new Map();

@@ -90,6 +90,37 @@ export default function AdminClients({ user }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  useEffect(() => {
+    if (!clients.length) {
+      setPackagesCount({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadPackageCounts = async () => {
+      try {
+        const packages = await base44.entities.Package.list('-created_date', 500);
+        if (cancelled) return;
+        const counts = {};
+        packages.forEach((pkg) => {
+          if (pkg?.client_email) {
+            counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1;
+          }
+        });
+        setPackagesCount(counts);
+      } catch (error) {
+        console.error('Error loading package counts:', error);
+      }
+    };
+
+    loadPackageCounts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clients.length]);
+
 
 
 
@@ -132,9 +163,7 @@ export default function AdminClients({ user }) {
       if (append) {
         setClients(prev => [...prev, ...users]);
       } else {
-        const packages = await base44.entities.Package.list();
         const counts = {};
-        packages.forEach(pkg => { counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1; });
         setPackagesCount(counts);
         setClients(users);
       }
@@ -541,6 +570,10 @@ Email: ${client.email}`;
         fob_value: '',
         package_image_url: ''
       });
+      setPackagesCount((prev) => ({
+        ...prev,
+        [packageClient.email]: (prev[packageClient.email] || 0) + 1,
+      }));
       loadClients();
     } catch (error) {
       toast.error('Error al agregar paquete');
