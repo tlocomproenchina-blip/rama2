@@ -23,6 +23,7 @@ Deno.serve(async (req) => {
     const trackingNumber = String(body?.tracking_number || '').trim();
     const clientEmail = String(body?.client_email || '').trim();
     const packageImageUrl = String(body?.package_image_url || '').trim();
+    const skipEmail = body?.skip_email === true;
 
     if (!trackingNumber || !packageImageUrl) {
       return Response.json({ error: 'tracking_number y package_image_url son obligatorios' }, { status: 400 });
@@ -75,12 +76,14 @@ Deno.serve(async (req) => {
       read: false
     });
 
-    await base44.integrations.Core.SendEmail({
-      to: pkg.client_email,
-      subject,
-      body: message,
-      from_name: 'TLEC CARGO'
-    });
+    if (!skipEmail) {
+      await base44.integrations.Core.SendEmail({
+        to: pkg.client_email,
+        subject,
+        body: message,
+        from_name: 'TLEC CARGO'
+      });
+    }
 
     return Response.json({ success: true, package: pkg, created: !existing?.[0] });
   } catch (error) {

@@ -363,6 +363,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
             tracking_number: tracking,
             client_email: assignedClientEmail,
             package_image_url: imageUrls[0] || null,
+            skip_email: true,
           });
 
           const processedPackage = response?.data?.package;
