@@ -810,33 +810,27 @@ export default function AdminPackages({ user }) {
         </Card>
       )}
 
-      <BarcodeScannerModule
-        title="Escaneo rápido de paquetes"
-        description="Busca un paquete por tracking usando cámara o lectora de códigos de barras."
-        placeholder="Escanea el tracking a buscar"
-        actionLabel="Buscar paquete"
-        onDetected={handleScanSearch}
-      />
+      <div className="space-y-3">
+        <BarcodeScannerModule
+          title="Búsqueda y escaneo de paquetes"
+          description="Usa una sola barra para buscar por tracking, shipping mark o email, y también para escanear con cámara o lectora."
+          placeholder="Busca o escanea tracking, shipping mark o email"
+          actionLabel="Buscar paquete"
+          value={search}
+          onValueChange={setSearch}
+          onDetected={handleScanSearch}
+        />
 
-      {/* Barra de búsqueda superior */}
-      <div className="flex flex-col sm:flex-row gap-2 mb-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Búsqueda rápida por tracking, shipping mark o email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 w-full h-11"
-          />
+        <div className="flex justify-end">
+          <Button
+            onClick={() => setBulkPhotoModalOpen(true)}
+            variant="outline"
+            className="h-11 border-emerald-200 text-emerald-600 hover:bg-emerald-50 gap-2 whitespace-nowrap"
+          >
+            <ImageIcon className="h-4 w-4" />
+            Carga Masiva Fotos
+          </Button>
         </div>
-        <Button
-          onClick={() => setBulkPhotoModalOpen(true)}
-          variant="outline"
-          className="h-11 border-emerald-200 text-emerald-600 hover:bg-emerald-50 gap-2 whitespace-nowrap"
-        >
-          <ImageIcon className="h-4 w-4" />
-          Carga Masiva Fotos
-        </Button>
       </div>
 
       {/* Resumen ventana 7 días (búsqueda por email o shipping mark) */}
