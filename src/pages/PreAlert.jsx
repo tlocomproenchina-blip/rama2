@@ -120,16 +120,8 @@ export default function PreAlert({ user }) {
       newErrors.description = 'Descripción requerida';
     }
 
-    if (!uploadsDisabled && !productPhoto) {
-      newErrors.product_photo = 'La foto del producto es obligatoria';
-    }
-
     if (formData.has_insurance && !formData.fob_value) {
       newErrors.fob_value = 'Valor FOB requerido para seguro';
-    }
-
-    if (!uploadsDisabled && formData.has_insurance && !invoiceFile) {
-      newErrors.invoice_file = 'La factura es obligatoria cuando el envío está asegurado';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -412,7 +404,7 @@ export default function PreAlert({ user }) {
               <div className="space-y-2">
                 <Label className="text-slate-700 font-medium flex items-center gap-2">
                   <Upload className="h-4 w-4" />
-                  Foto del producto {!uploadsDisabled ? '*' : '(desactivada)'}
+                  Foto del producto (opcional)
                 </Label>
                 <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.product_photo ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
                   <input
@@ -445,12 +437,6 @@ export default function PreAlert({ user }) {
                     )}
                   </label>
                 </div>
-                {errors.product_photo && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.product_photo}
-                  </p>
-                )}
               </div>
 
               {/* Insurance Section */}
@@ -511,7 +497,7 @@ export default function PreAlert({ user }) {
                   <div className="space-y-2">
                     <Label className="text-slate-700 font-medium flex items-center gap-2">
                       <Upload className="h-4 w-4" />
-                      {uploadsDisabled ? 'Factura (desactivada)' : `Factura (PDF o imagen)${formData.has_insurance ? ' *' : ''}`}
+                      Factura (PDF o imagen) opcional
                     </Label>
                     <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.invoice_file ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
                       <input
@@ -536,12 +522,6 @@ export default function PreAlert({ user }) {
                         )}
                       </label>
                     </div>
-                    {errors.invoice_file && (
-                      <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {errors.invoice_file}
-                      </p>
-                    )}
                   </div>
                 </div>
               )}
