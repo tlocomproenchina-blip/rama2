@@ -76,16 +76,22 @@ Deno.serve(async (req) => {
       read: false
     });
 
+    let emailSent = false;
     if (!skipEmail) {
-      await base44.integrations.Core.SendEmail({
-        to: pkg.client_email,
-        subject,
-        body: message,
-        from_name: 'TLEC CARGO'
-      });
+      try {
+        await base44.integrations.Core.SendEmail({
+          to: pkg.client_email,
+          subject,
+          body: message,
+          from_name: 'TLEC CARGO'
+        });
+        emailSent = true;
+      } catch (emailError) {
+        console.warn('SendEmail skipped:', emailError?.message || emailError);
+      }
     }
 
-    return Response.json({ success: true, package: pkg, created: !existing?.[0] });
+    return Response.json({ success: true, package: pkg, created: !existing?.[0], email_sent: emailSent });
   } catch (error) {
     return Response.json({ error: String(error?.message || error) }, { status: 500 });
   }

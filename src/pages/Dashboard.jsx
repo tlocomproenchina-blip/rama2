@@ -166,6 +166,8 @@ export default function Dashboard({ user, refreshUser }) {
         message: `Nuevo ticket de ${user.full_name || user.email}: ${newTicket.subject}`,
         type: 'general',
         icon: 'alert'
+      }).catch((error) => {
+        console.warn('Admin notification skipped:', error?.message || error);
       });
 
       toast.success('Ticket creado exitosamente');

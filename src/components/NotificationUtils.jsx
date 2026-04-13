@@ -69,7 +69,8 @@ export async function sendNotification({ from_name, to, subject, body, title, me
 
   const fromName = from_name || (await getFromName());
 
-  // 1) Enviar email
+  // 1) Enviar email si está disponible, sin bloquear el flujo principal
+  let emailSent = false;
   try {
     await base44.integrations.Core.SendEmail({
       to,
@@ -77,24 +78,25 @@ export async function sendNotification({ from_name, to, subject, body, title, me
       body: body || message || '',
       from_name: fromName
     });
-    // 2) Log + notificación in-app (no bloquear si fallan)
-    createEmailLog({ to, subject, body, status: 'sent' });
-    sendInAppNotification({
-      user_email: to,
-      title: title || subject,
-      message: message || body,
-      type,
-      icon,
-      reference_id: referenceId,
-      entity_type: inferEntityTypeFromType(type),
-      priority: type === 'package' ? 'high' : 'medium'
-    });
-    return { success: true };
+    emailSent = true;
   } catch (err) {
-    // Registrar fallido y propagar error para que la UI pueda avisar
-    createEmailLog({ to, subject, body, status: 'failed' });
-    throw err;
+    console.warn('SendEmail skipped:', err?.message || err);
   }
+
+  // 2) Log + notificación in-app (no bloquear si fallan)
+  createEmailLog({ to, subject, body, status: emailSent ? 'sent' : 'failed' });
+  sendInAppNotification({
+    user_email: to,
+    title: title || subject,
+    message: message || body,
+    type,
+    icon,
+    reference_id: referenceId,
+    entity_type: inferEntityTypeFromType(type),
+    priority: type === 'package' ? 'high' : 'medium'
+  });
+
+  return { success: true, email_sent: emailSent };
 }
 
 export async function sendTemplatedEmail({
