@@ -179,12 +179,12 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
       try {
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         let res = await base44.integrations.Core.InvokeLLM({
-          prompt: 'Analiza esta foto de un paquete y busca el código logístico principal de envío. La imagen puede estar borrosa, inclinada, con reflejos, parcialmente cortada o con varios códigos. Debes leer tanto texto impreso como números debajo de códigos de barras. Prioriza la etiqueta principal del envío. Si ves un tracking o identificador alfanumérico, devuélvelo completo exactamente con todas sus letras y números, sin espacios ni guiones. No elimines letras aunque estén al inicio, medio o final. Si hay varios códigos, elige el identificador principal más útil para registrar el paquete. Responde solo con el código final en formato alfanumérico continuo. Si no logras leer nada con confianza, devuelve una cadena vacía.',
+          prompt: 'Analiza esta foto de un paquete y lee específicamente el valor codificado en cualquier código de barras visible, no solo el texto grande de la etiqueta. Revisa también el texto pequeño impreso justo debajo del código de barras, porque muchas veces allí aparece el valor exacto. Si hay varios códigos, prioriza el código de barras principal de envío de mayor tamaño o el más centrado en la etiqueta principal. Devuelve el valor exacto del código de barras o tracking principal, completo, con todas sus letras y números, sin espacios ni guiones. No adivines otros textos de la caja si el valor del código de barras sí es visible. Responde solo con el código final en formato alfanumérico continuo. Si no logras leer el código de barras ni su texto asociado, devuelve una cadena vacía.',
           file_urls: [file_url],
           response_json_schema: {
             type: 'object',
             properties: {
-              tracking: { type: 'string', description: 'Código logístico o tracking final detectado usando solo letras y números, sin espacios ni símbolos.' }
+              tracking: { type: 'string', description: 'Valor exacto del código de barras o tracking principal usando solo letras y números, sin espacios ni símbolos.' }
             }
           }
         });
@@ -193,12 +193,26 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
 
         if (!rawTracking) {
           res = await base44.integrations.Core.InvokeLLM({
-            prompt: 'Haz una segunda pasada enfocándote en zonas pequeñas de la etiqueta. Busca especialmente: 1) texto alfanumérico grande, 2) números impresos debajo o al lado del código de barras, 3) identificadores verticales o laterales. Conserva letras y números exactamente como aparecen. Si encuentras un código como J767, N6TLECW1383 o similares, devuélvelo completo. No expliques nada. Responde únicamente con el mejor código alfanumérico continuo. Si no puedes leerlo, devuelve una cadena vacía.',
+            prompt: 'Segunda pasada especializada en códigos de barras. Ignora textos decorativos y concéntrate en: 1) franjas del código de barras, 2) números o letras impresos inmediatamente debajo, 3) código vertical lateral, 4) identificador logístico corto o largo asociado a la etiqueta. Si ves varios candidatos, devuelve el valor del código de barras principal de envío, no otros números de referencia. Conserva letras y números exactamente como aparecen. Responde únicamente con el mejor código alfanumérico continuo. Si no puedes leer el código de barras con seguridad, devuelve una cadena vacía.',
             file_urls: [file_url],
             response_json_schema: {
               type: 'object',
               properties: {
-                tracking: { type: 'string', description: 'Mejor código logístico final usando solo letras y números. Vacío si no se puede leer.' }
+                tracking: { type: 'string', description: 'Mejor valor leído del código de barras principal o su texto asociado. Vacío si no se puede leer.' }
+              }
+            }
+          });
+          rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
+        }
+
+        if (!rawTracking) {
+          res = await base44.integrations.Core.InvokeLLM({
+            prompt: 'Última pasada: inspecciona únicamente la etiqueta blanca principal y extrae el identificador de envío que esté codificado en barras o repetido junto al código. No devuelvas frases, solo el identificador final más probable del envío. Debe incluir letras si existen. Debe excluir espacios y guiones. Si no es posible, devuelve una cadena vacía.',
+            file_urls: [file_url],
+            response_json_schema: {
+              type: 'object',
+              properties: {
+                tracking: { type: 'string', description: 'Identificador final del envío leído desde el código principal o su impresión asociada.' }
               }
             }
           });
