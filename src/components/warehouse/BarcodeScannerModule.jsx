@@ -15,6 +15,10 @@ export default function BarcodeScannerModule({
   actionLabel = 'Procesar código',
   cameraLabel = 'Usar cámara',
   onDetected,
+  value,
+  onValueChange,
+  extraAction,
+  inputClassName = '',
 }) {
   const [scanValue, setScanValue] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -108,8 +112,18 @@ export default function BarcodeScannerModule({
     return () => stopCamera();
   }, [cameraOpen]);
 
+  const currentValue = value !== undefined ? value : scanValue;
+
+  const updateValue = (nextValue) => {
+    if (onValueChange) {
+      onValueChange(nextValue);
+    } else {
+      setScanValue(nextValue);
+    }
+  };
+
   const submitScan = () => {
-    const nextCode = normalizeCode(scanValue);
+    const nextCode = normalizeCode(currentValue);
     if (!nextCode) return;
     handleDetected(nextCode);
   };
@@ -125,24 +139,27 @@ export default function BarcodeScannerModule({
           <p className="text-sm text-slate-500">{description}</p>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex flex-col gap-3 lg:flex-row">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative w-full lg:max-w-xl xl:max-w-2xl">
               <Keyboard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
-                value={scanValue}
-                onChange={(e) => setScanValue(e.target.value)}
+                value={currentValue}
+                onChange={(e) => updateValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submitScan()}
                 placeholder={placeholder}
-                className="pl-10"
+                className={`pl-10 ${inputClassName}`.trim()}
               />
             </div>
-            <Button variant="outline" onClick={submitScan} disabled={!normalizeCode(scanValue)}>
-              {actionLabel}
-            </Button>
-            <Button variant="outline" onClick={() => setCameraOpen(true)} disabled={!cameraSupported}>
-              <Camera className="mr-2 h-4 w-4" />
-              {cameraLabel}
-            </Button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap">
+              <Button variant="outline" onClick={submitScan} disabled={!normalizeCode(currentValue)}>
+                {actionLabel}
+              </Button>
+              <Button variant="outline" onClick={() => setCameraOpen(true)} disabled={!cameraSupported}>
+                <Camera className="mr-2 h-4 w-4" />
+                {cameraLabel}
+              </Button>
+              {extraAction}
+            </div>
           </div>
           <p className="text-xs text-slate-500">
             La lectora USB funciona escribiendo el código en este campo y enviándolo con Enter.

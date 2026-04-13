@@ -810,18 +810,16 @@ export default function AdminPackages({ user }) {
         </Card>
       )}
 
-      <div className="space-y-3">
-        <BarcodeScannerModule
-          title="Búsqueda y escaneo de paquetes"
-          description="Usa una sola barra para buscar por tracking, shipping mark o email, y también para escanear con cámara o lectora."
-          placeholder="Busca o escanea tracking, shipping mark o email"
-          actionLabel="Buscar paquete"
-          value={search}
-          onValueChange={setSearch}
-          onDetected={handleScanSearch}
-        />
-
-        <div className="flex justify-end">
+      <BarcodeScannerModule
+        title="Búsqueda y escaneo de paquetes"
+        description="Usa una sola barra para buscar por tracking, shipping mark o email, y también para escanear con cámara o lectora."
+        placeholder="Busca o escanea tracking, shipping mark o email"
+        actionLabel="Buscar paquete"
+        value={search}
+        onValueChange={setSearch}
+        onDetected={handleScanSearch}
+        inputClassName="w-full"
+        extraAction={
           <Button
             onClick={() => setBulkPhotoModalOpen(true)}
             variant="outline"
@@ -830,8 +828,8 @@ export default function AdminPackages({ user }) {
             <ImageIcon className="h-4 w-4" />
             Carga Masiva Fotos
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Resumen ventana 7 días (búsqueda por email o shipping mark) */}
       {simpleWindowSummary && (
