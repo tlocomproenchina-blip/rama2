@@ -43,6 +43,7 @@ export default function PreAlert({ user }) {
   const [invoiceFile, setInvoiceFile] = useState(null);
   const [productPhoto, setProductPhoto] = useState(null);
   const [errors, setErrors] = useState({});
+  const [uploadsDisabled, setUploadsDisabled] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -119,7 +120,7 @@ export default function PreAlert({ user }) {
       newErrors.description = 'Descripción requerida';
     }
 
-    if (!productPhoto) {
+    if (!uploadsDisabled && !productPhoto) {
       newErrors.product_photo = 'La foto del producto es obligatoria';
     }
 
@@ -127,7 +128,7 @@ export default function PreAlert({ user }) {
       newErrors.fob_value = 'Valor FOB requerido para seguro';
     }
 
-    if (formData.has_insurance && !invoiceFile) {
+    if (!uploadsDisabled && formData.has_insurance && !invoiceFile) {
       newErrors.invoice_file = 'La factura es obligatoria cuando el envío está asegurado';
     }
 
@@ -150,27 +151,24 @@ export default function PreAlert({ user }) {
       let invoiceUrl = null;
       let productPhotoUrl = null;
 
-      // Upload product photo (mandatory)
-      if (productPhoto) {
+      // Uploads opcionales: si no hay créditos, continuar sin archivos
+      if (!uploadsDisabled && productPhoto) {
         try {
           const { file_url } = await base44.integrations.Core.UploadFile({ file: productPhoto });
           productPhotoUrl = file_url;
         } catch (uploadError) {
-          toast.error('Error al subir la foto del producto.');
-          setSaving(false);
-          return;
+          setUploadsDisabled(true);
+          toast.warning('La carga de fotos está temporalmente desactivada. Continuaremos sin adjuntos.');
         }
       }
       
-      // Upload invoice file if exists
-      if (invoiceFile) {
+      if (!uploadsDisabled && invoiceFile) {
         try {
           const { file_url } = await base44.integrations.Core.UploadFile({ file: invoiceFile });
           invoiceUrl = file_url;
         } catch (uploadError) {
-          toast.error('Error al subir el archivo. Por favor intenta nuevamente.');
-          setSaving(false);
-          return;
+          setUploadsDisabled(true);
+          toast.warning('La carga de archivos está temporalmente desactivada. Continuaremos sin adjuntos.');
         }
       }
 
@@ -214,7 +212,7 @@ export default function PreAlert({ user }) {
         });
       });
 
-      toast.success('Pre-alerta creada exitosamente');
+      toast.success(uploadsDisabled ? 'Pre-alerta creada exitosamente sin adjuntos' : 'Pre-alerta creada exitosamente');
       navigate(createPageUrl('MyPackages'));
     } catch (error) {
       console.error('Error creating pre-alert:', error);
@@ -295,6 +293,18 @@ export default function PreAlert({ user }) {
           </div>
         </CardContent>
       </Card>
+
+      {uploadsDisabled && (
+        <Card className="border-amber-200/70 bg-amber-50/90 shadow-card">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-amber-800 text-sm">Carga de fotos temporalmente desactivada</h3>
+              <p className="text-amber-700 text-sm">Puedes seguir creando la pre-alerta para notificar tus nuevos ingresos, pero sin adjuntar fotos o factura por ahora.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <form onSubmit={handleSubmit}>
         <Card className="border-border/70 bg-card/95 shadow-card">
@@ -402,17 +412,18 @@ export default function PreAlert({ user }) {
               <div className="space-y-2">
                 <Label className="text-slate-700 font-medium flex items-center gap-2">
                   <Upload className="h-4 w-4" />
-                  Foto del producto *
+                  Foto del producto {!uploadsDisabled ? '*' : '(desactivada)'}
                 </Label>
-                <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${errors.product_photo ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
+                <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.product_photo ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => { const f = e.target.files?.[0] || null; setProductPhoto(f); if (f) setErrors(prev => ({ ...prev, product_photo: null })); }}
                     className="hidden"
                     id="product-photo-upload"
+                    disabled={uploadsDisabled}
                   />
-                  <label htmlFor="product-photo-upload" className="cursor-pointer">
+                  <label htmlFor="product-photo-upload" className={uploadsDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
                     {productPhoto ? (
                       <div className="space-y-2">
                         <img
@@ -428,7 +439,7 @@ export default function PreAlert({ user }) {
                     ) : (
                       <div className="text-slate-500">
                         <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                        <p className="text-sm">Click para subir foto del producto</p>
+                        <p className="text-sm">{uploadsDisabled ? 'La carga de fotos está desactivada temporalmente' : 'Click para subir foto del producto'}</p>
                         <p className="text-xs text-slate-400 mt-1">JPG, PNG o similar</p>
                       </div>
                     )}
@@ -500,17 +511,18 @@ export default function PreAlert({ user }) {
                   <div className="space-y-2">
                     <Label className="text-slate-700 font-medium flex items-center gap-2">
                       <Upload className="h-4 w-4" />
-                      {`Factura (PDF o imagen)${formData.has_insurance ? ' *' : ''}`}
+                      {uploadsDisabled ? 'Factura (desactivada)' : `Factura (PDF o imagen)${formData.has_insurance ? ' *' : ''}`}
                     </Label>
-                    <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${errors.invoice_file ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
+                    <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.invoice_file ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
                       <input
                         type="file"
                         accept="image/*,.pdf"
                         onChange={(e) => { const f = e.target.files?.[0] || null; setInvoiceFile(f); if (f) setErrors(prev => ({ ...prev, invoice_file: null })); }}
                         className="hidden"
                         id="invoice-upload"
+                        disabled={uploadsDisabled}
                       />
-                      <label htmlFor="invoice-upload" className="cursor-pointer">
+                      <label htmlFor="invoice-upload" className={uploadsDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
                         {invoiceFile ? (
                           <div className="flex items-center justify-center gap-2 text-emerald-600">
                             <CheckCircle className="h-5 w-5" />
@@ -519,7 +531,7 @@ export default function PreAlert({ user }) {
                         ) : (
                           <div className="text-slate-500">
                             <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                            <p className="text-sm">Click para subir la factura</p>
+                            <p className="text-sm">{uploadsDisabled ? 'La carga de factura está desactivada temporalmente' : 'Click para subir la factura'}</p>
                           </div>
                         )}
                       </label>
