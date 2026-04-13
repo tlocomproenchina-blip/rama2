@@ -1,11 +1,12 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 as rawBase44 } from '@/api/base44Client';
 
 export default class SoftErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, errorId: null, message: '' };
+    this.state = { hasError: false, errorId: null, message: '', viewerRole: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -16,6 +17,7 @@ export default class SoftErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
+    rawBase44.auth.me().then((me) => this.setState({ viewerRole: me?.role || null })).catch(() => this.setState({ viewerRole: null }));
     const hash = (str) => {
       let h = 5381;
       for (let i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i);
@@ -66,6 +68,8 @@ export default class SoftErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const isCreditError = /credit|cr[eé]dito|quota|cuota|insufficient credits|integration credits|rate limit|too many requests/i.test(String(this.state.message || ''));
+      if (this.state.viewerRole !== 'admin' && isCreditError) return null;
       return (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-amber-900 shadow-sm">
           <div className="flex items-start gap-3">

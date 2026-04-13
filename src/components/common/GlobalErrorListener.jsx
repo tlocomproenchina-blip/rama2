@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { base44 as rawBase44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -13,9 +14,13 @@ export default function GlobalErrorListener() {
   const [showDialog, setShowDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [sending, setSending] = useState(false);
+  const [viewerRole, setViewerRole] = useState(null);
   const dismissedErrorIdsRef = useRef(new Set());
 
+  const isCreditError = (message = '') => /credit|cr[eé]dito|quota|cuota|insufficient credits|integration credits|rate limit|too many requests/i.test(String(message));
+
   useEffect(() => {
+    rawBase44.auth.me().then((me) => setViewerRole(me?.role || null)).catch(() => setViewerRole(null));
     const hash = (str) => { let h = 5381; for (let i=0;i<str.length;i++) h=((h<<5)+h) ^ str.charCodeAt(i); return (h>>>0).toString(36); };
 
     const persist = async (payload) => {
@@ -118,6 +123,7 @@ export default function GlobalErrorListener() {
   }, []);
 
   if (!errorInfo) return null;
+  if (viewerRole !== 'admin' && isCreditError(errorInfo.message)) return null;
 
   const copyDetails = () => {
     const text = `ID: ${errorInfo.errorId || ''}\nTipo: ${errorInfo.type}\nMensaje: ${errorInfo.message}\nFuente: ${errorInfo.source || ''}\nLinea: ${errorInfo.line || ''}:${errorInfo.column || ''}\nURL: ${typeof window !== 'undefined' ? window.location.href : ''}\nUserAgent: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}\nStack: ${errorInfo.stack || ''}`;
