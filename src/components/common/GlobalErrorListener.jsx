@@ -17,7 +17,7 @@ export default function GlobalErrorListener() {
   const [viewerRole, setViewerRole] = useState(null);
   const dismissedErrorIdsRef = useRef(new Set());
 
-  const isCreditError = (message = '') => /credit|cr[eé]dito|quota|cuota|insufficient credits|integration credits|rate limit|too many requests/i.test(String(message));
+  const isIntegrationQuotaError = (message = '', stack = '') => /credit|cr[eé]dito|quota|cuota|insufficient credits|integration credits|rate limit|too many requests|429|limit exceeded|usage limit|billing|invoke llm|sendemail|uploadfile|extractdatafromuploadedfile|generateimage|core\./i.test(`${String(message)} ${String(stack)}`);
 
   useEffect(() => {
     rawBase44.auth.me().then((me) => setViewerRole(me?.role || null)).catch(() => setViewerRole(null));
@@ -123,7 +123,7 @@ export default function GlobalErrorListener() {
   }, []);
 
   if (!errorInfo) return null;
-  if (viewerRole !== 'admin' && isCreditError(errorInfo.message)) return null;
+  if (viewerRole !== 'admin' && isIntegrationQuotaError(errorInfo.message, errorInfo.stack)) return null;
 
   const copyDetails = () => {
     const text = `ID: ${errorInfo.errorId || ''}\nTipo: ${errorInfo.type}\nMensaje: ${errorInfo.message}\nFuente: ${errorInfo.source || ''}\nLinea: ${errorInfo.line || ''}:${errorInfo.column || ''}\nURL: ${typeof window !== 'undefined' ? window.location.href : ''}\nUserAgent: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}\nStack: ${errorInfo.stack || ''}`;

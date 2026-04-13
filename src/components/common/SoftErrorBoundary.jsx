@@ -68,8 +68,8 @@ export default class SoftErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      const isCreditError = /credit|cr[eé]dito|quota|cuota|insufficient credits|integration credits|rate limit|too many requests/i.test(String(this.state.message || ''));
-      if (this.state.viewerRole !== 'admin' && isCreditError) return null;
+      const isIntegrationQuotaError = /credit|cr[eé]dito|quota|cuota|insufficient credits|integration credits|rate limit|too many requests|429|limit exceeded|usage limit|billing|invoke llm|sendemail|uploadfile|extractdatafromuploadedfile|generateimage|core\./i.test(String(this.state.message || ''));
+      if (this.state.viewerRole !== 'admin' && isIntegrationQuotaError) return null;
       return (
         <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-amber-900 shadow-sm">
           <div className="flex items-start gap-3">
