@@ -179,12 +179,12 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
       try {
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         let res = await base44.integrations.Core.InvokeLLM({
-          prompt: 'Analiza esta foto de un paquete aunque esté borrosa, movida, oscura, con reflejos o parcialmente cortada. Busca cualquier código de barras, QR, etiqueta logística o número de tracking visible. Prioriza el código principal de envío. Muy importante: conserva todas las letras y todos los números que formen parte del código completo, aunque las letras estén al inicio, en el medio o al final. No conviertas el resultado a solo números. Si el código visible es alfanumérico, devuélvelo completo exactamente en formato alfanumérico continuo, sin espacios ni guiones. Reconstruye visualmente letras y dígitos si algunos están poco claros pero el patrón general es evidente. Devuelve SOLO un valor final sin explicación. Si identificas un código de barras o tracking, devuelve únicamente letras y números sin espacios, sin guiones y sin símbolos. Si no hay suficiente evidencia visual, devuelve una cadena vacía.',
+          prompt: 'Analiza esta foto de un paquete y busca el código logístico principal de envío. La imagen puede estar borrosa, inclinada, con reflejos, parcialmente cortada o con varios códigos. Debes leer tanto texto impreso como números debajo de códigos de barras. Prioriza la etiqueta principal del envío. Si ves un tracking o identificador alfanumérico, devuélvelo completo exactamente con todas sus letras y números, sin espacios ni guiones. No elimines letras aunque estén al inicio, medio o final. Si hay varios códigos, elige el identificador principal más útil para registrar el paquete. Responde solo con el código final en formato alfanumérico continuo. Si no logras leer nada con confianza, devuelve una cadena vacía.',
           file_urls: [file_url],
           response_json_schema: {
             type: 'object',
             properties: {
-              tracking: { type: 'string', description: 'Código final detectado del envío usando solo letras y números, sin espacios ni símbolos. Vacío si no se pudo leer con suficiente confianza.' }
+              tracking: { type: 'string', description: 'Código logístico o tracking final detectado usando solo letras y números, sin espacios ni símbolos.' }
             }
           }
         });
@@ -193,16 +193,23 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
 
         if (!rawTracking) {
           res = await base44.integrations.Core.InvokeLLM({
-            prompt: 'Segunda pasada de lectura difícil. La imagen puede estar muy borrosa. Examina cuidadosamente etiquetas, bordes, zonas desenfocadas, reflejos y caracteres parcialmente visibles. Conserva cualquier letra y cualquier número que pertenezcan al código real, sin importar su posición. Si el código es alfanumérico, devuélvelo completo y no elimines letras. Si encuentras varios, devuelve el identificador logístico principal más largo y coherente. Responde únicamente con letras y números sin espacios ni guiones. Si no es posible leerlo con un mínimo de confianza, devuelve una cadena vacía.',
+            prompt: 'Haz una segunda pasada enfocándote en zonas pequeñas de la etiqueta. Busca especialmente: 1) texto alfanumérico grande, 2) números impresos debajo o al lado del código de barras, 3) identificadores verticales o laterales. Conserva letras y números exactamente como aparecen. Si encuentras un código como J767, N6TLECW1383 o similares, devuélvelo completo. No expliques nada. Responde únicamente con el mejor código alfanumérico continuo. Si no puedes leerlo, devuelve una cadena vacía.',
             file_urls: [file_url],
             response_json_schema: {
               type: 'object',
               properties: {
-                tracking: { type: 'string', description: 'Tracking o código logístico final usando solo letras y números. Vacío si no se puede leer.' }
+                tracking: { type: 'string', description: 'Mejor código logístico final usando solo letras y números. Vacío si no se puede leer.' }
               }
             }
           });
           rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
+        }
+
+        if (!rawTracking) {
+          const filenameTracking = extractTrackingFromFilename(file.name);
+          if (filenameTracking && !/^whatsappimage\d+/i.test(filenameTracking)) {
+            rawTracking = filenameTracking;
+          }
         }
 
         let matchedTracking = rawTracking;
@@ -627,7 +634,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                   </div>
                   {Object.values(barcodeResults).filter(r => !r.tracking).length > 0 && (
                     <p className="text-xs text-amber-600 mt-1">
-                      ⚠ {Object.values(barcodeResults).filter(r => !r.tracking).length} imagen(es) sin código — se usará el nombre del archivo
+                      ⚠ {Object.values(barcodeResults).filter(r => !r.tracking).length} imagen(es) no se pudieron leer automáticamente — se usará el nombre del archivo si ayuda
                     </p>
                   )}
                 </div>
