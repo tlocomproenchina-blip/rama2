@@ -44,9 +44,21 @@ export default function PreAlert({ user }) {
   const [productPhoto, setProductPhoto] = useState(null);
   const [errors, setErrors] = useState({});
   const [uploadsDisabled, setUploadsDisabled] = useState(false);
+  const [photoUploadsAvailable, setPhotoUploadsAvailable] = useState(true);
 
   useEffect(() => {
     loadConfig();
+    const updateUploadsAvailability = () => {
+      const degradeMode = document.documentElement.getAttribute('data-degrade');
+      setPhotoUploadsAvailable(degradeMode === 'off');
+      if (degradeMode !== 'off') {
+        setUploadsDisabled(true);
+      }
+    };
+
+    updateUploadsAvailability();
+    window.addEventListener('entity:event', updateUploadsAvailability);
+    return () => window.removeEventListener('entity:event', updateUploadsAvailability);
   }, []);
 
   const loadConfig = async () => {
@@ -294,7 +306,7 @@ export default function PreAlert({ user }) {
         </CardContent>
       </Card>
 
-      {uploadsDisabled && (
+      {!photoUploadsAvailable && (
         <Card className="border-amber-200/70 bg-amber-50/90 shadow-card">
           <CardContent className="p-4 flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -408,50 +420,51 @@ export default function PreAlert({ user }) {
               )}
               </div>
 
-              {/* Product Photo */}
-              <div className="space-y-2">
-                <Label className="text-slate-700 font-medium flex items-center gap-2">
-                  <Upload className="h-4 w-4" />
-                  Foto del producto {!uploadsDisabled ? '*' : '(desactivada)'}
-                </Label>
-                <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.product_photo ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => { const f = e.target.files?.[0] || null; setProductPhoto(f); if (f) setErrors(prev => ({ ...prev, product_photo: null })); }}
-                    className="hidden"
-                    id="product-photo-upload"
-                    disabled={uploadsDisabled}
-                  />
-                  <label htmlFor="product-photo-upload" className={uploadsDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
-                    {productPhoto ? (
-                      <div className="space-y-2">
-                        <img
-                          src={URL.createObjectURL(productPhoto)}
-                          alt="Preview"
-                          className="max-h-32 mx-auto rounded-lg object-contain"
-                        />
-                        <div className="flex items-center justify-center gap-2 text-emerald-600">
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="text-sm font-medium">{productPhoto.name}</span>
+              {photoUploadsAvailable && (
+                <div className="space-y-2">
+                  <Label className="text-slate-700 font-medium flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Foto del producto {!uploadsDisabled ? '*' : '(desactivada)'}
+                  </Label>
+                  <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.product_photo ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => { const f = e.target.files?.[0] || null; setProductPhoto(f); if (f) setErrors(prev => ({ ...prev, product_photo: null })); }}
+                      className="hidden"
+                      id="product-photo-upload"
+                      disabled={uploadsDisabled}
+                    />
+                    <label htmlFor="product-photo-upload" className={uploadsDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
+                      {productPhoto ? (
+                        <div className="space-y-2">
+                          <img
+                            src={URL.createObjectURL(productPhoto)}
+                            alt="Preview"
+                            className="max-h-32 mx-auto rounded-lg object-contain"
+                          />
+                          <div className="flex items-center justify-center gap-2 text-emerald-600">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="text-sm font-medium">{productPhoto.name}</span>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-500">
-                        <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                        <p className="text-sm">{uploadsDisabled ? 'La carga de fotos está desactivada temporalmente' : 'Click para subir foto del producto'}</p>
-                        <p className="text-xs text-slate-400 mt-1">JPG, PNG o similar</p>
-                      </div>
-                    )}
-                  </label>
+                      ) : (
+                        <div className="text-slate-500">
+                          <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                          <p className="text-sm">{uploadsDisabled ? 'La carga de fotos está desactivada temporalmente' : 'Click para subir foto del producto'}</p>
+                          <p className="text-xs text-slate-400 mt-1">JPG, PNG o similar</p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                  {errors.product_photo && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.product_photo}
+                    </p>
+                  )}
                 </div>
-                {errors.product_photo && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.product_photo}
-                  </p>
-                )}
-              </div>
+              )}
 
               {/* Insurance Section */}
             <div className="border-t border-slate-100 pt-6">
@@ -508,41 +521,43 @@ export default function PreAlert({ user }) {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-slate-700 font-medium flex items-center gap-2">
-                      <Upload className="h-4 w-4" />
-                      {uploadsDisabled ? 'Factura (desactivada)' : `Factura (PDF o imagen)${formData.has_insurance ? ' *' : ''}`}
-                    </Label>
-                    <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.invoice_file ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => { const f = e.target.files?.[0] || null; setInvoiceFile(f); if (f) setErrors(prev => ({ ...prev, invoice_file: null })); }}
-                        className="hidden"
-                        id="invoice-upload"
-                        disabled={uploadsDisabled}
-                      />
-                      <label htmlFor="invoice-upload" className={uploadsDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
-                        {invoiceFile ? (
-                          <div className="flex items-center justify-center gap-2 text-emerald-600">
-                            <CheckCircle className="h-5 w-5" />
-                            <span className="font-medium">{invoiceFile.name}</span>
-                          </div>
-                        ) : (
-                          <div className="text-slate-500">
-                            <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                            <p className="text-sm">{uploadsDisabled ? 'La carga de factura está desactivada temporalmente' : 'Click para subir la factura'}</p>
-                          </div>
-                        )}
-                      </label>
+                  {photoUploadsAvailable && (
+                    <div className="space-y-2">
+                      <Label className="text-slate-700 font-medium flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        {uploadsDisabled ? 'Factura (desactivada)' : `Factura (PDF o imagen)${formData.has_insurance ? ' *' : ''}`}
+                      </Label>
+                      <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.invoice_file ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => { const f = e.target.files?.[0] || null; setInvoiceFile(f); if (f) setErrors(prev => ({ ...prev, invoice_file: null })); }}
+                          className="hidden"
+                          id="invoice-upload"
+                          disabled={uploadsDisabled}
+                        />
+                        <label htmlFor="invoice-upload" className={uploadsDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
+                          {invoiceFile ? (
+                            <div className="flex items-center justify-center gap-2 text-emerald-600">
+                              <CheckCircle className="h-5 w-5" />
+                              <span className="font-medium">{invoiceFile.name}</span>
+                            </div>
+                          ) : (
+                            <div className="text-slate-500">
+                              <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                              <p className="text-sm">{uploadsDisabled ? 'La carga de factura está desactivada temporalmente' : 'Click para subir la factura'}</p>
+                            </div>
+                          )}
+                        </label>
+                      </div>
+                      {errors.invoice_file && (
+                        <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
+                          <AlertCircle className="h-4 w-4" />
+                          {errors.invoice_file}
+                        </p>
+                      )}
                     </div>
-                    {errors.invoice_file && (
-                      <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {errors.invoice_file}
-                      </p>
-                    )}
-                  </div>
+                  )}
                 </div>
               )}
             </div>
