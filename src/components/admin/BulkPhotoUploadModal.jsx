@@ -151,7 +151,11 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
 
   const removeTrackingGroup = (trackingKey) => {
     setFiles(prev => prev.filter(f => {
-      const t = barcodeResults[f.name]?.tracking || extractTrackingFromFilename(f.name);
+      const barcodeTracking = barcodeResults[f.name]?.tracking;
+      const filenameTracking = extractTrackingFromFilename(f.name);
+      const t = trackingMode === 'barcode'
+        ? (barcodeTracking || `sin-codigo-${f.name}`)
+        : filenameTracking;
       return t !== trackingKey;
     }));
   };
@@ -219,12 +223,6 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
           rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
         }
 
-        if (!rawTracking) {
-          const filenameTracking = extractTrackingFromFilename(file.name);
-          if (filenameTracking && !/^whatsappimage\d+/i.test(filenameTracking)) {
-            rawTracking = filenameTracking;
-          }
-        }
 
         let matchedTracking = rawTracking;
         if (rawTracking && knownTrackings.length > 0) {
@@ -254,14 +252,14 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     if (notFound > 0) toast.warning(`${notFound} imagen(es) difíciles — se usará el nombre del archivo si hace falta`);
   };
 
-  // Group files by tracking number (barcode results take priority over filename)
+  // Group files by tracking number according to selected mode
   const grouped = files.reduce((acc, file) => {
-    let tracking;
-    if (barcodeResults[file.name]?.tracking) {
-      tracking = barcodeResults[file.name].tracking;
-    } else {
-      tracking = extractTrackingFromFilename(file.name);
-    }
+    const barcodeTracking = barcodeResults[file.name]?.tracking;
+    const filenameTracking = extractTrackingFromFilename(file.name);
+    const tracking = trackingMode === 'barcode'
+      ? (barcodeTracking || `sin-codigo-${file.name}`)
+      : filenameTracking;
+
     if (!acc[tracking]) acc[tracking] = [];
     acc[tracking].push(file);
     return acc;
@@ -329,6 +327,18 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     for (let i = 0; i < trackings.length; i++) {
       const tracking = trackings[i];
       const photos = grouped[tracking].slice(0, 3); // max 3 photos per tracking
+
+      if (trackingMode === 'barcode' && tracking.startsWith('sin-codigo-')) {
+        resultsList.push({
+          tracking: photos[0]?.name || tracking,
+          status: 'not_found',
+          photos: photos.length,
+          clientName: null,
+          error: 'No se pudo leer el código de barras de esta imagen'
+        });
+        setProgress(Math.round(((i + 1) / total) * 100));
+        continue;
+      }
 
       try {
         const imageUrls = [];
@@ -648,7 +658,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                   </div>
                   {Object.values(barcodeResults).filter(r => !r.tracking).length > 0 && (
                     <p className="text-xs text-amber-600 mt-1">
-                      ⚠ {Object.values(barcodeResults).filter(r => !r.tracking).length} imagen(es) no se pudieron leer automáticamente — se usará el nombre del archivo si ayuda
+                      ⚠ {Object.values(barcodeResults).filter(r => !r.tracking).length} imagen(es) no se pudieron leer automáticamente
                     </p>
                   )}
                 </div>
