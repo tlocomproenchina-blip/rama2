@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { base44 as base44Queue } from '@/components/api/ApiQueueManager';
 import { useNavigate } from 'react-router-dom';
@@ -46,20 +46,32 @@ export default function PreAlert({ user }) {
   const [uploadsDisabled, setUploadsDisabled] = useState(false);
   const [photoUploadsAvailable, setPhotoUploadsAvailable] = useState(true);
 
+  const updateUploadsAvailability = useCallback(async () => {
+    try {
+      const tuningRows = await base44.entities.RuntimeTuning.filter({ config_key: 'global' }, '-updated_date', 1);
+      const degradeMode = tuningRows?.[0]?.ui_degradation_mode || 'off';
+      const available = degradeMode === 'off';
+      setPhotoUploadsAvailable(available);
+      setUploadsDisabled(!available);
+    } catch {
+      setPhotoUploadsAvailable(true);
+      setUploadsDisabled(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadConfig();
-    const updateUploadsAvailability = () => {
-      const degradeMode = document.documentElement.getAttribute('data-degrade');
-      setPhotoUploadsAvailable(degradeMode === 'off');
-      if (degradeMode !== 'off') {
-        setUploadsDisabled(true);
+    updateUploadsAvailability();
+
+    const handleEntityEvent = (event) => {
+      if (event?.detail?.entity === 'RuntimeTuning') {
+        updateUploadsAvailability();
       }
     };
 
-    updateUploadsAvailability();
-    window.addEventListener('entity:event', updateUploadsAvailability);
-    return () => window.removeEventListener('entity:event', updateUploadsAvailability);
-  }, []);
+    window.addEventListener('entity:event', handleEntityEvent);
+    return () => window.removeEventListener('entity:event', handleEntityEvent);
+  }, [updateUploadsAvailability]);
 
   const loadConfig = async () => {
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
@@ -224,7 +236,7 @@ export default function PreAlert({ user }) {
         });
       });
 
-      toast.success(uploadsDisabled ? 'Pre-alerta creada exitosamente sin adjuntos' : 'Pre-alerta creada exitosamente');
+      toast.success((uploadsDisabled || !photoUploadsAvailable) ? 'Pre-alerta creada exitosamente sin adjuntos' : 'Pre-alerta creada exitosamente');
       navigate(createPageUrl('MyPackages'));
     } catch (error) {
       console.error('Error creating pre-alert:', error);
