@@ -139,9 +139,9 @@ export default function AdminClients({ user }) {
   const loadStateConfigs = async () => {
     try {
       const states = await base44.entities.StateConfig.filter({ is_active: true });
-      // Usar nombres canónicos y ordenados
-      const { normalizeStates } = await import('@/components/utils/states');
-      setStateConfigs(normalizeStates(states));
+      setStateConfigs(
+        [...states].sort((a, b) => String(a.state_name || '').localeCompare(String(b.state_name || '')))
+      );
     } catch (error) {
       console.error('Error loading states:', error);
     }
