@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Search, CheckCircle, Upload, User as UserIcon, Plane, Ship, Image as ImageIcon, Loader2, AlertCircle, FileText, Box } from 'lucide-react';
+import { Search, CheckCircle, Upload, User as UserIcon, Plane, Ship, Image as ImageIcon, Loader2, AlertCircle, FileText, Box, Plus, Trash2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { sanitizePackageData } from '@/lib/inputSanitizers';
@@ -15,7 +15,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [shippingMark, setShippingMark] = useState('');
   const [foundUser, setFoundUser] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
-  const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingNumbers, setTrackingNumbers] = useState(['']);
   const [description, setDescription] = useState('');
   const [shippingType, setShippingType] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
@@ -46,7 +46,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setShippingMark('');
     setFoundUser(null);
     setSearchResults([]);
-    setTrackingNumber('');
+    setTrackingNumbers(['']);
     setDescription('');
     const airOn = config?.shipping_type_air_enabled !== false;
     const seaOn = config?.shipping_type_sea_enabled !== false;
@@ -143,18 +143,21 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
   const handleSubmit = async () => {
     if (!foundUser) { toast.error('Busca y selecciona un cliente'); return; }
-    if (!trackingNumber.trim()) { toast.error('Ingresa el número de tracking'); return; }
+    const cleanedTrackingNumbers = trackingNumbers.map((item) => item.trim()).filter(Boolean);
+    if (cleanedTrackingNumbers.length === 0) { toast.error('Ingresa al menos un número de tracking'); return; }
     if (!shippingType) { toast.error('Selecciona el tipo de envío'); return; }
 
     setSubmitting(true);
 
-    // Verificar duplicado de tracking antes de crear
-    const isUnique = await checkTrackingDuplicate(trackingNumber);
-    if (!isUnique) {
-      toast.error('No se puede registrar: el tracking ya existe en el sistema');
-      setSubmitting(false);
-      return;
+    for (const tracking of cleanedTrackingNumbers) {
+      const isUnique = await checkTrackingDuplicate(tracking);
+      if (!isUnique) {
+        toast.error(`No se puede registrar: el tracking ${tracking} ya existe en el sistema`);
+        setSubmitting(false);
+        return;
+      }
     }
+
     try {
       let imageUrls = [];
       if (imageFiles && imageFiles.length > 0) {
@@ -166,31 +169,32 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         imageUrls = uploaded;
       }
 
-      const sanitizedPackage = sanitizePackageData({
-        tracking_number: trackingNumber,
-        shipping_mark: shippingMark,
-        description,
-      });
+      const createdPackages = [];
+      for (const tracking of cleanedTrackingNumbers) {
+        const sanitizedPackage = sanitizePackageData({
+          tracking_number: tracking,
+          shipping_mark: shippingMark,
+          description,
+        });
 
-      const created = await base44.entities.Package.create({
-        tracking_number: sanitizedPackage.tracking_number,
-        client_email: foundUser.email,
-        shipping_mark: sanitizedPackage.shipping_mark,
-        shipping_type: shippingType,
-        description: sanitizedPackage.description || '',
-        package_image_urls: (imageUrls || []).slice(0,3),
-        package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : undefined,
-        // status por defecto = pre_alerta (definido en el esquema)
-      });
+        const created = await base44.entities.Package.create({
+          tracking_number: sanitizedPackage.tracking_number,
+          client_email: foundUser.email,
+          shipping_mark: sanitizedPackage.shipping_mark,
+          shipping_type: shippingType,
+          description: sanitizedPackage.description || '',
+          package_image_urls: (imageUrls || []).slice(0,3),
+          package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : undefined,
+        });
+        createdPackages.push(created);
+      }
 
-      // Optionally create CbmIngreso record
       if (createCbmIngreso && cbmValue) {
         const now = new Date();
         const mes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         try {
           const sanitizedCbmData = sanitizePackageData({
             shipping_mark: shippingMark,
-            tracking_number: trackingNumber,
             invoice_number: invoiceNumber,
           });
           await base44.entities.CbmIngreso.create({
@@ -200,19 +204,19 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             client_email: foundUser.email,
             client_name: foundUser.full_name || foundUser.first_name || foundUser.email,
             shipping_mark: sanitizedCbmData.shipping_mark,
-            tracking_numbers: [sanitizedCbmData.tracking_number],
+            tracking_numbers: cleanedTrackingNumbers,
             invoice_number: sanitizedCbmData.invoice_number || undefined,
-            descripcion: `Ingreso desde registro de paquete - ${sanitizedCbmData.tracking_number}`,
+            descripcion: `Ingreso desde registro de paquete - ${cleanedTrackingNumbers.join(', ')}`,
           });
           toast.success('Ingreso CBM registrado');
         } catch (cbmErr) {
-          toast.error('Paquete creado, pero no se pudo registrar el ingreso CBM');
+          toast.error('Paquetes creados, pero no se pudo registrar el ingreso CBM');
         }
       }
 
-      toast.success('Paquete registrado');
+      toast.success(cleanedTrackingNumbers.length === 1 ? 'Paquete registrado' : `${cleanedTrackingNumbers.length} paquetes registrados`);
       resetForm();
-      if (typeof onCreated === 'function') onCreated(created);
+      if (typeof onCreated === 'function') onCreated(createdPackages[0]);
     } catch (e) {
       toast.error('No se pudo registrar el paquete');
     }
@@ -274,20 +278,53 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
           {/* Tracking */}
           <div className="space-y-2">
-            <Label>Número de tracking</Label>
-            <div className="relative">
-              <Input
-                placeholder="Ingresa el número de tracking"
-                value={trackingNumber}
-                onChange={(e) => { setTrackingNumber(e.target.value); setTrackingWarning(null); }}
-                onBlur={() => checkTrackingDuplicate(trackingNumber)}
-                className={trackingWarning ? 'border-red-300' : ''}
-              />
-              {checkingTracking && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            <div className="flex items-center justify-between gap-2">
+              <Label>Número de tracking</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setTrackingNumbers((prev) => [...prev, ''])}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {trackingNumbers.map((tracking, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder={`Ingresa el número de tracking ${index + 1}`}
+                      value={tracking}
+                      onChange={(e) => {
+                        const next = [...trackingNumbers];
+                        next[index] = e.target.value;
+                        setTrackingNumbers(next);
+                        setTrackingWarning(null);
+                      }}
+                      onBlur={() => checkTrackingDuplicate(tracking)}
+                      className={trackingWarning && tracking.trim() ? 'border-red-300' : ''}
+                    />
+                    {checkingTracking && index === trackingNumbers.length - 1 && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                      </div>
+                    )}
+                  </div>
+                  {trackingNumbers.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10"
+                      onClick={() => setTrackingNumbers((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
             {trackingWarning && (
               <p className="text-sm text-amber-600 flex items-center gap-1">
@@ -392,7 +429,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           <Button variant="outline" onClick={() => onOpenChange?.(false)} disabled={submitting}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={submitting || !foundUser || !trackingNumber.trim()} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleSubmit} disabled={submitting || !foundUser || trackingNumbers.every((item) => !item.trim())} className="bg-blue-600 hover:bg-blue-700">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Registrar
           </Button>
