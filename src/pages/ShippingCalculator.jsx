@@ -112,7 +112,7 @@ export default function ShippingCalculator({ user }) {
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
       const usedCbm = Math.max(calculatedCbm, MIN_CBM);
       densityKgPerCbm = usedCbm > 0 ? realWeight / usedCbm : 0;
-      maritimeMultiplier = densityKgPerCbm > DENSITY_LIMIT_KG_PER_CBM ? 2 : 1;
+      maritimeMultiplier = realWeight > usedCbm * DENSITY_LIMIT_KG_PER_CBM ? 2 : 1;
       billableWeight = usedCbm;
       chargedBy = `${usedCbm.toFixed(4)} CBM${usedCbm > calculatedCbm ? ' (mínimo facturable)' : ''}`;
     }
@@ -388,7 +388,7 @@ export default function ShippingCalculator({ user }) {
                 )}
                 {shippingType === 'maritimo' && result.densityKgPerCbm > 0 && (
                   <div className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-700 md:col-span-2">
-                    Densidad calculada: {result.densityKgPerCbm.toFixed(2)} kg/m³. 1 CBM cubre hasta 499 kg y luego de ese peso se factura x2 el costo del envío.
+                    Densidad calculada: {result.densityKgPerCbm.toFixed(2)} kg/m³. El cobro x2 solo se aplica cuando el peso real supera 499 kg por cada CBM facturado.
                   </div>
                 )}
                 {result.stateName && (
