@@ -8,7 +8,7 @@ import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Search, CheckCircle, Upload, User as UserIcon, Plane, Ship, Image as ImageIcon, Loader2, AlertCircle, FileText, Box, Plus, Trash2 } from 'lucide-react';
+import { Search, CheckCircle, Upload, User as UserIcon, Plane, Ship, Image as ImageIcon, Loader2, AlertCircle, FileText, Box, Plus, Trash2, Camera } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { sanitizePackageData } from '@/lib/inputSanitizers';
@@ -309,6 +309,15 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             <div className="flex items-center justify-between gap-2">
               <Label>Número de tracking</Label>
               <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCameraOpen(true)}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
