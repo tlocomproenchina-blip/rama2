@@ -281,8 +281,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       for (const tracking of cleanedTrackingNumbers) {
         const sanitizedPackage = sanitizePackageData({
           tracking_number: tracking,
-          shipping_mark: shippingMark,
-          description,
         });
 
         const existingPackage = existingPackagesByTracking[tracking];
@@ -297,15 +295,13 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           continue;
         }
 
-        const created = await base44.entities.Package.create({
+        const response = await base44.functions.invoke('processReceptionPhoto', {
           tracking_number: sanitizedPackage.tracking_number,
           client_email: foundUser.email,
-          shipping_mark: sanitizedPackage.shipping_mark,
-          shipping_type: shippingType,
-          description: sanitizedPackage.description || '',
-          package_image_urls: (imageUrls || []).slice(0,3),
-          package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : undefined,
+          package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : null,
+          skip_email: true,
         });
+        const created = response?.data?.package;
         createdPackages.push(created);
       }
 

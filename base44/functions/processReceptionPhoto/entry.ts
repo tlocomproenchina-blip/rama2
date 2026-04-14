@@ -25,8 +25,8 @@ Deno.serve(async (req) => {
     const packageImageUrl = String(body?.package_image_url || '').trim();
     const skipEmail = body?.skip_email === true;
 
-    if (!trackingNumber || !packageImageUrl) {
-      return Response.json({ error: 'tracking_number y package_image_url son obligatorios' }, { status: 400 });
+    if (!trackingNumber) {
+      return Response.json({ error: 'tracking_number es obligatorio' }, { status: 400 });
     }
 
     const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: trackingNumber }, '-created_date', 1);
@@ -50,11 +50,15 @@ Deno.serve(async (req) => {
         reported: true,
         received_date: new Date().toISOString(),
         received_by: user.email,
-        package_image_url: packageImageUrl,
+        package_image_url: packageImageUrl || null,
+        package_image_urls: packageImageUrl ? [packageImageUrl] : [],
       });
     } else {
       pkg = await base44.asServiceRole.entities.Package.update(pkg.id, {
-        package_image_url: packageImageUrl,
+        package_image_url: packageImageUrl || pkg.package_image_url || null,
+        package_image_urls: packageImageUrl
+          ? [packageImageUrl]
+          : (Array.isArray(pkg.package_image_urls) ? pkg.package_image_urls : (pkg.package_image_url ? [pkg.package_image_url] : [])),
         status: 'recibido',
         received_date: new Date().toISOString(),
         received_by: user.email,
