@@ -10,6 +10,7 @@ import { Search, CheckCircle, Upload, User as UserIcon, Plane, Ship, Image as Im
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { sanitizePackageData } from '@/lib/inputSanitizers';
+import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 
 export default function RegisterPackageModal({ open, onOpenChange, onCreated }) {
   const [shippingMark, setShippingMark] = useState('');
@@ -28,6 +29,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [createCbmIngreso, setCreateCbmIngreso] = useState(false);
   const [cbmValue, setCbmValue] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [activeTrackingIndex, setActiveTrackingIndex] = useState(0);
 
   React.useEffect(() => {
     if (!open) return;
@@ -56,6 +58,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setCreateCbmIngreso(false);
     setCbmValue('');
     setInvoiceNumber('');
+    setActiveTrackingIndex(0);
   };
 
   const checkTrackingDuplicate = async (value) => {
@@ -277,7 +280,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           </div>
 
           {/* Tracking */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <Label>Número de tracking</Label>
               <Button
@@ -285,18 +288,52 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setTrackingNumbers((prev) => [...prev, ''])}
+                onClick={() => {
+                  setTrackingNumbers((prev) => [...prev, '']);
+                  setActiveTrackingIndex(trackingNumbers.length);
+                }}
               >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
+
+            <BarcodeScannerModule
+              title="Escanear tracking"
+              description="Usa una lectora USB o la cámara para llenar el tracking seleccionado."
+              placeholder={`Escanea o escribe el tracking ${activeTrackingIndex + 1}`}
+              actionLabel="Cargar tracking"
+              value={trackingNumbers[activeTrackingIndex] || ''}
+              onValueChange={(value) => {
+                const next = [...trackingNumbers];
+                next[activeTrackingIndex] = value;
+                setTrackingNumbers(next);
+                setTrackingWarning(null);
+              }}
+              onDetected={(value) => {
+                const next = [...trackingNumbers];
+                next[activeTrackingIndex] = value;
+                setTrackingNumbers(next);
+                setTrackingWarning(null);
+              }}
+              inputClassName="w-full"
+            />
+
             <div className="space-y-2">
               {trackingNumbers.map((tracking, index) => (
                 <div key={index} className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant={activeTrackingIndex === index ? 'default' : 'outline'}
+                    className="h-10 px-3"
+                    onClick={() => setActiveTrackingIndex(index)}
+                  >
+                    {index + 1}
+                  </Button>
                   <div className="relative flex-1">
                     <Input
                       placeholder={`Ingresa el número de tracking ${index + 1}`}
                       value={tracking}
+                      onFocus={() => setActiveTrackingIndex(index)}
                       onChange={(e) => {
                         const next = [...trackingNumbers];
                         next[index] = e.target.value;
@@ -306,7 +343,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                       onBlur={() => checkTrackingDuplicate(tracking)}
                       className={trackingWarning && tracking.trim() ? 'border-red-300' : ''}
                     />
-                    {checkingTracking && index === trackingNumbers.length - 1 && (
+                    {checkingTracking && activeTrackingIndex === index && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
                       </div>
@@ -318,7 +355,11 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                       variant="outline"
                       size="icon"
                       className="h-10 w-10"
-                      onClick={() => setTrackingNumbers((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}
+                      onClick={() => {
+                        const next = trackingNumbers.filter((_, itemIndex) => itemIndex !== index);
+                        setTrackingNumbers(next);
+                        setActiveTrackingIndex((current) => Math.max(0, Math.min(current, next.length - 1)));
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
