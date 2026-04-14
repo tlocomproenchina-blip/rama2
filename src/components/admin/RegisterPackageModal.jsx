@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Camera } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +11,96 @@ import { Search, CheckCircle, Upload, User as UserIcon, Plane, Ship, Image as Im
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { sanitizePackageData } from '@/lib/inputSanitizers';
-import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
+
+function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoading }) {
+  const videoRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+  const detectorRef = React.useRef(null);
+  const frameRef = React.useRef(null);
+  const activeRef = React.useRef(false);
+
+  const stopCamera = React.useCallback(() => {
+    activeRef.current = false;
+    if (frameRef.current) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const startCamera = async () => {
+      if (!(typeof window !== 'undefined' && 'BarcodeDetector' in window && navigator?.mediaDevices?.getUserMedia)) {
+        toast.error('La cámara no está disponible en este navegador');
+        return;
+      }
+
+      setCameraLoading(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      }).catch(() => null);
+
+      if (!stream) {
+        setCameraLoading(false);
+        toast.error('No se pudo abrir la cámara');
+        return;
+      }
+
+      streamRef.current = stream;
+      detectorRef.current = new window.BarcodeDetector({
+        formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'qr_code'],
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => null);
+      }
+
+      const scanFrame = async () => {
+        if (!activeRef.current || !videoRef.current || !detectorRef.current) return;
+        if (videoRef.current.readyState >= 2) {
+          const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
+          const code = String(detected?.[0]?.rawValue || '').replace(/\r?\n/g, '').trim();
+          if (code) {
+            onDetected(code);
+            stopCamera();
+            return;
+          }
+        }
+        frameRef.current = requestAnimationFrame(scanFrame);
+      };
+
+      activeRef.current = true;
+      setCameraLoading(false);
+      scanFrame();
+    };
+
+    startCamera();
+    return () => stopCamera();
+  }, [onDetected, setCameraLoading, stopCamera]);
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border bg-black">
+      <video ref={videoRef} autoPlay playsInline muted className="aspect-video w-full object-cover" />
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+        <div className="h-28 w-full max-w-md rounded-2xl border-2 border-dashed border-white/80 bg-white/10" />
+      </div>
+      {cameraLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          Activando cámara...
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function RegisterPackageModal({ open, onOpenChange, onCreated }) {
   const [shippingMark, setShippingMark] = useState('');
@@ -29,7 +119,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [createCbmIngreso, setCreateCbmIngreso] = useState(false);
   const [cbmValue, setCbmValue] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [activeTrackingIndex, setActiveTrackingIndex] = useState(0);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -58,7 +149,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setCreateCbmIngreso(false);
     setCbmValue('');
     setInvoiceNumber('');
-    setActiveTrackingIndex(0);
+    setCameraOpen(false);
+    setCameraLoading(false);
   };
 
   const checkTrackingDuplicate = async (value) => {
@@ -283,57 +375,37 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <Label>Número de tracking</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => {
-                  setTrackingNumbers((prev) => [...prev, '']);
-                  setActiveTrackingIndex(trackingNumbers.length);
-                }}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setCameraOpen(true)}
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    setTrackingNumbers((prev) => [...prev, '']);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-
-            <BarcodeScannerModule
-              title="Escanear tracking"
-              description="Usa una lectora USB o la cámara para llenar el tracking seleccionado."
-              placeholder={`Escanea o escribe el tracking ${activeTrackingIndex + 1}`}
-              actionLabel="Cargar tracking"
-              value={trackingNumbers[activeTrackingIndex] || ''}
-              onValueChange={(value) => {
-                const next = [...trackingNumbers];
-                next[activeTrackingIndex] = value;
-                setTrackingNumbers(next);
-                setTrackingWarning(null);
-              }}
-              onDetected={(value) => {
-                const next = [...trackingNumbers];
-                next[activeTrackingIndex] = value;
-                setTrackingNumbers(next);
-                setTrackingWarning(null);
-              }}
-              inputClassName="w-full"
-            />
 
             <div className="space-y-2">
               {trackingNumbers.map((tracking, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant={activeTrackingIndex === index ? 'default' : 'outline'}
-                    className="h-10 px-3"
-                    onClick={() => setActiveTrackingIndex(index)}
-                  >
-                    {index + 1}
-                  </Button>
                   <div className="relative flex-1">
                     <Input
                       placeholder={`Ingresa el número de tracking ${index + 1}`}
                       value={tracking}
-                      onFocus={() => setActiveTrackingIndex(index)}
                       onChange={(e) => {
                         const next = [...trackingNumbers];
                         next[index] = e.target.value;
@@ -343,7 +415,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                       onBlur={() => checkTrackingDuplicate(tracking)}
                       className={trackingWarning && tracking.trim() ? 'border-red-300' : ''}
                     />
-                    {checkingTracking && activeTrackingIndex === index && (
+                    {checkingTracking && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
                       </div>
@@ -357,8 +429,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                       className="h-10 w-10"
                       onClick={() => {
                         const next = trackingNumbers.filter((_, itemIndex) => itemIndex !== index);
-                        setTrackingNumbers(next);
-                        setActiveTrackingIndex((current) => Math.max(0, Math.min(current, next.length - 1)));
+                        setTrackingNumbers(next.length ? next : ['']);
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -476,6 +547,31 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Escanear con cámara</DialogTitle>
+            <DialogDescription>
+              Cada lectura agregará automáticamente un nuevo número de tracking.
+            </DialogDescription>
+          </DialogHeader>
+          <SimpleTrackingCameraScanner
+            onDetected={(value) => {
+              const code = String(value || '').trim();
+              if (!code) return;
+              setTrackingNumbers((prev) => {
+                const filled = prev.filter((item) => item.trim() !== '');
+                return [...filled, code, ''];
+              });
+              setTrackingWarning(null);
+              setCameraOpen(false);
+            }}
+            cameraLoading={cameraLoading}
+            setCameraLoading={setCameraLoading}
+          />
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
