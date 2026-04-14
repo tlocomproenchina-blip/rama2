@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Camera } from 'lucide-react';
+
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -12,120 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { sanitizePackageData } from '@/lib/inputSanitizers';
 
-function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoading }) {
-  const videoRef = React.useRef(null);
-  const streamRef = React.useRef(null);
-  const detectorRef = React.useRef(null);
-  const frameRef = React.useRef(null);
-  const activeRef = React.useRef(false);
-  const lastDetectedRef = React.useRef('');
-  const startTimeoutRef = React.useRef(null);
 
-  const stopCamera = React.useCallback(() => {
-    activeRef.current = false;
-    if (startTimeoutRef.current) {
-      clearTimeout(startTimeoutRef.current);
-      startTimeoutRef.current = null;
-    }
-    if (frameRef.current) {
-      cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.pause?.();
-      videoRef.current.srcObject = null;
-    }
-  }, []);
-
-  const handleDetected = React.useCallback((value) => {
-    const code = String(value || '').replace(/\r?\n/g, '').trim();
-    if (!code || code === lastDetectedRef.current) return;
-    lastDetectedRef.current = code;
-    onDetected(code);
-  }, [onDetected]);
-
-  const scanFrame = React.useCallback(async () => {
-    if (!activeRef.current || !videoRef.current || !detectorRef.current) return;
-    if (videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
-      const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
-      const code = String(detected?.[0]?.rawValue || '').replace(/\r?\n/g, '').trim();
-      if (code) {
-        handleDetected(code);
-        toast.success('Código detectado');
-        stopCamera();
-        return;
-      }
-    }
-    frameRef.current = requestAnimationFrame(scanFrame);
-  }, [handleDetected, stopCamera]);
-
-  const startCamera = React.useCallback(async () => {
-    if (!(typeof window !== 'undefined' && 'BarcodeDetector' in window && navigator?.mediaDevices?.getUserMedia)) {
-      toast.error('La cámara no está disponible en este navegador');
-      return;
-    }
-
-    stopCamera();
-    lastDetectedRef.current = '';
-    setCameraLoading(true);
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
-      audio: false,
-    }).catch(() => null);
-
-    if (!stream) {
-      setCameraLoading(false);
-      toast.error('No se pudo abrir la cámara');
-      return;
-    }
-
-    streamRef.current = stream;
-    detectorRef.current = new window.BarcodeDetector({
-      formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'qr_code'],
-    });
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.setAttribute('playsinline', 'true');
-      await videoRef.current.play().catch(() => null);
-    }
-
-    activeRef.current = true;
-    setCameraLoading(false);
-    startTimeoutRef.current = setTimeout(() => {
-      frameRef.current = requestAnimationFrame(scanFrame);
-    }, 150);
-  }, [scanFrame, setCameraLoading, stopCamera]);
-
-  React.useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, [startCamera, stopCamera]);
-
-  return (
-    <div className="relative overflow-hidden rounded-xl border bg-black">
-      <video ref={videoRef} autoPlay playsInline muted className="aspect-video w-full object-cover" />
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
-        <div className="h-28 w-full max-w-md rounded-2xl border-2 border-dashed border-white/80 bg-white/10" />
-      </div>
-      {cameraLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Activando cámara...
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function RegisterPackageModal({ open, onOpenChange, onCreated }) {
   const [shippingMark, setShippingMark] = useState('');
@@ -146,7 +34,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [cbmValue, setCbmValue] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [cameraLoading, setCameraLoading] = useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -176,7 +63,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setCbmValue('');
     setInvoiceNumber('');
     setCameraOpen(false);
-    setCameraLoading(false);
   };
 
   const checkTrackingDuplicate = async (value) => {
@@ -428,15 +314,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setCameraOpen(true)}
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
                   onClick={() => {
                     setTrackingNumbers((prev) => [...prev, '']);
                   }}
@@ -602,14 +479,21 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       </DialogContent>
 
       <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-        <DialogContent className="max-w-2xl overflow-hidden">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Escanear con cámara</DialogTitle>
             <DialogDescription>
               Cada lectura agregará automáticamente un nuevo número de tracking.
             </DialogDescription>
           </DialogHeader>
-          <SimpleTrackingCameraScanner
+          <BarcodeScannerModule
+            title="Escaneo de tracking"
+            description="Usa la misma cámara del buscador QR para agregar trackings al registro."
+            placeholder="Escanea o escribe el tracking"
+            actionLabel="Agregar tracking"
+            cameraLabel="Usar cámara"
+            value=""
+            onValueChange={() => {}}
             onDetected={(value) => {
               const code = String(value || '').trim();
               if (!code) return;
@@ -619,11 +503,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 return [...filled, code, ''];
               });
               setTrackingWarning(null);
-              toast.success('Código detectado');
               setCameraOpen(false);
             }}
-            cameraLoading={cameraLoading}
-            setCameraLoading={setCameraLoading}
           />
         </DialogContent>
       </Dialog>
