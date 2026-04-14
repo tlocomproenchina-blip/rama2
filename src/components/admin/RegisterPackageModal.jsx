@@ -468,10 +468,10 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
               </SelectTrigger>
               <SelectContent>
                 {config?.shipping_type_air_enabled !== false && (
-                  <SelectItem value="aereo"><div className="flex items-center gap-2"><Plane className="h-4 w-4" /> Aéreo</div></SelectItem>
+                  <SelectItem value="aereo">Aéreo</SelectItem>
                 )}
                 {config?.shipping_type_sea_enabled !== false && (
-                  <SelectItem value="maritimo"><div className="flex items-center gap-2"><Ship className="h-4 w-4" /> Marítimo</div></SelectItem>
+                  <SelectItem value="maritimo">Marítimo</SelectItem>
                 )}
               </SelectContent>
             </Select>
