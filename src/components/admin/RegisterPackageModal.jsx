@@ -122,6 +122,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [config, setConfig] = useState(null);
   const [trackingWarning, setTrackingWarning] = useState(null);
   const [checkingTracking, setCheckingTracking] = useState(false);
+  const [existingPackagesByTracking, setExistingPackagesByTracking] = useState({});
   // CBM Ingreso fields
   const [createCbmIngreso, setCreateCbmIngreso] = useState(false);
   const [cbmValue, setCbmValue] = useState('');
@@ -162,21 +163,31 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
   const checkTrackingDuplicate = async (value) => {
     const t = String(value || '').trim();
-    if (!t || t.length < 5) { setTrackingWarning(null); return true; }
+    if (!t || t.length < 5) {
+      setTrackingWarning(null);
+      setExistingPackagesByTracking((prev) => {
+        const next = { ...prev };
+        delete next[t];
+        return next;
+      });
+      return true;
+    }
     setCheckingTracking(true);
     try {
-      const { data } = await base44.functions.invoke('checkDuplicates', {
-        action: 'check_field',
-        field: 'tracking',
-        value: t
-      });
-      if (data?.duplicate) {
-        const owner = data.matches?.[0];
-        const info = owner ? ` (cliente: ${owner.client_email}, estado: ${owner.status})` : '';
-        setTrackingWarning(`Este tracking ya existe${info}`);
+      const existing = await base44.entities.Package.filter({ tracking_number: t }, '-created_date', 1);
+      const pkg = existing?.[0];
+      if (pkg) {
+        setExistingPackagesByTracking((prev) => ({ ...prev, [t]: pkg }));
+        const info = ` (cliente: ${pkg.client_email}, estado: ${pkg.status})`;
+        setTrackingWarning(`Este tracking ya existe${info}. Se reportará como recibido.`);
         setCheckingTracking(false);
         return false;
       }
+      setExistingPackagesByTracking((prev) => {
+        const next = { ...prev };
+        delete next[t];
+        return next;
+      });
       setTrackingWarning(null);
       setCheckingTracking(false);
       return true;
@@ -252,12 +263,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setSubmitting(true);
 
     for (const tracking of cleanedTrackingNumbers) {
-      const isUnique = await checkTrackingDuplicate(tracking);
-      if (!isUnique) {
-        toast.error(`No se puede registrar: el tracking ${tracking} ya existe en el sistema`);
-        setSubmitting(false);
-        return;
-      }
+      await checkTrackingDuplicate(tracking);
     }
 
     try {
@@ -278,6 +284,18 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           shipping_mark: shippingMark,
           description,
         });
+
+        const existingPackage = existingPackagesByTracking[tracking];
+        if (existingPackage) {
+          const response = await base44.functions.invoke('processReceptionPhoto', {
+            tracking_number: sanitizedPackage.tracking_number,
+            client_email: existingPackage.client_email || foundUser.email,
+            package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : null,
+            skip_email: true,
+          });
+          createdPackages.push(response?.data?.package || existingPackage);
+          continue;
+        }
 
         const created = await base44.entities.Package.create({
           tracking_number: sanitizedPackage.tracking_number,
@@ -316,7 +334,15 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         }
       }
 
-      toast.success(cleanedTrackingNumbers.length === 1 ? 'Paquete registrado' : `${cleanedTrackingNumbers.length} paquetes registrados`);
+      const receivedExistingCount = cleanedTrackingNumbers.filter((tracking) => existingPackagesByTracking[tracking]).length;
+      const newCount = cleanedTrackingNumbers.length - receivedExistingCount;
+      if (receivedExistingCount > 0 && newCount > 0) {
+        toast.success(`${newCount} paquete(s) registrados y ${receivedExistingCount} reportado(s) como recibido(s)`);
+      } else if (receivedExistingCount > 0) {
+        toast.success(`${receivedExistingCount} paquete(s) reportado(s) como recibido(s)`);
+      } else {
+        toast.success(cleanedTrackingNumbers.length === 1 ? 'Paquete registrado' : `${cleanedTrackingNumbers.length} paquetes registrados`);
+      }
       resetForm();
       if (typeof onCreated === 'function') onCreated(createdPackages[0]);
     } catch (e) {
@@ -449,6 +475,12 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
               <p className="text-sm text-amber-600 flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" />
                 {trackingWarning}
+              </p>
+            )}
+            {trackingNumbers.some((tracking) => existingPackagesByTracking[tracking.trim()]) && (
+              <p className="text-sm text-blue-600 flex items-center gap-1">
+                <CheckCircle className="h-4 w-4" />
+                Los trackings ya registrados se marcarán como recibidos automáticamente.
               </p>
             )}
           </div>
