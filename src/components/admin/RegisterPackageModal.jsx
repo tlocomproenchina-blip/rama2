@@ -18,11 +18,9 @@ function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoadi
   const detectorRef = React.useRef(null);
   const frameRef = React.useRef(null);
   const activeRef = React.useRef(false);
-  const hasDetectedRef = React.useRef(false);
 
   const stopCamera = React.useCallback(() => {
     activeRef.current = false;
-    hasDetectedRef.current = false;
     if (frameRef.current) {
       cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
@@ -36,62 +34,64 @@ function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoadi
     }
   }, []);
 
-  React.useEffect(() => {
-    const startCamera = async () => {
-      hasDetectedRef.current = false;
-      if (!(typeof window !== 'undefined' && 'BarcodeDetector' in window && navigator?.mediaDevices?.getUserMedia)) {
-        toast.error('La cámara no está disponible en este navegador');
+  const handleDetected = React.useCallback((value) => {
+    const code = String(value || '').replace(/\r?\n/g, '').trim();
+    if (!code) return;
+    onDetected(code);
+  }, [onDetected]);
+
+  const scanFrame = React.useCallback(async () => {
+    if (!activeRef.current || !videoRef.current || !detectorRef.current) return;
+    if (videoRef.current.readyState >= 2) {
+      const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
+      const code = String(detected?.[0]?.rawValue || '').replace(/\r?\n/g, '').trim();
+      if (code) {
+        handleDetected(code);
+        toast.success('Código detectado');
+        stopCamera();
         return;
       }
+    }
+    frameRef.current = requestAnimationFrame(scanFrame);
+  }, [handleDetected, stopCamera]);
 
-      setCameraLoading(true);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
-      }).catch(() => null);
+  const startCamera = React.useCallback(async () => {
+    if (!(typeof window !== 'undefined' && 'BarcodeDetector' in window && navigator?.mediaDevices?.getUserMedia)) {
+      toast.error('La cámara no está disponible en este navegador');
+      return;
+    }
 
-      if (!stream) {
-        setCameraLoading(false);
-        toast.error('No se pudo abrir la cámara');
-        return;
-      }
+    setCameraLoading(true);
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false,
+    }).catch(() => null);
 
-      streamRef.current = stream;
-      detectorRef.current = new window.BarcodeDetector({
-        formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'qr_code'],
-      });
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => null);
-      }
-
-      const scanFrame = async () => {
-        if (!activeRef.current || !videoRef.current || !detectorRef.current || hasDetectedRef.current) return;
-        if (videoRef.current.readyState >= 2) {
-          const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
-          const code = String(detected?.[0]?.rawValue || '').replace(/\r?\n/g, '').trim();
-          if (code && !hasDetectedRef.current) {
-            hasDetectedRef.current = true;
-            activeRef.current = false;
-            onDetected(code);
-            stopCamera();
-            return;
-          }
-        }
-        if (!hasDetectedRef.current) {
-          frameRef.current = requestAnimationFrame(scanFrame);
-        }
-      };
-
-      activeRef.current = true;
+    if (!stream) {
       setCameraLoading(false);
-      scanFrame();
-    };
+      toast.error('No se pudo abrir la cámara');
+      return;
+    }
 
+    streamRef.current = stream;
+    detectorRef.current = new window.BarcodeDetector({
+      formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'qr_code'],
+    });
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play().catch(() => null);
+    }
+
+    activeRef.current = true;
+    setCameraLoading(false);
+    scanFrame();
+  }, [scanFrame, setCameraLoading]);
+
+  React.useEffect(() => {
     startCamera();
     return () => stopCamera();
-  }, [onDetected, setCameraLoading, stopCamera]);
+  }, [startCamera, stopCamera]);
 
   return (
     <div className="relative overflow-hidden rounded-xl border bg-black">
@@ -605,6 +605,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 return [...filled, code, ''];
               });
               setTrackingWarning(null);
+              toast.success('Código detectado');
               setCameraOpen(false);
             }}
             cameraLoading={cameraLoading}
