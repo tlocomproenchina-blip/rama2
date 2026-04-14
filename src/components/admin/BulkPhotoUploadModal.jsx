@@ -62,6 +62,8 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
   const searchTimeout = useRef(null);
 
   const [trackingMode, setTrackingMode] = useState('filename'); // 'filename' | 'barcode'
+  const [scannerTrackingInput, setScannerTrackingInput] = useState('');
+  const scannerInputRef = useRef(null);
 
   const reset = () => {
     setFiles([]);
@@ -147,6 +149,27 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
 
   const removeFile = (idx) => {
     setFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleScannerSubmit = () => {
+    const tracking = String(scannerTrackingInput || '').trim().replace(/\r?\n/g, '');
+    if (!tracking || files.length === 0) return;
+    const firstUnassignedFile = files.find((file) => !barcodeResults[file.name]?.tracking);
+    if (!firstUnassignedFile) {
+      toast.info('Todas las fotos ya tienen tracking asignado');
+      setScannerTrackingInput('');
+      return;
+    }
+    setBarcodeResults((prev) => ({
+      ...prev,
+      [firstUnassignedFile.name]: {
+        ...(prev[firstUnassignedFile.name] || {}),
+        tracking,
+        raw_tracking: tracking,
+      }
+    }));
+    setScannerTrackingInput('');
+    toast.success(`Tracking asignado a ${firstUnassignedFile.name}`);
   };
 
   const removeTrackingGroup = (trackingKey) => {
@@ -629,8 +652,29 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
             </div>
           )}
 
-          {/* Barcode browser warning */}
-
+          {trackingMode === 'barcode' && files.length > 0 && !results && !processing && (
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <Label className="text-sm font-medium text-slate-700">Lector de códigos</Label>
+              <div className="flex gap-2">
+                <Input
+                  ref={scannerInputRef}
+                  value={scannerTrackingInput}
+                  onChange={(e) => setScannerTrackingInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleScannerSubmit();
+                    }
+                  }}
+                  placeholder="Escanea aquí con la pistola lectora"
+                />
+                <Button type="button" variant="outline" onClick={handleScannerSubmit} disabled={!scannerTrackingInput.trim() || files.length === 0}>
+                  Asignar
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500">Cada lectura asigna el tracking a la próxima foto pendiente.</p>
+            </div>
+          )}
 
           {/* Barcode scan status */}
           {trackingMode === 'barcode' && files.length > 0 && !results && !processing && (
@@ -715,6 +759,11 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                           {trackingMode === 'barcode' && photos[0] && barcodeResults[photos[0].name]?.raw_tracking && barcodeResults[photos[0].name]?.raw_tracking !== tracking && (
                             <p className="text-[10px] text-blue-600 mt-0.5">
                               Leído: {barcodeResults[photos[0].name].raw_tracking} → Coincidencia: {tracking}
+                            </p>
+                          )}
+                          {trackingMode === 'barcode' && photos[0] && barcodeResults[photos[0].name]?.raw_tracking === tracking && (
+                            <p className="text-[10px] text-emerald-600 mt-0.5">
+                              Asignado por lectora: {tracking}
                             </p>
                           )}
                           {isDup && (
