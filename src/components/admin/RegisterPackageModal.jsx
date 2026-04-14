@@ -353,7 +353,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange?.(v); }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Registrar Paquete</DialogTitle>
           <DialogDescription>Busca al cliente por su Shipping Mark y completa los datos del paquete.</DialogDescription>
@@ -363,7 +363,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           {/* Buscar cliente por Shipping Mark */}
           <div className="space-y-2">
             <Label>Shipping Mark del cliente</Label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 min-w-0">
               <Input
                 placeholder="Ej: TLEC-ABC123"
                 value={shippingMark}
@@ -408,7 +408,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <Label>Número de tracking</Label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   type="button"
                   variant="outline"
@@ -434,7 +434,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
             <div className="space-y-2">
               {trackingNumbers.map((tracking, index) => (
-                <div key={index} className="flex items-center gap-2">
+                <div key={index} className="flex items-center gap-2 min-w-0">
                   <div className="relative flex-1">
                     <Input
                       placeholder={`Ingresa el número de tracking ${index + 1}`}
