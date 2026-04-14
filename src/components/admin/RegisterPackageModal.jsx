@@ -501,6 +501,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             placeholder="Escanea o escribe el tracking"
             actionLabel="Agregar tracking"
             cameraLabel="Usar cámara"
+            autoStartCamera={cameraOpen}
             value=""
             onValueChange={() => {}}
             onDetected={(value) => {

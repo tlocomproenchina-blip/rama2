@@ -19,6 +19,7 @@ export default function BarcodeScannerModule({
   onValueChange,
   extraAction,
   inputClassName = '',
+  autoStartCamera = false,
 }) {
   const [scanValue, setScanValue] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -111,6 +112,12 @@ export default function BarcodeScannerModule({
 
     return () => stopCamera();
   }, [cameraOpen]);
+
+  useEffect(() => {
+    if (autoStartCamera && cameraSupported) {
+      setCameraOpen(true);
+    }
+  }, [autoStartCamera, cameraSupported]);
 
   const currentValue = value !== undefined ? value : scanValue;
 
