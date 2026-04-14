@@ -18,9 +18,15 @@ function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoadi
   const detectorRef = React.useRef(null);
   const frameRef = React.useRef(null);
   const activeRef = React.useRef(false);
+  const lastDetectedRef = React.useRef('');
+  const startTimeoutRef = React.useRef(null);
 
   const stopCamera = React.useCallback(() => {
     activeRef.current = false;
+    if (startTimeoutRef.current) {
+      clearTimeout(startTimeoutRef.current);
+      startTimeoutRef.current = null;
+    }
     if (frameRef.current) {
       cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
@@ -30,19 +36,21 @@ function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoadi
       streamRef.current = null;
     }
     if (videoRef.current) {
+      videoRef.current.pause?.();
       videoRef.current.srcObject = null;
     }
   }, []);
 
   const handleDetected = React.useCallback((value) => {
     const code = String(value || '').replace(/\r?\n/g, '').trim();
-    if (!code) return;
+    if (!code || code === lastDetectedRef.current) return;
+    lastDetectedRef.current = code;
     onDetected(code);
   }, [onDetected]);
 
   const scanFrame = React.useCallback(async () => {
     if (!activeRef.current || !videoRef.current || !detectorRef.current) return;
-    if (videoRef.current.readyState >= 2) {
+    if (videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
       const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
       const code = String(detected?.[0]?.rawValue || '').replace(/\r?\n/g, '').trim();
       if (code) {
@@ -61,9 +69,16 @@ function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoadi
       return;
     }
 
+    stopCamera();
+    lastDetectedRef.current = '';
     setCameraLoading(true);
+
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
       audio: false,
     }).catch(() => null);
 
@@ -80,13 +95,16 @@ function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoadi
 
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
+      videoRef.current.setAttribute('playsinline', 'true');
       await videoRef.current.play().catch(() => null);
     }
 
     activeRef.current = true;
     setCameraLoading(false);
-    scanFrame();
-  }, [scanFrame, setCameraLoading]);
+    startTimeoutRef.current = setTimeout(() => {
+      frameRef.current = requestAnimationFrame(scanFrame);
+    }, 150);
+  }, [scanFrame, setCameraLoading, stopCamera]);
 
   React.useEffect(() => {
     startCamera();
@@ -584,7 +602,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       </DialogContent>
 
       <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl overflow-hidden">
           <DialogHeader>
             <DialogTitle>Escanear con cámara</DialogTitle>
             <DialogDescription>
