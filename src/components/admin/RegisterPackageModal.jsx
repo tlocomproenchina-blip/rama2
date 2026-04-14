@@ -18,9 +18,11 @@ function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoadi
   const detectorRef = React.useRef(null);
   const frameRef = React.useRef(null);
   const activeRef = React.useRef(false);
+  const hasDetectedRef = React.useRef(false);
 
   const stopCamera = React.useCallback(() => {
     activeRef.current = false;
+    hasDetectedRef.current = false;
     if (frameRef.current) {
       cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
@@ -36,6 +38,7 @@ function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoadi
 
   React.useEffect(() => {
     const startCamera = async () => {
+      hasDetectedRef.current = false;
       if (!(typeof window !== 'undefined' && 'BarcodeDetector' in window && navigator?.mediaDevices?.getUserMedia)) {
         toast.error('La cámara no está disponible en este navegador');
         return;
@@ -64,17 +67,21 @@ function SimpleTrackingCameraScanner({ onDetected, cameraLoading, setCameraLoadi
       }
 
       const scanFrame = async () => {
-        if (!activeRef.current || !videoRef.current || !detectorRef.current) return;
+        if (!activeRef.current || !videoRef.current || !detectorRef.current || hasDetectedRef.current) return;
         if (videoRef.current.readyState >= 2) {
           const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
           const code = String(detected?.[0]?.rawValue || '').replace(/\r?\n/g, '').trim();
-          if (code) {
+          if (code && !hasDetectedRef.current) {
+            hasDetectedRef.current = true;
+            activeRef.current = false;
             onDetected(code);
             stopCamera();
             return;
           }
         }
-        frameRef.current = requestAnimationFrame(scanFrame);
+        if (!hasDetectedRef.current) {
+          frameRef.current = requestAnimationFrame(scanFrame);
+        }
       };
 
       activeRef.current = true;
@@ -562,6 +569,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
               if (!code) return;
               setTrackingNumbers((prev) => {
                 const filled = prev.filter((item) => item.trim() !== '');
+                if (filled[filled.length - 1] === code) return [...filled, ''];
                 return [...filled, code, ''];
               });
               setTrackingWarning(null);
