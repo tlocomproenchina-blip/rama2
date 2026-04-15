@@ -26,8 +26,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [config, setConfig] = useState(null);
-  const [trackingWarning, setTrackingWarning] = useState(null);
-  const [checkingTracking, setCheckingTracking] = useState(false);
+  const [trackingStatusByCode, setTrackingStatusByCode] = useState({});
   const [existingPackagesByTracking, setExistingPackagesByTracking] = useState({});
   // CBM Ingreso fields
   const [createCbmIngreso, setCreateCbmIngreso] = useState(false);
@@ -58,7 +57,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     const seaOn = config?.shipping_type_sea_enabled !== false;
     setShippingType(airOn ? 'aereo' : seaOn ? 'maritimo' : '');
     setImageFiles([]);
-    setTrackingWarning(null);
+    setTrackingStatusByCode({});
     setCreateCbmIngreso(false);
     setCbmValue('');
     setInvoiceNumber('');
@@ -68,7 +67,11 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const checkTrackingDuplicate = async (value) => {
     const t = String(value || '').trim();
     if (!t || t.length < 5) {
-      setTrackingWarning(null);
+      setTrackingStatusByCode((prev) => {
+        const next = { ...prev };
+        delete next[t];
+        return next;
+      });
       setExistingPackagesByTracking((prev) => {
         const next = { ...prev };
         delete next[t];
@@ -76,28 +79,40 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       });
       return true;
     }
-    setCheckingTracking(true);
+
+    setTrackingStatusByCode((prev) => ({
+      ...prev,
+      [t]: { state: 'checking', message: 'Revisando tracking...' }
+    }));
+
     try {
       const existing = await base44.entities.Package.filter({ tracking_number: t }, '-created_date', 1);
       const pkg = existing?.[0];
       if (pkg) {
         setExistingPackagesByTracking((prev) => ({ ...prev, [t]: pkg }));
-        const info = ` (cliente: ${pkg.client_email}, estado: ${pkg.status})`;
-        setTrackingWarning(`Este tracking ya existe${info}. Se reportará como recibido.`);
-        setCheckingTracking(false);
+        const info = `Cliente: ${pkg.client_email} · Estado: ${pkg.status}`;
+        setTrackingStatusByCode((prev) => ({
+          ...prev,
+          [t]: { state: 'exists', message: `Ya existe. Se marcará como recibido. ${info}` }
+        }));
         return false;
       }
+
       setExistingPackagesByTracking((prev) => {
         const next = { ...prev };
         delete next[t];
         return next;
       });
-      setTrackingWarning(null);
-      setCheckingTracking(false);
+      setTrackingStatusByCode((prev) => ({
+        ...prev,
+        [t]: { state: 'new', message: 'Nuevo tracking. Se registrará como paquete nuevo.' }
+      }));
       return true;
     } catch (e) {
-      setCheckingTracking(false);
-      setTrackingWarning(null);
+      setTrackingStatusByCode((prev) => ({
+        ...prev,
+        [t]: { state: 'error', message: 'No se pudo validar este tracking ahora.' }
+      }));
       return true;
     }
   };
@@ -340,15 +355,47 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                       placeholder={`Ingresa el número de tracking ${index + 1}`}
                       value={tracking}
                       onChange={(e) => {
+                        const nextValue = e.target.value;
                         const next = [...trackingNumbers];
-                        next[index] = e.target.value;
+                        const previousValue = tracking.trim();
+                        next[index] = nextValue;
                         setTrackingNumbers(next);
-                        setTrackingWarning(null);
+
+                        if (previousValue && previousValue !== nextValue.trim()) {
+                          setTrackingStatusByCode((prev) => {
+                            const copy = { ...prev };
+                            delete copy[previousValue];
+                            return copy;
+                          });
+                          setExistingPackagesByTracking((prev) => {
+                            const copy = { ...prev };
+                            delete copy[previousValue];
+                            return copy;
+                          });
+                        }
+
+                        const trimmed = nextValue.trim();
+                        if (trimmed.length >= 5) {
+                          checkTrackingDuplicate(trimmed);
+                        } else {
+                          setTrackingStatusByCode((prev) => {
+                            const copy = { ...prev };
+                            delete copy[trimmed];
+                            return copy;
+                          });
+                        }
                       }}
-                      onBlur={() => checkTrackingDuplicate(tracking)}
-                      className={trackingWarning && tracking.trim() ? 'border-red-300' : ''}
+                      className={
+                        trackingStatusByCode[tracking.trim()]?.state === 'exists'
+                          ? 'border-amber-300'
+                          : trackingStatusByCode[tracking.trim()]?.state === 'new'
+                          ? 'border-emerald-300'
+                          : trackingStatusByCode[tracking.trim()]?.state === 'error'
+                          ? 'border-red-300'
+                          : ''
+                      }
                     />
-                    {checkingTracking && (
+                    {trackingStatusByCode[tracking.trim()]?.state === 'checking' && (
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
                       </div>
@@ -371,12 +418,28 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 </div>
               ))}
             </div>
-            {trackingWarning && (
-              <p className="text-sm text-amber-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {trackingWarning}
-              </p>
-            )}
+            <div className="space-y-2">
+              {trackingNumbers.map((tracking, index) => {
+                const status = trackingStatusByCode[tracking.trim()];
+                if (!tracking.trim() || !status || status.state === 'checking') return null;
+
+                return (
+                  <p
+                    key={`${tracking}-${index}`}
+                    className={`text-sm flex items-center gap-1 ${
+                      status.state === 'exists'
+                        ? 'text-amber-600'
+                        : status.state === 'new'
+                        ? 'text-emerald-600'
+                        : 'text-red-600'
+                    }`}
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    {tracking}: {status.message}
+                  </p>
+                );
+              })}
+            </div>
             {trackingNumbers.some((tracking) => existingPackagesByTracking[tracking.trim()]) && (
               <p className="text-sm text-blue-600 flex items-center gap-1">
                 <CheckCircle className="h-4 w-4" />
@@ -512,7 +575,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 if (filled[filled.length - 1] === code) return [...filled, ''];
                 return [...filled, code, ''];
               });
-              setTrackingWarning(null);
+              checkTrackingDuplicate(code);
               setCameraOpen(false);
             }}
           />
