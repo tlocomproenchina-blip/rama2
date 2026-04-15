@@ -1184,17 +1184,17 @@ export default function AdminPackages({ user }) {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setReceiveModal(null)}>
-              Cancelar
+          <DialogFooter className="flex-col gap-3 sm:flex-col sm:space-x-0">
+            <Button onClick={() => handleReceive('recibido')} disabled={processing} className="w-full bg-blue-600 hover:bg-blue-700">
+              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+              Confirmar
             </Button>
-            <Button onClick={() => handleReceive('rechazado')} disabled={processing} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+            <Button onClick={() => handleReceive('rechazado')} disabled={processing} variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50">
               {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
               Rechazado
             </Button>
-            <Button onClick={() => handleReceive('recibido')} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
-              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-              Confirmar
+            <Button variant="outline" onClick={() => setReceiveModal(null)} className="w-full">
+              Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
