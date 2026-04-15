@@ -95,10 +95,6 @@ export default function AdminPackages({ user }) {
 
   const handleReceive = async (nextStatus = 'recibido') => {
     if (!receiveModal) return;
-    if (!imageFiles || imageFiles.length === 0) {
-      toast.error('Debes cargar al menos una foto como evidencia');
-      return;
-    }
     setProcessing(true);
 
     try {
@@ -1148,7 +1144,7 @@ export default function AdminPackages({ user }) {
           <DialogHeader>
             <DialogTitle>Confirmar Recepción o Rechazo</DialogTitle>
             <DialogDescription>
-              Debes subir al menos una foto para poder confirmar o rechazar la recepción.
+              Puedes continuar con o sin foto del paquete.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1181,24 +1177,19 @@ export default function AdminPackages({ user }) {
                     <div className="text-slate-500">
                       <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
                       <p className="text-sm">Click para subir foto</p>
-                      <p className="text-xs mt-1 text-amber-600">Obligatorio para recibir o rechazar</p>
+                      <p className="text-xs mt-1 text-slate-500">Opcional</p>
                     </div>
                   )}
                 </label>
               </div>
             </div>
-            {imageFiles.length === 0 && (
-              <p className="text-sm text-amber-600">
-                Sube una foto para habilitar las acciones.
-              </p>
-            )}
           </div>
           <DialogFooter className="flex-col gap-3 sm:flex-col sm:space-x-0">
-            <Button onClick={() => handleReceive('recibido')} disabled={processing || imageFiles.length === 0} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50">
+            <Button onClick={() => handleReceive('recibido')} disabled={processing} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50">
               {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
               Confirmar
             </Button>
-            <Button onClick={() => handleReceive('rechazado')} disabled={processing || imageFiles.length === 0} variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50">
+            <Button onClick={() => handleReceive('rechazado')} disabled={processing} variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50">
               {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
               Rechazado
             </Button>
