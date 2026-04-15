@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 as directBase44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,7 +106,7 @@ export default function AdminPackages({ user }) {
       if (imageFiles && imageFiles.length > 0) {
         const uploaded = [];
         for (const f of imageFiles.slice(0, 3)) {
-          const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+          const { file_url } = await directBase44.integrations.Core.UploadFile({ file: f });
           uploaded.push(file_url);
         }
         imageUrls = uploaded;
