@@ -22,6 +22,15 @@
       ],
       "description": "Type of shipping"
     },
+    "risk_category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "alto_riesgo"
+      ],
+      "default": "general",
+      "description": "Tipo de carga: general o alto riesgo"
+    },
     "description": {
       "type": "string",
       "description": "Package description"

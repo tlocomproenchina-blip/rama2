@@ -36,6 +36,7 @@ export default function PreAlert({ user }) {
   const [formData, setFormData] = useState({
     tracking_number: '',
     shipping_type: '',
+    risk_category: 'general',
     description: '',
     has_insurance: false,
     fob_value: ''
@@ -170,6 +171,7 @@ export default function PreAlert({ user }) {
         client_email: user.email,
         shipping_mark: user.shipping_mark,
         shipping_type: formData.shipping_type,
+        risk_category: formData.risk_category,
         description: formData.description,
         has_insurance: formData.has_insurance,
         fob_value: formData.has_insurance ? parseFloat(formData.fob_value) : null,
@@ -186,8 +188,8 @@ export default function PreAlert({ user }) {
         reference_id: newPackage.id,
         area_name: 'Operaciones',
         summary: `Reportó pre-alerta ${formData.tracking_number}`,
-        details: `Tipo: ${formData.shipping_type} · Descripción: ${formData.description}${formData.has_insurance ? ` · Asegurado FOB $${formData.fob_value}` : ''}`,
-        changed_fields: ['tracking_number', 'shipping_type', 'description', 'has_insurance'],
+        details: `Tipo: ${formData.shipping_type} · Carga: ${formData.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'} · Descripción: ${formData.description}${formData.has_insurance ? ` · Asegurado FOB $${formData.fob_value}` : ''}`,
+        changed_fields: ['tracking_number', 'shipping_type', 'risk_category', 'description', 'has_insurance'],
       });
 
       // Notify admins
@@ -195,7 +197,7 @@ export default function PreAlert({ user }) {
       import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
         notifyAdmins({
           subject: `${isHighValue ? '⚠️ ' : ''}📦 Nueva Pre-alerta${formData.has_insurance ? ' (Asegurada)' : ''}${isHighValue ? ' - ALTO VALOR' : ''}`,
-          body: `Nueva pre-alerta registrada:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''} (${user.email})\nShipping Mark: ${user.shipping_mark}\nTipo: ${formData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\nDescripción: ${formData.description}${formData.has_insurance ? `\n\n🛡️ PAQUETE ASEGURADO${isHighValue ? ' - ALTO VALOR' : ''}\nValor FOB: $${formData.fob_value}` : ''}`,
+          body: `Nueva pre-alerta registrada:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''} (${user.email})\nShipping Mark: ${user.shipping_mark}\nTipo: ${formData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\nCarga: ${formData.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'}\nDescripción: ${formData.description}${formData.has_insurance ? `\n\n🛡️ PAQUETE ASEGURADO${isHighValue ? ' - ALTO VALOR' : ''}\nValor FOB: $${formData.fob_value}` : ''}`,
           title: formData.has_insurance ? `🛡️ Pre-alerta Asegurada${isHighValue ? ' (ALTO VALOR)' : ''}` : '📦 Nueva Pre-alerta',
           message: `${user.first_name || user.email}: ${formData.tracking_number}${formData.has_insurance ? ` - Asegurado $${formData.fob_value}` : ''}`,
           type: 'package',
@@ -373,6 +375,39 @@ export default function PreAlert({ user }) {
                     </Label>
                   </div>
                 )}
+              </RadioGroup>
+            </div>
+
+            {/* Tipo de carga */}
+            <div className="space-y-3">
+              <Label className="text-slate-700 font-medium">Tipo de Carga *</Label>
+              <RadioGroup
+                value={formData.risk_category}
+                onValueChange={(val) => setFormData({ ...formData, risk_category: val })}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+              >
+                <div className={`flex items-center space-x-3 border rounded-xl p-4 cursor-pointer transition-all ${
+                  formData.risk_category === 'general'
+                    ? 'border-blue-400 bg-blue-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}>
+                  <RadioGroupItem value="general" id="general" />
+                  <Label htmlFor="general" className="cursor-pointer flex items-center gap-2">
+                    <Package className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium">Carga general</span>
+                  </Label>
+                </div>
+                <div className={`flex items-center space-x-3 border rounded-xl p-4 cursor-pointer transition-all ${
+                  formData.risk_category === 'alto_riesgo'
+                    ? 'border-blue-400 bg-blue-50'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}>
+                  <RadioGroupItem value="alto_riesgo" id="alto_riesgo" />
+                  <Label htmlFor="alto_riesgo" className="cursor-pointer flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium">Alto riesgo</span>
+                  </Label>
+                </div>
               </RadioGroup>
             </div>
 
