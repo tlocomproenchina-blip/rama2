@@ -888,15 +888,15 @@ export default function AdminPackages({ user }) {
                     onCheckedChange={handleSelectAll}
                   />
                 </th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[28%]">Tracking</th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[22%]">Shipping Mark</th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[8%]">Tipo</th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Carga</th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Bultos</th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Estado</th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Recepción</th>
-                <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Registro</th>
-                <th className="text-left pl-3 pr-2 py-3 font-medium text-slate-600">Acciones</th>
+                <th className="text-left p-3 font-medium text-slate-600 w-[20%]">Tracking</th>
+                <th className="text-left p-3 font-medium text-slate-600 w-[14%]">Shipping Mark</th>
+                <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Tipo</th>
+                <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Carga</th>
+                <th className="text-left p-3 font-medium text-slate-600 w-[6%]">Bultos</th>
+                <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Estado</th>
+                <th className="text-left p-3 font-medium text-slate-600 w-[10%]">Recepción</th>
+                <th className="text-left p-3 font-medium text-slate-600 w-[10%]">Registro</th>
+                <th className="text-left pl-2 pr-3 py-3 font-medium text-slate-600 w-[16%]">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -908,10 +908,10 @@ export default function AdminPackages({ user }) {
                       onCheckedChange={(checked) => handleSelectPackage(pkg.id, checked)}
                     />
                   </td>
-                  <td className="pl-3 pr-2 py-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-slate-800 whitespace-nowrap truncate max-w-[22ch]">{pkg.tracking_number}</span>
+                  <td className="pl-3 pr-2 py-3 align-top">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono font-medium text-slate-800 whitespace-nowrap truncate max-w-[18ch]">{pkg.tracking_number}</span>
                         {pkg.has_insurance && (
                           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                             <Shield className="h-3 w-3" />
@@ -928,7 +928,7 @@ export default function AdminPackages({ user }) {
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 font-mono text-slate-600 whitespace-nowrap truncate max-w-[24ch]">{pkg.shipping_mark || '-'}</td>
+                  <td className="p-3 align-top font-mono text-slate-600 whitespace-nowrap truncate max-w-[14ch]">{pkg.shipping_mark || '-'}</td>
                   <td className="pl-3 pr-2 py-3">
                     <div className="flex items-center gap-2 text-slate-600">
                       {pkg.shipping_type === 'aereo' 
@@ -962,13 +962,13 @@ export default function AdminPackages({ user }) {
                     <div>{new Date(pkg.created_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                     <div className="text-[11px] text-slate-400">{new Date(pkg.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
-                  <td className="pl-3 pr-2 py-3">
-                    <div className="flex min-w-[180px] flex-col items-stretch gap-2">
+                  <td className="pl-2 pr-3 py-3 align-top">
+                    <div className="flex min-w-0 w-full flex-col items-stretch gap-2">
                       <Button 
                         size="sm" 
                         variant="outline" 
                         onClick={() => handleCreateTicket(pkg)}
-                        className="w-full justify-start gap-1"
+                        className="w-full min-w-0 justify-start gap-1"
                       >
                         <MessageSquare className="h-4 w-4" />
                         Ticket
@@ -979,7 +979,7 @@ export default function AdminPackages({ user }) {
                             size="sm"
                             variant="outline"
                             onClick={() => openPreAlertEditor(pkg)}
-                            className="w-full justify-start"
+                            className="w-full min-w-0 justify-start"
                           >
                             <Shield className="h-4 w-4 mr-1" />
                             Seguro / Factura
@@ -987,7 +987,7 @@ export default function AdminPackages({ user }) {
                           <Button 
                             size="sm" 
                             onClick={() => setReceiveModal(pkg)}
-                            className="w-full justify-start bg-blue-600 hover:bg-blue-700"
+                            className="w-full min-w-0 justify-start bg-blue-600 hover:bg-blue-700"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
                             Recibir
@@ -1013,7 +1013,7 @@ export default function AdminPackages({ user }) {
                             size="sm" 
                             variant="outline"
                             onClick={() => setViewImage(url)}
-                            className="w-full justify-start"
+                            className="w-full min-w-0 justify-start"
                           >
                             <Eye className="h-4 w-4" /> {idx+1}
                           </Button>
@@ -1049,7 +1049,7 @@ export default function AdminPackages({ user }) {
                                                   size="sm"
                                                   variant="outline"
                                                   onClick={() => setCancelReceptionModal(pkg)}
-                                                  className="w-full justify-start gap-1 h-8 px-3 text-xs text-rose-600 hover:text-rose-700 border-rose-200"
+                                                  className="w-full min-w-0 justify-start gap-1 h-8 px-2 text-xs text-rose-600 hover:text-rose-700 border-rose-200"
                                                 >
                            <Undo2 className="h-4 w-4 mr-1" />
                            Cancelar
@@ -1060,7 +1060,7 @@ export default function AdminPackages({ user }) {
                            value={pkg.status} 
                            onValueChange={(val) => handleStatusChange(pkg, val)}
                           >
-                           <SelectTrigger className="w-full h-8 px-3 justify-between gap-1 text-xs [&>span]:leading-none">
+                           <SelectTrigger className="w-full h-8 px-2 justify-between gap-1 text-xs [&>span]:leading-none">
                              <SelectValue />
                            </SelectTrigger>
                            <SelectContent>
