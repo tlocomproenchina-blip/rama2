@@ -37,6 +37,7 @@ export default function PreAlert({ user }) {
     tracking_number: '',
     shipping_type: '',
     risk_category: 'general',
+    package_count: '',
     description: '',
     has_insurance: false,
     fob_value: ''
@@ -117,6 +118,10 @@ export default function PreAlert({ user }) {
       newErrors.tracking_number = 'Tracking requerido';
     }
 
+    if (!formData.package_count || Number(formData.package_count) <= 0) {
+      newErrors.package_count = 'La cantidad de bultos es obligatoria';
+    }
+
     if (!formData.description.trim()) {
       newErrors.description = 'Descripción requerida';
     }
@@ -172,6 +177,7 @@ export default function PreAlert({ user }) {
         shipping_mark: user.shipping_mark,
         shipping_type: formData.shipping_type,
         risk_category: formData.risk_category,
+        package_count: Number(formData.package_count),
         description: formData.description,
         has_insurance: formData.has_insurance,
         fob_value: formData.has_insurance ? parseFloat(formData.fob_value) : null,
@@ -188,8 +194,8 @@ export default function PreAlert({ user }) {
         reference_id: newPackage.id,
         area_name: 'Operaciones',
         summary: `Reportó pre-alerta ${formData.tracking_number}`,
-        details: `Tipo: ${formData.shipping_type} · Carga: ${formData.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'} · Descripción: ${formData.description}${formData.has_insurance ? ` · Asegurado FOB $${formData.fob_value}` : ''}`,
-        changed_fields: ['tracking_number', 'shipping_type', 'risk_category', 'description', 'has_insurance'],
+        details: `Tipo: ${formData.shipping_type} · Carga: ${formData.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'} · Bultos: ${formData.package_count} · Descripción: ${formData.description}${formData.has_insurance ? ` · Asegurado FOB $${formData.fob_value}` : ''}`,
+        changed_fields: ['tracking_number', 'shipping_type', 'risk_category', 'package_count', 'description', 'has_insurance'],
       });
 
       // Notify admins
@@ -197,7 +203,7 @@ export default function PreAlert({ user }) {
       import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
         notifyAdmins({
           subject: `${isHighValue ? '⚠️ ' : ''}📦 Nueva Pre-alerta${formData.has_insurance ? ' (Asegurada)' : ''}${isHighValue ? ' - ALTO VALOR' : ''}`,
-          body: `Nueva pre-alerta registrada:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''} (${user.email})\nShipping Mark: ${user.shipping_mark}\nTipo: ${formData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\nCarga: ${formData.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'}\nDescripción: ${formData.description}${formData.has_insurance ? `\n\n🛡️ PAQUETE ASEGURADO${isHighValue ? ' - ALTO VALOR' : ''}\nValor FOB: $${formData.fob_value}` : ''}`,
+          body: `Nueva pre-alerta registrada:\n\nTracking: ${formData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''} (${user.email})\nShipping Mark: ${user.shipping_mark}\nTipo: ${formData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\nCarga: ${formData.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'}\nCantidad de bultos: ${formData.package_count}\nDescripción: ${formData.description}${formData.has_insurance ? `\n\n🛡️ PAQUETE ASEGURADO${isHighValue ? ' - ALTO VALOR' : ''}\nValor FOB: $${formData.fob_value}` : ''}`,
           title: formData.has_insurance ? `🛡️ Pre-alerta Asegurada${isHighValue ? ' (ALTO VALOR)' : ''}` : '📦 Nueva Pre-alerta',
           message: `${user.first_name || user.email}: ${formData.tracking_number}${formData.has_insurance ? ` - Asegurado $${formData.fob_value}` : ''}`,
           type: 'package',
@@ -409,6 +415,34 @@ export default function PreAlert({ user }) {
                   </Label>
                 </div>
               </RadioGroup>
+            </div>
+
+            {/* Cantidad de bultos */}
+            <div className="space-y-2">
+              <Label htmlFor="package_count" className="text-slate-700 font-medium">
+                Cantidad de bultos o paquetes *
+              </Label>
+              <Input
+                id="package_count"
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                value={formData.package_count}
+                onChange={(e) => {
+                  const onlyNumbers = e.target.value.replace(/\D/g, '');
+                  setFormData({ ...formData, package_count: onlyNumbers });
+                  setErrors({ ...errors, package_count: null });
+                }}
+                placeholder="Ej: 3"
+                className={errors.package_count ? 'border-red-300' : ''}
+              />
+              {errors.package_count && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.package_count}
+                </p>
+              )}
             </div>
 
             {/* Description */}

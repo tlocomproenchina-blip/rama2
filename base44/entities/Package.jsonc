@@ -31,6 +31,10 @@
       "default": "general",
       "description": "Tipo de carga: general o alto riesgo"
     },
+    "package_count": {
+      "type": "number",
+      "description": "Cantidad de bultos o paquetes declarados por el cliente"
+    },
     "description": {
       "type": "string",
       "description": "Package description"
@@ -167,6 +171,7 @@
     "tracking_number",
     "client_email",
     "shipping_type",
-    "description"
+    "description",
+    "package_count"
   ]
 }
