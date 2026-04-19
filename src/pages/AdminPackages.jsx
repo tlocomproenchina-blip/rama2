@@ -347,7 +347,8 @@ export default function AdminPackages({ user }) {
         content += `Shipping Mark\n${mark}\nTracking Number\n`;
         groups.get(mark).forEach(pkg => {
           const desc = (pkg.description && String(pkg.description).trim()) ? String(pkg.description).replace(/\r?\n/g, ' ') : 'Sin descripción';
-          content += `${pkg.tracking_number}\n${desc}\n`;
+          const packageCount = pkg.package_count ? `${pkg.package_count} bulto(s)` : 'Sin bultos';
+          content += `${pkg.tracking_number}\n${packageCount}\n${desc}\n`;
         });
         if (idx < marks.length - 1) content += `\n`;
       });
@@ -785,7 +786,7 @@ export default function AdminPackages({ user }) {
                   onClick={handleCopySelectedByMark}
                   className="gap-2"
                 >
-                  <Copy className="h-4 w-4" /> Copiar por Mark
+                  <Copy className="h-4 w-4" /> Copiar Mark + Bultos
                 </Button>
 
                 <Button 
