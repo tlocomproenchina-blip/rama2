@@ -892,6 +892,7 @@ export default function AdminPackages({ user }) {
                 <th className="text-left p-4 font-medium text-slate-600 w-[22%]">Shipping Mark</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[8%]">Tipo</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Carga</th>
+                <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Bultos</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Estado</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Recepción</th>
                 <th className="text-left p-4 font-medium text-slate-600 w-[10%]">Registro</th>
@@ -940,6 +941,9 @@ export default function AdminPackages({ user }) {
                     <Badge variant="outline" className={pkg.risk_category === 'alto_riesgo' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}>
                       {pkg.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'}
                     </Badge>
+                  </td>
+                  <td className="pl-3 pr-2 py-3 text-slate-700 font-medium">
+                    {pkg.package_count || '-'}
                   </td>
                   <td className="pl-3 pr-2 py-3">
                     <StatusBadge status={pkg.status} size="sm" />
