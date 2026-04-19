@@ -237,24 +237,30 @@ export default function AdminPackages({ user }) {
     setBulkProcessing(true);
     try {
       const selectedPkgs = packages.filter(p => selectedPackages.includes(p.id));
+      const batchSize = 10;
 
       if (bulkAction === 'delete') {
-        await Promise.all(selectedPkgs.map(pkg => 
-          base44.entities.Package.delete(pkg.id)
-        ));
-        toast.success(`${selectedPackages.length} paquetes eliminados`);
+        for (let i = 0; i < selectedPkgs.length; i += batchSize) {
+          const batch = selectedPkgs.slice(i, i + batchSize);
+          await Promise.all(batch.map(pkg => base44.entities.Package.delete(pkg.id)));
+        }
+        toast.success(`${selectedPkgs.length} paquetes eliminados`);
       } else if (bulkAction === 'status') {
-        await Promise.all(selectedPkgs.map(pkg => 
-          base44.entities.Package.update(pkg.id, { status: bulkStatus })
-        ));
-        
-        // Notify clients
-        if (['en_transito', 'disponible', 'entregado'].includes(bulkStatus)) {
-          const { notifyPackageStatus } = await import('@/components/NotificationUtils');
-          selectedPkgs.forEach(pkg => notifyPackageStatus(pkg, bulkStatus));
+        for (let i = 0; i < selectedPkgs.length; i += batchSize) {
+          const batch = selectedPkgs.slice(i, i + batchSize);
+          await Promise.all(batch.map(pkg => base44.entities.Package.update(pkg.id, { status: bulkStatus })));
         }
         
-        toast.success(`${selectedPackages.length} paquetes actualizados`);
+        // Notify clients (also batched)
+        if (['en_transito', 'disponible', 'entregado'].includes(bulkStatus)) {
+          const { notifyPackageStatus } = await import('@/components/NotificationUtils');
+          for (let i = 0; i < selectedPkgs.length; i += batchSize) {
+            const batch = selectedPkgs.slice(i, i + batchSize);
+            await Promise.all(batch.map(pkg => notifyPackageStatus(pkg, bulkStatus)));
+          }
+        }
+        
+        toast.success(`${selectedPkgs.length} paquetes actualizados`);
       }
 
       setSelectedPackages([]);
@@ -362,12 +368,21 @@ export default function AdminPackages({ user }) {
   const handleMarkReported = async (flag) => {
     if (selectedPackages.length === 0) { toast.error('Selecciona al menos un paquete'); return; }
     try {
-      const selectedPkgs = packages.filter(p => selectedPackages.includes(p.id));
-      await Promise.all(selectedPkgs.map(p => base44.entities.Package.update(p.id, { reported: flag })));
-      toast.success(flag ? 'Marcados como reportados' : 'Reporte removido');
+      // Procesar en lotes de 10 para evitar sobrecarga
+      const ids = [...selectedPackages];
+      const batchSize = 10;
+      let done = 0;
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batch = ids.slice(i, i + batchSize);
+        await Promise.all(batch.map(id => base44.entities.Package.update(id, { reported: flag })));
+        done += batch.length;
+      }
+      toast.success(flag ? `${done} marcados como reportados` : `${done} reporte(s) removido(s)`);
+      setSelectedPackages([]);
       loadPackages(false);
     } catch (e) {
-      toast.error('No se pudo actualizar');
+      toast.error('No se pudo actualizar algunos paquetes');
+      loadPackages(false);
     }
   };
 
