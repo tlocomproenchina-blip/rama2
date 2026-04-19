@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { base44, setApiTuning, getApiStatus, getApiTuning } from '@/components/api/ApiQueueManager';
+import { base44, setApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Sidebar from '@/components/Sidebar';
@@ -64,129 +64,16 @@ export default function Layout({ children, currentPageName }) {
   const hasDesktopSidebar = !!user;
   const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ'].includes(currentPageName);
 
-  const applyTuning = (cfg) => {
-    if (!cfg) return;
-    const tuned = {
-      maxReads: Number(cfg.max_reads) || undefined,
-      maxWrites: Number(cfg.max_writes) || undefined,
-      minIntervalMs: Number(cfg.min_interval_ms) || undefined,
-      backoffDelays: Array.isArray(cfg.backoff_delays) ? cfg.backoff_delays : undefined,
-      circuitBreakerThreshold: Number(cfg.circuit_breaker_threshold) || undefined,
-      circuitOpenMinutes: Number(cfg.circuit_open_minutes) || undefined,
-    };
-    setApiTuning(tuned);
-    // Aplicar modo de degradación UI
-    try {
-      const mode = cfg.ui_degradation_mode || 'off';
-      document.documentElement.setAttribute('data-degrade', mode);
-    } catch {}
-  };
-
-
-  // Publicar métricas de cliente → RuntimeMetrics (muestreo para evitar exceso de escrituras)
-  useEffect(() => {
-    if (!user) return;
-
-    const email = user?.email || '';
-    const sampleBucket = Array.from(email).reduce((s, c) => s + c.charCodeAt(0), 0) % 3; // 0..2
-    if (sampleBucket !== 0) return; // 33% de los clientes reportan métricas
-
-    let stopped = false;
-    const sendOnce = async () => {
-      try {
-        const status = getApiStatus();
-        const tuning = getApiTuning();
-        await base44.entities.RuntimeMetrics.create({
-          client_email: user?.email,
-          role: user?.role,
-          page_name: currentPageName,
-          queue_length: status.queueLength,
-          active_reads: status.activeReads,
-          active_writes: status.activeWrites,
-          max_reads: tuning.maxReads,
-          max_writes: tuning.maxWrites,
-          failure_count: status.failureCount,
-          circuit_state: status.circuitBreakerState,
-          cache_size: status.cacheSize,
-          inflight_size: status.inflightSize,
-          device_cores: (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : undefined,
-          is_mobile: (typeof navigator !== 'undefined') ? /Mobi|Android/i.test(navigator.userAgent) : false,
-        });
-      } catch (e) {
-        console.warn('Metrics push skipped:', e?.message);
-      }
-    };
-
-    // Intervalo con jitter
-    const baseInterval = 12000; // 12s
-    const jitter = Math.floor(Math.random() * 4000); // 0-4s
-    const firstDelay = Math.floor(Math.random() * 5000);
-
-    const timers = [];
-    timers.push(setTimeout(async () => {
-      if (!stopped) await sendOnce();
-      timers.push(setInterval(sendOnce, baseInterval + jitter));
-    }, firstDelay));
-
-    return () => { stopped = true; timers.forEach(t => clearInterval(t)); };
-  }, [user, currentPageName]);
-
-  // Ajuste inicial + suscripción a RuntimeTuning para autoescalado
+  // Tuning sensato: se aplica una sola vez al montar
   useEffect(() => {
     setApiTuning({
-      maxReads: 2200,
-      maxWrites: 900,
-      minIntervalMs: 5,
-      backoffDelays: [1000, 2000, 4000, 8000, 16000],
-      circuitBreakerThreshold: 2500,
-      circuitOpenMinutes: 1
+      maxReads: 6,
+      maxWrites: 3,
+      minIntervalMs: 50,
+      backoffDelays: [2000, 4000, 8000, 16000, 32000],
+      circuitBreakerThreshold: 8,
+      circuitOpenMinutes: 2
     });
-
-    // Cargar/actualizar tuning global en la entidad (persistente)
-    (async () => {
-      try {
-        const TARGET = {
-          config_key: 'global',
-          max_reads: 2200,
-          max_writes: 900,
-          min_interval_ms: 5,
-          backoff_delays: [1000, 2000, 4000, 8000, 16000],
-          circuit_breaker_threshold: 2500,
-          circuit_open_minutes: 1,
-          ui_degradation_mode: 'off',
-        };
-        const rows = await base44.entities.RuntimeTuning.filter({ config_key: 'global' }, '-updated_date', 1);
-        if (rows && rows[0]) {
-          const r = rows[0];
-          const same =
-            r.max_reads === TARGET.max_reads &&
-            r.max_writes === TARGET.max_writes &&
-            r.min_interval_ms === TARGET.min_interval_ms &&
-            JSON.stringify(r.backoff_delays||[]) === JSON.stringify(TARGET.backoff_delays) &&
-            r.circuit_breaker_threshold === TARGET.circuit_breaker_threshold &&
-            r.circuit_open_minutes === TARGET.circuit_open_minutes;
-          if (!same) {
-            await base44.entities.RuntimeTuning.update(r.id, TARGET);
-          }
-          applyTuning(rows[0]);
-        } else {
-          const created = await base44.entities.RuntimeTuning.create(TARGET);
-          applyTuning(created);
-        }
-      } catch {}
-    })();
-
-    // Suscribirse a cambios en tiempo real
-    let unsubscribe = null;
-    try {
-      unsubscribe = base44.entities.RuntimeTuning.subscribe((event) => {
-        if ((event.type === 'create' || event.type === 'update') && event.data?.config_key === 'global') {
-          applyTuning(event.data);
-        }
-      });
-    } catch {}
-
-    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -340,10 +227,15 @@ export default function Layout({ children, currentPageName }) {
     }
   }
 
+  // Solo cargar usuario y config al montar — no en cada cambio de página
+  const hasInitRef = useRef(false);
   useEffect(() => {
-    loadUser();
-    loadConfig();
-  }, [currentPageName, navigate]);
+    if (!hasInitRef.current) {
+      hasInitRef.current = true;
+      loadUser();
+      loadConfig();
+    }
+  }, []);
 
   const handleContractAccept = useCallback(async () => {
     await base44.auth.updateMe({

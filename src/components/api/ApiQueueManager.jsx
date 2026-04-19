@@ -23,14 +23,14 @@ class ApiQueueManager {
     this.debouncedOperations = new Map();
     this.lastOperationTime = 0;
     this.lastWriteTime = 0;
-    this.MAX_CONCURRENT_READS = 120;
-    this.MAX_CONCURRENT_WRITES = 30;
+    this.MAX_CONCURRENT_READS = 6;
+    this.MAX_CONCURRENT_WRITES = 3;
     this.activeReads = 0;
     this.activeWrites = 0;
     this.inflight = new Map();
-    this.MIN_OPERATION_INTERVAL = 25; // 25ms mínimo entre operaciones
+    this.MIN_OPERATION_INTERVAL = 50; // 50ms mínimo entre operaciones
     this.backoffDelays = [2000, 4000, 8000, 16000, 32000];
-    this.circuitBreakerThreshold = 1000;
+    this.circuitBreakerThreshold = 8;
     this.circuitOpenMinutes = 2;
     this.OPERATION_TIMEOUT_MS = 30000; // 30s seguridad contra cuelgues
     // Realtime + caché granular
@@ -163,7 +163,7 @@ class ApiQueueManager {
       return null;
     }
 
-    console.log('[Cache] HIT:', key);
+    // Cache hit (silenced to reduce console noise)
     return cached.data;
   }
 
@@ -540,8 +540,8 @@ class ApiQueueManager {
    * Ajustes dinámicos de tasa y concurrencia
    */
   setTuning({ maxReads, maxWrites, minIntervalMs, backoffDelays, circuitBreakerThreshold, circuitOpenMinutes } = {}) {
-    if (Number.isFinite(maxReads)) this.MAX_CONCURRENT_READS = Math.max(1, Math.min(1600, maxReads));
-    if (Number.isFinite(maxWrites)) this.MAX_CONCURRENT_WRITES = Math.max(1, Math.min(600, maxWrites));
+    if (Number.isFinite(maxReads)) this.MAX_CONCURRENT_READS = Math.max(1, Math.min(12, maxReads));
+    if (Number.isFinite(maxWrites)) this.MAX_CONCURRENT_WRITES = Math.max(1, Math.min(6, maxWrites));
     if (Number.isFinite(minIntervalMs)) this.MIN_OPERATION_INTERVAL = Math.max(0, Math.min(2000, minIntervalMs));
     if (Array.isArray(backoffDelays) && backoffDelays.length) this.backoffDelays = backoffDelays.map(d => Math.max(100, Number(d) || 1000));
     if (Number.isFinite(circuitBreakerThreshold)) this.circuitBreakerThreshold = Math.max(1, circuitBreakerThreshold);
@@ -612,12 +612,9 @@ class ApiQueueManager {
 
 // Singleton global
 const apiQueue = new ApiQueueManager();
-// Activar realtime + sin caché en vistas críticas por defecto
-apiQueue.enableRealtime(['Package','Consolidation','ConsolidationRequest','Invoice','Notification']);
-apiQueue.disableCacheFor(['Package','Consolidation','ConsolidationRequest','Invoice','Notification']);
 
-// Mantener caché fresca en módulos administrativos de alta navegación
-apiQueue.enableRealtime(['Vehiculo','Chofer','Ruta','CargaRuta','SeguimientoRuta','Warehouse','WarehouseLocation','ConsolidationRequest','AssistedPaymentRequest','Package']);
+// Solo suscripciones realtime esenciales (máx 3 para evitar sobrecarga de WebSocket)
+apiQueue.enableRealtime(['Package', 'Notification']);
 
 // Export como base44 compatible
 export const base44 = apiQueue;
