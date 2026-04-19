@@ -64,6 +64,7 @@ export default function AdminPackages({ user }) {
   const [ticketProcessing, setTicketProcessing] = useState(false);
   const [cancelReceptionModal, setCancelReceptionModal] = useState(null);
   const [cancelProcessing, setCancelProcessing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(null); // { total, remaining }
   const pageSize = 50;
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -235,23 +236,26 @@ export default function AdminPackages({ user }) {
 
   const executeBulkAction = async () => {
     setBulkProcessing(true);
+    const selectedPkgs = packages.filter(p => selectedPackages.includes(p.id));
+    const total = selectedPkgs.length;
+    setBulkProgress({ total, remaining: total });
     try {
-      const selectedPkgs = packages.filter(p => selectedPackages.includes(p.id));
       const batchSize = 10;
 
       if (bulkAction === 'delete') {
         for (let i = 0; i < selectedPkgs.length; i += batchSize) {
           const batch = selectedPkgs.slice(i, i + batchSize);
           await Promise.all(batch.map(pkg => base44.entities.Package.delete(pkg.id)));
+          setBulkProgress({ total, remaining: total - (i + batch.length) });
         }
-        toast.success(`${selectedPkgs.length} paquetes eliminados`);
+        toast.success(`${total} paquetes eliminados`);
       } else if (bulkAction === 'status') {
         for (let i = 0; i < selectedPkgs.length; i += batchSize) {
           const batch = selectedPkgs.slice(i, i + batchSize);
           await Promise.all(batch.map(pkg => base44.entities.Package.update(pkg.id, { status: bulkStatus })));
+          setBulkProgress({ total, remaining: total - (i + batch.length) });
         }
         
-        // Notify clients (also batched)
         if (['en_transito', 'disponible', 'entregado'].includes(bulkStatus)) {
           const { notifyPackageStatus } = await import('@/components/NotificationUtils');
           for (let i = 0; i < selectedPkgs.length; i += batchSize) {
@@ -260,7 +264,7 @@ export default function AdminPackages({ user }) {
           }
         }
         
-        toast.success(`${selectedPkgs.length} paquetes actualizados`);
+        toast.success(`${total} paquetes actualizados`);
       }
 
       setSelectedPackages([]);
@@ -271,6 +275,7 @@ export default function AdminPackages({ user }) {
     } catch (error) {
       toast.error('Error al ejecutar acción masiva');
     }
+    setBulkProgress(null);
     setBulkProcessing(false);
   };
 
@@ -367,23 +372,24 @@ export default function AdminPackages({ user }) {
 
   const handleMarkReported = async (flag) => {
     if (selectedPackages.length === 0) { toast.error('Selecciona al menos un paquete'); return; }
+    const ids = [...selectedPackages];
+    const total = ids.length;
+    setBulkProgress({ total, remaining: total });
     try {
-      // Procesar en lotes de 10 para evitar sobrecarga
-      const ids = [...selectedPackages];
       const batchSize = 10;
-      let done = 0;
       for (let i = 0; i < ids.length; i += batchSize) {
         const batch = ids.slice(i, i + batchSize);
         await Promise.all(batch.map(id => base44.entities.Package.update(id, { reported: flag })));
-        done += batch.length;
+        setBulkProgress({ total, remaining: total - (i + batch.length) });
       }
-      toast.success(flag ? `${done} marcados como reportados` : `${done} reporte(s) removido(s)`);
+      toast.success(flag ? `${total} marcados como reportados` : `${total} reporte(s) removido(s)`);
       setSelectedPackages([]);
       loadPackages(false);
     } catch (e) {
       toast.error('No se pudo actualizar algunos paquetes');
       loadPackages(false);
     }
+    setBulkProgress(null);
   };
 
   const handleCreateTicket = (pkg) => {
@@ -740,6 +746,29 @@ export default function AdminPackages({ user }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bulk Progress Indicator */}
+      {bulkProgress && (
+        <Card className="border-0 shadow-lg bg-amber-50 animate-pulse">
+          <CardContent className="p-4 flex items-center gap-4">
+            <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800">
+                Procesando... {bulkProgress.remaining} de {bulkProgress.total} restantes
+              </p>
+              <div className="mt-1.5 h-2 w-full bg-amber-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber-600 rounded-full transition-all duration-300"
+                  style={{ width: `${Math.round(((bulkProgress.total - bulkProgress.remaining) / bulkProgress.total) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <span className="text-lg font-bold text-amber-700 tabular-nums">
+              {bulkProgress.total - bulkProgress.remaining}/{bulkProgress.total}
+            </span>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Bulk Actions Bar */}
       {selectedPackages.length > 0 && (
