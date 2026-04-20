@@ -348,12 +348,15 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             </div>
 
             <div className="space-y-2">
-              {trackingNumbers.map((tracking, index) => (
+              {[...trackingNumbers].reverse().map((tracking, revIndex) => {
+                const index = trackingNumbers.length - 1 - revIndex;
+                return (
                 <div key={index} className="flex items-center gap-2 min-w-0">
                   <div className="relative flex-1">
                     <Input
                       placeholder={`Ingresa el número de tracking ${index + 1}`}
                       value={tracking}
+                      autoFocus={index === trackingNumbers.length - 1}
                       onChange={(e) => {
                         const nextValue = e.target.value;
                         const next = [...trackingNumbers];
@@ -416,7 +419,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                     </Button>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="space-y-2">
               {trackingNumbers.map((tracking, index) => {
