@@ -29,6 +29,7 @@ export default function BarcodeScannerModule({
   const detectorRef = useRef(null);
   const frameRef = useRef(null);
   const activeRef = useRef(false);
+  const inputRef = useRef(null);
 
   const cameraSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window && !!navigator?.mediaDevices?.getUserMedia;
 
@@ -117,6 +118,10 @@ export default function BarcodeScannerModule({
     if (autoStartCamera && cameraSupported) {
       setCameraOpen(true);
     }
+    // Auto-focus the input so USB barcode scanners work immediately
+    if (autoStartCamera && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
   }, [autoStartCamera, cameraSupported]);
 
   const currentValue = value !== undefined ? value : scanValue;
@@ -150,11 +155,13 @@ export default function BarcodeScannerModule({
             <div className="relative w-full lg:max-w-xl xl:max-w-2xl">
               <Keyboard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
+                ref={inputRef}
                 value={currentValue}
                 onChange={(e) => updateValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submitScan()}
                 placeholder={placeholder}
                 className={`pl-10 ${inputClassName}`.trim()}
+                autoFocus={autoStartCamera}
               />
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap">
