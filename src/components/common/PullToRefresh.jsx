@@ -12,6 +12,8 @@ export default function PullToRefresh({ children, onRefresh, enabled = true }) {
 
   const handleTouchStart = (e) => {
     if (!enabled || refreshing || window.scrollY > 0) return;
+    // Don't activate pull-to-refresh when a dialog/modal is open
+    if (document.querySelector('[data-state="open"][role="dialog"]')) return;
     startY.current = e.touches[0].clientY;
     canPull.current = true;
   };

@@ -268,7 +268,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange?.(v); }}>
-      <DialogContent className="max-w-lg overflow-y-auto overflow-x-hidden">
+      <DialogContent className="max-w-lg overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y">
         <DialogHeader>
           <DialogTitle>Registrar Paquete</DialogTitle>
           <DialogDescription>Busca al cliente por su Shipping Mark y completa los datos del paquete.</DialogDescription>
