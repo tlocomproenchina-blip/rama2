@@ -4,10 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Loader2, CheckCircle, AlertCircle, Image as ImageIcon, X, Search, User, AlertTriangle, Copy, FileText, Box, Scan, FileImage } from 'lucide-react';
+import { Upload, Loader2, CheckCircle, AlertCircle, Image as ImageIcon, X, Search, User, AlertTriangle, Copy, FileText, Box, Scan, FileImage, ScanLine, Plus, Trash2, Camera } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 
 function extractTrackingFromFilename(filename) {
   // Remove extension
@@ -61,9 +62,14 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
   const [searchingClients, setSearchingClients] = useState(false);
   const searchTimeout = useRef(null);
 
-  const [trackingMode, setTrackingMode] = useState('filename'); // 'filename' | 'barcode'
+  const [trackingMode, setTrackingMode] = useState('filename'); // 'filename' | 'barcode' | 'scanner'
   const [scannerTrackingInput, setScannerTrackingInput] = useState('');
   const scannerInputRef = useRef(null);
+  // Scanner mode: list of trackings entered via barcode scanner
+  const [scannerTrackingList, setScannerTrackingList] = useState([]);
+  const [scannerStatusByCode, setScannerStatusByCode] = useState({});
+  const [scannerExistingPkgs, setScannerExistingPkgs] = useState({});
+  const [scannerCameraOpen, setScannerCameraOpen] = useState(false);
 
   const reset = () => {
     setFiles([]);
@@ -79,6 +85,10 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     setScanProgress(0);
     setBarcodeResults({});
     setTrackingMode('filename');
+    setScannerTrackingList([]);
+    setScannerStatusByCode({});
+    setScannerExistingPkgs({});
+    setScannerCameraOpen(false);
   };
 
   useEffect(() => {
@@ -170,6 +180,82 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     }));
     setScannerTrackingInput('');
     toast.success(`Tracking asignado a ${firstUnassignedFile.name}`);
+  };
+
+  // Scanner mode: check tracking exists
+  const checkScannerTracking = async (value) => {
+    const t = String(value || '').trim();
+    if (!t || t.length < 5) return;
+    setScannerStatusByCode((prev) => ({ ...prev, [t]: { state: 'checking', message: 'Revisando...' } }));
+    try {
+      const existing = await base44.entities.Package.filter({ tracking_number: t }, '-created_date', 1);
+      const pkg = existing?.[0];
+      if (pkg) {
+        setScannerExistingPkgs((prev) => ({ ...prev, [t]: pkg }));
+        setScannerStatusByCode((prev) => ({ ...prev, [t]: { state: 'exists', message: `Se marcará como recibido. Cliente: ${pkg.client_email} · Estado: ${pkg.status}` } }));
+      } else {
+        setScannerExistingPkgs((prev) => { const n = { ...prev }; delete n[t]; return n; });
+        setScannerStatusByCode((prev) => ({ ...prev, [t]: { state: 'not_found', message: 'No existe en el sistema. Debe tener pre-alerta primero.' } }));
+      }
+    } catch {
+      setScannerStatusByCode((prev) => ({ ...prev, [t]: { state: 'error', message: 'No se pudo validar.' } }));
+    }
+  };
+
+  const handleScannerDetected = (code) => {
+    const t = String(code || '').trim();
+    if (!t) return;
+    setScannerTrackingList((prev) => {
+      if (prev.includes(t)) { toast.info('Tracking ya agregado'); return prev; }
+      return [...prev, t];
+    });
+    checkScannerTracking(t);
+  };
+
+  // Scanner mode: process all trackings
+  const handleScannerProcess = async () => {
+    const validTrackings = scannerTrackingList.filter((t) => scannerExistingPkgs[t]);
+    if (validTrackings.length === 0) {
+      toast.error('Ninguno de los trackings existe en el sistema.');
+      return;
+    }
+    setProcessing(true);
+    setProgress(0);
+    const resultsList = [];
+    let imageUrls = [];
+    if (files.length > 0) {
+      for (const f of files.slice(0, 3)) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+        imageUrls.push(file_url);
+      }
+    }
+    for (let i = 0; i < validTrackings.length; i++) {
+      const tracking = validTrackings[i];
+      const pkg = scannerExistingPkgs[tracking];
+      try {
+        const response = await base44.functions.invoke('processReceptionPhoto', {
+          tracking_number: tracking,
+          client_email: pkg.client_email,
+          package_image_url: imageUrls[0] || null,
+          skip_email: true,
+        });
+        resultsList.push({ tracking, status: 'updated', photos: imageUrls.length, clientName: pkg.client_email, markedReceived: true });
+      } catch (err) {
+        resultsList.push({ tracking, status: 'error', photos: 0, clientName: null, error: err?.message || 'Error' });
+      }
+      setProgress(Math.round(((i + 1) / validTrackings.length) * 100));
+    }
+    const ignored = scannerTrackingList.filter((t) => !scannerExistingPkgs[t]);
+    for (const t of ignored) {
+      resultsList.push({ tracking: t, status: 'not_found', photos: 0, clientName: null });
+    }
+    setResults(resultsList);
+    setProcessing(false);
+    const ok = resultsList.filter(r => r.status === 'updated').length;
+    const fail = resultsList.filter(r => r.status !== 'updated').length;
+    if (ok > 0) toast.success(`${ok} paquete(s) marcado(s) como recibido(s)`);
+    if (fail > 0) toast.warning(`${fail} tracking(s) ignorado(s) o con error`);
+    if (typeof onCompleted === 'function') onCompleted();
   };
 
   const removeTrackingGroup = (trackingKey) => {
@@ -559,7 +645,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
           {!results && !processing && (
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Método de identificación</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => { setTrackingMode('filename'); setBarcodeResults({}); }}
@@ -593,7 +679,22 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                   <Scan className="h-5 w-5 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-semibold">QR / Código de barra</p>
-                    <p className="text-[11px] leading-tight opacity-75">IA reforzada para códigos alfanuméricos y fotos borrosas</p>
+                    <p className="text-[11px] leading-tight opacity-75">IA para códigos en fotos</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setTrackingMode('scanner'); setBarcodeResults({}); }}
+                  className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left ${
+                    trackingMode === 'scanner'
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <ScanLine className="h-5 w-5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold">Escaneo / Lectora</p>
+                    <p className="text-[11px] leading-tight opacity-75">Escanea trackings con cámara o lectora USB</p>
                   </div>
                 </button>
               </div>
@@ -631,8 +732,82 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
             </div>
           )}
 
+          {/* Scanner mode UI */}
+          {trackingMode === 'scanner' && !results && !processing && (
+            <div className="space-y-3">
+              <BarcodeScannerModule
+                title="Escaneo de trackings para recepción"
+                description="Escanea con cámara o lectora USB. Cada lectura agrega el tracking a la lista."
+                placeholder="Escanea o escribe el tracking"
+                actionLabel="Agregar"
+                cameraLabel="Cámara"
+                autoStartCamera={false}
+                value=""
+                onValueChange={() => {}}
+                onDetected={handleScannerDetected}
+              />
+
+              {/* Scanned tracking list */}
+              {scannerTrackingList.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-slate-700">{scannerTrackingList.length} tracking(s) escaneados</p>
+                    <Button variant="ghost" size="sm" onClick={() => { setScannerTrackingList([]); setScannerStatusByCode({}); setScannerExistingPkgs({}); }} className="text-red-500 h-7 px-2 text-xs">
+                      <X className="h-3 w-3 mr-1" /> Limpiar
+                    </Button>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto border rounded-lg divide-y">
+                    {[...scannerTrackingList].reverse().map((t) => {
+                      const status = scannerStatusByCode[t];
+                      return (
+                        <div key={t} className="px-3 py-2 flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className={`font-mono text-sm font-medium ${
+                              status?.state === 'exists' ? 'text-emerald-700' :
+                              status?.state === 'not_found' ? 'text-red-600' :
+                              status?.state === 'checking' ? 'text-slate-500' : 'text-slate-800'
+                            }`}>{t}</p>
+                            {status && status.state !== 'checking' && (
+                              <p className={`text-xs ${
+                                status.state === 'exists' ? 'text-emerald-600' :
+                                status.state === 'not_found' ? 'text-red-500' : 'text-amber-600'
+                              }`}>
+                                {status.message}
+                              </p>
+                            )}
+                            {status?.state === 'checking' && (
+                              <p className="text-xs text-slate-400 flex items-center gap-1">
+                                <Loader2 className="h-3 w-3 animate-spin" /> Revisando...
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => {
+                              setScannerTrackingList((prev) => prev.filter((x) => x !== t));
+                              setScannerStatusByCode((prev) => { const n = { ...prev }; delete n[t]; return n; });
+                              setScannerExistingPkgs((prev) => { const n = { ...prev }; delete n[t]; return n; });
+                            }}
+                            className="h-6 w-6 flex items-center justify-center rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {scannerTrackingList.some((t) => scannerExistingPkgs[t]) && (
+                    <p className="text-sm text-emerald-600 flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4" />
+                      Los trackings encontrados se marcarán como recibidos con su cliente correspondiente.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* File selector */}
-          {!results && (
+          {!results && trackingMode !== 'scanner' && (
             <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors">
               <input
                 type="file"
@@ -891,14 +1066,25 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
               <Button variant="outline" onClick={() => { reset(); onOpenChange?.(false); }} disabled={processing}>
                 Cancelar
               </Button>
-              <Button
-                onClick={handleProcess}
-                disabled={processing || files.length === 0}
-                className="bg-blue-600 hover:bg-blue-700 gap-2"
-              >
-                {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                Procesar {Object.keys(grouped).length} tracking(s)
-              </Button>
+              {trackingMode === 'scanner' ? (
+                <Button
+                  onClick={handleScannerProcess}
+                  disabled={processing || scannerTrackingList.length === 0}
+                  className="bg-blue-600 hover:bg-blue-700 gap-2"
+                >
+                  {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
+                  Recibir {scannerTrackingList.filter((t) => scannerExistingPkgs[t]).length} tracking(s)
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleProcess}
+                  disabled={processing || files.length === 0}
+                  className="bg-blue-600 hover:bg-blue-700 gap-2"
+                >
+                  {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  Procesar {Object.keys(grouped).length} tracking(s)
+                </Button>
+              )}
             </>
           )}
         </DialogFooter>
