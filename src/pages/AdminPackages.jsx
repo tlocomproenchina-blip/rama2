@@ -403,21 +403,67 @@ export default function AdminPackages({ user }) {
 
     setSearch(nextCode);
 
-    if (packages.some((pkg) => String(pkg.tracking_number || '').trim() === nextCode)) {
-      toast.success('Tracking cargado en la búsqueda');
+    // Check if already loaded locally (by tracking or shipping mark)
+    const q = nextCode.toLowerCase();
+    if (packages.some((pkg) =>
+      String(pkg.tracking_number || '').toLowerCase() === q ||
+      String(pkg.shipping_mark || '').toLowerCase() === q
+    )) {
+      toast.success('Resultado cargado en la búsqueda');
       return;
     }
 
     try {
-      const found = await base44.entities.Package.filter({ tracking_number: nextCode }, '-created_date', 1);
-      if (found?.[0]) {
-        setPackages((prev) => [found[0], ...prev.filter((pkg) => pkg.id !== found[0].id)]);
-        toast.success('Paquete encontrado');
+      // Search by tracking first
+      let found = await base44.entities.Package.filter({ tracking_number: nextCode }, '-created_date', 5);
+
+      // If not found by tracking, search by shipping_mark
+      if (!found || found.length === 0) {
+        found = await base44.entities.Package.filter({ shipping_mark: nextCode }, '-created_date', 50);
+      }
+
+      // If still not found, search users by shipping_mark/email/name then fetch their packages
+      if (!found || found.length === 0) {
+        let allUsers = [];
+        let skip = 0;
+        while (true) {
+          const batch = await base44.entities.User.list('-created_date', 200, skip);
+          if (!batch || batch.length === 0) break;
+          allUsers = allUsers.concat(batch);
+          if (batch.length < 200) break;
+          skip += 200;
+        }
+        const matchingEmails = allUsers
+          .filter(u => u.role === 'user' && (
+            (u.shipping_mark || '').toLowerCase().includes(q) ||
+            (u.email || '').toLowerCase().includes(q) ||
+            (u.full_name || '').toLowerCase().includes(q)
+          ))
+          .map(u => u.email);
+        if (matchingEmails.length > 0) {
+          const results = [];
+          for (const email of matchingEmails.slice(0, 5)) {
+            const pkgs = await base44.entities.Package.filter({ client_email: email }, '-created_date', 50);
+            if (pkgs) results.push(...pkgs);
+          }
+          found = results;
+        }
+      }
+
+      if (found && found.length > 0) {
+        setPackages((prev) => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const newPkgs = found.filter(p => !existingIds.has(p.id));
+          return [...newPkgs, ...prev];
+        });
+        const emails = [...new Set(found.map(p => p.client_email).filter(Boolean))];
+        setClientSearchEmails(emails);
+        toast.success(`${found.length} paquete(s) encontrado(s)`);
       } else {
-        toast.error('No se encontró ese tracking');
+        toast.error('No se encontraron paquetes');
       }
     } catch {
-      toast.error('No se pudo buscar el tracking escaneado');
+      toast.error('No se pudo buscar');
     }
   };
 
