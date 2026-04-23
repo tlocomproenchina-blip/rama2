@@ -269,7 +269,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
               })}
             </div>
             <div className="space-y-2">
-              {trackingNumbers.map((tracking, index) => {
+              {[...trackingNumbers].reverse().map((tracking, revIndex) => {
+                const index = trackingNumbers.length - 1 - revIndex;
                 const status = trackingStatusByCode[tracking.trim()];
                 if (!tracking.trim() || !status || status.state === 'checking') return null;
 
