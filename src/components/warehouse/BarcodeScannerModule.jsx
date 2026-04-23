@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Camera, Keyboard, Loader2, ScanLine } from 'lucide-react';
+import { Camera, Keyboard, Loader2, ScanLine, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
 
 const normalizeCode = (value = '') => String(value).replace(/\r?\n/g, '').trim();
 
@@ -31,7 +32,13 @@ export default function BarcodeScannerModule({
   const activeRef = useRef(false);
   const inputRef = useRef(null);
 
-  const cameraSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window && !!navigator?.mediaDevices?.getUserMedia;
+  const [aiScanning, setAiScanning] = useState(false);
+  const scanAttemptsRef = useRef(0);
+  const canvasRef = useRef(null);
+  const lastAiAttemptRef = useRef(0);
+
+  const cameraSupported = typeof window !== 'undefined' && !!navigator?.mediaDevices?.getUserMedia;
+  const nativeBarcodeSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
 
   const stopCamera = () => {
     activeRef.current = false;
@@ -55,12 +62,98 @@ export default function BarcodeScannerModule({
     onDetected?.(nextCode);
   };
 
-  const scanFrame = async () => {
-    if (!activeRef.current || !videoRef.current || !detectorRef.current) return;
+  // Capture a frame to canvas, optionally rotated
+  const captureFrame = useCallback((rotation = 0) => {
+    const video = videoRef.current;
+    if (!video || video.readyState < 2) return null;
+    const canvas = canvasRef.current || document.createElement('canvas');
+    canvasRef.current = canvas;
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (!w || !h) return null;
 
-    if (videoRef.current.readyState >= 2) {
-      const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
-      const code = normalizeCode(detected?.[0]?.rawValue || '');
+    if (rotation === 0) {
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, w, h);
+    } else {
+      const rad = (rotation * Math.PI) / 180;
+      const cos = Math.abs(Math.cos(rad));
+      const sin = Math.abs(Math.sin(rad));
+      canvas.width = Math.ceil(w * cos + h * sin);
+      canvas.height = Math.ceil(w * sin + h * cos);
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(video, -w / 2, -h / 2, w, h);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+    return canvas;
+  }, []);
+
+  // AI fallback: send frame to LLM for barcode reading
+  const tryAiFallback = useCallback(async () => {
+    if (!activeRef.current || aiScanning) return;
+    const now = Date.now();
+    if (now - lastAiAttemptRef.current < 8000) return; // throttle: max once per 8s
+    lastAiAttemptRef.current = now;
+
+    const canvas = captureFrame(0);
+    if (!canvas) return;
+
+    setAiScanning(true);
+    try {
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+      if (!blob || !activeRef.current) { setAiScanning(false); return; }
+      const file = new File([blob], 'scan.jpg', { type: 'image/jpeg' });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: 'Lee el código de barras o QR visible en esta imagen. Busca cualquier código de barras (1D o 2D) y extrae su valor exacto. Prioriza el código de barras principal de envío. Devuelve SOLO el valor alfanumérico del código sin espacios ni guiones. Si no puedes leer ningún código, devuelve cadena vacía.',
+        file_urls: [file_url],
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            barcode: { type: 'string', description: 'Valor exacto del código de barras leído, vacío si no se pudo leer' }
+          }
+        }
+      });
+
+      const code = normalizeCode((res?.barcode || '').replace(/[^a-zA-Z0-9]/g, ''));
+      if (code && code.length >= 5 && activeRef.current) {
+        handleDetected(code);
+        toast.success('Código detectado con IA');
+        setCameraOpen(false);
+        stopCamera();
+        setAiScanning(false);
+        return;
+      }
+    } catch (_) {}
+    setAiScanning(false);
+  }, [aiScanning]);
+
+  const scanFrame = async () => {
+    if (!activeRef.current || !videoRef.current) return;
+    scanAttemptsRef.current++;
+
+    if (videoRef.current.readyState >= 2 && nativeBarcodeSupported && detectorRef.current) {
+      // Try direct frame first
+      let detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
+      let code = normalizeCode(detected?.[0]?.rawValue || '');
+
+      // If direct scan fails, try rotated angles for tilted barcodes
+      if (!code) {
+        const angles = [5, -5, 10, -10, 15, -15];
+        for (const angle of angles) {
+          const canvas = captureFrame(angle);
+          if (!canvas) break;
+          detected = await detectorRef.current.detect(canvas).catch(() => []);
+          code = normalizeCode(detected?.[0]?.rawValue || '');
+          if (code) break;
+        }
+      }
+
       if (code) {
         handleDetected(code);
         toast.success('Código detectado');
@@ -70,6 +163,11 @@ export default function BarcodeScannerModule({
       }
     }
 
+    // After ~4 seconds of failed native scanning, try AI fallback
+    if (scanAttemptsRef.current > 120) { // ~4s at 30fps
+      tryAiFallback();
+    }
+
     frameRef.current = requestAnimationFrame(scanFrame);
   };
 
@@ -77,8 +175,14 @@ export default function BarcodeScannerModule({
     if (!cameraSupported) return;
 
     setCameraLoading(true);
+    // Request high resolution for better barcode reading
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' } },
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        focusMode: { ideal: 'continuous' },
+      },
       audio: false,
     }).catch(() => null);
 
@@ -90,9 +194,13 @@ export default function BarcodeScannerModule({
     }
 
     streamRef.current = stream;
-    detectorRef.current = new window.BarcodeDetector({
-      formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'qr_code'],
-    });
+    scanAttemptsRef.current = 0;
+
+    if (nativeBarcodeSupported) {
+      detectorRef.current = new window.BarcodeDetector({
+        formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'qr_code', 'data_matrix', 'aztec', 'pdf417'],
+      });
+    }
 
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
@@ -172,6 +280,9 @@ export default function BarcodeScannerModule({
                 <Camera className="mr-2 h-4 w-4" />
                 {cameraLabel}
               </Button>
+              {!nativeBarcodeSupported && cameraSupported && (
+                <span className="text-xs text-amber-600 self-center">Modo IA (sin lector nativo)</span>
+              )}
               {extraAction}
             </div>
           </div>
@@ -180,7 +291,7 @@ export default function BarcodeScannerModule({
           </p>
           {!cameraSupported && (
             <p className="text-xs text-amber-600">
-              La cámara no está disponible en este navegador, pero la lectora sigue funcionando.
+              La cámara no está disponible en este navegador, pero la lectora USB sigue funcionando.
             </p>
           )}
         </CardContent>
@@ -205,6 +316,29 @@ export default function BarcodeScannerModule({
                 Activando cámara...
               </div>
             )}
+            {aiScanning && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-blue-600/90 px-4 py-2 text-white text-sm shadow-lg">
+                <Sparkles className="h-4 w-4 animate-pulse" />
+                Analizando con IA...
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-slate-500">
+              {nativeBarcodeSupported
+                ? 'Escaneo automático + IA si no detecta en 4s. No necesita estar perfectamente recto.'
+                : 'Sin lector nativo en este navegador. Usando IA para detectar códigos.'}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => tryAiFallback()}
+              disabled={aiScanning || !activeRef.current}
+              className="gap-1 shrink-0"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {aiScanning ? 'Analizando...' : 'Leer con IA'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
