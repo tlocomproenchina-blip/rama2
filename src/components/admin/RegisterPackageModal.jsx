@@ -54,10 +54,18 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       if (pkg) {
         setExistingPackagesByTracking((prev) => ({ ...prev, [t]: pkg }));
         const info = `Cliente: ${pkg.client_email} · Estado: ${pkg.status}`;
-        setTrackingStatusByCode((prev) => ({
-          ...prev,
-          [t]: { state: 'exists', message: `Se marcará como recibido. ${info}` }
-        }));
+        const alreadyReceived = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'].includes(pkg.status);
+        if (alreadyReceived) {
+          setTrackingStatusByCode((prev) => ({
+            ...prev,
+            [t]: { state: 'already_received', message: `⚠️ Ya fue procesado (${pkg.status}). ${info}` }
+          }));
+        } else {
+          setTrackingStatusByCode((prev) => ({
+            ...prev,
+            [t]: { state: 'exists', message: `Se marcará como recibido. ${info}` }
+          }));
+        }
       } else {
         setExistingPackagesByTracking((prev) => {
           const next = { ...prev };
@@ -212,6 +220,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                       className={
                         trackingStatusByCode[tracking.trim()]?.state === 'exists'
                           ? 'border-emerald-300'
+                          : trackingStatusByCode[tracking.trim()]?.state === 'already_received'
+                          ? 'border-amber-400'
                           : trackingStatusByCode[tracking.trim()]?.state === 'not_found'
                           ? 'border-red-300'
                           : trackingStatusByCode[tracking.trim()]?.state === 'error'
@@ -254,6 +264,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                     className={`text-sm flex items-center gap-1 ${
                       status.state === 'exists'
                         ? 'text-emerald-600'
+                        : status.state === 'already_received'
+                        ? 'text-amber-600 font-medium'
                         : status.state === 'not_found'
                         ? 'text-red-600'
                         : 'text-amber-600'
