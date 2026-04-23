@@ -8,6 +8,7 @@ import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Image as ImageIcon, Loader2, AlertCircle, Plus, Trash2, Camera } from 'lucide-react';
 import { toast } from 'sonner';
+import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 
 
 
@@ -18,6 +19,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [trackingStatusByCode, setTrackingStatusByCode] = useState({});
   const [existingPackagesByTracking, setExistingPackagesByTracking] = useState({});
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [quickPreAlertOpen, setQuickPreAlertOpen] = useState({});
 
   const resetForm = () => {
     setTrackingNumbers(['']);
@@ -25,6 +27,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setTrackingStatusByCode({});
     setExistingPackagesByTracking({});
     setCameraOpen(false);
+    setQuickPreAlertOpen({});
   };
 
   const checkTrackingDuplicate = async (value) => {
@@ -271,13 +274,13 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             <div className="space-y-2">
               {[...trackingNumbers].reverse().map((tracking, revIndex) => {
                 const index = trackingNumbers.length - 1 - revIndex;
-                const status = trackingStatusByCode[tracking.trim()];
-                if (!tracking.trim() || !status || status.state === 'checking') return null;
+                const trimmed = tracking.trim();
+                const status = trackingStatusByCode[trimmed];
+                if (!trimmed || !status || status.state === 'checking') return null;
 
                 return (
-                  <p
-                    key={`${tracking}-${index}`}
-                    className={`text-sm flex items-center gap-1 ${
+                  <div key={`${tracking}-${index}`} className="space-y-1">
+                    <div className={`text-sm flex items-center gap-1 ${
                       status.state === 'exists'
                         ? 'text-emerald-600'
                         : status.state === 'already_received'
@@ -285,11 +288,33 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                         : status.state === 'not_found'
                         ? 'text-red-600'
                         : 'text-amber-600'
-                    }`}
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    {tracking}: {status.message}
-                  </p>
+                    }`}>
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span className="flex-1">{tracking}: {status.message}</span>
+                      {status.state === 'not_found' && !quickPreAlertOpen[trimmed] && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 shrink-0 ml-1"
+                          onClick={() => setQuickPreAlertOpen(prev => ({ ...prev, [trimmed]: true }))}
+                        >
+                          + Pre-alerta
+                        </Button>
+                      )}
+                    </div>
+                    {status.state === 'not_found' && quickPreAlertOpen[trimmed] && (
+                      <QuickPreAlertForm
+                        trackingNumber={trimmed}
+                        onCreated={(client) => {
+                          setQuickPreAlertOpen(prev => { const n = { ...prev }; delete n[trimmed]; return n; });
+                          // Re-check tracking to update status
+                          checkTrackingDuplicate(trimmed);
+                        }}
+                        onCancel={() => setQuickPreAlertOpen(prev => { const n = { ...prev }; delete n[trimmed]; return n; })}
+                      />
+                    )}
+                  </div>
                 );
               })}
             </div>
