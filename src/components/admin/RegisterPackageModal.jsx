@@ -32,17 +32,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
   const checkTrackingDuplicate = async (value) => {
     const t = String(value || '').trim();
-    if (!t || t.length < 5) {
-      setTrackingStatusByCode((prev) => {
-        const next = { ...prev };
-        delete next[t];
-        return next;
-      });
-      setExistingPackagesByTracking((prev) => {
-        const next = { ...prev };
-        delete next[t];
-        return next;
-      });
+    if (!t) {
       return;
     }
 
@@ -225,14 +215,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                         }
 
                         const trimmed = nextValue.trim();
-                        if (trimmed.length >= 5) {
+                        if (trimmed) {
                           checkTrackingDuplicate(trimmed);
-                        } else {
-                          setTrackingStatusByCode((prev) => {
-                            const copy = { ...prev };
-                            delete copy[trimmed];
-                            return copy;
-                          });
                         }
                       }}
                       className={
