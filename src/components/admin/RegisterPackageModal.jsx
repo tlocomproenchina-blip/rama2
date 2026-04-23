@@ -94,12 +94,24 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       await checkTrackingDuplicate(tracking);
     }
 
-    // Only process trackings that exist in the system
-    const validTrackings = cleanedTrackingNumbers.filter((t) => existingPackagesByTracking[t]);
+    // Only process trackings that exist AND are not already received
+    const alreadyReceivedStatuses = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'];
+    const validTrackings = cleanedTrackingNumbers.filter((t) => {
+      const pkg = existingPackagesByTracking[t];
+      return pkg && !alreadyReceivedStatuses.includes(pkg.status);
+    });
     const invalidTrackings = cleanedTrackingNumbers.filter((t) => !existingPackagesByTracking[t]);
+    const skippedTrackings = cleanedTrackingNumbers.filter((t) => {
+      const pkg = existingPackagesByTracking[t];
+      return pkg && alreadyReceivedStatuses.includes(pkg.status);
+    });
 
     if (validTrackings.length === 0) {
-      toast.error('Ninguno de los trackings existe en el sistema. Deben tener pre-alerta primero.');
+      if (skippedTrackings.length > 0) {
+        toast.info(`${skippedTrackings.length} tracking(s) ya fueron recibidos. No hay nada nuevo que procesar.`);
+      } else {
+        toast.error('Ninguno de los trackings existe en el sistema. Deben tener pre-alerta primero.');
+      }
       return;
     }
 
@@ -127,8 +139,11 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       }
 
       let msg = `${validTrackings.length} paquete(s) marcado(s) como recibido(s)`;
+      if (skippedTrackings.length > 0) {
+        msg += `. ${skippedTrackings.length} ignorado(s) (ya recibidos)`;
+      }
       if (invalidTrackings.length > 0) {
-        msg += `. ${invalidTrackings.length} tracking(s) ignorado(s) (no existen en el sistema)`;
+        msg += `. ${invalidTrackings.length} ignorado(s) (no existen)`;
       }
       toast.success(msg);
       resetForm();
