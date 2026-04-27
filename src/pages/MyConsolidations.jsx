@@ -43,8 +43,17 @@ export default function MyConsolidations({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    loadConsolidations();
-    base44.entities.AppConfig.filter({ config_key: 'main' }).then(cfgs => setConfig(cfgs[0] || null));
+    if (!user) return;
+    // Cargar consolidaciones y config en paralelo
+    Promise.all([
+      base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', PAGE_SIZE, 0),
+      base44.entities.AppConfig.filter({ config_key: 'main' })
+    ]).then(([cons, cfgs]) => {
+      setConsolidations(cons);
+      setHasMore(cons.length === PAGE_SIZE);
+      setConfig(cfgs[0] || null);
+      setLoading(false);
+    });
     // REAL-TIME SUBSCRIPTION DISABLED - Preventing rate limit errors
     // Use manual refresh button instead
   }, [user]);
@@ -93,22 +102,28 @@ export default function MyConsolidations({ user }) {
 
   const handleApproveShipment = async (con) => {
     try {
+      const approvedDate = new Date().toISOString();
       await base44.entities.Consolidation.update(con.id, {
         shipment_approved: true,
-        shipment_approved_date: new Date().toISOString()
+        shipment_approved_date: approvedDate
       });
-      await loadConsolidations();
+      // Optimistic update: actualiza solo el item modificado
+      setConsolidations((prev) => prev.map((c) => c.id === con.id ? { ...c, shipment_approved: true, shipment_approved_date: approvedDate } : c));
     } catch (error) {
       console.error('Error al aprobar despacho:', error);
     }
   };
 
-  const consolidationStats = React.useMemo(() => ({
-    total: consolidations.length,
-    pending: consolidations.filter((con) => con.status === 'pendiente_pago').length,
-    transit: consolidations.filter((con) => con.status === 'en_transito').length,
-    available: consolidations.filter((con) => con.status === 'disponible').length,
-  }), [consolidations]);
+  // Calcular stats en un solo recorrido
+  const consolidationStats = React.useMemo(() => {
+    const stats = { total: consolidations.length, pending: 0, transit: 0, available: 0 };
+    for (const con of consolidations) {
+      if (con.status === 'pendiente_pago') stats.pending++;
+      else if (con.status === 'en_transito') stats.transit++;
+      else if (con.status === 'disponible') stats.available++;
+    }
+    return stats;
+  }, [consolidations]);
 
   const handleRefresh = async () => {
     const now = Date.now();
