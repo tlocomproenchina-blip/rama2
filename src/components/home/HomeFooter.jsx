@@ -29,6 +29,8 @@ export default function HomeFooter() {
             <li><a href="#process" className="hover:text-blue-400">Proceso</a></li>
             <li><a href="#services" className="hover:text-blue-400">Servicios</a></li>
             <li><a href="#pricing" className="hover:text-blue-400">Tarifas</a></li>
+            <li><Link to={createPageUrl('About')} className="hover:text-blue-400">Sobre nosotros</Link></li>
+            <li><Link to={createPageUrl('Contact')} className="hover:text-blue-400">Contacto</Link></li>
           </ul>
         </div>
 
@@ -45,9 +47,10 @@ export default function HomeFooter() {
         <div>
           <h4 className="text-white font-bold">Contacto</h4>
           <ul className="mt-3 space-y-2 text-sm">
+            <li><Link to={createPageUrl('Contact')} className="hover:text-blue-400">Página de contacto</Link></li>
             <li><Link to={createPageUrl('Support')} className="hover:text-blue-400">Soporte</Link></li>
-            <li><a href="#" className="hover:text-blue-400">WhatsApp</a></li>
-            <li><a href="#" className="hover:text-blue-400">Email</a></li>
+            <li><a href="https://wa.me/584121234567" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">WhatsApp</a></li>
+            <li><a href="mailto:soporte@tleccargo.com" className="hover:text-blue-400">Email</a></li>
           </ul>
         </div>
       </div>
