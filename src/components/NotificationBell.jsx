@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
@@ -83,27 +84,15 @@ export default function NotificationBell({ user }) {
     loadNotifications();
   }, [loadNotifications]);
 
-  useEffect(() => {
-    if (!user?.email) return;
-
-    let isMounted = true;
-    const unsubscribe = base44.entities.Notification.subscribe((event) => {
-      if (!isMounted) return;
-      const data = event?.data;
-      if (!data || data.user_email !== user.email) return;
-
-      if (event.type === 'create' || event.type === 'update' || event.type === 'delete') {
-        loadNotifications();
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      if (typeof unsubscribe === 'function') unsubscribe();
-    };
-    // Solo re-suscribir cuando cambia el usuario, no cuando cambia loadNotifications
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.email]);
+  useEntitySubscription(
+    'Notification',
+    () => loadNotifications(),
+    {
+      enabled: !!user?.email,
+      filter: (event) => event?.data?.user_email === user?.email,
+    },
+    [user?.email]
+  );
 
   const playNotificationSound = () => {
     // Create a simple beep sound using Web Audio API

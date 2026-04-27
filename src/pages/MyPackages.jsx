@@ -32,6 +32,7 @@ import OptimizedImage from '@/components/OptimizedImage';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import useEntitySubscription from '@/hooks/useEntitySubscription';
 
 export default function MyPackages({ user }) {
   const PAGE_SIZE = 200;
@@ -51,27 +52,19 @@ export default function MyPackages({ user }) {
 
   useEffect(() => {
     loadPackages(false);
-
-    // Real-time updates
-    if (!user?.email) return;
-    let debounceTimer;
-    let isMounted = true;
-    const unsubscribe = base44.entities.Package.subscribe((event) => {
-      if (!isMounted) return;
-      if (event.data?.client_email === user.email) {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          if (isMounted) loadPackages();
-        }, 1000);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      clearTimeout(debounceTimer);
-      if (typeof unsubscribe === 'function') unsubscribe();
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.email]);
+
+  useEntitySubscription(
+    'Package',
+    () => loadPackages(),
+    {
+      enabled: !!user?.email,
+      filter: (event) => event?.data?.client_email === user?.email,
+      debounceMs: 1000,
+    },
+    [user?.email]
+  );
 
   const loadPackages = async (append = false) => {
     if (!user) return;
