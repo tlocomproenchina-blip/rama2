@@ -16,9 +16,10 @@ export default function ClientsCategoryFilters({
   selectWhatsapp,
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <Filter className="h-4 w-4 text-slate-500" />
-      <div className="flex flex-wrap gap-2">
+    <div className="flex items-start gap-2">
+      <Filter className="h-4 w-4 text-slate-500 mt-2 shrink-0" />
+      <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1 lg:flex-wrap lg:overflow-visible scrollbar-thin"
+           style={{ scrollbarWidth: 'thin' }}>
         <Button
           variant="outline"
           aria-pressed={exclusiveKey === 'all'}

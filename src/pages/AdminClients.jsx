@@ -8,7 +8,7 @@ import ClientImportDialog from '@/components/imports/ClientImportDialog';
 import { getDigits, sanitizeClientProfileData } from '@/lib/inputSanitizers';
 import ClientsHeaderActions from '@/components/admin/clients/ClientsHeaderActions';
 import ClientsStatsCards from '@/components/admin/clients/ClientsStatsCards';
-import ClientsFiltersPanel from '@/components/admin/clients/ClientsFiltersPanel';
+import ClientsFiltersMobileTrigger from '@/components/admin/clients/ClientsFiltersMobileTrigger';
 import ClientsList from '@/components/admin/clients/ClientsList';
 import AddPackageDialog from '@/components/admin/clients/AddPackageDialog';
 import EditClientDialog from '@/components/admin/clients/EditClientDialog';
@@ -619,7 +619,7 @@ Email: ${client.email}`;
 
       <ClientsStatsCards counts={counts} fallbackTotal={clients.length} />
 
-      <ClientsFiltersPanel
+      <ClientsFiltersMobileTrigger
         fromDate={fromDate} setFromDate={setFromDate}
         toDate={toDate} setToDate={setToDate}
         quickDate={quickDate} setQuickDate={setQuickDate}
