@@ -23,27 +23,6 @@ async function getFromName() {
   }
 }
 
-async function createEmailLog({ to, subject, body, source = 'manual', status = 'sent', campaign_id = null, campaign_name = null }) {
-  const preview = String(body || '').slice(0, 200);
-  try {
-    await base44.entities.EmailLog.create({
-      recipient_email: to,
-      recipient_name: null,
-      sender_email: null,
-      from_name: await getFromName(),
-      subject,
-      body_preview: preview,
-      campaign_id,
-      campaign_name,
-      source,
-      status,
-      sent_date: new Date().toISOString()
-    });
-  } catch (_) {
-    // no bloquear por logging
-  }
-}
-
 export async function sendInAppNotification({ user_email, title, message, type = 'system', icon = 'bell', reference_id = null, entity_type = 'System', priority = 'medium' }) {
   if (!user_email) return;
   try {
@@ -69,32 +48,30 @@ export async function sendNotification({ from_name, to, subject, body, title, me
 
   const fromName = from_name || (await getFromName());
 
-  // 1) Enviar email si está disponible, sin bloquear el flujo principal
+  // Envío vía backend (service role) — evita circuit breaker / rate limit del cliente.
+  // El backend se encarga del email + EmailLog + Notification in-app en una sola llamada.
   let emailSent = false;
   try {
-    await base44.integrations.Core.SendEmail({
+    const res = await base44.functions.invoke('sendNotificationEmail', {
       to,
       subject,
       body: body || message || '',
-      from_name: fromName
+      from_name: fromName,
+      in_app: {
+        user_email: to,
+        title: title || subject,
+        message: message || body,
+        type,
+        icon,
+        reference_id: referenceId,
+        entity_type: inferEntityTypeFromType(type),
+        priority: type === 'package' ? 'high' : 'medium'
+      }
     });
-    emailSent = true;
+    emailSent = !!res?.data?.email_sent;
   } catch (err) {
-    console.warn('SendEmail skipped:', err?.message || err);
+    console.warn('sendNotificationEmail failed:', err?.message || err);
   }
-
-  // 2) Log + notificación in-app (no bloquear si fallan)
-  createEmailLog({ to, subject, body, status: emailSent ? 'sent' : 'failed' });
-  sendInAppNotification({
-    user_email: to,
-    title: title || subject,
-    message: message || body,
-    type,
-    icon,
-    reference_id: referenceId,
-    entity_type: inferEntityTypeFromType(type),
-    priority: type === 'package' ? 'high' : 'medium'
-  });
 
   return { success: true, email_sent: emailSent };
 }
