@@ -51,23 +51,22 @@ export default function MyPackages({ user }) {
 
   useEffect(() => {
     loadPackages(false);
-    
+
     // Real-time updates
-    if (user) {
-      let debounceTimer;
-      const unsubscribe = base44.entities.Package.subscribe((event) => {
-        if (event.data?.client_email === user.email) {
-          clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => loadPackages(), 1000);
-        }
-      });
-      
-      return () => {
+    if (!user?.email) return;
+    let debounceTimer;
+    const unsubscribe = base44.entities.Package.subscribe((event) => {
+      if (event.data?.client_email === user.email) {
         clearTimeout(debounceTimer);
-        unsubscribe();
-      };
-    }
-  }, [user]);
+        debounceTimer = setTimeout(() => loadPackages(), 1000);
+      }
+    });
+
+    return () => {
+      clearTimeout(debounceTimer);
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [user?.email]);
 
   const loadPackages = async (append = false) => {
     if (!user) return;

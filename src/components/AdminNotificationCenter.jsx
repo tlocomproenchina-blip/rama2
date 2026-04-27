@@ -20,7 +20,7 @@ export default function AdminNotificationCenter({ user }) {
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, [user]);
+  }, [user?.email, user?.role]);
 
 
   const playSound = () => {
