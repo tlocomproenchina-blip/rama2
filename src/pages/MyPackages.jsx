@@ -195,18 +195,18 @@ export default function MyPackages({ user }) {
                 className="pl-10 text-sm"
               />
             </div>
-            <div className="-mx-3 md:mx-0 overflow-x-auto scrollbar-none">
-              <Tabs value={statusFilter} onValueChange={setStatusFilter} className="inline-block">
-                <TabsList className="inline-flex w-max gap-1 rounded-[1.25rem] border border-white/80 bg-white/78 p-1.5 shadow-card backdrop-blur-sm mx-3 md:mx-0 md:grid md:w-full md:grid-cols-7">
-                  <TabsTrigger value="all" className="px-3">Todos</TabsTrigger>
-                  <TabsTrigger value="pre_alerta" className="px-3">Pre-alerta</TabsTrigger>
-                  <TabsTrigger value="recibido" className="px-3">Recibido</TabsTrigger>
-                  <TabsTrigger value="rechazado" className="px-3">Rechazado</TabsTrigger>
-                  <TabsTrigger value="consolidado" className="px-3">Consolidado</TabsTrigger>
-                  <TabsTrigger value="en_transito" className="px-3">En Tránsito</TabsTrigger>
-                  <TabsTrigger value="entregado" className="px-3">Entregado</TabsTrigger>
-                </TabsList>
-              </Tabs>
+            <div>
+              <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 rounded-[1.25rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur-sm">
+                <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
+                <TabsTrigger value="recibido">Recibido</TabsTrigger>
+                <TabsTrigger value="rechazado">Rechazado</TabsTrigger>
+                <TabsTrigger value="consolidado">Consolidado</TabsTrigger>
+                <TabsTrigger value="en_transito">En Tránsito</TabsTrigger>
+                <TabsTrigger value="entregado">Entregado</TabsTrigger>
+              </TabsList>
+            </Tabs>
             </div>
           </div>
         </CardContent>
