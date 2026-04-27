@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, TrendingUp, CalendarDays, Loader2 } from 'lucide-react';
+import { Package, TrendingUp, CalendarDays, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -69,6 +69,22 @@ export default function ClientCbmWidget({ userEmail }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Aviso de pre-cálculo */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 space-y-2">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-amber-800">Pre cálculo de su carga</p>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                En pro de mejorar nuestros servicios, realizamos la revisión de toda la carga una vez llegue a Venezuela.
+              </p>
+              <p className="text-xs font-semibold text-red-600 leading-relaxed">
+                El total del espacio ocupado (CBM) y el monto a pagar lo podrá ver una vez sea emitida la factura.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {byMonth.map((group) => (
           <div key={group.month} className="space-y-2">
             <div className="flex items-center justify-between">
