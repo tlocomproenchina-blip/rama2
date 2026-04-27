@@ -422,24 +422,15 @@ export default function AdminPackages({ user }) {
         found = await base44.entities.Package.filter({ shipping_mark: nextCode }, '-created_date', 50);
       }
 
-      // If still not found, search users by shipping_mark/email/name then fetch their packages
+      // If still not found, search users via server-side regex (no full pagination)
       if (!found || found.length === 0) {
-        let allUsers = [];
-        let skip = 0;
-        while (true) {
-          const batch = await base44.entities.User.list('-created_date', 200, skip);
-          if (!batch || batch.length === 0) break;
-          allUsers = allUsers.concat(batch);
-          if (batch.length < 200) break;
-          skip += 200;
-        }
-        const matchingEmails = allUsers
-          .filter(u => u.role === 'user' && (
-            (u.shipping_mark || '').toLowerCase().includes(q) ||
-            (u.email || '').toLowerCase().includes(q) ||
-            (u.full_name || '').toLowerCase().includes(q)
-          ))
-          .map(u => u.email);
+        const regex = nextCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const [byEmail, byMark, byName] = await Promise.all([
+          base44.entities.User.filter({ email: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
+          base44.entities.User.filter({ shipping_mark: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
+          base44.entities.User.filter({ full_name: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
+        ]);
+        const matchingEmails = Array.from(new Set([...byEmail, ...byMark, ...byName].map(u => u.email).filter(Boolean)));
         if (matchingEmails.length > 0) {
           const results = [];
           for (const email of matchingEmails.slice(0, 5)) {
@@ -548,38 +539,30 @@ export default function AdminPackages({ user }) {
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
+        const term = search.trim();
+        const regex = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
         // Search by tracking
-        let found = await base44.entities.Package.filter({ tracking_number: search.trim() }, '-created_date', 5);
-        // If not found, search by shipping_mark (contains)
-        if ((!found || found.length === 0)) {
-          // Load users that match the search to find their packages
-          let allUsers = [];
-          let skip = 0;
-          while (true) {
-            const batch = await base44.entities.User.list('-created_date', 200, skip);
-            if (!batch || batch.length === 0) break;
-            allUsers = allUsers.concat(batch);
-            if (batch.length < 200) break;
-            skip += 200;
+        let found = await base44.entities.Package.filter({ tracking_number: term }, '-created_date', 5);
+
+        // Server-side regex search on users (no full pagination)
+        const [byEmail, byMark, byName] = await Promise.all([
+          base44.entities.User.filter({ email: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
+          base44.entities.User.filter({ shipping_mark: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
+          base44.entities.User.filter({ full_name: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
+        ]);
+        const matchingEmails = Array.from(new Set([...byEmail, ...byMark, ...byName].map(u => u.email).filter(Boolean)));
+
+        if ((!found || found.length === 0) && matchingEmails.length > 0) {
+          const results = [];
+          for (const email of matchingEmails.slice(0, 5)) {
+            const pkgs = await base44.entities.Package.filter({ client_email: email }, '-created_date', 50);
+            if (pkgs) results.push(...pkgs);
           }
-          const matchingEmails = allUsers
-            .filter(u => u.role === 'user' && (
-              (u.shipping_mark || '').toLowerCase().includes(q) ||
-              (u.email || '').toLowerCase().includes(q) ||
-              (u.full_name || '').toLowerCase().includes(q)
-            ))
-            .map(u => u.email);
-          if (matchingEmails.length > 0) {
-            const results = [];
-            for (const email of matchingEmails.slice(0, 5)) {
-              const pkgs = await base44.entities.Package.filter({ client_email: email }, '-created_date', 50);
-              if (pkgs) results.push(...pkgs);
-            }
-            found = results;
-          }
+          found = results;
         }
         if (!cancelled) {
-          const emails = [];
+          const emails = [...matchingEmails];
           if (found && found.length > 0) {
             setPackages(prev => {
               const existingIds = new Set(prev.map(p => p.id));
@@ -590,26 +573,6 @@ export default function AdminPackages({ user }) {
               if (pkg?.client_email) emails.push(pkg.client_email);
             });
             toast.success(`${found.length} paquete(s) encontrado(s)`);
-          }
-          if (!emails.length) {
-            let allUsers = [];
-            let skip = 0;
-            while (true) {
-              const batch = await base44.entities.User.list('-created_date', 200, skip);
-              if (!batch || batch.length === 0) break;
-              allUsers = allUsers.concat(batch);
-              if (batch.length < 200) break;
-              skip += 200;
-            }
-            allUsers
-              .filter(u => u.role === 'user' && (
-                (u.shipping_mark || '').toLowerCase().includes(q) ||
-                (u.email || '').toLowerCase().includes(q) ||
-                (u.full_name || '').toLowerCase().includes(q)
-              ))
-              .forEach((u) => {
-                if (u.email) emails.push(u.email);
-              });
           }
           setClientSearchEmails(Array.from(new Set(emails)));
         }
