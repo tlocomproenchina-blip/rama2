@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
+import OptimizedImage from '@/components/OptimizedImage';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
@@ -349,13 +350,13 @@ export default function MyPackages({ user }) {
             {selectedGallery && selectedGallery.length > 1 && (
               <div className="grid grid-cols-3 gap-2">
                 {selectedGallery.map((url, idx) => (
-                  <img
+                  <div
                     key={idx}
-                    src={url}
-                    alt={`mini-${idx+1}`}
-                    className={`w-full h-20 object-cover rounded cursor-pointer ${selectedImage===url ? 'ring-2 ring-blue-500' : ''}`}
+                    className={`h-20 rounded cursor-pointer overflow-hidden ${selectedImage===url ? 'ring-2 ring-blue-500' : ''}`}
                     onClick={() => setSelectedImage(url)}
-                  />
+                  >
+                    <OptimizedImage src={url} alt={`mini-${idx+1}`} className="w-full h-full" />
+                  </div>
                 ))}
               </div>
             )}

@@ -38,6 +38,7 @@ import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
 import PackageImportDialog from '@/components/imports/PackageImportDialog';
 import BulkPhotoUploadModal from '@/components/admin/BulkPhotoUploadModal';
 import MobilePackageCard from '@/components/admin/MobilePackageCard';
+import OptimizedImage from '@/components/OptimizedImage';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 export default function AdminPackages({ user }) {
@@ -1184,14 +1185,14 @@ export default function AdminPackages({ user }) {
                 <p className="text-sm font-medium text-slate-700">Fotos actuales</p>
                 <div className="grid grid-cols-3 gap-2">
                   {(editImageModal.package_image_urls && editImageModal.package_image_urls.length > 0 ? editImageModal.package_image_urls : (editImageModal.package_image_url ? [editImageModal.package_image_url] : [])).map((url, idx) => (
-                    <img
+                    <div
                       key={idx}
-                      src={url}
-                      alt={`Actual ${idx+1}`}
-                      className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity ring-offset-2 hover:ring-2 hover:ring-blue-400"
+                      className="h-24 rounded-lg cursor-pointer hover:opacity-80 transition-opacity ring-offset-2 hover:ring-2 hover:ring-blue-400 overflow-hidden"
                       onClick={() => window.open(url, '_blank')}
                       title="Click para abrir en tamaño completo"
-                    />
+                    >
+                      <OptimizedImage src={url} alt={`Actual ${idx+1}`} className="w-full h-full" />
+                    </div>
                   ))}
                 </div>
               </div>
