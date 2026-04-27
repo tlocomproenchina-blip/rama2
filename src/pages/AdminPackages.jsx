@@ -5,15 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { Package, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import AdvancedSearch from '@/components/admin/AdvancedSearch';
 import BulkProgressIndicator from '@/components/admin/packages/BulkProgressIndicator';
 import PackagesWindowSummary from '@/components/admin/packages/PackagesWindowSummary';
+import ViewImageModal from '@/components/admin/packages/ViewImageModal';
+import PackagesMobileList from '@/components/admin/packages/PackagesMobileList';
 import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
 import PackageImportDialog from '@/components/imports/PackageImportDialog';
 import BulkPhotoUploadModal from '@/components/admin/BulkPhotoUploadModal';
-import MobilePackageCard from '@/components/admin/MobilePackageCard';
 import PreAlertEditorModal from '@/components/admin/packages/PreAlertEditorModal';
 import ReceivePackageModal from '@/components/admin/packages/ReceivePackageModal';
 import EditImageModal from '@/components/admin/packages/EditImageModal';
@@ -626,32 +626,17 @@ export default function AdminPackages({ user }) {
 
       <PackagesWindowSummary summary={simpleWindowSummary} />
 
-      {/* Mobile Packages List (stacked) */}
-      <div className="grid gap-3 2xl:hidden">
-        {filteredPackages.map((pkg) => (
-          <MobilePackageCard
-            key={pkg.id}
-            pkg={pkg}
-            isSelected={selectedPackages.includes(pkg.id)}
-            onSelect={(checked) => handleSelectPackage(pkg.id, checked)}
-            onCreateTicket={() => handleCreateTicket(pkg)}
-            onReceive={() => setReceiveModal(pkg)}
-            onViewImage={(url) => setViewImage(url)}
-            onEditImage={() => setEditImageModal(pkg)}
-            onCancelReception={() => setCancelReceptionModal(pkg)}
-            onStatusChange={(val) => handleStatusChange(pkg, val)}
-          />
-        ))}
-      </div>
-
-      {filteredPackages.length === 0 && (
-        <Card className="lg:hidden border-0 shadow-lg">
-          <CardContent className="p-12 text-center">
-            <Package className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-            <p className="text-slate-500">No se encontraron paquetes</p>
-          </CardContent>
-        </Card>
-      )}
+      <PackagesMobileList
+        packages={filteredPackages}
+        selectedPackages={selectedPackages}
+        onSelect={handleSelectPackage}
+        onCreateTicket={handleCreateTicket}
+        onReceive={(pkg) => setReceiveModal(pkg)}
+        onViewImage={(url) => setViewImage(url)}
+        onEditImage={(pkg) => setEditImageModal(pkg)}
+        onCancelReception={(pkg) => setCancelReceptionModal(pkg)}
+        onStatusChange={handleStatusChange}
+      />
 
       <PackagesDesktopTable
         packages={filteredPackages}
@@ -694,15 +679,7 @@ export default function AdminPackages({ user }) {
         onConfirm={handleReceive}
       />
 
-      {/* View Image Modal */}
-      <Dialog open={!!viewImage} onOpenChange={() => setViewImage(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Foto del Paquete</DialogTitle>
-          </DialogHeader>
-          <img src={viewImage} alt="Paquete" className="w-full rounded-lg" />
-        </DialogContent>
-      </Dialog>
+      <ViewImageModal imageUrl={viewImage} onClose={() => setViewImage(null)} />
 
       <EditImageModal
         pkg={editImageModal}
