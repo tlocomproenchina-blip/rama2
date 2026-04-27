@@ -1,54 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { ROLE_OPTIONS, ROLE_PRESETS } from '@/lib/rolePermissions';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Users, 
-  Search, 
-  Edit2,
-  Save,
-  X,
-  Loader2,
-  Package,
-  MapPin,
-  Phone,
-  Mail,
-  Tag,
-  CheckCircle,
-  Clock,
-  Eye,
-  Trash2,
-  AlertTriangle,
-  Copy,
-  Plus,
-  Upload,
-  Plane,
-  Ship,
-  Download,
-  Filter,
-  UserCheck,
-  UserX,
-  CreditCard,
-  CalendarDays,
-  Crown
-} from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal';
 import ClientImportDialog from '@/components/imports/ClientImportDialog';
 import { getDigits, sanitizeClientProfileData } from '@/lib/inputSanitizers';
+import ClientsHeaderActions from '@/components/admin/clients/ClientsHeaderActions';
+import ClientsStatsCards from '@/components/admin/clients/ClientsStatsCards';
+import ClientsFiltersPanel from '@/components/admin/clients/ClientsFiltersPanel';
+import ClientsList from '@/components/admin/clients/ClientsList';
+import AddPackageDialog from '@/components/admin/clients/AddPackageDialog';
+import EditClientDialog from '@/components/admin/clients/EditClientDialog';
+import DeleteClientDialog from '@/components/admin/clients/DeleteClientDialog';
 
 export default function AdminClients({ user }) {
   const [clients, setClients] = useState([]);
@@ -134,9 +98,6 @@ export default function AdminClients({ user }) {
       console.error('Error loading states:', error);
     }
   };
-
-
-
 
   const loadClients = async (append = false) => {
     try {
@@ -283,10 +244,6 @@ Email: ${client.email}`;
     toast.success('Información copiada al portapapeles');
   };
 
-
-
-
-
   // Pide al backend TODOS los clientes que coinciden con los filtros (sin paginar)
   const fetchAllFilteredClients = async () => {
     const res = await base44.functions.invoke('listClientsForSupport', {
@@ -335,24 +292,6 @@ Email: ${client.email}`;
     }
   };
 
-  const handleExportAllClients = async () => {
-    try {
-      const response = await base44.functions.invoke('exportClientsToTxt');
-      
-      const blob = new Blob([response.data], { type: 'text/plain;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `clientes_${new Date().toISOString().split('T')[0]}.txt`;
-      link.click();
-      URL.revokeObjectURL(url);
-      
-      toast.success(`${clients.length} clientes exportados a TXT`);
-    } catch (error) {
-      toast.error('Error al exportar datos');
-    }
-  };
-
   const handleBackfillStripeCustomers = async () => {
     setBackfilling(true);
     try {
@@ -365,57 +304,6 @@ Email: ${client.email}`;
       toast.error('Error al ejecutar backfill de Stripe');
     }
     setBackfilling(false);
-  };
-
-  const handleExportPendingClients = async () => {
-    try {
-      // Pedir TODOS los pendientes al backend (no solo la página actual)
-      const res = await base44.functions.invoke('listClientsForSupport', {
-        limit: 200, skip: 0, exclusiveKey: 'pending', includeCounts: false,
-      });
-      let pendingClients = res?.data?.data || [];
-      const total = res?.data?.total || pendingClients.length;
-      while (pendingClients.length < total) {
-        const more = await base44.functions.invoke('listClientsForSupport', {
-          limit: 200, skip: pendingClients.length, exclusiveKey: 'pending', includeCounts: false,
-        });
-        const batch = more?.data?.data || [];
-        if (batch.length === 0) break;
-        pendingClients = pendingClients.concat(batch);
-      }
-
-      if (pendingClients.length === 0) {
-        toast.error('No hay clientes pendientes de Shipping Mark');
-        return;
-      }
-
-      const lines = [];
-      pendingClients.forEach((client, index) => {
-        lines.push(`Nombre: ${(client.first_name || '') + ' ' + (client.last_name || '')}`.trim());
-        lines.push(`Estado: ${client.state || ''}`);
-        lines.push(`Ciudad: ${client.city || ''}`);
-        lines.push(`Direccion: ${client.address || ''}`);
-        lines.push(`WhatsApp: ${client.whatsapp || ''}`);
-        lines.push(`Email: ${client.email}`);
-        lines.push(`Codigo asignado: ${client.shipping_mark || ''}`);
-        if (index < pendingClients.length - 1) {
-          lines.push('');
-        }
-      });
-
-      const txtContent = lines.join('\n');
-      const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `clientes-pendientes-shipping-mark-${new Date().toISOString().split('T')[0]}.txt`;
-      link.click();
-      URL.revokeObjectURL(url);
-
-      toast.success(`${pendingClients.length} clientes pendientes exportados a TXT`);
-    } catch (error) {
-      toast.error('Error al exportar datos');
-    }
   };
 
   const handleExportFilteredClients = async () => {
@@ -631,21 +519,6 @@ Email: ${client.email}`;
     setSaving(false);
   };
 
-  const hasIncompleteData = (client) => {
-    return !client.first_name || !client.last_name || !client.whatsapp || !client.state || !client.city || !client.address;
-  };
-
-  const hasValidShippingMark = (client) => {
-    return !!(client.shipping_mark && client.shipping_mark.trim().length > 0);
-  };
-
-  // Flexible search helpers: ignore accents, case, spaces and symbols; numeric-only for phones
-  const removeDiacritics = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const normalizeText = (str) => removeDiacritics(str).toLowerCase().replace(/\s+/g, ' ').trim();
-  const normalizeAlnum = (str) => normalizeText(str).replace(/[^a-z0-9]/g, '');
-  const getDigits = (str) => (str || '').replace(/\D/g, '');
-  const stripSpecialCharacters = (str) => removeDiacritics(str).replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
-
   const resetAllFilters = () => {
     setSearch('');
     setStatusFilter('all');
@@ -735,299 +608,39 @@ Email: ${client.email}`;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Gestión de Clientes</h1>
-          <p className="text-slate-500">Administra los usuarios y asigna Shipping Marks</p>
-        </div>
-        {canExport && (
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+      <ClientsHeaderActions
+        canExport={canExport}
+        backfilling={backfilling}
+        onOpenImport={() => setImportModalOpen(true)}
+        onExportFiltered={handleExportFilteredClients}
+        onExportRemarketing={handleExportClients}
+        onBackfillStripe={handleBackfillStripeCustomers}
+      />
 
-            <Button 
-              onClick={() => setImportModalOpen(true)}
-              variant="outline"
-              className="w-full sm:w-auto"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Importar Clientes
-            </Button>
-            <Button 
-              onClick={handleExportFilteredClients}
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
-              title="Exporta los clientes según los filtros actuales"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Selección (TXT)
-            </Button>
-            <Button 
-              onClick={handleExportClients}
-              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar para Remarketing
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={handleBackfillStripeCustomers}
-              disabled={backfilling}
-              className="w-full sm:w-auto border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-              title="Crear clientes en Stripe para todos los usuarios sin uno"
-            >
-              {backfilling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
-              Backfill Stripe
-            </Button>
-          </div>
-        )}
-      </div>
+      <ClientsStatsCards counts={counts} fallbackTotal={clients.length} />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Total Clientes</p>
-                <p className="text-3xl font-bold text-slate-800">{counts.total || clients.length}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-xl">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <ClientsFiltersPanel
+        fromDate={fromDate} setFromDate={setFromDate}
+        toDate={toDate} setToDate={setToDate}
+        quickDate={quickDate} setQuickDate={setQuickDate}
+        exclusiveKey={exclusiveKey}
+        counts={counts}
+        registeredCount={registeredClients.length}
+        statusFilter={statusFilter}
+        activeFilter={activeFilter}
+        packageFilter={packageFilter}
+        whatsappFilter={whatsappFilter}
+        selectStatus={selectStatus}
+        selectActive={selectActive}
+        selectPackage={selectPackage}
+        selectWhatsapp={selectWhatsapp}
+        stateFilter={stateFilter}
+        setStateFilter={setStateFilter}
+        stateConfigs={stateConfigs}
+        onResetFilters={resetAllFilters}
+      />
 
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Con Shipping Mark</p>
-                <p className="text-3xl font-bold text-slate-800">
-                  {counts.withMark}
-                </p>
-              </div>
-              <div className="p-3 bg-emerald-100 rounded-xl">
-                <CheckCircle className="h-6 w-6 text-emerald-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Pendientes</p>
-                <p className="text-3xl font-bold text-slate-800">
-                  {counts.pending}
-                </p>
-              </div>
-              <div className="p-3 bg-amber-100 rounded-xl">
-                <Clock className="h-6 w-6 text-amber-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Total Paquetes</p>
-                <p className="text-3xl font-bold text-slate-800">
-                  {counts.totalPackages}
-                </p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-xl">
-                <Package className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search & Filters */}
-      <Card className="border-0 shadow-md">
-        <CardContent className="p-4 space-y-3">
-
-          
-          {/* Date Filter */}
-          <div className="flex flex-col gap-2 p-3 bg-slate-50 rounded-lg">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-slate-700">Filtrar por rango de fechas:</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Desde</span>
-                <Input
-                  type="date"
-                  value={fromDate || ''}
-                  onChange={(e) => { setFromDate(e.target.value); setQuickDate('all'); }}
-                  className="w-auto"
-                />
-                <span className="text-xs text-slate-500">Hasta</span>
-                <Input
-                  type="date"
-                  value={toDate || ''}
-                  onChange={(e) => { setToDate(e.target.value); setQuickDate('all'); }}
-                  className="w-auto"
-                />
-                {(fromDate || toDate) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setFromDate(''); setToDate(''); }}
-                  >
-                    Limpiar
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant={quickDate === 'all' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('all'); setFromDate(''); setToDate(''); }}>Todas</Button>
-              <Button variant={quickDate === 'today' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('today'); setFromDate(''); setToDate(''); }}>Hoy</Button>
-              <Button variant={quickDate === '7d' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('7d'); setFromDate(''); setToDate(''); }}>Últimos 7 días</Button>
-              <Button variant={quickDate === '30d' ? 'default' : 'outline'} size="sm" onClick={() => { setQuickDate('30d'); setFromDate(''); setToDate(''); }}>Últimos 30 días</Button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-500" />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'all'}
-                size="sm"
-                onClick={() => selectStatus('all')}
-                className={(exclusiveKey === 'all') ? 'bg-slate-900 text-white border-slate-900' : ''}
-              >
-                Todos ({counts.total || registeredClients.length})
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'with_mark'}
-                size="sm"
-                onClick={() => selectStatus(statusFilter === 'with_mark' ? 'all' : 'with_mark')}
-                className={(exclusiveKey === 'with_mark') ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
-              >
-                <CheckCircle className="h-3 w-3 mr-1" /> Con Shipping Mark ({counts.withMark})
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'without_mark'}
-                size="sm"
-                onClick={() => selectStatus(statusFilter === 'without_mark' ? 'all' : 'without_mark')}
-                className={(exclusiveKey === 'without_mark') ? 'bg-amber-100 text-amber-700 border-amber-200' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}
-              >
-                <AlertTriangle className="h-3 w-3 mr-1" /> Sin Shipping Mark ({counts.withoutMark})
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'pending'}
-                size="sm"
-                onClick={() => selectStatus(statusFilter === 'pending' ? 'all' : 'pending')}
-                className={(exclusiveKey === 'pending') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
-              >
-                <Clock className="h-3 w-3 mr-1" /> Pendientes ({counts.pending})
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'incomplete'}
-                size="sm"
-                onClick={() => selectStatus(statusFilter === 'incomplete' ? 'all' : 'incomplete')}
-                className={(exclusiveKey === 'incomplete') ? 'bg-red-100 text-red-700 border-red-200' : 'border-red-200 text-red-700 hover:bg-red-50'}
-              >
-                <AlertTriangle className="h-3 w-3 mr-1" /> Con Datos Faltantes ({counts.incomplete})
-              </Button>
-              {/* New Filters */}
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'active'}
-                size="sm"
-                onClick={() => selectActive(activeFilter === 'active' ? 'all' : 'active')}
-                className={(exclusiveKey === 'active')
-                  ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
-              >
-                <UserCheck className="h-3 w-3 mr-1" /> Activos ({counts.active})
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'inactive'}
-                size="sm"
-                onClick={() => selectActive(activeFilter === 'inactive' ? 'all' : 'inactive')}
-                className={(exclusiveKey === 'inactive')
-                  ? 'bg-rose-100 text-rose-700 border-rose-200'
-                  : 'border-rose-200 text-rose-700 hover:bg-rose-50'}
-              >
-                <UserX className="h-3 w-3 mr-1" /> Inactivos ({counts.inactive})
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'with_packages'}
-                size="sm"
-                onClick={() => selectPackage(packageFilter === 'with_packages' ? 'all' : 'with_packages')}
-                className={(exclusiveKey === 'with_packages')
-                  ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
-                  : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'}
-              >
-                <Package className="h-3 w-3 mr-1" /> Con Paquetes ({counts.withPackages})
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'without_packages'}
-                size="sm"
-                onClick={() => selectPackage(packageFilter === 'without_packages' ? 'all' : 'without_packages')}
-                className={(exclusiveKey === 'without_packages')
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
-              >
-                <Package className="h-3 w-3 mr-1" /> Sin Paquetes ({counts.withoutPackages})
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'with_whatsapp'}
-                size="sm"
-                onClick={() => selectWhatsapp(whatsappFilter === 'with' ? 'all' : 'with')}
-                className={(exclusiveKey === 'with_whatsapp')
-                  ? 'bg-green-100 text-green-700 border-green-200'
-                  : 'border-green-200 text-green-700 hover:bg-green-50'}
-              >
-                <Phone className="h-3 w-3 mr-1" /> Con WhatsApp ({counts.withWhatsapp})
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={exclusiveKey === 'without_whatsapp'}
-                size="sm"
-                onClick={() => selectWhatsapp(whatsappFilter === 'without' ? 'all' : 'without')}
-                className={(exclusiveKey === 'without_whatsapp')
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
-              >
-                <Phone className="h-3 w-3 mr-1" /> Sin WhatsApp ({counts.withoutWhatsapp})
-              </Button>
-            </div>
-          </div>
-          {/* State Filter */}
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-sm text-slate-600">Estado:</span>
-            <Select value={stateFilter} onValueChange={(v) => setStateFilter(v)}>
-              <SelectTrigger className="w-56">
-                <SelectValue placeholder="Todos los estados" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                {stateConfigs.map((s) => (
-                  <SelectItem key={s.state_code} value={s.state_code}>{s.state_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={resetAllFilters} className="ml-auto">Limpiar filtros</Button>
-            </div>
-
-
-               </CardContent>
-               </Card>
-
-      {/* Quick Search (moved below filters) */}
+      {/* Quick Search */}
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
@@ -1048,194 +661,22 @@ Email: ${client.email}`;
         </div>
       )}
 
-      {/* Clients List */}
-      {filteredClients.length === 0 ? (
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-12 text-center">
-            <Users className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin clientes</h3>
-            <p className="text-slate-500">No se encontraron clientes</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-        <div className="grid gap-4">
-          {filteredClients.map((client) => (
-            <Card 
-              key={client.id} 
-              className={`border-0 shadow-md hover:shadow-lg transition-shadow ${
-                !hasValidShippingMark(client) && client.profile_completed && !hasIncompleteData(client) ? 'border-l-4 border-l-amber-400' : ''
-              }`}
-            >
-              <CardContent className="p-4 lg:p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                  {/* Avatar & Name */}
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                      {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-800">
-                        {client.first_name && client.last_name 
-                          ? `${client.first_name} ${client.last_name}`
-                          : client.email
-                        }
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                        <Mail className="h-3 w-3" />
-                        {client.email}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Details */}
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
-                    <Badge variant="outline" className="bg-slate-50">
-                      Rol: {client.role === 'admin' ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Crown className="h-3 w-3 text-amber-500" />
-                          {ROLE_PRESETS[client.custom_role]?.role_name || 'Administrador'}
-                        </span>
-                      ) : 'Cliente'}
-                    </Badge>
-                    {client.city && (
-                      <Badge variant="outline" className="bg-slate-50">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {client.city}
-                      </Badge>
-                    )}
-                    {client.whatsapp && (
-                      <Badge variant="outline" className="bg-slate-50">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {client.whatsapp}
-                      </Badge>
-                    )}
-                    {hasValidShippingMark(client) ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                        <Tag className="h-3 w-3 mr-1" />
-                        {client.shipping_mark}
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-amber-100 text-amber-700 border-amber-200">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Sin Shipping Mark
-                      </Badge>
-                    )}
-                    {client.created_date && (
-                      <Badge variant="outline" className="bg-slate-50">
-                        <CalendarDays className="h-3 w-3 mr-1" />
-                        {format(new Date(client.created_date), 'dd MMM yyyy', { locale: es })}
-                      </Badge>
-                    )}
-                    <Badge variant="outline">
-                      <Package className="h-3 w-3 mr-1" />
-                      {packagesCount[client.email] || 0} paquetes
-                    </Badge>
-                    {client.is_active === false && (
-                      <Badge className="bg-red-100 text-red-700 border-red-200">Inactivo</Badge>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex items-stretch gap-2 w-full">
-                    <div className="flex items-center gap-2 pb-2 sm:pb-0 sm:pr-3 sm:border-r border-b sm:border-b-0 border-slate-200">
-                      <span className="text-xs text-slate-600">Activo</span>
-                      <Switch
-                        checked={client.is_active !== false}
-                        onCheckedChange={(checked) => handleToggleActive(client, checked)}
-                      />
-                    </div>
-                    <Button 
-                     variant="outline" 
-                     size="sm"
-                     className="w-full sm:w-auto"
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       handleCopyClientInfo(client);
-                     }}
-                     title="Copiar información"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                     variant="outline" 
-                     size="sm"
-                     onClick={() => {
-                       setPackageClient(client);
-                       setAddingPackage(true);
-                     }}
-                     className="w-full sm:w-auto bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Paquete
-                    </Button>
-                    <Button 
-                     variant="outline" 
-                     size="sm"
-                     className="w-full sm:w-auto"
-                     onClick={() => setViewClient(client)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver
-                    </Button>
-                    <div className="w-full sm:w-auto min-w-[180px]">
-                      <Select
-                        value={client.role === 'admin' ? (client.custom_role || 'equipo_y_acceso') : 'user'}
-                        onValueChange={(value) => handleChangeRegisteredUserRole(client, value)}
-                        disabled={roleUpdatingId === client.id}
-                      >
-                        <SelectTrigger className="h-9 bg-white">
-                          <SelectValue placeholder="Cambiar rol" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">Cliente</SelectItem>
-                          <SelectItem value="equipo_y_acceso">👑 Administrador</SelectItem>
-                          {ROLE_OPTIONS.filter((role) => role !== 'super_admin_oculto' && role !== 'equipo_y_acceso').map((role) => (
-                            <SelectItem key={role} value={role}>{ROLE_PRESETS[role]?.role_name || role}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button 
-                     variant="outline" 
-                     size="sm"
-                     className="w-full sm:w-auto"
-                     onClick={() => handleEdit(client)}
-                    >
-                      <Edit2 className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                    {client.stripe_customer_id && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleDeleteStripeCustomer(client)}
-                        className="w-full sm:w-auto text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" /> Stripe
-                      </Button>
-                    )}
-                    <Button 
-                     variant="outline" 
-                     size="sm"
-                     onClick={() => setDeleteClient(client)}
-                     className="w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        {hasMore && (
-          <Button variant="outline" className="w-full mt-4" onClick={() => loadClients(true)} disabled={loadingMore}>
-            {loadingMore ? 'Cargando...' : 'Cargar más'}
-          </Button>
-        )}
-        </>
-      )}
+      <ClientsList
+        clients={filteredClients}
+        packagesCount={packagesCount}
+        roleUpdatingId={roleUpdatingId}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadMore={() => loadClients(true)}
+        onCopyInfo={handleCopyClientInfo}
+        onAddPackage={(client) => { setPackageClient(client); setAddingPackage(true); }}
+        onView={(client) => setViewClient(client)}
+        onEdit={handleEdit}
+        onDelete={(client) => setDeleteClient(client)}
+        onDeleteStripeCustomer={handleDeleteStripeCustomer}
+        onToggleActive={handleToggleActive}
+        onChangeRole={handleChangeRegisteredUserRole}
+      />
 
       {/* Client Details Modal */}
       <ClientDetailsModal
@@ -1251,273 +692,34 @@ Email: ${client.email}`;
         onImported={loadClients}
       />
 
-      {/* Add Package Dialog */}
-      <Dialog open={addingPackage} onOpenChange={setAddingPackage}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Agregar Paquete Recibido</DialogTitle>
-            <DialogDescription>
-              Crear paquete directamente como recibido para {packageClient?.email}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Número de Tracking *</Label>
-              <Input
-                value={newPackage.tracking_number}
-                onChange={(e) => setNewPackage({ ...newPackage, tracking_number: e.target.value })}
-                placeholder="Ej: 1234567890"
-              />
-            </div>
+      <AddPackageDialog
+        open={addingPackage}
+        onOpenChange={setAddingPackage}
+        packageClient={packageClient}
+        newPackage={newPackage}
+        setNewPackage={setNewPackage}
+        uploadingImage={uploadingImage}
+        onImageUpload={handleImageUpload}
+        saving={saving}
+        onSubmit={handleAddPackage}
+      />
 
-            <div className="space-y-2">
-              <Label>Descripción *</Label>
-              <Textarea
-                value={newPackage.description}
-                onChange={(e) => setNewPackage({ ...newPackage, description: e.target.value })}
-                placeholder="Describe el contenido del paquete"
-                rows={3}
-              />
-            </div>
+      <DeleteClientDialog
+        deleteClient={deleteClient}
+        deleting={deleting}
+        onClose={() => setDeleteClient(null)}
+        onConfirm={handleDelete}
+      />
 
-            <div className="space-y-2">
-              <Label>Tipo de Envío</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setNewPackage({ ...newPackage, shipping_type: 'aereo' })}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    newPackage.shipping_type === 'aereo'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <Plane className={`h-5 w-5 mx-auto mb-1 ${
-                    newPackage.shipping_type === 'aereo' ? 'text-blue-600' : 'text-slate-400'
-                  }`} />
-                  <span className="text-sm font-medium">Aéreo</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewPackage({ ...newPackage, shipping_type: 'maritimo' })}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    newPackage.shipping_type === 'maritimo'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <Ship className={`h-5 w-5 mx-auto mb-1 ${
-                    newPackage.shipping_type === 'maritimo' ? 'text-blue-600' : 'text-slate-400'
-                  }`} />
-                  <span className="text-sm font-medium">Marítimo</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-              <Checkbox
-                id="package-insurance"
-                checked={newPackage.has_insurance}
-                onCheckedChange={(checked) => setNewPackage({ ...newPackage, has_insurance: checked })}
-              />
-              <div className="flex-1">
-                <label htmlFor="package-insurance" className="font-medium text-slate-800 cursor-pointer">
-                  Asegurar Carga
-                </label>
-                {newPackage.has_insurance && (
-                  <div className="mt-2 space-y-2">
-                    <Label>Valor FOB (USD)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={newPackage.fob_value}
-                      onChange={(e) => setNewPackage({ ...newPackage, fob_value: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Imagen del Paquete (Opcional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e.target.files[0])}
-                  disabled={uploadingImage}
-                />
-                {uploadingImage && <Loader2 className="h-5 w-5 animate-spin text-blue-600" />}
-              </div>
-              {newPackage.package_image_url && (
-                <img src={newPackage.package_image_url} alt="Preview" className="h-32 rounded-lg border" />
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddingPackage(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAddPackage} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              Agregar Paquete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteClient} onOpenChange={() => setDeleteClient(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              ¿Eliminar Cliente?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Estás a punto de eliminar a{' '}
-              <span className="font-semibold text-slate-800">
-                {deleteClient?.first_name && deleteClient?.last_name
-                  ? `${deleteClient.first_name} ${deleteClient.last_name}`
-                  : deleteClient?.email}
-              </span>
-              . Esta acción no se puede deshacer.
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800 text-sm font-medium">
-                  ⚠️ Se eliminarán en cascada TODOS los datos asociados (paquetes, consolidaciones, facturas, tickets, notificaciones, notas, etc.).
-                  Además, si existe un cliente en Stripe vinculado, también se eliminará.
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleDelete();
-              }}
-              disabled={deleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deleting ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Eliminando...</>
-              ) : (
-                <><Trash2 className="h-4 w-4 mr-2" /> Eliminar</>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Edit Modal */}
-      <Dialog open={!!editClient} onOpenChange={() => setEditClient(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto sm:max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Editar Cliente</DialogTitle>
-            <DialogDescription>
-              Actualiza la información del cliente y asigna o modifica su Shipping Mark
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Nombre</Label>
-                <Input
-                  value={editData.first_name}
-                  onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
-                  placeholder="Nombre"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Apellido</Label>
-                <Input
-                  value={editData.last_name}
-                  onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
-                  placeholder="Apellido"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> Estado
-              </Label>
-              <select
-                value={editData.state}
-                onChange={(e) => setEditData({ ...editData, state: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecciona un estado</option>
-                {stateConfigs.map((state) => (
-                  <option key={state.state_code} value={state.state_code}>
-                    {state.state_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> Ciudad
-              </Label>
-              <Input
-                value={editData.city}
-                onChange={(e) => setEditData({ ...editData, city: e.target.value })}
-                placeholder="Ciudad de entrega"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> Dirección
-              </Label>
-              <Textarea
-                value={editData.address}
-                onChange={(e) => setEditData({ ...editData, address: e.target.value })}
-                placeholder="Dirección completa"
-                rows={2}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Phone className="h-4 w-4" /> WhatsApp
-              </Label>
-              <Input
-                value={editData.whatsapp}
-                onChange={(e) => setEditData({ ...editData, whatsapp: e.target.value })}
-                placeholder="+58 412 1234567"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Tag className="h-4 w-4" /> Shipping Mark
-              </Label>
-              <Input
-                value={editData.shipping_mark || ''}
-                onChange={(e) => setEditData({ ...editData, shipping_mark: e.target.value })}
-                placeholder="Ingresa el Shipping Mark completo"
-                className="font-mono"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="sticky bottom-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t border-slate-200">
-            <Button variant="outline" onClick={() => setEditClient(null)}>
-              <X className="h-4 w-4 mr-2" />
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              Guardar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditClientDialog
+        open={!!editClient}
+        onOpenChange={() => setEditClient(null)}
+        editData={editData}
+        setEditData={setEditData}
+        stateConfigs={stateConfigs}
+        saving={saving}
+        onSave={handleSave}
+      />
     </div>
   );
 }
