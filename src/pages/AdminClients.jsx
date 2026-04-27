@@ -683,7 +683,32 @@ Email: ${client.email}`;
 
   const registeredClients = useMemo(() => clients.filter((client) => client.custom_role !== 'super_admin_oculto'), [clients]);
 
-  const filteredClients = registeredClients.filter(client => {
+  // Memoize counts en un solo recorrido (antes: 14 .filter() por render)
+  const counts = useMemo(() => {
+    const c = {
+      withMark: 0, withoutMark: 0, pending: 0, incomplete: 0,
+      active: 0, inactive: 0,
+      withPackages: 0, withoutPackages: 0,
+      withWhatsapp: 0, withoutWhatsapp: 0,
+      totalPackages: 0,
+    };
+    for (const client of clients) {
+      const validMark = !!(client.shipping_mark && client.shipping_mark.trim().length > 0);
+      const incomplete = !client.first_name || !client.last_name || !client.whatsapp || !client.state || !client.city || !client.address;
+      const pkgCount = packagesCount[client.email] || 0;
+
+      if (validMark) c.withMark++; else c.withoutMark++;
+      if (!validMark && !incomplete) c.pending++;
+      if (incomplete) c.incomplete++;
+      if (client.is_active === false) c.inactive++; else c.active++;
+      if (pkgCount > 0) c.withPackages++; else c.withoutPackages++;
+      if (client.whatsapp) c.withWhatsapp++; else c.withoutWhatsapp++;
+      c.totalPackages += pkgCount;
+    }
+    return c;
+  }, [clients, packagesCount]);
+
+  const filteredClients = useMemo(() => registeredClients.filter(client => {
   // Map stored value (code or name) to code for filtering
   const clientStateCode = (client.state && client.state.includes(' ')) ? null : client.state;
 
@@ -758,7 +783,7 @@ Email: ${client.email}`;
     const matchesState = stateFilter === 'all' ? true : clientStateCode === stateFilter;
 
     return matchesRange && matchesQuick && matchesCategory && matchesState;
-  });
+  }), [registeredClients, exactIds, search, fromDate, toDate, quickDate, exclusiveKey, stateFilter, packagesCount]);
 
   if (loading) {
     return (
@@ -838,7 +863,7 @@ Email: ${client.email}`;
               <div>
                 <p className="text-sm text-slate-500">Con Shipping Mark</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {clients.filter(c => hasValidShippingMark(c)).length}
+                  {counts.withMark}
                 </p>
               </div>
               <div className="p-3 bg-emerald-100 rounded-xl">
@@ -854,7 +879,7 @@ Email: ${client.email}`;
               <div>
                 <p className="text-sm text-slate-500">Pendientes</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c)).length}
+                  {counts.pending}
                 </p>
               </div>
               <div className="p-3 bg-amber-100 rounded-xl">
@@ -870,7 +895,7 @@ Email: ${client.email}`;
               <div>
                 <p className="text-sm text-slate-500">Total Paquetes</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {Object.values(packagesCount).reduce((a, b) => a + b, 0)}
+                  {counts.totalPackages}
                 </p>
               </div>
               <div className="p-3 bg-purple-100 rounded-xl">
@@ -943,7 +968,7 @@ Email: ${client.email}`;
                 onClick={() => selectStatus(statusFilter === 'with_mark' ? 'all' : 'with_mark')}
                 className={(exclusiveKey === 'with_mark') ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
               >
-                <CheckCircle className="h-3 w-3 mr-1" /> Con Shipping Mark ({clients.filter(c => hasValidShippingMark(c)).length})
+                <CheckCircle className="h-3 w-3 mr-1" /> Con Shipping Mark ({counts.withMark})
               </Button>
               <Button
                 variant="outline"
@@ -952,7 +977,7 @@ Email: ${client.email}`;
                 onClick={() => selectStatus(statusFilter === 'without_mark' ? 'all' : 'without_mark')}
                 className={(exclusiveKey === 'without_mark') ? 'bg-amber-100 text-amber-700 border-amber-200' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}
               >
-                <AlertTriangle className="h-3 w-3 mr-1" /> Sin Shipping Mark ({clients.filter(c => !hasValidShippingMark(c)).length})
+                <AlertTriangle className="h-3 w-3 mr-1" /> Sin Shipping Mark ({counts.withoutMark})
               </Button>
               <Button
                 variant="outline"
@@ -961,7 +986,7 @@ Email: ${client.email}`;
                 onClick={() => selectStatus(statusFilter === 'pending' ? 'all' : 'pending')}
                 className={(exclusiveKey === 'pending') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'border-orange-200 text-orange-700 hover:bg-orange-50'}
               >
-                <Clock className="h-3 w-3 mr-1" /> Pendientes ({clients.filter(c => !hasValidShippingMark(c) && !hasIncompleteData(c)).length})
+                <Clock className="h-3 w-3 mr-1" /> Pendientes ({counts.pending})
               </Button>
               <Button
                 variant="outline"
@@ -970,7 +995,7 @@ Email: ${client.email}`;
                 onClick={() => selectStatus(statusFilter === 'incomplete' ? 'all' : 'incomplete')}
                 className={(exclusiveKey === 'incomplete') ? 'bg-red-100 text-red-700 border-red-200' : 'border-red-200 text-red-700 hover:bg-red-50'}
               >
-                <AlertTriangle className="h-3 w-3 mr-1" /> Con Datos Faltantes ({clients.filter(c => hasIncompleteData(c)).length})
+                <AlertTriangle className="h-3 w-3 mr-1" /> Con Datos Faltantes ({counts.incomplete})
               </Button>
               {/* New Filters */}
               <Button
@@ -982,7 +1007,7 @@ Email: ${client.email}`;
                   ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                   : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}
               >
-                <UserCheck className="h-3 w-3 mr-1" /> Activos ({clients.filter(c => c.is_active !== false).length})
+                <UserCheck className="h-3 w-3 mr-1" /> Activos ({counts.active})
               </Button>
               <Button
                 variant="outline"
@@ -993,7 +1018,7 @@ Email: ${client.email}`;
                   ? 'bg-rose-100 text-rose-700 border-rose-200'
                   : 'border-rose-200 text-rose-700 hover:bg-rose-50'}
               >
-                <UserX className="h-3 w-3 mr-1" /> Inactivos ({clients.filter(c => c.is_active === false).length})
+                <UserX className="h-3 w-3 mr-1" /> Inactivos ({counts.inactive})
               </Button>
               <Button
                 variant="outline"
@@ -1004,7 +1029,7 @@ Email: ${client.email}`;
                   ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
                   : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'}
               >
-                <Package className="h-3 w-3 mr-1" /> Con Paquetes ({clients.filter(c => (packagesCount[c.email] || 0) > 0).length})
+                <Package className="h-3 w-3 mr-1" /> Con Paquetes ({counts.withPackages})
               </Button>
               <Button
                 variant="outline"
@@ -1015,7 +1040,7 @@ Email: ${client.email}`;
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
               >
-                <Package className="h-3 w-3 mr-1" /> Sin Paquetes ({clients.filter(c => (packagesCount[c.email] || 0) === 0).length})
+                <Package className="h-3 w-3 mr-1" /> Sin Paquetes ({counts.withoutPackages})
               </Button>
               <Button
                 variant="outline"
@@ -1026,7 +1051,7 @@ Email: ${client.email}`;
                   ? 'bg-green-100 text-green-700 border-green-200'
                   : 'border-green-200 text-green-700 hover:bg-green-50'}
               >
-                <Phone className="h-3 w-3 mr-1" /> Con WhatsApp ({clients.filter(c => !!c.whatsapp).length})
+                <Phone className="h-3 w-3 mr-1" /> Con WhatsApp ({counts.withWhatsapp})
               </Button>
               <Button
                 variant="outline"
@@ -1037,7 +1062,7 @@ Email: ${client.email}`;
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
               >
-                <Phone className="h-3 w-3 mr-1" /> Sin WhatsApp ({clients.filter(c => !c.whatsapp).length})
+                <Phone className="h-3 w-3 mr-1" /> Sin WhatsApp ({counts.withoutWhatsapp})
               </Button>
             </div>
           </div>
