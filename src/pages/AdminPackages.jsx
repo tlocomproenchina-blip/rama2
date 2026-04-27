@@ -1,36 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { base44 as directBase44 } from '@/api/base44Client';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
-import { 
-  Package, 
-  CheckCircle,
-  Image as ImageIcon,
-  Loader2,
-  Upload,
-  Eye,
-  Plane,
-  Ship,
-  Shield,
-  Download,
-  Copy,
-  Flag,
-  FlagOff,
-  MessageSquare,
-  Undo2
-} from 'lucide-react';
-import StatusBadge from '@/components/StatusBadge';
+import { Package, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import AdvancedSearch from '@/components/admin/AdvancedSearch';
 import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
 import PackageImportDialog from '@/components/imports/PackageImportDialog';
@@ -43,6 +19,8 @@ import CreateTicketModal from '@/components/admin/packages/CreateTicketModal';
 import BulkActionsBar from '@/components/admin/packages/BulkActionsBar';
 import BulkActionConfirmDialog from '@/components/admin/packages/BulkActionConfirmDialog';
 import CancelReceptionDialog from '@/components/admin/packages/CancelReceptionDialog';
+import PackagesQuickFilters from '@/components/admin/packages/PackagesQuickFilters';
+import PackagesDesktopTable from '@/components/admin/packages/PackagesDesktopTable';
 
 export default function AdminPackages({ user }) {
   const [packages, setPackages] = useState([]);
@@ -586,81 +564,16 @@ export default function AdminPackages({ user }) {
         onReset={handleResetFilters}
       />
 
-      {/* Quick Filters */}
-      <Card className="border-0 shadow-md">
-        <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-            <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
-
-              <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
-                <TabsList className="flex w-full gap-0 p-1 flex-wrap">
-                  <TabsTrigger value="all" className="flex-1 text-center">Todos{globalCounts ? ` (${globalCounts.total})` : ''}</TabsTrigger>
-                  <TabsTrigger value="pre_alerta_no_recibido" className="flex-1 text-center">Pre-alerta{globalCounts ? ` (${globalCounts.pre_alerta_no_recibido})` : ''}</TabsTrigger>
-                  <TabsTrigger value="recibido" className="flex-1 text-center">Recibido{globalCounts ? ` (${globalCounts.recibido})` : ''}</TabsTrigger>
-                  <TabsTrigger value="consolidado" className="flex-1 text-center">Consolidado{globalCounts ? ` (${globalCounts.consolidado})` : ''}</TabsTrigger>
-                  <TabsTrigger value="en_transito" className="flex-1 text-center">Tránsito{globalCounts ? ` (${globalCounts.en_transito})` : ''}</TabsTrigger>
-                  <TabsTrigger value="entregado" className="flex-1 text-center">Entregado{globalCounts ? ` (${globalCounts.entregado})` : ''}</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              <div className="grid w-full grid-cols-3 gap-2 lg:hidden">
-                <Button variant={reportedFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setReportedFilter('all')} className="w-full">
-                  Todos
-                </Button>
-                <Button variant={reportedFilter === 'reported' ? 'default' : 'outline'} size="sm" onClick={() => setReportedFilter('reported')} className="w-full">
-                  Reportados
-                </Button>
-                <Button variant={reportedFilter === 'unreported' ? 'default' : 'outline'} size="sm" onClick={() => setReportedFilter('unreported')} className="w-full">
-                  No reportados
-                </Button>
-              </div>
-
-              <div className="hidden lg:block">
-                <Select value={reportedFilter} onValueChange={setReportedFilter}>
-                  <SelectTrigger className="w-full lg:w-48 bg-white">
-                    <SelectValue placeholder="Reporte" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="reported">Reportados</SelectItem>
-                    <SelectItem value="unreported">No reportados</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              </div>
-            <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full sm:w-auto">
-              <Button
-                onClick={() => setCreateModalOpen(true)}
-                size="sm"
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
-              >
-                <Package className="h-4 w-4 mr-2" />
-                Registrar Paquete
-              </Button>
-              <Button
-                onClick={() => setImportModalOpen(true)}
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Importar
-              </Button>
-
-              <Button
-                onClick={handleExportPreAlerta}
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto border-blue-200 text-blue-600 hover:bg-blue-50"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Exportar Pre-alerta
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <PackagesQuickFilters
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        reportedFilter={reportedFilter}
+        setReportedFilter={setReportedFilter}
+        globalCounts={globalCounts}
+        onOpenCreate={() => setCreateModalOpen(true)}
+        onOpenImport={() => setImportModalOpen(true)}
+        onExportPreAlerta={handleExportPreAlerta}
+      />
 
       {/* Bulk Progress Indicator */}
       {bulkProgress && (
@@ -778,219 +691,20 @@ export default function AdminPackages({ user }) {
         </Card>
       )}
 
-      {/* Desktop Packages Table */}
-      <Card className="hidden 2xl:block border-0 shadow-lg overflow-hidden">
-        <div className="overflow-x-visible">
-          <table className="w-full table-auto">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="text-left pl-3 pr-2 py-3 font-medium text-slate-600">
-                  <Checkbox 
-                    checked={selectedPackages.length === filteredPackages.length && filteredPackages.length > 0}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </th>
-                <th className="text-left p-3 font-medium text-slate-600 w-[20%]">Tracking</th>
-                <th className="text-left p-3 font-medium text-slate-600 w-[14%]">Shipping Mark</th>
-                <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Tipo</th>
-                <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Carga</th>
-                <th className="text-left p-3 font-medium text-slate-600 w-[6%]">Bultos</th>
-                <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Estado</th>
-                <th className="text-left p-3 font-medium text-slate-600 w-[10%]">Recepción</th>
-                <th className="text-left p-3 font-medium text-slate-600 w-[10%]">Registro</th>
-                <th className="text-left pl-2 pr-3 py-3 font-medium text-slate-600 w-[16%]">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredPackages.map((pkg) => (
-                <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="pl-3 pr-2 py-3">
-                    <Checkbox 
-                      checked={selectedPackages.includes(pkg.id)}
-                      onCheckedChange={(checked) => handleSelectPackage(pkg.id, checked)}
-                    />
-                  </td>
-                  <td className="pl-3 pr-2 py-3 align-top">
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono font-medium text-slate-800 whitespace-nowrap truncate max-w-[18ch]">{pkg.tracking_number}</span>
-                        {pkg.has_insurance && (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                            <Shield className="h-3 w-3" />
-                          </Badge>
-                        )}
-                        {pkg.reported ? (
-                          <Flag className="h-4 w-4 text-green-600" title="Reportado" />
-                        ) : (
-                          <FlagOff className="h-4 w-4 text-slate-300" title="No reportado" />
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {pkg.description || 'Sin descripción'}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-3 align-top font-mono text-slate-600 whitespace-nowrap truncate max-w-[14ch]">{pkg.shipping_mark || '-'}</td>
-                  <td className="pl-3 pr-2 py-3">
-                    <div className="flex items-center gap-2 text-slate-600">
-                      {pkg.shipping_type === 'aereo' 
-                        ? <><Plane className="h-4 w-4" /> Aéreo</>
-                        : <><Ship className="h-4 w-4" /> Marítimo</>
-                      }
-                    </div>
-                  </td>
-                  <td className="pl-3 pr-2 py-3">
-                    <Badge variant="outline" className={pkg.risk_category === 'alto_riesgo' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}>
-                      {pkg.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'}
-                    </Badge>
-                  </td>
-                  <td className="pl-3 pr-2 py-3 text-slate-700 font-medium">
-                    {pkg.package_count || '-'}
-                  </td>
-                  <td className="pl-3 pr-2 py-3">
-                    <StatusBadge status={pkg.status} size="sm" />
-                  </td>
-                  <td className="p-4 text-slate-600 text-xs">
-                    {pkg.received_date ? (
-                      <>
-                        <div>{new Date(pkg.received_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                        <div className="text-[11px] text-slate-400">{new Date(pkg.received_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                      </>
-                    ) : (
-                      <div>-</div>
-                    )}
-                  </td>
-                  <td className="p-4 text-slate-600 text-xs">
-                    <div>{new Date(pkg.created_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                    <div className="text-[11px] text-slate-400">{new Date(pkg.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                  </td>
-                  <td className="pl-2 pr-3 py-3 align-top">
-                    <div className="flex min-w-0 w-full flex-col items-stretch gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => handleCreateTicket(pkg)}
-                        className="w-full min-w-0 justify-start gap-1"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                        Ticket
-                      </Button>
-                      {pkg.status === 'pre_alerta' && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openPreAlertEditor(pkg)}
-                            className="w-full min-w-0 justify-start"
-                          >
-                            <Shield className="h-4 w-4 mr-1" />
-                            Seguro / Factura
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            onClick={() => setReceiveModal(pkg)}
-                            className="w-full min-w-0 justify-start bg-blue-600 hover:bg-blue-700"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Recibir
-                          </Button>
-                        </>
-                      )}
-                      {pkg.product_image_url && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setViewImage(pkg.product_image_url)}
-                          className="w-full justify-start text-violet-600 hover:text-violet-700 border-violet-200"
-                        >
-                          <Eye className="h-4 w-4" /> Producto
-                        </Button>
-                      )}
-                      {pkg.package_image_url && (
-                        <>
-                          <div className="flex flex-wrap gap-1">
-                        {(pkg.package_image_urls && pkg.package_image_urls.length > 0 ? pkg.package_image_urls : (pkg.package_image_url ? [pkg.package_image_url] : [])).map((url, idx) => (
-                          <Button 
-                            key={idx}
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setViewImage(url)}
-                            className="w-full min-w-0 justify-start"
-                          >
-                            <Eye className="h-4 w-4" /> {idx+1}
-                          </Button>
-                        ))}
-                      </div>
-                          {pkg.status === 'recibido' && (
-                             <Button 
-                               size="sm" 
-                               variant="outline"
-                               onClick={() => setEditImageModal(pkg)}
-                                                                      className="w-full justify-start text-blue-600 hover:text-blue-700"
-                                                                    >
-                                      <ImageIcon className="h-4 w-4" /> Fotos
-                                    </Button>
-                                
-
-                           )}
-                          </>
-                          )}
-                          {!pkg.package_image_url && pkg.status === 'recibido' && (
-                          <Button 
-                           size="sm" 
-                           variant="outline"
-                           onClick={() => setEditImageModal(pkg)}
-                           className="w-full justify-start text-blue-600 hover:text-blue-700"
-                          >
-                           <Upload className="h-4 w-4 mr-1" />
-                           Foto
-                          </Button>
-                          )}
-                          {pkg.status === 'recibido' && (
-                          <Button
-                                                  size="sm"
-                                                  variant="outline"
-                                                  onClick={() => setCancelReceptionModal(pkg)}
-                                                  className="w-full min-w-0 justify-start gap-1 h-8 px-2 text-xs text-rose-600 hover:text-rose-700 border-rose-200"
-                                                >
-                           <Undo2 className="h-4 w-4 mr-1" />
-                           Cancelar
-                          </Button>
-                          )}
-                          {pkg.status !== 'pre_alerta' && pkg.status !== 'consolidado' && (
-                          <Select 
-                           value={pkg.status} 
-                           onValueChange={(val) => handleStatusChange(pkg, val)}
-                          >
-                           <SelectTrigger className="w-full h-8 px-2 justify-between gap-1 text-xs [&>span]:leading-none">
-                             <SelectValue />
-                           </SelectTrigger>
-                           <SelectContent>
-                             <SelectItem value="recibido">Recibido</SelectItem>
-                             <SelectItem value="rechazado">Rechazado</SelectItem>
-                             <SelectItem value="en_transito">En Tránsito</SelectItem>
-                             <SelectItem value="disponible">Disponible</SelectItem>
-                             <SelectItem value="entregado">Entregado</SelectItem>
-                           </SelectContent>
-                          </Select>
-                          )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredPackages.length === 0 && (
-          <div className="p-12 text-center">
-            <Package className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-            <p className="text-slate-500">No se encontraron paquetes</p>
-          </div>
-        )}
-        </Card>
-
-        {hasMore && (
+      <PackagesDesktopTable
+        packages={filteredPackages}
+        selectedPackages={selectedPackages}
+        onSelectAll={handleSelectAll}
+        onSelectPackage={handleSelectPackage}
+        onCreateTicket={handleCreateTicket}
+        onOpenPreAlertEditor={openPreAlertEditor}
+        onReceive={(pkg) => setReceiveModal(pkg)}
+        onViewImage={(url) => setViewImage(url)}
+        onEditImage={(pkg) => setEditImageModal(pkg)}
+        onCancelReception={(pkg) => setCancelReceptionModal(pkg)}
+        onStatusChange={handleStatusChange}
+      />
+      {hasMore && (
           <Button variant="outline" className="w-full mt-4" onClick={() => loadPackages(true, packages.length)} disabled={loadingMore}>
             {loadingMore ? 'Cargando...' : 'Cargar más'}
           </Button>
