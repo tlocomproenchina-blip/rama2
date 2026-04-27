@@ -12,12 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Loader2, Package, Trash2, CalendarDays, TrendingUp, Users, Search, Filter, MapPin, Pencil, CheckSquare } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import CbmDatePicker from '@/components/admin/CbmDatePicker';
 import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 import CbmMonthlySummary from '@/components/accounting/CbmMonthlySummary';
 import CbmClientSummary from '@/components/accounting/CbmClientSummary';
 import CbmStateCostPanel from '@/components/accounting/CbmStateCostPanel';
-import CbmDatePicker from '@/components/admin/CbmDatePicker';
 
 
 export default function AdminCbmIngresos({ user }) {
@@ -457,30 +457,40 @@ export default function AdminCbmIngresos({ user }) {
             />
           </div>
 
-            {/* Fecha + Calendario con paquetes */}
-            <div className="space-y-2">
-              <Label>Fecha de registro *</Label>
-              {form.client_email ? (
-                <CbmDatePicker
-                  selectedDate={form.fecha ? new Date(form.fecha) : new Date()}
-                  onDateChange={(date) => setForm({ ...form, fecha: format(date, "yyyy-MM-dd'T'HH:mm") })}
-                  clientPackages={clientPackages}
-                  selectedTrackings={form.tracking_numbers}
-                  onTrackingsChange={(trackings) => setForm({ ...form, tracking_numbers: trackings })}
-                />
-              ) : (
+            {/* Calendar + Packages */}
+            {form.client_email && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Fecha y Paquetes Recibidos</Label>
+                {loadingPackages ? (
+                  <p className="text-xs text-slate-500">Cargando paquetes...</p>
+                ) : (
+                  <CbmDatePicker
+                    selectedDate={form.fecha ? new Date(form.fecha) : new Date()}
+                    onDateChange={(date) => setForm({ ...form, fecha: format(date, "yyyy-MM-dd'T'HH:mm") })}
+                    clientPackages={clientPackages}
+                    selectedTrackings={form.tracking_numbers}
+                    onTrackingsChange={(trackings) => setForm({ ...form, tracking_numbers: trackings })}
+                  />
+                )}
+                {form.tracking_numbers.length > 0 && (
+                  <p className="text-[11px] text-blue-600 font-medium">
+                    {form.tracking_numbers.length} paquete(s) seleccionado(s) en total
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Fecha manual si no hay cliente */}
+            {!form.client_email && (
+              <div className="space-y-2">
+                <Label>Fecha de registro *</Label>
                 <Input
                   type="datetime-local"
                   value={form.fecha}
                   onChange={(e) => setForm({ ...form, fecha: e.target.value })}
                 />
-              )}
-              {form.tracking_numbers.length > 0 && (
-                <p className="text-[11px] text-blue-600 font-medium">
-                  {form.tracking_numbers.length} paquete(s) seleccionado(s)
-                </p>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Proveedor / Almacén</Label>
