@@ -1,5 +1,122 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
+// Helpers de normalización (mismos del frontend)
+const removeDiacritics = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const normalizeText = (s) => removeDiacritics(s).toLowerCase().replace(/\s+/g, ' ').trim();
+const normalizeAlnum = (s) => normalizeText(s).replace(/[^a-z0-9]/g, '');
+const getDigits = (s) => (s || '').replace(/\D/g, '');
+
+// Carga TODOS los users con role='user' usando paginación interna
+async function loadAllClients(base44) {
+  const PAGE = 200;
+  let skip = 0;
+  let all = [];
+  while (true) {
+    const batch = await base44.asServiceRole.entities.User.filter({ role: 'user' }, '-created_date', PAGE, skip);
+    if (!batch || batch.length === 0) break;
+    all = all.concat(batch);
+    if (batch.length < PAGE) break;
+    skip += PAGE;
+    if (skip >= 5000) break; // safety guard
+  }
+  return all;
+}
+
+function sanitize(u) {
+  return {
+    id: u.id,
+    email: u.email,
+    full_name: u.full_name || null,
+    first_name: u.first_name || null,
+    last_name: u.last_name || null,
+    state: u.state || null,
+    city: u.city || null,
+    address: u.address || null,
+    whatsapp: u.whatsapp || null,
+    phone: u.phone || null,
+    shipping_mark: u.shipping_mark || null,
+    profile_completed: !!u.profile_completed,
+    is_active: u.is_active !== false,
+    stripe_customer_id: u.stripe_customer_id || null,
+    created_date: u.created_date,
+    role: u.role || 'user',
+    custom_role: u.custom_role || null,
+  };
+}
+
+function isIncomplete(c) {
+  return !c.first_name || !c.last_name || !c.whatsapp || !c.state || !c.city || !c.address;
+}
+function hasMark(c) {
+  return !!(c.shipping_mark && String(c.shipping_mark).trim().length > 0);
+}
+
+function matchesSearch(c, q) {
+  if (!q) return true;
+  const qText = normalizeText(q);
+  const qAlnum = normalizeAlnum(q);
+  const qDigits = getDigits(q);
+
+  const email = normalizeText(c.email || '');
+  const first = normalizeText(c.first_name || '');
+  const last = normalizeText(c.last_name || '');
+  const full = `${first} ${last}`.trim();
+  const cityNorm = normalizeText(c.city || '');
+  const wa = getDigits(c.whatsapp || '');
+  const ph = getDigits(c.phone || '');
+  const sm = normalizeAlnum(c.shipping_mark || '');
+  const fullAlnum = normalizeAlnum((c.first_name || '') + (c.last_name || ''));
+
+  if (qText && (email.includes(qText) || first.includes(qText) || last.includes(qText) || full.includes(qText) || cityNorm.includes(qText))) return true;
+  if (qDigits && (wa.includes(qDigits) || ph.includes(qDigits))) return true;
+  if (qAlnum && (sm.includes(qAlnum) || fullAlnum.includes(qAlnum))) return true;
+  return false;
+}
+
+function matchesCategory(c, key, pkgCount) {
+  switch (key) {
+    case 'with_mark': return hasMark(c);
+    case 'without_mark': return !hasMark(c);
+    case 'pending': return !hasMark(c) && !isIncomplete(c);
+    case 'incomplete': return isIncomplete(c);
+    case 'active': return c.is_active !== false;
+    case 'inactive': return c.is_active === false;
+    case 'with_packages': return pkgCount > 0;
+    case 'without_packages': return pkgCount === 0;
+    case 'with_whatsapp': return !!c.whatsapp;
+    case 'without_whatsapp': return !c.whatsapp;
+    default: return true;
+  }
+}
+
+function matchesState(c, stateFilter) {
+  if (!stateFilter || stateFilter === 'all') return true;
+  // El estado guardado puede ser código o nombre. Si tiene espacio asumimos nombre completo (no filtrar).
+  const stored = c.state || '';
+  if (stored.includes(' ')) return false;
+  return stored === stateFilter;
+}
+
+function matchesDate(c, fromDate, toDate, quickDate) {
+  const cd = c.created_date ? new Date(c.created_date) : null;
+  if (!cd) return true;
+
+  if (fromDate || toDate) {
+    const start = fromDate ? new Date(`${fromDate}T00:00:00`) : new Date(0);
+    const end = toDate ? new Date(`${toDate}T23:59:59.999`) : new Date();
+    return cd >= start && cd <= end;
+  }
+  if (quickDate && quickDate !== 'all') {
+    const now = new Date();
+    const startToday = new Date(); startToday.setHours(0, 0, 0, 0);
+    let threshold = startToday;
+    if (quickDate === '7d') threshold = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    else if (quickDate === '30d') threshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return cd >= threshold;
+  }
+  return true;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -14,27 +131,90 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: insufficient permissions' }, { status: 403 });
     }
 
-    const clients = await base44.asServiceRole.entities.User.filter({ role: 'user' }, '-created_date', 300, 0);
+    const body = await req.json().catch(() => ({}));
+    const limit = Math.min(Math.max(parseInt(body.limit) || 50, 1), 200);
+    const skip = Math.max(parseInt(body.skip) || 0, 0);
+    const q = (body.q || '').toString().trim();
+    const exclusiveKey = body.exclusiveKey || 'all';
+    const stateFilter = body.stateFilter || 'all';
+    const fromDate = body.fromDate || '';
+    const toDate = body.toDate || '';
+    const quickDate = body.quickDate || 'all';
+    const includeCounts = body.includeCounts !== false; // por defecto sí
 
-    const sanitized = (clients || []).filter((u) => u && u.id && u.email).map((u) => ({
-      id: u.id,
-      email: u.email,
-      full_name: u.full_name || null,
-      first_name: u.first_name || null,
-      last_name: u.last_name || null,
-      state: u.state || null,
-      city: u.city || null,
-      address: u.address || null,
-      whatsapp: u.whatsapp || null,
-      phone: u.phone || null,
-      shipping_mark: u.shipping_mark || null,
-      profile_completed: !!u.profile_completed,
-      is_active: u.is_active !== false,
-      stripe_customer_id: u.stripe_customer_id || null,
-      created_date: u.created_date,
-    }));
+    // Carga todos los clientes y los conteos de paquetes
+    const allRaw = await loadAllClients(base44);
+    const all = allRaw
+      .filter((u) => u && u.id && u.email && u.custom_role !== 'super_admin_oculto')
+      .map(sanitize);
 
-    return Response.json(sanitized);
+    // Conteo de paquetes (solo si se pide). Usamos paginación interna en Package.
+    let packageCounts = {};
+    if (includeCounts) {
+      const PAGE = 200;
+      let s = 0;
+      while (true) {
+        const batch = await base44.asServiceRole.entities.Package.list('-created_date', PAGE, s);
+        if (!batch || batch.length === 0) break;
+        for (const p of batch) {
+          if (p.client_email) {
+            packageCounts[p.client_email] = (packageCounts[p.client_email] || 0) + 1;
+          }
+        }
+        if (batch.length < PAGE) break;
+        s += PAGE;
+        if (s >= 20000) break; // safety
+      }
+    }
+
+    // Aplicar filtros
+    const filtered = all.filter((c) => {
+      const pkgCount = packageCounts[c.email] || 0;
+      if (!matchesSearch(c, q)) return false;
+      if (!matchesCategory(c, exclusiveKey, pkgCount)) return false;
+      if (!matchesState(c, stateFilter)) return false;
+      if (!matchesDate(c, fromDate, toDate, quickDate)) return false;
+      return true;
+    });
+
+    // Conteos globales (sobre TODA la lista, sin filtros) para los stat cards
+    let counts = null;
+    if (includeCounts) {
+      counts = {
+        total: all.length,
+        withMark: 0, withoutMark: 0, pending: 0, incomplete: 0,
+        active: 0, inactive: 0,
+        withPackages: 0, withoutPackages: 0,
+        withWhatsapp: 0, withoutWhatsapp: 0,
+        totalPackages: 0,
+      };
+      for (const c of all) {
+        const pkgCount = packageCounts[c.email] || 0;
+        const validMark = hasMark(c);
+        const incomplete = isIncomplete(c);
+        if (validMark) counts.withMark++; else counts.withoutMark++;
+        if (!validMark && !incomplete) counts.pending++;
+        if (incomplete) counts.incomplete++;
+        if (c.is_active === false) counts.inactive++; else counts.active++;
+        if (pkgCount > 0) counts.withPackages++; else counts.withoutPackages++;
+        if (c.whatsapp) counts.withWhatsapp++; else counts.withoutWhatsapp++;
+        counts.totalPackages += pkgCount;
+      }
+    }
+
+    // Paginar la lista filtrada
+    const total = filtered.length;
+    const page = filtered.slice(skip, skip + limit);
+
+    return Response.json({
+      data: page,
+      total,
+      skip,
+      limit,
+      hasMore: skip + page.length < total,
+      counts,
+      packageCounts: includeCounts ? packageCounts : null,
+    });
   } catch (error) {
     console.error('listClientsForSupport error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });

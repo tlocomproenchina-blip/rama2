@@ -86,45 +86,22 @@ export default function AdminClients({ user }) {
   const [backfilling, setBackfilling] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [roleUpdatingId, setRoleUpdatingId] = useState(null);
-  const PAGE_SIZE = 200;
+  const PAGE_SIZE = 50;
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [totalFiltered, setTotalFiltered] = useState(0);
+  const [globalCounts, setGlobalCounts] = useState(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
+  // Debounce de la búsqueda (350ms) para no martillar el backend al teclear
   useEffect(() => {
-    if (!clients.length) {
-      setPackagesCount({});
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadPackageCounts = async () => {
-      try {
-        // Backend function: cuenta TODOS los paquetes paginando (no limitado a 500)
-        const res = await base44.functions.invoke('getClientPackageCounts', {});
-        if (cancelled) return;
-        const counts = res?.data?.counts || {};
-        setPackagesCount(counts);
-      } catch (error) {
-        console.error('Error loading package counts:', error);
-      }
-    };
-
-    loadPackageCounts();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [clients.length]);
-
-
-
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
 
   useEffect(() => {
-    loadClients();
     loadStateConfigs();
-
   }, []);
 
   // Pre-fill search from URL (?q=... or ?email=...) — used by Global Search palette
@@ -135,6 +112,12 @@ export default function AdminClients({ user }) {
       if (q) setSearch(q);
     } catch (_) {}
   }, []);
+
+  // Recarga lista cada vez que cambian filtros / búsqueda (todo server-side ahora)
+  useEffect(() => {
+    loadClients(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate]);
 
   // Realtime directo sobre User desactivado para evitar errores de permisos en producción.
 
@@ -155,23 +138,43 @@ export default function AdminClients({ user }) {
 
 
 
-   const loadClients = async (append = false) => {
+  const loadClients = async (append = false) => {
     try {
       if (append) setLoadingMore(true); else setLoading(true);
-      let users = [];
-      if (canViewClients) {
-        const res = await base44.functions.invoke('listClientsForSupport');
-        users = res.data || [];
+      if (!canViewClients) {
+        setClients([]);
         setHasMore(false);
+        return;
       }
 
+      const skip = append ? clients.length : 0;
+      // Solo pedir counts globales en la PRIMERA carga (sin filtros aplicados aún) para no recalcular cada vez
+      const includeCounts = !append;
+
+      const res = await base44.functions.invoke('listClientsForSupport', {
+        limit: PAGE_SIZE,
+        skip,
+        q: debouncedSearch,
+        exclusiveKey,
+        stateFilter,
+        fromDate,
+        toDate,
+        quickDate,
+        includeCounts,
+      });
+
+      const payload = res?.data || {};
+      const users = Array.isArray(payload.data) ? payload.data : [];
+
       if (append) {
-        setClients(prev => [...prev, ...users]);
+        setClients((prev) => [...prev, ...users]);
       } else {
-        const counts = {};
-        setPackagesCount(counts);
         setClients(users);
       }
+      setHasMore(!!payload.hasMore);
+      setTotalFiltered(payload.total || 0);
+      if (payload.counts) setGlobalCounts(payload.counts);
+      if (payload.packageCounts) setPackagesCount(payload.packageCounts);
     } finally {
       if (append) setLoadingMore(false); else setLoading(false);
     }
@@ -284,11 +287,34 @@ Email: ${client.email}`;
 
 
 
+  // Pide al backend TODOS los clientes que coinciden con los filtros (sin paginar)
+  const fetchAllFilteredClients = async () => {
+    const res = await base44.functions.invoke('listClientsForSupport', {
+      limit: 200, skip: 0,
+      q: debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate,
+      includeCounts: false,
+    });
+    let all = res?.data?.data || [];
+    let total = res?.data?.total || all.length;
+    while (all.length < total) {
+      const more = await base44.functions.invoke('listClientsForSupport', {
+        limit: 200, skip: all.length,
+        q: debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate,
+        includeCounts: false,
+      });
+      const batch = more?.data?.data || [];
+      if (batch.length === 0) break;
+      all = all.concat(batch);
+    }
+    return all;
+  };
+
   const handleExportClients = async () => {
     try {
+      const all = await fetchAllFilteredClients();
       const rows = [['Teléfono/WhatsApp']];
 
-      filteredClients.forEach(client => {
+      all.forEach(client => {
         if (client.whatsapp) {
           rows.push([client.whatsapp]);
         }
@@ -343,7 +369,20 @@ Email: ${client.email}`;
 
   const handleExportPendingClients = async () => {
     try {
-      const pendingClients = clients.filter(c => !hasValidShippingMark(c) && c.profile_completed && !hasIncompleteData(c));
+      // Pedir TODOS los pendientes al backend (no solo la página actual)
+      const res = await base44.functions.invoke('listClientsForSupport', {
+        limit: 200, skip: 0, exclusiveKey: 'pending', includeCounts: false,
+      });
+      let pendingClients = res?.data?.data || [];
+      const total = res?.data?.total || pendingClients.length;
+      while (pendingClients.length < total) {
+        const more = await base44.functions.invoke('listClientsForSupport', {
+          limit: 200, skip: pendingClients.length, exclusiveKey: 'pending', includeCounts: false,
+        });
+        const batch = more?.data?.data || [];
+        if (batch.length === 0) break;
+        pendingClients = pendingClients.concat(batch);
+      }
 
       if (pendingClients.length === 0) {
         toast.error('No hay clientes pendientes de Shipping Mark');
@@ -381,12 +420,14 @@ Email: ${client.email}`;
 
   const handleExportFilteredClients = async () => {
     try {
-      if (filteredClients.length === 0) {
+      // Pedir TODOS los clientes que coinciden con los filtros actuales (no solo la página)
+      const all = await fetchAllFilteredClients();
+      if (all.length === 0) {
         toast.error('No hay clientes para exportar');
         return;
       }
       const lines = [];
-      filteredClients.forEach((client, index) => {
+      all.forEach((client, index) => {
         const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim();
         lines.push(`Nombre: ${fullName}`);
         lines.push(`Estado: ${client.state || ''}`);
@@ -395,7 +436,7 @@ Email: ${client.email}`;
         lines.push(`WhatsApp: ${client.whatsapp || ''}`);
         lines.push(`Email: ${client.email}`);
         lines.push(`Codigo asignado: ${client.shipping_mark || ''}`);
-        if (index < filteredClients.length - 1) lines.push('');
+        if (index < all.length - 1) lines.push('');
       });
       const txtContent = lines.join('\n');
       const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
@@ -440,7 +481,7 @@ Email: ${client.email}`;
       link.download = `clientes_${filterLabel}_${dateSuffix}.txt`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success(`${filteredClients.length} clientes exportados a TXT`);
+      toast.success(`${lines.filter(l => l.startsWith('Email:')).length} clientes exportados a TXT`);
     } catch (error) {
       toast.error('Error al exportar datos');
     }
@@ -648,26 +689,6 @@ Email: ${client.email}`;
     setExclusiveKey(value === 'all' ? 'all' : (value === 'with' ? 'with_whatsapp' : 'without_whatsapp'));
   };
 
-  // Pre-compute exact matches in a single pass + memoize (antes: 3 .filter() por render)
-  const exactIds = useMemo(() => {
-    const qText = normalizeText(search);
-    const qAlnum = normalizeAlnum(search);
-    if (!qText && !qAlnum) return null;
-    const emailMatches = [];
-    const smMatches = [];
-    const fullMatches = [];
-    for (const c of clients) {
-      if (qText && normalizeText(c.email || '') === qText) emailMatches.push(c.id);
-      if (qAlnum && normalizeAlnum(c.shipping_mark || '') === qAlnum) smMatches.push(c.id);
-      if (qText) {
-        const fn = normalizeText(`${c.first_name || ''} ${c.last_name || ''}`.trim());
-        if (fn && fn === qText) fullMatches.push(c.id);
-      }
-    }
-    const hasExact = emailMatches.length === 1 || smMatches.length === 1 || fullMatches.length === 1;
-    return hasExact ? new Set([...emailMatches, ...smMatches, ...fullMatches]) : null;
-  }, [clients, search]);
-
   const handleChangeRegisteredUserRole = async (client, nextRole) => {
     if (!client?.id) return;
     setRoleUpdatingId(client.id);
@@ -691,109 +712,20 @@ Email: ${client.email}`;
 
   const registeredClients = useMemo(() => clients.filter((client) => client.custom_role !== 'super_admin_oculto'), [clients]);
 
-  // Memoize counts en un solo recorrido (antes: 14 .filter() por render)
-  const counts = useMemo(() => {
-    const c = {
-      withMark: 0, withoutMark: 0, pending: 0, incomplete: 0,
-      active: 0, inactive: 0,
-      withPackages: 0, withoutPackages: 0,
-      withWhatsapp: 0, withoutWhatsapp: 0,
-      totalPackages: 0,
-    };
-    for (const client of clients) {
-      const validMark = !!(client.shipping_mark && client.shipping_mark.trim().length > 0);
-      const incomplete = !client.first_name || !client.last_name || !client.whatsapp || !client.state || !client.city || !client.address;
-      const pkgCount = packagesCount[client.email] || 0;
+  // Counts globales vienen del backend (calculados sobre TODOS los clientes, no solo la página)
+  // Si aún no llegaron (primera carga), usar valores por defecto en cero
+  const counts = globalCounts || {
+    total: 0, withMark: 0, withoutMark: 0, pending: 0, incomplete: 0,
+    active: 0, inactive: 0, withPackages: 0, withoutPackages: 0,
+    withWhatsapp: 0, withoutWhatsapp: 0, totalPackages: 0,
+  };
 
-      if (validMark) c.withMark++; else c.withoutMark++;
-      if (!validMark && !incomplete) c.pending++;
-      if (incomplete) c.incomplete++;
-      if (client.is_active === false) c.inactive++; else c.active++;
-      if (pkgCount > 0) c.withPackages++; else c.withoutPackages++;
-      if (client.whatsapp) c.withWhatsapp++; else c.withoutWhatsapp++;
-      c.totalPackages += pkgCount;
-    }
-    return c;
-  }, [clients, packagesCount]);
+  // Ya no se filtra en cliente: el backend devuelve la página ya filtrada.
+  // Solo excluimos super_admin_oculto que también viene filtrado en backend, pero por seguridad.
+  const filteredClients = registeredClients;
 
-  const filteredClients = useMemo(() => registeredClients.filter(client => {
-  // Map stored value (code or name) to code for filtering
-  const clientStateCode = (client.state && client.state.includes(' ')) ? null : client.state;
-
-    // If there's an exact match, only show that client
-    if (exactIds) {
-      if (!exactIds.has(client.id)) return false;
-    } else {
-      // Normalized search: text (accent/case-insensitive), alphanumeric (no spaces/symbols), and digits-only
-      const qText = normalizeText(search);
-      const qAlnum = normalizeAlnum(search);
-      const qDigits = getDigits(search);
-
-      const email = normalizeText(client.email || '');
-      const first = normalizeText(client.first_name || '');
-      const last = normalizeText(client.last_name || '');
-      const full = `${first} ${last}`.trim();
-      const cityNorm = normalizeText(client.city || '');
-      const whatsappDigits = getDigits(client.whatsapp || '');
-      const phoneDigits = getDigits(client.phone || '');
-      const shippingMarkNorm = normalizeAlnum(client.shipping_mark || '');
-      const fullNameAlnum = normalizeAlnum((client.first_name || '') + (client.last_name || ''));
-
-      const matchesText = qText === '' || email.includes(qText) || first.includes(qText) || last.includes(qText) || full.includes(qText) || cityNorm.includes(qText);
-      const matchesDigits = qDigits !== '' && (whatsappDigits.includes(qDigits) || phoneDigits.includes(qDigits));
-      const matchesAlnum = qAlnum !== '' && (shippingMarkNorm.includes(qAlnum) || fullNameAlnum.includes(qAlnum));
-
-      const matchesSearch = matchesText || matchesDigits || matchesAlnum;
-      if (!matchesSearch) return false;
-    }
-
-    // Date filters (range or quick)
-    let matchesRange = true;
-    if (fromDate || toDate) {
-      const d = new Date(client.created_date);
-      const start = fromDate ? new Date(`${fromDate}T00:00:00`) : new Date(0);
-      const end = toDate ? new Date(`${toDate}T23:59:59.999`) : new Date();
-      matchesRange = d >= start && d <= end;
-    }
-
-    let matchesQuick = true;
-    if (!fromDate && !toDate && quickDate !== 'all') {
-      const now = new Date();
-      const startOfToday = new Date();
-      startOfToday.setHours(0,0,0,0);
-      let threshold = startOfToday;
-      if (quickDate === '7d') threshold = new Date(now.getTime() - 7*24*60*60*1000);
-      if (quickDate === '30d') threshold = new Date(now.getTime() - 30*24*60*60*1000);
-      if (quickDate === 'today') threshold = startOfToday;
-      matchesQuick = new Date(client.created_date) >= threshold;
-    }
-
-    // Single exclusive category filter
-    const pkgCount = packagesCount[client.email] || 0;
-    const matchesCategory = (() => {
-      switch (exclusiveKey) {
-        case 'with_mark': return hasValidShippingMark(client);
-        case 'without_mark': return !hasValidShippingMark(client);
-        case 'pending': return (!hasValidShippingMark(client) && !hasIncompleteData(client));
-        case 'incomplete': return hasIncompleteData(client);
-        case 'active': return client.is_active !== false;
-        case 'inactive': return client.is_active === false;
-        case 'with_packages': return pkgCount > 0;
-        case 'without_packages': return pkgCount === 0;
-        case 'with_whatsapp': return !!client.whatsapp;
-        case 'without_whatsapp': return !client.whatsapp;
-        case 'all':
-        default: return true;
-      }
-    })();
-
-    // State
-    const matchesState = stateFilter === 'all' ? true : clientStateCode === stateFilter;
-
-    return matchesRange && matchesQuick && matchesCategory && matchesState;
-  }), [registeredClients, exactIds, search, fromDate, toDate, quickDate, exclusiveKey, stateFilter, packagesCount]);
-
-  if (loading) {
+  // Solo mostrar loader fullscreen en la primera carga (sin clientes todavía)
+  if (loading && clients.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -856,7 +788,7 @@ Email: ${client.email}`;
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Total Clientes</p>
-                <p className="text-3xl font-bold text-slate-800">{clients.length}</p>
+                <p className="text-3xl font-bold text-slate-800">{counts.total || clients.length}</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-xl">
                 <Users className="h-6 w-6 text-blue-600" />
@@ -967,7 +899,7 @@ Email: ${client.email}`;
                 onClick={() => selectStatus('all')}
                 className={(exclusiveKey === 'all') ? 'bg-slate-900 text-white border-slate-900' : ''}
               >
-                Todos ({registeredClients.length})
+                Todos ({counts.total || registeredClients.length})
               </Button>
               <Button
                 variant="outline"
@@ -1104,7 +1036,17 @@ Email: ${client.email}`;
           onChange={(e) => setSearch(e.target.value)}
           className="pl-10"
         />
+        {loading && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-blue-600" />
+        )}
       </div>
+
+      {/* Resultados info */}
+      {totalFiltered > 0 && (
+        <div className="text-sm text-slate-500 mb-2">
+          Mostrando <span className="font-semibold">{filteredClients.length}</span> de <span className="font-semibold">{totalFiltered}</span> clientes que coinciden
+        </div>
+      )}
 
       {/* Clients List */}
       {filteredClients.length === 0 ? (
