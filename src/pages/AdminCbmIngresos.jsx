@@ -37,7 +37,8 @@ export default function AdminCbmIngresos({ user }) {
 
   const loadData = async () => {
     setLoading(true);
-    const all = await base44.entities.CbmIngreso.list('-fecha', 500);
+    const { fetchAllPaginated } = await import('@/lib/fetchAllPaginated');
+    const all = await fetchAllPaginated('CbmIngreso', { sort: '-fecha' });
     const fromDate = new Date(dateFrom + 'T00:00:00');
     const toDate = new Date(dateTo + 'T23:59:59');
     const filtered = (all || []).filter(item => {

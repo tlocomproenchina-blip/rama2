@@ -64,9 +64,10 @@ export default function AdminPaymentAlerts({ user }) {
 
   const loadData = async () => {
     setLoading(true);
+    const { fetchAllPaginated } = await import('@/lib/fetchAllPaginated');
     const [cons, invoices] = await Promise.all([
-      base44.entities.Consolidation.filter({ status: 'pendiente_pago' }),
-      base44.entities.Invoice.filter({ status: 'pendiente' })
+      fetchAllPaginated('Consolidation', { method: 'filter', query: { status: 'pendiente_pago' } }),
+      fetchAllPaginated('Invoice', { method: 'filter', query: { status: 'pendiente' } })
     ]);
 
     // Get consolidation IDs that have invoices

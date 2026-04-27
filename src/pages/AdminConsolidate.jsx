@@ -89,13 +89,14 @@ export default function AdminConsolidate({ user }) {
   }, []);
 
   const loadData = async () => {
-    // Cargar TODO en paralelo (antes: 5 fetches secuenciales)
+    // Cargar TODO en paralelo, paginado para no perder registros con datasets grandes
+    const { fetchAllPaginated } = await import('@/lib/fetchAllPaginated');
     const [reqs, approvedRequests, consolidatedRequests, preAlertPackages, receivedPackages, cfgs] = await Promise.all([
-      base44.entities.ConsolidationRequest.filter({ status: 'pendiente' }, '-created_date'),
-      base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-created_date'),
-      base44.entities.ConsolidationRequest.filter({ status: 'consolidada' }, '-created_date'),
-      base44.entities.Package.filter({ status: 'pre_alerta' }, '-created_date'),
-      base44.entities.Package.filter({ status: 'recibido' }, '-created_date'),
+      fetchAllPaginated('ConsolidationRequest', { method: 'filter', query: { status: 'pendiente' }, sort: '-created_date' }),
+      fetchAllPaginated('ConsolidationRequest', { method: 'filter', query: { status: 'aprobada' }, sort: '-created_date' }),
+      fetchAllPaginated('ConsolidationRequest', { method: 'filter', query: { status: 'consolidada' }, sort: '-created_date' }),
+      fetchAllPaginated('Package', { method: 'filter', query: { status: 'pre_alerta' }, sort: '-created_date' }),
+      fetchAllPaginated('Package', { method: 'filter', query: { status: 'recibido' }, sort: '-created_date' }),
       base44.entities.AppConfig.filter({ config_key: 'main' }),
     ]);
     setRequests(reqs);

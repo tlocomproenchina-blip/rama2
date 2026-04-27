@@ -94,7 +94,8 @@ export default function AdminInvoices({ user }) {
   };
 
   const loadConsolidations = async () => {
-    const data = await base44.entities.Consolidation.list('-created_date');
+    const { fetchAllPaginated } = await import('@/lib/fetchAllPaginated');
+    const data = await fetchAllPaginated('Consolidation', { sort: '-created_date' });
     setConsolidations(data);
   };
 
