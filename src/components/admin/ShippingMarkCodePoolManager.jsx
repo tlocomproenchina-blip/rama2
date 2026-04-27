@@ -8,11 +8,25 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, ListPlus, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Auto-formatea: N2TLECW1825S → N2-TLEC-W1825S
+const autoFormatCode = (raw) => {
+  const clean = String(raw).trim().toUpperCase();
+  if (!clean) return '';
+  // Si ya tiene formato correcto, devolver tal cual
+  if (/^N\d+-TLEC-[A-Z0-9]+$/.test(clean)) return clean;
+  // Si viene sin guiones (N#TLEC...), agregarlos
+  const m = clean.match(/^(N\d+)TLEC([A-Z0-9]+)$/);
+  if (m) return `${m[1]}-TLEC-${m[2]}`;
+  return clean; // formato no reconocido — se filtrará luego
+};
+
+const isValidCode = (code) => /^N\d+-TLEC-[A-Z0-9]+$/.test(code);
+
 const normalizeCodes = (value = '') => {
   return Array.from(new Set(
     String(value)
       .split(/[\n,;]+/)
-      .map((item) => item.trim().toUpperCase())
+      .map((item) => autoFormatCode(item))
       .filter(Boolean)
   ));
 };
@@ -24,6 +38,8 @@ export default function ShippingMarkCodePoolManager() {
   const [stats, setStats] = useState({ total: 0, available: 0, assigned: 0 });
 
   const parsedCodes = useMemo(() => normalizeCodes(codesInput), [codesInput]);
+  const validCodes = useMemo(() => parsedCodes.filter(isValidCode), [parsedCodes]);
+  const invalidCodes = useMemo(() => parsedCodes.filter((c) => !isValidCode(c)), [parsedCodes]);
 
   const loadStats = async () => {
     try {
@@ -44,16 +60,20 @@ export default function ShippingMarkCodePoolManager() {
   }, []);
 
   const handleLoadCodes = async () => {
-    if (!parsedCodes.length) {
-      toast.error('Pega al menos un código');
+    if (!validCodes.length) {
+      toast.error('Pega al menos un código con formato válido (N#-TLEC-XXXXX)');
       return;
+    }
+
+    if (invalidCodes.length) {
+      toast.error(`${invalidCodes.length} código(s) tienen formato inválido y serán ignorados`);
     }
 
     try {
       setSaving(true);
       const existing = await base44.entities.ShippingMarkCode.list('-created_date', 5000);
       const existingSet = new Set(existing.map((item) => String(item.code || '').trim().toUpperCase()));
-      const newItems = parsedCodes
+      const newItems = validCodes
         .filter((code) => !existingSet.has(code))
         .map((code) => ({ code, status: 'available' }));
 
@@ -113,13 +133,24 @@ export default function ShippingMarkCodePoolManager() {
           rows={6}
           placeholder="Pega un código por línea o separados por comas"
         />
-        <p className="text-xs text-slate-500">
-          Se detectaron {parsedCodes.length} código(s) nuevos en la caja de carga.
-        </p>
+        <div className="text-xs space-y-1">
+          <p className="text-slate-500">
+            Se detectaron <span className="font-semibold text-emerald-700">{validCodes.length}</span> código(s) válido(s)
+            {invalidCodes.length > 0 && (
+              <> y <span className="font-semibold text-rose-600">{invalidCodes.length}</span> con formato inválido (serán ignorados)</>
+            )}.
+          </p>
+          <p className="text-slate-400">
+            Formato esperado: <code className="bg-slate-100 px-1 rounded">N#-TLEC-XXXXX</code>. Códigos sin guiones se ajustan automáticamente.
+          </p>
+          {invalidCodes.length > 0 && (
+            <p className="text-rose-600 truncate">Inválidos: {invalidCodes.slice(0, 5).join(', ')}{invalidCodes.length > 5 ? '…' : ''}</p>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button onClick={handleLoadCodes} disabled={saving || !parsedCodes.length} className="bg-sky-600 hover:bg-sky-700">
+        <Button onClick={handleLoadCodes} disabled={saving || !validCodes.length} className="bg-sky-600 hover:bg-sky-700">
           {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ListPlus className="h-4 w-4 mr-2" />}
           Cargar códigos
         </Button>
