@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
@@ -47,14 +47,14 @@ export default function AdminInvoices({ user }) {
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
   const [appConfig, setAppConfig] = useState(null);
 
-  useEffect(() => {
-    loadInvoices(false);
-    loadConsolidations();
-  }, []);
-
+  // Inicialización en paralelo (3 fetches concurrentes en lugar de secuenciales)
   useEffect(() => {
     (async () => {
-      const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      const [cfgs] = await Promise.all([
+        base44.entities.AppConfig.filter({ config_key: 'main' }),
+        loadInvoices(false),
+        loadConsolidations(),
+      ]);
       setAppConfig(cfgs?.[0] || null);
     })();
   }, []);
@@ -63,22 +63,30 @@ export default function AdminInvoices({ user }) {
     if (append) setLoadingMore(true); else setLoading(true);
     const skip = append ? invoices.length : 0;
     const data = await base44.entities.Invoice.list('-invoice_date', pageSize, skip);
+
+    // Enriquecer con shipping_mark: filtrar SOLO por los emails de la página (no traer todos los usuarios)
     const clientEmails = Array.from(new Set((data || []).map(inv => inv.client_email).filter(Boolean)));
-    const users = clientEmails.length ? await base44.entities.User.list() : [];
-    const usersMap = new Map(users.map(u => [u.email, u]));
+    let usersMap = new Map();
+    if (clientEmails.length) {
+      // Filter por email es mucho más eficiente que User.list() (que trae miles de usuarios)
+      const usersArr = await Promise.all(
+        clientEmails.map((email) => base44.entities.User.filter({ email }).then((rows) => rows?.[0]).catch(() => null))
+      );
+      usersMap = new Map(usersArr.filter(Boolean).map((u) => [u.email, u]));
+    }
     const enrichedData = (data || []).map(inv => ({
       ...inv,
       shipping_mark: usersMap.get(inv.client_email)?.shipping_mark || ''
     }));
     const nextList = append ? [...invoices, ...enrichedData] : enrichedData;
 
-    const nextStats = {
-      total: nextList.length,
-      paid: nextList.filter(i => i.status === 'pagada').length,
-      pending: nextList.filter(i => i.status === 'pendiente').length,
-      revenue: nextList.filter(i => i.status === 'pagada').reduce((sum, i) => sum + (Number(i.total) || 0), 0)
-    };
-    setStats(nextStats);
+    // Calcular stats en un solo pase (antes: 4 .filter() iteraciones)
+    let paid = 0, pending = 0, revenue = 0;
+    for (const i of nextList) {
+      if (i.status === 'pagada') { paid++; revenue += Number(i.total) || 0; }
+      else if (i.status === 'pendiente') pending++;
+    }
+    setStats({ total: nextList.length, paid, pending, revenue });
 
     setInvoices(nextList);
     setHasMore(data.length === pageSize);
@@ -552,16 +560,18 @@ export default function AdminInvoices({ user }) {
     setDeconsolidating(false);
   };
 
-  const filteredInvoices = invoices.filter(inv => {
-    const matchesSearch = 
-      inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
-      inv.client_email.toLowerCase().includes(search.toLowerCase()) ||
-      inv.consolidation_tracking.toLowerCase().includes(search.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  const filteredInvoices = useMemo(() => {
+    const q = search.toLowerCase();
+    return invoices.filter(inv => {
+      const matchesSearch = !q || (
+        (inv.invoice_number || '').toLowerCase().includes(q) ||
+        (inv.client_email || '').toLowerCase().includes(q) ||
+        (inv.consolidation_tracking || '').toLowerCase().includes(q)
+      );
+      const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [invoices, search, statusFilter]);
 
   if (loading) {
     return (
