@@ -1,5 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+// Cache en memoria para conteos globales (no dependen de los filtros del usuario).
+// Evita recalcular ~350k registros cada vez que el admin cambia un filtro.
+const COUNTS_TTL_MS = 60 * 1000; // 60s
+let _countsCache = { at: 0, counts: null };
+
 // Lista paquetes para AdminPackages con paginación, filtros y conteos server-side
 Deno.serve(async (req) => {
   try {
@@ -132,44 +137,49 @@ Deno.serve(async (req) => {
     const hasMore = pageSkip + data.length < total;
 
     // === Conteos globales (todos los paquetes, ignorando filtros) ===
+    // Optimización: usamos UNA sola pasada paginada sobre Package, agrupando
+    // en memoria por estado, en vez de 7 queries que recorren la colección
+    // completa. Además cacheamos por 60s para no repetir en cada filtrado.
     let counts = null;
     if (includeCounts) {
-      // Contar por estado usando filter con limit 1 + paginación batched
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-      const countByQuery = async (qry) => {
-        let c = 0;
-        let s = 0;
+      const now = Date.now();
+      if (_countsCache.counts && (now - _countsCache.at) < COUNTS_TTL_MS) {
+        counts = _countsCache.counts;
+      } else {
+        const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const acc = {
+          total: 0,
+          pre_alerta_no_recibido: 0,
+          recibido: 0,
+          consolidado: 0,
+          en_transito: 0,
+          entregado: 0,
+          stale: 0,
+        };
         const B = 1000;
+        let s = 0;
         while (true) {
-          const batch = await base44.asServiceRole.entities.Package.filter(qry, '-created_date', B, s);
-          c += batch.length;
+          const batch = await base44.asServiceRole.entities.Package.list('-created_date', B, s);
+          if (!batch || batch.length === 0) break;
+          for (const p of batch) {
+            acc.total++;
+            const st = p?.status;
+            if (st === 'recibido') acc.recibido++;
+            else if (st === 'consolidado') acc.consolidado++;
+            else if (st === 'en_transito') acc.en_transito++;
+            else if (st === 'entregado') acc.entregado++;
+            else if (st === 'pre_alerta') {
+              if (!p.received_date) acc.pre_alerta_no_recibido++;
+              if (p.created_date && p.created_date <= sevenDaysAgo) acc.stale++;
+            }
+          }
           if (batch.length < B) break;
           s += B;
-          if (s > 50000) break;
+          if (s > 50000) break; // safety cap
         }
-        return c;
-      };
-
-      const [totalAll, preAlertaNoRecibido, recibido, consolidado, enTransito, entregado, stale] = await Promise.all([
-        countByQuery({}),
-        countByQuery({ status: 'pre_alerta', received_date: { $in: [null] } }),
-        countByQuery({ status: 'recibido' }),
-        countByQuery({ status: 'consolidado' }),
-        countByQuery({ status: 'en_transito' }),
-        countByQuery({ status: 'entregado' }),
-        countByQuery({ status: 'pre_alerta', created_date: { $lte: sevenDaysAgo } }),
-      ]);
-
-      counts = {
-        total: totalAll,
-        pre_alerta_no_recibido: preAlertaNoRecibido,
-        recibido,
-        consolidado,
-        en_transito: enTransito,
-        entregado,
-        stale,
-      };
+        counts = acc;
+        _countsCache = { at: now, counts };
+      }
     }
 
     return Response.json({ data, total, skip: pageSkip, limit: pageLimit, hasMore, counts });

@@ -1,5 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
+// Cache en memoria (vive lo que viva el isolate). Evita recalcular conteos
+// pesados en requests sucesivos del mismo admin filtrando.
+const CACHE_TTL_MS = 60 * 1000; // 60 segundos
+let _cache = { at: 0, allClients: null, packageCounts: null };
+
 // Helpers de normalización (mismos del frontend)
 const removeDiacritics = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const normalizeText = (s) => removeDiacritics(s).toLowerCase().replace(/\s+/g, ' ').trim();
@@ -142,29 +147,48 @@ Deno.serve(async (req) => {
     const quickDate = body.quickDate || 'all';
     const includeCounts = body.includeCounts !== false; // por defecto sí
 
-    // Carga todos los clientes y los conteos de paquetes
-    const allRaw = await loadAllClients(base44);
-    const all = allRaw
-      .filter((u) => u && u.id && u.email && u.custom_role !== 'super_admin_oculto')
-      .map(sanitize);
+    // Carga todos los clientes y los conteos de paquetes (con caché TTL).
+    // Esto resuelve el problema "N+1 / recalcular siempre": cuando el admin
+    // cambia filtros varias veces, no recargamos miles de paquetes en cada click.
+    const now = Date.now();
+    const cacheValid = _cache.allClients && _cache.packageCounts && (now - _cache.at) < CACHE_TTL_MS;
 
-    // Conteo de paquetes (solo si se pide). Usamos paginación interna en Package.
-    let packageCounts = {};
-    if (includeCounts) {
-      const PAGE = 200;
-      let s = 0;
-      while (true) {
-        const batch = await base44.asServiceRole.entities.Package.list('-created_date', PAGE, s);
-        if (!batch || batch.length === 0) break;
-        for (const p of batch) {
-          if (p.client_email) {
-            packageCounts[p.client_email] = (packageCounts[p.client_email] || 0) + 1;
+    let all;
+    let packageCounts;
+
+    if (cacheValid) {
+      all = _cache.allClients;
+      packageCounts = _cache.packageCounts;
+    } else {
+      // Cargar clientes + paquetes EN PARALELO (antes era secuencial)
+      const PKG_PAGE = 1000; // batch grande = menos round trips
+      const loadAllPackageCounts = async () => {
+        const counts = {};
+        let s = 0;
+        while (true) {
+          const batch = await base44.asServiceRole.entities.Package.list('-created_date', PKG_PAGE, s);
+          if (!batch || batch.length === 0) break;
+          for (const p of batch) {
+            if (p.client_email) counts[p.client_email] = (counts[p.client_email] || 0) + 1;
           }
+          if (batch.length < PKG_PAGE) break;
+          s += PKG_PAGE;
+          if (s >= 50000) break; // safety
         }
-        if (batch.length < PAGE) break;
-        s += PAGE;
-        if (s >= 20000) break; // safety
-      }
+        return counts;
+      };
+
+      const [allRaw, pkgCounts] = await Promise.all([
+        loadAllClients(base44),
+        loadAllPackageCounts(),
+      ]);
+
+      all = allRaw
+        .filter((u) => u && u.id && u.email && u.custom_role !== 'super_admin_oculto')
+        .map(sanitize);
+      packageCounts = pkgCounts;
+
+      _cache = { at: now, allClients: all, packageCounts };
     }
 
     // Aplicar filtros
