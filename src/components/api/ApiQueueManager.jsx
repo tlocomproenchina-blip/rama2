@@ -74,7 +74,23 @@ class ApiQueueManager {
   _startAutoScaler() {
     if (typeof window === 'undefined') return;
     if (this._autoScalerTimer) clearInterval(this._autoScalerTimer);
+    this._idleTicks = 0;
+    this._autoScalerActive = true;
     this._autoScalerTimer = setInterval(() => {
+      // Auto-pause si está completamente inactivo: sin cola, sin actividad y sin errores
+      const idle = this.queue.length === 0 && this.activeReads === 0 && this.activeWrites === 0 && this.recentErrors === 0 && this.recentSuccess === 0 && this.circuitBreakerState === 'CLOSED';
+      if (idle) {
+        this._idleTicks = (this._idleTicks || 0) + 1;
+        // Después de ~30s sin actividad, pausar el auto-scaler
+        if (this._idleTicks >= 15) {
+          clearInterval(this._autoScalerTimer);
+          this._autoScalerTimer = null;
+          this._autoScalerActive = false;
+          return;
+        }
+      } else {
+        this._idleTicks = 0;
+      }
       try {
         const now = Date.now();
         if (now - this._lastAutoScaleAt < 1500) return;
@@ -289,6 +305,9 @@ class ApiQueueManager {
       } else {
         this.queue.push(queueItem);
       }
+
+      // Reactivar auto-scaler si estaba pausado
+      if (!this._autoScalerActive) this._startAutoScaler();
 
       this.processQueue();
     });
@@ -694,8 +713,10 @@ class ApiQueueManager {
 // Singleton global
 const apiQueue = new ApiQueueManager();
 
-// Solo suscripciones realtime esenciales (máx 3 para evitar sobrecarga de WebSocket)
-apiQueue.enableRealtime(['Package', 'Notification']);
+// NO se habilita realtime global por defecto.
+// Cada componente que lo necesite debe llamar a base44.entities.<Entity>.subscribe()
+// directamente (ej. NotificationBell, MyPackages, AdminPackages).
+// Esto reduce significativamente el consumo de WebSockets.
 
 // Export como base44 compatible
 export const base44 = apiQueue;
