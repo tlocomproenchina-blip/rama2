@@ -17,6 +17,7 @@ import PageHero from '@/components/common/PageHero';
 import CbmMonthlySummary from '@/components/accounting/CbmMonthlySummary';
 import CbmClientSummary from '@/components/accounting/CbmClientSummary';
 import CbmStateCostPanel from '@/components/accounting/CbmStateCostPanel';
+import CbmDatePicker from '@/components/admin/CbmDatePicker';
 
 
 export default function AdminCbmIngresos({ user }) {
@@ -456,83 +457,30 @@ export default function AdminCbmIngresos({ user }) {
             />
           </div>
 
-            {/* Fecha */}
+            {/* Fecha + Calendario con paquetes */}
             <div className="space-y-2">
               <Label>Fecha de registro *</Label>
-              <Input
-                type="datetime-local"
-                value={form.fecha}
-                onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-              />
-            </div>
-
-            {/* Received packages list with selection */}
-            {form.client_email && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-2"><Package className="h-4 w-4" /> Paquetes Recibidos</Label>
-                  {clientPackages.length > 0 && (
-                    <Button
-                     type="button"
-                     variant="ghost"
-                     size="sm"
-                     className="text-xs h-6 px-2"
-                     onClick={() => {
-                       const availableTrackings = clientPackages.map(p => p.tracking_number);
-                       const allSelected = availableTrackings.every(t => form.tracking_numbers.includes(t));
-                       if (allSelected) {
-                         setForm({ ...form, tracking_numbers: form.tracking_numbers.filter(t => !availableTrackings.includes(t)) });
-                       } else {
-                         setForm({ ...form, tracking_numbers: [...new Set([...form.tracking_numbers, ...availableTrackings])] });
-                       }
-                     }}
-                    >
-                      {form.tracking_numbers.length === clientPackages.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
-                    </Button>
-                  )}
-                </div>
-                {loadingPackages ? (
-                  <p className="text-xs text-slate-500">Cargando paquetes...</p>
-                ) : clientPackages.length === 0 ? (
-                  <p className="text-xs text-slate-400">No hay paquetes recibidos para este cliente</p>
-                ) : (
-                  <div className="max-h-44 overflow-y-auto border rounded-lg divide-y bg-white">
-                    {clientPackages.map(pkg => {
-                      const isSelected = form.tracking_numbers.includes(pkg.tracking_number);
-                      return (
-                        <div
-                          key={pkg.id}
-                          className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
-                          onClick={() => {
-                            const trackings = isSelected
-                              ? form.tracking_numbers.filter(t => t !== pkg.tracking_number)
-                              : [...form.tracking_numbers, pkg.tracking_number];
-                            setForm({ ...form, tracking_numbers: trackings });
-                          }}
-                        >
-                          <Checkbox checked={isSelected} className="flex-shrink-0" />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-mono font-medium text-slate-800 truncate">{pkg.tracking_number}</p>
-                            <p className="text-[11px] text-slate-500">
-                              {pkg.received_date ? format(new Date(pkg.received_date), 'dd/MM/yyyy HH:mm') : 'Sin fecha'}
-                            </p>
-                          </div>
-                          <Badge variant={isSelected ? 'default' : 'outline'} className="text-[10px] flex-shrink-0">
-                            {isSelected ? '\u2713' : 'Recibido'}
-                          </Badge>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                <p className="text-[11px] text-muted-foreground">
-                  {form.tracking_numbers.length > 0
-                    ? <span className="text-blue-600 font-medium">{form.tracking_numbers.length} seleccionado(s)</span>
-                    : `${clientPackages.length} paquete(s) recibidos`
-                  }
+              {form.client_email ? (
+                <CbmDatePicker
+                  selectedDate={form.fecha ? new Date(form.fecha) : new Date()}
+                  onDateChange={(date) => setForm({ ...form, fecha: format(date, "yyyy-MM-dd'T'HH:mm") })}
+                  clientPackages={clientPackages}
+                  selectedTrackings={form.tracking_numbers}
+                  onTrackingsChange={(trackings) => setForm({ ...form, tracking_numbers: trackings })}
+                />
+              ) : (
+                <Input
+                  type="datetime-local"
+                  value={form.fecha}
+                  onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+                />
+              )}
+              {form.tracking_numbers.length > 0 && (
+                <p className="text-[11px] text-blue-600 font-medium">
+                  {form.tracking_numbers.length} paquete(s) seleccionado(s)
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label>Proveedor / Almacén</Label>
