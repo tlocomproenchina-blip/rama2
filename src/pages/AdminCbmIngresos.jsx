@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { format, subMonths } from 'date-fns';
+import { format, subMonths, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Loader2, Package, Trash2, CalendarDays, TrendingUp, Users, Search, Filter, MapPin, Pencil, CheckSquare } from 'lucide-react';
+import { Plus, Loader2, Package, Trash2, CalendarDays, TrendingUp, Users, Search, Filter, MapPin, Pencil, CheckSquare, Ship, MapPinned } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import CbmDatePicker from '@/components/admin/CbmDatePicker';
 import { toast } from 'sonner';
@@ -27,7 +27,7 @@ export default function AdminCbmIngresos({ user }) {
   const [saving, setSaving] = useState(false);
   const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-01'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [form, setForm] = useState({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '' });
+  const [form, setForm] = useState({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '' });
   const [editingId, setEditingId] = useState(null);
   const [clients, setClients] = useState([]);
   const [clientSearch, setClientSearch] = useState('');
@@ -144,7 +144,9 @@ export default function AdminCbmIngresos({ user }) {
         client_name: fresh.client_name || '',
         shipping_mark: fresh.shipping_mark || '',
         tracking_numbers: fresh.tracking_numbers || [],
-        invoice_number: fresh.invoice_number || ''
+        invoice_number: fresh.invoice_number || '',
+        fecha_salida: fresh.fecha_salida || '',
+        fecha_estimada_llegada: fresh.fecha_estimada_llegada || ''
       });
       setShowForm(true);
     } catch (e) {
@@ -154,7 +156,7 @@ export default function AdminCbmIngresos({ user }) {
   };
 
   const resetForm = () => {
-    setForm({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '' });
+    setForm({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '' });
     setEditingId(null);
     setClientPackages([]);
   };
@@ -176,7 +178,9 @@ export default function AdminCbmIngresos({ user }) {
       client_name: form.client_name || '',
       shipping_mark: form.shipping_mark || '',
       tracking_numbers: form.tracking_numbers || [],
-      invoice_number: form.invoice_number || ''
+      invoice_number: form.invoice_number || '',
+      fecha_salida: form.fecha_salida || '',
+      fecha_estimada_llegada: form.fecha_estimada_llegada || ''
     };
     if (editingId) {
       await base44.entities.CbmIngreso.update(editingId, payload);
@@ -352,6 +356,13 @@ export default function AdminCbmIngresos({ user }) {
                           <p className="text-xs text-muted-foreground">
                             {item.fecha ? format(new Date(item.fecha), 'dd/MM/yyyy HH:mm') : '—'}
                           </p>
+                          {item.fecha_salida && (
+                            <p className="text-xs text-emerald-600 flex items-center gap-1">
+                              <Ship className="h-3 w-3" />
+                              Salida: {item.fecha_salida}
+                              {item.fecha_estimada_llegada && <span className="text-slate-500 ml-1">· Llegada est.: {item.fecha_estimada_llegada}</span>}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -489,6 +500,31 @@ export default function AdminCbmIngresos({ user }) {
                   value={form.fecha}
                   onChange={(e) => setForm({ ...form, fecha: e.target.value })}
                 />
+              </div>
+            )}
+
+            {/* Fecha de salida + Estimada de llegada */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2"><Ship className="h-4 w-4" /> Fecha de salida</Label>
+              <Input
+                type="date"
+                value={form.fecha_salida}
+                onChange={(e) => {
+                  const salida = e.target.value;
+                  const llegada = salida ? format(addDays(new Date(salida + 'T12:00:00'), 90), 'yyyy-MM-dd') : '';
+                  setForm({ ...form, fecha_salida: salida, fecha_estimada_llegada: llegada });
+                }}
+              />
+            </div>
+            {form.fecha_salida && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><MapPinned className="h-4 w-4" /> Fecha estimada de llegada</Label>
+                <Input
+                  type="date"
+                  value={form.fecha_estimada_llegada}
+                  onChange={(e) => setForm({ ...form, fecha_estimada_llegada: e.target.value })}
+                />
+                <p className="text-[11px] text-muted-foreground">Calculado automáticamente: fecha de salida + 90 días</p>
               </div>
             )}
 

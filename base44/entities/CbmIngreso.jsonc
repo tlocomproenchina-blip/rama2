@@ -50,6 +50,16 @@
     "invoice_number": {
       "type": "string",
       "description": "N\u00famero de factura asignado"
+    },
+    "fecha_salida": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de salida de la carga"
+    },
+    "fecha_estimada_llegada": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha estimada de llegada (fecha_salida + 90 d\u00edas)"
     }
   },
   "required": [
