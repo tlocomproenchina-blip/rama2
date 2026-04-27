@@ -4,9 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Printer, Tag, Download } from 'lucide-react';
+import { Tag, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 
 export default function ShippingLabelGenerator({ user, config }) {
   const [open, setOpen] = useState(false);
@@ -26,25 +25,6 @@ export default function ShippingLabelGenerator({ user, config }) {
   const shippingMark = user?.shipping_mark || '';
   const logoUrl = config?.app_logo_url || config?.invoice_logo_url || '';
   const companyName = config?.app_name || 'TLEC CARGO';
-
-  const handleGenerate = async () => {
-    if (!labelRef.current) return;
-    setGenerating(true);
-    try {
-      const canvas = await html2canvas(labelRef.current, {
-        scale: 3,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [100, 150] });
-      pdf.addImage(imgData, 'PNG', 0, 0, 100, 150);
-      pdf.save(`etiqueta-${shippingMark || 'envio'}.pdf`);
-    } catch (e) {
-      console.error('Error generating label:', e);
-    }
-    setGenerating(false);
-  };
 
   const handleDownloadImage = async () => {
     if (!labelRef.current) return;
@@ -122,16 +102,10 @@ export default function ShippingLabelGenerator({ user, config }) {
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <Button onClick={handleGenerate} disabled={generating} className="flex-1 gap-2 text-xs sm:text-sm">
-                <Printer className="h-4 w-4" />
-                {generating ? 'Generando...' : 'PDF'}
-              </Button>
-              <Button onClick={handleDownloadImage} disabled={generating} variant="outline" className="flex-1 gap-2 text-xs sm:text-sm">
-                <Download className="h-4 w-4" />
-                PNG
-              </Button>
-            </div>
+            <Button onClick={handleDownloadImage} disabled={generating} className="w-full gap-2 text-xs sm:text-sm">
+              <Download className="h-4 w-4" />
+              {generating ? 'Generando...' : 'Descargar etiqueta (PNG)'}
+            </Button>
           </div>
 
           {/* Label preview: visible on desktop, offscreen on mobile (always in DOM for html2canvas) */}
