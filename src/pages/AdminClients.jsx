@@ -100,14 +100,10 @@ export default function AdminClients({ user }) {
 
     const loadPackageCounts = async () => {
       try {
-        const packages = await base44.entities.Package.list('-created_date', 500);
+        // Backend function: cuenta TODOS los paquetes paginando (no limitado a 500)
+        const res = await base44.functions.invoke('getClientPackageCounts', {});
         if (cancelled) return;
-        const counts = {};
-        packages.forEach((pkg) => {
-          if (pkg?.client_email) {
-            counts[pkg.client_email] = (counts[pkg.client_email] || 0) + 1;
-          }
-        });
+        const counts = res?.data?.counts || {};
         setPackagesCount(counts);
       } catch (error) {
         console.error('Error loading package counts:', error);

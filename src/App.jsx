@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -8,33 +8,35 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import WarehouseReceive from './pages/WarehouseReceive';
-import WarehouseLocations from './pages/WarehouseLocations';
-import WarehouseDashboard from './pages/WarehouseDashboard';
-import WarehousePickPackShip from './pages/WarehousePickPackShip';
-import ClientAnalytics from './pages/ClientAnalytics';
-import AccountingDashboard from './pages/AccountingDashboard';
-import AdminEmployees from './pages/AdminEmployees';
-import AdminAdministrators from './pages/AdminAdministrators';
-import AdminRoles from './pages/AdminRoles';
-import AdminEmployeeAudit from './pages/AdminEmployeeAudit';
-import AdminEmployeePerformance from './pages/AdminEmployeePerformance';
-import AdminActivityAudit from './pages/AdminActivityAudit';
-import AdminVehiculos from './pages/AdminVehiculos';
-import AdminChoferes from './pages/AdminChoferes';
-import AdminRutas from './pages/AdminRutas';
-import AdminCargaRutas from './pages/AdminCargaRutas';
-import AdminSeguimientoRutas from './pages/AdminSeguimientoRutas';
-import AdminLogistica from './pages/AdminLogistica';
-import AdminOperaciones from './pages/AdminOperaciones';
-import AdminSeguimiento from './pages/AdminSeguimiento';
-import AdminRutaDetalle from './pages/AdminRutaDetalle';
-import AdminInternalMessages from './pages/AdminInternalMessages';
-import AdminCbmIngresos from './pages/AdminCbmIngresos';
-import AdminDuplicates from './pages/AdminDuplicates';
-import AdminRevenueDashboard from './pages/AdminRevenueDashboard';
-import AdminPreAlerts from './pages/AdminPreAlerts';
-import AdminSupportQuickMessages from './pages/AdminSupportQuickMessages';
+
+// Lazy-loaded admin / warehouse pages — reduce bundle inicial para clientes
+const WarehouseReceive = lazy(() => import('./pages/WarehouseReceive'));
+const WarehouseLocations = lazy(() => import('./pages/WarehouseLocations'));
+const WarehouseDashboard = lazy(() => import('./pages/WarehouseDashboard'));
+const WarehousePickPackShip = lazy(() => import('./pages/WarehousePickPackShip'));
+const ClientAnalytics = lazy(() => import('./pages/ClientAnalytics'));
+const AccountingDashboard = lazy(() => import('./pages/AccountingDashboard'));
+const AdminEmployees = lazy(() => import('./pages/AdminEmployees'));
+const AdminAdministrators = lazy(() => import('./pages/AdminAdministrators'));
+const AdminRoles = lazy(() => import('./pages/AdminRoles'));
+const AdminEmployeeAudit = lazy(() => import('./pages/AdminEmployeeAudit'));
+const AdminEmployeePerformance = lazy(() => import('./pages/AdminEmployeePerformance'));
+const AdminActivityAudit = lazy(() => import('./pages/AdminActivityAudit'));
+const AdminVehiculos = lazy(() => import('./pages/AdminVehiculos'));
+const AdminChoferes = lazy(() => import('./pages/AdminChoferes'));
+const AdminRutas = lazy(() => import('./pages/AdminRutas'));
+const AdminCargaRutas = lazy(() => import('./pages/AdminCargaRutas'));
+const AdminSeguimientoRutas = lazy(() => import('./pages/AdminSeguimientoRutas'));
+const AdminLogistica = lazy(() => import('./pages/AdminLogistica'));
+const AdminOperaciones = lazy(() => import('./pages/AdminOperaciones'));
+const AdminSeguimiento = lazy(() => import('./pages/AdminSeguimiento'));
+const AdminRutaDetalle = lazy(() => import('./pages/AdminRutaDetalle'));
+const AdminInternalMessages = lazy(() => import('./pages/AdminInternalMessages'));
+const AdminCbmIngresos = lazy(() => import('./pages/AdminCbmIngresos'));
+const AdminDuplicates = lazy(() => import('./pages/AdminDuplicates'));
+const AdminRevenueDashboard = lazy(() => import('./pages/AdminRevenueDashboard'));
+const AdminPreAlerts = lazy(() => import('./pages/AdminPreAlerts'));
+const AdminSupportQuickMessages = lazy(() => import('./pages/AdminSupportQuickMessages'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -43,6 +45,20 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+const RouteFallback = () => (
+  <div className="flex items-center justify-center min-h-[40vh]">
+    <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+  </div>
+);
+
+const lazyRoute = (Component, name) => (
+  <LayoutWrapper currentPageName={name}>
+    <Suspense fallback={<RouteFallback />}>
+      <Component />
+    </Suspense>
+  </LayoutWrapper>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -97,141 +113,33 @@ const AuthenticatedApp = () => {
           </LayoutWrapper>
         } />
       )}
-      <Route path="/WarehouseReceive" element={
-        <LayoutWrapper currentPageName="WarehouseReceive">
-          <WarehouseReceive />
-        </LayoutWrapper>
-      } />
-      <Route path="/WarehouseLocations" element={
-        <LayoutWrapper currentPageName="WarehouseLocations">
-          <WarehouseLocations />
-        </LayoutWrapper>
-      } />
-      <Route path="/WarehouseDashboard" element={
-        <LayoutWrapper currentPageName="WarehouseDashboard">
-          <WarehouseDashboard />
-        </LayoutWrapper>
-      } />
-      <Route path="/WarehousePickPackShip" element={
-        <LayoutWrapper currentPageName="WarehousePickPackShip">
-          <WarehousePickPackShip />
-        </LayoutWrapper>
-      } />
-      <Route path="/ClientAnalytics" element={
-        <LayoutWrapper currentPageName="ClientAnalytics">
-          <ClientAnalytics />
-        </LayoutWrapper>
-      } />
-      <Route path="/AccountingDashboard" element={
-        <LayoutWrapper currentPageName="AccountingDashboard">
-          <AccountingDashboard />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminEmployees" element={
-        <LayoutWrapper currentPageName="AdminEmployees">
-          <AdminEmployees />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminAdministrators" element={
-        <LayoutWrapper currentPageName="AdminAdministrators">
-          <AdminAdministrators />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminRoles" element={
-        <LayoutWrapper currentPageName="AdminRoles">
-          <AdminRoles />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminEmployeeAudit" element={
-        <LayoutWrapper currentPageName="AdminEmployeeAudit">
-          <AdminEmployeeAudit />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminEmployeePerformance" element={
-        <LayoutWrapper currentPageName="AdminEmployeePerformance">
-          <AdminEmployeePerformance />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminActivityAudit" element={
-        <LayoutWrapper currentPageName="AdminActivityAudit">
-          <AdminActivityAudit />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminVehiculos" element={
-        <LayoutWrapper currentPageName="AdminVehiculos">
-          <AdminVehiculos />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminChoferes" element={
-        <LayoutWrapper currentPageName="AdminChoferes">
-          <AdminChoferes />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminRutas" element={
-        <LayoutWrapper currentPageName="AdminRutas">
-          <AdminRutas />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminCargaRutas" element={
-        <LayoutWrapper currentPageName="AdminCargaRutas">
-          <AdminCargaRutas />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminSeguimientoRutas" element={
-        <LayoutWrapper currentPageName="AdminSeguimientoRutas">
-          <AdminSeguimientoRutas />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminLogistica" element={
-        <LayoutWrapper currentPageName="AdminLogistica">
-          <AdminLogistica />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminOperaciones" element={
-        <LayoutWrapper currentPageName="AdminOperaciones">
-          <AdminOperaciones />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminSeguimiento" element={
-        <LayoutWrapper currentPageName="AdminSeguimiento">
-          <AdminSeguimiento />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminRutaDetalle" element={
-        <LayoutWrapper currentPageName="AdminRutaDetalle">
-          <AdminRutaDetalle />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminInternalMessages" element={
-        <LayoutWrapper currentPageName="AdminInternalMessages">
-          <AdminInternalMessages />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminCbmIngresos" element={
-        <LayoutWrapper currentPageName="AdminCbmIngresos">
-          <AdminCbmIngresos />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminDuplicates" element={
-        <LayoutWrapper currentPageName="AdminDuplicates">
-          <AdminDuplicates />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminRevenueDashboard" element={
-        <LayoutWrapper currentPageName="AdminRevenueDashboard">
-          <AdminRevenueDashboard />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminPreAlerts" element={
-        <LayoutWrapper currentPageName="AdminPreAlerts">
-          <AdminPreAlerts />
-        </LayoutWrapper>
-      } />
-      <Route path="/AdminSupportQuickMessages" element={
-        <LayoutWrapper currentPageName="AdminSupportQuickMessages">
-          <AdminSupportQuickMessages />
-        </LayoutWrapper>
-      } />
+      <Route path="/WarehouseReceive" element={lazyRoute(WarehouseReceive, "WarehouseReceive")} />
+      <Route path="/WarehouseLocations" element={lazyRoute(WarehouseLocations, "WarehouseLocations")} />
+      <Route path="/WarehouseDashboard" element={lazyRoute(WarehouseDashboard, "WarehouseDashboard")} />
+      <Route path="/WarehousePickPackShip" element={lazyRoute(WarehousePickPackShip, "WarehousePickPackShip")} />
+      <Route path="/ClientAnalytics" element={lazyRoute(ClientAnalytics, "ClientAnalytics")} />
+      <Route path="/AccountingDashboard" element={lazyRoute(AccountingDashboard, "AccountingDashboard")} />
+      <Route path="/AdminEmployees" element={lazyRoute(AdminEmployees, "AdminEmployees")} />
+      <Route path="/AdminAdministrators" element={lazyRoute(AdminAdministrators, "AdminAdministrators")} />
+      <Route path="/AdminRoles" element={lazyRoute(AdminRoles, "AdminRoles")} />
+      <Route path="/AdminEmployeeAudit" element={lazyRoute(AdminEmployeeAudit, "AdminEmployeeAudit")} />
+      <Route path="/AdminEmployeePerformance" element={lazyRoute(AdminEmployeePerformance, "AdminEmployeePerformance")} />
+      <Route path="/AdminActivityAudit" element={lazyRoute(AdminActivityAudit, "AdminActivityAudit")} />
+      <Route path="/AdminVehiculos" element={lazyRoute(AdminVehiculos, "AdminVehiculos")} />
+      <Route path="/AdminChoferes" element={lazyRoute(AdminChoferes, "AdminChoferes")} />
+      <Route path="/AdminRutas" element={lazyRoute(AdminRutas, "AdminRutas")} />
+      <Route path="/AdminCargaRutas" element={lazyRoute(AdminCargaRutas, "AdminCargaRutas")} />
+      <Route path="/AdminSeguimientoRutas" element={lazyRoute(AdminSeguimientoRutas, "AdminSeguimientoRutas")} />
+      <Route path="/AdminLogistica" element={lazyRoute(AdminLogistica, "AdminLogistica")} />
+      <Route path="/AdminOperaciones" element={lazyRoute(AdminOperaciones, "AdminOperaciones")} />
+      <Route path="/AdminSeguimiento" element={lazyRoute(AdminSeguimiento, "AdminSeguimiento")} />
+      <Route path="/AdminRutaDetalle" element={lazyRoute(AdminRutaDetalle, "AdminRutaDetalle")} />
+      <Route path="/AdminInternalMessages" element={lazyRoute(AdminInternalMessages, "AdminInternalMessages")} />
+      <Route path="/AdminCbmIngresos" element={lazyRoute(AdminCbmIngresos, "AdminCbmIngresos")} />
+      <Route path="/AdminDuplicates" element={lazyRoute(AdminDuplicates, "AdminDuplicates")} />
+      <Route path="/AdminRevenueDashboard" element={lazyRoute(AdminRevenueDashboard, "AdminRevenueDashboard")} />
+      <Route path="/AdminPreAlerts" element={lazyRoute(AdminPreAlerts, "AdminPreAlerts")} />
+      <Route path="/AdminSupportQuickMessages" element={lazyRoute(AdminSupportQuickMessages, "AdminSupportQuickMessages")} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

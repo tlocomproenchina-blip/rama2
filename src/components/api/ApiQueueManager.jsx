@@ -234,9 +234,22 @@ class ApiQueueManager {
   }
 
   /**
+   * TTL por entidad (en ms). Datos estáticos viven más, transaccionales menos.
+   */
+  getEntityTTL(entity) {
+    // Datos casi inmutables: 10 minutos
+    const STATIC = ['AppConfig', 'StateConfig', 'PricingConfig', 'PrivacyConfig', 'RoleConfig', 'EmailTemplate', 'FAQ', 'KnowledgeBase', 'BlogPost', 'Warehouse', 'WarehouseLocation'];
+    // Datos transaccionales: 15 segundos (consistencia más alta)
+    const TRANSACTIONAL = ['Package', 'Consolidation', 'ConsolidationRequest', 'Invoice', 'SupportTicket', 'Notification', 'AssistedPaymentRequest'];
+    if (STATIC.includes(entity)) return 600000;
+    if (TRANSACTIONAL.includes(entity)) return 15000;
+    return 60000; // default 1 min
+  }
+
+  /**
    * Obtiene del cache si es válido
    */
-  getFromCache(key, ttlMs = 60000) {
+  getFromCache(key, ttlMs) {
     // Respeta desactivación de caché por entidad
     const entity = String(key).split(':')[0];
     if (this.cacheDisabledFor.has(entity)) return null;
@@ -244,8 +257,9 @@ class ApiQueueManager {
     const cached = this.cache.get(key);
     if (!cached) return null;
 
+    const effectiveTtl = Number.isFinite(ttlMs) ? ttlMs : this.getEntityTTL(entity);
     const now = Date.now();
-    if (now - cached.timestamp > ttlMs) {
+    if (now - cached.timestamp > effectiveTtl) {
       this.cache.delete(key);
       return null;
     }
