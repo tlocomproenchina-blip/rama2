@@ -25,6 +25,10 @@ class ApiQueueManager {
     this.lastWriteTime = 0;
     this.MAX_CONCURRENT_READS = 60;
     this.MAX_CONCURRENT_WRITES = 30;
+    this.MIN_READS = 10;
+    this.MIN_WRITES = 5;
+    this.MAX_READS_CAP = 200;
+    this.MAX_WRITES_CAP = 100;
     this.activeReads = 0;
     this.activeWrites = 0;
     this.inflight = new Map();
@@ -32,6 +36,11 @@ class ApiQueueManager {
     this.backoffDelays = [2000, 4000, 8000, 16000, 32000];
     this.circuitBreakerThreshold = 80;
     this.circuitOpenMinutes = 1;
+    // Auto-scaling: ajusta concurrencia según demanda y errores
+    this.recentSuccess = 0;
+    this.recentErrors = 0;
+    this._lastAutoScaleAt = 0;
+    this._startAutoScaler();
     this.OPERATION_TIMEOUT_MS = 60000; // 60s seguridad contra cuelgues
     // Realtime + caché granular
     this.cacheDisabledFor = new Set();
@@ -56,10 +65,71 @@ class ApiQueueManager {
   }
 
   /**
+   * Auto-scaler: ajusta concurrencia bajo demanda automáticamente
+   * - Si hay cola pendiente y baja tasa de error → SUBE concurrencia
+   * - Si hay errores 429 recientes → BAJA concurrencia
+   * - Si todo está estable → mantiene
+   * También auto-cierra el circuit breaker si está abierto y ya pasó el tiempo
+   */
+  _startAutoScaler() {
+    if (typeof window === 'undefined') return;
+    if (this._autoScalerTimer) clearInterval(this._autoScalerTimer);
+    this._autoScalerTimer = setInterval(() => {
+      try {
+        const now = Date.now();
+        if (now - this._lastAutoScaleAt < 1500) return;
+        this._lastAutoScaleAt = now;
+
+        // Auto-recuperar circuit breaker apenas pase el tiempo (sin intervención manual)
+        if (this.circuitBreakerState === 'OPEN' && this.circuitOpenUntil && now >= this.circuitOpenUntil) {
+          this.circuitBreakerState = 'CLOSED';
+          this.failureCount = 0;
+          this.circuitOpenUntil = null;
+          console.log('[AutoScaler] Circuit breaker auto-cerrado');
+        }
+
+        const queueLen = this.queue.length;
+        const errors = this.recentErrors;
+        const success = this.recentSuccess;
+
+        // Reglas simples:
+        // 1) Errores recientes → reducir 25%
+        if (errors > 0) {
+          this.MAX_CONCURRENT_READS = Math.max(this.MIN_READS, Math.floor(this.MAX_CONCURRENT_READS * 0.75));
+          this.MAX_CONCURRENT_WRITES = Math.max(this.MIN_WRITES, Math.floor(this.MAX_CONCURRENT_WRITES * 0.75));
+        }
+        // 2) Cola alta y sin errores → aumentar 50%
+        else if (queueLen > 5 && success > 0) {
+          this.MAX_CONCURRENT_READS = Math.min(this.MAX_READS_CAP, Math.ceil(this.MAX_CONCURRENT_READS * 1.5));
+          this.MAX_CONCURRENT_WRITES = Math.min(this.MAX_WRITES_CAP, Math.ceil(this.MAX_CONCURRENT_WRITES * 1.5));
+        }
+        // 3) Cola moderada y sin errores → aumentar 20%
+        else if (queueLen > 0 && success > 0 && errors === 0) {
+          this.MAX_CONCURRENT_READS = Math.min(this.MAX_READS_CAP, Math.ceil(this.MAX_CONCURRENT_READS * 1.2));
+          this.MAX_CONCURRENT_WRITES = Math.min(this.MAX_WRITES_CAP, Math.ceil(this.MAX_CONCURRENT_WRITES * 1.2));
+        }
+        // 4) Sin cola y sin actividad → relajar gradualmente al baseline (60/30)
+        else if (queueLen === 0 && success === 0 && errors === 0) {
+          if (this.MAX_CONCURRENT_READS > 60) this.MAX_CONCURRENT_READS = Math.max(60, Math.floor(this.MAX_CONCURRENT_READS * 0.9));
+          if (this.MAX_CONCURRENT_WRITES > 30) this.MAX_CONCURRENT_WRITES = Math.max(30, Math.floor(this.MAX_CONCURRENT_WRITES * 0.9));
+        }
+
+        // Reset contadores de ventana
+        this.recentSuccess = 0;
+        this.recentErrors = 0;
+
+        // Empuja la cola si hay items pendientes
+        if (this.queue.length > 0) this.processQueue();
+      } catch (_) {}
+    }, 2000);
+  }
+
+  /**
    * Registra un 429 y actualiza circuit breaker
    */
   registerRateLimitError() {
     this.failureCount++;
+    this.recentErrors++;
     console.error(`[Rate Limit] Error count: ${this.failureCount}/3`);
 
     if (this.failureCount >= this.circuitBreakerThreshold) {
@@ -80,6 +150,7 @@ class ApiQueueManager {
    * Resetea el circuit breaker en operación exitosa
    */
   resetCircuitBreaker() {
+    this.recentSuccess++;
     if (this.circuitBreakerState === 'HALF_OPEN') {
       this.circuitBreakerState = 'CLOSED';
       this.failureCount = 0;

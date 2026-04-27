@@ -66,16 +66,8 @@ export default function ApiStatusIndicator() {
                     ⏰ Disponible nuevamente: {status.circuitOpenUntil}
                   </p>
                   <p className="text-xs text-red-600 mt-2">
-                    Por favor espera unos minutos antes de continuar. Las operaciones se reanudarán automáticamente.
+                    El sistema se está auto-recuperando y escalará automáticamente bajo demanda.
                   </p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2 gap-1 border-red-300 text-red-700 hover:bg-red-100"
-                    onClick={() => { resetCircuitBreaker(); setShow(false); }}
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> Reanudar ahora
-                  </Button>
                 </>
               )}
 
