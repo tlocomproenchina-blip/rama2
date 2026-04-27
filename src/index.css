@@ -154,6 +154,15 @@
     }
   }
 
+  /* Hide scrollbars on horizontally-scrollable mobile elements */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html,
     html:focus-within {

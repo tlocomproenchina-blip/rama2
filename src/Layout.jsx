@@ -27,6 +27,7 @@ import SkipToContent from '@/components/common/SkipToContent';
 import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
 import DemoModeBanner from '@/components/common/DemoModeBanner';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
+// MobileBottomNav is rendered for client users on mobile (see render section)
 
 // Lazy loaded onboarding tour
 const GuidedTour = lazy(() =>
@@ -522,7 +523,7 @@ export default function Layout({ children, currentPageName }) {
          {/* Main Content */}
         <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
           <PullToRefresh enabled={!!user} onRefresh={() => window.location.reload()}>
-            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
+            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: user?.role === 'user' ? 'calc(env(safe-area-inset-bottom) + 88px)' : 'calc(env(safe-area-inset-bottom) + 72px)' }}>
               {showBackButton && (
                 <div className="mb-3">
                   <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
@@ -551,6 +552,9 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
 
+
+      {/* Mobile bottom navigation for client users */}
+      {user?.role === 'user' && <MobileBottomNav />}
 
       {/* Modals */}
       {showContract && (
