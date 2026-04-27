@@ -8,6 +8,7 @@ import ClientImportDialog from '@/components/imports/ClientImportDialog';
 import { getDigits, sanitizeClientProfileData } from '@/lib/inputSanitizers';
 import ClientsHeaderActions from '@/components/admin/clients/ClientsHeaderActions';
 import ClientsStatsCards from '@/components/admin/clients/ClientsStatsCards';
+import BulkProgressIndicator from '@/components/admin/packages/BulkProgressIndicator';
 import ClientsFiltersMobileTrigger from '@/components/admin/clients/ClientsFiltersMobileTrigger';
 import ClientsList from '@/components/admin/clients/ClientsList';
 import AddPackageDialog from '@/components/admin/clients/AddPackageDialog';
@@ -56,6 +57,7 @@ export default function AdminClients({ user }) {
   const [totalFiltered, setTotalFiltered] = useState(0);
   const [globalCounts, setGlobalCounts] = useState(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [bulkProgress, setBulkProgress] = useState(null);
 
   // Debounce de la búsqueda (350ms) para no martillar el backend al teclear
   useEffect(() => {
@@ -245,7 +247,7 @@ Email: ${client.email}`;
   };
 
   // Pide al backend TODOS los clientes que coinciden con los filtros (sin paginar)
-  const fetchAllFilteredClients = async () => {
+  const fetchAllFilteredClients = async (onProgress) => {
     const res = await base44.functions.invoke('listClientsForSupport', {
       limit: 200, skip: 0,
       q: debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate,
@@ -253,6 +255,7 @@ Email: ${client.email}`;
     });
     let all = res?.data?.data || [];
     let total = res?.data?.total || all.length;
+    onProgress?.({ total, remaining: Math.max(0, total - all.length), label: 'Descargando clientes' });
     while (all.length < total) {
       const more = await base44.functions.invoke('listClientsForSupport', {
         limit: 200, skip: all.length,
@@ -262,13 +265,15 @@ Email: ${client.email}`;
       const batch = more?.data?.data || [];
       if (batch.length === 0) break;
       all = all.concat(batch);
+      onProgress?.({ total, remaining: Math.max(0, total - all.length), label: 'Descargando clientes' });
     }
     return all;
   };
 
   const handleExportClients = async () => {
     try {
-      const all = await fetchAllFilteredClients();
+      const all = await fetchAllFilteredClients((p) => setBulkProgress(p));
+      setBulkProgress({ total: all.length, remaining: 0, label: 'Generando archivo...' });
       const rows = [['Teléfono/WhatsApp']];
 
       all.forEach(client => {
@@ -290,6 +295,7 @@ Email: ${client.email}`;
     } catch (error) {
       toast.error('Error al exportar datos');
     }
+    setBulkProgress(null);
   };
 
   const handleBackfillStripeCustomers = async () => {
@@ -309,11 +315,13 @@ Email: ${client.email}`;
   const handleExportFilteredClients = async () => {
     try {
       // Pedir TODOS los clientes que coinciden con los filtros actuales (no solo la página)
-      const all = await fetchAllFilteredClients();
+      const all = await fetchAllFilteredClients((p) => setBulkProgress(p));
       if (all.length === 0) {
         toast.error('No hay clientes para exportar');
+        setBulkProgress(null);
         return;
       }
+      setBulkProgress({ total: all.length, remaining: 0, label: 'Generando archivo...' });
       const lines = [];
       all.forEach((client, index) => {
         const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim();
@@ -373,6 +381,7 @@ Email: ${client.email}`;
     } catch (error) {
       toast.error('Error al exportar datos');
     }
+    setBulkProgress(null);
   };
 
    const handleDelete = async () => {
@@ -618,6 +627,8 @@ Email: ${client.email}`;
       />
 
       <ClientsStatsCards counts={counts} fallbackTotal={clients.length} />
+
+      <BulkProgressIndicator progress={bulkProgress} />
 
       <ClientsFiltersMobileTrigger
         fromDate={fromDate} setFromDate={setFromDate}
