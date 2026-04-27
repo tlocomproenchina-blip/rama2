@@ -67,6 +67,17 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
     setStatusFilter('all');
   };
 
+  // Update optimista de UN paquete (sin refetch)
+  const patchPackageInList = useCallback((pkgId, patch) => {
+    setPackages(prev => prev.map(p => p.id === pkgId ? { ...p, ...patch } : p));
+  }, []);
+
+  // Remueve un paquete de la lista (sin refetch)
+  const removePackageFromList = useCallback((pkgId) => {
+    setPackages(prev => prev.filter(p => p.id !== pkgId));
+    setTotalFiltered(prev => Math.max(0, prev - 1));
+  }, []);
+
   return {
     packages,
     loading,
@@ -80,5 +91,7 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
     hasMore,
     loadPackages,
     resetFilters,
+    patchPackageInList,
+    removePackageFromList,
   };
 }

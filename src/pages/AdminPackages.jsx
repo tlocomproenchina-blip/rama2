@@ -40,9 +40,16 @@ export default function AdminPackages({ user }) {
     hasMore,
     loadPackages,
     resetFilters,
+    patchPackageInList,
+    removePackageFromList,
   } = useAdminPackagesData({ pageSize: 50 });
 
-  const bulk = useAdminPackagesBulk({ packages, onReload: () => loadPackages(false) });
+  const bulk = useAdminPackagesBulk({
+    packages,
+    onReload: () => loadPackages(false),
+    patchPackageInList,
+    removePackageFromList,
+  });
   const {
     selectedPackages,
     bulkAction, setBulkAction,
@@ -93,12 +100,22 @@ export default function AdminPackages({ user }) {
         imageUrls = uploaded;
       }
 
+      const receivedDate = new Date().toISOString();
       await base44.entities.Package.update(receiveModal.id, {
         status: nextStatus,
         package_image_urls: (imageUrls || []).slice(0,3),
         package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : null,
-        received_date: new Date().toISOString(),
+        received_date: receivedDate,
         received_by: user.email
+      });
+
+      // Update optimista en la lista (sin refetch)
+      patchPackageInList(receiveModal.id, {
+        status: nextStatus,
+        package_image_urls: (imageUrls || []).slice(0,3),
+        package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : null,
+        received_date: receivedDate,
+        received_by: user.email,
       });
 
       const { sendNotification } = await import('@/components/NotificationUtils');
@@ -125,7 +142,6 @@ export default function AdminPackages({ user }) {
       toast.success(nextStatus === 'rechazado' ? 'Paquete marcado como rechazado' : 'Paquete marcado como recibido');
       setReceiveModal(null);
       setImageFiles([]);
-      loadPackages(false);
     } catch (error) {
       toast.error('Error al procesar');
     }
@@ -152,10 +168,15 @@ export default function AdminPackages({ user }) {
         package_image_url: merged[0] || null
       });
 
+      // Update optimista
+      patchPackageInList(editImageModal.id, {
+        package_image_urls: merged,
+        package_image_url: merged[0] || null,
+      });
+
       toast.success('Imagen actualizada');
       setEditImageModal(null);
       setNewImageFiles([]);
-      loadPackages(false);
     } catch (error) {
       toast.error('Error al actualizar imagen');
     }
@@ -163,15 +184,22 @@ export default function AdminPackages({ user }) {
   };
 
   const handleStatusChange = async (pkg, newStatus) => {
-    await base44.entities.Package.update(pkg.id, { status: newStatus });
+    // Update optimista inmediato
+    patchPackageInList(pkg.id, { status: newStatus });
+    try {
+      await base44.entities.Package.update(pkg.id, { status: newStatus });
 
-    if (['en_transito', 'disponible', 'entregado'].includes(newStatus)) {
-      const { notifyPackageStatus } = await import('@/components/NotificationUtils');
-      notifyPackageStatus(pkg, newStatus);
+      if (['en_transito', 'disponible', 'entregado'].includes(newStatus)) {
+        const { notifyPackageStatus } = await import('@/components/NotificationUtils');
+        notifyPackageStatus(pkg, newStatus);
+      }
+
+      toast.success('Estado actualizado y cliente notificado');
+    } catch (error) {
+      // Rollback
+      patchPackageInList(pkg.id, { status: pkg.status });
+      toast.error('Error al actualizar estado');
     }
-
-    toast.success('Estado actualizado y cliente notificado');
-    loadPackages(false);
   };
 
   const handleScanSearch = async (code) => {
@@ -197,16 +225,19 @@ export default function AdminPackages({ user }) {
         invoiceUrl = file_url;
       }
 
-      await base44.entities.Package.update(editPreAlertModal.id, {
+      const patch = {
         has_insurance: preAlertInsurance,
         fob_value: preAlertFobValue === '' ? null : Number(preAlertFobValue),
         invoice_url: invoiceUrl,
-      });
+      };
+      await base44.entities.Package.update(editPreAlertModal.id, patch);
+
+      // Update optimista
+      patchPackageInList(editPreAlertModal.id, patch);
 
       toast.success('Datos de seguro actualizados');
       setEditPreAlertModal(null);
       setPreAlertInvoiceFile(null);
-      loadPackages(false);
     } catch (_) {
       toast.error('No se pudo guardar');
     }
@@ -217,16 +248,20 @@ export default function AdminPackages({ user }) {
     if (!cancelReceptionModal) return;
     try {
       setCancelProcessing(true);
-      await base44.entities.Package.update(cancelReceptionModal.id, {
+      const patch = {
         status: 'pre_alerta',
         received_date: null,
         received_by: null,
         package_image_url: null,
         package_image_urls: []
-      });
+      };
+      await base44.entities.Package.update(cancelReceptionModal.id, patch);
+
+      // Update optimista
+      patchPackageInList(cancelReceptionModal.id, patch);
+
       toast.success('Recepción cancelada');
       setCancelReceptionModal(null);
-      loadPackages(false);
     } catch (_) {
       toast.error('No se pudo cancelar la recepción');
     }

@@ -6,7 +6,7 @@ import { toast } from 'sonner';
  * Hook para gestionar acciones masivas (bulk) sobre paquetes:
  * selección, eliminación, cambio de estado y marcado como reportado.
  */
-export function useAdminPackagesBulk({ packages, onReload }) {
+export function useAdminPackagesBulk({ packages, onReload, patchPackageInList, removePackageFromList }) {
   const [selectedPackages, setSelectedPackages] = useState([]);
   const [bulkAction, setBulkAction] = useState('');
   const [bulkStatus, setBulkStatus] = useState('');
@@ -58,6 +58,8 @@ export function useAdminPackagesBulk({ packages, onReload }) {
         for (let i = 0; i < selectedPkgs.length; i += batchSize) {
           const batch = selectedPkgs.slice(i, i + batchSize);
           await Promise.all(batch.map(pkg => base44.entities.Package.delete(pkg.id)));
+          // Update optimista: remover del listado
+          batch.forEach(pkg => removePackageFromList?.(pkg.id));
           setBulkProgress({ total, remaining: total - (i + batch.length) });
         }
         toast.success(`${total} paquetes eliminados`);
@@ -65,6 +67,8 @@ export function useAdminPackagesBulk({ packages, onReload }) {
         for (let i = 0; i < selectedPkgs.length; i += batchSize) {
           const batch = selectedPkgs.slice(i, i + batchSize);
           await Promise.all(batch.map(pkg => base44.entities.Package.update(pkg.id, { status: bulkStatus })));
+          // Update optimista por paquete
+          batch.forEach(pkg => patchPackageInList?.(pkg.id, { status: bulkStatus }));
           setBulkProgress({ total, remaining: total - (i + batch.length) });
         }
 
@@ -83,9 +87,9 @@ export function useAdminPackagesBulk({ packages, onReload }) {
       setBulkAction('');
       setBulkStatus('');
       setShowBulkConfirm(false);
-      onReload?.();
     } catch (error) {
       toast.error('Error al ejecutar acción masiva');
+      onReload?.(); // refetch sólo si falló para reconciliar estado
     }
     setBulkProgress(null);
     setBulkProcessing(false);
@@ -129,14 +133,15 @@ export function useAdminPackagesBulk({ packages, onReload }) {
       for (let i = 0; i < ids.length; i += batchSize) {
         const batch = ids.slice(i, i + batchSize);
         await Promise.all(batch.map(id => base44.entities.Package.update(id, { reported: flag })));
+        // Update optimista
+        batch.forEach(id => patchPackageInList?.(id, { reported: flag }));
         setBulkProgress({ total, remaining: total - (i + batch.length) });
       }
       toast.success(flag ? `${total} marcados como reportados` : `${total} reporte(s) removido(s)`);
       setSelectedPackages([]);
-      onReload?.();
     } catch (e) {
       toast.error('No se pudo actualizar algunos paquetes');
-      onReload?.();
+      onReload?.(); // refetch sólo si falló para reconciliar estado
     }
     setBulkProgress(null);
   };
