@@ -222,9 +222,12 @@ export default function AdminClients({ user }) {
       // If shipping mark was assigned, update existing packages and notify client
       if (sanitizedEditData.shipping_mark && !editClient.shipping_mark) {
         const clientPackages = await base44.entities.Package.filter({ client_email: editClient.email });
-        for (const pkg of clientPackages) {
-          await base44.entities.Package.update(pkg.id, { shipping_mark: sanitizedEditData.shipping_mark });
-        }
+        // Paralelizar updates en lugar de await secuencial (mucho más rápido)
+        await Promise.all(
+          clientPackages.map((pkg) =>
+            base44.entities.Package.update(pkg.id, { shipping_mark: sanitizedEditData.shipping_mark })
+          )
+        );
 
         // Notify client
         const { sendNotification } = await import('@/components/NotificationUtils');
@@ -484,7 +487,8 @@ Email: ${client.email}`;
       const res = await base44.functions.invoke('deleteStripeCustomer', { user_id: client.id });
       if (res?.data?.success) {
         toast.success('Cliente Stripe eliminado');
-        loadClients();
+        // Optimistic: limpiar stripe_customer_id localmente sin recargar
+        setClients((prev) => prev.map((c) => c.id === client.id ? { ...c, stripe_customer_id: null } : c));
       } else {
         toast.error(res?.data?.error || 'No se pudo eliminar en Stripe');
       }
@@ -579,7 +583,7 @@ Email: ${client.email}`;
         ...prev,
         [packageClient.email]: (prev[packageClient.email] || 0) + 1,
       }));
-      loadClients();
+      // Optimistic: ya actualizamos packagesCount; no recargar toda la lista
     } catch (error) {
       toast.error('Error al agregar paquete');
     }
@@ -644,21 +648,25 @@ Email: ${client.email}`;
     setExclusiveKey(value === 'all' ? 'all' : (value === 'with' ? 'with_whatsapp' : 'without_whatsapp'));
   };
 
-  // Pre-compute: if search matches exactly one client by email/SM/fullname, show only that one
-  const qTextPre = normalizeText(search);
-  const qAlnumPre = normalizeAlnum(search);
-  const exactEmailMatch = qTextPre ? clients.filter(c => normalizeText(c.email || '') === qTextPre) : [];
-  const exactSMMatch = qAlnumPre ? clients.filter(c => normalizeAlnum(c.shipping_mark || '') === qAlnumPre) : [];
-  const exactFullMatch = qTextPre ? clients.filter(c => {
-    const fn = normalizeText(`${c.first_name || ''} ${c.last_name || ''}`.trim());
-    return fn && fn === qTextPre;
-  }) : [];
-  const hasExactMatch = (exactEmailMatch.length === 1 || exactSMMatch.length === 1 || exactFullMatch.length === 1);
-  const exactIds = hasExactMatch ? new Set([
-    ...exactEmailMatch.map(c => c.id),
-    ...exactSMMatch.map(c => c.id),
-    ...exactFullMatch.map(c => c.id)
-  ]) : null;
+  // Pre-compute exact matches in a single pass + memoize (antes: 3 .filter() por render)
+  const exactIds = useMemo(() => {
+    const qText = normalizeText(search);
+    const qAlnum = normalizeAlnum(search);
+    if (!qText && !qAlnum) return null;
+    const emailMatches = [];
+    const smMatches = [];
+    const fullMatches = [];
+    for (const c of clients) {
+      if (qText && normalizeText(c.email || '') === qText) emailMatches.push(c.id);
+      if (qAlnum && normalizeAlnum(c.shipping_mark || '') === qAlnum) smMatches.push(c.id);
+      if (qText) {
+        const fn = normalizeText(`${c.first_name || ''} ${c.last_name || ''}`.trim());
+        if (fn && fn === qText) fullMatches.push(c.id);
+      }
+    }
+    const hasExact = emailMatches.length === 1 || smMatches.length === 1 || fullMatches.length === 1;
+    return hasExact ? new Set([...emailMatches, ...smMatches, ...fullMatches]) : null;
+  }, [clients, search]);
 
   const handleChangeRegisteredUserRole = async (client, nextRole) => {
     if (!client?.id) return;
