@@ -51,6 +51,7 @@ import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import ShippingLabelGenerator from '@/components/client-portal/ShippingLabelGenerator';
+import ClientCbmWidget from '@/components/client-portal/ClientCbmWidget';
 import { format } from 'date-fns';
 
 export default function Dashboard({ user, refreshUser }) {
@@ -391,6 +392,9 @@ export default function Dashboard({ user, refreshUser }) {
           </div>
         </Suspense>
       )}
+
+      {/* CBM Widget */}
+      {hasShippingMark && <ClientCbmWidget userEmail={user?.email} />}
 
       {/* Quick Actions */}
       {hasShippingMark && (
