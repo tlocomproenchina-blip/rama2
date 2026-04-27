@@ -131,6 +131,15 @@ export default function AdminClients({ user }) {
 
   }, []);
 
+  // Pre-fill search from URL (?q=... or ?email=...) — used by Global Search palette
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('q') || params.get('email') || params.get('shipping_mark');
+      if (q) setSearch(q);
+    } catch (_) {}
+  }, []);
+
   // Realtime directo sobre User desactivado para evitar errores de permisos en producción.
 
 

@@ -155,7 +155,7 @@ export default function GlobalSearchPalette() {
                 <CommandItem
                   key={`c-${u.id}`}
                   value={`client-${u.id}-${u.email}-${u.full_name || ''}-${u.shipping_mark || ''}`}
-                  onSelect={() => goTo(`${createPageUrl('AdminClients')}?email=${encodeURIComponent(u.email)}`)}
+                  onSelect={() => goTo(`${createPageUrl('AdminClients')}?q=${encodeURIComponent(u.email)}`)}
                 >
                   <UserIcon className="h-4 w-4 text-sky-600" />
                   <div className="flex-1 min-w-0">
