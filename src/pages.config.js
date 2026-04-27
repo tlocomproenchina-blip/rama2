@@ -56,7 +56,6 @@ import AdminAssistedPayments from './pages/AdminAssistedPayments';
 import AdminBlog from './pages/AdminBlog';
 import AdminCargaRutas from './pages/AdminCargaRutas';
 import AdminChoferes from './pages/AdminChoferes';
-import AdminClients from './pages/AdminClients';
 import AdminConsolidate from './pages/AdminConsolidate';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDelete from './pages/AdminDelete';
@@ -68,12 +67,10 @@ import AdminEmployees from './pages/AdminEmployees';
 import AdminFAQ from './pages/AdminFAQ';
 import AdminInsured from './pages/AdminInsured';
 import AdminInternalMessages from './pages/AdminInternalMessages';
-import AdminInvoices from './pages/AdminInvoices';
 import AdminKnowledgeBase from './pages/AdminKnowledgeBase';
 import AdminLogistica from './pages/AdminLogistica';
 import AdminMarketing from './pages/AdminMarketing';
 import AdminOperaciones from './pages/AdminOperaciones';
-import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPreAlerts from './pages/AdminPreAlerts';
 import AdminPayments from './pages/AdminPayments';
@@ -128,7 +125,6 @@ export const PAGES = {
     "AdminBlog": AdminBlog,
     "AdminCargaRutas": AdminCargaRutas,
     "AdminChoferes": AdminChoferes,
-    "AdminClients": AdminClients,
     "AdminConsolidate": AdminConsolidate,
     "AdminDashboard": AdminDashboard,
     "AdminDelete": AdminDelete,
@@ -140,12 +136,10 @@ export const PAGES = {
     "AdminFAQ": AdminFAQ,
     "AdminInsured": AdminInsured,
     "AdminInternalMessages": AdminInternalMessages,
-    "AdminInvoices": AdminInvoices,
     "AdminKnowledgeBase": AdminKnowledgeBase,
     "AdminLogistica": AdminLogistica,
     "AdminMarketing": AdminMarketing,
     "AdminOperaciones": AdminOperaciones,
-    "AdminPackages": AdminPackages,
     "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPreAlerts": AdminPreAlerts,
     "AdminPayments": AdminPayments,
