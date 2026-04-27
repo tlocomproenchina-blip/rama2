@@ -99,15 +99,17 @@ export default function MyPackages({ user }) {
     const tn = (editForm.tracking_number || '').trim();
     if (!tn) { toast.error('Ingresa el tracking'); return; }
     setSaving(true);
-    await base44.entities.Package.update(editModal.id, {
+    const updates = {
       tracking_number: tn,
       description: editForm.description || '',
       shipping_type: editForm.shipping_type || 'aereo'
-    });
+    };
+    await base44.entities.Package.update(editModal.id, updates);
+    // Optimistic update: actualiza solo el item editado en lugar de recargar toda la lista
+    setPackages((prev) => prev.map((p) => p.id === editModal.id ? { ...p, ...updates } : p));
     setSaving(false);
     setEditModal(null);
     toast.success('Paquete actualizado');
-    loadPackages(false);
   };
 
   const openDelete = (pkg) => setDeleteConfirm(pkg);
@@ -116,10 +118,11 @@ export default function MyPackages({ user }) {
     if (!deleteConfirm) return;
     setDeleting(true);
     await base44.entities.Package.delete(deleteConfirm.id);
+    // Optimistic update: quita el item localmente sin recargar todo
+    setPackages((prev) => prev.filter((p) => p.id !== deleteConfirm.id));
     setDeleting(false);
     setDeleteConfirm(null);
     toast.success('Paquete eliminado');
-    loadPackages(false);
   };
 
   const filteredPackages = useMemo(() => {

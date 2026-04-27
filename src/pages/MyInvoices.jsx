@@ -33,8 +33,16 @@ export default function MyInvoices({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    loadInvoices();
-    base44.entities.AppConfig.filter({ config_key: 'main' }).then(cfgs => setConfig(cfgs[0] || null));
+    // Cargar facturas y config en paralelo
+    Promise.all([
+      base44.entities.Invoice.filter({ client_email: user.email }, '-invoice_date', PAGE_SIZE, 0),
+      base44.entities.AppConfig.filter({ config_key: 'main' })
+    ]).then(([data, cfgs]) => {
+      setInvoices(data);
+      setHasMore(data.length === PAGE_SIZE);
+      setConfig(cfgs[0] || null);
+      setLoading(false);
+    });
 
     // Permite abrir Stripe desde otros componentes (ej: modal de consolidación)
     const handler = (e) => {
@@ -156,26 +164,31 @@ export default function MyInvoices({ user }) {
     toast.success('Factura descargada');
   };
 
-  const filteredInvoices = invoices.filter((inv) => {
+  const filteredInvoices = useMemo(() => {
     const term = String(search || '').toLowerCase();
-    const invoiceNumber = String(inv.invoice_number || '').toLowerCase();
-    const consolidationTracking = String(inv.consolidation_tracking || '').toLowerCase();
-    return invoiceNumber.includes(term) || consolidationTracking.includes(term);
-  });
+    if (!term) return invoices;
+    return invoices.filter((inv) => {
+      const invoiceNumber = String(inv.invoice_number || '').toLowerCase();
+      const consolidationTracking = String(inv.consolidation_tracking || '').toLowerCase();
+      return invoiceNumber.includes(term) || consolidationTracking.includes(term);
+    });
+  }, [invoices, search]);
 
-  const invoiceStats = useMemo(() => ({
-    total: invoices.length,
-    pendientes: invoices.filter((inv) => inv.status === 'pendiente').length,
-    revision: invoices.filter((inv) => inv.status === 'revision').length,
-    pagadas: invoices.filter((inv) => inv.status === 'pagada').length,
-  }), [invoices]);
+  // Calcular stats en un solo recorrido
+  const invoiceStats = useMemo(() => {
+    const stats = { total: invoices.length, pendientes: 0, revision: 0, pagadas: 0 };
+    for (const inv of invoices) {
+      if (inv.status === 'pendiente') stats.pendientes++;
+      else if (inv.status === 'revision') stats.revision++;
+      else if (inv.status === 'pagada') stats.pagadas++;
+    }
+    return stats;
+  }, [invoices]);
 
   // Mostrar facturas "pendiente" si tienen link de Stripe O si hay otros métodos de pago habilitados
-  const visibleInvoices = filteredInvoices.filter(inv => {
-    if (inv.status !== 'pendiente') return true;
-    const hasStripeLink = !!inv.stripe_hosted_invoice_url;
+  const hasOtherMethodsConfigured = useMemo(() => {
     const c = config || {};
-    const hasOtherMethods = (
+    return (
       (c.payments_enable_binance === true && c.wallet_binance) ||
       (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) ||
       (c.payments_enable_paypal === true && c.wallet_paypal) ||
@@ -185,8 +198,12 @@ export default function MyInvoices({ user }) {
       (c.payments_enable_skrill === true && c.wallet_skrill) ||
       (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt)
     );
-    return hasStripeLink || hasOtherMethods;
-  });
+  }, [config]);
+
+  const visibleInvoices = useMemo(() => filteredInvoices.filter(inv => {
+    if (inv.status !== 'pendiente') return true;
+    return !!inv.stripe_hosted_invoice_url || hasOtherMethodsConfigured;
+  }), [filteredInvoices, hasOtherMethodsConfigured]);
 
   if (loading) {
     return (
@@ -266,19 +283,7 @@ export default function MyInvoices({ user }) {
                   setSelectedConsolidation({ id: inv.consolidation_id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
                   setPaymentOpen(true);
                 }}
-                showOtherMethodsButton={(() => {
-                  const c = config || {};
-                  return (
-                    (c.payments_enable_binance === true && c.wallet_binance) ||
-                    (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) ||
-                    (c.payments_enable_paypal === true && c.wallet_paypal) ||
-                    (c.payments_enable_wally === true && c.wallet_wally) ||
-                    (c.payments_enable_zinli === true && c.wallet_zinli) ||
-                    (c.payments_enable_wise === true && c.wallet_wise) ||
-                    (c.payments_enable_skrill === true && c.wallet_skrill) ||
-                    (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt)
-                  );
-                })()}
+                showOtherMethodsButton={hasOtherMethodsConfigured}
               />
             ))}
           </div>
