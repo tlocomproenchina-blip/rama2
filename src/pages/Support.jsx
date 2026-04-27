@@ -98,7 +98,12 @@ export default function Support({ user }) {
         ticketData.related_tracking = newTicket.related_tracking.trim();
       }
 
-      await base44.entities.SupportTicket.create(ticketData);
+      const created = await base44.entities.SupportTicket.create(ticketData);
+
+      // Optimistic update: agrega el ticket al inicio sin recargar
+      if (created?.id) {
+        setTickets((prev) => [created, ...prev]);
+      }
 
       // Notify admins
       import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
@@ -125,7 +130,6 @@ export default function Support({ user }) {
       toast.success('Ticket creado exitosamente. Te responderemos pronto.');
       setShowNewTicket(false);
       setNewTicket({ subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '', attachments: [] });
-      loadTickets();
     } catch (error) {
       console.error('Error al crear ticket:', error);
       toast.error(`Error: ${error.message || 'No se pudo crear el ticket'}`);
@@ -164,8 +168,11 @@ export default function Support({ user }) {
       });
     });
 
-    setSelectedTicket({ ...selectedTicket, messages: updatedMessages });
-    loadTickets();
+    const newStatus = selectedTicket.status === 'resuelto' ? 'abierto' : selectedTicket.status;
+    const updatedTicket = { ...selectedTicket, messages: updatedMessages, status: newStatus };
+    setSelectedTicket(updatedTicket);
+    // Optimistic update local
+    setTickets((prev) => prev.map((t) => t.id === selectedTicket.id ? updatedTicket : t));
   };
 
   const getTicketPhotoLimit = (ticket) => {
@@ -191,12 +198,16 @@ export default function Support({ user }) {
     urgente: { label: 'Urgente', color: 'bg-red-100 text-red-600' }
   };
 
-  const supportStats = useMemo(() => ({
-    total: tickets.length,
-    abiertos: tickets.filter((ticket) => ticket.status === 'abierto').length,
-    enProceso: tickets.filter((ticket) => ticket.status === 'en_proceso').length,
-    resueltos: tickets.filter((ticket) => ticket.status === 'resuelto').length,
-  }), [tickets]);
+  // Calcular stats en un solo recorrido
+  const supportStats = useMemo(() => {
+    const stats = { total: tickets.length, abiertos: 0, enProceso: 0, resueltos: 0 };
+    for (const t of tickets) {
+      if (t.status === 'abierto') stats.abiertos++;
+      else if (t.status === 'en_proceso') stats.enProceso++;
+      else if (t.status === 'resuelto') stats.resueltos++;
+    }
+    return stats;
+  }, [tickets]);
 
   // Requiere autenticación para usar Soporte
   if (!user) {
