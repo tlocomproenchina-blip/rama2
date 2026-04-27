@@ -314,7 +314,7 @@ export default function AdminPackages({ user }) {
       setBulkProgress({ total, remaining: Math.max(0, total - preAlertaPkgs.length), label: 'Descargando paquetes pre-alerta' });
 
       skip = preAlertaPkgs.length;
-      while (preAlertaPkgs.length < total && firstBatch.length === BATCH) {
+      while (preAlertaPkgs.length < total) {
         const res = await base44.functions.invoke('listPackagesForSupport', {
           limit: BATCH,
           skip,
@@ -322,6 +322,7 @@ export default function AdminPackages({ user }) {
           includeCounts: false,
         });
         const batch = res?.data?.data || [];
+        if (batch.length === 0) break;
         preAlertaPkgs.push(...batch);
         setBulkProgress({ total, remaining: Math.max(0, total - preAlertaPkgs.length), label: 'Descargando paquetes pre-alerta' });
         if (batch.length < BATCH) break;
@@ -330,12 +331,18 @@ export default function AdminPackages({ user }) {
       }
 
       setBulkProgress({ total, remaining: 0, label: 'Generando archivo...' });
-      // Get all users for shipping marks
-      const users = await base44.entities.User.list();
+      // Get all users for shipping marks (paginar para asegurar que se obtienen todos)
       const userMap = {};
-      users.forEach(u => {
-        userMap[u.email] = u;
-      });
+      let userSkip = 0;
+      const USER_BATCH = 500;
+      while (true) {
+        const usersBatch = await base44.entities.User.list('-updated_date', USER_BATCH, userSkip);
+        if (!usersBatch || usersBatch.length === 0) break;
+        usersBatch.forEach(u => { userMap[u.email] = u; });
+        if (usersBatch.length < USER_BATCH) break;
+        userSkip += USER_BATCH;
+        if (userSkip > 50000) break;
+      }
 
       // Group by client email
       const clientMap = {};

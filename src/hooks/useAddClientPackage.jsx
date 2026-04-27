@@ -25,7 +25,17 @@ export default function useAddClientPackage({ user, onPackageAdded }) {
 
   const openAddPackage = useCallback((client) => {
     setPackageClient(client);
+    setNewPackage(INITIAL_PACKAGE);
     setAddingPackage(true);
+  }, []);
+
+  // Wrapper que limpia el estado cuando el dialog se cierra (X, overlay click, Cancel)
+  const setAddingPackageSafe = useCallback((open) => {
+    setAddingPackage(open);
+    if (!open) {
+      setPackageClient(null);
+      setNewPackage(INITIAL_PACKAGE);
+    }
   }, []);
 
   const handleImageUpload = useCallback(async (file) => {
@@ -91,7 +101,8 @@ export default function useAddClientPackage({ user, onPackageAdded }) {
   }, [newPackage, packageClient, user?.email, onPackageAdded]);
 
   return {
-    addingPackage, setAddingPackage,
+    addingPackage,
+    setAddingPackage: setAddingPackageSafe,
     packageClient, setPackageClient,
     newPackage, setNewPackage,
     uploadingImage,
