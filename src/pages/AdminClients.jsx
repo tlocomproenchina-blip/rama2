@@ -14,6 +14,8 @@ import ClientsList from '@/components/admin/clients/ClientsList';
 import AddPackageDialog from '@/components/admin/clients/AddPackageDialog';
 import EditClientDialog from '@/components/admin/clients/EditClientDialog';
 import DeleteClientDialog from '@/components/admin/clients/DeleteClientDialog';
+import useClientExports from '@/hooks/useClientExports';
+import useAddClientPackage from '@/hooks/useAddClientPackage';
 
 export default function AdminClients({ user }) {
   const [clients, setClients] = useState([]);
@@ -27,18 +29,7 @@ export default function AdminClients({ user }) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [packagesCount, setPackagesCount] = useState({});
-  const [addingPackage, setAddingPackage] = useState(false);
-  const [packageClient, setPackageClient] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
-  const [newPackage, setNewPackage] = useState({
-    tracking_number: '',
-    description: '',
-    shipping_type: 'aereo',
-    has_insurance: false,
-    fob_value: '',
-    package_image_url: ''
-  });
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [quickDate, setQuickDate] = useState('all');
@@ -57,7 +48,24 @@ export default function AdminClients({ user }) {
   const [totalFiltered, setTotalFiltered] = useState(0);
   const [globalCounts, setGlobalCounts] = useState(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [bulkProgress, setBulkProgress] = useState(null);
+
+  // Hooks especializados (extraídos para mantener este archivo enfocado)
+  const { bulkProgress, handleExportRemarketing, handleExportFiltered } = useClientExports({
+    debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate,
+  });
+  const {
+    addingPackage, setAddingPackage,
+    packageClient, setPackageClient,
+    newPackage, setNewPackage,
+    uploadingImage,
+    saving: addPackageSaving,
+    openAddPackage,
+    handleImageUpload,
+    handleAddPackage,
+  } = useAddClientPackage({
+    user,
+    onPackageAdded: (email) => setPackagesCount((prev) => ({ ...prev, [email]: (prev[email] || 0) + 1 })),
+  });
 
   // Debounce de la búsqueda (350ms) para no martillar el backend al teclear
   useEffect(() => {
@@ -246,58 +254,6 @@ Email: ${client.email}`;
     toast.success('Información copiada al portapapeles');
   };
 
-  // Pide al backend TODOS los clientes que coinciden con los filtros (sin paginar)
-  const fetchAllFilteredClients = async (onProgress) => {
-    const res = await base44.functions.invoke('listClientsForSupport', {
-      limit: 200, skip: 0,
-      q: debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate,
-      includeCounts: false,
-    });
-    let all = res?.data?.data || [];
-    let total = res?.data?.total || all.length;
-    onProgress?.({ total, remaining: Math.max(0, total - all.length), label: 'Descargando clientes' });
-    while (all.length < total) {
-      const more = await base44.functions.invoke('listClientsForSupport', {
-        limit: 200, skip: all.length,
-        q: debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate,
-        includeCounts: false,
-      });
-      const batch = more?.data?.data || [];
-      if (batch.length === 0) break;
-      all = all.concat(batch);
-      onProgress?.({ total, remaining: Math.max(0, total - all.length), label: 'Descargando clientes' });
-    }
-    return all;
-  };
-
-  const handleExportClients = async () => {
-    try {
-      const all = await fetchAllFilteredClients((p) => setBulkProgress(p));
-      setBulkProgress({ total: all.length, remaining: 0, label: 'Generando archivo...' });
-      const rows = [['Teléfono/WhatsApp']];
-
-      all.forEach(client => {
-        if (client.whatsapp) {
-          rows.push([client.whatsapp]);
-        }
-      });
-
-      const csvContent = rows.map(row => row.join(',')).join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `contactos-remarketing-${new Date().toISOString().split('T')[0]}.csv`;
-      link.click();
-      URL.revokeObjectURL(url);
-      
-      toast.success(`${rows.length - 1} contactos exportados`);
-    } catch (error) {
-      toast.error('Error al exportar datos');
-    }
-    setBulkProgress(null);
-  };
-
   const handleBackfillStripeCustomers = async () => {
     setBackfilling(true);
     try {
@@ -310,78 +266,6 @@ Email: ${client.email}`;
       toast.error('Error al ejecutar backfill de Stripe');
     }
     setBackfilling(false);
-  };
-
-  const handleExportFilteredClients = async () => {
-    try {
-      // Pedir TODOS los clientes que coinciden con los filtros actuales (no solo la página)
-      const all = await fetchAllFilteredClients((p) => setBulkProgress(p));
-      if (all.length === 0) {
-        toast.error('No hay clientes para exportar');
-        setBulkProgress(null);
-        return;
-      }
-      setBulkProgress({ total: all.length, remaining: 0, label: 'Generando archivo...' });
-      const lines = [];
-      all.forEach((client, index) => {
-        const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim();
-        lines.push(`Nombre: ${fullName}`);
-        lines.push(`Estado: ${client.state || ''}`);
-        lines.push(`Ciudad: ${client.city || ''}`);
-        lines.push(`Direccion: ${client.address || ''}`);
-        lines.push(`WhatsApp: ${client.whatsapp || ''}`);
-        lines.push(`Email: ${client.email}`);
-        lines.push(`Codigo asignado: ${client.shipping_mark || ''}`);
-        if (index < all.length - 1) lines.push('');
-      });
-      const txtContent = lines.join('\n');
-      const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-
-      // Construir nombre con filtro y fecha (America/Caracas)
-      const filterMap = {
-        all: 'todos',
-        with_mark: 'con_shipping_mark',
-        without_mark: 'sin_shipping_mark',
-        pending: 'pendientes',
-        incomplete: 'con_datos_faltantes',
-        active: 'activos',
-        inactive: 'inactivos',
-        with_packages: 'con_paquetes',
-        without_packages: 'sin_paquetes',
-        with_whatsapp: 'con_whatsapp',
-        without_whatsapp: 'sin_whatsapp'
-      };
-      const filterLabel = filterMap[exclusiveKey] || 'seleccion';
-
-      const now = new Date();
-      const veFmt = new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-      const [dd, mm, yyyy] = veFmt.split('/');
-      const todayStamp = `${yyyy}${mm}${dd}`; // yyyymmdd
-
-      let dateSuffix = todayStamp;
-      if (fromDate || toDate) {
-        const fromS = fromDate ? String(fromDate).replaceAll('-', '') : '00000000';
-        const toS = toDate ? String(toDate).replaceAll('-', '') : todayStamp;
-        dateSuffix = `${fromS}_${toS}`;
-      } else if (quickDate === 'today') {
-        dateSuffix = `${todayStamp}_hoy`;
-      } else if (quickDate === '7d') {
-        dateSuffix = `${todayStamp}_ultimos_7d`;
-      } else if (quickDate === '30d') {
-        dateSuffix = `${todayStamp}_ultimos_30d`;
-      }
-
-      link.download = `clientes_${filterLabel}_${dateSuffix}.txt`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success(`${lines.filter(l => l.startsWith('Email:')).length} clientes exportados a TXT`);
-    } catch (error) {
-      toast.error('Error al exportar datos');
-    }
-    setBulkProgress(null);
   };
 
    const handleDelete = async () => {
@@ -447,85 +331,6 @@ Email: ${client.email}`;
     } catch (error) {
       toast.error('No se pudo actualizar el estado');
     }
-  };
-
-  const handleImageUpload = async (file) => {
-    if (!file) return;
-    setUploadingImage(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setNewPackage({ ...newPackage, package_image_url: file_url });
-      toast.success('Imagen subida');
-    } catch (error) {
-      toast.error('Error al subir imagen');
-    }
-    setUploadingImage(false);
-  };
-
-  const handleAddPackage = async () => {
-    if (!newPackage.tracking_number || !newPackage.description) {
-      toast.error('Completa tracking y descripción');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      // Validar si el tracking ya existe
-      const existingPackages = await base44.entities.Package.filter({ 
-        tracking_number: newPackage.tracking_number 
-      });
-
-      if (existingPackages.length > 0) {
-        toast.error('Este número de tracking ya está registrado en el sistema');
-        setSaving(false);
-        return;
-      }
-
-      await base44.entities.Package.create({
-        tracking_number: newPackage.tracking_number,
-        client_email: packageClient.email,
-        shipping_mark: packageClient.shipping_mark || '',
-        shipping_type: newPackage.shipping_type,
-        description: newPackage.description,
-        status: 'recibido',
-        has_insurance: newPackage.has_insurance,
-        fob_value: newPackage.has_insurance ? parseFloat(newPackage.fob_value) || 0 : 0,
-        package_image_url: newPackage.package_image_url || '',
-        received_date: new Date().toISOString(),
-        received_by: user?.email
-      });
-
-      // Notify client
-      const { sendNotification } = await import('@/components/NotificationUtils');
-      sendNotification({
-        to: packageClient.email,
-        subject: '📦 Paquete recibido en warehouse',
-        body: `Tu paquete ${newPackage.tracking_number} ha sido recibido en nuestro warehouse.\n\nDescripción: ${newPackage.description}\nTipo: ${newPackage.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\n\nIngresa al sistema para más detalles.`,
-        type: 'package',
-        icon: 'package',
-        referenceId: newPackage.tracking_number
-      });
-
-      toast.success('Paquete agregado exitosamente');
-      setAddingPackage(false);
-      setPackageClient(null);
-      setNewPackage({
-        tracking_number: '',
-        description: '',
-        shipping_type: 'aereo',
-        has_insurance: false,
-        fob_value: '',
-        package_image_url: ''
-      });
-      setPackagesCount((prev) => ({
-        ...prev,
-        [packageClient.email]: (prev[packageClient.email] || 0) + 1,
-      }));
-      // Optimistic: ya actualizamos packagesCount; no recargar toda la lista
-    } catch (error) {
-      toast.error('Error al agregar paquete');
-    }
-    setSaving(false);
   };
 
   const resetAllFilters = () => {
@@ -621,8 +426,8 @@ Email: ${client.email}`;
         canExport={canExport}
         backfilling={backfilling}
         onOpenImport={() => setImportModalOpen(true)}
-        onExportFiltered={handleExportFilteredClients}
-        onExportRemarketing={handleExportClients}
+        onExportFiltered={handleExportFiltered}
+        onExportRemarketing={handleExportRemarketing}
         onBackfillStripe={handleBackfillStripeCustomers}
       />
 
@@ -680,7 +485,7 @@ Email: ${client.email}`;
         loadingMore={loadingMore}
         onLoadMore={() => loadClients(true)}
         onCopyInfo={handleCopyClientInfo}
-        onAddPackage={(client) => { setPackageClient(client); setAddingPackage(true); }}
+        onAddPackage={openAddPackage}
         onView={(client) => setViewClient(client)}
         onEdit={handleEdit}
         onDelete={(client) => setDeleteClient(client)}
@@ -711,7 +516,7 @@ Email: ${client.email}`;
         setNewPackage={setNewPackage}
         uploadingImage={uploadingImage}
         onImageUpload={handleImageUpload}
-        saving={saving}
+        saving={addPackageSaving}
         onSubmit={handleAddPackage}
       />
 
