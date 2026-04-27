@@ -44,8 +44,11 @@ export default function AdminPackages({ user }) {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [reportedFilter, setReportedFilter] = useState('all');
+  const [totalFiltered, setTotalFiltered] = useState(0);
+  const [globalCounts, setGlobalCounts] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [receiveModal, setReceiveModal] = useState(null);
   const [imageFiles, setImageFiles] = useState([]);
@@ -71,7 +74,6 @@ export default function AdminPackages({ user }) {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [bulkPhotoModalOpen, setBulkPhotoModalOpen] = useState(false);
-  const [clientSearchEmails, setClientSearchEmails] = useState([]);
   const [editPreAlertModal, setEditPreAlertModal] = useState(null);
   const [preAlertInsurance, setPreAlertInsurance] = useState(false);
   const [preAlertFobValue, setPreAlertFobValue] = useState('');
@@ -80,16 +82,41 @@ export default function AdminPackages({ user }) {
   const loadPackages = useCallback(async (append = false, skipOverride = 0) => {
     if (append) setLoadingMore(true); else setLoading(true);
     const skip = append ? skipOverride : 0;
-    const pkgs = await base44.entities.Package.list('-created_date', 200, skip);
-    if (append) {
-      setPackages(prev => [...prev, ...pkgs]);
-    } else {
-      setPackages(pkgs);
+    try {
+      const res = await base44.functions.invoke('listPackagesForSupport', {
+        limit: pageSize,
+        skip,
+        q: debouncedSearch,
+        statusFilter,
+        reportedFilter,
+        advancedFilters,
+        includeCounts: !append, // counts solo en primera página
+      });
+      const pkgs = res?.data?.data || [];
+      const total = res?.data?.total || 0;
+      const counts = res?.data?.counts;
+      if (append) {
+        setPackages(prev => [...prev, ...pkgs]);
+      } else {
+        setPackages(pkgs);
+        setTotalFiltered(total);
+        if (counts) setGlobalCounts(counts);
+      }
+      setHasMore(res?.data?.hasMore || false);
+    } catch (e) {
+      console.error('Error loading packages:', e);
+      toast.error('Error al cargar paquetes');
     }
-    setHasMore(pkgs.length === 200);
     if (append) setLoadingMore(false); else setLoading(false);
-  }, []);
+  }, [debouncedSearch, statusFilter, reportedFilter, advancedFilters, pageSize]);
 
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Recargar cuando cambien filtros o búsqueda
   useEffect(() => {
     loadPackages(false);
   }, [loadPackages]);
@@ -199,7 +226,6 @@ export default function AdminPackages({ user }) {
     setAdvancedFilters(null);
     setSearch('');
     setStatusFilter('all');
-    setClientSearchEmails([]);
   };
 
   const handleSelectAll = (checked) => {
@@ -281,9 +307,25 @@ export default function AdminPackages({ user }) {
 
   const handleExportPreAlerta = async () => {
     try {
-      // Get only pre-alerta packages grouped by client
-      const preAlertaPkgs = packages.filter(p => p.status === 'pre_alerta');
-      
+      // Pedir al backend TODOS los pre-alerta (no solo los de la página actual)
+      toast.info('Preparando exportación...');
+      const preAlertaPkgs = [];
+      let skip = 0;
+      const BATCH = 200;
+      while (true) {
+        const res = await base44.functions.invoke('listPackagesForSupport', {
+          limit: BATCH,
+          skip,
+          statusFilter: 'pre_alerta',
+          includeCounts: false,
+        });
+        const batch = res?.data?.data || [];
+        preAlertaPkgs.push(...batch);
+        if (batch.length < BATCH) break;
+        skip += BATCH;
+        if (skip > 20000) break;
+      }
+
       if (preAlertaPkgs.length === 0) {
         toast.error('No hay paquetes en pre-alerta para exportar');
         return;
@@ -400,62 +442,8 @@ export default function AdminPackages({ user }) {
   const handleScanSearch = async (code) => {
     const nextCode = code.trim();
     if (!nextCode) return;
-
+    // El backend se encarga de buscar (tracking, shipping_mark, email, descripción y nombre del cliente)
     setSearch(nextCode);
-
-    // Check if already loaded locally (by tracking or shipping mark)
-    const q = nextCode.toLowerCase();
-    if (packages.some((pkg) =>
-      String(pkg.tracking_number || '').toLowerCase() === q ||
-      String(pkg.shipping_mark || '').toLowerCase() === q
-    )) {
-      toast.success('Resultado cargado en la búsqueda');
-      return;
-    }
-
-    try {
-      // Search by tracking first
-      let found = await base44.entities.Package.filter({ tracking_number: nextCode }, '-created_date', 5);
-
-      // If not found by tracking, search by shipping_mark
-      if (!found || found.length === 0) {
-        found = await base44.entities.Package.filter({ shipping_mark: nextCode }, '-created_date', 50);
-      }
-
-      // If still not found, search users via server-side regex (no full pagination)
-      if (!found || found.length === 0) {
-        const regex = nextCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const [byEmail, byMark, byName] = await Promise.all([
-          base44.entities.User.filter({ email: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-          base44.entities.User.filter({ shipping_mark: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-          base44.entities.User.filter({ full_name: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-        ]);
-        const matchingEmails = Array.from(new Set([...byEmail, ...byMark, ...byName].map(u => u.email).filter(Boolean)));
-        if (matchingEmails.length > 0) {
-          const results = [];
-          for (const email of matchingEmails.slice(0, 5)) {
-            const pkgs = await base44.entities.Package.filter({ client_email: email }, '-created_date', 50);
-            if (pkgs) results.push(...pkgs);
-          }
-          found = results;
-        }
-      }
-
-      if (found && found.length > 0) {
-        setPackages((prev) => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const newPkgs = found.filter(p => !existingIds.has(p.id));
-          return [...newPkgs, ...prev];
-        });
-        const emails = [...new Set(found.map(p => p.client_email).filter(Boolean))];
-        setClientSearchEmails(emails);
-        toast.success(`${found.length} paquete(s) encontrado(s)`);
-      } else {
-        toast.error('No se encontraron paquetes');
-      }
-    } catch {
-      toast.error('No se pudo buscar');
-    }
   };
 
   const openPreAlertEditor = (pkg) => {
@@ -525,114 +513,8 @@ export default function AdminPackages({ user }) {
     setTicketProcessing(false);
   };
 
-  // Server-side search when local results are empty
-  useEffect(() => {
-    if (!search || search.length < 3) return;
-    const q = search.toLowerCase();
-    const hasLocal = packages.some(pkg =>
-      pkg.tracking_number.toLowerCase().includes(q) ||
-      (pkg.shipping_mark || '').toLowerCase().includes(q) ||
-      (pkg.client_email || '').toLowerCase().includes(q)
-    );
-    if (hasLocal) return;
-
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      try {
-        const term = search.trim();
-        const regex = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-        // Search by tracking
-        let found = await base44.entities.Package.filter({ tracking_number: term }, '-created_date', 5);
-
-        // Server-side regex search on users (no full pagination)
-        const [byEmail, byMark, byName] = await Promise.all([
-          base44.entities.User.filter({ email: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-          base44.entities.User.filter({ shipping_mark: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-          base44.entities.User.filter({ full_name: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-        ]);
-        const matchingEmails = Array.from(new Set([...byEmail, ...byMark, ...byName].map(u => u.email).filter(Boolean)));
-
-        if ((!found || found.length === 0) && matchingEmails.length > 0) {
-          const results = [];
-          for (const email of matchingEmails.slice(0, 5)) {
-            const pkgs = await base44.entities.Package.filter({ client_email: email }, '-created_date', 50);
-            if (pkgs) results.push(...pkgs);
-          }
-          found = results;
-        }
-        if (!cancelled) {
-          const emails = [...matchingEmails];
-          if (found && found.length > 0) {
-            setPackages(prev => {
-              const existingIds = new Set(prev.map(p => p.id));
-              const newPkgs = found.filter(p => !existingIds.has(p.id));
-              return [...newPkgs, ...prev];
-            });
-            found.forEach((pkg) => {
-              if (pkg?.client_email) emails.push(pkg.client_email);
-            });
-            toast.success(`${found.length} paquete(s) encontrado(s)`);
-          }
-          setClientSearchEmails(Array.from(new Set(emails)));
-        }
-      } catch (_) {}
-    }, 600);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [search]);
-
-  const filteredPackages = useMemo(() => packages.filter(pkg => {
-    // Basic search
-    const normalizedSearch = search.toLowerCase();
-    const hasSearch = normalizedSearch.trim().length > 0;
-    const directSearchMatch =
-      pkg.tracking_number.toLowerCase().includes(normalizedSearch) ||
-      (pkg.shipping_mark || '').toLowerCase().includes(normalizedSearch) ||
-      (pkg.client_email || '').toLowerCase().includes(normalizedSearch) ||
-      (pkg.description || '').toLowerCase().includes(normalizedSearch);
-    const clientDerivedMatch = clientSearchEmails.length > 0 && clientSearchEmails.includes(pkg.client_email);
-    const matchesSearch = !hasSearch || directSearchMatch || clientDerivedMatch;
-    const isPreAlertNotReceived = statusFilter === 'pre_alerta_no_recibido' && pkg.status === 'pre_alerta' && !pkg.received_date;
-    const isStale = statusFilter === 'stale' && pkg.status === 'pre_alerta' && pkg.created_date && (Date.now() - new Date(pkg.created_date).getTime()) >= 7 * 24 * 60 * 60 * 1000;
-    const matchesStatus = statusFilter === 'all'
-      ? true
-      : statusFilter === 'pre_alerta_no_recibido'
-        ? isPreAlertNotReceived
-        : statusFilter === 'stale'
-          ? isStale
-          : pkg.status === statusFilter;
-    const matchesReported = reportedFilter === 'all' || (reportedFilter === 'reported' ? pkg.reported === true : pkg.reported !== true);
-
-    // Advanced filters
-    if (advancedFilters) {
-      const {
-        tracking,
-        email,
-        shippingMark,
-        status,
-        shippingType,
-        dateFrom,
-        dateTo,
-        hasInsurance
-      } = advancedFilters;
-
-      if (tracking && !pkg.tracking_number.toLowerCase().includes(tracking.toLowerCase())) return false;
-      if (email && !pkg.client_email.toLowerCase().includes(email.toLowerCase())) return false;
-      if (shippingMark && !(pkg.shipping_mark || '').toLowerCase().includes(shippingMark.toLowerCase())) return false;
-      if (status !== 'all' && pkg.status !== status) return false;
-      if (shippingType !== 'all' && pkg.shipping_type !== shippingType) return false;
-      if (hasInsurance !== 'all' && pkg.has_insurance !== (hasInsurance === 'true')) return false;
-
-      // Date filtering
-      if (dateFrom || dateTo) {
-        const pkgDate = new Date(pkg.created_date);
-        if (dateFrom && pkgDate < new Date(dateFrom)) return false;
-        if (dateTo && pkgDate > new Date(dateTo + 'T23:59:59')) return false;
-      }
-    }
-
-    return matchesSearch && matchesStatus && matchesReported;
-    }), [packages, search, statusFilter, reportedFilter, advancedFilters, clientSearchEmails]);
+  // Búsqueda y filtros se aplican server-side. La lista 'packages' ya viene filtrada.
+  const filteredPackages = packages;
 
     const simpleWindowSummary = useMemo(() => {
       if (!advancedFilters) return null;
@@ -657,7 +539,7 @@ export default function AdminPackages({ user }) {
       return { first, end, remaining };
     }, [advancedFilters, packages]);
 
-    if (loading) {
+    if (loading && packages.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -688,12 +570,12 @@ export default function AdminPackages({ user }) {
 
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
                 <TabsList className="flex w-full gap-0 p-1 flex-wrap">
-                  <TabsTrigger value="all" className="flex-1 text-center">Todos</TabsTrigger>
-                  <TabsTrigger value="pre_alerta_no_recibido" className="flex-1 text-center">Pre-alerta</TabsTrigger>
-                  <TabsTrigger value="recibido" className="flex-1 text-center">Recibido</TabsTrigger>
-                  <TabsTrigger value="consolidado" className="flex-1 text-center">Consolidado</TabsTrigger>
-                  <TabsTrigger value="en_transito" className="flex-1 text-center">Tránsito</TabsTrigger>
-                  <TabsTrigger value="entregado" className="flex-1 text-center">Entregado</TabsTrigger>
+                  <TabsTrigger value="all" className="flex-1 text-center">Todos{globalCounts ? ` (${globalCounts.total})` : ''}</TabsTrigger>
+                  <TabsTrigger value="pre_alerta_no_recibido" className="flex-1 text-center">Pre-alerta{globalCounts ? ` (${globalCounts.pre_alerta_no_recibido})` : ''}</TabsTrigger>
+                  <TabsTrigger value="recibido" className="flex-1 text-center">Recibido{globalCounts ? ` (${globalCounts.recibido})` : ''}</TabsTrigger>
+                  <TabsTrigger value="consolidado" className="flex-1 text-center">Consolidado{globalCounts ? ` (${globalCounts.consolidado})` : ''}</TabsTrigger>
+                  <TabsTrigger value="en_transito" className="flex-1 text-center">Tránsito{globalCounts ? ` (${globalCounts.en_transito})` : ''}</TabsTrigger>
+                  <TabsTrigger value="entregado" className="flex-1 text-center">Entregado{globalCounts ? ` (${globalCounts.entregado})` : ''}</TabsTrigger>
                 </TabsList>
               </Tabs>
 
@@ -881,6 +763,14 @@ export default function AdminPackages({ user }) {
           </Button>
         }
       />
+
+      {/* Resultados info */}
+      {totalFiltered > 0 && (
+        <div className="text-sm text-slate-500 -mt-2 flex items-center gap-2">
+          <span>Mostrando <span className="font-semibold">{packages.length}</span> de <span className="font-semibold">{totalFiltered}</span> paquetes que coinciden</span>
+          {loading && <Loader2 className="h-3 w-3 animate-spin text-blue-600" />}
+        </div>
+      )}
 
       {/* Resumen ventana 7 días (búsqueda por email o shipping mark) */}
       {simpleWindowSummary && (
