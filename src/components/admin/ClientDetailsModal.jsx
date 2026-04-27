@@ -24,6 +24,7 @@ import {
   Trash2
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
+import OptimizedImage from '@/components/OptimizedImage';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -552,7 +553,14 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
       {/* Image Modal */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
         <DialogContent className="max-w-3xl">
-          <img src={selectedImage} alt="Imagen" className="w-full rounded-lg" />
+          {selectedImage && (
+            <OptimizedImage
+              src={selectedImage}
+              alt="Imagen"
+              priority
+              className="w-full rounded-lg aspect-[4/3]"
+            />
+          )}
         </DialogContent>
       </Dialog>
     </>

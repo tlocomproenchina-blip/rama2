@@ -344,8 +344,13 @@ export default function MyPackages({ user }) {
           </DialogHeader>
           <div className="mt-2">
             {selectedImage && (
-              <img src={selectedImage} alt="Paquete" className="w-full rounded-lg mb-3" />)
-            }
+              <OptimizedImage
+                src={selectedImage}
+                alt="Paquete"
+                priority
+                className="w-full rounded-lg mb-3 aspect-[4/3]"
+              />
+            )}
             {selectedGallery && selectedGallery.length > 1 && (
               <div className="grid grid-cols-3 gap-2">
                 {selectedGallery.map((url, idx) => (

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plane, Ship, Loader2, Save } from 'lucide-react';
+import OptimizedImage from '@/components/OptimizedImage';
 
 export default function AddPackageDialog({
   open, onOpenChange,
@@ -104,7 +105,14 @@ export default function AddPackageDialog({
               {uploadingImage && <Loader2 className="h-5 w-5 animate-spin text-blue-600" />}
             </div>
             {newPackage.package_image_url && (
-              <img src={newPackage.package_image_url} alt="Preview" className="h-32 rounded-lg border" />
+              <div className="h-32 w-32 rounded-lg border overflow-hidden">
+                <OptimizedImage
+                  src={newPackage.package_image_url}
+                  alt="Preview"
+                  priority
+                  className="w-full h-full"
+                />
+              </div>
             )}
           </div>
         </div>

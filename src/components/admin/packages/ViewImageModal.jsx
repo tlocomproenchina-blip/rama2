@@ -1,5 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import OptimizedImage from '@/components/OptimizedImage';
 
 export default function ViewImageModal({ imageUrl, onClose }) {
   return (
@@ -8,7 +9,14 @@ export default function ViewImageModal({ imageUrl, onClose }) {
         <DialogHeader>
           <DialogTitle>Foto del Paquete</DialogTitle>
         </DialogHeader>
-        {imageUrl && <img src={imageUrl} alt="Paquete" className="w-full rounded-lg" />}
+        {imageUrl && (
+          <OptimizedImage
+            src={imageUrl}
+            alt="Paquete"
+            priority
+            className="w-full rounded-lg aspect-[4/3]"
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
