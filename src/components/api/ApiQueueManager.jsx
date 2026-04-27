@@ -23,15 +23,15 @@ class ApiQueueManager {
     this.debouncedOperations = new Map();
     this.lastOperationTime = 0;
     this.lastWriteTime = 0;
-    this.MAX_CONCURRENT_READS = 6;
-    this.MAX_CONCURRENT_WRITES = 3;
+    this.MAX_CONCURRENT_READS = 60;
+    this.MAX_CONCURRENT_WRITES = 30;
     this.activeReads = 0;
     this.activeWrites = 0;
     this.inflight = new Map();
-    this.MIN_OPERATION_INTERVAL = 50; // 50ms mínimo entre operaciones
+    this.MIN_OPERATION_INTERVAL = 5; // 5ms mínimo entre operaciones
     this.backoffDelays = [2000, 4000, 8000, 16000, 32000];
-    this.circuitBreakerThreshold = 8;
-    this.circuitOpenMinutes = 2;
+    this.circuitBreakerThreshold = 80;
+    this.circuitOpenMinutes = 1;
     this.OPERATION_TIMEOUT_MS = 60000; // 60s seguridad contra cuelgues
     // Realtime + caché granular
     this.cacheDisabledFor = new Set();
@@ -540,12 +540,22 @@ class ApiQueueManager {
    * Ajustes dinámicos de tasa y concurrencia
    */
   setTuning({ maxReads, maxWrites, minIntervalMs, backoffDelays, circuitBreakerThreshold, circuitOpenMinutes } = {}) {
-    if (Number.isFinite(maxReads)) this.MAX_CONCURRENT_READS = Math.max(1, Math.min(12, maxReads));
-    if (Number.isFinite(maxWrites)) this.MAX_CONCURRENT_WRITES = Math.max(1, Math.min(6, maxWrites));
+    if (Number.isFinite(maxReads)) this.MAX_CONCURRENT_READS = Math.max(1, Math.min(120, maxReads));
+    if (Number.isFinite(maxWrites)) this.MAX_CONCURRENT_WRITES = Math.max(1, Math.min(60, maxWrites));
     if (Number.isFinite(minIntervalMs)) this.MIN_OPERATION_INTERVAL = Math.max(0, Math.min(2000, minIntervalMs));
     if (Array.isArray(backoffDelays) && backoffDelays.length) this.backoffDelays = backoffDelays.map(d => Math.max(100, Number(d) || 1000));
     if (Number.isFinite(circuitBreakerThreshold)) this.circuitBreakerThreshold = Math.max(1, circuitBreakerThreshold);
     if (Number.isFinite(circuitOpenMinutes)) this.circuitOpenMinutes = Math.max(1, circuitOpenMinutes);
+  }
+
+  /**
+   * Resetea forzosamente el circuit breaker (útil para reactivar el sistema manualmente)
+   */
+  forceResetCircuitBreaker() {
+    this.circuitBreakerState = 'CLOSED';
+    this.failureCount = 0;
+    this.circuitOpenUntil = null;
+    console.log('[Circuit Breaker] Forzado a CLOSED');
   }
 
   // Desactiva caché para entidades críticas
@@ -623,5 +633,6 @@ export const base44 = apiQueue;
 export const getApiStatus = () => apiQueue.getSystemStatus();
 export const setApiTuning = (opts) => apiQueue.setTuning(opts);
 export const getApiTuning = () => apiQueue.getTuning();
+export const resetCircuitBreaker = () => apiQueue.forceResetCircuitBreaker();
 export const enableRealtime = (entities) => apiQueue.enableRealtime(entities);
 export const disableCacheFor = (entities) => apiQueue.disableCacheFor(entities);

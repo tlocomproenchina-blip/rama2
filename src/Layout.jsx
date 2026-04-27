@@ -67,12 +67,12 @@ export default function Layout({ children, currentPageName }) {
   // Tuning sensato: se aplica una sola vez al montar
   useEffect(() => {
     setApiTuning({
-      maxReads: 6,
-      maxWrites: 3,
-      minIntervalMs: 50,
-      backoffDelays: [2000, 4000, 8000, 16000, 32000],
-      circuitBreakerThreshold: 8,
-      circuitOpenMinutes: 2
+      maxReads: 60,
+      maxWrites: 30,
+      minIntervalMs: 5,
+      backoffDelays: [1000, 2000, 4000, 8000, 16000],
+      circuitBreakerThreshold: 80,
+      circuitOpenMinutes: 1
     });
   }, []);
 
