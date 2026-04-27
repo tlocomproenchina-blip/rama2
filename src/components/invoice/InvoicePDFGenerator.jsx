@@ -3,7 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
 
 export default function InvoicePDFGenerator({ invoice, user }) {
   const [generating, setGenerating] = useState(false);
@@ -36,6 +35,7 @@ export default function InvoicePDFGenerator({ invoice, user }) {
         return;
       }
       setGenerating(true);
+      const { default: jsPDF } = await import('jspdf');
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.width;
       let yPos = 20;

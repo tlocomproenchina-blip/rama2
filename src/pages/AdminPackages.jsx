@@ -142,7 +142,8 @@ export default function AdminPackages({ user }) {
       setReceiveModal(null);
       setImageFiles([]);
     } catch (error) {
-      toast.error('Error al procesar');
+      console.error('Error receiving package:', error);
+      toast.error(error?.message || 'Error al procesar la recepción');
     }
     setProcessing(false);
   };
@@ -177,7 +178,8 @@ export default function AdminPackages({ user }) {
       setEditImageModal(null);
       setNewImageFiles([]);
     } catch (error) {
-      toast.error('Error al actualizar imagen');
+      console.error('Error updating image:', error);
+      toast.error(error?.message || 'No se pudo actualizar la imagen');
     }
     setProcessing(false);
   };
@@ -197,7 +199,8 @@ export default function AdminPackages({ user }) {
     } catch (error) {
       // Rollback
       patchPackageInList(pkg.id, { status: pkg.status });
-      toast.error('Error al actualizar estado');
+      console.error('Error updating status:', error);
+      toast.error(error?.message || 'No se pudo actualizar el estado');
     }
   };
 
@@ -237,8 +240,9 @@ export default function AdminPackages({ user }) {
       toast.success('Datos de seguro actualizados');
       setEditPreAlertModal(null);
       setPreAlertInvoiceFile(null);
-    } catch (_) {
-      toast.error('No se pudo guardar');
+    } catch (error) {
+      console.error('Error saving pre-alert details:', error);
+      toast.error(error?.message || 'No se pudieron guardar los datos');
     }
     setProcessing(false);
   };
@@ -261,8 +265,9 @@ export default function AdminPackages({ user }) {
 
       toast.success('Recepción cancelada');
       setCancelReceptionModal(null);
-    } catch (_) {
-      toast.error('No se pudo cancelar la recepción');
+    } catch (error) {
+      console.error('Error cancelling reception:', error);
+      toast.error(error?.message || 'No se pudo cancelar la recepción');
     }
     setCancelProcessing(false);
   };

@@ -34,7 +34,7 @@ class ApiQueueManager {
     this.inflight = new Map();
     this.MIN_OPERATION_INTERVAL = 5; // 5ms mínimo entre operaciones
     this.backoffDelays = [2000, 4000, 8000, 16000, 32000];
-    this.circuitBreakerThreshold = 80;
+    this.circuitBreakerThreshold = 30;
     this.circuitOpenMinutes = 1;
     // Auto-scaling: ajusta concurrencia según demanda y errores
     this.recentSuccess = 0;

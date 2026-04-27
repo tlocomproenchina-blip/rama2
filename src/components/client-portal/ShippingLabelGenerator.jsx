@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tag, Download } from 'lucide-react';
-import html2canvas from 'html2canvas';
 
 export default function ShippingLabelGenerator({ user, config }) {
   const [open, setOpen] = useState(false);
@@ -30,6 +29,7 @@ export default function ShippingLabelGenerator({ user, config }) {
     if (!labelRef.current) return;
     setGenerating(true);
     try {
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(labelRef.current, {
         scale: 3,
         backgroundColor: '#ffffff',

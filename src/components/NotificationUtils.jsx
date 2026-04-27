@@ -132,11 +132,6 @@ function inferEntityTypeFromType(type) {
   }
 }
 
-// Compatibilidad con pantallas antiguas: ya no hay cola, devolvemos métricas estáticas
-export function getEmailQueueStats() {
-  return { pending: 0, sent: 0, batchSize: 0, intervalMs: 0 };
-}
-
 // Notificar a todos los administradores SOLO via centro de notificaciones in-app (sin email).
 // Los administradores no necesitan recibir un correo por cada acción de cliente — usan el centro de notificaciones.
 export async function notifyAdmins({ subject, body, message, type = 'system', icon = 'bell', referenceId = null }) {
