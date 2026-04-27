@@ -291,46 +291,20 @@ export default function AdminPackages({ user }) {
 
   const handleExportPreAlerta = async () => {
     try {
-      // Pedir al backend TODOS los pre-alerta (no solo los de la página actual)
-      // Primer batch: obtener total para mostrar progreso real
-      const preAlertaPkgs = [];
-      let skip = 0;
-      const BATCH = 200;
-      const firstRes = await base44.functions.invoke('listPackagesForSupport', {
-        limit: BATCH,
-        skip: 0,
-        statusFilter: 'pre_alerta',
-        includeCounts: false,
-      });
-      const firstBatch = firstRes?.data?.data || [];
-      const total = firstRes?.data?.total || firstBatch.length;
-      preAlertaPkgs.push(...firstBatch);
+      const { exportPaginated } = await import('@/lib/exportPaginated');
+      const preAlertaPkgs = await exportPaginated(
+        'listPackagesForSupport',
+        { statusFilter: 'pre_alerta' },
+        { onProgress: setBulkProgress, label: 'Descargando paquetes pre-alerta' }
+      );
 
-      if (total === 0) {
+      if (preAlertaPkgs.length === 0) {
         toast.error('No hay paquetes en pre-alerta para exportar');
+        setBulkProgress(null);
         return;
       }
 
-      setBulkProgress({ total, remaining: Math.max(0, total - preAlertaPkgs.length), label: 'Descargando paquetes pre-alerta' });
-
-      skip = preAlertaPkgs.length;
-      while (preAlertaPkgs.length < total) {
-        const res = await base44.functions.invoke('listPackagesForSupport', {
-          limit: BATCH,
-          skip,
-          statusFilter: 'pre_alerta',
-          includeCounts: false,
-        });
-        const batch = res?.data?.data || [];
-        if (batch.length === 0) break;
-        preAlertaPkgs.push(...batch);
-        setBulkProgress({ total, remaining: Math.max(0, total - preAlertaPkgs.length), label: 'Descargando paquetes pre-alerta' });
-        if (batch.length < BATCH) break;
-        skip += BATCH;
-        if (skip > 20000) break;
-      }
-
-      setBulkProgress({ total, remaining: 0, label: 'Generando archivo...' });
+      setBulkProgress({ total: preAlertaPkgs.length, remaining: 0, label: 'Generando archivo...' });
       // Get all users for shipping marks (paginar para asegurar que se obtienen todos)
       const userMap = {};
       let userSkip = 0;

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
+import { exportPaginated } from '@/lib/exportPaginated';
 
 /**
  * Hook que encapsula la descarga paginada y los dos exports (CSV remarketing y TXT detallado)
@@ -11,22 +11,11 @@ export default function useClientExports(filters) {
   const [bulkProgress, setBulkProgress] = useState(null);
 
   const fetchAllFilteredClients = useCallback(async (onProgress) => {
-    const baseParams = {
-      q: debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate,
-      includeCounts: false,
-    };
-    const res = await base44.functions.invoke('listClientsForSupport', { limit: 200, skip: 0, ...baseParams });
-    let all = res?.data?.data || [];
-    let total = res?.data?.total || all.length;
-    onProgress?.({ total, remaining: Math.max(0, total - all.length), label: 'Descargando clientes' });
-    while (all.length < total) {
-      const more = await base44.functions.invoke('listClientsForSupport', { limit: 200, skip: all.length, ...baseParams });
-      const batch = more?.data?.data || [];
-      if (batch.length === 0) break;
-      all = all.concat(batch);
-      onProgress?.({ total, remaining: Math.max(0, total - all.length), label: 'Descargando clientes' });
-    }
-    return all;
+    return await exportPaginated(
+      'listClientsForSupport',
+      { q: debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate },
+      { onProgress, label: 'Descargando clientes' }
+    );
   }, [debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate]);
 
   const handleExportRemarketing = useCallback(async () => {
