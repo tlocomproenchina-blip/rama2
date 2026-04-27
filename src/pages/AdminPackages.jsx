@@ -8,6 +8,8 @@ import { Package, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import AdvancedSearch from '@/components/admin/AdvancedSearch';
+import BulkProgressIndicator from '@/components/admin/packages/BulkProgressIndicator';
+import PackagesWindowSummary from '@/components/admin/packages/PackagesWindowSummary';
 import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
 import PackageImportDialog from '@/components/imports/PackageImportDialog';
 import BulkPhotoUploadModal from '@/components/admin/BulkPhotoUploadModal';
@@ -575,28 +577,7 @@ export default function AdminPackages({ user }) {
         onExportPreAlerta={handleExportPreAlerta}
       />
 
-      {/* Bulk Progress Indicator */}
-      {bulkProgress && (
-        <Card className="border-0 shadow-lg bg-amber-50 animate-pulse">
-          <CardContent className="p-4 flex items-center gap-4">
-            <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-800">
-                Procesando... {bulkProgress.remaining} de {bulkProgress.total} restantes
-              </p>
-              <div className="mt-1.5 h-2 w-full bg-amber-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber-600 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.round(((bulkProgress.total - bulkProgress.remaining) / bulkProgress.total) * 100)}%` }}
-                />
-              </div>
-            </div>
-            <span className="text-lg font-bold text-amber-700 tabular-nums">
-              {bulkProgress.total - bulkProgress.remaining}/{bulkProgress.total}
-            </span>
-          </CardContent>
-        </Card>
-      )}
+      <BulkProgressIndicator progress={bulkProgress} />
 
       {selectedPackages.length > 0 && (
         <BulkActionsBar
@@ -643,26 +624,7 @@ export default function AdminPackages({ user }) {
         </div>
       )}
 
-      {/* Resumen ventana 7 días (búsqueda por email o shipping mark) */}
-      {simpleWindowSummary && (
-        <Card className="border-0 shadow-sm bg-amber-50/60">
-          <CardContent className="p-4 flex flex-wrap gap-6 text-sm text-slate-700">
-            <div>
-              <span className="font-medium">Primer recibido:</span>{' '}
-              {new Date(simpleWindowSummary.first).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}{' '}
-              {new Date(simpleWindowSummary.first).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            <div>
-              <span className="font-medium">Fin ventana (7 días):</span>{' '}
-              {new Date(simpleWindowSummary.end).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}{' '}
-              {new Date(simpleWindowSummary.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            <div>
-              <span className="font-medium">Días restantes:</span> {simpleWindowSummary.remaining}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <PackagesWindowSummary summary={simpleWindowSummary} />
 
       {/* Mobile Packages List (stacked) */}
       <div className="grid gap-3 2xl:hidden">
