@@ -65,7 +65,6 @@ export default function AdminPackages({ user }) {
     handleMarkReported,
   } = bulk;
 
-  const [selectedPackage, setSelectedPackage] = useState(null);
   const [receiveModal, setReceiveModal] = useState(null);
   const [imageFiles, setImageFiles] = useState([]);
   const [processing, setProcessing] = useState(false);
