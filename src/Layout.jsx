@@ -44,6 +44,7 @@ const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
+const GlobalSearchPalette = lazy(() => import('@/components/admin/GlobalSearchPalette'));
 
 
 export default function Layout({ children, currentPageName }) {
@@ -417,6 +418,10 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
+
+      {user?.role === 'admin' && (
+        <Suspense fallback={null}><GlobalSearchPalette /></Suspense>
+      )}
 
       {/* Guided Tour */}
       {user && (
