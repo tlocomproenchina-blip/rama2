@@ -40,7 +40,9 @@ import PreAlertEditorModal from '@/components/admin/packages/PreAlertEditorModal
 import ReceivePackageModal from '@/components/admin/packages/ReceivePackageModal';
 import EditImageModal from '@/components/admin/packages/EditImageModal';
 import CreateTicketModal from '@/components/admin/packages/CreateTicketModal';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import BulkActionsBar from '@/components/admin/packages/BulkActionsBar';
+import BulkActionConfirmDialog from '@/components/admin/packages/BulkActionConfirmDialog';
+import CancelReceptionDialog from '@/components/admin/packages/CancelReceptionDialog';
 
 export default function AdminPackages({ user }) {
   const [packages, setPackages] = useState([]);
@@ -481,6 +483,26 @@ export default function AdminPackages({ user }) {
     setProcessing(false);
   };
 
+  const handleCancelReception = async () => {
+    if (!cancelReceptionModal) return;
+    try {
+      setCancelProcessing(true);
+      await base44.entities.Package.update(cancelReceptionModal.id, {
+        status: 'pre_alerta',
+        received_date: null,
+        received_by: null,
+        package_image_url: null,
+        package_image_urls: []
+      });
+      toast.success('Recepción cancelada');
+      setCancelReceptionModal(null);
+      loadPackages(false);
+    } catch (_) {
+      toast.error('No se pudo cancelar la recepción');
+    }
+    setCancelProcessing(false);
+  };
+
   const confirmCreateTicket = async () => {
     if (!ticketModal) return;
     try {
@@ -663,86 +685,20 @@ export default function AdminPackages({ user }) {
         </Card>
       )}
 
-      {/* Bulk Actions Bar */}
       {selectedPackages.length > 0 && (
-        <Card className="border-0 shadow-lg bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  checked={selectedPackages.length === filteredPackages.length}
-                  onCheckedChange={handleSelectAll}
-                />
-                <span className="text-sm font-medium text-slate-700">
-                  {selectedPackages.length} paquete(s) seleccionado(s)
-                </span>
-              </div>
-              
-              <div className="flex flex-1 flex-wrap items-center gap-2">
-                <Select value={bulkAction} onValueChange={setBulkAction}>
-                  <SelectTrigger className="w-48 bg-white">
-                    <SelectValue placeholder="Acción masiva" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="status">Cambiar Estado</SelectItem>
-                    <SelectItem value="delete">Eliminar</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {bulkAction === 'status' && (
-                  <Select value={bulkStatus} onValueChange={setBulkStatus}>
-                    <SelectTrigger className="w-40 bg-white">
-                      <SelectValue placeholder="Estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="recibido">Recibido</SelectItem>
-                      <SelectItem value="rechazado">Rechazado</SelectItem>
-                      <SelectItem value="en_transito">En Tránsito</SelectItem>
-                      <SelectItem value="disponible">Disponible</SelectItem>
-                      <SelectItem value="entregado">Entregado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-
-                <Button 
-                  onClick={handleBulkAction}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Aplicar
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSelectedPackages([])}
-                >
-                  Cancelar
-                </Button>
-
-                <Button 
-                  variant="outline"
-                  onClick={handleCopySelectedByMark}
-                  className="gap-2"
-                >
-                  <Copy className="h-4 w-4" /> Copiar Mark + Bultos
-                </Button>
-
-                <Button 
-                  variant="outline"
-                  onClick={() => handleMarkReported(true)}
-                >
-                  Marcar reportados
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => handleMarkReported(false)}
-                >
-                  Quitar reporte
-                </Button>
-
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <BulkActionsBar
+          selectedCount={selectedPackages.length}
+          totalVisible={filteredPackages.length}
+          bulkAction={bulkAction}
+          setBulkAction={setBulkAction}
+          bulkStatus={bulkStatus}
+          setBulkStatus={setBulkStatus}
+          onApply={handleBulkAction}
+          onCancel={() => setSelectedPackages([])}
+          onSelectAll={handleSelectAll}
+          onCopySelectedByMark={handleCopySelectedByMark}
+          onMarkReported={handleMarkReported}
+        />
       )}
 
       <BarcodeScannerModule
@@ -1090,87 +1046,22 @@ export default function AdminPackages({ user }) {
         onConfirm={confirmCreateTicket}
       />
 
-       {/* Bulk Action Confirmation */}
-      <AlertDialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Acción Masiva</AlertDialogTitle>
-            <AlertDialogDescription>
-              {bulkAction === 'delete' ? (
-                <>
-                  Estás a punto de <span className="font-semibold text-red-600">eliminar {selectedPackages.length} paquete(s)</span>.
-                  Esta acción no se puede deshacer.
-                </>
-              ) : bulkAction === 'status' ? (
-                <>
-                  Cambiarás el estado de <span className="font-semibold">{selectedPackages.length} paquete(s)</span> a{' '}
-                  <span className="font-semibold text-blue-600">{bulkStatus}</span>.
-                  {['en_transito', 'disponible', 'entregado'].includes(bulkStatus) && ' Los clientes serán notificados.'}
-                </>
-              ) : null}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkProcessing}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                executeBulkAction();
-              }}
-              disabled={bulkProcessing}
-              className={bulkAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}
-            >
-              {bulkProcessing ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando...</>
-              ) : (
-                <>Confirmar</>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <BulkActionConfirmDialog
+        open={showBulkConfirm}
+        onOpenChange={setShowBulkConfirm}
+        bulkAction={bulkAction}
+        bulkStatus={bulkStatus}
+        selectedCount={selectedPackages.length}
+        bulkProcessing={bulkProcessing}
+        onConfirm={executeBulkAction}
+      />
 
-      {/* Cancel Reception Modal */}
-      <AlertDialog open={!!cancelReceptionModal} onOpenChange={setCancelReceptionModal}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esto revertirá el paquete a estado <span class="font-semibold">Pre‑alerta</span> y limpiará fecha, usuario y foto de recepción.
-              <br />
-              Tracking: <span class="font-mono">{cancelReceptionModal?.tracking_number}</span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelProcessing}>Cerrar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-rose-600 hover:bg-rose-700"
-              disabled={cancelProcessing}
-              onClick={async (e) => {
-                e.preventDefault();
-                try {
-                  setCancelProcessing(true);
-                  await base44.entities.Package.update(cancelReceptionModal.id, {
-                    status: 'pre_alerta',
-                    received_date: null,
-                    received_by: null,
-                    package_image_url: null,
-                    package_image_urls: []
-                  });
-                  toast.success('Recepción cancelada');
-                  setCancelReceptionModal(null);
-                  loadPackages(false);
-                } catch (_) {
-                  toast.error('No se pudo cancelar la recepción');
-                }
-                setCancelProcessing(false);
-              }}
-            >
-              {cancelProcessing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Procesando...</> : 'Confirmar'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CancelReceptionDialog
+        pkg={cancelReceptionModal}
+        processing={cancelProcessing}
+        onOpenChange={(open) => { if (!open) setCancelReceptionModal(null); }}
+        onConfirm={handleCancelReception}
+      />
 
       {/* Register Package Modal */}
       <RegisterPackageModal
