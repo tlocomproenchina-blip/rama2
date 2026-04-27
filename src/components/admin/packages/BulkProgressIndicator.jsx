@@ -13,7 +13,7 @@ export default function BulkProgressIndicator({ progress }) {
         <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
         <div className="flex-1">
           <p className="text-sm font-semibold text-amber-800">
-            Procesando... {progress.remaining} de {progress.total} restantes
+            {progress.label || 'Procesando'}... {progress.remaining} de {progress.total} restantes
           </p>
           <div className="mt-1.5 h-2 w-full bg-amber-200 rounded-full overflow-hidden">
             <div

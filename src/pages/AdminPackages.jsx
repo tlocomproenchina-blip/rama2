@@ -292,11 +292,29 @@ export default function AdminPackages({ user }) {
   const handleExportPreAlerta = async () => {
     try {
       // Pedir al backend TODOS los pre-alerta (no solo los de la página actual)
-      toast.info('Preparando exportación...');
+      // Primer batch: obtener total para mostrar progreso real
       const preAlertaPkgs = [];
       let skip = 0;
       const BATCH = 200;
-      while (true) {
+      const firstRes = await base44.functions.invoke('listPackagesForSupport', {
+        limit: BATCH,
+        skip: 0,
+        statusFilter: 'pre_alerta',
+        includeCounts: false,
+      });
+      const firstBatch = firstRes?.data?.data || [];
+      const total = firstRes?.data?.total || firstBatch.length;
+      preAlertaPkgs.push(...firstBatch);
+
+      if (total === 0) {
+        toast.error('No hay paquetes en pre-alerta para exportar');
+        return;
+      }
+
+      setBulkProgress({ total, remaining: Math.max(0, total - preAlertaPkgs.length), label: 'Descargando paquetes pre-alerta' });
+
+      skip = preAlertaPkgs.length;
+      while (preAlertaPkgs.length < total && firstBatch.length === BATCH) {
         const res = await base44.functions.invoke('listPackagesForSupport', {
           limit: BATCH,
           skip,
@@ -305,16 +323,13 @@ export default function AdminPackages({ user }) {
         });
         const batch = res?.data?.data || [];
         preAlertaPkgs.push(...batch);
+        setBulkProgress({ total, remaining: Math.max(0, total - preAlertaPkgs.length), label: 'Descargando paquetes pre-alerta' });
         if (batch.length < BATCH) break;
         skip += BATCH;
         if (skip > 20000) break;
       }
 
-      if (preAlertaPkgs.length === 0) {
-        toast.error('No hay paquetes en pre-alerta para exportar');
-        return;
-      }
-
+      setBulkProgress({ total, remaining: 0, label: 'Generando archivo...' });
       // Get all users for shipping marks
       const users = await base44.entities.User.list();
       const userMap = {};
@@ -366,6 +381,7 @@ export default function AdminPackages({ user }) {
       toast.error('Error al exportar');
       console.error(error);
     }
+    setBulkProgress(null);
   };
 
   const handleCopySelectedByMark = async () => {
