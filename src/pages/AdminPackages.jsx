@@ -10,7 +10,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { 
   Package, 
-  Search, 
   CheckCircle,
   Image as ImageIcon,
   Loader2,
@@ -19,7 +18,6 @@ import {
   Plane,
   Ship,
   Shield,
-  Trash2,
   Download,
   Copy,
   Flag,
@@ -28,7 +26,7 @@ import {
   Undo2
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +36,10 @@ import RegisterPackageModal from '@/components/admin/RegisterPackageModal';
 import PackageImportDialog from '@/components/imports/PackageImportDialog';
 import BulkPhotoUploadModal from '@/components/admin/BulkPhotoUploadModal';
 import MobilePackageCard from '@/components/admin/MobilePackageCard';
-import OptimizedImage from '@/components/OptimizedImage';
+import PreAlertEditorModal from '@/components/admin/packages/PreAlertEditorModal';
+import ReceivePackageModal from '@/components/admin/packages/ReceivePackageModal';
+import EditImageModal from '@/components/admin/packages/EditImageModal';
+import CreateTicketModal from '@/components/admin/packages/CreateTicketModal';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 export default function AdminPackages({ user }) {
@@ -1039,121 +1040,27 @@ export default function AdminPackages({ user }) {
           </Button>
         )}
 
-        {/* Receive Modal */}
-      <Dialog open={!!editPreAlertModal} onOpenChange={() => setEditPreAlertModal(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Seguro y factura</DialogTitle>
-            <DialogDescription>
-              Tracking: {editPreAlertModal?.tracking_number}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <Checkbox
-                id="prealert-insurance"
-                checked={preAlertInsurance}
-                onCheckedChange={setPreAlertInsurance}
-              />
-              <Label htmlFor="prealert-insurance" className="cursor-pointer">Asegurar esta carga</Label>
-            </div>
-            <div className="space-y-2">
-              <Label>Valor FOB</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="Ej: 120"
-                value={preAlertFobValue}
-                onChange={(e) => setPreAlertFobValue(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Factura</Label>
-              <Input
-                type="file"
-                accept="image/*,.pdf"
-                onChange={(e) => setPreAlertInvoiceFile(e.target.files?.[0] || null)}
-              />
-              {editPreAlertModal?.invoice_url && !preAlertInvoiceFile && (
-                <a href={editPreAlertModal.invoice_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 underline">
-                  Ver factura actual
-                </a>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditPreAlertModal(null)} disabled={processing}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSavePreAlertDetails} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
-              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
-              Guardar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PreAlertEditorModal
+        pkg={editPreAlertModal}
+        insurance={preAlertInsurance}
+        setInsurance={setPreAlertInsurance}
+        fobValue={preAlertFobValue}
+        setFobValue={setPreAlertFobValue}
+        invoiceFile={preAlertInvoiceFile}
+        setInvoiceFile={setPreAlertInvoiceFile}
+        processing={processing}
+        onClose={() => setEditPreAlertModal(null)}
+        onSave={handleSavePreAlertDetails}
+      />
 
-      <Dialog open={!!receiveModal} onOpenChange={() => setReceiveModal(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirmar Recepción o Rechazo</DialogTitle>
-            <DialogDescription>
-              Puedes continuar con o sin foto del paquete.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-sm text-slate-500">Tracking</p>
-              <p className="font-mono font-medium">{receiveModal?.tracking_number}</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                Fotos del paquete (hasta 3)
-              </Label>
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0,3))}
-                  className="hidden"
-                  id="pkg-image"
-                />
-                <label htmlFor="pkg-image" className="cursor-pointer">
-                  {imageFiles && imageFiles.length > 0 ? (
-                    <div className="flex flex-wrap items-center justify-center gap-2 text-emerald-600">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium">{imageFiles.length} archivo(s) seleccionados</span>
-                    </div>
-                  ) : (
-                    <div className="text-slate-500">
-                      <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-sm">Click para subir foto</p>
-                      <p className="text-xs mt-1 text-slate-500">Opcional</p>
-                    </div>
-                  )}
-                </label>
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="flex-col gap-3 sm:flex-col sm:space-x-0">
-            <Button onClick={() => handleReceive('recibido')} disabled={processing} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50">
-              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-              Confirmar
-            </Button>
-            <Button onClick={() => handleReceive('rechazado')} disabled={processing} variant="outline" className="w-full border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50">
-              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-              Rechazado
-            </Button>
-            <Button variant="outline" onClick={() => setReceiveModal(null)} className="w-full">
-              Cancelar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ReceivePackageModal
+        pkg={receiveModal}
+        imageFiles={imageFiles}
+        setImageFiles={setImageFiles}
+        processing={processing}
+        onClose={() => setReceiveModal(null)}
+        onConfirm={handleReceive}
+      />
 
       {/* View Image Modal */}
       <Dialog open={!!viewImage} onOpenChange={() => setViewImage(null)}>
@@ -1165,111 +1072,23 @@ export default function AdminPackages({ user }) {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Image Modal */}
-      <Dialog open={!!editImageModal} onOpenChange={() => {
-        setEditImageModal(null);
-        setNewImageFiles([]);
-      }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editImageModal?.package_image_url ? 'Reemplazar Foto' : 'Agregar Foto'}
-            </DialogTitle>
-            <DialogDescription>
-              Tracking: {editImageModal?.tracking_number}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {editImageModal?.package_image_url && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-700">Fotos actuales</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {(editImageModal.package_image_urls && editImageModal.package_image_urls.length > 0 ? editImageModal.package_image_urls : (editImageModal.package_image_url ? [editImageModal.package_image_url] : [])).map((url, idx) => (
-                    <div
-                      key={idx}
-                      className="h-24 rounded-lg cursor-pointer hover:opacity-80 transition-opacity ring-offset-2 hover:ring-2 hover:ring-blue-400 overflow-hidden"
-                      onClick={() => window.open(url, '_blank')}
-                      title="Click para abrir en tamaño completo"
-                    >
-                      <OptimizedImage src={url} alt={`Actual ${idx+1}`} className="w-full h-full" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                Agregar fotos (hasta 3 en total)
-              </Label>
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition-colors">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => setNewImageFiles(Array.from(e.target.files || []))}
-                  className="hidden"
-                  id="edit-pkg-image"
-                />
-                <label htmlFor="edit-pkg-image" className="cursor-pointer">
-                  {newImageFiles && newImageFiles.length > 0 ? (
-                    <div className="flex items-center justify-center gap-2 text-emerald-600">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium text-sm">{newImageFiles.length} seleccionado(s)</span>
-                    </div>
-                  ) : (
-                    <div className="text-slate-500">
-                      <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-sm">Click para subir foto</p>
-                    </div>
-                  )}
-                </label>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setEditImageModal(null);
-              setNewImageFiles([]);
-            }}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleUpdateImage} 
-              disabled={processing || !newImageFiles || newImageFiles.length === 0} 
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-              {editImageModal?.package_image_url ? 'Reemplazar' : 'Agregar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditImageModal
+        pkg={editImageModal}
+        newImageFiles={newImageFiles}
+        setNewImageFiles={setNewImageFiles}
+        processing={processing}
+        onClose={() => { setEditImageModal(null); setNewImageFiles([]); }}
+        onSubmit={handleUpdateImage}
+      />
 
-      {/* Create Ticket Modal */}
-      <Dialog open={!!ticketModal} onOpenChange={() => { setTicketModal(null); setTicketMessage(''); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Crear Ticket</DialogTitle>
-            <DialogDescription>
-              Cliente: {ticketModal?.client_email} • Tracking: {ticketModal?.tracking_number}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Label>Mensaje (opcional)</Label>
-            <Textarea rows={4} placeholder="Escribe un mensaje para el cliente..." value={ticketMessage} onChange={(e) => setTicketMessage(e.target.value)} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setTicketModal(null); setTicketMessage(''); }} disabled={ticketProcessing}>
-              Cancelar
-            </Button>
-            <Button onClick={confirmCreateTicket} disabled={ticketProcessing} className="bg-blue-600 hover:bg-blue-700">
-              {ticketProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <MessageSquare className="h-4 w-4 mr-2" />}
-              Crear Ticket
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateTicketModal
+        pkg={ticketModal}
+        message={ticketMessage}
+        setMessage={setTicketMessage}
+        processing={ticketProcessing}
+        onClose={() => { setTicketModal(null); setTicketMessage(''); }}
+        onConfirm={confirmCreateTicket}
+      />
 
        {/* Bulk Action Confirmation */}
       <AlertDialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
