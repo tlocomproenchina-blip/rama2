@@ -123,6 +123,11 @@ export async function sendTemplatedEmail({
   return response;
 }
 
+// Compatibilidad con pantallas antiguas: ya no hay cola, devolvemos métricas estáticas
+export function getEmailQueueStats() {
+  return { pending: 0, sent: 0, batchSize: 0, intervalMs: 0 };
+}
+
 function inferEntityTypeFromType(type) {
   switch (type) {
     case 'package': return 'Package';
