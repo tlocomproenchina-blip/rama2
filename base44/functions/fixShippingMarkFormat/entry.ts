@@ -4,13 +4,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 // al formato correcto (N2-TLEC-W1825S) en User, Package y CbmIngreso.
 // Solo invocable por admin.
 
-const BAD_REGEX = /^N2TLEC([A-Z0-9]+)$/i;
+// Cualquier prefijo N + dígito(s) + TLEC + sufijo, sin guiones.
+// Ej: N1TLECW1833S, N2TLECW1825S, N4TLECW1826S, N6TLECW1827S → N{n}-TLEC-{sufijo}
+const BAD_REGEX = /^(N\d+)TLEC([A-Z0-9]+)$/i;
 
 function fixMark(mark) {
   if (!mark) return null;
   const m = String(mark).trim().toUpperCase().match(BAD_REGEX);
   if (!m) return null;
-  return `N2-TLEC-${m[1]}`;
+  return `${m[1]}-TLEC-${m[2]}`;
 }
 
 Deno.serve(async (req) => {
@@ -22,10 +24,15 @@ Deno.serve(async (req) => {
     }
 
     const sb = base44.asServiceRole;
-    const dryRun = (await req.json().catch(() => ({})))?.dry_run === true;
+    const body = await req.json().catch(() => ({}));
+    const dryRun = body?.dry_run === true;
+    const batchSize = Math.max(1, Math.min(50, Number(body?.batch_size) || 10));
+    const sleepMs = Math.max(0, Math.min(5000, Number(body?.sleep_ms) || 800));
 
-    // 1) Usuarios con formato malo
-    const users = await sb.entities.User.filter({ shipping_mark: { $regex: '^N2TLEC' } }, '-updated_date', 1000);
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    // 1) Usuarios con formato malo (limitado por lote)
+    const users = await sb.entities.User.filter({ shipping_mark: { $regex: '^N\\d+TLEC' } }, '-updated_date', batchSize);
     const userResults = [];
 
     for (const u of users) {
@@ -43,11 +50,14 @@ Deno.serve(async (req) => {
 
       if (!dryRun) {
         await sb.entities.User.update(u.id, { shipping_mark: newMark });
+        await sleep(sleepMs);
         for (const p of pkgs) {
           await sb.entities.Package.update(p.id, { shipping_mark: newMark });
+          await sleep(sleepMs);
         }
         for (const c of cbmRows) {
           await sb.entities.CbmIngreso.update(c.id, { shipping_mark: newMark });
+          await sleep(sleepMs);
         }
       }
 
@@ -61,7 +71,7 @@ Deno.serve(async (req) => {
     }
 
     // 2) Pool de códigos con formato malo (por si quedan)
-    const poolBad = await sb.entities.ShippingMarkCode.filter({ code: { $regex: '^N2TLEC' } }, '-updated_date', 5000);
+    const poolBad = await sb.entities.ShippingMarkCode.filter({ code: { $regex: '^N\\d+TLEC' } }, '-updated_date', 5000);
     const poolFixed = [];
     for (const code of poolBad) {
       const newCode = fixMark(code.code);
@@ -72,11 +82,16 @@ Deno.serve(async (req) => {
       poolFixed.push({ id: code.id, old: code.code, new: newCode });
     }
 
+    // Verificar si quedan más por procesar
+    const remaining = await sb.entities.User.filter({ shipping_mark: { $regex: '^N\\d+TLEC' } }, '-updated_date', 1);
+    const hasMore = (remaining || []).length > 0;
+
     return Response.json({
       success: true,
       dry_run: dryRun,
       users_fixed: userResults.length,
       pool_codes_fixed: poolFixed.length,
+      has_more: hasMore,
       details: userResults,
       pool_details: poolFixed
     });
