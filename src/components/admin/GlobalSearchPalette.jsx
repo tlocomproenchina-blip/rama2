@@ -10,17 +10,60 @@ import {
   CommandGroup,
   CommandItem,
 } from '@/components/ui/command';
-import { User as UserIcon, Package as PackageIcon, Hash, Loader2, Search } from 'lucide-react';
+import { User as UserIcon, Package as PackageIcon, Hash, Loader2, Search, Clock, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { debounce } from 'lodash';
+
+const HISTORY_KEY = 'tlec:global-search-history';
+const HISTORY_LIMIT = 8;
+
+const loadHistory = () => {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveHistory = (items) => {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, HISTORY_LIMIT)));
+  } catch {}
+};
 
 export default function GlobalSearchPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState({ clients: [], packages: [], shippingMarks: [] });
+  const [history, setHistory] = useState(() => loadHistory());
   const navigate = useNavigate();
   const reqIdRef = useRef(0);
+
+  const pushHistory = useCallback((term) => {
+    const t = (term || '').trim();
+    if (t.length < 2) return;
+    setHistory((prev) => {
+      const next = [t, ...prev.filter((x) => x.toLowerCase() !== t.toLowerCase())].slice(0, HISTORY_LIMIT);
+      saveHistory(next);
+      return next;
+    });
+  }, []);
+
+  const removeHistoryItem = useCallback((term, e) => {
+    e?.stopPropagation?.();
+    setHistory((prev) => {
+      const next = prev.filter((x) => x !== term);
+      saveHistory(next);
+      return next;
+    });
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+    saveHistory([]);
+  }, []);
 
   // Toggle with Cmd/Ctrl + K
   useEffect(() => {
@@ -103,6 +146,7 @@ export default function GlobalSearchPalette() {
   }, [open]);
 
   const goTo = (path) => {
+    pushHistory(query);
     setOpen(false);
     setTimeout(() => navigate(path), 50);
   };
@@ -143,10 +187,44 @@ export default function GlobalSearchPalette() {
             <CommandEmpty>Sin resultados para "{query}"</CommandEmpty>
           )}
 
-          {!loading && query.trim().length < 2 && (
+          {!loading && query.trim().length < 2 && history.length === 0 && (
             <div className="py-6 text-center text-xs text-slate-500 px-4">
               Escribe al menos 2 caracteres. Puedes buscar por nombre, email, tracking o shipping mark.
             </div>
+          )}
+
+          {!loading && query.trim().length < 2 && history.length > 0 && (
+            <CommandGroup heading={
+              <div className="flex items-center justify-between w-full">
+                <span>Búsquedas recientes</span>
+                <button
+                  type="button"
+                  onClick={clearHistory}
+                  className="text-[10px] text-slate-400 hover:text-slate-600 uppercase tracking-wide"
+                >
+                  Limpiar
+                </button>
+              </div>
+            }>
+              {history.map((term) => (
+                <CommandItem
+                  key={`h-${term}`}
+                  value={`history-${term}`}
+                  onSelect={() => setQuery(term)}
+                >
+                  <Clock className="h-4 w-4 text-slate-400" />
+                  <div className="flex-1 min-w-0 text-sm truncate">{term}</div>
+                  <button
+                    type="button"
+                    onClick={(e) => removeHistoryItem(term, e)}
+                    className="opacity-60 hover:opacity-100 p-1 rounded hover:bg-slate-100"
+                    aria-label="Eliminar"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </CommandItem>
+              ))}
+            </CommandGroup>
           )}
 
           {results.clients.length > 0 && (
