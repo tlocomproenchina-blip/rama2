@@ -68,6 +68,11 @@
       "type": "boolean",
       "description": "Si el cliente es m\u00f3vil",
       "default": false
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

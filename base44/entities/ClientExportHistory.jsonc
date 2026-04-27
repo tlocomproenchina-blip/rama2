@@ -28,6 +28,11 @@
     "triggered_by": {
       "type": "string",
       "description": "Email del admin que gener\u00f3 el reporte"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

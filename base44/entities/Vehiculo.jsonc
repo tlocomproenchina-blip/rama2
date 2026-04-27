@@ -61,6 +61,11 @@
     "observaciones": {
       "type": "string",
       "description": "Notas internas del veh\u00edculo"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

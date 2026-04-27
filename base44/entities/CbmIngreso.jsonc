@@ -60,6 +60,11 @@
       "type": "string",
       "format": "date",
       "description": "Fecha estimada de llegada (fecha_salida + 90 d\u00edas)"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

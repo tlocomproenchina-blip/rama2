@@ -42,6 +42,11 @@
     "registrado_por": {
       "type": "string",
       "description": "Usuario que registr\u00f3 el evento"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

@@ -80,6 +80,11 @@
     "cost_center": {
       "type": "string",
       "default": "Operaciones"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

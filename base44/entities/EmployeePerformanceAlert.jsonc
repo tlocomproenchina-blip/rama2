@@ -64,6 +64,11 @@
       "type": "boolean",
       "default": false,
       "description": "Si ya se notific\u00f3 al equipo admin"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

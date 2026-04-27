@@ -40,6 +40,11 @@
       "type": "number",
       "default": 0,
       "description": "Orden de visualizaci\u00f3n"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

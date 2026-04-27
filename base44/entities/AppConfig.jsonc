@@ -349,6 +349,11 @@
       "type": "string",
       "default": "Modo demo activo: integraciones externas desactivadas.",
       "description": "Mensaje mostrado cuando el modo demo est\u00e1 activo"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

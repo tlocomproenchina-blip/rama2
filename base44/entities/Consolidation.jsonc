@@ -131,6 +131,11 @@
     "consolidation_request_id": {
       "type": "string",
       "description": "ID de la solicitud de consolidaci\u00f3n original"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

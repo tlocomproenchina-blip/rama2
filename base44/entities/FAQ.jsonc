@@ -31,6 +31,11 @@
       "type": "boolean",
       "default": true,
       "description": "Si la pregunta est\u00e1 activa"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

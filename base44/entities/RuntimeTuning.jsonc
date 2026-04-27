@@ -51,6 +51,11 @@
     "updated_by": {
       "type": "string",
       "description": "Email que realiz\u00f3 el ajuste"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

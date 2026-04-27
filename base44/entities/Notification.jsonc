@@ -67,6 +67,11 @@
       ],
       "default": "bell",
       "description": "\u00cdcono a mostrar"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

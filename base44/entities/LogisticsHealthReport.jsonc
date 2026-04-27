@@ -45,6 +45,11 @@
     "summary_text": {
       "type": "string",
       "description": "Resumen legible del diagn\u00f3stico"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

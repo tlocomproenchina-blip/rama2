@@ -104,6 +104,11 @@
       "type": "boolean",
       "default": false,
       "description": "Si gener\u00f3 conversi\u00f3n"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

@@ -75,6 +75,11 @@
         "agent"
       ],
       "description": "C\u00f3digos de rol (role o custom_role) que califican como Agente"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

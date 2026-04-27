@@ -103,6 +103,11 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha de resoluci\u00f3n"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

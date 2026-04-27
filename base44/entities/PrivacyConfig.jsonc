@@ -24,6 +24,11 @@
     "terms_of_service": {
       "type": "string",
       "description": "T\u00e9rminos de servicio"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [
