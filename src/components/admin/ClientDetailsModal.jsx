@@ -55,6 +55,11 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
     setLoading(false);
   };
 
+  const reloadNotes = async () => {
+    const clientNotes = await base44.entities.ClientNote.filter({ client_email: client.email });
+    setNotes(clientNotes.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
+  };
+
   const handleAddNote = async () => {
     if (!newNote.text.trim()) {
       toast.error('Escribe una nota primero');
@@ -71,7 +76,7 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
       });
       setNewNote({ text: '', type: 'general' });
       toast.success('Nota agregada');
-      loadClientData();
+      reloadNotes();
     } catch (error) {
       toast.error('Error al agregar nota');
     }
@@ -82,7 +87,8 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
     try {
       await base44.entities.ClientNote.delete(noteId);
       toast.success('Nota eliminada');
-      loadClientData();
+      // Optimistic UI: quitar localmente sin recargar
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
     } catch (error) {
       toast.error('Error al eliminar nota');
     }

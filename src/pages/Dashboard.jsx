@@ -174,7 +174,9 @@ export default function Dashboard({ user, refreshUser }) {
       toast.success('Ticket creado exitosamente');
       setShowTicketModal(false);
       setNewTicket({ subject: '', category: 'otro', message: '' });
-      loadData();
+      // Solo recarga tickets — no es necesario recargar paquetes/consolidaciones/facturas
+      const tkts = await base44.entities.SupportTicket.filter({ client_email: user.email }, '-created_date', 10);
+      setTickets(tkts || []);
     } catch {
       toast.error('Error al crear ticket');
     }
