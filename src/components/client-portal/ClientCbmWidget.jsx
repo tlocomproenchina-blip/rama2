@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, TrendingUp, CalendarDays, Loader2, AlertTriangle } from 'lucide-react';
+import { Package, TrendingUp, CalendarDays, Loader2, AlertTriangle, Ship, MapPinned } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -146,6 +146,18 @@ export default function ClientCbmWidget({ userEmail }) {
                         ? format(new Date(item.fecha), 'dd MMM yyyy · HH:mm', { locale: es })
                         : '—'}
                     </p>
+                    {item.fecha_salida && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                        <span className="text-[11px] text-emerald-700 flex items-center gap-1 font-medium">
+                          <Ship className="h-3 w-3" /> Salida: {format(new Date(item.fecha_salida + 'T12:00:00'), 'dd MMM yyyy', { locale: es })}
+                        </span>
+                        {item.fecha_estimada_llegada && (
+                          <span className="text-[11px] text-blue-700 flex items-center gap-1 font-medium">
+                            <MapPinned className="h-3 w-3" /> Llegada est.: {format(new Date(item.fecha_estimada_llegada + 'T12:00:00'), 'dd MMM yyyy', { locale: es })}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
