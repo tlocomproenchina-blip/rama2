@@ -55,14 +55,19 @@ export default function MyPackages({ user }) {
     // Real-time updates
     if (!user?.email) return;
     let debounceTimer;
+    let isMounted = true;
     const unsubscribe = base44.entities.Package.subscribe((event) => {
+      if (!isMounted) return;
       if (event.data?.client_email === user.email) {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => loadPackages(), 1000);
+        debounceTimer = setTimeout(() => {
+          if (isMounted) loadPackages();
+        }, 1000);
       }
     });
 
     return () => {
+      isMounted = false;
       clearTimeout(debounceTimer);
       if (typeof unsubscribe === 'function') unsubscribe();
     };

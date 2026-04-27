@@ -86,7 +86,9 @@ export default function NotificationBell({ user }) {
   useEffect(() => {
     if (!user?.email) return;
 
+    let isMounted = true;
     const unsubscribe = base44.entities.Notification.subscribe((event) => {
+      if (!isMounted) return;
       const data = event?.data;
       if (!data || data.user_email !== user.email) return;
 
@@ -96,9 +98,12 @@ export default function NotificationBell({ user }) {
     });
 
     return () => {
+      isMounted = false;
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, [user?.email, loadNotifications]);
+    // Solo re-suscribir cuando cambia el usuario, no cuando cambia loadNotifications
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email]);
 
   const playNotificationSound = () => {
     // Create a simple beep sound using Web Audio API
