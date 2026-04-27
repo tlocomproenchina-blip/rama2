@@ -89,42 +89,28 @@ export default function AdminConsolidate({ user }) {
   }, []);
 
   const loadData = async () => {
-    // Load pending requests
-    const reqs = await base44.entities.ConsolidationRequest.filter({ 
-      status: 'pendiente' 
-    }, '-created_date');
+    // Cargar TODO en paralelo (antes: 5 fetches secuenciales)
+    const [reqs, approvedRequests, consolidatedRequests, preAlertPackages, receivedPackages, cfgs] = await Promise.all([
+      base44.entities.ConsolidationRequest.filter({ status: 'pendiente' }, '-created_date'),
+      base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-created_date'),
+      base44.entities.ConsolidationRequest.filter({ status: 'consolidada' }, '-created_date'),
+      base44.entities.Package.filter({ status: 'pre_alerta' }, '-created_date'),
+      base44.entities.Package.filter({ status: 'recibido' }, '-created_date'),
+      base44.entities.AppConfig.filter({ config_key: 'main' }),
+    ]);
     setRequests(reqs);
 
-    // Get approved/consolidated requests to exclude their packages
-    const approvedRequests = await base44.entities.ConsolidationRequest.filter(
-      { status: 'aprobada' },
-      '-created_date'
-    );
-    const consolidatedRequests = await base44.entities.ConsolidationRequest.filter(
-      { status: 'consolidada' },
-      '-created_date'
-    );
-    
-    const allApprovedRequests = [...approvedRequests, ...consolidatedRequests];
     const packageIdsInProgress = new Set();
-    allApprovedRequests.forEach(req => {
+    [...approvedRequests, ...consolidatedRequests].forEach(req => {
       req.package_ids?.forEach(id => packageIdsInProgress.add(id));
     });
 
-    // Load packages with pre-alerta or recibido status
-    const preAlertPackages = await base44.entities.Package.filter({ 
-      status: 'pre_alerta' 
-    }, '-created_date');
     const preAlertMap = {};
     preAlertPackages.forEach(pkg => {
       if (!preAlertMap[pkg.client_email]) preAlertMap[pkg.client_email] = 0;
       preAlertMap[pkg.client_email] += 1;
     });
     setPreAlertCounts(preAlertMap);
-    
-    const receivedPackages = await base44.entities.Package.filter({ 
-      status: 'recibido' 
-    }, '-created_date');
 
     // Filter out packages already in approved consolidations
     const packages = [...preAlertPackages, ...receivedPackages].filter(
@@ -148,25 +134,26 @@ export default function AdminConsolidate({ user }) {
     })).sort((a, b) => b.count - a.count);
 
     setClientsWithPackages(clientsList);
-    try {
-      const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
-      const periodDays = Array.isArray(cfgs?.[0]?.consolidation_periods) && cfgs[0].consolidation_periods.length > 0
-        ? Number(cfgs[0].consolidation_periods[0]) || 7
-        : 7;
-      const meta = {};
-      clientsList.forEach((c) => {
-        const dates = c.packages
-          .filter(p => p.status === 'recibido' && p.received_date)
-          .map(p => new Date(p.received_date).getTime());
-        if (dates.length) {
-          const firstTs = Math.min(...dates);
-          const firstISO = new Date(firstTs).toISOString();
-          const closeISO = new Date(firstTs + periodDays * 24 * 60 * 60 * 1000).toISOString();
-          meta[c.email] = { firstReceived: firstISO, closeDate: closeISO, periodDays };
+    const periodDays = Array.isArray(cfgs?.[0]?.consolidation_periods) && cfgs[0].consolidation_periods.length > 0
+      ? Number(cfgs[0].consolidation_periods[0]) || 7
+      : 7;
+    const meta = {};
+    clientsList.forEach((c) => {
+      // Encontrar el ts mínimo en un solo pase (evita spread con muchos paquetes)
+      let firstTs = Infinity;
+      for (const p of c.packages) {
+        if (p.status === 'recibido' && p.received_date) {
+          const ts = new Date(p.received_date).getTime();
+          if (ts < firstTs) firstTs = ts;
         }
-      });
-      setClientMeta(meta);
-    } catch (_) {}
+      }
+      if (firstTs !== Infinity) {
+        const firstISO = new Date(firstTs).toISOString();
+        const closeISO = new Date(firstTs + periodDays * 24 * 60 * 60 * 1000).toISOString();
+        meta[c.email] = { firstReceived: firstISO, closeDate: closeISO, periodDays };
+      }
+    });
+    setClientMeta(meta);
     setLoading(false);
   };
 
@@ -226,10 +213,10 @@ export default function AdminConsolidate({ user }) {
 
     setProcessing(clientEmail);
     try {
-      // Get or create shipping mark
-      const users = await base44.entities.User.list();
-      const client = users.find(u => u.email === clientEmail);
-      
+      // Buscar solo este cliente por email (antes: User.list() traía miles de usuarios)
+      const matched = await base44.entities.User.filter({ email: clientEmail });
+      const client = matched?.[0];
+
       if (!client || !client.shipping_mark) {
         toast.error('El cliente no tiene shipping mark asignado');
         setProcessing(null);
