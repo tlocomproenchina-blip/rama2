@@ -146,12 +146,13 @@ Deno.serve(async (req) => {
     const toDate = body.toDate || '';
     const quickDate = body.quickDate || 'all';
     const includeCounts = body.includeCounts !== false; // por defecto sí
+    const forceRefresh = body.forceRefresh === true;
 
     // Carga todos los clientes y los conteos de paquetes (con caché TTL).
     // Esto resuelve el problema "N+1 / recalcular siempre": cuando el admin
     // cambia filtros varias veces, no recargamos miles de paquetes en cada click.
     const now = Date.now();
-    const cacheValid = _cache.allClients && _cache.packageCounts && (now - _cache.at) < CACHE_TTL_MS;
+    const cacheValid = !forceRefresh && _cache.allClients && _cache.packageCounts && (now - _cache.at) < CACHE_TTL_MS;
 
     let all;
     let packageCounts;

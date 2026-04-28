@@ -109,7 +109,7 @@ export default function AdminClients({ user }) {
     }
   };
 
-  const loadClients = async (append = false) => {
+  const loadClients = async (append = false, forceRefresh = false) => {
     try {
       if (append) setLoadingMore(true); else setLoading(true);
       if (!canViewClients) {
@@ -132,6 +132,7 @@ export default function AdminClients({ user }) {
         toDate,
         quickDate,
         includeCounts,
+        forceRefresh,
       });
 
       const payload = res?.data || {};
@@ -236,6 +237,8 @@ export default function AdminClients({ user }) {
       setViewClient((prev) => prev?.id === editClient.id ? updatedClient : prev);
       setEditClient(null);
       toast.success('Cliente actualizado y notificado');
+      // Refrescar counts globales (pendientes, con/sin shipping mark) tras editar
+      loadClients(false, true);
     } catch (error) {
       toast.error('Error al guardar');
     }
