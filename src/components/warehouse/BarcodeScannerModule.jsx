@@ -137,15 +137,19 @@ export default function BarcodeScannerModule({
     if (!activeRef.current || !videoRef.current) return;
     scanAttemptsRef.current++;
 
-    if (videoRef.current.readyState >= 2 && nativeBarcodeSupported && detectorRef.current) {
-      // Try direct frame first
-      let detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
+    const video = videoRef.current;
+    if (video.readyState >= 2 && nativeBarcodeSupported && detectorRef.current) {
+      // Direct detection on the live video stream — fastest path.
+      // BarcodeDetector ya tolera inclinaciones moderadas; no rotamos por frame
+      // porque eso destruye el FPS. Solo después de varios fallos intentamos rotar.
+      let detected = await detectorRef.current.detect(video).catch(() => []);
       let code = normalizeCode(detected?.[0]?.rawValue || '');
 
-      // If direct scan fails, try rotated angles for tilted barcodes
-      if (!code) {
-        const angles = [5, -5, 10, -10, 15, -15];
+      // Tras ~1.5s sin detectar, probar rotaciones suaves cada cierto tiempo
+      if (!code && scanAttemptsRef.current > 12 && scanAttemptsRef.current % 6 === 0) {
+        const angles = [10, -10, 20, -20];
         for (const angle of angles) {
+          if (!activeRef.current) return;
           const canvas = captureFrame(angle);
           if (!canvas) break;
           detected = await detectorRef.current.detect(canvas).catch(() => []);
@@ -163,25 +167,31 @@ export default function BarcodeScannerModule({
       }
     }
 
-    // After ~4 seconds of failed native scanning, try AI fallback
-    if (scanAttemptsRef.current > 120) { // ~4s at 30fps
+    // Fallback IA tras ~6 segundos sin éxito
+    if (scanAttemptsRef.current > 60) {
       tryAiFallback();
     }
 
-    frameRef.current = requestAnimationFrame(scanFrame);
+    // Limita a ~10 detecciones/segundo. Suficiente para tracking en mano y libera CPU/GPU.
+    if (activeRef.current) {
+      setTimeout(() => {
+        frameRef.current = requestAnimationFrame(scanFrame);
+      }, 100);
+    }
   };
 
   const startCamera = async () => {
     if (!cameraSupported) return;
 
     setCameraLoading(true);
-    // Request high resolution for better barcode reading
+    // 1280x720 es el sweet spot: BarcodeDetector decodifica más rápido que en 1080p
+    // y el S25 Ultra mantiene un enfoque excelente. Resoluciones mayores ralentizan.
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: { ideal: 'environment' },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        focusMode: { ideal: 'continuous' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 },
       },
       audio: false,
     }).catch(() => null);
@@ -196,9 +206,28 @@ export default function BarcodeScannerModule({
     streamRef.current = stream;
     scanAttemptsRef.current = 0;
 
+    // Aplica capacidades avanzadas si el dispositivo las soporta (S25 Ultra sí):
+    // enfoque continuo, exposición automática y modo macro/zoom suave para códigos pequeños.
+    try {
+      const track = stream.getVideoTracks?.()[0];
+      const caps = track?.getCapabilities?.() || {};
+      const advanced = [];
+      if (caps.focusMode?.includes('continuous')) advanced.push({ focusMode: 'continuous' });
+      if (caps.exposureMode?.includes('continuous')) advanced.push({ exposureMode: 'continuous' });
+      if (caps.whiteBalanceMode?.includes('continuous')) advanced.push({ whiteBalanceMode: 'continuous' });
+      // Zoom ligero ayuda a leer códigos pequeños sin perder enfoque
+      if (caps.zoom && Number.isFinite(caps.zoom.min) && Number.isFinite(caps.zoom.max)) {
+        const targetZoom = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1.5));
+        advanced.push({ zoom: targetZoom });
+      }
+      if (advanced.length) await track.applyConstraints({ advanced }).catch(() => null);
+    } catch (_) {}
+
     if (nativeBarcodeSupported) {
+      // Lista priorizada: code_128 y EAN-13 son los más comunes en logística.
+      // Menos formatos = decodificación más rápida.
       detectorRef.current = new window.BarcodeDetector({
-        formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'qr_code', 'data_matrix', 'aztec', 'pdf417'],
+        formats: ['code_128', 'ean_13', 'code_39', 'qr_code', 'ean_8', 'upc_a', 'upc_e', 'itf', 'data_matrix'],
       });
     }
 
