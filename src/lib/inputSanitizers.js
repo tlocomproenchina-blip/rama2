@@ -23,7 +23,7 @@ export const sanitizeClientProfileData = (data = {}) => ({
   city: data.city !== undefined ? stripSpecialCharacters(data.city) : data.city,
   address: data.address !== undefined ? stripSpecialCharacters(data.address) : data.address,
   cedula: data.cedula !== undefined ? sanitizeCodeLike(data.cedula) : data.cedula,
-  shipping_mark: data.shipping_mark !== undefined ? sanitizeCodeLike(data.shipping_mark) : data.shipping_mark,
+  shipping_mark: data.shipping_mark,
   whatsapp: data.whatsapp !== undefined ? getDigits(data.whatsapp) : data.whatsapp,
 });
 
