@@ -55,11 +55,17 @@ const RouteFallback = () => (
   </div>
 );
 
+// Wrapper that receives `user` and `refreshUser` from Layout (via cloneElement)
+// and forwards them to the lazy-loaded component.
+const LazyPage = ({ Component, ...injectedProps }) => (
+  <Suspense fallback={<RouteFallback />}>
+    <Component {...injectedProps} />
+  </Suspense>
+);
+
 const lazyRoute = (Component, name) => (
   <LayoutWrapper currentPageName={name}>
-    <Suspense fallback={<RouteFallback />}>
-      <Component />
-    </Suspense>
+    <LazyPage Component={Component} />
   </LayoutWrapper>
 );
 
