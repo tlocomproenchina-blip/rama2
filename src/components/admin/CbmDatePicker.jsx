@@ -135,35 +135,78 @@ export default function CbmDatePicker({
             })}
           </div>
 
-          {/* Select all for this day */}
-          <button
-            type="button"
-            className="text-xs text-blue-600 hover:underline"
-            onClick={() => {
-              const dayTrackings = packagesForSelectedDay.map(
-                (p) => p.tracking_number
-              );
-              const allSelected = dayTrackings.every((t) =>
-                selectedTrackings.includes(t)
-              );
-              if (allSelected) {
-                onTrackingsChange(
-                  selectedTrackings.filter((t) => !dayTrackings.includes(t))
+          {/* Select all for this day / for all packages */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <button
+              type="button"
+              className="text-xs text-blue-600 hover:underline"
+              onClick={() => {
+                const dayTrackings = packagesForSelectedDay.map(
+                  (p) => p.tracking_number
                 );
-              } else {
-                onTrackingsChange([
-                  ...new Set([...selectedTrackings, ...dayTrackings]),
-                ]);
-              }
-            }}
-          >
-            {packagesForSelectedDay.every((p) =>
-              selectedTrackings.includes(p.tracking_number)
-            )
-              ? 'Deseleccionar todos del día'
-              : 'Seleccionar todos del día'}
-          </button>
+                const allSelected = dayTrackings.every((t) =>
+                  selectedTrackings.includes(t)
+                );
+                if (allSelected) {
+                  onTrackingsChange(
+                    selectedTrackings.filter((t) => !dayTrackings.includes(t))
+                  );
+                } else {
+                  onTrackingsChange([
+                    ...new Set([...selectedTrackings, ...dayTrackings]),
+                  ]);
+                }
+              }}
+            >
+              {packagesForSelectedDay.every((p) =>
+                selectedTrackings.includes(p.tracking_number)
+              )
+                ? 'Deseleccionar todos del día'
+                : 'Seleccionar todos del día'}
+            </button>
+
+            {(clientPackages || []).length > 0 && (
+              <button
+                type="button"
+                className="text-xs text-emerald-700 hover:underline font-medium"
+                onClick={() => {
+                  const allTrackings = (clientPackages || []).map((p) => p.tracking_number);
+                  const allSelected = allTrackings.every((t) => selectedTrackings.includes(t));
+                  if (allSelected) {
+                    onTrackingsChange(selectedTrackings.filter((t) => !allTrackings.includes(t)));
+                  } else {
+                    onTrackingsChange([...new Set([...selectedTrackings, ...allTrackings])]);
+                  }
+                }}
+              >
+                {(clientPackages || []).every((p) => selectedTrackings.includes(p.tracking_number))
+                  ? `Deseleccionar todos (${clientPackages.length})`
+                  : `Seleccionar todos (${clientPackages.length})`}
+              </button>
+            )}
+          </div>
         </div>
+      )}
+
+      {/* Botón global cuando NO hay paquetes en el día seleccionado pero sí del cliente */}
+      {(!selectedDayKey || packagesForSelectedDay.length === 0) && (clientPackages || []).length > 0 && (
+        <button
+          type="button"
+          className="text-xs text-emerald-700 hover:underline font-medium"
+          onClick={() => {
+            const allTrackings = (clientPackages || []).map((p) => p.tracking_number);
+            const allSelected = allTrackings.every((t) => selectedTrackings.includes(t));
+            if (allSelected) {
+              onTrackingsChange(selectedTrackings.filter((t) => !allTrackings.includes(t)));
+            } else {
+              onTrackingsChange([...new Set([...selectedTrackings, ...allTrackings])]);
+            }
+          }}
+        >
+          {(clientPackages || []).every((p) => selectedTrackings.includes(p.tracking_number))
+            ? `Deseleccionar todos los paquetes del cliente (${clientPackages.length})`
+            : `Seleccionar todos los paquetes del cliente (${clientPackages.length})`}
+        </button>
       )}
 
       {selectedDayKey && packagesForSelectedDay.length === 0 && (
