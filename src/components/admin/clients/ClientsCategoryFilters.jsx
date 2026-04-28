@@ -16,9 +16,9 @@ export default function ClientsCategoryFilters({
   selectWhatsapp,
 }) {
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex items-start gap-2 w-full">
       <Filter className="h-4 w-4 text-slate-500 mt-2 shrink-0" />
-      <div className="flex flex-wrap gap-2 -mx-1 px-1 pb-1">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2 flex-1 min-w-0 [&_button]:text-xs sm:[&_button]:text-sm [&_button]:px-2 sm:[&_button]:px-3 [&_button]:h-8 sm:[&_button]:h-9">
         <Button
           variant="outline"
           aria-pressed={exclusiveKey === 'all'}
