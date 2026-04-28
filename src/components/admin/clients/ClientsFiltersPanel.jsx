@@ -35,10 +35,10 @@ export default function ClientsFiltersPanel({
           selectWhatsapp={selectWhatsapp}
         />
 
-        <div className="flex items-center gap-3 mt-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2">
           <span className="text-sm text-slate-600">Estado:</span>
           <Select value={stateFilter} onValueChange={(v) => setStateFilter(v)}>
-            <SelectTrigger className="w-56">
+            <SelectTrigger className="w-full sm:w-56 flex-1 sm:flex-none min-w-0">
               <SelectValue placeholder="Todos los estados" />
             </SelectTrigger>
             <SelectContent>
@@ -48,7 +48,7 @@ export default function ClientsFiltersPanel({
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={onResetFilters} className="ml-auto">Limpiar filtros</Button>
+          <Button variant="outline" size="sm" onClick={onResetFilters} className="w-full sm:w-auto sm:ml-auto">Limpiar filtros</Button>
         </div>
       </CardContent>
     </Card>
