@@ -60,7 +60,7 @@ export default function PackagesQuickFilters({
           <div className="flex flex-col sm:flex-row items-stretch gap-2 w-full sm:w-auto">
             <Button onClick={onOpenCreate} size="sm" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
               <Package className="h-4 w-4 mr-2" />
-              Registrar Paquete
+              Registrar
             </Button>
             <Button onClick={onOpenImport} variant="outline" size="sm" className="w-full sm:w-auto">
               <Upload className="h-4 w-4 mr-2" />
