@@ -350,6 +350,11 @@
       "default": "Modo demo activo: integraciones externas desactivadas.",
       "description": "Mensaje mostrado cuando el modo demo est\u00e1 activo"
     },
+    "activity_tracking_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Activar el rastreo de actividad de empleados (consume llamadas a funciones por cada navegaci\u00f3n)"
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,

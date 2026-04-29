@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
@@ -8,6 +8,8 @@ const SESSION_KEY = 'employee_activity_session_id';
 const IDLE_THRESHOLD_MS = 60000;
 const SAMPLE_INTERVAL_MS = 30000;
 const HEARTBEAT_INTERVAL_MS = 180000;
+const TRACKING_FLAG_KEY = 'tlec_activity_tracking_enabled';
+const TRACKING_FLAG_TTL_MS = 5 * 60 * 1000; // 5 min cache
 
 function getAuditSessionId() {
     try {
@@ -62,6 +64,34 @@ export default function NavigationTracker() {
     const activeTimeRef = useRef(0);
     const idleTimeRef = useRef(0);
     const currentPageRef = useRef(null);
+    const [trackingEnabled, setTrackingEnabled] = useState(false);
+
+    // Lee flag global de AppConfig (cacheado 5 min en localStorage para evitar lecturas repetidas)
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        let cancelled = false;
+        try {
+            const cached = localStorage.getItem(TRACKING_FLAG_KEY);
+            if (cached) {
+                const { value, ts } = JSON.parse(cached);
+                if (Date.now() - ts < TRACKING_FLAG_TTL_MS) {
+                    setTrackingEnabled(!!value);
+                    return;
+                }
+            }
+        } catch {}
+        base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1)
+            .then((rows) => {
+                if (cancelled) return;
+                const enabled = !!rows?.[0]?.activity_tracking_enabled;
+                setTrackingEnabled(enabled);
+                try {
+                    localStorage.setItem(TRACKING_FLAG_KEY, JSON.stringify({ value: enabled, ts: Date.now() }));
+                } catch {}
+            })
+            .catch(() => setTrackingEnabled(false));
+        return () => { cancelled = true; };
+    }, [isAuthenticated]);
 
     const pageName = useMemo(() => {
         const pathname = location.pathname;
@@ -102,6 +132,7 @@ export default function NavigationTracker() {
 
     useEffect(() => {
         if (!isAuthenticated || !user || !pageName) return;
+        if (!trackingEnabled) return;
 
         const now = Date.now();
         const previousPage = currentPageRef.current;
@@ -134,10 +165,11 @@ export default function NavigationTracker() {
             path: currentPath,
             activityKind: 'page_view',
         })).catch(() => {});
-    }, [currentPath, isAuthenticated, pageName, user]);
+    }, [currentPath, isAuthenticated, pageName, user, trackingEnabled]);
 
     useEffect(() => {
         if (!isAuthenticated || !user) return;
+        if (!trackingEnabled) return;
 
         const markInteraction = () => {
             lastInteractionRef.current = Date.now();
@@ -177,7 +209,7 @@ export default function NavigationTracker() {
             window.clearInterval(sampler);
             events.forEach((eventName) => window.removeEventListener(eventName, markInteraction));
         };
-    }, [isAuthenticated, user]);
+    }, [isAuthenticated, user, trackingEnabled]);
 
     useEffect(() => {
         const handleInternalNavigation = (event) => {
