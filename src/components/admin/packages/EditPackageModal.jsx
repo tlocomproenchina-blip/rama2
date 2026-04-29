@@ -55,12 +55,22 @@ export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
       try {
         const res = await base44.functions.invoke('listClientsForSupport', {
           q: term,
-          limit: 10,
+          limit: 20,
           skip: 0,
           includeCounts: false,
         });
         const list = res?.data?.data || [];
-        setClientResults(Array.isArray(list) ? list : []);
+        // Filtrado estricto en el cliente: solo mostrar si el término aparece en
+        // email, nombre completo o shipping mark (ignora dígitos sueltos en otros campos)
+        const t = term.toLowerCase();
+        const tAlnum = t.replace(/[^a-z0-9]/g, '');
+        const strict = (Array.isArray(list) ? list : []).filter((c) => {
+          const email = (c.email || '').toLowerCase();
+          const name = `${c.first_name || ''} ${c.last_name || ''} ${c.full_name || ''}`.toLowerCase();
+          const sm = (c.shipping_mark || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          return email.includes(t) || name.includes(t) || (tAlnum && sm.includes(tAlnum));
+        });
+        setClientResults(strict);
         setShowResults(true);
       } catch (_) {
         setClientResults([]);
