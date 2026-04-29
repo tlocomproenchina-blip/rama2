@@ -20,6 +20,12 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // Respeta el toggle desde AdminSettings → General
+    const cfgRows = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+    if (!cfgRows?.[0]?.logistics_monitoring_enabled) {
+      return Response.json({ ok: true, skipped: true, reason: 'logistics_monitoring_enabled is false' });
+    }
+
     const [routes, vehicles, loads] = await Promise.all([
       base44.asServiceRole.entities.Ruta.list('-updated_date', 500),
       base44.asServiceRole.entities.Vehiculo.list('-updated_date', 500),

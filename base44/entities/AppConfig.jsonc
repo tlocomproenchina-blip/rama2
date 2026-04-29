@@ -355,6 +355,11 @@
       "default": false,
       "description": "Activar el rastreo de actividad de empleados (consume llamadas a funciones por cada navegaci\u00f3n)"
     },
+    "logistics_monitoring_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Activar el monitoreo autom\u00e1tico del m\u00f3dulo log\u00edstico (cada hora). Desact\u00edvalo si no usas rutas y veh\u00edculos."
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,

@@ -112,7 +112,8 @@ export default function AdminSettings({ user }) {
       shipping_mark_auto_assign_chars: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
       demo_mode: false,
       demo_mode_message: 'Modo demo activo: integraciones externas desactivadas.',
-      activity_tracking_enabled: false
+      activity_tracking_enabled: false,
+      logistics_monitoring_enabled: false
    });
 
   // Privacy Config
@@ -1015,6 +1016,34 @@ export default function AdminSettings({ user }) {
                     placeholder="Pega aquí la URL de la imagen de mantenimiento"
                   />
                   <p className="text-xs text-slate-500">Sugerencia: usa una imagen 16:9 para mejor apariencia.</p>
+                </div>
+                <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
+                  {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Guardar configuración
+                </Button>
+              </div>
+
+              {/* Monitoreo Logístico Automático */}
+              <div className="p-4 md:p-6 bg-cyan-50 rounded-xl border border-cyan-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 rounded-lg">
+                      <Clock className="h-5 w-5 text-cyan-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-800 text-lg">Monitoreo Logístico Automático</h3>
+                      <p className="text-sm text-slate-600">Revisa cada hora rutas, vehículos y cargas para detectar conflictos, duplicados y sobrecarga. Si no usas el módulo de logística, desactívalo (24 ejecuciones/día).</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={!!appConfig.logistics_monitoring_enabled}
+                    onCheckedChange={(checked) => setAppConfig({ ...appConfig, logistics_monitoring_enabled: checked })}
+                  />
+                </div>
+                <div className="p-3 bg-white rounded-lg border border-cyan-200">
+                  <p className="text-xs text-slate-600">
+                    <strong>Tip:</strong> Después de guardar, el cambio aplica en la siguiente ejecución horaria.
+                  </p>
                 </div>
                 <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
