@@ -21,13 +21,13 @@ export default function PackagesQuickFilters({
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
           <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
             <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
-              <TabsList className="flex w-full gap-0 p-1 flex-wrap">
-                <TabsTrigger value="all" className="flex-1 text-center">Todos{globalCounts ? ` (${globalCounts.total})` : ''}</TabsTrigger>
-                <TabsTrigger value="pre_alerta_no_recibido" className="flex-1 text-center">Pre-alerta{globalCounts ? ` (${globalCounts.pre_alerta_no_recibido})` : ''}</TabsTrigger>
-                <TabsTrigger value="recibido" className="flex-1 text-center">Recibido{globalCounts ? ` (${globalCounts.recibido})` : ''}</TabsTrigger>
-                <TabsTrigger value="consolidado" className="flex-1 text-center">Consolidado{globalCounts ? ` (${globalCounts.consolidado})` : ''}</TabsTrigger>
-                <TabsTrigger value="en_transito" className="flex-1 text-center">Tránsito{globalCounts ? ` (${globalCounts.en_transito})` : ''}</TabsTrigger>
-                <TabsTrigger value="entregado" className="flex-1 text-center">Entregado{globalCounts ? ` (${globalCounts.entregado})` : ''}</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto gap-1 p-1">
+                <TabsTrigger value="all" className="text-xs sm:text-sm text-center whitespace-nowrap">Todos{globalCounts ? ` (${globalCounts.total})` : ''}</TabsTrigger>
+                <TabsTrigger value="pre_alerta_no_recibido" className="text-xs sm:text-sm text-center whitespace-nowrap">Pre-alerta{globalCounts ? ` (${globalCounts.pre_alerta_no_recibido})` : ''}</TabsTrigger>
+                <TabsTrigger value="recibido" className="text-xs sm:text-sm text-center whitespace-nowrap">Recibido{globalCounts ? ` (${globalCounts.recibido})` : ''}</TabsTrigger>
+                <TabsTrigger value="consolidado" className="text-xs sm:text-sm text-center whitespace-nowrap">Consolidado{globalCounts ? ` (${globalCounts.consolidado})` : ''}</TabsTrigger>
+                <TabsTrigger value="en_transito" className="text-xs sm:text-sm text-center whitespace-nowrap">Tránsito{globalCounts ? ` (${globalCounts.en_transito})` : ''}</TabsTrigger>
+                <TabsTrigger value="entregado" className="text-xs sm:text-sm text-center whitespace-nowrap">Entregado{globalCounts ? ` (${globalCounts.entregado})` : ''}</TabsTrigger>
               </TabsList>
             </Tabs>
 
