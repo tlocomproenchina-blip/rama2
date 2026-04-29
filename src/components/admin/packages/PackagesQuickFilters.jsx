@@ -45,7 +45,7 @@ export default function PackagesQuickFilters({
 
             <div className="hidden lg:block">
               <Select value={reportedFilter} onValueChange={setReportedFilter}>
-                <SelectTrigger className="w-full lg:w-48 bg-white">
+                <SelectTrigger className="w-auto min-w-[140px] h-9 bg-white text-sm">
                   <SelectValue placeholder="Reporte" />
                 </SelectTrigger>
                 <SelectContent>
