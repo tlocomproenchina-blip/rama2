@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Pencil } from 'lucide-react';
+import { Loader2, Save, Pencil, Search, User as UserIcon, X } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 
 export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -18,6 +19,12 @@ export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
     client_email: '',
   });
 
+  const [clientSearch, setClientSearch] = useState('');
+  const [clientResults, setClientResults] = useState([]);
+  const [searchingClients, setSearchingClients] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchTimerRef = useRef(null);
+
   useEffect(() => {
     if (pkg) {
       setForm({
@@ -29,8 +36,49 @@ export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
         package_count: pkg.package_count || 1,
         client_email: pkg.client_email || '',
       });
+      setClientSearch('');
+      setClientResults([]);
+      setShowResults(false);
     }
   }, [pkg]);
+
+  // Búsqueda de clientes con debounce
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    const term = clientSearch.trim();
+    if (!term || term.length < 2) {
+      setClientResults([]);
+      return;
+    }
+    setSearchingClients(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await base44.functions.invoke('listClientsForSupport', {
+          search: term,
+          limit: 10,
+          page: 1,
+        });
+        const list = res?.data?.clients || res?.data?.data || [];
+        setClientResults(Array.isArray(list) ? list : []);
+        setShowResults(true);
+      } catch (_) {
+        setClientResults([]);
+      }
+      setSearchingClients(false);
+    }, 350);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [clientSearch]);
+
+  const handleSelectClient = (client) => {
+    setForm((prev) => ({
+      ...prev,
+      client_email: client.email || '',
+      shipping_mark: client.shipping_mark || prev.shipping_mark,
+    }));
+    setClientSearch('');
+    setClientResults([]);
+    setShowResults(false);
+  };
 
   const handleSubmit = () => {
     const trackingTrimmed = (form.tracking_number || '').trim();
@@ -65,6 +113,62 @@ export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
               onChange={(e) => setForm({ ...form, tracking_number: e.target.value })}
               placeholder="Tracking del paquete"
             />
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50/50 p-3">
+            <Label className="flex items-center gap-2 text-blue-800">
+              <Search className="h-4 w-4" /> Cambiar cliente
+            </Label>
+            <p className="text-xs text-slate-600">Busca por nombre, email o shipping mark. Al seleccionar se actualizan email y shipping mark.</p>
+            <div className="relative">
+              <Input
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                onFocus={() => clientResults.length > 0 && setShowResults(true)}
+                placeholder="Buscar cliente..."
+                className="pr-8"
+              />
+              {searchingClients && (
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400" />
+              )}
+              {!searchingClients && clientSearch && (
+                <button
+                  type="button"
+                  onClick={() => { setClientSearch(''); setClientResults([]); setShowResults(false); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              {showResults && clientResults.length > 0 && (
+                <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                  {clientResults.map((c) => (
+                    <button
+                      key={c.id || c.email}
+                      type="button"
+                      onClick={() => handleSelectClient(c)}
+                      className="w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-slate-100 last:border-0 flex items-start gap-2"
+                    >
+                      <UserIcon className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-800 truncate">
+                          {c.full_name || c.first_name || c.email}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">{c.email}</p>
+                        {c.shipping_mark && (
+                          <p className="text-xs font-mono text-blue-600 truncate">{c.shipping_mark}</p>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showResults && !searchingClients && clientSearch.length >= 2 && clientResults.length === 0 && (
+                <div className="absolute z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg p-3 text-sm text-slate-500">
+                  Sin resultados
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
