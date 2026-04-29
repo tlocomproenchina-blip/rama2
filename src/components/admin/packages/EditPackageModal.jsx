@@ -54,11 +54,12 @@ export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
     searchTimerRef.current = setTimeout(async () => {
       try {
         const res = await base44.functions.invoke('listClientsForSupport', {
-          search: term,
+          q: term,
           limit: 10,
-          page: 1,
+          skip: 0,
+          includeCounts: false,
         });
-        const list = res?.data?.clients || res?.data?.data || [];
+        const list = res?.data?.data || [];
         setClientResults(Array.isArray(list) ? list : []);
         setShowResults(true);
       } catch (_) {
