@@ -18,6 +18,7 @@ import {
   Undo2,
   CheckCircle,
   MessageSquare,
+  Pencil,
 } from 'lucide-react';
 
 export default function PackagesDesktopTable({
@@ -32,6 +33,7 @@ export default function PackagesDesktopTable({
   onEditImage,
   onCancelReception,
   onStatusChange,
+  onEditPackage,
 }) {
   return (
     <Card className="hidden 2xl:block border-0 shadow-lg overflow-hidden">
@@ -125,6 +127,15 @@ export default function PackagesDesktopTable({
                   </td>
                   <td className="pl-2 pr-3 py-3 align-top">
                     <div className="flex min-w-0 w-full flex-col items-stretch gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onEditPackage?.(pkg)}
+                        className="w-full min-w-0 justify-start gap-1 border-blue-200 text-blue-600 hover:bg-blue-50"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Editar
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

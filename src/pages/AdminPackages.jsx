@@ -17,6 +17,7 @@ import PreAlertEditorModal from '@/components/admin/packages/PreAlertEditorModal
 import ReceivePackageModal from '@/components/admin/packages/ReceivePackageModal';
 import EditImageModal from '@/components/admin/packages/EditImageModal';
 import CreateTicketModal from '@/components/admin/packages/CreateTicketModal';
+import EditPackageModal from '@/components/admin/packages/EditPackageModal';
 import BulkActionsBar from '@/components/admin/packages/BulkActionsBar';
 import BulkActionConfirmDialog from '@/components/admin/packages/BulkActionConfirmDialog';
 import CancelReceptionDialog from '@/components/admin/packages/CancelReceptionDialog';
@@ -83,6 +84,27 @@ export default function AdminPackages({ user }) {
   const [preAlertInsurance, setPreAlertInsurance] = useState(false);
   const [preAlertFobValue, setPreAlertFobValue] = useState('');
   const [preAlertInvoiceFile, setPreAlertInvoiceFile] = useState(null);
+  const [editPackageModal, setEditPackageModal] = useState(null);
+  const [editPackageProcessing, setEditPackageProcessing] = useState(false);
+
+  const handleSavePackageEdit = async (patch) => {
+    if (!editPackageModal) return;
+    if (!patch.tracking_number) {
+      toast.error('El tracking es obligatorio');
+      return;
+    }
+    setEditPackageProcessing(true);
+    try {
+      await base44.entities.Package.update(editPackageModal.id, patch);
+      patchPackageInList(editPackageModal.id, patch);
+      toast.success('Paquete actualizado');
+      setEditPackageModal(null);
+    } catch (error) {
+      console.error('Error editing package:', error);
+      toast.error(error?.message || 'No se pudo actualizar el paquete');
+    }
+    setEditPackageProcessing(false);
+  };
 
   const handleReceive = async (nextStatus = 'recibido') => {
     if (!receiveModal) return;
@@ -427,6 +449,7 @@ export default function AdminPackages({ user }) {
         onEditImage={(pkg) => setEditImageModal(pkg)}
         onCancelReception={(pkg) => setCancelReceptionModal(pkg)}
         onStatusChange={handleStatusChange}
+        onEditPackage={(pkg) => setEditPackageModal(pkg)}
       />
 
       <PackagesDesktopTable
@@ -441,6 +464,7 @@ export default function AdminPackages({ user }) {
         onEditImage={(pkg) => setEditImageModal(pkg)}
         onCancelReception={(pkg) => setCancelReceptionModal(pkg)}
         onStatusChange={handleStatusChange}
+        onEditPackage={(pkg) => setEditPackageModal(pkg)}
       />
       {hasMore && (
         <Button variant="outline" className="w-full mt-4" onClick={() => loadPackages(true, packages.length)} disabled={loadingMore}>
@@ -526,6 +550,13 @@ export default function AdminPackages({ user }) {
         open={bulkPhotoModalOpen}
         onOpenChange={setBulkPhotoModalOpen}
         onCompleted={() => loadPackages(false)}
+      />
+
+      <EditPackageModal
+        pkg={editPackageModal}
+        processing={editPackageProcessing}
+        onClose={() => setEditPackageModal(null)}
+        onSave={handleSavePackageEdit}
       />
     </div>
   );

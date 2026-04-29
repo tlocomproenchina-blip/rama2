@@ -13,6 +13,7 @@ export default function PackagesMobileList({
   onEditImage,
   onCancelReception,
   onStatusChange,
+  onEditPackage,
 }) {
   return (
     <>
@@ -29,6 +30,7 @@ export default function PackagesMobileList({
             onEditImage={() => onEditImage(pkg)}
             onCancelReception={() => onCancelReception(pkg)}
             onStatusChange={(val) => onStatusChange(pkg, val)}
+            onEditPackage={() => onEditPackage?.(pkg)}
           />
         ))}
       </div>

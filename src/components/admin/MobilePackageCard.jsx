@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Eye, Image as ImageIcon, MessageSquare, Plane, Ship, Shield, Undo2, Upload, Flag, FlagOff } from 'lucide-react';
+import { CheckCircle, Eye, Image as ImageIcon, MessageSquare, Plane, Ship, Shield, Undo2, Upload, Flag, FlagOff, Pencil } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 
 export default function MobilePackageCard({
@@ -17,6 +17,7 @@ export default function MobilePackageCard({
   onEditImage,
   onCancelReception,
   onStatusChange,
+  onEditPackage,
 }) {
   const gallery = pkg.package_image_urls && pkg.package_image_urls.length > 0
     ? pkg.package_image_urls
@@ -77,6 +78,11 @@ export default function MobilePackageCard({
         </div>
 
         <div className="space-y-2">
+          {onEditPackage && (
+            <Button size="sm" variant="outline" onClick={onEditPackage} className="w-full justify-start gap-2 border-blue-200 text-blue-600 hover:bg-blue-50">
+              <Pencil className="h-4 w-4" /> Editar
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={onCreateTicket} className="w-full justify-start gap-2">
             <MessageSquare className="h-4 w-4" /> Ticket
           </Button>
