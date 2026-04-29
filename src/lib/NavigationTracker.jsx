@@ -7,7 +7,7 @@ import { pagesConfig } from '@/pages.config';
 const SESSION_KEY = 'employee_activity_session_id';
 const IDLE_THRESHOLD_MS = 60000;
 const SAMPLE_INTERVAL_MS = 30000;
-const HEARTBEAT_INTERVAL_MS = 180000;
+const HEARTBEAT_INTERVAL_MS = 600000;
 const TRACKING_FLAG_KEY = 'tlec_activity_tracking_enabled';
 const TRACKING_FLAG_TTL_MS = 5 * 60 * 1000; // 5 min cache
 
@@ -67,8 +67,13 @@ export default function NavigationTracker() {
     const [trackingEnabled, setTrackingEnabled] = useState(false);
 
     // Lee flag global de AppConfig (cacheado 5 min en localStorage para evitar lecturas repetidas)
+    // NOTA: Solo se rastrea a empleados/admins. Los clientes (role === 'user') quedan excluidos.
     useEffect(() => {
         if (!isAuthenticated) return;
+        if (user?.role === 'user') {
+            setTrackingEnabled(false);
+            return;
+        }
         let cancelled = false;
         try {
             const cached = localStorage.getItem(TRACKING_FLAG_KEY);
@@ -91,7 +96,7 @@ export default function NavigationTracker() {
             })
             .catch(() => setTrackingEnabled(false));
         return () => { cancelled = true; };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, user?.role]);
 
     const pageName = useMemo(() => {
         const pathname = location.pathname;
