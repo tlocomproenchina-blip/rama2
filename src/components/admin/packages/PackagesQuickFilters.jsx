@@ -21,13 +21,13 @@ export default function PackagesQuickFilters({
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
           <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
             <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full lg:w-auto">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto gap-1 p-1">
-                <TabsTrigger value="all" className="text-xs sm:text-sm text-center whitespace-nowrap">Todos{globalCounts ? ` (${globalCounts.total})` : ''}</TabsTrigger>
-                <TabsTrigger value="pre_alerta_no_recibido" className="text-xs sm:text-sm text-center whitespace-nowrap">Pre-alerta{globalCounts ? ` (${globalCounts.pre_alerta_no_recibido})` : ''}</TabsTrigger>
-                <TabsTrigger value="recibido" className="text-xs sm:text-sm text-center whitespace-nowrap">Recibido{globalCounts ? ` (${globalCounts.recibido})` : ''}</TabsTrigger>
-                <TabsTrigger value="consolidado" className="text-xs sm:text-sm text-center whitespace-nowrap">Consolidado{globalCounts ? ` (${globalCounts.consolidado})` : ''}</TabsTrigger>
-                <TabsTrigger value="en_transito" className="text-xs sm:text-sm text-center whitespace-nowrap">Tránsito{globalCounts ? ` (${globalCounts.en_transito})` : ''}</TabsTrigger>
-                <TabsTrigger value="entregado" className="text-xs sm:text-sm text-center whitespace-nowrap">Entregado{globalCounts ? ` (${globalCounts.entregado})` : ''}</TabsTrigger>
+              <TabsList className="!grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 !h-auto !min-h-0 gap-1 p-1">
+                <TabsTrigger value="all" className="!min-h-0 !px-2 !py-2 text-[11px] sm:text-xs leading-tight">Todos{globalCounts ? ` (${globalCounts.total})` : ''}</TabsTrigger>
+                <TabsTrigger value="pre_alerta_no_recibido" className="!min-h-0 !px-2 !py-2 text-[11px] sm:text-xs leading-tight">Pre-alerta{globalCounts ? ` (${globalCounts.pre_alerta_no_recibido})` : ''}</TabsTrigger>
+                <TabsTrigger value="recibido" className="!min-h-0 !px-2 !py-2 text-[11px] sm:text-xs leading-tight">Recibido{globalCounts ? ` (${globalCounts.recibido})` : ''}</TabsTrigger>
+                <TabsTrigger value="consolidado" className="!min-h-0 !px-2 !py-2 text-[11px] sm:text-xs leading-tight">Consolidado{globalCounts ? ` (${globalCounts.consolidado})` : ''}</TabsTrigger>
+                <TabsTrigger value="en_transito" className="!min-h-0 !px-2 !py-2 text-[11px] sm:text-xs leading-tight">Tránsito{globalCounts ? ` (${globalCounts.en_transito})` : ''}</TabsTrigger>
+                <TabsTrigger value="entregado" className="!min-h-0 !px-2 !py-2 text-[11px] sm:text-xs leading-tight">Entregado{globalCounts ? ` (${globalCounts.entregado})` : ''}</TabsTrigger>
               </TabsList>
             </Tabs>
 
