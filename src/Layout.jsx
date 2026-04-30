@@ -44,7 +44,9 @@ const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
-const GlobalSearchPalette = lazy(() => import('@/components/admin/GlobalSearchPalette'));
+const GlobalSearchPalette = lazy(() =>
+  import('@/components/admin/GlobalSearchPalette').catch(() => ({ default: () => null }))
+);
 
 
 export default function Layout({ children, currentPageName }) {
