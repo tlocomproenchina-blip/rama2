@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy } from 'lucide-react';
+import { Copy, FileSpreadsheet } from 'lucide-react';
 
 export default function BulkActionsBar({
   selectedCount,
@@ -17,6 +17,7 @@ export default function BulkActionsBar({
   onSelectAll,
   onCopySelectedByMark,
   onMarkReported,
+  onExportExcel,
 }) {
   return (
     <Card className="border-0 shadow-lg bg-blue-50">
@@ -76,6 +77,12 @@ export default function BulkActionsBar({
             <Button variant="outline" onClick={() => onMarkReported(false)}>
               Quitar reporte
             </Button>
+
+            {onExportExcel && (
+              <Button variant="outline" onClick={onExportExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

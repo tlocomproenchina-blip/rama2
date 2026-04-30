@@ -25,7 +25,7 @@ import PackagesQuickFilters from '@/components/admin/packages/PackagesQuickFilte
 import PackagesDesktopTable from '@/components/admin/packages/PackagesDesktopTable';
 import { useAdminPackagesData } from '@/hooks/useAdminPackagesData';
 import { useAdminPackagesBulk } from '@/hooks/useAdminPackagesBulk';
-import { exportPreAlerta } from '@/components/admin/packages/PackagesExports';
+import { exportPreAlerta, exportSelectedToExcel } from '@/components/admin/packages/PackagesExports';
 
 export default function AdminPackages({ user }) {
   const {
@@ -406,6 +406,10 @@ export default function AdminPackages({ user }) {
           onSelectAll={(checked) => handleSelectAll(checked, filteredPackages)}
           onCopySelectedByMark={handleCopySelectedByMark}
           onMarkReported={handleMarkReported}
+          onExportExcel={() => {
+            const selectedPkgs = filteredPackages.filter(p => selectedPackages.includes(p.id));
+            exportSelectedToExcel(selectedPkgs);
+          }}
         />
       )}
 

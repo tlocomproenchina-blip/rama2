@@ -69,3 +69,58 @@ export async function exportPreAlerta({ onProgress } = {}) {
   }
   onProgress?.(null);
 }
+
+/**
+ * Exporta los paquetes seleccionados a un Excel (CSV con BOM UTF-8 para Excel)
+ * Columnas: Cliente (Shipping Mark), Numero de tracking, Descripcion, Foto (URL)
+ * El archivo se nombra con la fecha y hora actual.
+ */
+export async function exportSelectedToExcel(selectedPackages = []) {
+  try {
+    if (!selectedPackages || selectedPackages.length === 0) {
+      toast.error('No hay paquetes seleccionados');
+      return;
+    }
+
+    const escapeCsv = (val) => {
+      const s = (val == null ? '' : String(val)).replace(/"/g, '""');
+      return `"${s}"`;
+    };
+
+    const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'Foto'];
+    const rows = selectedPackages.map((pkg) => {
+      const photo = (Array.isArray(pkg.package_image_urls) && pkg.package_image_urls[0])
+        || pkg.package_image_url
+        || pkg.product_image_url
+        || pkg.invoice_url
+        || '';
+      return [
+        pkg.shipping_mark || '',
+        pkg.tracking_number || '',
+        pkg.description || '',
+        photo,
+      ].map(escapeCsv).join(',');
+    });
+
+    const csv = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const filename = `pre_alertas_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.csv`;
+
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+
+    toast.success(`Exportadas ${selectedPackages.length} pre-alertas a Excel`);
+  } catch (error) {
+    console.error(error);
+    toast.error('Error al exportar a Excel');
+  }
+}
