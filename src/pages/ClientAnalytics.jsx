@@ -40,6 +40,24 @@ export default function ClientAnalytics() {
       const users = await base44.entities.User.list('-created_date', 500);
       const customerUsers = (users || []).filter((item) => !item.role || item.role === 'user');
       setClients(customerUsers);
+
+      // Preseleccionar cliente si viene ?q= en la URL
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const q = (params.get('q') || '').trim().toLowerCase();
+        if (q) {
+          const match = customerUsers.find((u) =>
+            (u.email || '').toLowerCase() === q ||
+            (u.email || '').toLowerCase().includes(q) ||
+            (u.full_name || '').toLowerCase().includes(q) ||
+            (u.shipping_mark || '').toLowerCase().includes(q)
+          );
+          if (match) {
+            setSelectedClient(match);
+            setSearchTerm(match.full_name || match.email);
+          }
+        }
+      } catch {}
     } catch {
       toast.error('No se pudieron cargar los clientes');
     }
