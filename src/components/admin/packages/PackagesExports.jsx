@@ -82,67 +82,57 @@ export async function exportSelectedToExcel(selectedPackages = []) {
       return;
     }
 
-    // Escapa HTML para evitar romper el documento
-    const escapeHtml = (val) => {
-      const s = val == null ? '' : String(val);
-      return s
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    };
+    const XLSX = await import('xlsx');
 
     const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'Foto'];
 
-    const rowsHtml = selectedPackages.map((pkg) => {
+    const rows = selectedPackages.map((pkg) => {
       const photo = (Array.isArray(pkg.package_image_urls) && pkg.package_image_urls[0])
         || pkg.package_image_url
         || pkg.product_image_url
         || pkg.invoice_url
         || '';
+      return [
+        pkg.shipping_mark || '',
+        pkg.tracking_number || '',
+        pkg.description || '',
+        photo,
+      ];
+    });
 
-      // Tracking como texto (mso-number-format evita notación científica)
-      const trackingCell = `<td style="mso-number-format:'\\@';">${escapeHtml(pkg.tracking_number || '')}</td>`;
-      // Hipervínculo real "Ver foto"
-      const photoCell = photo
-        ? `<td><a href="${escapeHtml(photo)}">Ver foto</a></td>`
-        : '<td></td>';
+    const aoa = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-      return `<tr>
-        <td>${escapeHtml(pkg.shipping_mark || '')}</td>
-        ${trackingCell}
-        <td>${escapeHtml(pkg.description || '')}</td>
-        ${photoCell}
-      </tr>`;
-    }).join('');
+    // Forzar tracking como texto (evita notación científica)
+    rows.forEach((_, idx) => {
+      const cellRef = XLSX.utils.encode_cell({ r: idx + 1, c: 1 });
+      if (ws[cellRef]) {
+        ws[cellRef].t = 's';
+        ws[cellRef].z = '@';
+      }
+    });
 
-    const html = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="UTF-8"></head>
-<body>
-<table border="1">
-  <thead>
-    <tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>
-  </thead>
-  <tbody>${rowsHtml}</tbody>
-</table>
-</body>
-</html>`;
+    // Convertir columna Foto en hipervínculos clickeables "Ver foto"
+    rows.forEach((row, idx) => {
+      const photo = row[3];
+      const cellRef = XLSX.utils.encode_cell({ r: idx + 1, c: 3 });
+      if (photo && ws[cellRef]) {
+        ws[cellRef].v = 'Ver foto';
+        ws[cellRef].l = { Target: photo, Tooltip: 'Abrir foto' };
+      }
+    });
 
-    const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    // Anchos de columna
+    ws['!cols'] = [{ wch: 18 }, { wch: 24 }, { wch: 40 }, { wch: 14 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Pre-alertas');
 
     const now = new Date();
     const pad = (n) => String(n).padStart(2, '0');
-    const filename = `pre_alertas_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.xls`;
+    const filename = `pre_alertas_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.xlsx`;
 
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    a.remove();
+    XLSX.writeFile(wb, filename);
 
     toast.success(`Exportadas ${selectedPackages.length} pre-alertas a Excel`);
   } catch (error) {
