@@ -126,8 +126,8 @@ export default function PreAlert({ user }) {
       newErrors.description = 'Descripción requerida';
     }
 
-    if (formData.has_insurance && !formData.fob_value) {
-      newErrors.fob_value = 'Valor FOB requerido para seguro';
+    if (!formData.fob_value || parseFloat(formData.fob_value) <= 0) {
+      newErrors.fob_value = 'Valor FOB requerido';
     }
 
     if (!uploadsDisabled && !productPhoto) {
@@ -184,7 +184,7 @@ export default function PreAlert({ user }) {
         package_count: Number(formData.package_count),
         description: formData.description,
         has_insurance: formData.has_insurance,
-        fob_value: formData.has_insurance ? parseFloat(formData.fob_value) : null,
+        fob_value: parseFloat(formData.fob_value),
         invoice_url: invoiceUrl,
         product_image_url: productPhotoUrl,
         status: 'pre_alerta'
@@ -473,6 +473,31 @@ export default function PreAlert({ user }) {
               )}
               </div>
 
+              {/* FOB Value (siempre obligatorio) */}
+              <div className="space-y-2">
+                <Label htmlFor="fob" className="text-slate-700 font-medium">
+                  Valor FOB (USD) *
+                </Label>
+                <Input
+                  id="fob"
+                  type="number"
+                  step="0.01"
+                  value={formData.fob_value}
+                  onChange={(e) => {
+                    setFormData({ ...formData, fob_value: e.target.value });
+                    setErrors({ ...errors, fob_value: null });
+                  }}
+                  placeholder="0.00"
+                  className={errors.fob_value ? 'border-red-300' : ''}
+                />
+                {errors.fob_value && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.fob_value}
+                  </p>
+                )}
+              </div>
+
               {/* Product Photo */}
               <div className="space-y-2">
                 <Label className="text-slate-700 font-medium flex items-center gap-2">
@@ -544,34 +569,11 @@ export default function PreAlert({ user }) {
 
               {formData.has_insurance && (
                 <div className="mt-4 space-y-4 pl-7">
-                  <div className="space-y-2">
-                    <Label htmlFor="fob" className="text-slate-700 font-medium">
-                      Valor FOB (USD) *
-                    </Label>
-                    <Input
-                      id="fob"
-                      type="number"
-                      step="0.01"
-                      value={formData.fob_value}
-                      onChange={(e) => {
-                        setFormData({ ...formData, fob_value: e.target.value });
-                        setErrors({ ...errors, fob_value: null });
-                      }}
-                      placeholder="0.00"
-                      className={errors.fob_value ? 'border-red-300' : ''}
-                    />
-                    {errors.fob_value && (
-                      <p className="text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {errors.fob_value}
-                      </p>
-                    )}
-                    {formData.fob_value && (
-                      <p className="text-sm text-emerald-600">
-                        Costo del seguro: ${(parseFloat(formData.fob_value) * (config?.insurance_percentage || 5) / 100).toFixed(2)}
-                      </p>
-                    )}
-                  </div>
+                  {formData.fob_value && (
+                    <p className="text-sm text-emerald-600">
+                      Costo del seguro: ${(parseFloat(formData.fob_value) * (config?.insurance_percentage || 5) / 100).toFixed(2)}
+                    </p>
+                  )}
 
                   <div className="space-y-2">
                     <Label className="text-slate-700 font-medium flex items-center gap-2">
