@@ -101,11 +101,15 @@ export async function exportSelectedToExcel(selectedPackages = []) {
         || pkg.product_image_url
         || pkg.invoice_url
         || '';
+      // Hipervínculo en Excel: muestra "Ver foto" pero al hacer click abre la URL
+      const photoCell = photo
+        ? `=HYPERLINK("${String(photo).replace(/"/g, '""')}","Ver foto")`
+        : '""';
       return [
         escapeCsv(pkg.shipping_mark || ''),
         escapeAsText(pkg.tracking_number || ''),
         escapeCsv(pkg.description || ''),
-        escapeCsv(photo),
+        photoCell,
       ].join(SEP);
     });
 
