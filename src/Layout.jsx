@@ -55,7 +55,7 @@ const lazyWithRetry = (importer) => lazy(async () => {
     throw err;
   }
 });
-const GlobalSearchPalette = lazyWithRetry(() => import('@/components/admin/GlobalSearchPalette'));
+const GlobalSearchPalette = lazyWithRetry(() => import('@/components/admin/GlobalSearchPalette.jsx'));
 
 
 export default function Layout({ children, currentPageName }) {
