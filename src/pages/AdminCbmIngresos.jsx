@@ -34,6 +34,7 @@ export default function AdminCbmIngresos({ user }) {
   const [loadingClients, setLoadingClients] = useState(false);
   const [clientPackages, setClientPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
+  const [recordSearch, setRecordSearch] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -80,6 +81,24 @@ export default function AdminCbmIngresos({ user }) {
     setClients(filtered);
     setLoadingClients(false);
   };
+
+  const filteredIngresos = useMemo(() => {
+    const q = recordSearch.trim().toLowerCase();
+    if (!q) return ingresos;
+    return ingresos.filter((item) => {
+      const haystack = [
+        item.client_name,
+        item.client_email,
+        item.shipping_mark,
+        item.invoice_number,
+        item.proveedor,
+        item.descripcion,
+        item.notas,
+        ...(item.tracking_numbers || []),
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [ingresos, recordSearch]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -305,7 +324,23 @@ export default function AdminCbmIngresos({ user }) {
           <TabsTrigger value="estados" className="gap-2"><MapPin className="h-4 w-4" /> Por Estado</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="registros" className="mt-4">
+        <TabsContent value="registros" className="mt-4 space-y-3">
+          {!loading && ingresos.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar por cliente, shipping mark, tracking, factura..."
+                value={recordSearch}
+                onChange={(e) => setRecordSearch(e.target.value)}
+                className="pl-10"
+              />
+              {recordSearch && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {filteredIngresos.length} de {ingresos.length} registro(s)
+                </p>
+              )}
+            </div>
+          )}
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -321,16 +356,22 @@ export default function AdminCbmIngresos({ user }) {
                 </Button>
               </CardContent>
             </Card>
+          ) : filteredIngresos.length === 0 ? (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-8 text-center text-slate-500">
+                Sin coincidencias para "{recordSearch}"
+              </CardContent>
+            </Card>
           ) : (
             <div className="space-y-3">
-              {ingresos.map((item, idx) => {
-                const runningTotal = ingresos.slice(0, idx + 1).reduce((s, i) => s + Number(i.cbm || 0), 0);
+              {filteredIngresos.map((item, idx) => {
+                const runningTotal = filteredIngresos.slice(0, idx + 1).reduce((s, i) => s + Number(i.cbm || 0), 0);
                 return (
                   <Card key={item.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
                     <CardContent className="p-4 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="text-center min-w-[36px]">
-                          <p className="text-xs text-muted-foreground">#{ingresos.length - idx}</p>
+                          <p className="text-xs text-muted-foreground">#{filteredIngresos.length - idx}</p>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
