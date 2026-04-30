@@ -87,6 +87,7 @@ export async function exportSelectedToExcel(selectedPackages = []) {
       return `"${s}"`;
     };
 
+    const SEP = ';';
     const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'Foto'];
     const rows = selectedPackages.map((pkg) => {
       const photo = (Array.isArray(pkg.package_image_urls) && pkg.package_image_urls[0])
@@ -99,10 +100,11 @@ export async function exportSelectedToExcel(selectedPackages = []) {
         pkg.tracking_number || '',
         pkg.description || '',
         photo,
-      ].map(escapeCsv).join(',');
+      ].map(escapeCsv).join(SEP);
     });
 
-    const csv = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+    // sep=; le indica a Excel el separador correcto sin importar la configuración regional
+    const csv = '\uFEFFsep=;\r\n' + [headers.map(escapeCsv).join(SEP), ...rows].join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
