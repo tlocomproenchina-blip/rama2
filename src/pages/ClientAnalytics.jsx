@@ -9,6 +9,9 @@ import MonthlySpendChart from '@/components/client-analytics/MonthlySpendChart';
 import ShippingCostBreakdownChart from '@/components/client-analytics/ShippingCostBreakdownChart';
 import ConsolidationEfficiencyChart from '@/components/client-analytics/ConsolidationEfficiencyChart';
 import ClientAnalyticsSearch from '@/components/client-analytics/ClientAnalyticsSearch';
+import ClientProfileCard from '@/components/client-analytics/ClientProfileCard';
+import ClientPackagesTable from '@/components/client-analytics/ClientPackagesTable';
+import ClientCbmHistory from '@/components/client-analytics/ClientCbmHistory';
 
 function getLastMonths(count) {
   const now = new Date();
@@ -33,6 +36,8 @@ export default function ClientAnalytics() {
   const [searchTerm, setSearchTerm] = useState('');
   const [consolidations, setConsolidations] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [cbmIngresos, setCbmIngresos] = useState([]);
 
   const loadClients = async () => {
     try {
@@ -68,17 +73,23 @@ export default function ClientAnalytics() {
     if (!clientEmail) {
       setConsolidations([]);
       setInvoices([]);
+      setPackages([]);
+      setCbmIngresos([]);
       return;
     }
 
     try {
       setLoading(true);
-      const [consolidationList, invoiceList] = await Promise.all([
+      const [consolidationList, invoiceList, packageList, cbmList] = await Promise.all([
         base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500),
-        base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500)
+        base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500),
+        base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 1000),
+        base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500)
       ]);
       setConsolidations(consolidationList || []);
       setInvoices(invoiceList || []);
+      setPackages(packageList || []);
+      setCbmIngresos(cbmList || []);
     } catch {
       toast.error('No se pudo cargar la analítica del cliente');
     }
@@ -172,6 +183,8 @@ export default function ClientAnalytics() {
         </Card>
       )}
 
+      {selectedClient && <ClientProfileCard client={selectedClient} />}
+
       {selectedClient && <AnalyticsSummaryCards items={[
         {
           title: 'Consumo total',
@@ -211,6 +224,15 @@ export default function ClientAnalytics() {
       )}
 
       {selectedClient && <ShippingCostBreakdownChart data={analytics.shipmentCostHistory} />}
+
+      {selectedClient && (
+        <ClientCbmHistory
+          ingresos={cbmIngresos}
+          totalCbm={cbmIngresos.reduce((s, i) => s + Number(i.cbm || 0), 0)}
+        />
+      )}
+
+      {selectedClient && <ClientPackagesTable packages={packages} />}
 
       {selectedClient && analytics.shipmentCostHistory.length === 0 && !loading && (
         <Card className="border-0 shadow-md">
