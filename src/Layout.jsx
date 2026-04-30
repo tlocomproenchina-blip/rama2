@@ -44,7 +44,18 @@ const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
-const GlobalSearchPalette = lazy(() => import('@/components/admin/GlobalSearchPalette'));
+const lazyWithRetry = (importer) => lazy(async () => {
+  try {
+    return await importer();
+  } catch (err) {
+    if (typeof window !== 'undefined' && !sessionStorage.getItem('chunk-reload-once')) {
+      sessionStorage.setItem('chunk-reload-once', '1');
+      window.location.reload();
+    }
+    throw err;
+  }
+});
+const GlobalSearchPalette = lazyWithRetry(() => import('@/components/admin/GlobalSearchPalette'));
 
 
 export default function Layout({ children, currentPageName }) {
