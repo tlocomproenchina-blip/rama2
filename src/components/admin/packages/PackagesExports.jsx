@@ -87,6 +87,12 @@ export async function exportSelectedToExcel(selectedPackages = []) {
       return `"${s}"`;
     };
 
+    // Forzar texto en Excel para evitar notación científica en trackings numéricos largos
+    const escapeAsText = (val) => {
+      const s = (val == null ? '' : String(val)).replace(/"/g, '""');
+      return `="${s}"`;
+    };
+
     const SEP = ';';
     const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'Foto'];
     const rows = selectedPackages.map((pkg) => {
@@ -96,11 +102,11 @@ export async function exportSelectedToExcel(selectedPackages = []) {
         || pkg.invoice_url
         || '';
       return [
-        pkg.shipping_mark || '',
-        pkg.tracking_number || '',
-        pkg.description || '',
-        photo,
-      ].map(escapeCsv).join(SEP);
+        escapeCsv(pkg.shipping_mark || ''),
+        escapeAsText(pkg.tracking_number || ''),
+        escapeCsv(pkg.description || ''),
+        escapeCsv(photo),
+      ].join(SEP);
     });
 
     // sep=; le indica a Excel el separador correcto sin importar la configuración regional
