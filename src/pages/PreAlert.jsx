@@ -130,6 +130,10 @@ export default function PreAlert({ user }) {
       newErrors.fob_value = 'Valor FOB requerido para seguro';
     }
 
+    if (!uploadsDisabled && !productPhoto) {
+      newErrors.product_photo = 'La foto del producto es obligatoria';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -473,7 +477,7 @@ export default function PreAlert({ user }) {
               <div className="space-y-2">
                 <Label className="text-slate-700 font-medium flex items-center gap-2">
                   <Upload className="h-4 w-4" />
-                  Foto del producto (opcional)
+                  Foto del producto *
                 </Label>
                 <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.product_photo ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
                   <input
@@ -506,6 +510,12 @@ export default function PreAlert({ user }) {
                     )}
                   </label>
                 </div>
+                {errors.product_photo && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.product_photo}
+                  </p>
+                )}
               </div>
 
               {/* Insurance Section */}
