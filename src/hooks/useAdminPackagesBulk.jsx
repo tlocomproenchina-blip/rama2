@@ -50,33 +50,40 @@ export function useAdminPackagesBulk({ packages, onReload, patchPackageInList, r
     setBulkProcessing(true);
     const selectedPkgs = packages.filter(p => selectedPackages.includes(p.id));
     const total = selectedPkgs.length;
-    setBulkProgress({ total, remaining: total });
+    const batchSize = 10;
+    const totalBatches = Math.ceil(total / batchSize);
+    const labelByAction = bulkAction === 'delete' ? 'Eliminando paquetes' : 'Actualizando estado';
+    setBulkProgress({ total, remaining: total, currentBatch: 0, totalBatches, batchSize, label: labelByAction });
     try {
-      const batchSize = 10;
-
       if (bulkAction === 'delete') {
         for (let i = 0; i < selectedPkgs.length; i += batchSize) {
           const batch = selectedPkgs.slice(i, i + batchSize);
+          const currentBatch = Math.floor(i / batchSize) + 1;
+          setBulkProgress({ total, remaining: total - i, currentBatch, totalBatches, batchSize, label: labelByAction });
           await Promise.all(batch.map(pkg => base44.entities.Package.delete(pkg.id)));
-          // Update optimista: remover del listado
           batch.forEach(pkg => removePackageFromList?.(pkg.id));
-          setBulkProgress({ total, remaining: total - (i + batch.length) });
+          setBulkProgress({ total, remaining: total - (i + batch.length), currentBatch, totalBatches, batchSize, label: labelByAction });
         }
         toast.success(`${total} paquetes eliminados`);
       } else if (bulkAction === 'status') {
         for (let i = 0; i < selectedPkgs.length; i += batchSize) {
           const batch = selectedPkgs.slice(i, i + batchSize);
+          const currentBatch = Math.floor(i / batchSize) + 1;
+          setBulkProgress({ total, remaining: total - i, currentBatch, totalBatches, batchSize, label: labelByAction });
           await Promise.all(batch.map(pkg => base44.entities.Package.update(pkg.id, { status: bulkStatus })));
-          // Update optimista por paquete
           batch.forEach(pkg => patchPackageInList?.(pkg.id, { status: bulkStatus }));
-          setBulkProgress({ total, remaining: total - (i + batch.length) });
+          setBulkProgress({ total, remaining: total - (i + batch.length), currentBatch, totalBatches, batchSize, label: labelByAction });
         }
 
         if (['en_transito', 'disponible', 'entregado'].includes(bulkStatus)) {
           const { notifyPackageStatus } = await import('@/components/NotificationUtils');
+          const notifyLabel = 'Enviando notificaciones';
           for (let i = 0; i < selectedPkgs.length; i += batchSize) {
             const batch = selectedPkgs.slice(i, i + batchSize);
+            const currentBatch = Math.floor(i / batchSize) + 1;
+            setBulkProgress({ total, remaining: total - i, currentBatch, totalBatches, batchSize, label: notifyLabel });
             await Promise.all(batch.map(pkg => notifyPackageStatus(pkg, bulkStatus)));
+            setBulkProgress({ total, remaining: total - (i + batch.length), currentBatch, totalBatches, batchSize, label: notifyLabel });
           }
         }
 
@@ -127,15 +134,18 @@ export function useAdminPackagesBulk({ packages, onReload, patchPackageInList, r
     if (selectedPackages.length === 0) { toast.error('Selecciona al menos un paquete'); return; }
     const ids = [...selectedPackages];
     const total = ids.length;
-    setBulkProgress({ total, remaining: total });
+    const batchSize = 10;
+    const totalBatches = Math.ceil(total / batchSize);
+    const label = flag ? 'Marcando como reportados' : 'Quitando marca de reportados';
+    setBulkProgress({ total, remaining: total, currentBatch: 0, totalBatches, batchSize, label });
     try {
-      const batchSize = 10;
       for (let i = 0; i < ids.length; i += batchSize) {
         const batch = ids.slice(i, i + batchSize);
+        const currentBatch = Math.floor(i / batchSize) + 1;
+        setBulkProgress({ total, remaining: total - i, currentBatch, totalBatches, batchSize, label });
         await Promise.all(batch.map(id => base44.entities.Package.update(id, { reported: flag })));
-        // Update optimista
         batch.forEach(id => patchPackageInList?.(id, { reported: flag }));
-        setBulkProgress({ total, remaining: total - (i + batch.length) });
+        setBulkProgress({ total, remaining: total - (i + batch.length), currentBatch, totalBatches, batchSize, label });
       }
       toast.success(flag ? `${total} marcados como reportados` : `${total} reporte(s) removido(s)`);
       setSelectedPackages([]);
