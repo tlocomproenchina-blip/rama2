@@ -17,12 +17,8 @@ export default function ApiStatusIndicator() {
       const currentStatus = getApiStatus();
       setStatus(currentStatus);
       
-      // Solo mostrar si hay problemas relevantes en alta carga
-      setShow(
-        currentStatus.circuitBreakerState === 'OPEN' ||
-        currentStatus.queueLength > 80 ||
-        currentStatus.failureCount > 10
-      );
+      // Solo mostrar en casos realmente críticos (circuit breaker abierto)
+      setShow(currentStatus.circuitBreakerState === 'OPEN');
     };
 
     updateStatus();
