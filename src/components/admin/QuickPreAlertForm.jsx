@@ -78,6 +78,7 @@ export default function QuickPreAlertForm({ trackingNumber, onCreated, onCancel 
         shipping_type: shippingType,
         description: 'Pre-alerta rápida (admin)',
         status: 'pre_alerta',
+        reported: true,
       });
       toast.success(`Pre-alerta creada para ${trackingNumber}`);
       if (typeof onCreated === 'function') onCreated(selectedClient);
