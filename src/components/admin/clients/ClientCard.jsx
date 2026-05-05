@@ -6,11 +6,13 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import {
   Mail, MapPin, Phone, Tag, CheckCircle, Clock, Package, CalendarDays,
-  Crown, Copy, Plus, Eye, Edit2, Trash2,
+  Crown, Copy, Plus, Eye, Edit2, Trash2, MessageCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ROLE_OPTIONS, ROLE_PRESETS } from '@/lib/rolePermissions';
+import { buildWhatsAppUrl } from '@/lib/whatsappContact';
+import { toast } from 'sonner';
 
 const hasIncompleteData = (c) => !c.first_name || !c.last_name || !c.whatsapp || !c.state || !c.city || !c.address;
 const hasValidShippingMark = (c) => !!(c.shipping_mark && c.shipping_mark.trim().length > 0);
@@ -134,6 +136,20 @@ export default function ClientCard({
             >
               <Eye className="h-4 w-4 mr-1" />
               Ver
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const url = buildWhatsAppUrl(client.whatsapp, `Hola ${client.first_name || ''}, te escribimos del equipo de soporte.`);
+                if (!url) { toast.error('Cliente sin WhatsApp registrado'); return; }
+                window.open(url, '_blank', 'noopener,noreferrer');
+              }}
+              className="w-full sm:w-auto border-green-200 text-green-700 hover:bg-green-50"
+              title="Contactar por WhatsApp"
+            >
+              <MessageCircle className="h-4 w-4 mr-1" />
+              WhatsApp
             </Button>
             <div className="w-full sm:w-auto min-w-[180px]">
               <Select
