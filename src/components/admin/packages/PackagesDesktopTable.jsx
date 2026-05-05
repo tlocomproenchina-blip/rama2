@@ -19,7 +19,10 @@ import {
   CheckCircle,
   MessageSquare,
   Pencil,
+  MessageCircle,
 } from 'lucide-react';
+import { buildWhatsAppUrl, buildPackageContactMessage } from '@/lib/whatsappContact';
+import { toast } from 'sonner';
 
 export default function PackagesDesktopTable({
   packages,
@@ -144,6 +147,19 @@ export default function PackagesDesktopTable({
                       >
                         <MessageSquare className="h-4 w-4" />
                         Ticket
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const url = buildWhatsAppUrl(pkg.client_whatsapp, buildPackageContactMessage(pkg, pkg.client_name));
+                          if (!url) { toast.error('Cliente sin WhatsApp registrado'); return; }
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                        }}
+                        className="w-full min-w-0 justify-start gap-1 border-green-200 text-green-700 hover:bg-green-50"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        WhatsApp
                       </Button>
                       {pkg.status === 'pre_alerta' && (
                         <>

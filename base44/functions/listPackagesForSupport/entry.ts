@@ -117,6 +117,26 @@ Deno.serve(async (req) => {
     // === Página actual ===
     const data = await base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', pageLimit, pageSkip);
 
+    // === Enriquecer con datos del cliente (whatsapp, nombre) ===
+    // Lookup batched por email para mostrar botón de contacto WhatsApp
+    try {
+      const emails = Array.from(new Set(data.map(p => p?.client_email).filter(Boolean)));
+      if (emails.length > 0) {
+        const users = await base44.asServiceRole.entities.User.filter({ email: { $in: emails } }, '-updated_date', emails.length).catch(() => []);
+        const userByEmail = new Map();
+        for (const u of users) {
+          if (u?.email) userByEmail.set(u.email, u);
+        }
+        for (const p of data) {
+          const u = userByEmail.get(p.client_email);
+          if (u) {
+            p.client_whatsapp = u.whatsapp || u.phone || '';
+            p.client_name = u.full_name || [u.first_name, u.last_name].filter(Boolean).join(' ') || '';
+          }
+        }
+      }
+    } catch (_) { /* no bloquear listado por error de lookup */ }
+
     // === Total que coincide ===
     let total = 0;
     if (data.length < pageLimit && pageSkip === 0) {

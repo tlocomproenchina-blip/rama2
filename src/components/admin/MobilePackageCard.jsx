@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Eye, Image as ImageIcon, MessageSquare, Plane, Ship, Shield, Undo2, Upload, Flag, FlagOff, Pencil } from 'lucide-react';
+import { CheckCircle, Eye, Image as ImageIcon, MessageSquare, Plane, Ship, Shield, Undo2, Upload, Flag, FlagOff, Pencil, MessageCircle } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
+import { buildWhatsAppUrl, buildPackageContactMessage } from '@/lib/whatsappContact';
+import { toast } from 'sonner';
 
 export default function MobilePackageCard({
   pkg,
@@ -85,6 +87,18 @@ export default function MobilePackageCard({
           )}
           <Button size="sm" variant="outline" onClick={onCreateTicket} className="w-full justify-start gap-2">
             <MessageSquare className="h-4 w-4" /> Ticket
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const url = buildWhatsAppUrl(pkg.client_whatsapp, buildPackageContactMessage(pkg, pkg.client_name));
+              if (!url) { toast.error('Cliente sin WhatsApp registrado'); return; }
+              window.open(url, '_blank', 'noopener,noreferrer');
+            }}
+            className="w-full justify-start gap-2 border-green-200 text-green-700 hover:bg-green-50"
+          >
+            <MessageCircle className="h-4 w-4" /> WhatsApp
           </Button>
 
           {pkg.status === 'pre_alerta' && (
