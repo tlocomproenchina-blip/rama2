@@ -71,6 +71,7 @@ import AdminKnowledgeBase from './pages/AdminKnowledgeBase';
 import AdminLogistica from './pages/AdminLogistica';
 import AdminMarketing from './pages/AdminMarketing';
 import AdminOperaciones from './pages/AdminOperaciones';
+import AdminPackages from './pages/AdminPackages';
 import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
 import AdminPreAlerts from './pages/AdminPreAlerts';
 import AdminPayments from './pages/AdminPayments';
@@ -140,6 +141,7 @@ export const PAGES = {
     "AdminLogistica": AdminLogistica,
     "AdminMarketing": AdminMarketing,
     "AdminOperaciones": AdminOperaciones,
+    "AdminPackages": AdminPackages,
     "AdminPaymentAlerts": AdminPaymentAlerts,
     "AdminPreAlerts": AdminPreAlerts,
     "AdminPayments": AdminPayments,

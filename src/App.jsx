@@ -37,7 +37,6 @@ const AdminDuplicates = lazy(() => import('./pages/AdminDuplicates'));
 const AdminRevenueDashboard = lazy(() => import('./pages/AdminRevenueDashboard'));
 const AdminPreAlerts = lazy(() => import('./pages/AdminPreAlerts'));
 const AdminSupportQuickMessages = lazy(() => import('./pages/AdminSupportQuickMessages'));
-const AdminPackages = lazy(() => import('./pages/AdminPackages'));
 const AdminClients = lazy(() => import('./pages/AdminClients'));
 const AdminInvoices = lazy(() => import('./pages/AdminInvoices'));
 
@@ -149,7 +148,6 @@ const AuthenticatedApp = () => {
       <Route path="/AdminRevenueDashboard" element={lazyRoute(AdminRevenueDashboard, "AdminRevenueDashboard")} />
       <Route path="/AdminPreAlerts" element={lazyRoute(AdminPreAlerts, "AdminPreAlerts")} />
       <Route path="/AdminSupportQuickMessages" element={lazyRoute(AdminSupportQuickMessages, "AdminSupportQuickMessages")} />
-      <Route path="/AdminPackages" element={lazyRoute(AdminPackages, "AdminPackages")} />
       <Route path="/AdminClients" element={lazyRoute(AdminClients, "AdminClients")} />
       <Route path="/AdminInvoices" element={lazyRoute(AdminInvoices, "AdminInvoices")} />
       <Route path="*" element={<PageNotFound />} />
