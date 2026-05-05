@@ -10,7 +10,8 @@ import { base44 } from '@/api/base44Client';
 import { base44 as base44Queue } from '@/components/api/ApiQueueManager';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
+import { getDigits, sanitizeClientProfileData } from '@/lib/inputSanitizers';
+import WhatsAppInput from '@/components/common/WhatsAppInput';
 
 export default function ProfileSetupModal({ open, onComplete }) {
   const [formData, setFormData] = useState({
@@ -267,17 +268,17 @@ export default function ProfileSetupModal({ open, onComplete }) {
             <Label htmlFor="whatsapp" className="text-slate-700 flex items-center gap-2">
               <Phone className="h-4 w-4" /> WhatsApp
             </Label>
-            <Input
+            <WhatsAppInput
               id="whatsapp"
               value={formData.whatsapp}
-              onChange={(e) => setFormData({ ...formData, whatsapp: sanitizeWhatsApp(e.target.value) })}
-              placeholder="+58 412 1234567"
-              inputMode="tel"
-              type="tel"
-              className={errors.whatsapp ? 'border-red-300' : ''}
+              onChange={(val) => {
+                setFormData({ ...formData, whatsapp: val });
+                setErrors((prev) => ({ ...prev, whatsapp: null }));
+              }}
+              error={!!errors.whatsapp}
             />
             <p className="text-xs text-slate-500">
-              Introduce tu número telefónico sin dejar espacios.
+              Selecciona el prefijo de tu país e introduce el número sin espacios.
             </p>
             {errors.whatsapp && (
               <p className="text-xs text-red-500 flex items-center gap-1">

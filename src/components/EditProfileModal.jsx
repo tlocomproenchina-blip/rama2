@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { base44 } from '@/api/base44Client';
 import { MapPin, Phone, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
+import { getDigits, sanitizeClientProfileData } from '@/lib/inputSanitizers';
+import WhatsAppInput from '@/components/common/WhatsAppInput';
 
 export default function EditProfileModal({ open, onClose, user, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -133,15 +134,14 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
             <Label htmlFor="whatsapp" className="flex items-center gap-2">
               <Phone className="h-4 w-4" /> WhatsApp
             </Label>
-            <Input
+            <WhatsAppInput
               id="whatsapp"
               value={formData.whatsapp}
-              onChange={(e) => {
-                setFormData({ ...formData, whatsapp: sanitizeWhatsApp(e.target.value) });
+              onChange={(val) => {
+                setFormData({ ...formData, whatsapp: val });
                 setErrors({ ...errors, whatsapp: null });
               }}
-              placeholder="+58 412 1234567"
-              className={errors.whatsapp ? 'border-red-300' : ''}
+              error={!!errors.whatsapp}
             />
             {errors.whatsapp && (
               <p className="text-xs text-red-500 flex items-center gap-1">
