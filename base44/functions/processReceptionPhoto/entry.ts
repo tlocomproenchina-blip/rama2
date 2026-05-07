@@ -80,20 +80,9 @@ Deno.serve(async (req) => {
       read: false
     });
 
-    let emailSent = false;
-    if (!skipEmail) {
-      try {
-        await base44.integrations.Core.SendEmail({
-          to: pkg.client_email,
-          subject,
-          body: message,
-          from_name: 'TLEC CARGO'
-        });
-        emailSent = true;
-      } catch (emailError) {
-        console.warn('SendEmail skipped:', emailError?.message || emailError);
-      }
-    }
+    // Email desactivado para reducir consumo de créditos de integraciones.
+    // La notificación in-app sigue activa (creada arriba). Para reactivar, restaurar el bloque SendEmail.
+    const emailSent = false;
 
     return Response.json({ success: true, package: pkg, created: !existing?.[0], email_sent: emailSent });
   } catch (error) {
