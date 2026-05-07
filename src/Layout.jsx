@@ -266,8 +266,19 @@ export default function Layout({ children, currentPageName }) {
       });
       setShowProfile(false);
 
+      // 1. Asignar Shipping Mark PRIMERO y esperar la respuesta
       const shippingMarkResponse = await base44.functions.invoke('generateShippingMark', {});
-      const assignedShippingMark = shippingMarkResponse?.data?.shipping_mark;
+      let assignedShippingMark = shippingMarkResponse?.data?.shipping_mark;
+
+      // 2. Si por alguna razón no se asignó, esperar y releer del usuario para asegurar
+      if (!assignedShippingMark) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        try {
+          const refreshed = await base44.auth.me();
+          assignedShippingMark = refreshed?.shipping_mark || null;
+        } catch (_) {}
+      }
+
       const updatedUser = {
         ...user,
         ...profileData,
@@ -279,18 +290,25 @@ export default function Layout({ children, currentPageName }) {
       // Show onboarding tour for new users
       setTimeout(() => setShowTour(true), 1500);
 
-      await sendTemplatedEmail({
-        to: user.email,
-        templateName: 'Base - Nuevo Cliente',
-        client: updatedUser,
-        extraData: { app_name: config?.app_name || 'TLEC CARGO' },
-        fallbackSubject: '¡Bienvenido a TLEC CARGO!',
-        fallbackBody: 'Hola {cliente_nombre}, tu cuenta ya está activa en TLEC CARGO.',
-        title: 'Bienvenido a TLEC CARGO',
-        message: 'Tu cuenta ya está activa y lista para usarse.',
-        type: 'system',
-        icon: 'check'
-      });
+      // 3. Enviar email de bienvenida SOLO si tenemos shipping mark asignado
+      if (assignedShippingMark) {
+        await sendTemplatedEmail({
+          to: user.email,
+          templateName: 'Base - Nuevo Cliente',
+          client: updatedUser,
+          extraData: { app_name: config?.app_name || 'TLEC CARGO' },
+          fallbackSubject: '¡Bienvenido a TLEC CARGO!',
+          fallbackBody: 'Hola {cliente_nombre}, tu cuenta ya está activa en TLEC CARGO.',
+          title: 'Bienvenido a TLEC CARGO',
+          message: 'Tu cuenta ya está activa y lista para usarse.',
+          type: 'system',
+          icon: 'check'
+        });
+      } else {
+        // Si no hay shipping mark, solo crear notificación in-app sin email
+        // El email se enviará automáticamente cuando se asigne el shipping mark vía notifyShippingMarkAssigned
+        console.warn('Shipping mark no asignado aún. Email de bienvenida pospuesto.');
+      }
 
       notifyAdmins({
         subject: '👤 Nuevo usuario registrado',
