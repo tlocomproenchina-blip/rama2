@@ -68,40 +68,32 @@ export default function useClientExports(filters) {
       const link = document.createElement('a');
       link.href = url;
 
-      const filterMap = {
-        all: 'todos',
-        with_mark: 'con_shipping_mark',
-        without_mark: 'sin_shipping_mark',
-        pending: 'pendientes',
-        incomplete: 'con_datos_faltantes',
-        active: 'activos',
-        inactive: 'inactivos',
-        with_packages: 'con_paquetes',
-        without_packages: 'sin_paquetes',
-        with_whatsapp: 'con_whatsapp',
-        without_whatsapp: 'sin_whatsapp',
-      };
-      const filterLabel = filterMap[exclusiveKey] || 'seleccion';
-
+      // Nombre de archivo basado en el rango de fechas seleccionado
       const now = new Date();
       const veFmt = new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
       const [dd, mm, yyyy] = veFmt.split('/');
       const todayStamp = `${yyyy}${mm}${dd}`;
 
-      let dateSuffix = todayStamp;
-      if (fromDate || toDate) {
-        const fromS = fromDate ? String(fromDate).replaceAll('-', '') : '00000000';
-        const toS = toDate ? String(toDate).replaceAll('-', '') : todayStamp;
-        dateSuffix = `${fromS}_${toS}`;
+      let fileName = '';
+      if (fromDate && toDate) {
+        const fromS = String(fromDate).replaceAll('-', '');
+        const toS = String(toDate).replaceAll('-', '');
+        fileName = `clientes_desde_${fromS}_hasta_${toS}.txt`;
+      } else if (fromDate) {
+        fileName = `clientes_desde_${String(fromDate).replaceAll('-', '')}.txt`;
+      } else if (toDate) {
+        fileName = `clientes_hasta_${String(toDate).replaceAll('-', '')}.txt`;
       } else if (quickDate === 'today') {
-        dateSuffix = `${todayStamp}_hoy`;
+        fileName = `clientes_hoy_${todayStamp}.txt`;
       } else if (quickDate === '7d') {
-        dateSuffix = `${todayStamp}_ultimos_7d`;
+        fileName = `clientes_ultimos_7_dias_${todayStamp}.txt`;
       } else if (quickDate === '30d') {
-        dateSuffix = `${todayStamp}_ultimos_30d`;
+        fileName = `clientes_ultimos_30_dias_${todayStamp}.txt`;
+      } else {
+        fileName = `clientes_todos_${todayStamp}.txt`;
       }
 
-      link.download = `clientes_${filterLabel}_${dateSuffix}.txt`;
+      link.download = fileName;
       link.click();
       URL.revokeObjectURL(url);
       toast.success(`${lines.filter((l) => l.startsWith('Email:')).length} clientes exportados a TXT`);
