@@ -39,6 +39,7 @@ const AdminPreAlerts = lazy(() => import('./pages/AdminPreAlerts'));
 const AdminSupportQuickMessages = lazy(() => import('./pages/AdminSupportQuickMessages'));
 const AdminClients = lazy(() => import('./pages/AdminClients'));
 const AdminInvoices = lazy(() => import('./pages/AdminInvoices'));
+const AdminCreditUsage = lazy(() => import('./pages/AdminCreditUsage'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -150,6 +151,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminSupportQuickMessages" element={lazyRoute(AdminSupportQuickMessages, "AdminSupportQuickMessages")} />
       <Route path="/AdminClients" element={lazyRoute(AdminClients, "AdminClients")} />
       <Route path="/AdminInvoices" element={lazyRoute(AdminInvoices, "AdminInvoices")} />
+      <Route path="/AdminCreditUsage" element={lazyRoute(AdminCreditUsage, "AdminCreditUsage")} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

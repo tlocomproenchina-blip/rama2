@@ -583,6 +583,7 @@ class ApiQueueManager {
 
   /**
    * Integrations wrapper
+   * Registra automáticamente cada invocación en CreditUsageLog (best-effort)
    */
   get integrations() {
     const self = this;
@@ -597,7 +598,55 @@ class ApiQueueManager {
               if (typeof fn !== 'function') {
                 throw new Error(`Integration method not found: ${String(pkg)}.${name}`);
               }
-              return await self.enqueue(async () => await fn(params), 'NORMAL', opType);
+
+              const startedAt = Date.now();
+              let status = 'success';
+              let errorMessage = '';
+              let result;
+              try {
+                result = await self.enqueue(async () => await fn(params), 'NORMAL', opType);
+                return result;
+              } catch (err) {
+                status = 'error';
+                errorMessage = err?.message || 'Unknown error';
+                throw err;
+              } finally {
+                // Log best-effort, never blocks the main flow
+                try {
+                  const duration = Date.now() - startedAt;
+                  const paramsSummary = (() => {
+                    try {
+                      if (!params || typeof params !== 'object') return '';
+                      const keys = Object.keys(params).slice(0, 6);
+                      const safe = {};
+                      keys.forEach((k) => {
+                        const v = params[k];
+                        if (v == null) { safe[k] = null; return; }
+                        if (typeof v === 'string') safe[k] = v.length > 80 ? v.slice(0, 80) + '…' : v;
+                        else if (typeof v === 'number' || typeof v === 'boolean') safe[k] = v;
+                        else if (Array.isArray(v)) safe[k] = `[array:${v.length}]`;
+                        else if (v instanceof File || v instanceof Blob) safe[k] = `[file:${v.size || '?'}b]`;
+                        else safe[k] = `[object]`;
+                      });
+                      return JSON.stringify(safe).slice(0, 400);
+                    } catch { return ''; }
+                  })();
+
+                  const page = (typeof window !== 'undefined' && window.location?.pathname) || '';
+                  // Fire and forget — DO NOT await
+                  base44Client.functions.invoke('logCreditUsage', {
+                    integration_name: name,
+                    estimated_credits: 1,
+                    caller_function: `integrations.${String(pkg)}.${name}`,
+                    caller_page: page,
+                    caller_source: 'frontend',
+                    status,
+                    error_message: errorMessage,
+                    params_summary: paramsSummary,
+                    duration_ms: duration
+                  }).catch(() => {});
+                } catch (_) {}
+              }
             };
           }
         });

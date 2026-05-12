@@ -1,0 +1,77 @@
+{
+  "name": "CreditUsageLog",
+  "type": "object",
+  "properties": {
+    "integration_name": {
+      "type": "string",
+      "description": "Nombre de la integraci\u00f3n que consumi\u00f3 cr\u00e9dito (InvokeLLM, SendEmail, UploadFile, GenerateImage, ExtractDataFromUploadedFile, GenerateVideo, etc.)"
+    },
+    "estimated_credits": {
+      "type": "number",
+      "default": 1,
+      "description": "Cr\u00e9ditos estimados consumidos en esta llamada"
+    },
+    "caller_function": {
+      "type": "string",
+      "description": "Nombre de la funci\u00f3n backend o componente frontend que origin\u00f3 la llamada"
+    },
+    "caller_page": {
+      "type": "string",
+      "description": "P\u00e1gina desde donde se invoc\u00f3 (frontend)"
+    },
+    "caller_source": {
+      "type": "string",
+      "enum": [
+        "frontend",
+        "backend",
+        "automation",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Origen de la llamada"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del usuario activo cuando ocurri\u00f3"
+    },
+    "user_role": {
+      "type": "string",
+      "description": "Rol del usuario (admin, user, etc.)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "error"
+      ],
+      "default": "success",
+      "description": "Resultado de la llamada"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Mensaje de error si fall\u00f3"
+    },
+    "params_summary": {
+      "type": "string",
+      "description": "Resumen breve de par\u00e1metros (sin datos sensibles)"
+    },
+    "duration_ms": {
+      "type": "number",
+      "description": "Duraci\u00f3n de la llamada en milisegundos"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora exacta del consumo"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "integration_name",
+    "occurred_at"
+  ]
+}
