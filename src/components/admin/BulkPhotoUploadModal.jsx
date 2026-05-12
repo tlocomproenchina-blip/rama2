@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Loader2, CheckCircle, AlertCircle, Image as ImageIcon, X, Search, User, AlertTriangle, Copy, FileText, Box, Scan, FileImage, ScanLine, Plus, Trash2, Camera } from 'lucide-react';
+import { Upload, Loader2, CheckCircle, AlertCircle, Image as ImageIcon, X, Search, User, AlertTriangle, Copy, FileText, Box, FileImage, ScanLine } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -62,9 +62,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
   const [searchingClients, setSearchingClients] = useState(false);
   const searchTimeout = useRef(null);
 
-  const [trackingMode, setTrackingMode] = useState('filename'); // 'filename' | 'barcode' | 'scanner'
-  const [scannerTrackingInput, setScannerTrackingInput] = useState('');
-  const scannerInputRef = useRef(null);
+  const [trackingMode, setTrackingMode] = useState('filename'); // 'filename' | 'scanner'
   // Scanner mode: list of trackings entered via barcode scanner
   const [scannerTrackingList, setScannerTrackingList] = useState([]);
   const [scannerStatusByCode, setScannerStatusByCode] = useState({});
@@ -81,8 +79,6 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     setSelectedClientsByTracking({});
     setCbmValue('');
     setInvoiceNumber('');
-    setScanningBarcodes(false);
-    setScanProgress(0);
     setBarcodeResults({});
     setTrackingMode('filename');
     setScannerTrackingList([]);
@@ -131,55 +127,10 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     setFiles(selected);
     setResults(null);
     setBarcodeResults({});
-    // Auto-scan barcodes if in barcode mode
-    if (trackingMode === 'barcode' && selected.length > 0) {
-      await scanBarcodesFromFiles(selected);
-    }
   };
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadKnownTrackings = async () => {
-      const rows = [];
-      let skip = 0;
-      while (true) {
-        const batch = await base44.entities.Package.list('-created_date', 200, skip);
-        if (!batch?.length) break;
-        rows.push(...batch);
-        if (batch.length < 200) break;
-        skip += 200;
-      }
-      if (!cancelled) {
-        setKnownTrackings(rows.map((pkg) => pkg.tracking_number).filter(Boolean));
-      }
-    };
-    loadKnownTrackings();
-    return () => { cancelled = true; };
-  }, []);
 
   const removeFile = (idx) => {
     setFiles(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleScannerSubmit = () => {
-    const tracking = String(scannerTrackingInput || '').trim().replace(/\r?\n/g, '');
-    if (!tracking || files.length === 0) return;
-    const firstUnassignedFile = files.find((file) => !barcodeResults[file.name]?.tracking);
-    if (!firstUnassignedFile) {
-      toast.info('Todas las fotos ya tienen tracking asignado');
-      setScannerTrackingInput('');
-      return;
-    }
-    setBarcodeResults((prev) => ({
-      ...prev,
-      [firstUnassignedFile.name]: {
-        ...(prev[firstUnassignedFile.name] || {}),
-        tracking,
-        raw_tracking: tracking,
-      }
-    }));
-    setScannerTrackingInput('');
-    toast.success(`Tracking asignado a ${firstUnassignedFile.name}`);
   };
 
   // Scanner mode: check tracking exists
@@ -259,14 +210,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
   };
 
   const removeTrackingGroup = (trackingKey) => {
-    setFiles(prev => prev.filter(f => {
-      const barcodeTracking = barcodeResults[f.name]?.tracking;
-      const filenameTracking = extractTrackingFromFilename(f.name);
-      const t = trackingMode === 'barcode'
-        ? (barcodeTracking || `sin-codigo-${f.name}`)
-        : filenameTracking;
-      return t !== trackingKey;
-    }));
+    setFiles(prev => prev.filter(f => extractTrackingFromFilename(f.name) !== trackingKey));
   };
 
   // --- Duplicate check state ---
@@ -275,100 +219,12 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
   // CBM Ingreso fields
   const [cbmValue, setCbmValue] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  // Barcode scanner
-  const [scanningBarcodes, setScanningBarcodes] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
+  // Barcode scanner (kept for compatibility, but no AI scanning)
   const [barcodeResults, setBarcodeResults] = useState({});
-  const [knownTrackings, setKnownTrackings] = useState([]);
 
-
-
-  const scanBarcodesFromFiles = async (filesToScan) => {
-    setScanningBarcodes(true);
-    setScanProgress(0);
-    const results = {};
-    for (let i = 0; i < filesToScan.length; i++) {
-      const file = filesToScan[i];
-      try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        let res = await base44.integrations.Core.InvokeLLM({
-          prompt: 'Analiza esta foto de un paquete y lee específicamente el valor codificado en cualquier código de barras visible, no solo el texto grande de la etiqueta. Revisa también el texto pequeño impreso justo debajo del código de barras, porque muchas veces allí aparece el valor exacto. Si hay varios códigos, prioriza el código de barras principal de envío de mayor tamaño o el más centrado en la etiqueta principal. Devuelve el valor exacto del código de barras o tracking principal, completo, con todas sus letras y números, sin espacios ni guiones. No adivines otros textos de la caja si el valor del código de barras sí es visible. Responde solo con el código final en formato alfanumérico continuo. Si no logras leer el código de barras ni su texto asociado, devuelve una cadena vacía.',
-          file_urls: [file_url],
-          response_json_schema: {
-            type: 'object',
-            properties: {
-              tracking: { type: 'string', description: 'Valor exacto del código de barras o tracking principal usando solo letras y números, sin espacios ni símbolos.' }
-            }
-          }
-        });
-
-        let rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
-
-        if (!rawTracking) {
-          res = await base44.integrations.Core.InvokeLLM({
-            prompt: 'Segunda pasada especializada en códigos de barras. Ignora textos decorativos y concéntrate en: 1) franjas del código de barras, 2) números o letras impresos inmediatamente debajo, 3) código vertical lateral, 4) identificador logístico corto o largo asociado a la etiqueta. Si ves varios candidatos, devuelve el valor del código de barras principal de envío, no otros números de referencia. Conserva letras y números exactamente como aparecen. Responde únicamente con el mejor código alfanumérico continuo. Si no puedes leer el código de barras con seguridad, devuelve una cadena vacía.',
-            file_urls: [file_url],
-            response_json_schema: {
-              type: 'object',
-              properties: {
-                tracking: { type: 'string', description: 'Mejor valor leído del código de barras principal o su texto asociado. Vacío si no se puede leer.' }
-              }
-            }
-          });
-          rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
-        }
-
-        if (!rawTracking) {
-          res = await base44.integrations.Core.InvokeLLM({
-            prompt: 'Última pasada: inspecciona únicamente la etiqueta blanca principal y extrae el identificador de envío que esté codificado en barras o repetido junto al código. No devuelvas frases, solo el identificador final más probable del envío. Debe incluir letras si existen. Debe excluir espacios y guiones. Si no es posible, devuelve una cadena vacía.',
-            file_urls: [file_url],
-            response_json_schema: {
-              type: 'object',
-              properties: {
-                tracking: { type: 'string', description: 'Identificador final del envío leído desde el código principal o su impresión asociada.' }
-              }
-            }
-          });
-          rawTracking = (res?.tracking || '').replace(/[^a-zA-Z0-9]/g, '') || null;
-        }
-
-
-        let matchedTracking = rawTracking;
-        if (rawTracking && knownTrackings.length > 0) {
-          let bestMatch = rawTracking;
-          let bestScore = 0;
-          knownTrackings.forEach((registeredTracking) => {
-            const score = getTrackingOverlapScore(rawTracking, registeredTracking);
-            if (score > bestScore) {
-              bestScore = score;
-              bestMatch = registeredTracking;
-            }
-          });
-          matchedTracking = bestScore >= 9 ? bestMatch : rawTracking;
-        }
-
-        results[file.name] = { tracking: matchedTracking, raw_tracking: rawTracking };
-      } catch (err) {
-        results[file.name] = { tracking: null };
-      }
-      setScanProgress(Math.round(((i + 1) / filesToScan.length) * 100));
-    }
-    setBarcodeResults(results);
-    setScanningBarcodes(false);
-    const found = Object.values(results).filter(r => r.tracking).length;
-    const notFound = Object.values(results).filter(r => !r.tracking).length;
-    if (found > 0) toast.success(`${found} código(s) detectados`);
-    if (notFound > 0) toast.warning(`${notFound} imagen(es) difíciles — se usará el nombre del archivo si hace falta`);
-  };
-
-  // Group files by tracking number according to selected mode
+  // Group files by tracking number (filename-based)
   const grouped = files.reduce((acc, file) => {
-    const barcodeTracking = barcodeResults[file.name]?.tracking;
-    const filenameTracking = extractTrackingFromFilename(file.name);
-    const tracking = trackingMode === 'barcode'
-      ? (barcodeTracking || `sin-codigo-${file.name}`)
-      : filenameTracking;
-
+    const tracking = extractTrackingFromFilename(file.name);
     if (!acc[tracking]) acc[tracking] = [];
     acc[tracking].push(file);
     return acc;
@@ -436,18 +292,6 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     for (let i = 0; i < trackings.length; i++) {
       const tracking = trackings[i];
       const photos = grouped[tracking].slice(0, 3); // max 3 photos per tracking
-
-      if (trackingMode === 'barcode' && tracking.startsWith('sin-codigo-')) {
-        resultsList.push({
-          tracking: photos[0]?.name || tracking,
-          status: 'not_found',
-          photos: photos.length,
-          clientName: null,
-          error: 'No se pudo leer el código de barras de esta imagen'
-        });
-        setProgress(Math.round(((i + 1) / total) * 100));
-        continue;
-      }
 
       try {
         const imageUrls = [];
@@ -645,7 +489,7 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
           {!results && !processing && (
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Método de identificación</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => { setTrackingMode('filename'); setBarcodeResults({}); }}
@@ -659,27 +503,6 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                   <div>
                     <p className="text-sm font-semibold">Nombre del archivo</p>
                     <p className="text-[11px] leading-tight opacity-75">El nombre = tracking</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTrackingMode('barcode');
-                    setBarcodeResults({});
-                    if (files.length > 0) {
-                      scanBarcodesFromFiles(files);
-                    }
-                  }}
-                  className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left ${
-                    trackingMode === 'barcode'
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  <Scan className="h-5 w-5 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold">QR / Código de barra</p>
-                    <p className="text-[11px] leading-tight opacity-75">IA para códigos en fotos</p>
                   </div>
                 </button>
                 <button
@@ -827,65 +650,6 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
             </div>
           )}
 
-          {trackingMode === 'barcode' && files.length > 0 && !results && !processing && (
-            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <Label className="text-sm font-medium text-slate-700">Lector de códigos</Label>
-              <div className="flex gap-2">
-                <Input
-                  ref={scannerInputRef}
-                  value={scannerTrackingInput}
-                  onChange={(e) => setScannerTrackingInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleScannerSubmit();
-                    }
-                  }}
-                  placeholder="Escanea aquí con la pistola lectora"
-                />
-                <Button type="button" variant="outline" onClick={handleScannerSubmit} disabled={!scannerTrackingInput.trim() || files.length === 0}>
-                  Asignar
-                </Button>
-              </div>
-              <p className="text-xs text-slate-500">Cada lectura asigna el tracking a la próxima foto pendiente.</p>
-            </div>
-          )}
-
-          {/* Barcode scan status */}
-          {trackingMode === 'barcode' && files.length > 0 && !results && !processing && (
-            <div className="space-y-2">
-              {scanningBarcodes ? (
-                <div className="space-y-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                    <span className="text-sm text-blue-700 font-medium">Escaneando códigos de barra...</span>
-                  </div>
-                  <Progress value={scanProgress} className="h-2" />
-                  <p className="text-xs text-blue-600 text-center">{scanProgress}%</p>
-                </div>
-              ) : Object.keys(barcodeResults).length > 0 ? (
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Scan className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-700">
-                        {Object.values(barcodeResults).filter(r => r.tracking).length} código(s) detectados
-                      </span>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => scanBarcodesFromFiles(files)} className="text-xs text-blue-600 h-7 px-2">
-                      Re-escanear
-                    </Button>
-                  </div>
-                  {Object.values(barcodeResults).filter(r => !r.tracking).length > 0 && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      ⚠ {Object.values(barcodeResults).filter(r => !r.tracking).length} imagen(es) no se pudieron leer automáticamente
-                    </p>
-                  )}
-                </div>
-              ) : null}
-            </div>
-          )}
-
           {/* Preview grouped files */}
           {files.length > 0 && !results && (
             <div className="space-y-3">
@@ -931,16 +695,6 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
                             <p className={`font-mono text-sm font-medium ${isDup ? 'text-amber-700' : 'text-slate-800'}`}>{tracking}</p>
                           </div>
                           <p className="text-xs text-slate-500">{photos.length} foto(s): {photos.map(f => f.name).join(', ')}</p>
-                          {trackingMode === 'barcode' && photos[0] && barcodeResults[photos[0].name]?.raw_tracking && barcodeResults[photos[0].name]?.raw_tracking !== tracking && (
-                            <p className="text-[10px] text-blue-600 mt-0.5">
-                              Leído: {barcodeResults[photos[0].name].raw_tracking} → Coincidencia: {tracking}
-                            </p>
-                          )}
-                          {trackingMode === 'barcode' && photos[0] && barcodeResults[photos[0].name]?.raw_tracking === tracking && (
-                            <p className="text-[10px] text-emerald-600 mt-0.5">
-                              Asignado por lectora: {tracking}
-                            </p>
-                          )}
                           {isDup && (
                             <p className="text-[10px] text-amber-600 mt-0.5">
                               Ya existe para: {duplicateWarnings[tracking].client_email} — se actualizará
