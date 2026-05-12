@@ -3,9 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Camera, Keyboard, Loader2, ScanLine, Sparkles } from 'lucide-react';
+import { Camera, Keyboard, Loader2, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
-import { base44 } from '@/api/base44Client';
 
 const normalizeCode = (value = '') => String(value).replace(/\r?\n/g, '').trim();
 
@@ -32,10 +31,8 @@ export default function BarcodeScannerModule({
   const activeRef = useRef(false);
   const inputRef = useRef(null);
 
-  const [aiScanning, setAiScanning] = useState(false);
   const scanAttemptsRef = useRef(0);
   const canvasRef = useRef(null);
-  const lastAiAttemptRef = useRef(0);
 
   const cameraSupported = typeof window !== 'undefined' && !!navigator?.mediaDevices?.getUserMedia;
   const nativeBarcodeSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
@@ -92,47 +89,6 @@ export default function BarcodeScannerModule({
     return canvas;
   }, []);
 
-  // AI fallback: send frame to LLM for barcode reading
-  const tryAiFallback = useCallback(async () => {
-    if (!activeRef.current || aiScanning) return;
-    const now = Date.now();
-    if (now - lastAiAttemptRef.current < 8000) return; // throttle: max once per 8s
-    lastAiAttemptRef.current = now;
-
-    const canvas = captureFrame(0);
-    if (!canvas) return;
-
-    setAiScanning(true);
-    try {
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
-      if (!blob || !activeRef.current) { setAiScanning(false); return; }
-      const file = new File([blob], 'scan.jpg', { type: 'image/jpeg' });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-
-      const res = await base44.integrations.Core.InvokeLLM({
-        prompt: 'Lee el código de barras o QR visible en esta imagen. Busca cualquier código de barras (1D o 2D) y extrae su valor exacto. Prioriza el código de barras principal de envío. Devuelve SOLO el valor alfanumérico del código sin espacios ni guiones. Si no puedes leer ningún código, devuelve cadena vacía.',
-        file_urls: [file_url],
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            barcode: { type: 'string', description: 'Valor exacto del código de barras leído, vacío si no se pudo leer' }
-          }
-        }
-      });
-
-      const code = normalizeCode((res?.barcode || '').replace(/[^a-zA-Z0-9]/g, ''));
-      if (code && code.length >= 5 && activeRef.current) {
-        handleDetected(code);
-        toast.success('Código detectado con IA');
-        setCameraOpen(false);
-        stopCamera();
-        setAiScanning(false);
-        return;
-      }
-    } catch (_) {}
-    setAiScanning(false);
-  }, [aiScanning]);
-
   const scanFrame = async () => {
     if (!activeRef.current || !videoRef.current) return;
     scanAttemptsRef.current++;
@@ -165,11 +121,6 @@ export default function BarcodeScannerModule({
         stopCamera();
         return;
       }
-    }
-
-    // Fallback IA tras ~6 segundos sin éxito
-    if (scanAttemptsRef.current > 60) {
-      tryAiFallback();
     }
 
     // Limita a ~10 detecciones/segundo. Suficiente para tracking en mano y libera CPU/GPU.
@@ -310,7 +261,7 @@ export default function BarcodeScannerModule({
                 {cameraLabel}
               </Button>
               {!nativeBarcodeSupported && cameraSupported && (
-                <span className="text-xs text-amber-600 self-center">Modo IA (sin lector nativo)</span>
+                <span className="text-xs text-amber-600 self-center">Tu navegador no soporta lectura nativa de códigos</span>
               )}
               {extraAction}
             </div>
@@ -345,29 +296,13 @@ export default function BarcodeScannerModule({
                 Activando cámara...
               </div>
             )}
-            {aiScanning && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-blue-600/90 px-4 py-2 text-white text-sm shadow-lg">
-                <Sparkles className="h-4 w-4 animate-pulse" />
-                Analizando con IA...
-              </div>
-            )}
           </div>
-          <div className="flex items-center justify-between mt-2">
+          <div className="mt-2">
             <p className="text-xs text-slate-500">
               {nativeBarcodeSupported
-                ? 'Escaneo automático + IA si no detecta en 4s. No necesita estar perfectamente recto.'
-                : 'Sin lector nativo en este navegador. Usando IA para detectar códigos.'}
+                ? 'Escaneo automático. No necesita estar perfectamente recto.'
+                : 'Sin lector nativo en este navegador. Usa la lectora USB o escribe el código manualmente.'}
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => tryAiFallback()}
-              disabled={aiScanning || !activeRef.current}
-              className="gap-1 shrink-0"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {aiScanning ? 'Analizando...' : 'Leer con IA'}
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
