@@ -229,6 +229,7 @@ export default function ClientAnalytics() {
         <ClientCbmHistory
           ingresos={cbmIngresos}
           totalCbm={cbmIngresos.reduce((s, i) => s + Number(i.cbm || 0), 0)}
+          client={selectedClient}
         />
       )}
 
