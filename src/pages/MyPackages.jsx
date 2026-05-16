@@ -352,7 +352,7 @@ export default function MyPackages({ user }) {
                       onClick={() => openSellerDate(pkg)}
                       className="mt-1 text-[11px] md:text-xs"
                     >
-                      {pkg.seller_delivery_date ? 'Editar fecha vendedor' : 'Agregar fecha vendedor'}
+                      {pkg.seller_delivery_date ? 'Editar fecha entrega' : 'Agregar fecha entrega'}
                     </Button>
                   </div>
                 </div>
