@@ -233,7 +233,7 @@ export default function ClientAnalytics() {
         />
       )}
 
-      {selectedClient && <ClientPackagesTable packages={packages} />}
+      {selectedClient && <ClientPackagesTable packages={packages} client={selectedClient} />}
 
       {selectedClient && analytics.shipmentCostHistory.length === 0 && !loading && (
         <Card className="border-0 shadow-md">
