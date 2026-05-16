@@ -94,40 +94,56 @@ export async function exportSelectedToExcel(selectedPackages = []) {
 
     const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'FOB', 'Foto'];
 
-    let totalFob = 0;
+    // Agrupar por cliente (shipping_mark), preservando el orden de aparición
+    const groupsMap = new Map();
+    selectedPackages.forEach((pkg) => {
+      const key = pkg.shipping_mark || pkg.client_email || '—';
+      if (!groupsMap.has(key)) groupsMap.set(key, []);
+      groupsMap.get(key).push(pkg);
+    });
 
-    const rowsHtml = selectedPackages.map((pkg) => {
-      const photo = (Array.isArray(pkg.package_image_urls) && pkg.package_image_urls[0])
-        || pkg.package_image_url
-        || pkg.product_image_url
-        || pkg.invoice_url
-        || '';
+    const emptyRow = `<tr><td colspan="5">&nbsp;</td></tr>`;
 
-      const fobNum = Number(pkg.fob_value) || 0;
-      totalFob += fobNum;
-      const fobCell = `<td style="mso-number-format:'\\$#,##0.00';">${fobNum.toFixed(2)}</td>`;
+    const groupsHtml = Array.from(groupsMap.entries()).map(([, pkgs], idx, arr) => {
+      let groupTotal = 0;
 
-      // Tracking como texto (mso-number-format evita notación científica)
-      const trackingCell = `<td style="mso-number-format:'\\@';">${escapeHtml(pkg.tracking_number || '')}</td>`;
-      // Hipervínculo real "Ver foto"
-      const photoCell = photo
-        ? `<td><a href="${escapeHtml(photo)}">Ver foto</a></td>`
-        : '<td></td>';
+      const rows = pkgs.map((pkg) => {
+        const photo = (Array.isArray(pkg.package_image_urls) && pkg.package_image_urls[0])
+          || pkg.package_image_url
+          || pkg.product_image_url
+          || pkg.invoice_url
+          || '';
 
-      return `<tr>
-        <td>${escapeHtml(pkg.shipping_mark || '')}</td>
-        ${trackingCell}
-        <td>${escapeHtml(pkg.description || '')}</td>
-        ${fobCell}
-        ${photoCell}
+        const fobNum = Number(pkg.fob_value) || 0;
+        groupTotal += fobNum;
+        const fobCell = `<td style="mso-number-format:'\\$#,##0.00';">${fobNum.toFixed(2)}</td>`;
+
+        const trackingCell = `<td style="mso-number-format:'\\@';">${escapeHtml(pkg.tracking_number || '')}</td>`;
+        const photoCell = photo
+          ? `<td><a href="${escapeHtml(photo)}">Ver foto</a></td>`
+          : '<td></td>';
+
+        return `<tr>
+          <td>${escapeHtml(pkg.shipping_mark || '')}</td>
+          ${trackingCell}
+          <td>${escapeHtml(pkg.description || '')}</td>
+          ${fobCell}
+          ${photoCell}
+        </tr>`;
+      }).join('');
+
+      const totalRow = `<tr>
+        <td colspan="3" style="font-weight:bold; text-align:right;">TOTAL FOB</td>
+        <td style="font-weight:bold; mso-number-format:'\\$#,##0.00';">${groupTotal.toFixed(2)}</td>
+        <td></td>
       </tr>`;
+
+      // Separador en blanco entre clientes (no después del último)
+      return rows + totalRow + (idx < arr.length - 1 ? emptyRow : '');
     }).join('');
 
-    const totalRow = `<tr>
-      <td colspan="3" style="font-weight:bold; text-align:right;">TOTAL FOB</td>
-      <td style="font-weight:bold; mso-number-format:'\\$#,##0.00';">${totalFob.toFixed(2)}</td>
-      <td></td>
-    </tr>`;
+    const rowsHtml = groupsHtml;
+    const totalRow = '';
 
     const html = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
