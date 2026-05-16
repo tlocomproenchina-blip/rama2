@@ -84,7 +84,15 @@ export async function exportSelectedToExcel(selectedPackages = []) {
 
     const XLSX = await import('xlsx');
 
-    const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'FOB', 'Foto'];
+    const fmtDate = (d) => {
+      if (!d) return '';
+      const dt = new Date(d);
+      if (isNaN(dt.getTime())) return '';
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()}`;
+    };
+
+    const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'FOB', 'Foto', 'Registrado', 'Entrega vendedor', 'Recibido'];
 
     // Agrupar por cliente (shipping_mark), preservando el orden de aparición
     const groupsMap = new Map();
@@ -119,7 +127,10 @@ export async function exportSelectedToExcel(selectedPackages = []) {
           pkg.tracking_number || '',
           pkg.description || '',
           fobNum,
-          photo ? 'Ver foto' : ''
+          photo ? 'Ver foto' : '',
+          fmtDate(pkg.created_date),
+          fmtDate(pkg.seller_delivery_date),
+          fmtDate(pkg.received_date)
         ];
         aoa.push(row);
 
@@ -130,14 +141,14 @@ export async function exportSelectedToExcel(selectedPackages = []) {
 
       // Fila TOTAL FOB
       const totalRowIdx = aoa.length;
-      aoa.push(['', '', 'TOTAL FOB', groupTotal, '']);
+      aoa.push(['', '', 'TOTAL FOB', groupTotal, '', '', '', '']);
       totalRows.push(totalRowIdx);
       // Merge de las 3 primeras celdas para "TOTAL FOB"
       merges.push({ s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 2 } });
 
       // Fila vacía entre grupos (no después del último)
       if (idx < groups.length - 1) {
-        aoa.push(['', '', '', '', '']);
+        aoa.push(['', '', '', '', '', '', '', '']);
       }
     });
 
@@ -150,6 +161,9 @@ export async function exportSelectedToExcel(selectedPackages = []) {
       { wch: 55 }, // Descripcion
       { wch: 10 }, // FOB
       { wch: 12 }, // Foto
+      { wch: 12 }, // Registrado
+      { wch: 16 }, // Entrega vendedor
+      { wch: 12 }, // Recibido
     ];
 
     // Merges
