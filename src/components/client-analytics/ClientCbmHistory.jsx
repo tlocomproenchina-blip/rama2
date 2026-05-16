@@ -62,7 +62,7 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
     });
 
     const totalSel = selectedItems.reduce((s, i) => s + Number(i.cbm || 0), 0);
-    const message = `Hola ${clientName}, te compartimos el detalle de tus facturas/CBM:\n\n${lines.join('\n')}\n\nTotal CBM seleccionado: ${totalSel.toFixed(5)}`;
+    const message = `Hola ${clientName}, te compartimos el detalle de tus facturas/CBM:\n\n${lines.join('\n')}\n\nTotal CBM seleccionado: ${totalSel.toFixed(5)}\n\nPor favor, requerimos que nos envíes el FOB (valor de la mercancía) de cada una de estas facturas para poder continuar con el proceso. ¡Gracias!`;
 
     const url = buildWhatsAppUrl(phone, message);
     if (!url) {
