@@ -82,15 +82,7 @@ export async function exportSelectedToExcel(selectedPackages = []) {
       return;
     }
 
-    // Escapa HTML para evitar romper el documento
-    const escapeHtml = (val) => {
-      const s = val == null ? '' : String(val);
-      return s
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    };
+    const XLSX = await import('xlsx');
 
     const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'FOB', 'Foto'];
 
@@ -102,12 +94,17 @@ export async function exportSelectedToExcel(selectedPackages = []) {
       groupsMap.get(key).push(pkg);
     });
 
-    const emptyRow = `<tr><td colspan="5">&nbsp;</td></tr>`;
+    // Construir AoA (Array of Arrays) — cada elemento es una fila, cada subelemento es una celda
+    const aoa = [headers];
+    const merges = [];
+    const hyperlinks = []; // { row, col, url }
+    const totalRows = []; // índices de filas TOTAL FOB para estilo
 
-    const groupsHtml = Array.from(groupsMap.entries()).map(([, pkgs], idx, arr) => {
+    const groups = Array.from(groupsMap.entries());
+    groups.forEach(([, pkgs], idx) => {
       let groupTotal = 0;
 
-      const rows = pkgs.map((pkg) => {
+      pkgs.forEach((pkg) => {
         const photo = (Array.isArray(pkg.package_image_urls) && pkg.package_image_urls[0])
           || pkg.package_image_url
           || pkg.product_image_url
@@ -116,79 +113,80 @@ export async function exportSelectedToExcel(selectedPackages = []) {
 
         const fobNum = Number(pkg.fob_value) || 0;
         groupTotal += fobNum;
-        const fobCell = `<td style="mso-number-format:'\\$#,##0.00';">${fobNum.toFixed(2)}</td>`;
 
-        const trackingCell = `<td style="mso-number-format:'\\@';">${escapeHtml(pkg.tracking_number || '')}</td>`;
-        const photoCell = photo
-          ? `<td><a href="${escapeHtml(photo)}">Ver foto</a></td>`
-          : '<td></td>';
+        const row = [
+          pkg.shipping_mark || '',
+          pkg.tracking_number || '',
+          pkg.description || '',
+          fobNum,
+          photo ? 'Ver foto' : ''
+        ];
+        aoa.push(row);
 
-        return `<tr>
-          <td>${escapeHtml(pkg.shipping_mark || '')}</td>
-          ${trackingCell}
-          <td>${escapeHtml(pkg.description || '')}</td>
-          ${fobCell}
-          ${photoCell}
-        </tr>`;
-      }).join('');
+        if (photo) {
+          hyperlinks.push({ row: aoa.length - 1, col: 4, url: photo });
+        }
+      });
 
-      const totalRow = `<tr>
-        <td colspan="3" style="font-weight:bold; text-align:right;">TOTAL FOB</td>
-        <td style="font-weight:bold; mso-number-format:'\\$#,##0.00';">${groupTotal.toFixed(2)}</td>
-        <td></td>
-      </tr>`;
+      // Fila TOTAL FOB
+      const totalRowIdx = aoa.length;
+      aoa.push(['', '', 'TOTAL FOB', groupTotal, '']);
+      totalRows.push(totalRowIdx);
+      // Merge de las 3 primeras celdas para "TOTAL FOB"
+      merges.push({ s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 2 } });
 
-      // Separador en blanco entre clientes (no después del último)
-      return rows + totalRow + (idx < arr.length - 1 ? emptyRow : '');
-    }).join('');
+      // Fila vacía entre grupos (no después del último)
+      if (idx < groups.length - 1) {
+        aoa.push(['', '', '', '', '']);
+      }
+    });
 
-    const rowsHtml = groupsHtml;
-    const totalRow = '';
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-    const html = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="UTF-8">
-<!--[if gte mso 9]><xml>
-  <x:ExcelWorkbook>
-    <x:ExcelWorksheets>
-      <x:ExcelWorksheet>
-        <x:Name>Pre-alertas</x:Name>
-        <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-      </x:ExcelWorksheet>
-    </x:ExcelWorksheets>
-  </x:ExcelWorkbook>
-</xml><![endif]-->
-<style>
-  table { border-collapse: collapse; }
-  th, td { border: 1px solid #999; padding: 4px 6px; vertical-align: top; font-family: Calibri, Arial, sans-serif; font-size: 11pt; }
-  th { background: #F2F2F2; font-weight: bold; text-align: center; }
-</style>
-</head>
-<body>
-<table border="1">
-  <thead>
-    <tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>
-  </thead>
-  <tbody>${rowsHtml}${totalRow}</tbody>
-</table>
-</body>
-</html>`;
+    // Anchos de columna
+    ws['!cols'] = [
+      { wch: 16 }, // Cliente
+      { wch: 28 }, // Tracking
+      { wch: 55 }, // Descripcion
+      { wch: 10 }, // FOB
+      { wch: 12 }, // Foto
+    ];
 
-    const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    // Merges
+    ws['!merges'] = merges;
+
+    // Hipervínculos en columna Foto
+    hyperlinks.forEach(({ row, col, url }) => {
+      const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+      if (ws[cellRef]) {
+        ws[cellRef].l = { Target: url, Tooltip: 'Abrir foto' };
+      }
+    });
+
+    // Formato moneda para columna FOB (col 3) — todas las filas excepto el encabezado
+    for (let r = 1; r < aoa.length; r++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c: 3 });
+      if (ws[cellRef] && typeof ws[cellRef].v === 'number') {
+        ws[cellRef].z = '"$"#,##0.00';
+      }
+    }
+
+    // Wrap text en columna Descripción
+    for (let r = 1; r < aoa.length; r++) {
+      const cellRef = XLSX.utils.encode_cell({ r, c: 2 });
+      if (ws[cellRef]) {
+        ws[cellRef].s = { alignment: { wrapText: true, vertical: 'top' } };
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Pre-alertas');
 
     const now = new Date();
     const pad = (n) => String(n).padStart(2, '0');
-    const filename = `pre_alertas_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.xls`;
+    const filename = `pre_alertas_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.xlsx`;
 
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    a.remove();
+    XLSX.writeFile(wb, filename);
 
     toast.success(`Exportadas ${selectedPackages.length} pre-alertas a Excel`);
   } catch (error) {
