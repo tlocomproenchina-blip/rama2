@@ -55,6 +55,7 @@ export default function PackagesDesktopTable({
               <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Tipo</th>
               <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Carga</th>
               <th className="text-left p-3 font-medium text-slate-600 w-[6%]">Bultos</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[7%]">FOB</th>
               <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Estado</th>
               <th className="text-left p-3 font-medium text-slate-600 w-[10%]">Registro</th>
               <th className="text-left p-3 font-medium text-slate-600 w-[10%]">Recepción</th>
@@ -110,6 +111,11 @@ export default function PackagesDesktopTable({
                   </td>
                   <td className="pl-3 pr-2 py-3 text-slate-700 font-medium">
                     {pkg.package_count || '-'}
+                  </td>
+                  <td className="pl-3 pr-2 py-3 text-slate-700 text-xs whitespace-nowrap">
+                    {Number(pkg.fob_value) > 0
+                      ? <span className="font-semibold text-emerald-700">${Number(pkg.fob_value).toFixed(2)}</span>
+                      : <span className="text-slate-300">-</span>}
                   </td>
                   <td className="pl-3 pr-2 py-3">
                     <StatusBadge status={pkg.status} size="sm" />
