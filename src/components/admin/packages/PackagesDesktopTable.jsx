@@ -41,7 +41,7 @@ export default function PackagesDesktopTable({
   return (
     <Card className="hidden 2xl:block border-0 shadow-lg overflow-hidden">
       <div className="overflow-x-visible">
-        <table className="w-full table-auto">
+        <table className="w-full table-fixed">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
               <th className="text-left pl-3 pr-2 py-3 font-medium text-slate-600">
