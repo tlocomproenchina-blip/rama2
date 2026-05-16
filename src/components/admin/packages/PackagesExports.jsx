@@ -147,7 +147,24 @@ export async function exportSelectedToExcel(selectedPackages = []) {
 
     const html = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="UTF-8"></head>
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]><xml>
+  <x:ExcelWorkbook>
+    <x:ExcelWorksheets>
+      <x:ExcelWorksheet>
+        <x:Name>Pre-alertas</x:Name>
+        <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+      </x:ExcelWorksheet>
+    </x:ExcelWorksheets>
+  </x:ExcelWorkbook>
+</xml><![endif]-->
+<style>
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid #999; padding: 4px 6px; vertical-align: top; font-family: Calibri, Arial, sans-serif; font-size: 11pt; }
+  th { background: #F2F2F2; font-weight: bold; text-align: center; }
+</style>
+</head>
 <body>
 <table border="1">
   <thead>
