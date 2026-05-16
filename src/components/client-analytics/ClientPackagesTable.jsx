@@ -8,6 +8,7 @@ import { Search, Package, MessageCircle, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
+import { exportSelectedToExcel } from '@/components/admin/packages/PackagesExports';
 
 const STATUS_TABS = [
   { key: 'all', label: 'Todos' },
@@ -117,48 +118,7 @@ export default function ClientPackagesTable({ packages, client }) {
       toast.error('No hay paquetes para exportar');
       return;
     }
-
-    const headers = [
-      'Tracking', 'Shipping Mark', 'Cliente Email', 'Tipo de envío', 'Categoría de riesgo',
-      'Estado', 'Bultos', 'CBM', 'Peso (kg)', 'Largo (cm)', 'Ancho (cm)', 'Alto (cm)',
-      'CBM real', 'Peso real (kg)', 'FOB', 'Tiene seguro', 'Descripción',
-      'Compañía transporte', 'Dirección envío',
-      'Almacén', 'Ciudad almacén', 'País almacén', 'Ubicación', 'Código ubicación', 'Zona',
-      'Fecha registro', 'Fecha entrega vendedor', 'Fecha recibido', 'Recibido por',
-      'Consolidación ID', 'Notas de recepción', 'Reportado'
-    ];
-
-    const esc = (v) => {
-      if (v === null || v === undefined) return '';
-      const s = String(v).replace(/"/g, '""');
-      return `"${s}"`;
-    };
-
-    const csvRows = rows.map((p) => [
-      p.tracking_number, p.shipping_mark, p.client_email, p.shipping_type, p.risk_category,
-      p.status, p.package_count, p.cbm, p.weight_kg, p.length_cm, p.width_cm, p.height_cm,
-      p.actual_cbm, p.actual_weight_kg, p.fob_value, p.has_insurance ? 'Sí' : 'No', p.description,
-      p.shipping_company, p.shipping_address,
-      p.warehouse_name, p.warehouse_city, p.warehouse_country, p.warehouse_location_name, p.warehouse_location_code, p.warehouse_zone,
-      p.created_date ? fmt(p.created_date) : '', p.seller_delivery_date ? fmtShort(p.seller_delivery_date) : '', p.received_date ? fmt(p.received_date) : '', p.received_by,
-      p.consolidation_id, p.reception_notes, p.reported ? 'Sí' : 'No'
-    ].map(esc).join(','));
-
-    const csv = '\uFEFF' + [headers.map(esc).join(','), ...csvRows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const clientName = (client?.first_name || client?.full_name || client?.email || 'cliente').replace(/[^a-zA-Z0-9-_]/g, '_');
-    const fileName = `paquetes_${clientName}_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`;
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast.success(`Se exportaron ${rows.length} paquete(s)`);
+    exportSelectedToExcel(rows);
   };
 
   return (
