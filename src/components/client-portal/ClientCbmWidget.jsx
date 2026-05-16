@@ -117,7 +117,7 @@ export default function ClientCbmWidget({ userEmail }) {
                       </span>
                       {item.invoice_number && (
                         <Badge variant="outline" className="text-[10px]">
-                          {item.invoice_number}
+                          Factura {item.invoice_number}
                         </Badge>
                       )}
                     </div>
