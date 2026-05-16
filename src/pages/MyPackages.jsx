@@ -43,7 +43,10 @@ export default function MyPackages({ user }) {
   const [selectedGallery, setSelectedGallery] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [editModal, setEditModal] = useState(null);
-  const [editForm, setEditForm] = useState({ tracking_number: '', description: '', shipping_type: 'aereo' });
+  const [editForm, setEditForm] = useState({ tracking_number: '', description: '', shipping_type: 'aereo', seller_delivery_date: '' });
+  const [sellerDateModal, setSellerDateModal] = useState(null);
+  const [sellerDateValue, setSellerDateValue] = useState('');
+  const [savingSellerDate, setSavingSellerDate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -88,8 +91,25 @@ export default function MyPackages({ user }) {
     setEditForm({
       tracking_number: pkg.tracking_number || '',
       description: pkg.description || '',
-      shipping_type: pkg.shipping_type || 'aereo'
+      shipping_type: pkg.shipping_type || 'aereo',
+      seller_delivery_date: pkg.seller_delivery_date || ''
     });
+  };
+
+  const openSellerDate = (pkg) => {
+    setSellerDateModal(pkg);
+    setSellerDateValue(pkg.seller_delivery_date || '');
+  };
+
+  const saveSellerDate = async () => {
+    if (!sellerDateModal) return;
+    setSavingSellerDate(true);
+    const updates = { seller_delivery_date: sellerDateValue || null };
+    await base44.entities.Package.update(sellerDateModal.id, updates);
+    setPackages((prev) => prev.map((p) => p.id === sellerDateModal.id ? { ...p, ...updates } : p));
+    setSavingSellerDate(false);
+    setSellerDateModal(null);
+    toast.success('Fecha de entrega del vendedor guardada');
   };
 
   const saveEdit = async () => {
@@ -100,7 +120,8 @@ export default function MyPackages({ user }) {
     const updates = {
       tracking_number: tn,
       description: editForm.description || '',
-      shipping_type: editForm.shipping_type || 'aereo'
+      shipping_type: editForm.shipping_type || 'aereo',
+      seller_delivery_date: editForm.seller_delivery_date || null
     };
     await base44.entities.Package.update(editModal.id, updates);
     // Optimistic update: actualiza solo el item editado en lugar de recargar toda la lista
@@ -320,6 +341,19 @@ export default function MyPackages({ user }) {
                         {' '}{new Date(pkg.received_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     )}
+                    {pkg.seller_delivery_date && (
+                      <div className="text-[11px] md:text-xs text-indigo-700">
+                        Entrega vendedor: {new Date(pkg.seller_delivery_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openSellerDate(pkg)}
+                      className="mt-1 text-[11px] md:text-xs"
+                    >
+                      {pkg.seller_delivery_date ? 'Editar fecha vendedor' : 'Agregar fecha vendedor'}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -407,11 +441,51 @@ export default function MyPackages({ user }) {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Fecha de entrega del vendedor al almacén</Label>
+              <Input
+                type="date"
+                value={editForm.seller_delivery_date || ''}
+                onChange={(e) => setEditForm({ ...editForm, seller_delivery_date: e.target.value })}
+                className="mt-1"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">Fecha en que el vendedor entregó el paquete en el almacén.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditModal(null)}>Cancelar</Button>
             <Button onClick={saveEdit} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Seller Delivery Date Modal */}
+      <Dialog open={!!sellerDateModal} onOpenChange={() => setSellerDateModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base md:text-lg">Fecha de entrega del vendedor</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs md:text-sm text-slate-600">
+              Indica la fecha en que el vendedor entregó este paquete en el almacén. Esta información ayudará al equipo a hacer seguimiento.
+            </p>
+            <div>
+              <Label>Fecha</Label>
+              <Input
+                type="date"
+                value={sellerDateValue}
+                onChange={(e) => setSellerDateValue(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSellerDateModal(null)}>Cancelar</Button>
+            <Button onClick={saveSellerDate} disabled={savingSellerDate} className="bg-blue-600 hover:bg-blue-700">
+              {savingSellerDate ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Guardar
             </Button>
           </DialogFooter>

@@ -166,6 +166,11 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha en la que se envi\u00f3 la solicitud autom\u00e1tica del comprobante de entrega"
+    },
+    "seller_delivery_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en la que el vendedor entreg\u00f3 el paquete al almac\u00e9n (informada por el cliente)"
     }
   },
   "required": [

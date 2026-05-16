@@ -169,6 +169,7 @@ export default function ClientPackagesTable({ packages, client }) {
                 <th className="py-2 pr-3">CBM</th>
                 <th className="py-2 pr-3">Peso (kg)</th>
                 <th className="py-2 pr-3">Registrado</th>
+                <th className="py-2 pr-3">Entrega vendedor</th>
                 <th className="py-2 pr-3">Recibido</th>
                 <th className="py-2 pr-3">Descripción</th>
               </tr>
@@ -176,7 +177,7 @@ export default function ClientPackagesTable({ packages, client }) {
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="py-6 text-center text-slate-500">Sin paquetes</td>
+                  <td colSpan={11} className="py-6 text-center text-slate-500">Sin paquetes</td>
                 </tr>
               )}
               {filtered.map((p) => (
@@ -195,6 +196,7 @@ export default function ClientPackagesTable({ packages, client }) {
                   <td className="py-2 pr-3">{Number(p.cbm || 0).toFixed(5)}</td>
                   <td className="py-2 pr-3">{Number(p.weight_kg || 0).toFixed(2)}</td>
                   <td className="py-2 pr-3 text-xs text-slate-600">{fmt(p.created_date)}</td>
+                  <td className="py-2 pr-3 text-xs text-indigo-700">{p.seller_delivery_date ? fmtShort(p.seller_delivery_date) : '—'}</td>
                   <td className="py-2 pr-3 text-xs text-slate-600">{fmt(p.received_date)}</td>
                   <td className="py-2 pr-3 max-w-[260px] truncate" title={p.description}>{p.description || '—'}</td>
                 </tr>
