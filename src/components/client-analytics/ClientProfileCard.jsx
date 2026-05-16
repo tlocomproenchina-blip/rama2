@@ -1,8 +1,11 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, Mail, Phone, MapPin, Hash, Calendar, IdCard, Building } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { User, Mail, Phone, MapPin, Hash, Calendar, IdCard, Building, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 
 const Item = ({ icon: Icon, label, value }) => (
   <div className="flex items-start gap-3">
@@ -21,6 +24,22 @@ export default function ClientProfileCard({ client }) {
   const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.full_name || client.email;
   const created = client.created_date ? format(new Date(client.created_date), 'dd/MM/yyyy') : null;
   const address = [client.address, client.city, client.state, client.country].filter(Boolean).join(', ');
+
+  const handleContactWhatsApp = () => {
+    const phone = client.whatsapp || client.phone || '';
+    if (!phone) {
+      toast.error('Este cliente no tiene WhatsApp registrado');
+      return;
+    }
+    const firstName = client.first_name || (client.full_name ? client.full_name.split(' ')[0] : 'estimado cliente');
+    const message = `Hola ${firstName}, le contactamos de TLEC CARGO.`;
+    const url = buildWhatsAppUrl(phone, message);
+    if (!url) {
+      toast.error('Número de WhatsApp inválido');
+      return;
+    }
+    window.open(url, '_blank');
+  };
 
   return (
     <Card className="border-0 shadow-md">
@@ -43,6 +62,14 @@ export default function ClientProfileCard({ client }) {
             <Badge className={client.is_active === false ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}>
               {client.is_active === false ? 'Inactivo' : 'Activo'}
             </Badge>
+            <Button
+              size="sm"
+              onClick={handleContactWhatsApp}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Contactar por WhatsApp
+            </Button>
           </div>
         </div>
 
