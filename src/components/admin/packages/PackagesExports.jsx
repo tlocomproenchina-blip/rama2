@@ -92,7 +92,9 @@ export async function exportSelectedToExcel(selectedPackages = []) {
         .replace(/"/g, '&quot;');
     };
 
-    const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'Foto'];
+    const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'FOB', 'Foto'];
+
+    let totalFob = 0;
 
     const rowsHtml = selectedPackages.map((pkg) => {
       const photo = (Array.isArray(pkg.package_image_urls) && pkg.package_image_urls[0])
@@ -100,6 +102,10 @@ export async function exportSelectedToExcel(selectedPackages = []) {
         || pkg.product_image_url
         || pkg.invoice_url
         || '';
+
+      const fobNum = Number(pkg.fob_value) || 0;
+      totalFob += fobNum;
+      const fobCell = `<td style="mso-number-format:'\\$#,##0.00';">${fobNum.toFixed(2)}</td>`;
 
       // Tracking como texto (mso-number-format evita notación científica)
       const trackingCell = `<td style="mso-number-format:'\\@';">${escapeHtml(pkg.tracking_number || '')}</td>`;
@@ -112,9 +118,16 @@ export async function exportSelectedToExcel(selectedPackages = []) {
         <td>${escapeHtml(pkg.shipping_mark || '')}</td>
         ${trackingCell}
         <td>${escapeHtml(pkg.description || '')}</td>
+        ${fobCell}
         ${photoCell}
       </tr>`;
     }).join('');
+
+    const totalRow = `<tr>
+      <td colspan="3" style="font-weight:bold; text-align:right;">TOTAL FOB</td>
+      <td style="font-weight:bold; mso-number-format:'\\$#,##0.00';">${totalFob.toFixed(2)}</td>
+      <td></td>
+    </tr>`;
 
     const html = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -124,7 +137,7 @@ export async function exportSelectedToExcel(selectedPackages = []) {
   <thead>
     <tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>
   </thead>
-  <tbody>${rowsHtml}</tbody>
+  <tbody>${rowsHtml}${totalRow}</tbody>
 </table>
 </body>
 </html>`;
