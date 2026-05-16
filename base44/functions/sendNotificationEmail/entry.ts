@@ -37,20 +37,33 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Kill switch: si emails_enabled === false, no enviar
+    let emailsEnabled = true;
+    try {
+      const cfgs2 = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
+      const cfg2 = cfgs2?.[0] || {};
+      if (cfg2.emails_enabled === false) emailsEnabled = false;
+    } catch (_) {}
+
     // Enviar email con service role (sin pasar por circuit breaker del cliente)
     let emailSent = false;
     let errorMessage = null;
-    try {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to,
-        subject,
-        body: emailBody || '',
-        from_name: resolvedFromName
-      });
-      emailSent = true;
-    } catch (err) {
-      errorMessage = err?.message || String(err);
-      console.error('SendEmail failed:', errorMessage);
+    if (!emailsEnabled) {
+      errorMessage = 'emails_enabled=false (kill switch global)';
+      console.warn('SendEmail skipped:', errorMessage);
+    } else {
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to,
+          subject,
+          body: emailBody || '',
+          from_name: resolvedFromName
+        });
+        emailSent = true;
+      } catch (err) {
+        errorMessage = err?.message || String(err);
+        console.error('SendEmail failed:', errorMessage);
+      }
     }
 
     // Log en EmailLog

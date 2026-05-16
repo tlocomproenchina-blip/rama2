@@ -90,6 +90,10 @@ async function sendEmail(base44, {
   if (!to) return { sent: false };
 
   const appConfig = await getAppConfig(base44);
+  // Kill switch global
+  if (appConfig.emails_enabled === false) {
+    return { sent: false, skipped: true, reason: 'emails_enabled=false' };
+  }
   const fromName = appConfig.invoice_company_name || appConfig.app_name || 'TLEC CARGO';
   const template = templateName ? await getEmailTemplate(base44, templateName) : null;
   const subject = replaceTemplateVariables(template?.subject || fallbackSubject, variables);

@@ -105,6 +105,12 @@ async function sendEmail(base44, {
   if (!to) return;
 
   const appConfig = await getAppConfig(base44);
+  // Doble kill switch: global + específico de logística
+  if (appConfig.emails_enabled === false) return;
+  if (appConfig.logistics_emails_enabled !== true) {
+    // Logística desactivada por defecto: solo in-app, sin emails
+    return;
+  }
   const fromName = appConfig.invoice_company_name || appConfig.app_name || 'TLEC CARGO';
   const template = templateName ? await getEmailTemplate(base44, templateName) : null;
   const subject = replaceTemplateVariables(template?.subject || fallbackSubject, variables);
