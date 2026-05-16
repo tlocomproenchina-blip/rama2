@@ -96,6 +96,7 @@ import ClientAnalytics from './pages/ClientAnalytics';
 import Dashboard from './pages/Dashboard';
 import FAQ from './pages/FAQ';
 import Home from './pages/Home';
+import MyCbm from './pages/MyCbm';
 import MyConsolidations from './pages/MyConsolidations';
 import MyInvoices from './pages/MyInvoices';
 import MyPackages from './pages/MyPackages';
@@ -166,6 +167,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "FAQ": FAQ,
     "Home": Home,
+    "MyCbm": MyCbm,
     "MyConsolidations": MyConsolidations,
     "MyInvoices": MyInvoices,
     "MyPackages": MyPackages,

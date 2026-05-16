@@ -33,6 +33,7 @@ export const clientMenuItems = [
   { name: 'Mi Perfil', page: 'Profile', icon: Users },
   { name: 'Mis Referidos', page: 'MyReferrals', icon: Gift },
   { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
+  { name: 'Mis CBM', page: 'MyCbm', icon: TrendingUp },
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
   { name: 'Solicitar Consolidación', page: 'RequestConsolidation', icon: Layers },
   { name: 'Consolidaciones', page: 'MyConsolidations', icon: Layers },
@@ -116,7 +117,7 @@ export const adminGroups = [
 
 export const clientGroups = [
   { label: 'PRINCIPAL', items: ['Dashboard'] },
-  { label: 'ENVÍOS', items: ['MyPackages', 'PreAlert', 'RequestConsolidation', 'MyConsolidations'] },
+  { label: 'ENVÍOS', items: ['MyPackages', 'MyCbm', 'PreAlert', 'RequestConsolidation', 'MyConsolidations'] },
   { label: 'PAGOS', items: ['MyInvoices', 'AssistedPayment'] },
   { label: 'SEGUIMIENTO', items: ['ShipmentTracking', 'ShippingCalculator'] },
   { label: 'INFORMACIÓN', items: ['Rates'] },
