@@ -50,16 +50,16 @@ export default function PackagesDesktopTable({
                   onCheckedChange={onSelectAll}
                 />
               </th>
-              <th className="text-left p-3 font-medium text-slate-600 w-[20%]">Tracking</th>
-              <th className="text-left p-3 font-medium text-slate-600 w-[14%]">Shipping Mark</th>
-              <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Tipo</th>
-              <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Carga</th>
-              <th className="text-left p-3 font-medium text-slate-600 w-[6%]">Bultos</th>
-              <th className="text-left p-3 font-medium text-slate-600 w-[7%]">FOB</th>
-              <th className="text-left p-3 font-medium text-slate-600 w-[8%]">Estado</th>
-              <th className="text-left p-3 font-medium text-slate-600 w-[10%]">Registro</th>
-              <th className="text-left p-3 font-medium text-slate-600 w-[10%]">Recepción</th>
-              <th className="text-left pl-2 pr-3 py-3 font-medium text-slate-600 w-[16%]">Acciones</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[17%]">Tracking</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[11%]">Shipping Mark</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[7%]">Tipo</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[7%]">Carga</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[5%]">Bultos</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[6%]">FOB</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[7%]">Estado</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[9%]">Registro</th>
+              <th className="text-left p-3 font-medium text-slate-600 w-[9%]">Recepción</th>
+              <th className="text-left pl-2 pr-3 py-3 font-medium text-slate-600 w-[18%]">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
