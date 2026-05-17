@@ -343,7 +343,10 @@ export default function MyPackages({ user }) {
                     )}
                     {pkg.seller_delivery_date && (
                       <div className="text-[11px] md:text-xs text-indigo-700">
-                        Entrega vendedor: {new Date(pkg.seller_delivery_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        Entrega vendedor: {(() => {
+                          const [y, m, d] = String(pkg.seller_delivery_date).split('-');
+                          return new Date(Number(y), Number(m) - 1, Number(d)).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+                        })()}
                       </div>
                     )}
                     <Button
