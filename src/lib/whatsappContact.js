@@ -14,8 +14,9 @@ export function buildWhatsAppUrl(rawNumber, message = '') {
 /**
  * Genera un mensaje plantilla para contactar a un cliente sobre un paquete.
  */
-export function buildPackageContactMessage(pkg, clientName) {
+export function buildPackageContactMessage(pkg, clientName, shippingMark) {
   const name = clientName ? clientName.split(' ')[0] : 'estimado cliente';
   const tracking = pkg?.tracking_number || '';
-  return `Hola ${name}, le contactamos de TLEC CARGO sobre su paquete con tracking ${tracking}.`;
+  const mark = shippingMark ? ` | Shipping Mark: ${shippingMark}` : '';
+  return `Hola ${name}, le contactamos de TLEC CARGO sobre su paquete con tracking ${tracking}${mark}.`;
 }
