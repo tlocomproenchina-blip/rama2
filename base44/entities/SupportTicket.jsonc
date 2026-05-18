@@ -115,18 +115,7 @@
     "subject"
   ],
   "rls": {
-    "create": {
-      "$or": [
-        {
-          "data.client_email": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
+    "create": {},
     "read": {
       "$or": [
         {
@@ -152,16 +141,9 @@
       ]
     },
     "delete": {
-      "$or": [
-        {
-          "data.client_email": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     }
   }
 }
