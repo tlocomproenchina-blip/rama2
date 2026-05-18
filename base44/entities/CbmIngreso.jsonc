@@ -11,6 +11,10 @@
       "type": "number",
       "description": "Cantidad de CBM reportados"
     },
+    "fob_total": {
+      "type": "number",
+      "description": "Valor FOB total de la carga en USD"
+    },
     "descripcion": {
       "type": "string",
       "description": "Descripci\u00f3n o referencia del ingreso"
