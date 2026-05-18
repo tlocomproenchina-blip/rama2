@@ -114,6 +114,7 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
                   </th>
                   <th className="py-2 pr-3">Fecha</th>
                   <th className="py-2 pr-3">CBM</th>
+                  <th className="py-2 pr-3">Descripción</th>
                   <th className="py-2 pr-3">Factura</th>
                   <th className="py-2 pr-3">Proveedor</th>
                   <th className="py-2 pr-3">Trackings</th>
@@ -133,6 +134,7 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
                     </td>
                     <td className="py-2 pr-3 text-xs text-slate-600">{fmtDate(i.fecha)}</td>
                     <td className="py-2 pr-3 font-semibold text-blue-700">{Number(i.cbm || 0).toFixed(5)}</td>
+                    <td className="py-2 pr-3 text-xs text-slate-700">{i.descripcion || '—'}</td>
                     <td className="py-2 pr-3">{i.invoice_number || '—'}</td>
                     <td className="py-2 pr-3">{i.proveedor || '—'}</td>
                     <td className="py-2 pr-3">
