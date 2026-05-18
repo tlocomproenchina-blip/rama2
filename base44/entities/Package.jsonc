@@ -180,18 +180,7 @@
     "description"
   ],
   "rls": {
-    "create": {
-      "$or": [
-        {
-          "data.client_email": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
-    },
+    "create": {},
     "read": {
       "$or": [
         {
@@ -205,28 +194,14 @@
       ]
     },
     "update": {
-      "$or": [
-        {
-          "data.client_email": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "delete": {
-      "$or": [
-        {
-          "data.client_email": "{{user.email}}"
-        },
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     }
   }
 }
