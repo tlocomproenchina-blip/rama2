@@ -122,6 +122,9 @@
           "data.client_email": "{{user.email}}"
         },
         {
+          "data.assigned_to": "{{user.email}}"
+        },
+        {
           "user_condition": {
             "role": "admin"
           }
