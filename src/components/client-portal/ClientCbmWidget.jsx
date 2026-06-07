@@ -79,7 +79,7 @@ export default function ClientCbmWidget({ userEmail }) {
                 En pro de mejorar nuestros servicios, realizamos la revisión de toda la carga una vez llegue a Venezuela.
               </p>
               <p className="text-xs font-semibold text-red-600 leading-relaxed">
-                El total del espacio ocupado (CBM) y el monto a pagar lo podrá ver una vez sea emitida la factura.
+                El total del espacio ocupado (CBM) y el monto a pagar lo podrá ver una vez sea emitida la orden.
               </p>
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function ClientCbmWidget({ userEmail }) {
                       </span>
                       {item.invoice_number && (
                         <Badge variant="outline" className="text-[10px]">
-                          Factura {item.invoice_number}
+                          Orden N: {item.invoice_number}
                         </Badge>
                       )}
                     </div>

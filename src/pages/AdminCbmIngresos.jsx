@@ -329,7 +329,7 @@ export default function AdminCbmIngresos({ user }) {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar por cliente, shipping mark, tracking, factura..."
+                placeholder="Buscar por cliente, shipping mark, tracking, orden..."
                 value={recordSearch}
                 onChange={(e) => setRecordSearch(e.target.value)}
                 className="pl-10"
@@ -385,7 +385,7 @@ export default function AdminCbmIngresos({ user }) {
                             </p>
                           )}
                           {item.invoice_number && (
-                            <p className="text-xs text-indigo-600 font-medium">📄 Factura: {item.invoice_number}</p>
+                            <p className="text-xs text-indigo-600 font-medium">📄 Orden N: {item.invoice_number}</p>
                           )}
                           {item.tracking_numbers && item.tracking_numbers.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
@@ -489,9 +489,9 @@ export default function AdminCbmIngresos({ user }) {
 
             {/* Invoice number */}
             <div className="space-y-2">
-              <Label>Número de Factura</Label>
+              <Label>Número de Orden</Label>
               <Input
-                placeholder="Ej: FAC-001234"
+                placeholder="Ej: ORD-001234"
                 value={form.invoice_number}
                 onChange={(e) => setForm({ ...form, invoice_number: e.target.value })}
               />

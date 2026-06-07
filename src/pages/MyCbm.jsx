@@ -12,7 +12,7 @@ export default function MyCbm({ user }) {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Mis CBM Registrados</h1>
           <p className="text-sm text-muted-foreground">
-            Consulta el detalle de tus CBM acumulados por factura y por mes.
+            Consulta el detalle de tus CBM acumulados por orden y por mes.
           </p>
         </div>
       </div>
