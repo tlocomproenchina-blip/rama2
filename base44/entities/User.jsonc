@@ -13,11 +13,7 @@
         "almacen",
         "contabilidad",
         "soporte",
-        "marketing",
-        "logistica",
-        "comunicaciones",
-        "seguimiento",
-        "equipo_y_acceso"
+        "marketing"
       ],
       "description": "Rol por \u00e1rea operativa"
     }

@@ -26,6 +26,7 @@ import {
   MessageSquareMore,
   ShieldAlert,
   DollarSign,
+  ReceiptText,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -66,6 +67,7 @@ export const adminMenuItems = [
   { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2 },
   { name: 'Dashboard Contabilidad', page: 'AccountingDashboard', icon: LayoutDashboard },
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
+  { name: 'Facturación Manual', page: 'AdminManualBilling', icon: ReceiptText },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
   { name: 'Pagos Asistidos', page: 'AdminAssistedPayments', icon: CreditCard },
   { name: 'Cuentas por Pagar', page: 'AdminAccountsPayable', icon: Wallet },
@@ -106,7 +108,7 @@ export const adminGroups = [
   { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminPackages', 'AdminPreAlerts', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
-  { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminCbmIngresos'] },
+  { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminCbmIngresos'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
