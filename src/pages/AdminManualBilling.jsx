@@ -42,33 +42,32 @@ export default function AdminManualBilling() {
     setRows([]);
     setLoadingRows(true);
     try {
-      const invoices = await base44.entities.Invoice.filter({ client_email: selectedClient.email }, '-invoice_date', 200);
-      const built = await Promise.all((invoices || []).map(async (inv) => {
-        let packages = [];
-        if (inv.consolidation_id) {
-          packages = await base44.entities.Package.filter({ consolidation_id: inv.consolidation_id }).catch(() => []);
-        }
-        const insured = packages.filter((p) => p.has_insurance);
-        const totalFob = insured.reduce((s, p) => s + num(p.fob_value), 0);
-        const cbm = packages.reduce((s, p) => s + num(p.actual_cbm), 0);
+      const ingresos = await base44.entities.CbmIngreso.filter({ client_email: selectedClient.email }, '-fecha', 200);
+      const built = (ingresos || []).map((ing) => {
+        const cbm = num(ing.cbm);
+        const totalFob = num(ing.fob_total);
+        const trackings = ing.tracking_numbers || [];
         return {
-          id: inv.id,
-          invoice_number: inv.invoice_number,
-          consolidation_tracking: inv.consolidation_tracking,
-          consolidation_id: inv.consolidation_id,
-          total: num(inv.total),
-          package_count: packages.length,
-          insured_count: insured.length,
+          id: ing.id,
+          invoice_number: ing.invoice_number || ing.descripcion || '—',
+          consolidation_tracking: trackings.join(', '),
+          consolidation_id: ing.id,
+          tracking_numbers: trackings,
+          fecha: ing.fecha,
+          total: num(ing.fob_total),
+          package_count: trackings.length,
+          insured_count: totalFob > 0 ? trackings.length : 0,
           total_fob: totalFob,
           selected: false,
+          cbm_original: cbm,
           cbm: cbm ? cbm.toFixed(4) : '',
           shipping_amount: (cbm * ratePerCbm).toFixed(2),
           insurance_amount: (totalFob * 0.05).toFixed(2),
         };
-      }));
+      });
       setRows(built);
     } catch {
-      toast.error('Error al cargar facturas del cliente');
+      toast.error('Error al cargar registros del cliente');
     }
     setLoadingRows(false);
   };
@@ -183,7 +182,7 @@ export default function AdminManualBilling() {
             ) : rows.length === 0 ? (
               <Card className="border-0 shadow-lg">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-slate-500">
-                  Este cliente no tiene facturas registradas.
+                  Este cliente no tiene registros de CBM.
                 </CardContent>
               </Card>
             ) : (

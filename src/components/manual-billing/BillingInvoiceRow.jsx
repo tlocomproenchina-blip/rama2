@@ -18,15 +18,20 @@ export default function BillingInvoiceRow({ row, onChange }) {
             className="mt-1"
           />
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-slate-800 truncate">{row.invoice_number || 'Sin número'}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-blue-700">{Number(row.cbm_original || row.cbm || 0)} CBM</span>
+              {row.invoice_number && row.invoice_number !== '—' && (
+                <span className="text-xs text-indigo-600 font-medium">📄 {row.invoice_number}</span>
+              )}
+            </div>
             <p className="text-xs text-slate-500 truncate">
-              {row.consolidation_tracking || 'Sin tracking'} · Original: ${Number(row.total || 0).toFixed(2)}
+              {row.consolidation_tracking || 'Sin tracking'}
             </p>
             <div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-600">
               <span className="inline-flex items-center gap-1"><PackageIcon className="h-3 w-3" /> {row.package_count} paquete(s)</span>
-              {row.insured_count > 0 && (
+              {row.total_fob > 0 && (
                 <span className="inline-flex items-center gap-1 text-emerald-700">
-                  <ShieldCheck className="h-3 w-3" /> {row.insured_count} asegurado(s) · FOB ${Number(row.total_fob || 0).toFixed(2)}
+                  <ShieldCheck className="h-3 w-3" /> FOB ${Number(row.total_fob || 0).toFixed(2)}
                 </span>
               )}
             </div>
