@@ -78,7 +78,7 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
                   <DollarSign className="h-3 w-3" />
                   ${invoice.total.toFixed(2)}
                 </span>
-                {(invoice.stripe_invoice_pdf_url || invoice.stripe_hosted_invoice_url) && (
+                {showPayButton && (invoice.stripe_invoice_pdf_url || invoice.stripe_hosted_invoice_url) && (
                   <a
                     href={invoice.stripe_invoice_pdf_url || invoice.stripe_hosted_invoice_url}
                     target="_blank"
@@ -117,7 +117,7 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
         )}
 
          <div className="flex gap-2 flex-wrap">
-          {invoice.status === 'pendiente' && invoice.stripe_hosted_invoice_url && (
+          {showPayButton && invoice.status === 'pendiente' && invoice.stripe_hosted_invoice_url && (
             <Button asChild className="flex-1 bg-emerald-600 hover:bg-emerald-700">
               <a href={invoice.stripe_hosted_invoice_url} target="_blank" rel="noopener noreferrer">
                 <CreditCard className="h-4 w-4 mr-2" />
