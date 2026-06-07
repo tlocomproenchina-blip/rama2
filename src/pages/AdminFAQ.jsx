@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Edit, Trash2, HelpCircle, Loader2, MoveUp, MoveDown, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, HelpCircle, Loader2, MoveUp, MoveDown, Search, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
 
 export default function AdminFAQ({ user }) {
   const [faqs, setFaqs] = useState([]);
@@ -112,6 +113,58 @@ export default function AdminFAQ({ user }) {
     });
   };
 
+  const handleExportPDF = () => {
+    const list = filteredFaqs;
+    if (list.length === 0) {
+      toast.error('No hay preguntas para exportar');
+      return;
+    }
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const marginL = 18;
+    const maxW = pageWidth - marginL * 2;
+    let y = 22;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(31, 41, 55);
+    doc.text('Preguntas Frecuentes', marginL, y);
+    y += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Generado el ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`, marginL, y);
+    y += 10;
+
+    const ensureSpace = (needed) => {
+      if (y + needed > pageHeight - 18) {
+        doc.addPage();
+        y = 22;
+      }
+    };
+
+    list.forEach((faq, idx) => {
+      const qLines = doc.splitTextToSize(`${idx + 1}. ${faq.question}`, maxW);
+      const aLines = doc.splitTextToSize(faq.answer || '', maxW);
+      ensureSpace(qLines.length * 6 + aLines.length * 5 + 12);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(31, 41, 55);
+      qLines.forEach((line) => { doc.text(line, marginL, y); y += 6; });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      aLines.forEach((line) => { doc.text(line, marginL, y); y += 5; });
+      y += 7;
+    });
+
+    doc.save('preguntas-frecuentes.pdf');
+    toast.success('PDF generado');
+  };
+
   const categoryLabels = {
     general: 'General',
     envios: 'Envíos',
@@ -155,10 +208,16 @@ export default function AdminFAQ({ user }) {
           <h1 className="text-2xl font-bold text-slate-800">Preguntas Frecuentes</h1>
           <p className="text-slate-500">Gestiona las FAQ que verán los clientes</p>
         </div>
-        <Button onClick={() => setShowDialog(true)} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Pregunta
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportPDF}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar PDF
+          </Button>
+          <Button onClick={() => setShowDialog(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Nueva Pregunta
+          </Button>
+        </div>
       </div>
 
       <Card className="border-0 shadow-lg">
