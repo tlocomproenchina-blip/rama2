@@ -253,9 +253,19 @@ export default function AdminInvoices({ user }) {
     doc.text('Cliente:', 20, yPos);
     doc.setFontSize(10);
     
-    // Get client details
-    const clientUsers = await base44.entities.User.filter({ email: invoice.client_email });
-    const clientUser = clientUsers[0];
+    // Get client details (robusto: intenta filtro directo y luego búsqueda manual)
+    let clientUser = null;
+    try {
+      const clientUsers = await base44.entities.User.filter({ email: invoice.client_email });
+      clientUser = clientUsers?.[0] || null;
+    } catch { clientUser = null; }
+    if (!clientUser && invoice.client_email) {
+      try {
+        const allUsers = await base44.entities.User.list('-created_date', 1000);
+        const target = (invoice.client_email || '').toLowerCase().trim();
+        clientUser = (allUsers || []).find(u => (u.email || '').toLowerCase().trim() === target) || null;
+      } catch { /* ignore */ }
+    }
 
     yPos += 7;
 
