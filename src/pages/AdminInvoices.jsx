@@ -13,7 +13,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX } from 'lucide-react';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
 
 export default function AdminInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
@@ -205,55 +204,11 @@ export default function AdminInvoices({ user }) {
   };
 
   const handleDownloadPDF = async (invoice) => {
-    const doc = new jsPDF();
-    
-    // Get invoice config
+    // Config de la empresa
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
-    const appConfig = configs[0] || {};
-    
-    const companyName = appConfig.invoice_company_name || 'TLEC CARGO LTD';
-    const companyTagline = appConfig.invoice_company_tagline || 'Sistema de Envios Internacionales';
-    const logoUrl = appConfig.invoice_logo_url;
-    
-    let yPos = 20;
-    
-    // Header with logo if available
-    if (logoUrl) {
-      try {
-        const imgData = await fetch(logoUrl).then(res => res.blob()).then(blob => {
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-        });
-        doc.addImage(imgData, 'PNG', 20, 10, 40, 15);
-        yPos = 30;
-      } catch (error) {
-        console.error('Error loading logo:', error);
-      }
-    }
-    
-    // Company name and tagline
-    doc.setFontSize(20);
-    doc.text(companyName, logoUrl ? 65 : 20, logoUrl ? 17 : 20);
-    doc.setFontSize(10);
-    doc.text(companyTagline, logoUrl ? 65 : 20, logoUrl ? 24 : 27);
-    
-    doc.setFontSize(16);
-    doc.text('FACTURA', 150, logoUrl ? 17 : 20);
-    doc.setFontSize(10);
-    doc.text(`No: ${invoice.invoice_number}`, 150, logoUrl ? 24 : 27);
-    doc.text(`Fecha: ${new Date(invoice.invoice_date).toLocaleDateString()}`, 150, logoUrl ? 31 : 33);
-    
-    yPos = logoUrl ? 45 : 50;
-    
-    // Client Info
-    doc.setFontSize(12);
-    doc.text('Cliente:', 20, yPos);
-    doc.setFontSize(10);
-    
-    // Get client details (robusto: intenta filtro directo y luego búsqueda manual)
+    const cfg = configs[0] || {};
+
+    // Datos del cliente (robusto: filtro directo y luego búsqueda manual)
     let clientUser = null;
     try {
       const clientUsers = await base44.entities.User.filter({ email: invoice.client_email });
@@ -267,157 +222,8 @@ export default function AdminInvoices({ user }) {
       } catch { /* ignore */ }
     }
 
-    yPos += 7;
-
-    // Nombre y apellido
-    const fullName = [clientUser?.first_name, clientUser?.last_name].filter(Boolean).join(' ').trim()
-      || clientUser?.full_name || '';
-    if (fullName) {
-      doc.text(fullName, 20, yPos);
-      yPos += 5;
-    }
-
-    // Email
-    doc.text(invoice.client_email, 20, yPos);
-    yPos += 5;
-
-    // Número de contacto
-    const phone = clientUser?.whatsapp || clientUser?.phone;
-    if (phone) {
-      doc.text(`Tel: ${phone}`, 20, yPos);
-      yPos += 5;
-    }
-
-    // Dirección
-    const address = [clientUser?.address, clientUser?.city, clientUser?.state, clientUser?.country]
-      .filter(Boolean).join(', ').trim();
-    if (address) {
-      const addrLines = doc.splitTextToSize(`Dirección: ${address}`, 170);
-      addrLines.forEach(line => {
-        doc.text(line, 20, yPos);
-        yPos += 5;
-      });
-    }
-
-    yPos += 3;
-
-    // Parse notes for client details
-    if (invoice.notes) {
-      const notesLines = invoice.notes.split('\n').filter(line => 
-        !line.startsWith('Paquetes:') && !line.startsWith('Trackings:')
-      );
-      notesLines.forEach(line => {
-        doc.text(line, 20, yPos);
-        yPos += 5;
-      });
-    }
-    
-    // Get packages for this consolidation
-    let packages = [];
-    let totalFOB = 0;
-    if (invoice.consolidation_id) {
-      packages = await base44.entities.Package.filter({ 
-        consolidation_id: invoice.consolidation_id 
-      });
-      totalFOB = packages.reduce((sum, pkg) => sum + (pkg.fob_value || 0), 0);
-    }
-    
-    yPos += 5;
-    
-    // Show tracking list
-    if (packages.length > 0) {
-      doc.setFontSize(10);
-      doc.text(`Paquetes: ${packages.length}`, 20, yPos);
-      yPos += 5;
-      doc.setFontSize(9);
-      doc.text('Trackings:', 20, yPos);
-      yPos += 5;
-      
-      packages.forEach((pkg) => {
-        // Check if we need a new page
-        if (yPos > 270) {
-          doc.addPage();
-          yPos = 20;
-        }
-        
-        const fobText = pkg.fob_value ? `FOB: $${Number(pkg.fob_value || 0).toFixed(2)}` : 'Sin seguro';
-        
-        // Tracking number
-        doc.text(pkg.tracking_number, 25, yPos);
-        
-        // Description (wrapped if too long)
-        const descLines = doc.splitTextToSize(pkg.description || 'N/A', 100);
-        descLines.forEach((line, idx) => {
-          doc.text(line, 80, yPos + (idx * 4));
-        });
-        
-        // FOB value aligned to the right
-        doc.text(fobText, 190, yPos, { align: 'right' });
-        
-        yPos += Math.max(4, descLines.length * 4);
-      });
-      
-      yPos += 5;
-    }
-    
-    // Items Section
-    doc.setFontSize(12);
-    doc.text('Concepto', 20, yPos);
-    doc.text('Total', 170, yPos);
-    yPos += 5;
-    doc.line(20, yPos, 190, yPos);
-    yPos += 7;
-    
-    doc.setFontSize(10);
-    invoice.items?.forEach(item => {
-      // Check if we need a new page
-      if (yPos > 270) {
-        doc.addPage();
-        yPos = 20;
-      }
-      
-      doc.text(item.description, 20, yPos);
-      doc.text(`$${Number(item.total || 0).toFixed(2)}`, 170, yPos);
-      yPos += 6;
-      
-      // Add insurance details if it's insurance item
-      if (item.description.toLowerCase().includes('seguro')) {
-        doc.setFontSize(8);
-        doc.text(`  Total FOB Declarado: $${Number(totalFOB || 0).toFixed(2)}`, 20, yPos);
-        yPos += 4;
-        doc.text(`  Tasa de Seguro: 5%`, 20, yPos);
-        yPos += 4;
-        doc.setFontSize(10);
-        yPos += 3;
-      }
-    });
-    
-    // Check if we need a new page for totals
-    if (yPos > 250) {
-      doc.addPage();
-      yPos = 20;
-    }
-    
-    yPos += 5;
-    doc.line(20, yPos, 190, yPos);
-    yPos += 7;
-    doc.setFontSize(12);
-    doc.text('TOTAL:', 130, yPos);
-    doc.text(`$${Number(invoice.total || 0).toFixed(2)}`, 170, yPos);
-    
-    yPos += 10;
-    doc.setFontSize(10);
-    doc.text(`Estado: ${invoice.status.toUpperCase()}`, 20, yPos);
-    
-    if (invoice.payment_date) {
-      yPos += 7;
-      doc.text(`Pagado: ${new Date(invoice.payment_date).toLocaleDateString()}`, 20, yPos);
-      if (invoice.payment_method) {
-        yPos += 5;
-        doc.text(`Metodo: ${invoice.payment_method}`, 20, yPos);
-      }
-    }
-    
+    const { buildInvoicePdf } = await import('@/components/invoice/InvoicePdfBuilder');
+    const doc = await buildInvoicePdf(invoice, cfg, clientUser);
     doc.save(`factura-${invoice.invoice_number}.pdf`);
     toast.success('Factura descargada');
   };
