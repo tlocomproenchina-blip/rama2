@@ -78,16 +78,7 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
                   <DollarSign className="h-3 w-3" />
                   ${invoice.total.toFixed(2)}
                 </span>
-                {showPayButton && (invoice.stripe_invoice_pdf_url || invoice.stripe_hosted_invoice_url) && (
-                  <a
-                    href={invoice.stripe_invoice_pdf_url || invoice.stripe_hosted_invoice_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline decoration-dotted text-emerald-700 hover:text-emerald-800"
-                  >
-                    Ver factura de Stripe
-                  </a>
-                )}
+
               </div>
             </div>
           </div>
