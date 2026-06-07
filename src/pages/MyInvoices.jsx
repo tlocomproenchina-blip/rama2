@@ -114,7 +114,7 @@ export default function MyInvoices({ user }) {
     
     // Invoice info
     doc.setFontSize(16);
-    doc.text('ORDEN DE PAGO', 150, 20);
+    doc.text('FACTURA', 150, 20);
     doc.setFontSize(10);
     doc.text(`No: ${invoice.invoice_number}`, 150, 27);
     doc.text(`Fecha: ${new Date(invoice.invoice_date).toLocaleDateString()}`, 150, 33);
@@ -160,8 +160,8 @@ export default function MyInvoices({ user }) {
       doc.text(`Pagado: ${new Date(invoice.payment_date).toLocaleDateString()}`, 20, yPos);
     }
     
-    doc.save(`orden-${invoice.invoice_number}.pdf`);
-    toast.success('Orden descargada');
+    doc.save(`factura-${invoice.invoice_number}.pdf`);
+    toast.success('Factura descargada');
   };
 
   const filteredInvoices = useMemo(() => {
@@ -218,8 +218,8 @@ export default function MyInvoices({ user }) {
       <ClientPageHero
         icon={FileText}
         eyebrow="Finanzas y ayuda"
-        title="Mis Órdenes de Pago"
-        description="Gestiona, busca y descarga tus órdenes de pago con una vista más clara y premium."
+        title="Mis Facturas"
+        description="Gestiona, busca y descarga tus facturas con una vista más clara y premium."
         badges={[`${visibleInvoices.length} visibles`, config?.payments_enable_stripe === true ? 'Stripe activo' : 'Stripe inactivo']}
         aside={
           <div className="space-y-3">
@@ -227,13 +227,13 @@ export default function MyInvoices({ user }) {
             <div className="rounded-2xl bg-slate-100/90 px-3 py-2 text-sm font-semibold text-slate-700">
               {invoiceStats.pendientes} pendiente(s) de pago
             </div>
-            <p className="text-sm text-muted-foreground">Busca por número de orden o tracking para ubicar más rápido cada documento.</p>
+            <p className="text-sm text-muted-foreground">Busca por número de factura o tracking para ubicar más rápido cada documento.</p>
           </div>
         }
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <PortalMetricCard title="Total" value={invoiceStats.total} subtitle="Órdenes registradas" icon={FileText} tone="blue" />
+        <PortalMetricCard title="Total" value={invoiceStats.total} subtitle="Facturas registradas" icon={FileText} tone="blue" />
         <PortalMetricCard title="Pendientes" value={invoiceStats.pendientes} subtitle="Esperando pago" icon={CreditCard} tone="amber" />
         <PortalMetricCard title="En revisión" value={invoiceStats.revision} subtitle="Pagos por validar" icon={Loader2} tone="violet" />
         <PortalMetricCard title="Pagadas" value={invoiceStats.pagadas} subtitle="Documentos completados" icon={FileText} tone="blue" />
@@ -246,7 +246,7 @@ export default function MyInvoices({ user }) {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por número de orden o tracking..."
+              placeholder="Buscar por número de factura o tracking..."
               className="pl-10"
             />
           </div>
@@ -257,15 +257,15 @@ export default function MyInvoices({ user }) {
         <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-16 w-16 text-slate-300 mb-4" />
-            <p className="text-slate-500">No tienes órdenes de pago aún</p>
-            <p className="text-slate-400 text-sm mt-2">Si recién generaste una consolidación, la orden puede tardar ~15s en aparecer.</p>
+            <p className="text-slate-500">No tienes facturas aún</p>
+            <p className="text-slate-400 text-sm mt-2">Si recién generaste una consolidación, la factura puede tardar ~15s en aparecer.</p>
           </CardContent>
         </Card>
       ) : (
         <>
           <ClientSectionHeader
-            title="Órdenes disponibles"
-            description="Revisa cada orden, descarga su PDF o continúa con el pago correspondiente."
+            title="Facturas disponibles"
+            description="Revisa cada factura, descarga su PDF o continúa con el pago correspondiente."
           />
           <div className="grid gap-4">
             {visibleInvoices.map((invoice) => (
@@ -306,13 +306,13 @@ export default function MyInvoices({ user }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md bg-white rounded-xl shadow p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-slate-800">Pagar Orden</h3>
+              <h3 className="text-lg font-semibold text-slate-800">Pagar factura</h3>
               <Button variant="ghost" onClick={() => setStripeOpen(false)}>Cerrar</Button>
             </div>
             <div className="mb-4 text-sm text-slate-600">
               {selectedInvoice && (
                 <div className="flex justify-between">
-                  <span>Orden #{selectedInvoice.invoice_number}</span>
+                  <span>Factura #{selectedInvoice.invoice_number}</span>
                   <span className="font-medium">${selectedInvoice.total.toFixed(2)}</span>
                 </div>
               )}

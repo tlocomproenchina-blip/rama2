@@ -563,7 +563,7 @@ export default function AdminSettings({ user }) {
             </TabsTrigger>
             <TabsTrigger value="facturas" className="flex items-center gap-2 text-xs">
               <FileText className="h-4 w-4" />
-              <span className="hidden md:inline">Órdenes</span>
+              <span className="hidden md:inline">Facturas</span>
             </TabsTrigger>
             <TabsTrigger value="privacidad" className="flex items-center gap-2 text-xs">
               <ShieldCheck className="h-4 w-4" />
@@ -1452,10 +1452,10 @@ export default function AdminSettings({ user }) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Configuración de Orden de Pago
+                Configuración de Factura
               </CardTitle>
               <CardDescription>
-                Personaliza la información que aparece en las órdenes PDF
+                Personaliza la información que aparece en las facturas PDF
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
@@ -1607,7 +1607,7 @@ export default function AdminSettings({ user }) {
 
               <Button onClick={handleSaveGeneral} disabled={saving} className="w-full">
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Guardar configuración de órdenes
+                Guardar configuración de facturas
               </Button>
             </CardContent>
           </Card>
