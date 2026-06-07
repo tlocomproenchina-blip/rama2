@@ -40,7 +40,14 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
 
   const companyName = appConfig.invoice_company_name || 'TLEC GROUP LLC';
   const companyTagline = appConfig.invoice_company_tagline || '';
-  const companyAddress = appConfig.warehouse_address || '';
+  const companyAddress = appConfig.invoice_company_address || appConfig.warehouse_address || '';
+  const companyDetailLines = [
+    appConfig.invoice_company_address || '',
+    appConfig.invoice_company_city_zip || '',
+    appConfig.invoice_company_country || '',
+    appConfig.invoice_company_phone || '',
+    appConfig.invoice_company_email || '',
+  ].filter(Boolean);
   const logoUrl = appConfig.invoice_logo_url;
 
   let y = 22;
@@ -94,13 +101,16 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
   yLeft += 5;
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...colGray);
-  const companyLines = [companyTagline, companyAddress].filter(Boolean).join('\n');
-  if (companyLines) {
-    doc.splitTextToSize(companyLines, pageWidth / 2 - 30).forEach((line) => {
+  // Usar campos dedicados de empresa si existen; si no, caer al tagline + dirección de almacén
+  const companyBlock = companyDetailLines.length > 0
+    ? [companyTagline, ...companyDetailLines]
+    : [companyTagline, companyAddress];
+  companyBlock.filter(Boolean).forEach((text) => {
+    doc.splitTextToSize(String(text), pageWidth / 2 - 30).forEach((line) => {
       doc.text(line, marginL, yLeft);
       yLeft += 4.5;
     });
-  }
+  });
 
   // Facturar a
   doc.setFont('helvetica', 'bold');

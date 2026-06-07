@@ -1479,6 +1479,63 @@ export default function AdminSettings({ user }) {
                 <p className="text-xs text-slate-500">Texto que aparece debajo del nombre de la empresa</p>
               </div>
 
+              {/* Datos de empresa que aparecen en la factura PDF */}
+              <div className="p-4 md:p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-slate-600" />
+                  <h3 className="font-semibold text-slate-800">Datos de empresa</h3>
+                </div>
+                <p className="text-sm text-slate-600 -mt-2">Estos datos aparecen en el bloque de la empresa de la factura PDF.</p>
+
+                <div className="space-y-2">
+                  <Label>Dirección</Label>
+                  <Textarea
+                    value={appConfig.invoice_company_address || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, invoice_company_address: e.target.value })}
+                    placeholder="Railway arch 165 11 Robert dashwood way SE17 3PZ"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Ciudad / Código postal</Label>
+                    <Input
+                      value={appConfig.invoice_company_city_zip || ''}
+                      onChange={(e) => setAppConfig({ ...appConfig, invoice_company_city_zip: e.target.value })}
+                      placeholder="London SE17 3PZ"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>País</Label>
+                    <Input
+                      value={appConfig.invoice_company_country || ''}
+                      onChange={(e) => setAppConfig({ ...appConfig, invoice_company_country: e.target.value })}
+                      placeholder="Reino Unido"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Teléfono</Label>
+                    <Input
+                      value={appConfig.invoice_company_phone || ''}
+                      onChange={(e) => setAppConfig({ ...appConfig, invoice_company_phone: e.target.value })}
+                      placeholder="+86 151 1566 1301"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email de contacto</Label>
+                    <Input
+                      value={appConfig.invoice_company_email || ''}
+                      onChange={(e) => setAppConfig({ ...appConfig, invoice_company_email: e.target.value })}
+                      placeholder="tlecomproenchina@gmail.com"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Logo para Facturas (Relación 1:1)</Label>
                 <div className="flex items-start gap-4">

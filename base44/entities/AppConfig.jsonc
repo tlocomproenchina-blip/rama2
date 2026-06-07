@@ -70,6 +70,26 @@
       "default": "Sistema de Envios Internacionales",
       "description": "Tagline shown on invoices"
     },
+    "invoice_company_address": {
+      "type": "string",
+      "description": "Direcci\u00f3n de la empresa que aparece en la factura PDF"
+    },
+    "invoice_company_city_zip": {
+      "type": "string",
+      "description": "Ciudad y c\u00f3digo postal de la empresa en la factura PDF"
+    },
+    "invoice_company_country": {
+      "type": "string",
+      "description": "Pa\u00eds de la empresa en la factura PDF"
+    },
+    "invoice_company_phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de la empresa en la factura PDF"
+    },
+    "invoice_company_email": {
+      "type": "string",
+      "description": "Email de contacto de la empresa en la factura PDF"
+    },
     "invoice_logo_url": {
       "type": "string",
       "description": "URL of company logo for invoices (1:1 ratio)"
