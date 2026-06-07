@@ -43,6 +43,7 @@ export const clientMenuItems = [
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: CreditCard },
   { name: 'Tarifas', page: 'Rates', icon: FileText },
+  { name: 'Contrato', page: 'Contract', icon: FileText },
   { name: 'Ayuda (FAQ)', page: 'FAQ', icon: HelpCircle },
   { name: 'Soporte', page: 'Support', icon: MessageCircle },
 ];
@@ -122,7 +123,7 @@ export const clientGroups = [
   { label: 'ENVÍOS', items: ['MyPackages', 'MyCbm', 'PreAlert', 'RequestConsolidation', 'MyConsolidations'] },
   { label: 'PAGOS', items: ['MyInvoices', 'AssistedPayment'] },
   { label: 'SEGUIMIENTO', items: ['ShipmentTracking', 'ShippingCalculator'] },
-  { label: 'INFORMACIÓN', items: ['Rates'] },
+  { label: 'INFORMACIÓN', items: ['Rates', 'Contract'] },
   { label: 'SOPORTE', items: ['FAQ', 'Support'] },
   { label: 'CUENTA', items: ['Profile', 'MyReferrals'] },
 ];

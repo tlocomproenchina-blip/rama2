@@ -41,6 +41,7 @@ const AdminClients = lazy(() => import('./pages/AdminClients'));
 const AdminInvoices = lazy(() => import('./pages/AdminInvoices'));
 const AdminCreditUsage = lazy(() => import('./pages/AdminCreditUsage'));
 const AdminManualBilling = lazy(() => import('./pages/AdminManualBilling'));
+const Contract = lazy(() => import('./pages/Contract'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -154,6 +155,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminInvoices" element={lazyRoute(AdminInvoices, "AdminInvoices")} />
       <Route path="/AdminCreditUsage" element={lazyRoute(AdminCreditUsage, "AdminCreditUsage")} />
       <Route path="/AdminManualBilling" element={lazyRoute(AdminManualBilling, "AdminManualBilling")} />
+      <Route path="/Contract" element={lazyRoute(Contract, "Contract")} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
