@@ -241,13 +241,44 @@ export default function AdminInvoices({ user }) {
     doc.text('Cliente:', 20, yPos);
     doc.setFontSize(10);
     
-    // Get client details for whatsapp
+    // Get client details
     const clientUsers = await base44.entities.User.filter({ email: invoice.client_email });
     const clientUser = clientUsers[0];
-    
-    doc.text(invoice.client_email, 20, yPos + 7);
-    yPos += 13;
-    
+
+    yPos += 7;
+
+    // Nombre y apellido
+    const fullName = [clientUser?.first_name, clientUser?.last_name].filter(Boolean).join(' ').trim()
+      || clientUser?.full_name || '';
+    if (fullName) {
+      doc.text(fullName, 20, yPos);
+      yPos += 5;
+    }
+
+    // Email
+    doc.text(invoice.client_email, 20, yPos);
+    yPos += 5;
+
+    // Número de contacto
+    const phone = clientUser?.whatsapp || clientUser?.phone;
+    if (phone) {
+      doc.text(`Tel: ${phone}`, 20, yPos);
+      yPos += 5;
+    }
+
+    // Dirección
+    const address = [clientUser?.address, clientUser?.city, clientUser?.state, clientUser?.country]
+      .filter(Boolean).join(', ').trim();
+    if (address) {
+      const addrLines = doc.splitTextToSize(`Dirección: ${address}`, 170);
+      addrLines.forEach(line => {
+        doc.text(line, 20, yPos);
+        yPos += 5;
+      });
+    }
+
+    yPos += 3;
+
     // Parse notes for client details
     if (invoice.notes) {
       const notesLines = invoice.notes.split('\n').filter(line => 
@@ -257,12 +288,6 @@ export default function AdminInvoices({ user }) {
         doc.text(line, 20, yPos);
         yPos += 5;
       });
-    }
-    
-    // WhatsApp
-    if (clientUser?.whatsapp) {
-      doc.text(`WhatsApp: ${clientUser.whatsapp}`, 20, yPos);
-      yPos += 5;
     }
     
     // Get packages for this consolidation
