@@ -150,6 +150,35 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
 
   y += 6;
 
+  // ===== Bloque de servicio DDP (arriba de la tabla) =====
+  const cargoType = invoice.shipping_type === 'aereo' ? 'Air Freight' : 'Sea Freight';
+  const serviceMode = invoice.shipping_type === 'aereo' ? 'Air Freight (DDP)' : 'Maritime Freight (DDP)';
+  const ddpHeader = `International Logistics Service – DDP Door to Door (${cargoType})`;
+  const ddpLines = [
+    'Origin: China',
+    'Destination: Venezuela',
+    `Service Mode: ${serviceMode}`,
+    'Cargo Type: General',
+    'Handling: Consolidated Shipment',
+    `Shipment Reference: ${invoice.consolidation_tracking || ''}`,
+  ];
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...colDark);
+  doc.text(ddpHeader, marginL, y);
+  y += 7;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...colDark);
+  ddpLines.forEach((line) => {
+    doc.text(line, marginL, y);
+    y += 5;
+  });
+
+  y += 8;
+
   // ===== Tabla de conceptos =====
   const colCantX = pageWidth - 95;
   const colPriceX = pageWidth - 60;
@@ -211,6 +240,36 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
     doc.setTextColor(...colDark);
     doc.text(value, colImporteX, y, { align: 'right' });
     y += 7;
+  });
+
+  // ===== Service Terms (notas legales) =====
+  y += 8;
+  const termsHeader = 'Service Terms – International Logistics (DDP)';
+  const termsParagraphs = [
+    'This invoice corresponds to international freight forwarding and logistics services under Delivered Duty Paid (DDP) terms, including freight transportation, customs clearance, applicable import duties and final delivery to destination.',
+    'TLEC Cargo LTD acts solely as logistics and freight service provider and does not sell or resell transported goods.',
+    'Payments become non-refundable once cargo processing, consolidation or shipment reservation has commenced.',
+  ];
+
+  ensureSpace(10 + termsParagraphs.length * 14);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...colDark);
+  doc.text(termsHeader, marginL, y);
+  y += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...colGray);
+  termsParagraphs.forEach((para) => {
+    const lines = doc.splitTextToSize(para, marginR - marginL);
+    ensureSpace(lines.length * 4.5 + 4);
+    lines.forEach((line) => {
+      doc.text(line, marginL, y);
+      y += 4.5;
+    });
+    y += 4;
   });
 
   // ===== Pie de página con número de página =====
