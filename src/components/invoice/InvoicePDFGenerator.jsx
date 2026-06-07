@@ -25,15 +25,6 @@ export default function InvoicePDFGenerator({ invoice, user }) {
 
   const generatePDF = async () => {
     try {
-      // Preferir factura de Stripe (PDF directo) cuando exista
-      if (invoice?.stripe_invoice_pdf_url) {
-        window.open(invoice.stripe_invoice_pdf_url, '_blank');
-        return;
-      }
-      if (invoice?.stripe_hosted_invoice_url) {
-        window.open(invoice.stripe_hosted_invoice_url, '_blank');
-        return;
-      }
       setGenerating(true);
 
       // Buscar datos del cliente de forma robusta
