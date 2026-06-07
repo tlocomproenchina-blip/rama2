@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ReceiptText } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Loader2, ReceiptText, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 import ClientInfoCard from '@/components/manual-billing/ClientInfoCard';
@@ -20,6 +21,7 @@ export default function AdminManualBilling() {
   const [manualConsolidationFee, setManualConsolidationFee] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [creating, setCreating] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -163,13 +165,52 @@ export default function AdminManualBilling() {
     setCreating(false);
   };
 
+  // Recupera registros marcados como facturados cuya factura ya no existe (huérfanos)
+  const handleRecoverOrphans = async () => {
+    setRecovering(true);
+    try {
+      const billed = await base44.entities.CbmIngreso.filter({ billed: true }, '-fecha', 500).catch(() => []);
+      if (!billed || billed.length === 0) {
+        toast.info('No hay registros facturados para revisar');
+        setRecovering(false);
+        return;
+      }
+      // Obtener IDs de facturas existentes
+      const invoiceIds = [...new Set(billed.map((b) => b.billed_invoice_id).filter(Boolean))];
+      const existingInvoices = await Promise.all(
+        invoiceIds.map((id) => base44.entities.Invoice.filter({ id }).then((r) => r?.[0]).catch(() => null))
+      );
+      const existingIds = new Set(existingInvoices.filter(Boolean).map((inv) => inv.id));
+
+      // Huérfanos: facturados sin factura existente (o sin billed_invoice_id)
+      const orphans = billed.filter((b) => !b.billed_invoice_id || !existingIds.has(b.billed_invoice_id));
+      if (orphans.length === 0) {
+        toast.success('Todo en orden: no hay registros huérfanos');
+        setRecovering(false);
+        return;
+      }
+      await Promise.all(orphans.map((o) => base44.entities.CbmIngreso.update(o.id, { billed: false, billed_invoice_id: null })));
+      toast.success(`${orphans.length} registro(s) recuperado(s) y disponibles de nuevo`);
+      if (client) loadClientInvoices(client);
+    } catch {
+      toast.error('Error al recuperar registros');
+    }
+    setRecovering(false);
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <ReceiptText className="h-6 w-6 text-blue-600" /> Facturación Manual
-        </h1>
-        <p className="text-slate-500">Busca un cliente, selecciona facturas registradas y genera una factura combinada</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <ReceiptText className="h-6 w-6 text-blue-600" /> Facturación Manual
+          </h1>
+          <p className="text-slate-500">Busca un cliente, selecciona facturas registradas y genera una factura combinada</p>
+        </div>
+        <Button variant="outline" onClick={handleRecoverOrphans} disabled={recovering}>
+          {recovering ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+          Recuperar registros huérfanos
+        </Button>
       </div>
 
       <Card className="border-0 shadow-lg">
