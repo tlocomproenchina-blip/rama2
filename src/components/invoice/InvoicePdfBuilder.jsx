@@ -38,15 +38,15 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
   const colDark = [31, 41, 55];
   const colGray = [107, 114, 128];
 
-  const companyName = appConfig.invoice_company_name || 'TLEC GROUP LLC';
-  const companyTagline = appConfig.invoice_company_tagline || '';
+  const companyName = appConfig.invoice_company_name || 'TLEC CARGO';
+  const companyTagline = appConfig.invoice_company_tagline || 'Tu carga asegurada desde China hasta Venezuela';
   const companyAddress = appConfig.invoice_company_address || appConfig.warehouse_address || '';
   const companyDetailLines = [
-    appConfig.invoice_company_address || '',
-    appConfig.invoice_company_city_zip || '',
-    appConfig.invoice_company_country || '',
-    appConfig.invoice_company_phone || '',
-    appConfig.invoice_company_email || '',
+    appConfig.invoice_company_address || '1309 Coffeen Avenue STE 1200 Sheridan 82801',
+    appConfig.invoice_company_city_zip || 'Wyoming',
+    appConfig.invoice_company_country || 'Estados Unidos',
+    appConfig.invoice_company_phone || '15026946833',
+    appConfig.invoice_company_email || 'tleccargo@gmail.com',
   ].filter(Boolean);
   const logoUrl = appConfig.invoice_logo_url;
 
