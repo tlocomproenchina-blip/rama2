@@ -43,7 +43,9 @@ export default function AdminManualBilling() {
     setLoadingRows(true);
     try {
       const ingresos = await base44.entities.CbmIngreso.filter({ client_email: selectedClient.email }, '-fecha', 200);
-      const built = (ingresos || []).map((ing) => {
+      // Excluir registros que ya fueron facturados (solo se liberan al desconsolidar)
+      const available = (ingresos || []).filter((ing) => !ing.billed);
+      const built = available.map((ing) => {
         const cbm = num(ing.cbm);
         const totalFob = num(ing.fob_total);
         const trackings = ing.tracking_numbers || [];
@@ -144,9 +146,15 @@ export default function AdminManualBilling() {
         notes: `Factura manual combinada generada desde ${selectedRows.length} factura(s): ${selectedRows.map((r) => r.invoice_number).join(', ')}`,
       });
 
+      // Marcar los registros de CBM usados como facturados (se liberan al desconsolidar)
+      await Promise.all(selectedRows.map((r) =>
+        base44.entities.CbmIngreso.update(r.id, { billed: true, billed_invoice_id: invoice.id })
+      ));
+
       toast.success(`Factura ${invoice.invoice_number} generada`);
-      // Reset selection
-      setRows((prev) => prev.map((r) => ({ ...r, selected: false })));
+      // Quitar de la lista los registros ya facturados
+      const billedIds = new Set(selectedRows.map((r) => r.id));
+      setRows((prev) => prev.filter((r) => !billedIds.has(r.id)));
       setPaymentMethod('');
       setManualConsolidationFee('');
     } catch {

@@ -499,12 +499,25 @@ export default function AdminInvoices({ user }) {
 
     setDeconsolidating(true);
     try {
+      // Caso factura manual combinada: liberar registros de CBM y eliminar la factura
+      const billedCbm = await base44.entities.CbmIngreso.filter({ billed_invoice_id: deconsolidateConfirm.id }).catch(() => []);
+      if (billedCbm && billedCbm.length > 0) {
+        await Promise.all(billedCbm.map(c => base44.entities.CbmIngreso.update(c.id, { billed: false, billed_invoice_id: null })));
+        await base44.entities.Invoice.delete(deconsolidateConfirm.id);
+        toast.success(`Factura desconsolidada. ${billedCbm.length} registro(s) liberado(s) en Facturación Manual.`);
+        setDeconsolidateConfirm(null);
+        loadInvoices();
+        setDeconsolidating(false);
+        return;
+      }
+
       const consolidation = await base44.entities.Consolidation.filter({ 
         id: deconsolidateConfirm.consolidation_id 
       });
 
       if (!consolidation || consolidation.length === 0) {
         toast.error('Consolidación no encontrada');
+        setDeconsolidating(false);
         return;
       }
 
