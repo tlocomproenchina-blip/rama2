@@ -177,13 +177,25 @@ export default function AdminInvoices({ user }) {
     setProcessing(false);
   };
 
+  // Libera los registros de CBM facturados manualmente vinculados a una factura
+  const releaseBilledCbm = async (invoiceId) => {
+    const billedCbm = await base44.entities.CbmIngreso.filter({ billed_invoice_id: invoiceId }).catch(() => []);
+    if (billedCbm && billedCbm.length > 0) {
+      await Promise.all(billedCbm.map(c => base44.entities.CbmIngreso.update(c.id, { billed: false, billed_invoice_id: null })));
+    }
+    return billedCbm?.length || 0;
+  };
+
   const handleDeleteInvoice = async () => {
     if (!deleteInvoice) return;
     
     setDeleting(true);
     try {
+      const released = await releaseBilledCbm(deleteInvoice.id);
       await base44.entities.Invoice.delete(deleteInvoice.id);
-      toast.success('Factura eliminada exitosamente');
+      toast.success(released > 0
+        ? `Factura eliminada. ${released} registro(s) liberado(s) en Facturación Manual.`
+        : 'Factura eliminada exitosamente');
       setDeleteInvoice(null);
       loadInvoices();
     } catch (error) {
@@ -463,6 +475,7 @@ export default function AdminInvoices({ user }) {
       const selectedInvs = invoices.filter(i => selectedInvoices.includes(i.id));
 
       if (bulkAction === 'delete') {
+        await Promise.all(selectedInvs.map(inv => releaseBilledCbm(inv.id)));
         await Promise.all(selectedInvs.map(inv => 
           base44.entities.Invoice.delete(inv.id)
         ));
