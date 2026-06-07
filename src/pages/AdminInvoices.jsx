@@ -453,13 +453,13 @@ export default function AdminInvoices({ user }) {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Gestión de Facturas</h1>
-          <p className="text-slate-500">Administra facturas y pagos de clientes</p>
+          <h1 className="text-2xl font-bold text-slate-800">Gestión de Órdenes de Pago</h1>
+          <p className="text-slate-500">Administra órdenes de pago de clientes</p>
         </div>
         <div className="header-actions flex flex-wrap gap-2 w-full sm:w-auto">
           <Button onClick={() => setShowCreateModal(true)} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="h-4 w-4 mr-2" />
-            Crear Factura
+            Crear Orden
           </Button>
           <Button onClick={handleExportAll} variant="outline">
             <Download className="h-4 w-4 mr-2" />
@@ -477,7 +477,7 @@ export default function AdminInvoices({ user }) {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">Total Facturas</p>
+                <p className="text-sm text-slate-500">Total Órdenes</p>
                 <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
               </div>
               <FileText className="h-8 w-8 text-blue-600" />
@@ -611,7 +611,7 @@ export default function AdminInvoices({ user }) {
         <Card className="border-0 shadow-lg">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-16 w-16 text-slate-300 mb-4" />
-            <p className="text-slate-500">No se encontraron facturas</p>
+            <p className="text-slate-500">No se encontraron órdenes de pago</p>
           </CardContent>
         </Card>
       ) : (
@@ -691,7 +691,7 @@ export default function AdminInvoices({ user }) {
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Crear Factura Manual</DialogTitle>
+            <DialogTitle>Crear Orden Manual</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -716,7 +716,7 @@ export default function AdminInvoices({ user }) {
             </Button>
             <Button onClick={handleCreateInvoice} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
               {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Crear Factura
+              Crear Orden
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -726,7 +726,7 @@ export default function AdminInvoices({ user }) {
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Factura</DialogTitle>
+            <DialogTitle>Editar Orden</DialogTitle>
           </DialogHeader>
           {editingInvoice && (
             <div className="space-y-4 py-4">
@@ -819,12 +819,12 @@ export default function AdminInvoices({ user }) {
       <AlertDialog open={!!deleteInvoice} onOpenChange={() => setDeleteInvoice(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar Factura?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Estás a punto de eliminar la factura{' '}
-              <span className="font-semibold text-slate-800">{deleteInvoice?.invoice_number}</span>.
-              Esta acción no se puede deshacer.
-            </AlertDialogDescription>
+           <AlertDialogTitle>¿Eliminar Orden?</AlertDialogTitle>
+           <AlertDialogDescription>
+             Estás a punto de eliminar la orden{' '}
+             <span className="font-semibold text-slate-800">{deleteInvoice?.invoice_number}</span>.
+             Esta acción no se puede deshacer.
+           </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
@@ -852,7 +852,7 @@ export default function AdminInvoices({ user }) {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Desconsolidar Consolidación?</AlertDialogTitle>
             <AlertDialogDescription>
-              Estás a punto de desconsolidar la factura{' '}
+              Estás a punto de desconsolidar la orden{' '}
               <span className="font-semibold text-slate-800">{deconsolidateConfirm?.invoice_number}</span>
               {' '}asociada a la consolidación{' '}
               <span className="font-semibold text-slate-800">{deconsolidateConfirm?.consolidation_tracking}</span>.
@@ -896,12 +896,12 @@ export default function AdminInvoices({ user }) {
             <AlertDialogDescription>
               {bulkAction === 'delete' ? (
                 <>
-                  Estás a punto de <span className="font-semibold text-red-600">eliminar {selectedInvoices.length} factura(s)</span>.
-                  Esta acción no se puede deshacer.
-                </>
-              ) : bulkAction === 'status' ? (
-                <>
-                  Cambiarás el estado de <span className="font-semibold">{selectedInvoices.length} factura(s)</span> a{' '}
+                    Estás a punto de <span className="font-semibold text-red-600">eliminar {selectedInvoices.length} orden(es)</span>.
+                    Esta acción no se puede deshacer.
+                  </>
+                ) : bulkAction === 'status' ? (
+                  <>
+                    Cambiarás el estado de <span className="font-semibold">{selectedInvoices.length} orden(es)</span> a{' '}
                   <span className="font-semibold text-blue-600">{bulkStatus}</span>.
                 </>
               ) : null}
