@@ -92,7 +92,7 @@ export async function exportSelectedToExcel(selectedPackages = []) {
       return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()}`;
     };
 
-    const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'FOB', 'Foto', 'Registrado', 'Entrega vendedor', 'Recibido'];
+    const headers = ['Cliente', 'Numero de tracking', 'Descripcion', 'FOB', 'Foto producto', 'Foto 1', 'Foto 2', 'Foto 3', 'Registrado', 'Entrega vendedor', 'Recibido'];
 
     // Agrupar por cliente (shipping_mark), preservando el orden de aparición
     const groupsMap = new Map();
@@ -113,11 +113,15 @@ export async function exportSelectedToExcel(selectedPackages = []) {
       let groupTotal = 0;
 
       pkgs.forEach((pkg) => {
-        const photo = (Array.isArray(pkg.package_image_urls) && pkg.package_image_urls[0])
-          || pkg.package_image_url
-          || pkg.product_image_url
-          || pkg.invoice_url
-          || '';
+        // Foto del producto (subida por el cliente en la pre-alerta)
+        const productPhoto = pkg.product_image_url || '';
+        // Fotos del paquete al recibirlo (hasta 3)
+        const receivedPhotos = Array.isArray(pkg.package_image_urls) && pkg.package_image_urls.length > 0
+          ? pkg.package_image_urls.slice(0, 3)
+          : (pkg.package_image_url ? [pkg.package_image_url] : []);
+        const photo1 = receivedPhotos[0] || '';
+        const photo2 = receivedPhotos[1] || '';
+        const photo3 = receivedPhotos[2] || '';
 
         const fobNum = Number(pkg.fob_value) || 0;
         groupTotal += fobNum;
@@ -127,28 +131,33 @@ export async function exportSelectedToExcel(selectedPackages = []) {
           pkg.tracking_number || '',
           pkg.description || '',
           fobNum,
-          photo ? 'Ver foto' : '',
+          productPhoto ? 'Ver foto' : '',
+          photo1 ? 'Ver foto' : '',
+          photo2 ? 'Ver foto' : '',
+          photo3 ? 'Ver foto' : '',
           fmtDate(pkg.created_date),
           fmtDate(pkg.seller_delivery_date),
           fmtDate(pkg.received_date)
         ];
         aoa.push(row);
 
-        if (photo) {
-          hyperlinks.push({ row: aoa.length - 1, col: 4, url: photo });
-        }
+        const rowIdx = aoa.length - 1;
+        if (productPhoto) hyperlinks.push({ row: rowIdx, col: 4, url: productPhoto });
+        if (photo1) hyperlinks.push({ row: rowIdx, col: 5, url: photo1 });
+        if (photo2) hyperlinks.push({ row: rowIdx, col: 6, url: photo2 });
+        if (photo3) hyperlinks.push({ row: rowIdx, col: 7, url: photo3 });
       });
 
       // Fila TOTAL FOB
       const totalRowIdx = aoa.length;
-      aoa.push(['', '', 'TOTAL FOB', groupTotal, '', '', '', '']);
+      aoa.push(['', '', 'TOTAL FOB', groupTotal, '', '', '', '', '', '', '']);
       totalRows.push(totalRowIdx);
       // Merge de las 3 primeras celdas para "TOTAL FOB"
       merges.push({ s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 2 } });
 
       // Fila vacía entre grupos (no después del último)
       if (idx < groups.length - 1) {
-        aoa.push(['', '', '', '', '', '', '', '']);
+        aoa.push(['', '', '', '', '', '', '', '', '', '', '']);
       }
     });
 
@@ -160,7 +169,10 @@ export async function exportSelectedToExcel(selectedPackages = []) {
       { wch: 28 }, // Tracking
       { wch: 55 }, // Descripcion
       { wch: 10 }, // FOB
-      { wch: 12 }, // Foto
+      { wch: 13 }, // Foto producto
+      { wch: 10 }, // Foto 1
+      { wch: 10 }, // Foto 2
+      { wch: 10 }, // Foto 3
       { wch: 12 }, // Registrado
       { wch: 16 }, // Entrega vendedor
       { wch: 12 }, // Recibido
