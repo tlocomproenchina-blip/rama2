@@ -622,7 +622,7 @@ export default function PreAlert({ user }) {
           <Button 
             type="submit" 
             className="flex-1 bg-blue-600 hover:bg-blue-700"
-            disabled={saving}
+            disabled={saving || !productPhoto}
           >
             {saving ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</>
@@ -634,6 +634,12 @@ export default function PreAlert({ user }) {
             )}
           </Button>
         </div>
+        {!productPhoto && (
+          <p className="mt-2 text-center text-sm text-amber-600 flex items-center justify-center gap-1">
+            <AlertCircle className="h-4 w-4" />
+            Debes subir la foto del producto para poder crear la pre-alerta.
+          </p>
+        )}
       </form>
     </div>
   );
