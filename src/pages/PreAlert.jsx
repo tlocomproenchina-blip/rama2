@@ -130,7 +130,7 @@ export default function PreAlert({ user }) {
       newErrors.fob_value = 'Valor FOB requerido';
     }
 
-    if (!uploadsDisabled && !productPhoto) {
+    if (!productPhoto) {
       newErrors.product_photo = 'La foto del producto es obligatoria';
     }
 
@@ -153,24 +153,24 @@ export default function PreAlert({ user }) {
       let invoiceUrl = null;
       let productPhotoUrl = null;
 
-      // Uploads opcionales: si no hay créditos, continuar sin archivos
-      if (!uploadsDisabled && productPhoto) {
-        try {
-          const { file_url } = await base44.integrations.Core.UploadFile({ file: productPhoto });
-          productPhotoUrl = file_url;
-        } catch (uploadError) {
-          setUploadsDisabled(true);
-          toast.warning('La carga de fotos está temporalmente desactivada. Continuaremos sin adjuntos.');
-        }
+      // Foto del producto OBLIGATORIA: si falla la subida, detener y mostrar error
+      try {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: productPhoto });
+        productPhotoUrl = file_url;
+      } catch (uploadError) {
+        setErrors({ product_photo: 'No se pudo subir la foto. Verifica tu conexión e intenta nuevamente.' });
+        toast.error('No se pudo subir la foto del producto. Es obligatoria para crear la pre-alerta.');
+        setSaving(false);
+        return;
       }
-      
-      if (!uploadsDisabled && invoiceFile) {
+
+      // Factura opcional: si falla, continuar sin ella
+      if (invoiceFile) {
         try {
           const { file_url } = await base44.integrations.Core.UploadFile({ file: invoiceFile });
           invoiceUrl = file_url;
         } catch (uploadError) {
-          setUploadsDisabled(true);
-          toast.warning('La carga de archivos está temporalmente desactivada. Continuaremos sin adjuntos.');
+          toast.warning('No se pudo subir la factura. Continuaremos sin ella.');
         }
       }
 
@@ -216,7 +216,7 @@ export default function PreAlert({ user }) {
         });
       });
 
-      toast.success(uploadsDisabled ? 'Pre-alerta creada exitosamente sin adjuntos' : 'Pre-alerta creada exitosamente');
+      toast.success('Pre-alerta creada exitosamente');
       navigate(createPageUrl('MyPackages'));
     } catch (error) {
       console.error('Error creating pre-alert:', error);
