@@ -152,10 +152,10 @@ export default function ClientCbmWidget({ userEmail }) {
                         ? format(new Date(item.fecha), 'dd MMM yyyy · HH:mm', { locale: es })
                         : '—'}
                     </p>
-                    {item.fecha_salida_valencia && (
-                      <p className="text-[11px] text-violet-700 flex items-center gap-1 font-medium mt-1">
-                        <MapPinned className="h-3 w-3" /> Salida Almacén Valencia: {format(new Date(item.fecha_salida_valencia + 'T12:00:00'), 'dd MMM yyyy', { locale: es })}
-                      </p>
+                    {item.disponible_entrega && (
+                      <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold mt-1 w-fit">
+                        ✓ Disponible para entrega
+                      </Badge>
                     )}
                     {item.fecha_salida && (
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">

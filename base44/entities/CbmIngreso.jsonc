@@ -74,10 +74,10 @@
       "format": "date",
       "description": "Fecha estimada de llegada (fecha_salida + 90 d\u00edas)"
     },
-    "fecha_salida_valencia": {
-      "type": "string",
-      "format": "date",
-      "description": "Fecha de salida del Almac\u00e9n Valencia"
+    "disponible_entrega": {
+      "type": "boolean",
+      "default": false,
+      "description": "Carga disponible para entrega (visible para el cliente)"
     },
     "description": {
       "type": "string",

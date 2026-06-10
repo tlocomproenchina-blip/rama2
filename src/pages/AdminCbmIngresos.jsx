@@ -28,7 +28,7 @@ export default function AdminCbmIngresos({ user }) {
   const [saving, setSaving] = useState(false);
   const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-01'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [form, setForm] = useState({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '', fecha_salida_valencia: '' });
+  const [form, setForm] = useState({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '', disponible_entrega: false });
   const [editingId, setEditingId] = useState(null);
   const [clients, setClients] = useState([]);
   const [clientSearch, setClientSearch] = useState('');
@@ -170,7 +170,7 @@ export default function AdminCbmIngresos({ user }) {
         invoice_number: fresh.invoice_number || '',
         fecha_salida: fresh.fecha_salida || '',
         fecha_estimada_llegada: fresh.fecha_estimada_llegada || '',
-        fecha_salida_valencia: fresh.fecha_salida_valencia || ''
+        disponible_entrega: !!fresh.disponible_entrega
       });
       setShowForm(true);
     } catch (e) {
@@ -180,7 +180,7 @@ export default function AdminCbmIngresos({ user }) {
   };
 
   const resetForm = () => {
-    setForm({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '', fecha_salida_valencia: '' });
+    setForm({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '', disponible_entrega: false });
     setEditingId(null);
     setClientPackages([]);
   };
@@ -205,7 +205,7 @@ export default function AdminCbmIngresos({ user }) {
       invoice_number: form.invoice_number || '',
       fecha_salida: form.fecha_salida || '',
       fecha_estimada_llegada: form.fecha_estimada_llegada || '',
-      fecha_salida_valencia: form.fecha_salida_valencia || ''
+      disponible_entrega: !!form.disponible_entrega
     };
     if (editingId) {
       await base44.entities.CbmIngreso.update(editingId, payload);
@@ -410,11 +410,10 @@ export default function AdminCbmIngresos({ user }) {
                               {item.fecha_estimada_llegada && <span className="text-slate-500 ml-1">· Llegada est.: {item.fecha_estimada_llegada}</span>}
                             </p>
                           )}
-                          {item.fecha_salida_valencia && (
-                            <p className="text-xs text-violet-600 flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              Salida Almacén Valencia: {item.fecha_salida_valencia}
-                            </p>
+                          {item.disponible_entrega && (
+                            <Badge className="mt-1 text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold w-fit">
+                              ✓ Disponible para entrega
+                            </Badge>
                           )}
                         </div>
                       </div>
@@ -581,15 +580,16 @@ export default function AdminCbmIngresos({ user }) {
               </div>
             )}
 
-            {/* Salida Almacén Valencia */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Salida Almacén Valencia</Label>
-              <Input
-                type="date"
-                value={form.fecha_salida_valencia}
-                onChange={(e) => setForm({ ...form, fecha_salida_valencia: e.target.value })}
+            {/* Disponible para entrega */}
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+              <Checkbox
+                id="disponible-entrega"
+                checked={!!form.disponible_entrega}
+                onCheckedChange={(checked) => setForm({ ...form, disponible_entrega: !!checked })}
               />
-              <p className="text-[11px] text-muted-foreground">Fecha en la que la carga sale del Almacén Valencia. Visible para el cliente.</p>
+              <Label htmlFor="disponible-entrega" className="cursor-pointer text-sm font-medium text-emerald-800">
+                Disponible para entrega
+              </Label>
             </div>
 
             <div className="space-y-2">
