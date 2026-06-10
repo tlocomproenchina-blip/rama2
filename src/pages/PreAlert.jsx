@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 import { logActionAudit } from '@/lib/actionAudit';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
 export default function PreAlert({ user }) {
   const navigate = useNavigate();
@@ -155,8 +156,7 @@ export default function PreAlert({ user }) {
 
       // Foto del producto OBLIGATORIA: si falla la subida, detener y mostrar error
       try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: productPhoto });
-        productPhotoUrl = file_url;
+        productPhotoUrl = await uploadImageNoCredits(productPhoto);
       } catch (uploadError) {
         setErrors({ product_photo: 'No se pudo subir la foto. Verifica tu conexión e intenta nuevamente.' });
         toast.error('No se pudo subir la foto del producto. Es obligatoria para crear la pre-alerta.');
@@ -167,8 +167,12 @@ export default function PreAlert({ user }) {
       // Factura opcional: si falla, continuar sin ella
       if (invoiceFile) {
         try {
-          const { file_url } = await base44.integrations.Core.UploadFile({ file: invoiceFile });
-          invoiceUrl = file_url;
+          if (invoiceFile.type?.startsWith('image/')) {
+            invoiceUrl = await uploadImageNoCredits(invoiceFile);
+          } else {
+            const { file_url } = await base44.integrations.Core.UploadFile({ file: invoiceFile });
+            invoiceUrl = file_url;
+          }
         } catch (uploadError) {
           toast.warning('No se pudo subir la factura. Continuaremos sin ella.');
         }
