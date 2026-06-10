@@ -8,18 +8,19 @@ import { es } from 'date-fns/locale';
 
 export default function ClientCbmWidget({ userEmail }) {
   const [ingresos, setIngresos] = useState([]);
+  const [paidInvoiceIds, setPaidInvoiceIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userEmail) return;
     (async () => {
       try {
-        const data = await base44.entities.CbmIngreso.filter(
-          { client_email: userEmail },
-          '-fecha',
-          50
-        );
+        const [data, paidInvoices] = await Promise.all([
+          base44.entities.CbmIngreso.filter({ client_email: userEmail }, '-fecha', 50),
+          base44.entities.Invoice.filter({ client_email: userEmail, status: 'pagada' }, '-invoice_date', 100)
+        ]);
         setIngresos(data || []);
+        setPaidInvoiceIds(new Set((paidInvoices || []).map((inv) => inv.id)));
       } catch {
         setIngresos([]);
       }
@@ -118,6 +119,11 @@ export default function ClientCbmWidget({ userEmail }) {
                       {item.invoice_number && (
                         <Badge variant="outline" className="text-[10px]">
                           Orden N: {item.invoice_number}
+                        </Badge>
+                      )}
+                      {item.billed_invoice_id && paidInvoiceIds.has(item.billed_invoice_id) && (
+                        <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold">
+                          PAGADA
                         </Badge>
                       )}
                     </div>
