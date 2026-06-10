@@ -104,7 +104,7 @@ export default function AdminCbmIngresos({ user }) {
     } else {
       // Al buscar, incluir todos los registros sin importar el período de fechas
       result = allIngresos.filter((item) => {
-        if (orderQ && !(item.invoice_number || '').toLowerCase().includes(orderQ)) return false;
+        if (orderQ && (item.invoice_number || '').trim().toLowerCase() !== orderQ) return false;
         if (!q) return true;
         const haystack = [
           item.client_name,
