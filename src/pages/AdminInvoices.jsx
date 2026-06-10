@@ -23,7 +23,8 @@ export default function AdminInvoices({ user }) {
     total: 0,
     paid: 0,
     pending: 0,
-    revenue: 0
+    revenue: 0,
+    profit: 0
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -80,12 +81,13 @@ export default function AdminInvoices({ user }) {
     const nextList = append ? [...invoices, ...enrichedData] : enrichedData;
 
     // Calcular stats en un solo pase (antes: 4 .filter() iteraciones)
-    let paid = 0, pending = 0, revenue = 0;
+    let paid = 0, pending = 0, revenue = 0, profit = 0;
     for (const i of nextList) {
       if (i.status === 'pagada') { paid++; revenue += Number(i.total) || 0; }
       else if (i.status === 'pendiente') pending++;
+      if (i.profit_amount !== undefined && i.profit_amount !== null) profit += Number(i.profit_amount) || 0;
     }
-    setStats({ total: nextList.length, paid, pending, revenue });
+    setStats({ total: nextList.length, paid, pending, revenue, profit });
 
     setInvoices(nextList);
     setHasMore(data.length === pageSize);
@@ -231,13 +233,15 @@ export default function AdminInvoices({ user }) {
 
 
   const handleExportAll = () => {
-    const csv = ['Número,Cliente,Fecha,Total,Estado,Método de Pago'];
+    const csv = ['Número,Cliente,Fecha,Total,Costo Proveedor,Ganancia,Estado,Método de Pago'];
     invoices.forEach(inv => {
       csv.push([
         inv.invoice_number,
         inv.client_email,
         new Date(inv.invoice_date).toLocaleDateString(),
         Number(inv.total || 0).toFixed(2),
+        inv.provider_cost_total != null ? Number(inv.provider_cost_total).toFixed(2) : '',
+        inv.profit_amount != null ? Number(inv.profit_amount).toFixed(2) : '',
         inv.status,
         inv.payment_method || 'N/A'
       ].join(','));
@@ -472,7 +476,7 @@ export default function AdminInvoices({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -517,6 +521,18 @@ export default function AdminInvoices({ user }) {
                 <p className="text-2xl font-bold text-emerald-600">${Number(stats.revenue || 0).toFixed(2)}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-emerald-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Ganancia</p>
+                <p className="text-2xl font-bold text-purple-600">${Number(stats.profit || 0).toFixed(2)}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -618,12 +634,17 @@ export default function AdminInvoices({ user }) {
         <div className="grid gap-4">
           {filteredInvoices.map(invoice => (
             <div key={invoice.id} className="relative group">
-              <div className="absolute top-4 left-4 z-10">
+              <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
                 <Checkbox 
                   checked={selectedInvoices.includes(invoice.id)}
                   onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked)}
                   className="bg-white"
                 />
+                {invoice.profit_amount != null && (
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${Number(invoice.profit_amount) >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
+                    Ganancia: ${Number(invoice.profit_amount).toFixed(2)}
+                  </span>
+                )}
               </div>
               <InvoiceCard
                 invoice={invoice}
