@@ -22,6 +22,7 @@ import CbmStateCostPanel from '@/components/accounting/CbmStateCostPanel';
 
 export default function AdminCbmIngresos({ user }) {
   const [ingresos, setIngresos] = useState([]);
+  const [allIngresos, setAllIngresos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -40,6 +41,7 @@ export default function AdminCbmIngresos({ user }) {
     setLoading(true);
     const { fetchAllPaginated } = await import('@/lib/fetchAllPaginated');
     const all = await fetchAllPaginated('CbmIngreso', { sort: '-fecha' });
+    setAllIngresos(all || []);
     const fromDate = new Date(dateFrom + 'T00:00:00');
     const toDate = new Date(dateTo + 'T23:59:59');
     const filtered = (all || []).filter(item => {
@@ -85,7 +87,8 @@ export default function AdminCbmIngresos({ user }) {
   const filteredIngresos = useMemo(() => {
     const q = recordSearch.trim().toLowerCase();
     if (!q) return ingresos;
-    return ingresos.filter((item) => {
+    // Al buscar, incluir todos los registros sin importar el período de fechas
+    return allIngresos.filter((item) => {
       const haystack = [
         item.client_name,
         item.client_email,
@@ -98,7 +101,7 @@ export default function AdminCbmIngresos({ user }) {
       ].filter(Boolean).join(' ').toLowerCase();
       return haystack.includes(q);
     });
-  }, [ingresos, recordSearch]);
+  }, [ingresos, allIngresos, recordSearch]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -336,7 +339,7 @@ export default function AdminCbmIngresos({ user }) {
               />
               {recordSearch && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  {filteredIngresos.length} de {ingresos.length} registro(s)
+                  {filteredIngresos.length} de {allIngresos.length} registro(s) (búsqueda en todos los períodos)
                 </p>
               )}
             </div>
