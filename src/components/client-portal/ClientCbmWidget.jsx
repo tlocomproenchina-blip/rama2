@@ -100,7 +100,7 @@ export default function ClientCbmWidget({ userEmail }) {
                 })()}
               </span>
               <Badge variant="outline" className="text-xs">
-                {group.cbm.toFixed(3)} CBM
+                {group.records.length} {group.records.length === 1 ? 'orden' : 'órdenes'}
               </Badge>
             </div>
 
