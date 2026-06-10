@@ -438,7 +438,11 @@ export default function AdminCbmIngresos({ user }) {
                           className="flex-shrink-0"
                         />
                         <div className="text-center min-w-[36px]">
-                          <p className="text-xs text-muted-foreground">#{filteredIngresos.length - idx}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(sortBy === 'orden_asc' || sortBy === 'orden_desc')
+                              ? (item.invoice_number ? `N°${item.invoice_number}` : '—')
+                              : `#${filteredIngresos.length - idx}`}
+                          </p>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
