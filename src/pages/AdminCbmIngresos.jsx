@@ -37,6 +37,7 @@ export default function AdminCbmIngresos({ user }) {
   const [clientPackages, setClientPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [recordSearch, setRecordSearch] = useState('');
+  const [orderFilter, setOrderFilter] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
 
@@ -93,9 +94,12 @@ export default function AdminCbmIngresos({ user }) {
 
   const filteredIngresos = useMemo(() => {
     const q = recordSearch.trim().toLowerCase();
-    if (!q) return ingresos;
+    const orderQ = orderFilter.trim().toLowerCase();
+    if (!q && !orderQ) return ingresos;
     // Al buscar, incluir todos los registros sin importar el período de fechas
     return allIngresos.filter((item) => {
+      if (orderQ && !(item.invoice_number || '').toLowerCase().includes(orderQ)) return false;
+      if (!q) return true;
       const haystack = [
         item.client_name,
         item.client_email,
@@ -108,7 +112,7 @@ export default function AdminCbmIngresos({ user }) {
       ].filter(Boolean).join(' ').toLowerCase();
       return haystack.includes(q);
     });
-  }, [ingresos, allIngresos, recordSearch]);
+  }, [ingresos, allIngresos, recordSearch, orderFilter]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -338,16 +342,25 @@ export default function AdminCbmIngresos({ user }) {
 
         <TabsContent value="registros" className="mt-4 space-y-3">
           {!loading && ingresos.length > 0 && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Buscar por cliente, shipping mark, tracking, orden..."
-                value={recordSearch}
-                onChange={(e) => setRecordSearch(e.target.value)}
-                className="pl-10"
-              />
-              {recordSearch && (
-                <p className="text-xs text-muted-foreground mt-1">
+            <div className="space-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Buscar por cliente, shipping mark, tracking..."
+                    value={recordSearch}
+                    onChange={(e) => setRecordSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Input
+                  placeholder="N° de orden"
+                  value={orderFilter}
+                  onChange={(e) => setOrderFilter(e.target.value)}
+                />
+              </div>
+              {(recordSearch || orderFilter) && (
+                <p className="text-xs text-muted-foreground">
                   {filteredIngresos.length} de {allIngresos.length} registro(s) (búsqueda en todos los períodos)
                 </p>
               )}
