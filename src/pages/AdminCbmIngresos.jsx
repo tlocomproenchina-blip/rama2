@@ -18,6 +18,7 @@ import PageHero from '@/components/common/PageHero';
 import CbmMonthlySummary from '@/components/accounting/CbmMonthlySummary';
 import CbmClientSummary from '@/components/accounting/CbmClientSummary';
 import CbmStateCostPanel from '@/components/accounting/CbmStateCostPanel';
+import CbmBulkEditDialog from '@/components/admin/CbmBulkEditDialog';
 
 
 export default function AdminCbmIngresos({ user }) {
@@ -36,6 +37,12 @@ export default function AdminCbmIngresos({ user }) {
   const [clientPackages, setClientPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [recordSearch, setRecordSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -369,12 +376,35 @@ export default function AdminCbmIngresos({ user }) {
             </Card>
           ) : (
             <div className="space-y-3">
+              {/* Selection bar */}
+              <div className="flex items-center justify-between gap-2 px-1">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="select-all-cbm"
+                    checked={selectedIds.length > 0 && selectedIds.length === filteredIngresos.length}
+                    onCheckedChange={(c) => setSelectedIds(c ? filteredIngresos.map(i => i.id) : [])}
+                  />
+                  <Label htmlFor="select-all-cbm" className="text-xs text-slate-600 cursor-pointer">
+                    {selectedIds.length > 0 ? `${selectedIds.length} seleccionado(s)` : 'Seleccionar todos'}
+                  </Label>
+                </div>
+                {selectedIds.length > 0 && (
+                  <Button size="sm" onClick={() => setShowBulkEdit(true)} className="gap-2">
+                    <Pencil className="h-4 w-4" /> Editar seleccionados
+                  </Button>
+                )}
+              </div>
               {filteredIngresos.map((item, idx) => {
                 const runningTotal = filteredIngresos.slice(0, idx + 1).reduce((s, i) => s + Number(i.cbm || 0), 0);
                 return (
                   <Card key={item.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
                     <CardContent className="p-4 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Checkbox
+                          checked={selectedIds.includes(item.id)}
+                          onCheckedChange={() => toggleSelect(item.id)}
+                          className="flex-shrink-0"
+                        />
                         <div className="text-center min-w-[36px]">
                           <p className="text-xs text-muted-foreground">#{filteredIngresos.length - idx}</p>
                         </div>
@@ -443,6 +473,14 @@ export default function AdminCbmIngresos({ user }) {
           <CbmStateCostPanel ingresos={ingresos} />
         </TabsContent>
       </Tabs>
+
+      {/* Bulk edit dialog */}
+      <CbmBulkEditDialog
+        open={showBulkEdit}
+        onOpenChange={setShowBulkEdit}
+        selectedIds={selectedIds}
+        onDone={() => { setSelectedIds([]); loadData(); }}
+      />
 
       {/* Form dialog */}
       <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) resetForm(); }}>
