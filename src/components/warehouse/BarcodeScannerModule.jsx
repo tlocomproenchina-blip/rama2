@@ -20,6 +20,7 @@ export default function BarcodeScannerModule({
   extraAction,
   inputClassName = '',
   autoStartCamera = false,
+  continuous = false,
 }) {
   const [scanValue, setScanValue] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -33,6 +34,8 @@ export default function BarcodeScannerModule({
 
   const scanAttemptsRef = useRef(0);
   const canvasRef = useRef(null);
+  const lastCodeRef = useRef('');
+  const lastDetectedAtRef = useRef(0);
 
   const cameraSupported = typeof window !== 'undefined' && !!navigator?.mediaDevices?.getUserMedia;
   const nativeBarcodeSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
@@ -115,11 +118,25 @@ export default function BarcodeScannerModule({
       }
 
       if (code) {
-        handleDetected(code);
-        toast.success('Código detectado');
-        setCameraOpen(false);
-        stopCamera();
-        return;
+        if (continuous) {
+          const now = Date.now();
+          const isDuplicate = code === lastCodeRef.current && now - lastDetectedAtRef.current < 4000;
+          if (!isDuplicate) {
+            lastCodeRef.current = code;
+            lastDetectedAtRef.current = now;
+            handleDetected(code);
+            toast.success(`Código agregado: ${code}`);
+            if (navigator.vibrate) navigator.vibrate(100);
+            // Pausa breve antes de seguir escaneando el siguiente código
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+          }
+        } else {
+          handleDetected(code);
+          toast.success('Código detectado');
+          setCameraOpen(false);
+          stopCamera();
+          return;
+        }
       }
     }
 
@@ -156,6 +173,8 @@ export default function BarcodeScannerModule({
 
     streamRef.current = stream;
     scanAttemptsRef.current = 0;
+    lastCodeRef.current = '';
+    lastDetectedAtRef.current = 0;
 
     // Aplica capacidades avanzadas si el dispositivo las soporta (S25 Ultra sí):
     // enfoque continuo, exposición automática y modo macro/zoom suave para códigos pequeños.

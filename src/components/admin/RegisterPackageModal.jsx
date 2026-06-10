@@ -365,6 +365,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             actionLabel="Agregar tracking"
             cameraLabel="Usar cámara"
             autoStartCamera={cameraOpen}
+            continuous
             value=""
             onValueChange={() => {}}
             onDetected={(value) => {
@@ -376,7 +377,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 return [...filled, code, ''];
               });
               checkTrackingDuplicate(code);
-              setCameraOpen(false);
             }}
           />
         </DialogContent>
