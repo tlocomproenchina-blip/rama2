@@ -74,6 +74,11 @@
       "format": "date",
       "description": "Fecha estimada de llegada (fecha_salida + 90 d\u00edas)"
     },
+    "fecha_salida_valencia": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de salida del Almac\u00e9n Valencia"
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,

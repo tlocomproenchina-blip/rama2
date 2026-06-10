@@ -28,7 +28,7 @@ export default function AdminCbmIngresos({ user }) {
   const [saving, setSaving] = useState(false);
   const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-01'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [form, setForm] = useState({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '' });
+  const [form, setForm] = useState({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '', fecha_salida_valencia: '' });
   const [editingId, setEditingId] = useState(null);
   const [clients, setClients] = useState([]);
   const [clientSearch, setClientSearch] = useState('');
@@ -169,7 +169,8 @@ export default function AdminCbmIngresos({ user }) {
         tracking_numbers: fresh.tracking_numbers || [],
         invoice_number: fresh.invoice_number || '',
         fecha_salida: fresh.fecha_salida || '',
-        fecha_estimada_llegada: fresh.fecha_estimada_llegada || ''
+        fecha_estimada_llegada: fresh.fecha_estimada_llegada || '',
+        fecha_salida_valencia: fresh.fecha_salida_valencia || ''
       });
       setShowForm(true);
     } catch (e) {
@@ -179,7 +180,7 @@ export default function AdminCbmIngresos({ user }) {
   };
 
   const resetForm = () => {
-    setForm({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '' });
+    setForm({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '', fecha_salida_valencia: '' });
     setEditingId(null);
     setClientPackages([]);
   };
@@ -203,7 +204,8 @@ export default function AdminCbmIngresos({ user }) {
       tracking_numbers: form.tracking_numbers || [],
       invoice_number: form.invoice_number || '',
       fecha_salida: form.fecha_salida || '',
-      fecha_estimada_llegada: form.fecha_estimada_llegada || ''
+      fecha_estimada_llegada: form.fecha_estimada_llegada || '',
+      fecha_salida_valencia: form.fecha_salida_valencia || ''
     };
     if (editingId) {
       await base44.entities.CbmIngreso.update(editingId, payload);
@@ -408,6 +410,12 @@ export default function AdminCbmIngresos({ user }) {
                               {item.fecha_estimada_llegada && <span className="text-slate-500 ml-1">· Llegada est.: {item.fecha_estimada_llegada}</span>}
                             </p>
                           )}
+                          {item.fecha_salida_valencia && (
+                            <p className="text-xs text-violet-600 flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              Salida Almacén Valencia: {item.fecha_salida_valencia}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -572,6 +580,17 @@ export default function AdminCbmIngresos({ user }) {
                 <p className="text-[11px] text-muted-foreground">Calculado automáticamente: fecha de salida + 90 días</p>
               </div>
             )}
+
+            {/* Salida Almacén Valencia */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Salida Almacén Valencia</Label>
+              <Input
+                type="date"
+                value={form.fecha_salida_valencia}
+                onChange={(e) => setForm({ ...form, fecha_salida_valencia: e.target.value })}
+              />
+              <p className="text-[11px] text-muted-foreground">Fecha en la que la carga sale del Almacén Valencia. Visible para el cliente.</p>
+            </div>
 
             <div className="space-y-2">
               <Label>Proveedor / Almacén</Label>
