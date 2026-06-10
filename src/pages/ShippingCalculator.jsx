@@ -110,23 +110,38 @@ export default function ShippingCalculator({ user }) {
       chargedBy = `${billableWeight.toFixed(2)} kg`;
     } else {
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
-      const usedCbm = Math.max(calculatedCbm, MIN_CBM);
+      const usedCbm = calculatedCbm;
       densityKgPerCbm = usedCbm > 0 ? realWeight / usedCbm : 0;
       maritimeMultiplier = realWeight > usedCbm * DENSITY_LIMIT_KG_PER_CBM ? 2 : 1;
       billableWeight = usedCbm;
-      chargedBy = `${usedCbm.toFixed(4)} CBM${usedCbm > calculatedCbm ? ' (mínimo facturable)' : ''}`;
+      chargedBy = `${usedCbm.toFixed(4)} CBM`;
     }
 
     const selectedStateConfig = findStateByCodeOrName(states, selectedState);
     const stateShipping = selectedStateConfig?.shipping_rate || 0;
     const { regular: finalRegular, high: finalHigh } = getFinalRatesForState(stateShipping);
     const baseRate = isSensitive ? finalHigh : finalRegular;
-    const finalRate = shippingType === 'maritimo' ? baseRate * maritimeMultiplier : baseRate;
-    const shippingCost = finalRate * billableWeight;
 
+    let finalRate = shippingType === 'maritimo' ? baseRate * maritimeMultiplier : baseRate;
+    let shippingCost = finalRate * billableWeight;
+    let specialRateApplied = false;
+
+    // Tarifa especial: cargas marítimas menores a 0.130 CBM (almacén Valencia + MRW cobro destino)
+    if (shippingType === 'maritimo' && calculatedCbm > 0 && calculatedCbm < MIN_CBM) {
+      const ranges = [...(config?.special_cbm_rates || [])].sort((a, b) => (a.min_cbm || 0) - (b.min_cbm || 0));
+      const found = ranges.find(r => calculatedCbm <= (r.max_cbm || 0));
+      if (found) {
+        specialRateApplied = true;
+        finalRate = isSensitive ? found.rate_high_risk : found.rate_regular;
+        shippingCost = finalRate;
+        chargedBy = `${calculatedCbm.toFixed(4)} CBM (tarifa fija por rango)`;
+      }
+    }
+
+    const RECEPTION_FEE = 1;
     const fob = parseFloat(fobValue) || 0;
     const insuranceCost = includeInsurance && fob > 0 ? fob * (config?.insurance_percentage / 100) : 0;
-    const totalCost = shippingCost + insuranceCost;
+    const totalCost = shippingCost + RECEPTION_FEE + insuranceCost;
 
     setResult({
     rateType,
@@ -136,11 +151,11 @@ export default function ShippingCalculator({ user }) {
     billableWeight,
     chargedBy,
     shippingCost,
+    receptionFee: RECEPTION_FEE,
     insuranceCost,
     totalCost,
     stateName: selectedStateConfig?.state_name || null,
-    minCbmApplied: shippingType === 'maritimo' && calculatedCbm < MIN_CBM,
-    minCbm: MIN_CBM,
+    specialRateApplied,
     densityKgPerCbm,
     maritimeMultiplier
     });
@@ -351,7 +366,7 @@ export default function ShippingCalculator({ user }) {
                 <div className="rounded-xl border border-border/70 bg-white p-4">
                   <p className="text-sm font-medium text-slate-700">Tarifa aplicada</p>
                   <p className="mt-1 text-2xl font-bold text-slate-900">${result.finalRate.toFixed(2)}</p>
-                  <p className="text-xs text-slate-500">{result.rateType} / {shippingType === 'aereo' ? 'kg' : 'CBM'}</p>
+                  <p className="text-xs text-slate-500">{result.specialRateApplied ? `${result.rateType} — Tarifa fija por rango` : `${result.rateType} / ${shippingType === 'aereo' ? 'kg' : 'CBM'}`}</p>
                 </div>
                 <div className="rounded-xl border border-border/70 bg-white p-4">
                   <p className="text-sm font-medium text-slate-700">Unidad facturable</p>
@@ -361,7 +376,7 @@ export default function ShippingCalculator({ user }) {
                 <div className="rounded-xl border border-border/70 bg-white p-4">
                   <p className="text-sm font-medium text-slate-700">Costo de envío</p>
                   <p className="mt-1 text-2xl font-bold text-slate-900">${result.shippingCost.toFixed(2)}</p>
-                  <p className="text-xs text-slate-500">{result.finalRate.toFixed(2)} × {result.billableWeight.toFixed(shippingType === 'aereo' ? 2 : 4)}</p>
+                  <p className="text-xs text-slate-500">{result.specialRateApplied ? 'Tarifa fija según rango de CBM' : `${result.finalRate.toFixed(2)} × ${result.billableWeight.toFixed(shippingType === 'aereo' ? 2 : 4)}`}</p>
                 </div>
                 {includeInsurance && (parseFloat(fobValue) || 0) > 0 && (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
@@ -383,8 +398,11 @@ export default function ShippingCalculator({ user }) {
               <div className="grid grid-cols-1 gap-2 text-sm text-slate-600 md:grid-cols-2">
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2">Peso volumétrico: {result.volumetricWeight.toFixed(2)} kg</div>
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2">CBM calculado: {result.cbm.toFixed(4)}</div>
-                {shippingType === 'maritimo' && result.minCbmApplied && (
-                  <div className="rounded-lg bg-amber-50 px-3 py-2 text-amber-700 md:col-span-2">Se aplicó mínimo facturable de {result.minCbm.toFixed(4)} CBM</div>
+                <div className="rounded-lg bg-slate-100/80 px-3 py-2 md:col-span-2">Cargo por recepción de paquete: ${result.receptionFee.toFixed(2)}</div>
+                {shippingType === 'maritimo' && result.specialRateApplied && (
+                  <div className="rounded-lg bg-sky-50 px-3 py-2 text-sky-700 md:col-span-2">
+                    Carga menor a 0.130 CBM: aplica tarifa fija por rango. Tu carga llega a nuestro almacén en Valencia y el despacho final es vía MRW cobro destino (costo de MRW no incluido).
+                  </div>
                 )}
                 {shippingType === 'maritimo' && result.densityKgPerCbm > 0 && (
                   <div className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-700 md:col-span-2">
