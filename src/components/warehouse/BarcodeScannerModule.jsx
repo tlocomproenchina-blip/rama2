@@ -297,7 +297,7 @@ export default function BarcodeScannerModule({
       </Card>
 
       <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl top-[8%] translate-y-0">
           <DialogHeader>
             <DialogTitle>Escanear con cámara</DialogTitle>
             <DialogDescription>
