@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import ShippingMarkAutomationSettings from '@/components/admin/ShippingMarkAutomationSettings';
+import SpecialCbmRatesEditor from '@/components/admin/SpecialCbmRatesEditor';
 import { cacheManager } from '@/components/CacheManager';
 
 const VENEZUELAN_STATES = [
@@ -692,6 +693,13 @@ export default function AdminSettings({ user }) {
               </div>
             </CardContent>
           </Card>
+
+          <SpecialCbmRatesEditor
+            rates={appConfig.special_cbm_rates}
+            onChange={(updated) => setAppConfig({ ...appConfig, special_cbm_rates: updated })}
+            onSave={handleSaveGeneral}
+            saving={saving}
+          />
         </TabsContent>
 
         {/* Tab Tipos de Envío */}
