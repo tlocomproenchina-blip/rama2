@@ -154,6 +154,18 @@ export default function AdminManualBilling() {
       ));
 
       toast.success(`Factura ${invoice.invoice_number} generada`);
+
+      // Generar cuenta por pagar al proveedor y calcular ganancia
+      try {
+        const res = await base44.functions.invoke('processInvoiceForAccounting', { invoiceId: invoice.id });
+        const profit = res?.data?.profit_amount;
+        const cost = res?.data?.provider_cost_total;
+        if (profit !== undefined) {
+          toast.success(`Cuenta por pagar creada (costo proveedor $${num(cost).toFixed(2)}). Ganancia: $${num(profit).toFixed(2)}`, { duration: 8000 });
+        }
+      } catch {
+        toast.warning('Factura creada, pero no se pudo generar la cuenta por pagar automáticamente');
+      }
       // Quitar de la lista los registros ya facturados
       const billedIds = new Set(selectedRows.map((r) => r.id));
       setRows((prev) => prev.filter((r) => !billedIds.has(r.id)));
