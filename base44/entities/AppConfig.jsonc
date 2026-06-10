@@ -276,6 +276,11 @@
       ],
       "description": "Per\u00edodos de consolidaci\u00f3n disponibles en d\u00edas"
     },
+    "auto_consolidation_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activa o desactiva la consolidaci\u00f3n autom\u00e1tica de carga al vencer el per\u00edodo de espera"
+    },
     "whatsapp_enabled": {
       "type": "boolean",
       "default": false,

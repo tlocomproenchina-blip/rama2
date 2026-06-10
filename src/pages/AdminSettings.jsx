@@ -114,7 +114,8 @@ export default function AdminSettings({ user }) {
       demo_mode: false,
       demo_mode_message: 'Modo demo activo: integraciones externas desactivadas.',
       activity_tracking_enabled: false,
-      logistics_monitoring_enabled: false
+      logistics_monitoring_enabled: false,
+      auto_consolidation_enabled: true
    });
 
   // Privacy Config
@@ -274,6 +275,24 @@ export default function AdminSettings({ user }) {
     } catch (e) {
       toast.error('No se pudo guardar la configuración');
       // revertir en UI si falla
+      setAppConfig(prev);
+    }
+  };
+
+  // Guardado inmediato para el toggle de Consolidación Automática
+  const toggleAutoConsolidation = async (checked) => {
+    const prev = appConfig;
+    setAppConfig({ ...prev, auto_consolidation_enabled: checked });
+    try {
+      const existing = await base44.entities.AppConfig.filter({ config_key: 'main' });
+      if (existing.length > 0) {
+        await base44.entities.AppConfig.update(existing[0].id, { auto_consolidation_enabled: checked, config_key: 'main' });
+      } else {
+        await base44.entities.AppConfig.create({ ...prev, auto_consolidation_enabled: checked, config_key: 'main' });
+      }
+      toast.success(checked ? 'Consolidación automática activada' : 'Consolidación automática desactivada');
+    } catch (e) {
+      toast.error('No se pudo guardar la configuración');
       setAppConfig(prev);
     }
   };
@@ -1029,6 +1048,25 @@ export default function AdminSettings({ user }) {
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Guardar configuración
                 </Button>
+              </div>
+
+              {/* Consolidación Automática */}
+              <div className="p-4 md:p-6 bg-emerald-50 rounded-xl border border-emerald-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100 rounded-lg">
+                      <Clock className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-800 text-lg">Consolidación Automática de Carga</h3>
+                      <p className="text-sm text-slate-600">Aprueba automáticamente las solicitudes de consolidación cuando vence el período de espera. El cambio se guarda al instante.</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={appConfig.auto_consolidation_enabled !== false}
+                    onCheckedChange={(checked) => toggleAutoConsolidation(checked)}
+                  />
+                </div>
               </div>
 
               {/* Monitoreo Logístico Automático */}

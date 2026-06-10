@@ -10,12 +10,21 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
+    const config = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
+
+    // Check if auto consolidation is enabled
+    if (config[0]?.auto_consolidation_enabled === false) {
+      return Response.json({
+        success: true,
+        skipped: true,
+        message: 'Consolidación automática desactivada en configuración'
+      });
+    }
+
     // Get all consolidation requests that are pending
     const pendingRequests = await base44.asServiceRole.entities.ConsolidationRequest.filter({
       status: 'pendiente'
     });
-
-    const config = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
     const consolidationPeriods = config[0]?.consolidation_periods || [15, 20, 30];
     const defaultPeriodDays = consolidationPeriods[0] || 30;
 
