@@ -60,6 +60,81 @@
       "type": "number",
       "description": "Insurance percentage of FOB"
     },
+    "special_cbm_rates": {
+      "type": "array",
+      "description": "Tarifas especiales por CBM para cargas menores a 0.130 CBM (llegan a Valencia, despacho MRW cobro destino)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min_cbm": {
+            "type": "number",
+            "description": "CBM m\u00ednimo del rango (inclusive)"
+          },
+          "max_cbm": {
+            "type": "number",
+            "description": "CBM m\u00e1ximo del rango (inclusive)"
+          },
+          "rate_regular": {
+            "type": "number",
+            "description": "Tarifa para carga regular en este rango de CBM"
+          },
+          "rate_high_risk": {
+            "type": "number",
+            "description": "Tarifa para carga de alto riesgo en este rango de CBM"
+          }
+        },
+        "required": [
+          "min_cbm",
+          "max_cbm",
+          "rate_regular",
+          "rate_high_risk"
+        ]
+      },
+      "default": [
+        {
+          "min_cbm": 0.0001,
+          "max_cbm": 0.0025,
+          "rate_regular": 3.6,
+          "rate_high_risk": 5.4
+        },
+        {
+          "min_cbm": 0.0026,
+          "max_cbm": 0.007,
+          "rate_regular": 11.4,
+          "rate_high_risk": 17.4
+        },
+        {
+          "min_cbm": 0.0071,
+          "max_cbm": 0.015,
+          "rate_regular": 24,
+          "rate_high_risk": 36
+        },
+        {
+          "min_cbm": 0.016,
+          "max_cbm": 0.03,
+          "rate_regular": 48,
+          "rate_high_risk": 72
+        },
+        {
+          "min_cbm": 0.031,
+          "max_cbm": 0.06,
+          "rate_regular": 72,
+          "rate_high_risk": 120
+        },
+        {
+          "min_cbm": 0.061,
+          "max_cbm": 0.08,
+          "rate_regular": 96,
+          "rate_high_risk": 159.6
+        },
+        {
+          "min_cbm": 0.09,
+          "max_cbm": 0.129,
+          "rate_regular": 102,
+          "rate_high_risk": 204
+        }
+      ]
+    },
     "invoice_company_name": {
       "type": "string",
       "default": "TLEC CARGO",
