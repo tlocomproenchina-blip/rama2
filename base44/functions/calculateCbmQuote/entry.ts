@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // calculateCbmQuote
 // Input JSON:
@@ -7,14 +7,20 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 //   largo?: number, ancho?: number, alto?: number, cantidad?: number,
 //   units?: "cm"|"m", // default: "cm"
 //   cbm?: number, // si viene, se usa directo
-//   add_door_to_door?: boolean, // default true
+//   add_door_to_door?: boolean, // default true (solo aplica a cargas >= 0.130 CBM)
 //   include_insurance?: boolean, // si true y viene fob_value, calcular
 //   fob_value?: number
 // }
-// Regla de negocio confirmada por el usuario:
-// - Tarifas desde PricingConfig: base_rate_regular, base_rate_high_risk, door_to_door_cost
-// - Mínimo facturable: 0.130 CBM
-// - Seguro: preguntar primero; si include_insurance=true y hay fob_value, usar (AppConfig.insurance_percentage || 5)%
+// Reglas de negocio:
+// - SIN mínimo facturable de CBM.
+// - Cargo fijo de $1 por recepción de paquete (siempre).
+// - CBM >= 0.130: servicio puerta a puerta (tarifas por CBM de PricingConfig + door_to_door_cost).
+// - CBM <= 0.129: tarifa especial fija por rango (AppConfig.special_cbm_rates).
+//   Llega a almacén en Valencia, despacho final vía MRW cobro destino (no incluido).
+// - Seguro: si include_insurance=true y hay fob_value, usar (AppConfig.insurance_percentage || 5)%
+
+const DOOR_TO_DOOR_THRESHOLD = 0.130;
+const PACKAGE_RECEIVED_FEE = 1;
 
 Deno.serve(async (req) => {
   try {
@@ -42,19 +48,21 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Falta categoria_carga' }, { status: 400 });
     }
 
-    // 1) Obtener configuración de precios
-    const pricingCfgList = await base44.entities.PricingConfig.filter({ config_key: 'main' });
+    // 1) Configuraciones
+    const [pricingCfgList, appCfgList] = await Promise.all([
+      base44.entities.PricingConfig.filter({ config_key: 'main' }),
+      base44.entities.AppConfig.filter({ config_key: 'main' })
+    ]);
     const pricing = pricingCfgList[0] || {};
+    const appCfg = appCfgList[0] || {};
+
     const base_rate_regular = Number(pricing.base_rate_regular ?? 690);
     const base_rate_high_risk = Number(pricing.base_rate_high_risk ?? 790);
     const door_to_door_cost = Number(pricing.door_to_door_cost ?? 20);
-
-    // 2) Obtener configuración de seguro (opcional)
-    const appCfgList = await base44.entities.AppConfig.filter({ config_key: 'main' });
-    const appCfg = appCfgList[0] || {};
     const insurance_pct = Number(appCfg.insurance_percentage ?? 5);
+    const special_rates = Array.isArray(appCfg.special_cbm_rates) ? appCfg.special_cbm_rates : [];
 
-    // 3) Calcular CBM
+    // 2) Calcular CBM
     let cbm = 0;
     if (typeof cbmInput === 'number' && !Number.isNaN(cbmInput)) {
       cbm = Math.max(0, cbmInput);
@@ -67,35 +75,61 @@ Deno.serve(async (req) => {
       cbm = perUnit * Number(cantidad || 1);
     }
 
-    // 4) Aplicar mínimo facturable
-    const MIN_CBM = 0.130;
-    const billable_cbm = Math.max(cbm, MIN_CBM);
+    if (cbm <= 0) {
+      return Response.json({ error: 'El CBM debe ser mayor a 0' }, { status: 400 });
+    }
 
-    // 5) Seleccionar tarifa base
-    const highRiskCats = new Set(['sensible', 'electronica_bateria', 'marca_repllica']);
+    // 3) Categoría de riesgo
+    const highRiskCats = new Set(['sensible', 'electronica_bateria', 'marca_repllica', 'alto_riesgo']);
     const base_rate_type = highRiskCats.has(String(categoria_carga)) ? 'high_risk' : 'regular';
-    const base_rate = base_rate_type === 'regular' ? base_rate_regular : base_rate_high_risk;
 
-    // 6) Subtotales
-    const freight_subtotal = billable_cbm * base_rate;
-    const d2d = add_door_to_door ? door_to_door_cost : 0;
+    // 4) Cálculo según umbral de CBM
+    let freight_subtotal = 0;
+    let d2d = 0;
+    let base_rate = 0;
+    let service_type;
+    let service_notes;
 
-    // 7) Seguro (solo si el usuario lo confirma)
+    if (cbm >= DOOR_TO_DOOR_THRESHOLD) {
+      // Servicio puerta a puerta
+      base_rate = base_rate_type === 'regular' ? base_rate_regular : base_rate_high_risk;
+      freight_subtotal = cbm * base_rate;
+      d2d = add_door_to_door ? door_to_door_cost : 0;
+      service_type = 'puerta_a_puerta';
+      service_notes = 'Carga igual o mayor a 0.130 CBM. Incluye servicio puerta a puerta.';
+    } else {
+      // Tarifa especial: llega a Valencia, despacho MRW cobro destino
+      const sorted = [...special_rates].sort((x, y) => Number(x.min_cbm) - Number(y.min_cbm));
+      const found = sorted.find(r => cbm <= Number(r.max_cbm));
+
+      if (!found) {
+        return Response.json({ error: 'No se encontró tarifa especial para el CBM proporcionado. Verifica special_cbm_rates en la configuración.' }, { status: 400 });
+      }
+
+      base_rate = base_rate_type === 'regular' ? Number(found.rate_regular) : Number(found.rate_high_risk);
+      freight_subtotal = base_rate; // tarifa fija por rango
+      d2d = 0;
+      service_type = 'almacen_valencia_mrw_cobro_destino';
+      service_notes = 'Carga menor a 0.130 CBM. Llega a nuestro almacén en Valencia. Despacho final vía MRW cobro destino (costo de MRW no incluido).';
+    }
+
+    // 5) Cargo fijo por recepción de paquete
+    const reception_fee = PACKAGE_RECEIVED_FEE;
+
+    // 6) Seguro (solo si el usuario lo confirma)
     let insurance = 0;
     let ask_insurance = false;
     if (include_insurance) {
       if (typeof fob_value === 'number' && fob_value > 0) {
         insurance = (insurance_pct / 100) * fob_value;
       } else {
-        // Falta FOB; pedirlo
         ask_insurance = true;
       }
     } else {
-      // Aún no autorizado por el usuario; sugerir pregunta
       ask_insurance = true;
     }
 
-    const subtotal = freight_subtotal + d2d;
+    const subtotal = freight_subtotal + d2d + reception_fee;
     const total = subtotal + insurance;
 
     return Response.json({
@@ -115,17 +149,21 @@ Deno.serve(async (req) => {
         base_rate_type,
         base_rate,
         door_to_door_cost,
+        reception_fee,
         insurance_percentage: insurance_pct
       },
       results: {
         cbm: Number(cbm.toFixed(6)),
-        billable_cbm: Number(billable_cbm.toFixed(6)),
+        billable_cbm: Number(cbm.toFixed(6)),
         freight_subtotal: Number(freight_subtotal.toFixed(2)),
         door_to_door: Number(d2d.toFixed(2)),
+        reception_fee: Number(reception_fee.toFixed(2)),
         insurance: Number(insurance.toFixed(2)),
         subtotal: Number(subtotal.toFixed(2)),
         total: Number(total.toFixed(2))
       },
+      service_type,
+      service_notes,
       ask_insurance
     });
   } catch (error) {
