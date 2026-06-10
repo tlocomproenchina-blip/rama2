@@ -34,6 +34,7 @@ import ResourceInspector from '@/components/admin/ResourceInspector';
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import ShippingMarkAutomationSettings from '@/components/admin/ShippingMarkAutomationSettings';
 import SpecialCbmRatesEditor from '@/components/admin/SpecialCbmRatesEditor';
+import ProviderCostsSettings from '@/components/admin/ProviderCostsSettings';
 import { cacheManager } from '@/components/CacheManager';
 
 const VENEZUELAN_STATES = [
@@ -716,6 +717,13 @@ export default function AdminSettings({ user }) {
           <SpecialCbmRatesEditor
             rates={appConfig.special_cbm_rates}
             onChange={(updated) => setAppConfig({ ...appConfig, special_cbm_rates: updated })}
+            onSave={handleSaveGeneral}
+            saving={saving}
+          />
+
+          <ProviderCostsSettings
+            config={appConfig}
+            setConfig={setAppConfig}
             onSave={handleSaveGeneral}
             saving={saving}
           />
