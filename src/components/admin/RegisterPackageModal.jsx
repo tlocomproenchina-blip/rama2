@@ -21,6 +21,16 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [cameraOpen, setCameraOpen] = useState(false);
   const [quickPreAlertOpen, setQuickPreAlertOpen] = useState({});
 
+  const removeScannedTracking = (index) => {
+    const code = (trackingNumbers[index] || '').trim();
+    const next = trackingNumbers.filter((_, i) => i !== index);
+    setTrackingNumbers(next.length ? next : ['']);
+    if (code && !next.some((t) => t.trim() === code)) {
+      setTrackingStatusByCode((prev) => { const c = { ...prev }; delete c[code]; return c; });
+      setExistingPackagesByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
+    }
+  };
+
   const resetForm = () => {
     setTrackingNumbers(['']);
     setImageFiles([]);
@@ -379,6 +389,58 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
               checkTrackingDuplicate(code);
             }}
           />
+
+          {/* Códigos escaneados */}
+          {(() => {
+            const scanned = trackingNumbers
+              .map((t, i) => ({ code: t.trim(), index: i }))
+              .filter((item) => item.code);
+            if (scanned.length === 0) return null;
+            const reversed = [...scanned].reverse();
+            return (
+              <div className="space-y-2 max-h-48 overflow-y-auto border-t pt-3">
+                <p className="text-sm font-medium text-slate-700">
+                  Escaneados ({scanned.length})
+                </p>
+                {reversed.map((item, idx) => {
+                  const status = trackingStatusByCode[item.code];
+                  const isLast = idx === 0;
+                  return (
+                    <div
+                      key={`${item.code}-${item.index}`}
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
+                        isLast ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white'
+                      }`}
+                    >
+                      <CheckCircle className={`h-4 w-4 shrink-0 ${isLast ? 'text-blue-600' : 'text-emerald-500'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-mono text-sm font-semibold text-slate-800 truncate">
+                          {item.code} {isLast && <span className="text-xs font-sans font-medium text-blue-600">(último)</span>}
+                        </p>
+                        {status && status.state !== 'checking' && (
+                          <p className={`text-xs truncate ${
+                            status.state === 'exists' ? 'text-emerald-600'
+                            : status.state === 'already_received' ? 'text-amber-600'
+                            : status.state === 'not_found' ? 'text-red-600'
+                            : 'text-amber-600'
+                          }`}>{status.message}</p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => removeScannedTracking(item.index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </Dialog>
