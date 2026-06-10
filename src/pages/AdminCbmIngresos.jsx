@@ -38,6 +38,7 @@ export default function AdminCbmIngresos({ user }) {
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [recordSearch, setRecordSearch] = useState('');
   const [orderFilter, setOrderFilter] = useState('');
+  const [sortBy, setSortBy] = useState('fecha_desc');
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
 
@@ -95,24 +96,36 @@ export default function AdminCbmIngresos({ user }) {
   const filteredIngresos = useMemo(() => {
     const q = recordSearch.trim().toLowerCase();
     const orderQ = orderFilter.trim().toLowerCase();
-    if (!q && !orderQ) return ingresos;
-    // Al buscar, incluir todos los registros sin importar el período de fechas
-    return allIngresos.filter((item) => {
-      if (orderQ && !(item.invoice_number || '').toLowerCase().includes(orderQ)) return false;
-      if (!q) return true;
-      const haystack = [
-        item.client_name,
-        item.client_email,
-        item.shipping_mark,
-        item.invoice_number,
-        item.proveedor,
-        item.descripcion,
-        item.notas,
-        ...(item.tracking_numbers || []),
-      ].filter(Boolean).join(' ').toLowerCase();
-      return haystack.includes(q);
-    });
-  }, [ingresos, allIngresos, recordSearch, orderFilter]);
+    let result;
+    if (!q && !orderQ) {
+      result = [...ingresos];
+    } else {
+      // Al buscar, incluir todos los registros sin importar el período de fechas
+      result = allIngresos.filter((item) => {
+        if (orderQ && !(item.invoice_number || '').toLowerCase().includes(orderQ)) return false;
+        if (!q) return true;
+        const haystack = [
+          item.client_name,
+          item.client_email,
+          item.shipping_mark,
+          item.invoice_number,
+          item.proveedor,
+          item.descripcion,
+          item.notas,
+          ...(item.tracking_numbers || []),
+        ].filter(Boolean).join(' ').toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+    if (sortBy === 'orden_asc' || sortBy === 'orden_desc') {
+      const orderNum = (item) => {
+        const n = parseFloat(String(item.invoice_number || '').replace(/[^0-9.]/g, ''));
+        return isNaN(n) ? Infinity : n;
+      };
+      result.sort((a, b) => sortBy === 'orden_asc' ? orderNum(a) - orderNum(b) : orderNum(b) - orderNum(a));
+    }
+    return result;
+  }, [ingresos, allIngresos, recordSearch, orderFilter, sortBy]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -358,6 +371,12 @@ export default function AdminCbmIngresos({ user }) {
                   value={orderFilter}
                   onChange={(e) => setOrderFilter(e.target.value)}
                 />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-xs text-slate-500">Ordenar:</span>
+                <Button variant={sortBy === 'fecha_desc' ? 'secondary' : 'outline'} size="sm" onClick={() => setSortBy('fecha_desc')}>Más recientes</Button>
+                <Button variant={sortBy === 'orden_asc' ? 'secondary' : 'outline'} size="sm" onClick={() => setSortBy('orden_asc')}>Orden 1 → 9</Button>
+                <Button variant={sortBy === 'orden_desc' ? 'secondary' : 'outline'} size="sm" onClick={() => setSortBy('orden_desc')}>Orden 9 → 1</Button>
               </div>
               {(recordSearch || orderFilter) && (
                 <p className="text-xs text-muted-foreground">
