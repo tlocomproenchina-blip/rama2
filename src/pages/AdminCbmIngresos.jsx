@@ -96,9 +96,11 @@ export default function AdminCbmIngresos({ user }) {
   const filteredIngresos = useMemo(() => {
     const q = recordSearch.trim().toLowerCase();
     const orderQ = orderFilter.trim().toLowerCase();
+    const sortingByOrder = sortBy === 'orden_asc' || sortBy === 'orden_desc';
     let result;
     if (!q && !orderQ) {
-      result = [...ingresos];
+      // Al ordenar por número de orden, incluir todos los registros sin importar el período
+      result = sortingByOrder ? [...allIngresos] : [...ingresos];
     } else {
       // Al buscar, incluir todos los registros sin importar el período de fechas
       result = allIngresos.filter((item) => {
@@ -117,7 +119,7 @@ export default function AdminCbmIngresos({ user }) {
         return haystack.includes(q);
       });
     }
-    if (sortBy === 'orden_asc' || sortBy === 'orden_desc') {
+    if (sortingByOrder) {
       const orderNum = (item) => {
         const n = parseFloat(String(item.invoice_number || '').replace(/[^0-9.]/g, ''));
         return isNaN(n) ? Infinity : n;
