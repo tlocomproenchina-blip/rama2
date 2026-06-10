@@ -60,6 +60,73 @@
       "type": "number",
       "description": "Insurance percentage of FOB"
     },
+    "provider_rate_air_general": {
+      "type": "number",
+      "default": 0,
+      "description": "Costo del proveedor por kg para carga a\u00e9rea general"
+    },
+    "provider_rate_air_sensitive": {
+      "type": "number",
+      "default": 0,
+      "description": "Costo del proveedor por kg para carga a\u00e9rea sensible"
+    },
+    "provider_rate_sea_general": {
+      "type": "number",
+      "default": 0,
+      "description": "Costo del proveedor por CBM para carga mar\u00edtima general"
+    },
+    "provider_rate_sea_sensitive": {
+      "type": "number",
+      "default": 0,
+      "description": "Costo del proveedor por CBM para carga mar\u00edtima sensible (alto riesgo)"
+    },
+    "provider_insurance_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "Porcentaje de seguro que cobra el proveedor sobre el FOB"
+    },
+    "provider_reception_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "Costo del proveedor por recepci\u00f3n de cada paquete"
+    },
+    "provider_door_to_door_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Costo del proveedor por servicio puerta a puerta"
+    },
+    "provider_special_cbm_rates": {
+      "type": "array",
+      "description": "Costos del proveedor por rango de CBM para cargas menores a 0.130 CBM",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min_cbm": {
+            "type": "number",
+            "description": "CBM m\u00ednimo del rango (inclusive)"
+          },
+          "max_cbm": {
+            "type": "number",
+            "description": "CBM m\u00e1ximo del rango (inclusive)"
+          },
+          "rate_regular": {
+            "type": "number",
+            "description": "Costo del proveedor para carga regular en este rango"
+          },
+          "rate_high_risk": {
+            "type": "number",
+            "description": "Costo del proveedor para carga de alto riesgo en este rango"
+          }
+        },
+        "required": [
+          "min_cbm",
+          "max_cbm",
+          "rate_regular",
+          "rate_high_risk"
+        ]
+      },
+      "default": []
+    },
     "special_cbm_rates": {
       "type": "array",
       "description": "Tarifas especiales por CBM para cargas menores a 0.130 CBM (llegan a Valencia, despacho MRW cobro destino)",

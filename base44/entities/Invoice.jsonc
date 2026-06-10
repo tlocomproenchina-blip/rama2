@@ -65,6 +65,14 @@
       "type": "number",
       "description": "Total a pagar"
     },
+    "provider_cost_total": {
+      "type": "number",
+      "description": "Costo total al proveedor asociado a esta factura"
+    },
+    "profit_amount": {
+      "type": "number",
+      "description": "Ganancia neta de la factura (total facturado - costo proveedor)"
+    },
     "status": {
       "type": "string",
       "enum": [
