@@ -23,6 +23,9 @@ export default function BillingInvoiceRow({ row, onChange }) {
               {row.invoice_number && row.invoice_number !== '—' && (
                 <span className="text-xs text-indigo-600 font-medium">📄 {row.invoice_number}</span>
               )}
+              {row.disponible_entrega && (
+                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">✓ Disponible para entrega</span>
+              )}
             </div>
             <p className="text-xs text-slate-500 truncate">
               {row.consolidation_tracking || 'Sin tracking'}
