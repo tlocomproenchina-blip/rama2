@@ -36,19 +36,19 @@ export default function ClientCard({
       <CardContent className="p-4 lg:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           {/* Avatar & Name */}
-          <div className="flex items-center gap-4 flex-1">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
               {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
             </div>
-            <div>
-              <h3 className="font-semibold text-slate-800">
+            <div className="min-w-0">
+              <h3 className="font-semibold text-slate-800 break-words">
                 {client.first_name && client.last_name
                   ? `${client.first_name} ${client.last_name}`
                   : client.email}
               </h3>
-              <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                <Mail className="h-3 w-3" />
-                {client.email}
+              <div className="flex items-center gap-2 text-sm text-slate-500 mt-1 min-w-0">
+                <Mail className="h-3 w-3 shrink-0" />
+                <span className="break-all">{client.email}</span>
               </div>
             </div>
           </div>

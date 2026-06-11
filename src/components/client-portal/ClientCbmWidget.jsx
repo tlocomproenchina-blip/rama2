@@ -133,7 +133,7 @@ export default function ClientCbmWidget({ userEmail }) {
                         {item.tracking_numbers.map((t) => (
                           <span
                             key={t}
-                            className="inline-block text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-mono"
+                            className="inline-block text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-mono break-all"
                           >
                             {t}
                           </span>

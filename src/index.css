@@ -131,6 +131,14 @@
   }
 
   @media (max-width: 640px) {
+    /* Evitar desbordamiento horizontal por textos largos (trackings, emails, marks) */
+    p, span, h1, h2, h3, h4, td, th, li, label {
+      overflow-wrap: anywhere;
+    }
+    .font-mono {
+      word-break: break-all;
+    }
+
     button:not([role="switch"]),
     [role="button"],
     a[role="button"] {
