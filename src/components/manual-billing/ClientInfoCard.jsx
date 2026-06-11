@@ -7,7 +7,7 @@ export default function ClientInfoCard({ client, onClear }) {
   if (!client) return null;
   return (
     <Card className="border-0 shadow-lg">
-      <CardContent className="p-5">
+      <CardContent className="p-5 overflow-hidden">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">

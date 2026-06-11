@@ -10,7 +10,7 @@ export default function BillingInvoiceRow({ row, onChange }) {
 
   return (
     <Card className={`border ${row.selected ? 'border-blue-300 bg-blue-50/40' : 'border-slate-200'} transition-colors`}>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-4 space-y-3 overflow-hidden">
         <div className="flex items-start gap-3">
           <Checkbox
             checked={row.selected}
@@ -27,7 +27,7 @@ export default function BillingInvoiceRow({ row, onChange }) {
                 <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">✓ Disponible para entrega</span>
               )}
             </div>
-            <p className="text-xs text-slate-500 truncate">
+            <p className="text-xs text-slate-500 break-all line-clamp-2">
               {row.consolidation_tracking || 'Sin tracking'}
             </p>
             <div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-600">
