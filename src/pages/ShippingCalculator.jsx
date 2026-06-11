@@ -357,6 +357,12 @@ export default function ShippingCalculator({ user }) {
             title="Resultado estimado"
             description="Revisa el detalle del cálculo, la unidad facturable y el total aproximado."
           />
+          {shippingType === 'maritimo' && result.maritimeMultiplier === 2 && (
+            <div className="rounded-xl border-2 border-red-300 bg-red-50 p-4">
+              <p className="font-semibold text-red-700">⚠️ SOBREPESO DETECTADO</p>
+              <p className="mt-1 text-sm text-red-700">El peso real de tu carga ({parseFloat(weight).toFixed(2)} kg) supera los 499 kg permitidos. Por este motivo, el costo del envío se multiplica por 2.</p>
+            </div>
+          )}
           <Card className="border-border/70 bg-gradient-to-br from-slate-50 to-white shadow-card">
             <CardHeader>
               <CardTitle>Detalles del Envío</CardTitle>
