@@ -432,8 +432,8 @@ export default function AdminCbmIngresos({ user }) {
                 const runningTotal = filteredIngresos.slice(0, idx + 1).reduce((s, i) => s + Number(i.cbm || 0), 0);
                 return (
                   <Card key={item.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 overflow-hidden">
+                      <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
                         <Checkbox
                           checked={selectedIds.includes(item.id)}
                           onCheckedChange={() => toggleSelect(item.id)}
@@ -454,7 +454,7 @@ export default function AdminCbmIngresos({ user }) {
                           {item.client_name && (
                             <p className="text-sm text-slate-700 font-medium">
                               👤 {item.client_name}
-                              {item.shipping_mark && <span className="text-xs text-slate-500 ml-2 font-mono">[{item.shipping_mark}]</span>}
+                              {item.shipping_mark && <span className="text-xs text-slate-500 ml-2 font-mono break-all">[{item.shipping_mark}]</span>}
                             </p>
                           )}
                           {item.invoice_number && (
@@ -463,7 +463,7 @@ export default function AdminCbmIngresos({ user }) {
                           {item.tracking_numbers && item.tracking_numbers.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {item.tracking_numbers.map(t => (
-                                <span key={t} className="inline-block text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-mono">{t}</span>
+                                <span key={t} className="inline-block text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-mono break-all">{t}</span>
                               ))}
                             </div>
                           )}
@@ -485,16 +485,20 @@ export default function AdminCbmIngresos({ user }) {
                           )}
                         </div>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-xs text-muted-foreground">Acumulado</p>
-                        <p className="font-semibold text-slate-800">{runningTotal.toFixed(5)}</p>
+                      <div className="flex items-center justify-between gap-2 border-t pt-2 sm:border-t-0 sm:pt-0 sm:flex-shrink-0">
+                        <div className="text-left sm:text-right">
+                          <p className="text-xs text-muted-foreground">Acumulado</p>
+                          <p className="font-semibold text-slate-800">{runningTotal.toFixed(5)}</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-700 flex-shrink-0" onClick={() => handleEdit(item)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 flex-shrink-0" onClick={() => handleDelete(item.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="text-blue-500 hover:text-blue-700 flex-shrink-0" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 flex-shrink-0" onClick={() => handleDelete(item.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </CardContent>
                   </Card>
                 );
