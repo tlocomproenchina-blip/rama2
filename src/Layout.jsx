@@ -402,13 +402,19 @@ export default function Layout({ children, currentPageName }) {
           /* Ensure complex grids collapse to 1 column on mobile */
           .grid[class*="grid-cols-"] { grid-template-columns: 1fr !important; }
 
-          /* Tables: enable safe horizontal scroll */
-          table {
-            display: block;
-            width: 100%;
+          /* Tables: keep real table layout, scroll inside parent container */
+          div:has(> table) {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+            max-width: 100%;
+          }
+          table {
+            width: 100%;
+            min-width: max-content;
+          }
+          table td, table th {
             white-space: nowrap;
+            overflow-wrap: normal;
           }
 
           /* Editors/toolbars should never overflow */
