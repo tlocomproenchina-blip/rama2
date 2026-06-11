@@ -233,7 +233,7 @@ export default function AdminManualBilling() {
 
       {client && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-4 min-w-0">
             <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); }} />
 
             {loadingRows ? (
@@ -255,7 +255,7 @@ export default function AdminManualBilling() {
             )}
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 min-w-0">
             <BillingSummary
               rows={rows}
               consolidationMode={consolidationMode}
