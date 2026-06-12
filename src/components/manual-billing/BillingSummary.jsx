@@ -12,8 +12,10 @@ export default function BillingSummary({
   consolidationFee, shippingTotal, insuranceTotal, total,
   paymentMethod, setPaymentMethod, appConfig, onCreate, creating, canCreate,
 }) {
-  const selectedCount = rows.filter(r => r.selected).length;
-  const totalPackages = rows.filter(r => r.selected).reduce((s, r) => s + (r.package_count || 0), 0);
+  const selected = rows.filter(r => r.selected);
+  const selectedCount = selected.length;
+  const totalPackages = selected.reduce((s, r) => s + (r.package_count || 0), 0);
+  const totalCbm = selected.reduce((s, r) => s + (Number(r.cbm) || 0), 0);
 
   return (
     <Card className="border-0 shadow-lg sticky top-4">
@@ -24,6 +26,7 @@ export default function BillingSummary({
         <div className="text-sm text-slate-600 space-y-1">
           <div className="flex justify-between"><span>Facturas seleccionadas</span><span className="font-medium">{selectedCount}</span></div>
           <div className="flex justify-between"><span>Paquetes totales</span><span className="font-medium">{totalPackages}</span></div>
+          <div className="flex justify-between"><span>CBM total</span><span className="font-bold text-blue-700">{totalCbm.toFixed(5)} CBM</span></div>
         </div>
 
         <div className="space-y-2 border-t pt-3">
