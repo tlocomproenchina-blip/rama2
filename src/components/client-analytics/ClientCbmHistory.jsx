@@ -3,15 +3,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Boxes, Ship, MessageCircle } from 'lucide-react';
+import { Boxes, Ship, MessageCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
+import { base44 } from '@/api/base44Client';
 
 const fmtDate = (d) => (d ? format(new Date(d), 'dd/MM/yyyy') : '—');
 
-export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
+export default function ClientCbmHistory({ ingresos, totalCbm, client, onRefresh }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [markingAvailable, setMarkingAvailable] = useState(false);
 
   const toggleOne = (id) => {
     setSelectedIds((prev) => {
@@ -74,6 +76,26 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
     window.open(url, '_blank');
   };
 
+  const handleMarkAvailable = async () => {
+    if (selectedItems.length === 0) {
+      toast.error('Selecciona al menos un recibo');
+      return;
+    }
+    setMarkingAvailable(true);
+    try {
+      await Promise.all(
+        selectedItems.map((i) => base44.entities.CbmIngreso.update(i.id, { disponible_entrega: true }))
+      );
+      toast.success(`${selectedItems.length} recibo(s) marcado(s) como disponible(s) para entrega`);
+      setSelectedIds(new Set());
+      if (onRefresh) await onRefresh();
+    } catch (e) {
+      toast.error('No se pudo actualizar el estado');
+    } finally {
+      setMarkingAvailable(false);
+    }
+  };
+
   const allSelected = (ingresos?.length || 0) > 0 && selectedIds.size === ingresos.length;
 
   return (
@@ -97,6 +119,15 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
             >
               <MessageCircle className="h-4 w-4" />
               Notificar por WhatsApp
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleMarkAvailable}
+              disabled={selectedIds.size === 0 || markingAvailable}
+              className="bg-green-600 hover:bg-green-700 text-white gap-2"
+            >
+              {markingAvailable ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Marcar disponible para entrega
             </Button>
             <Badge className="bg-blue-100 text-blue-700 text-base">Total: {Number(totalCbm || 0).toFixed(5)} CBM</Badge>
           </div>
