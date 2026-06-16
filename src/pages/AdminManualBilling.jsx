@@ -6,6 +6,7 @@ import { Loader2, ReceiptText, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 import ClientInfoCard from '@/components/manual-billing/ClientInfoCard';
+import ClientStateRatesCard from '@/components/manual-billing/ClientStateRatesCard';
 import BillingInvoiceRow from '@/components/manual-billing/BillingInvoiceRow';
 import BillingSummary from '@/components/manual-billing/BillingSummary';
 
@@ -14,6 +15,7 @@ const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 export default function AdminManualBilling() {
   const [appConfig, setAppConfig] = useState(null);
   const [pricing, setPricing] = useState(null);
+  const [stateConfigs, setStateConfigs] = useState([]);
   const [client, setClient] = useState(null);
   const [rows, setRows] = useState([]);
   const [loadingRows, setLoadingRows] = useState(false);
@@ -26,12 +28,14 @@ export default function AdminManualBilling() {
 
   useEffect(() => {
     (async () => {
-      const [cfgs, prc] = await Promise.all([
+      const [cfgs, prc, states] = await Promise.all([
         base44.entities.AppConfig.filter({ config_key: 'main' }).catch(() => []),
         base44.entities.PricingConfig.filter({ config_key: 'main' }).catch(() => []),
+        base44.entities.StateConfig.list('-updated_date', 100).catch(() => []),
       ]);
       setAppConfig(cfgs?.[0] || null);
       setPricing(prc?.[0] || null);
+      setStateConfigs(states || []);
     })();
   }, []);
 
@@ -288,6 +292,7 @@ export default function AdminManualBilling() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4 min-w-0">
             <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); }} />
+            <ClientStateRatesCard client={client} stateConfigs={stateConfigs} appConfig={appConfig} />
 
             {loadingRows ? (
               <div className="flex items-center justify-center py-12">

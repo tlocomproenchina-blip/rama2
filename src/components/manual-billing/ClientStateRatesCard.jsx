@@ -1,0 +1,81 @@
+import React, { useMemo } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import { MapPin, TrendingUp, Layers } from 'lucide-react';
+import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
+
+const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+export default function ClientStateRatesCard({ client, stateConfigs, appConfig }) {
+  const stateInfo = useMemo(() => {
+    const code = String(client?.state || '').trim().toLowerCase();
+    if (!code) return null;
+    const match = (stateConfigs || []).find((s) => String(s.state_code).toLowerCase() === code);
+    return {
+      state_code: code,
+      state_name: match?.state_name || CANONICAL_STATE_NAMES[code] || code,
+      shipping_rate: num(match?.shipping_rate),
+      found: !!match,
+    };
+  }, [client, stateConfigs]);
+
+  const specialRates = useMemo(() => {
+    const list = Array.isArray(appConfig?.special_cbm_rates) ? appConfig.special_cbm_rates : [];
+    return [...list].sort((a, b) => num(a.min_cbm) - num(b.min_cbm));
+  }, [appConfig]);
+
+  if (!client?.state) return null;
+
+  return (
+    <Card className="border-0 shadow-lg">
+      <CardContent className="p-5 space-y-4 overflow-hidden">
+        <div className="flex items-center gap-2 text-slate-800">
+          <MapPin className="h-5 w-5 text-blue-600" />
+          <h3 className="font-semibold">Estado registrado del cliente</h3>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
+            <p className="text-xs text-slate-500">Estado</p>
+            <p className="font-semibold text-slate-800">{stateInfo?.state_name}</p>
+            {!stateInfo?.found && (
+              <p className="text-[11px] text-amber-600 mt-1">Sin tarifa configurada en StateConfig</p>
+            )}
+          </div>
+          <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
+            <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tarifa por CBM (≥ 0.130)</p>
+            <p className="font-semibold text-blue-700">${num(stateInfo?.shipping_rate).toFixed(2)} / CBM</p>
+            <p className="text-[11px] text-slate-500 mt-1">0.130 CBM: ${(num(stateInfo?.shipping_rate) * 0.130).toFixed(2)}</p>
+          </div>
+        </div>
+
+        {specialRates.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-slate-700 flex items-center gap-2 mb-2">
+              <Layers className="h-4 w-4 text-slate-500" /> Tarifas mínimas (cargas &lt; 0.130 CBM)
+            </p>
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full min-w-max text-sm">
+                <thead className="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th className="text-left p-2 font-medium">Rango CBM</th>
+                    <th className="text-left p-2 font-medium">Regular ($)</th>
+                    <th className="text-left p-2 font-medium">Alto riesgo ($)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {specialRates.map((r, i) => (
+                    <tr key={i} className="border-t border-slate-100">
+                      <td className="p-2 text-slate-700">{num(r.min_cbm).toFixed(4)} – {num(r.max_cbm).toFixed(4)}</td>
+                      <td className="p-2 font-semibold text-slate-800">${num(r.rate_regular).toFixed(2)}</td>
+                      <td className="p-2 font-semibold text-slate-800">${num(r.rate_high_risk).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
