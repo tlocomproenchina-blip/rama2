@@ -34,10 +34,29 @@ export default function AdminManualBilling() {
     })();
   }, []);
 
-  // Rate per CBM from config (maritime general rate)
+  const DOOR_TO_DOOR_THRESHOLD = 0.130;
+
+  // Rate per CBM from config (maritime general rate) — solo para cargas >= 0.130 CBM
   const ratePerCbm = useMemo(() => {
     return num(appConfig?.rate_sea_general) || num(pricing?.base_rate_regular) || 0;
   }, [appConfig, pricing]);
+
+  // Tarifas especiales (mínimos) para cargas < 0.130 CBM
+  const specialRates = useMemo(() => {
+    const list = Array.isArray(appConfig?.special_cbm_rates) ? appConfig.special_cbm_rates : [];
+    return [...list].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
+  }, [appConfig]);
+
+  // Calcula el monto de envío aplicando tarifa de mínimos cuando corresponde
+  const calcShipping = (cbm) => {
+    const c = num(cbm);
+    if (c <= 0) return 0;
+    if (c >= DOOR_TO_DOOR_THRESHOLD) {
+      return c * ratePerCbm;
+    }
+    const found = specialRates.find((r) => c <= num(r.max_cbm));
+    return found ? num(found.rate_regular) : c * ratePerCbm;
+  };
 
   const loadClientInvoices = async (selectedClient) => {
     setClient(selectedClient);
@@ -66,7 +85,7 @@ export default function AdminManualBilling() {
           selected: false,
           cbm_original: cbm,
           cbm: cbm ? cbm.toFixed(4) : '',
-          shipping_amount: (cbm * ratePerCbm).toFixed(2),
+          shipping_amount: calcShipping(cbm).toFixed(2),
           insurance_amount: (totalFob * 0.05).toFixed(2),
         };
       });
@@ -82,7 +101,7 @@ export default function AdminManualBilling() {
       if (r.id !== updated.id) return r;
       // Recalculate shipping when CBM changes
       if (updated.cbm !== r.cbm) {
-        updated.shipping_amount = (num(updated.cbm) * ratePerCbm).toFixed(2);
+        updated.shipping_amount = calcShipping(updated.cbm).toFixed(2);
       }
       return updated;
     }));
