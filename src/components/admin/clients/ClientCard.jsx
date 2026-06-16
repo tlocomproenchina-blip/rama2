@@ -103,8 +103,8 @@ export default function ClientCard({
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100">
-          <div className="flex items-center gap-2 pr-3 mr-auto sm:border-r border-slate-200">
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+          <div className="flex items-center gap-2 pr-2 sm:border-r border-slate-200">
             <span className="text-xs text-slate-600">Activo</span>
             <Switch
               checked={client.is_active !== false}
@@ -150,13 +150,13 @@ export default function ClientCard({
             <MessageCircle className="h-4 w-4 mr-1" />
             WhatsApp
           </Button>
-          <div className="min-w-[150px] flex-1 max-w-[220px]">
+          <div className="min-w-[160px]">
             <Select
               value={client.role === 'admin' ? (client.custom_role || 'equipo_y_acceso') : 'user'}
               onValueChange={(value) => onChangeRole(client, value)}
               disabled={roleUpdatingId === client.id}
             >
-              <SelectTrigger className="h-9 bg-white w-full">
+              <SelectTrigger className="h-9 bg-white">
                 <SelectValue placeholder="Cambiar rol" />
               </SelectTrigger>
               <SelectContent>
