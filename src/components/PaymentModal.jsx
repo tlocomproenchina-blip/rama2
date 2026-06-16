@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { base44 } from '@/api/base44Client';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Wallet, Copy, Upload, CheckCircle, Loader2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -110,7 +111,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: proofFile });
+      const file_url = await uploadImageNoCredits(proofFile);
 
       await base44.entities.Consolidation.update(consolidation.id, {
         payment_proof_url: file_url,
