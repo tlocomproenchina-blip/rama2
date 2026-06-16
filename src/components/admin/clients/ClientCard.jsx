@@ -40,8 +40,8 @@ export default function ClientCard({
             <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
               {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-slate-800 break-words">
+            <div className="min-w-0 overflow-hidden">
+              <h3 className="font-semibold text-slate-800 truncate">
                 {client.first_name && client.last_name
                   ? `${client.first_name} ${client.last_name}`
                   : client.email}
@@ -54,7 +54,7 @@ export default function ClientCard({
           </div>
 
           {/* Details */}
-          <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm [&_*]:whitespace-nowrap">
             <Badge variant="outline" className="bg-slate-50">
               Rol: {client.role === 'admin' ? (
                 <span className="inline-flex items-center gap-1">
