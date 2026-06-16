@@ -292,7 +292,7 @@ export default function AdminManualBilling() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4 min-w-0">
             <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); }} />
-            <ClientStateRatesCard client={client} stateConfigs={stateConfigs} appConfig={appConfig} />
+            <ClientStateRatesCard client={client} stateConfigs={stateConfigs} appConfig={appConfig} pricing={pricing} />
 
             {loadingRows ? (
               <div className="flex items-center justify-center py-12">

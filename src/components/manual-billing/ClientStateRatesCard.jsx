@@ -5,18 +5,25 @@ import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-export default function ClientStateRatesCard({ client, stateConfigs, appConfig }) {
+export default function ClientStateRatesCard({ client, stateConfigs, appConfig, pricing }) {
   const stateInfo = useMemo(() => {
     const code = String(client?.state || '').trim().toLowerCase();
     if (!code) return null;
     const match = (stateConfigs || []).find((s) => String(s.state_code).toLowerCase() === code);
+    const shippingRate = num(match?.shipping_rate);
+    const profitFactor = 1 + num(pricing?.profit_percentage) / 100;
+    const doorToDoor = num(pricing?.door_to_door_cost);
+    const finalRegular = num(pricing?.base_rate_regular) * profitFactor + shippingRate + doorToDoor;
+    const finalHigh = num(pricing?.base_rate_high_risk) * profitFactor + shippingRate + doorToDoor;
     return {
       state_code: code,
       state_name: match?.state_name || CANONICAL_STATE_NAMES[code] || code,
-      shipping_rate: num(match?.shipping_rate),
+      shipping_rate: shippingRate,
+      final_regular: finalRegular,
+      final_high: finalHigh,
       found: !!match,
     };
-  }, [client, stateConfigs]);
+  }, [client, stateConfigs, pricing]);
 
   const specialRates = useMemo(() => {
     const list = Array.isArray(appConfig?.special_cbm_rates) ? appConfig.special_cbm_rates : [];
@@ -42,9 +49,14 @@ export default function ClientStateRatesCard({ client, stateConfigs, appConfig }
             )}
           </div>
           <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
-            <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tarifa por CBM (≥ 0.130)</p>
-            <p className="font-semibold text-blue-700">${num(stateInfo?.shipping_rate).toFixed(2)} / CBM</p>
-            <p className="text-[11px] text-slate-500 mt-1">0.130 CBM: ${(num(stateInfo?.shipping_rate) * 0.130).toFixed(2)}</p>
+            <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Regular (≥ 0.130)</p>
+            <p className="font-semibold text-blue-700">${num(stateInfo?.final_regular).toFixed(2)} / CBM</p>
+            <p className="text-[11px] text-slate-500 mt-1">0.130 CBM: ${(num(stateInfo?.final_regular) * 0.130).toFixed(2)}</p>
+          </div>
+          <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
+            <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Alto riesgo (≥ 0.130)</p>
+            <p className="font-semibold text-blue-700">${num(stateInfo?.final_high).toFixed(2)} / CBM</p>
+            <p className="text-[11px] text-slate-500 mt-1">0.130 CBM: ${(num(stateInfo?.final_high) * 0.130).toFixed(2)}</p>
           </div>
         </div>
 
