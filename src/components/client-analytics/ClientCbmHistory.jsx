@@ -117,11 +117,11 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
                   <th className="py-2 pr-3">FOB Total</th>
                   <th className="py-2 pr-3">Descripción</th>
                   <th className="py-2 pr-3">Recibo</th>
+                  <th className="py-2 pr-3">Disponible entrega</th>
                   <th className="py-2 pr-3">Proveedor</th>
                   <th className="py-2 pr-3">Trackings</th>
                   <th className="py-2 pr-3">Salida</th>
                   <th className="py-2 pr-3">Llegada est.</th>
-                  <th className="py-2 pr-3">Disponible entrega</th>
                 </tr>
               </thead>
               <tbody>
@@ -139,6 +139,13 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
                     <td className="py-2 pr-3 font-semibold text-green-700">${Number(i.fob_total || 0).toFixed(2)}</td>
                     <td className="py-2 pr-3 text-xs text-slate-700">{i.descripcion || '—'}</td>
                     <td className="py-2 pr-3">{i.invoice_number || '—'}</td>
+                    <td className="py-2 pr-3">
+                      {i.disponible_entrega ? (
+                        <span className="inline-block text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">✓ Disponible para entrega</span>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
                     <td className="py-2 pr-3">{i.proveedor || '—'}</td>
                     <td className="py-2 pr-3">
                       <div className="flex flex-wrap gap-1">
@@ -156,13 +163,6 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
                       ) : '—'}
                     </td>
                     <td className="py-2 pr-3 text-xs text-slate-600">{i.fecha_estimada_llegada || '—'}</td>
-                    <td className="py-2 pr-3">
-                      {i.disponible_entrega ? (
-                        <span className="inline-block text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">✓ Disponible para entrega</span>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
-                    </td>
                   </tr>
                 ))}
               </tbody>
