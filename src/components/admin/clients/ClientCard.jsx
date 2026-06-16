@@ -36,8 +36,8 @@ export default function ClientCard({
     : client.email;
 
   return (
-    <Card className={`border-0 shadow-md hover:shadow-lg transition-shadow ${flagAmber ? 'border-l-4 border-l-amber-400' : ''}`}>
-      <CardContent className="p-4 lg:p-6 space-y-4">
+    <Card className={`border-0 shadow-md hover:shadow-lg transition-shadow w-full min-w-0 overflow-hidden ${flagAmber ? 'border-l-4 border-l-amber-400' : ''}`}>
+      <CardContent className="p-4 lg:p-6 space-y-4 min-w-0">
         {/* Header: avatar + name + email */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">

@@ -34,7 +34,7 @@ export default function ClientsList({
 
   return (
     <>
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4 w-full min-w-0">
         {clients.map((client) => (
           <ClientCard
             key={client.id}
