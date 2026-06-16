@@ -162,6 +162,12 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
     'Handling: Consolidated Shipment',
     `Shipment Reference: ${invoice.consolidation_tracking || ''}`,
   ];
+  if (invoice.total_cbm != null) {
+    ddpLines.push(`CBM Total: ${Number(invoice.total_cbm).toFixed(5)}`);
+  }
+  if (invoice.billed_cbm != null) {
+    ddpLines.push(`CBM Facturado: ${Number(invoice.billed_cbm).toFixed(5)}`);
+  }
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
