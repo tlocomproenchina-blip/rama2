@@ -116,7 +116,7 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client }) {
                   <th className="py-2 pr-3">CBM</th>
                   <th className="py-2 pr-3">FOB Total</th>
                   <th className="py-2 pr-3">Descripción</th>
-                  <th className="py-2 pr-3">Factura</th>
+                  <th className="py-2 pr-3">Recibo</th>
                   <th className="py-2 pr-3">Proveedor</th>
                   <th className="py-2 pr-3">Trackings</th>
                   <th className="py-2 pr-3">Salida</th>
