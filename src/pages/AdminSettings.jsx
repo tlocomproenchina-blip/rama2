@@ -36,6 +36,7 @@ import ShippingMarkAutomationSettings from '@/components/admin/ShippingMarkAutom
 import SpecialCbmRatesEditor from '@/components/admin/SpecialCbmRatesEditor';
 import ProviderCostsSettings from '@/components/admin/ProviderCostsSettings';
 import { cacheManager } from '@/components/CacheManager';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -357,7 +358,7 @@ export default function AdminSettings({ user }) {
     if (!file) return;
     setUploadingLogo(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const file_url = await uploadImageNoCredits(file);
       setAppConfig({ ...appConfig, app_logo_url: file_url });
       toast.success('Logo subido');
     } catch (error) {
@@ -370,7 +371,7 @@ export default function AdminSettings({ user }) {
     if (!file) return;
     setUploadingFavicon(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const file_url = await uploadImageNoCredits(file);
       setAppConfig({ ...appConfig, favicon_url: file_url });
       toast.success('Favicon subido');
     } catch (error) {
@@ -383,7 +384,7 @@ export default function AdminSettings({ user }) {
     if (!file) return;
     setUploadingInvoiceLogo(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const file_url = await uploadImageNoCredits(file);
       setAppConfig({ ...appConfig, invoice_logo_url: file_url });
       toast.success('Logo de factura subido');
     } catch (error) {
@@ -396,7 +397,7 @@ export default function AdminSettings({ user }) {
     if (!file) return;
     setUploadingShippingMarkExample(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const file_url = await uploadImageNoCredits(file);
       setAppConfig({ ...appConfig, shipping_mark_example_image_url: file_url });
       toast.success('Imagen de ejemplo subida');
     } catch (error) {
@@ -409,7 +410,7 @@ export default function AdminSettings({ user }) {
     if (!file) return;
     setUploadingWhatsAppIcon(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const file_url = await uploadImageNoCredits(file);
       setAppConfig({ ...appConfig, whatsapp_icon_url: file_url });
       toast.success('Ícono WhatsApp subido');
     } catch (error) {

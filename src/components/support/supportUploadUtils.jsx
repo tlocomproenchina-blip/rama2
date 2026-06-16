@@ -1,4 +1,4 @@
-import { base44 } from '@/components/api/ApiQueueManager';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
 export async function uploadSupportImages(files, maxFiles = 3) {
   const safeFiles = Array.from(files || []).slice(0, maxFiles);
@@ -6,9 +6,9 @@ export async function uploadSupportImages(files, maxFiles = 3) {
 
   const uploaded = await Promise.all(
     safeFiles.map(async (file) => {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const url = await uploadImageNoCredits(file);
       return {
-        url: file_url,
+        url,
         name: file.name,
       };
     })

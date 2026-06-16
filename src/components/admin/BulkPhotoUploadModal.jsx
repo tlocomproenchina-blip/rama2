@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
 function extractTrackingFromFilename(filename) {
   // Remove extension
@@ -176,8 +177,8 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     let imageUrls = [];
     if (files.length > 0) {
       for (const f of files.slice(0, 3)) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-        imageUrls.push(file_url);
+        const url = await uploadImageNoCredits(f);
+        imageUrls.push(url);
       }
     }
     for (let i = 0; i < validTrackings.length; i++) {
@@ -296,8 +297,8 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
       try {
         const imageUrls = [];
         for (const photo of photos) {
-          const { file_url } = await base44.integrations.Core.UploadFile({ file: photo });
-          imageUrls.push(file_url);
+          const url = await uploadImageNoCredits(photo);
+          imageUrls.push(url);
         }
 
         const existing = await base44.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { base44 as directBase44 } from '@/api/base44Client';
+
 import { Button } from "@/components/ui/button";
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { Image as ImageIcon, Loader2 } from 'lucide-react';
@@ -115,8 +116,8 @@ export default function AdminPackages({ user }) {
       if (imageFiles && imageFiles.length > 0) {
         const uploaded = [];
         for (const f of imageFiles.slice(0, 3)) {
-          const { file_url } = await directBase44.integrations.Core.UploadFile({ file: f });
-          uploaded.push(file_url);
+          const url = await uploadImageNoCredits(f);
+          uploaded.push(url);
         }
         imageUrls = uploaded;
       }
@@ -181,8 +182,8 @@ export default function AdminPackages({ user }) {
       const current = Array.isArray(editImageModal.package_image_urls) ? [...editImageModal.package_image_urls] : (editImageModal.package_image_url ? [editImageModal.package_image_url] : []);
       const uploaded = [];
       for (const f of newImageFiles.slice(0, 3 - current.length)) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-        uploaded.push(file_url);
+        const url = await uploadImageNoCredits(f);
+        uploaded.push(url);
       }
       const merged = [...current, ...uploaded].slice(0,3);
       await base44.entities.Package.update(editImageModal.id, {
@@ -245,8 +246,7 @@ export default function AdminPackages({ user }) {
     try {
       let invoiceUrl = editPreAlertModal.invoice_url || null;
       if (preAlertInvoiceFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: preAlertInvoiceFile });
-        invoiceUrl = file_url;
+        invoiceUrl = await uploadImageNoCredits(preAlertInvoiceFile);
       }
 
       const patch = {
