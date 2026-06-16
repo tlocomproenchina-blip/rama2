@@ -65,6 +65,14 @@
       "type": "number",
       "description": "Total a pagar"
     },
+    "total_cbm": {
+      "type": "number",
+      "description": "CBM total sumado de los recibos incluidos en la factura"
+    },
+    "billed_cbm": {
+      "type": "number",
+      "description": "CBM facturado ingresado manualmente (por defecto igual al CBM total)"
+    },
     "provider_cost_total": {
       "type": "number",
       "description": "Costo total al proveedor asociado a esta factura"

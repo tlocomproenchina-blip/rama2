@@ -11,6 +11,7 @@ export default function BillingSummary({
   rows, consolidationMode, setConsolidationMode, manualConsolidationFee, setManualConsolidationFee,
   consolidationFee, shippingTotal, insuranceTotal, total,
   paymentMethod, setPaymentMethod, appConfig, onCreate, creating, canCreate,
+  billedCbm, setBilledCbm,
 }) {
   const selected = rows.filter(r => r.selected);
   const selectedCount = selected.length;
@@ -27,6 +28,17 @@ export default function BillingSummary({
           <div className="flex justify-between"><span>Facturas seleccionadas</span><span className="font-medium">{selectedCount}</span></div>
           <div className="flex justify-between"><span>Paquetes totales</span><span className="font-medium">{totalPackages}</span></div>
           <div className="flex justify-between"><span>CBM total</span><span className="font-bold text-blue-700">{totalCbm.toFixed(5)} CBM</span></div>
+        </div>
+
+        <div className="space-y-2 border-t pt-3">
+          <Label className="text-sm">CBM facturado (manual)</Label>
+          <Input
+            type="number" step="0.0001" min="0"
+            value={billedCbm}
+            onChange={(e) => setBilledCbm(e.target.value)}
+            placeholder={`Ej: ${totalCbm.toFixed(5)}`}
+          />
+          <p className="text-xs text-slate-500">CBM que se mostrará en la factura. Déjalo vacío para usar el CBM total.</p>
         </div>
 
         <div className="space-y-2 border-t pt-3">

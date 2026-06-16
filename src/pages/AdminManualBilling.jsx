@@ -19,6 +19,7 @@ export default function AdminManualBilling() {
   const [loadingRows, setLoadingRows] = useState(false);
   const [consolidationMode, setConsolidationMode] = useState('auto');
   const [manualConsolidationFee, setManualConsolidationFee] = useState('');
+  const [billedCbm, setBilledCbm] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [creating, setCreating] = useState(false);
   const [recovering, setRecovering] = useState(false);
@@ -149,6 +150,9 @@ export default function AdminManualBilling() {
         });
       }
 
+      const totalCbm = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
+      const billedCbmValue = billedCbm !== '' ? num(billedCbm) : totalCbm;
+
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + num(appConfig?.invoice_overdue_days || 7));
 
@@ -165,7 +169,9 @@ export default function AdminManualBilling() {
         total,
         status: 'pendiente',
         payment_method: paymentMethod || undefined,
-        notes: `Factura manual combinada generada desde ${selectedRows.length} factura(s): ${selectedRows.map((r) => r.invoice_number).join(', ')}`,
+        billed_cbm: billedCbmValue,
+        total_cbm: totalCbm,
+        notes: `Factura manual combinada generada desde ${selectedRows.length} factura(s): ${selectedRows.map((r) => r.invoice_number).join(', ')}. CBM total: ${totalCbm.toFixed(5)} | CBM facturado: ${billedCbmValue.toFixed(5)}`,
       });
 
       // Marcar los registros de CBM usados como facturados (se liberan al desconsolidar)
@@ -191,6 +197,7 @@ export default function AdminManualBilling() {
       setRows((prev) => prev.filter((r) => !billedIds.has(r.id)));
       setPaymentMethod('');
       setManualConsolidationFee('');
+      setBilledCbm('');
     } catch {
       toast.error('Error al generar la factura');
     }
@@ -292,6 +299,8 @@ export default function AdminManualBilling() {
               onCreate={handleCreate}
               creating={creating}
               canCreate={selectedRows.length > 0}
+              billedCbm={billedCbm}
+              setBilledCbm={setBilledCbm}
             />
           </div>
         </div>
