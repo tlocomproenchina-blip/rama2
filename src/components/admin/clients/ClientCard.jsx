@@ -55,7 +55,7 @@ export default function ClientCard({
         </div>
 
         {/* Details badges */}
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-sm w-full min-w-0">
           <Badge variant="outline" className="bg-slate-50 whitespace-nowrap">
             Rol: {client.role === 'admin' ? (
               <span className="inline-flex items-center gap-1">
@@ -65,7 +65,7 @@ export default function ClientCard({
             ) : 'Cliente'}
           </Badge>
           {client.city && (
-            <Badge variant="outline" className="bg-slate-50 whitespace-nowrap max-w-[220px]">
+            <Badge variant="outline" className="bg-slate-50 whitespace-nowrap inline-flex max-w-[160px]">
               <MapPin className="h-3 w-3 mr-1 shrink-0" />
               <span className="truncate">{client.city}</span>
             </Badge>
