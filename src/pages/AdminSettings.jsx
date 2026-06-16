@@ -894,6 +894,20 @@ export default function AdminSettings({ user }) {
                       />
                     </div>
 
+                    <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+                      <p className="text-xs font-medium text-blue-700">Tarifa por 0.130 CBM (mín. marítimo)</p>
+                      <div className="mt-1 grid grid-cols-2 gap-2">
+                        <div>
+                          <p className="text-[11px] text-slate-500">Regular</p>
+                          <p className="font-semibold text-slate-800">${((state.shipping_rate || 0) * 0.130).toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-slate-500">Alto riesgo</p>
+                          <p className="font-semibold text-slate-800">${((state.shipping_rate || 0) * 0.130).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 gap-3">
                       <div>
                         <p className="text-xs text-slate-500">Precio final Regular ($)</p>
@@ -947,6 +961,7 @@ export default function AdminSettings({ user }) {
                     <tr>
                       <th className="text-left p-3 font-medium text-slate-700">Estado</th>
                       <th className="text-left p-3 font-medium text-slate-700">Tarifa de Envío ($)</th>
+                      <th className="text-left p-3 font-medium text-blue-700">0.130 CBM Reg. / Alto riesgo ($)</th>
                       <th className="text-left p-3 font-medium text-slate-700">Precio final Regular ($)</th>
                       <th className="text-left p-3 font-medium text-slate-700">Precio final Alto riesgo ($)</th>
                       <th className="text-center p-3 font-medium text-slate-700">Activo</th>
@@ -969,6 +984,11 @@ export default function AdminSettings({ user }) {
                             }}
                             className="w-32"
                           />
+                        </td>
+                        <td className="p-3">
+                          <span className="font-semibold text-blue-700">${((state.shipping_rate || 0) * 0.130).toFixed(2)}</span>
+                          <span className="text-slate-400"> / </span>
+                          <span className="font-semibold text-blue-700">${((state.shipping_rate || 0) * 0.130).toFixed(2)}</span>
                         </td>
                         <td className="p-3">
                           <span className="font-semibold">${(
