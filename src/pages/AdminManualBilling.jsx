@@ -23,7 +23,6 @@ export default function AdminManualBilling() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [creating, setCreating] = useState(false);
   const [recovering, setRecovering] = useState(false);
-  const [stateRate, setStateRate] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -38,11 +37,10 @@ export default function AdminManualBilling() {
 
   const DOOR_TO_DOOR_THRESHOLD = 0.130;
 
-  // Tarifa por estado del cliente (StateConfig) — usada para cargas >= 0.130 CBM
-  // Fallback a tarifa general marítima si el estado no tiene tarifa configurada
+  // Rate per CBM from config (maritime general rate) — solo para cargas >= 0.130 CBM
   const ratePerCbm = useMemo(() => {
-    return num(stateRate) || num(appConfig?.rate_sea_general) || num(pricing?.base_rate_regular) || 0;
-  }, [stateRate, appConfig, pricing]);
+    return num(appConfig?.rate_sea_general) || num(pricing?.base_rate_regular) || 0;
+  }, [appConfig, pricing]);
 
   // Tarifas especiales (mínimos) para cargas < 0.130 CBM
   const specialRates = useMemo(() => {
@@ -50,7 +48,7 @@ export default function AdminManualBilling() {
     return [...list].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
   }, [appConfig]);
 
-  // Calcula el monto de envío: tarifa por estado × CBM para >= 0.130, tabla de mínimos para menores
+  // Calcula el monto de envío aplicando tarifa de mínimos cuando corresponde
   const calcShipping = (cbm) => {
     const c = num(cbm);
     if (c <= 0) return 0;
@@ -66,24 +64,6 @@ export default function AdminManualBilling() {
     setRows([]);
     setLoadingRows(true);
     try {
-      // Cargar tarifa por estado del cliente
-      let resolvedStateRate = 0;
-      const stateCode = String(selectedClient?.state || '').trim().toLowerCase();
-      if (stateCode) {
-        const states = await base44.entities.StateConfig.filter({ state_code: stateCode }).catch(() => []);
-        resolvedStateRate = num(states?.[0]?.shipping_rate);
-      }
-      setStateRate(resolvedStateRate);
-
-      const effectiveRate = resolvedStateRate || num(appConfig?.rate_sea_general) || num(pricing?.base_rate_regular) || 0;
-      const calcShippingWithRate = (cbm) => {
-        const c = num(cbm);
-        if (c <= 0) return 0;
-        if (c >= DOOR_TO_DOOR_THRESHOLD) return c * effectiveRate;
-        const found = specialRates.find((r) => c <= num(r.max_cbm));
-        return found ? num(found.rate_regular) : c * effectiveRate;
-      };
-
       const ingresos = await base44.entities.CbmIngreso.filter({ client_email: selectedClient.email }, '-fecha', 200);
       // Excluir registros que ya fueron facturados (solo se liberan al desconsolidar)
       const available = (ingresos || []).filter((ing) => !ing.billed);
@@ -106,7 +86,7 @@ export default function AdminManualBilling() {
           selected: false,
           cbm_original: cbm,
           cbm: cbm ? cbm.toFixed(4) : '',
-          shipping_amount: calcShippingWithRate(cbm).toFixed(2),
+          shipping_amount: calcShipping(cbm).toFixed(2),
           insurance_amount: (totalFob * 0.05).toFixed(2),
         };
       });
