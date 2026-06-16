@@ -102,22 +102,61 @@ export default function ClientCard({
           )}
         </div>
 
-        {/* Active toggle + role selector */}
-        <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 w-full min-w-0">
-          <div className="flex items-center gap-2 shrink-0">
+        {/* Actions */}
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 w-full min-w-0">
+          <div className="flex items-center gap-2 pr-2 shrink-0 sm:border-r border-slate-200">
             <span className="text-xs text-slate-600">Activo</span>
             <Switch
               checked={client.is_active !== false}
               onCheckedChange={(checked) => onToggleActive(client, checked)}
             />
           </div>
-          <div className="flex-1 min-w-[140px]">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); onCopyInfo(client); }}
+            title="Copiar información"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onAddPackage(client)}
+            className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Paquete
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onView(client)}
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Ver
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const url = buildWhatsAppUrl(client.whatsapp, `Hola ${client.first_name || ''}, te escribimos del equipo de soporte.`);
+              if (!url) { toast.error('Cliente sin WhatsApp registrado'); return; }
+              window.open(url, '_blank', 'noopener,noreferrer');
+            }}
+            className="border-green-200 text-green-700 hover:bg-green-50"
+            title="Contactar por WhatsApp"
+          >
+            <MessageCircle className="h-4 w-4 mr-1" />
+            WhatsApp
+          </Button>
+          <div className="min-w-[140px] flex-1 sm:flex-none">
             <Select
               value={client.role === 'admin' ? (client.custom_role || 'equipo_y_acceso') : 'user'}
               onValueChange={(value) => onChangeRole(client, value)}
               disabled={roleUpdatingId === client.id}
             >
-              <SelectTrigger className="h-9 bg-white w-full">
+              <SelectTrigger className="h-9 bg-white">
                 <SelectValue placeholder="Cambiar rol" />
               </SelectTrigger>
               <SelectContent>
@@ -129,81 +168,32 @@ export default function ClientCard({
               </SelectContent>
             </Select>
           </div>
-        </div>
-
-        {/* Action buttons grid: 2 cols mobile, auto-fit desktop */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 w-full min-w-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onAddPackage(client)}
-            className="w-full min-w-0 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-          >
-            <Plus className="h-4 w-4 mr-1 shrink-0" />
-            <span className="truncate">Paquete</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onView(client)}
-            className="w-full min-w-0"
-          >
-            <Eye className="h-4 w-4 mr-1 shrink-0" />
-            <span className="truncate">Ver</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const url = buildWhatsAppUrl(client.whatsapp, `Hola ${client.first_name || ''}, te escribimos del equipo de soporte.`);
-              if (!url) { toast.error('Cliente sin WhatsApp registrado'); return; }
-              window.open(url, '_blank', 'noopener,noreferrer');
-            }}
-            className="w-full min-w-0 border-green-200 text-green-700 hover:bg-green-50"
-            title="Contactar por WhatsApp"
-          >
-            <MessageCircle className="h-4 w-4 mr-1 shrink-0" />
-            <span className="truncate">WhatsApp</span>
-          </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onEdit(client)}
-            className="w-full min-w-0"
           >
-            <Edit2 className="h-4 w-4 mr-1 shrink-0" />
-            <span className="truncate">Editar</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); onCopyInfo(client); }}
-            className="w-full min-w-0"
-            title="Copiar información"
-          >
-            <Copy className="h-4 w-4 mr-1 shrink-0" />
-            <span className="truncate">Copiar</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDelete(client)}
-            className="w-full min-w-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4 mr-1 shrink-0" />
-            <span className="truncate">Eliminar</span>
+            <Edit2 className="h-4 w-4 mr-1" />
+            Editar
           </Button>
           {client.stripe_customer_id && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => onDeleteStripeCustomer(client)}
-              className="w-full min-w-0 col-span-2 sm:col-span-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
             >
-              <Trash2 className="h-4 w-4 mr-1 shrink-0" />
-              <span className="truncate">Stripe</span>
+              <Trash2 className="h-4 w-4 mr-1" /> Stripe
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(client)}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>
