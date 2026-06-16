@@ -109,7 +109,10 @@ export default function AdminManualBilling() {
   };
 
   const selectedRows = rows.filter((r) => r.selected);
-  const shippingTotal = selectedRows.reduce((s, r) => s + num(r.shipping_amount), 0);
+  // Si hay un CBM facturado manual, el envío se recalcula con ese CBM total; si no, suma por fila
+  const shippingTotal = billedCbm !== ''
+    ? calcShipping(num(billedCbm))
+    : selectedRows.reduce((s, r) => s + num(r.shipping_amount), 0);
   const insuranceTotal = selectedRows.reduce((s, r) => s + num(r.insurance_amount), 0);
   const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0);
   const consolidationFee = consolidationMode === 'manual' ? num(manualConsolidationFee) : totalPackages * 1;
@@ -119,7 +122,32 @@ export default function AdminManualBilling() {
     if (selectedRows.length === 0) { toast.error('Selecciona al menos una factura'); return; }
     setCreating(true);
     try {
+      const totalCbm = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
+      const billedCbmValue = billedCbm !== '' ? num(billedCbm) : totalCbm;
+      const useManualCbm = billedCbm !== '';
+
       const items = [];
+      if (useManualCbm) {
+        const manualShipping = calcShipping(billedCbmValue);
+        items.push({
+          description: `Envío - ${billedCbmValue.toFixed(4)} CBM facturado`,
+          quantity: 1,
+          unit_price: manualShipping,
+          total: manualShipping,
+          details: { cbm: billedCbmValue, billed_cbm: billedCbmValue, total_cbm: totalCbm },
+        });
+        selectedRows.forEach((r) => {
+          if (num(r.insurance_amount) > 0) {
+            items.push({
+              description: `Seguro de carga - ${r.consolidation_tracking || r.invoice_number}`,
+              quantity: 1,
+              unit_price: num(r.insurance_amount),
+              total: num(r.insurance_amount),
+              details: { fob_value: r.total_fob, insured_packages: r.insured_count },
+            });
+          }
+        });
+      } else {
       selectedRows.forEach((r) => {
         items.push({
           description: `Envío - ${r.consolidation_tracking || r.invoice_number} (${r.cbm || 0} CBM)`,
@@ -138,6 +166,7 @@ export default function AdminManualBilling() {
           });
         }
       });
+      }
       if (consolidationFee > 0) {
         items.push({
           description: consolidationMode === 'manual'
@@ -149,9 +178,6 @@ export default function AdminManualBilling() {
           details: { package_count: totalPackages },
         });
       }
-
-      const totalCbm = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
-      const billedCbmValue = billedCbm !== '' ? num(billedCbm) : totalCbm;
 
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + num(appConfig?.invoice_overdue_days || 7));
