@@ -132,7 +132,7 @@
 
   @media (max-width: 640px) {
     /* Evitar desbordamiento horizontal por textos largos (trackings, emails, marks) */
-    p, h1, h2, h3, h4, td, th, li, label {
+    p, td, th, li, label {
       overflow-wrap: anywhere;
     }
     .font-mono {

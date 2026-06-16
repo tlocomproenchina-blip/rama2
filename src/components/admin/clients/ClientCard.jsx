@@ -40,15 +40,15 @@ export default function ClientCard({
             <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
               {(client.first_name?.[0] || client.email?.[0] || '?').toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-slate-800 break-words">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <h3 className="font-semibold text-slate-800 truncate">
                 {client.first_name && client.last_name
                   ? `${client.first_name} ${client.last_name}`
                   : client.email}
               </h3>
-              <div className="flex items-center gap-2 text-sm text-slate-500 mt-1 min-w-0">
+              <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
                 <Mail className="h-3 w-3 shrink-0" />
-                <span className="break-all">{client.email}</span>
+                <span className="truncate">{client.email}</span>
               </div>
             </div>
           </div>
