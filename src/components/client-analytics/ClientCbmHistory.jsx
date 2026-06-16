@@ -7,7 +7,7 @@ import { Boxes, Ship, MessageCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
-import { base44 } from '@/api/base44Client';
+import { base44 } from '@/components/api/ApiQueueManager';
 
 const fmtDate = (d) => (d ? format(new Date(d), 'dd/MM/yyyy') : '—');
 
