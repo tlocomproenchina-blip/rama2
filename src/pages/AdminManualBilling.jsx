@@ -41,10 +41,22 @@ export default function AdminManualBilling() {
 
   const DOOR_TO_DOOR_THRESHOLD = 0.130;
 
-  // Rate per CBM from config (maritime general rate) — solo para cargas >= 0.130 CBM
-  const ratePerCbm = useMemo(() => {
-    return num(appConfig?.rate_sea_general) || num(pricing?.base_rate_regular) || 0;
-  }, [appConfig, pricing]);
+  // Tarifa de envío del estado del cliente (StateConfig)
+  const stateShippingRate = useMemo(() => {
+    const code = String(client?.state || '').trim().toLowerCase();
+    if (!code) return 0;
+    const match = (stateConfigs || []).find((s) => String(s.state_code).toLowerCase() === code);
+    return num(match?.shipping_rate);
+  }, [client, stateConfigs]);
+
+  // Precio final por CBM (>= 0.130) = (tarifa base * (1 + beneficio%)) + tarifa estado + puerta a puerta
+  const finalRatePerCbm = useMemo(() => {
+    const factor = 1 + num(pricing?.profit_percentage) / 100;
+    return num(pricing?.base_rate_regular) * factor + stateShippingRate + num(pricing?.door_to_door_cost);
+  }, [pricing, stateShippingRate]);
+
+  // Usado como base por CBM para cargas >= 0.130 CBM
+  const ratePerCbm = finalRatePerCbm;
 
   // Tarifas especiales (mínimos) para cargas < 0.130 CBM
   const specialRates = useMemo(() => {
@@ -62,6 +74,12 @@ export default function AdminManualBilling() {
     const found = specialRates.find((r) => c <= num(r.max_cbm));
     return found ? num(found.rate_regular) : c * ratePerCbm;
   };
+
+  // Recalcular envío de las filas cuando cambia la tarifa final por CBM del estado
+  useEffect(() => {
+    setRows((prev) => prev.map((r) => ({ ...r, shipping_amount: calcShipping(r.cbm).toFixed(2) })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalRatePerCbm, specialRates]);
 
   const loadClientInvoices = async (selectedClient) => {
     setClient(selectedClient);
