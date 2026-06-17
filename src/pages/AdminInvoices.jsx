@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX } from 'lucide-react';
+import InvoiceReceiptsModal from '@/components/invoice/InvoiceReceiptsModal';
+import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminInvoices({ user }) {
@@ -46,6 +47,7 @@ export default function AdminInvoices({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
   const [appConfig, setAppConfig] = useState(null);
+  const [receiptsInvoice, setReceiptsInvoice] = useState(null);
 
   // Inicialización en paralelo (3 fetches concurrentes en lugar de secuenciales)
   useEffect(() => {
@@ -655,6 +657,14 @@ export default function AdminInvoices({ user }) {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => setReceiptsInvoice(invoice)}
+                >
+                  <Boxes className="h-4 w-4 mr-1" />
+                  Ver recibos
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setEditingInvoice(invoice);
                     setShowEditModal(true);
@@ -822,6 +832,13 @@ export default function AdminInvoices({ user }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Recibos dentro de la factura */}
+      <InvoiceReceiptsModal
+        invoice={receiptsInvoice}
+        open={!!receiptsInvoice}
+        onClose={() => setReceiptsInvoice(null)}
+      />
 
       {/* Métodos de Pago (Admin) */}
       {showPaymentsSettings && (
