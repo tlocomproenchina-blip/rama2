@@ -12,6 +12,7 @@ import ClientAnalyticsSearch from '@/components/client-analytics/ClientAnalytics
 import ClientProfileCard from '@/components/client-analytics/ClientProfileCard';
 import ClientPackagesTable from '@/components/client-analytics/ClientPackagesTable';
 import ClientCbmHistory from '@/components/client-analytics/ClientCbmHistory';
+import ClientInvoicesList from '@/components/client-analytics/ClientInvoicesList';
 
 function getLastMonths(count) {
   const now = new Date();
@@ -233,6 +234,8 @@ export default function ClientAnalytics() {
           onRefresh={() => loadData(selectedClient?.email)}
         />
       )}
+
+      {selectedClient && <ClientInvoicesList invoices={invoices} />}
 
       {selectedClient && <ClientPackagesTable packages={packages} client={selectedClient} />}
 
