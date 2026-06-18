@@ -56,6 +56,7 @@ export default function AccountingDashboard({ user }) {
       overdueCount: 0,
       overdueAmount: 0,
       providerPaymentsMonth: 0,
+      billedCbm: 0,
     },
     monthlyRevenue: [],
     receivables: [],
@@ -115,6 +116,7 @@ export default function AccountingDashboard({ user }) {
             overdueCount: overdueInvoices.length,
             overdueAmount: sumAmounts(overdueInvoices, (invoice) => invoice.total),
             providerPaymentsMonth: sumAmounts(providerPaidThisMonth, (item) => item.amount_paid),
+            billedCbm: sumAmounts(invoices, (invoice) => invoice.billed_cbm),
           },
           monthlyRevenue,
           receivables,
@@ -164,6 +166,7 @@ export default function AccountingDashboard({ user }) {
         <AccountingMetricCard title="Por cobrar" value={`$${report.metrics.receivablesAmount.toFixed(2)}`} subtitle="Facturas pendientes y en revisión" icon={Wallet} accent="bg-blue-100 text-blue-700" />
         <AccountingMetricCard title="Facturas vencidas" value={String(report.metrics.overdueCount)} subtitle={`$${report.metrics.overdueAmount.toFixed(2)} en riesgo`} icon={AlertTriangle} accent="bg-amber-100 text-amber-700" />
         <AccountingMetricCard title="Pagos a proveedores" value={`$${report.metrics.providerPaymentsMonth.toFixed(2)}`} subtitle="Abonos registrados este mes" icon={CreditCard} accent="bg-teal-100 text-teal-700" />
+        <AccountingMetricCard title="CBM facturados" value={report.metrics.billedCbm.toFixed(4)} subtitle="Total de CBM facturado" icon={Package} accent="bg-indigo-100 text-indigo-700" />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">
