@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, RefreshCcw } from 'lucide-react';
+import { Loader2, RefreshCcw, Calculator } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,6 +20,27 @@ export default function AdminAccountsPayable({ user }) {
   const [page, setPage] = useState(0);
   const pageSize = 50;
   const [hasMore, setHasMore] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+
+  const handleRecalculate = async () => {
+    setRecalculating(true);
+    try {
+      const res = await base44.functions.invoke('recalculateProviderCosts', {});
+      const d = res?.data || {};
+      if (d.success) {
+        toast.success(`Recalculadas ${d.updated} factura(s) manual(es)`);
+        setPage(0);
+        await loadData();
+      } else {
+        toast.error(d.error || 'No se pudo recalcular');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('No se pudo recalcular');
+    } finally {
+      setRecalculating(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -194,6 +215,10 @@ export default function AdminAccountsPayable({ user }) {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => { setPage(0); loadData(); }}>
             <RefreshCcw className="h-4 w-4 mr-2" /> Refrescar
+          </Button>
+          <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={handleRecalculate} disabled={recalculating}>
+            {recalculating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Calculator className="h-4 w-4 mr-2" />}
+            Recalcular costos
           </Button>
           <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>
             Prev
