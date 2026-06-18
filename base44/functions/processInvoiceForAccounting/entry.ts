@@ -24,47 +24,37 @@ Deno.serve(async (req) => {
     const cfg = configs?.[0] || {};
 
     const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-    const seaRate = num(cfg.provider_rate_sea_general);
-    const insurancePct = num(cfg.provider_insurance_percentage);
-    const receptionFee = num(cfg.provider_reception_fee);
-    const specialRanges = Array.isArray(cfg.provider_special_cbm_rates) ? cfg.provider_special_cbm_rates : [];
 
-    let providerCost = 0;
-    let totalCbm = 0;
-    let trackingCount = 0;
-    const breakdown = [];
+    // Costo proveedor = Tarifa base (Regular/Alto Riesgo) + Costo puerta a puerta + Tarifa de envío del estado del cliente
+    const clientUsers = await base44.asServiceRole.entities.User.filter({ email: invoice.client_email });
+    const clientUser = clientUsers?.[0] || {};
+    const stateCode = String(clientUser.state || '').trim().toLowerCase();
+    const isHighRisk = String(clientUser.risk_category || '').toLowerCase().includes('alto');
 
-    for (const item of invoice.items || []) {
-      const d = item.details || {};
-      if (d.cbm !== undefined) {
-        // Flete: usar rango especial si CBM < 0.130, sino tarifa por CBM
-        const cbm = num(d.cbm);
-        totalCbm += cbm;
-        let cost;
-        const range = cbm > 0 && cbm < 0.13
-          ? specialRanges.find((r) => cbm >= num(r.min_cbm) && cbm <= num(r.max_cbm))
-          : null;
-        if (range) {
-          cost = num(range.rate_regular);
-        } else {
-          cost = cbm * seaRate;
-        }
-        providerCost += cost;
-        breakdown.push({ concepto: `Flete ${cbm} CBM`, costo: Math.round(cost * 100) / 100 });
-      } else if (d.fob_value !== undefined) {
-        // Seguro
-        const cost = num(d.fob_value) * insurancePct / 100;
-        providerCost += cost;
-        breakdown.push({ concepto: `Seguro (FOB $${num(d.fob_value)})`, costo: Math.round(cost * 100) / 100 });
-      } else if (d.package_count !== undefined) {
-        // Recepción de paquetes
-        trackingCount = num(d.package_count);
-        const cost = trackingCount * receptionFee;
-        providerCost += cost;
-        breakdown.push({ concepto: `Recepción ${trackingCount} paquete(s)`, costo: Math.round(cost * 100) / 100 });
-      }
+    let stateShippingRate = 0;
+    if (stateCode) {
+      const states = await base44.asServiceRole.entities.StateConfig.filter({ state_code: stateCode });
+      stateShippingRate = num(states?.[0]?.shipping_rate);
     }
 
+    const baseRate = isHighRisk ? num(cfg.provider_rate_sea_sensitive) : num(cfg.provider_rate_sea_general);
+    const doorToDoor = num(cfg.provider_door_to_door_cost);
+
+    let totalCbm = 0;
+    let trackingCount = 0;
+    for (const item of invoice.items || []) {
+      const d = item.details || {};
+      if (d.cbm !== undefined) totalCbm += num(d.cbm);
+      if (d.package_count !== undefined) trackingCount = num(d.package_count);
+    }
+
+    const breakdown = [
+      { concepto: `Tarifa base ${isHighRisk ? 'Alto Riesgo' : 'Regular'}`, costo: Math.round(baseRate * 100) / 100 },
+      { concepto: 'Costo puerta a puerta', costo: Math.round(doorToDoor * 100) / 100 },
+      { concepto: `Tarifa de envío (${stateCode || 'sin estado'})`, costo: Math.round(stateShippingRate * 100) / 100 },
+    ];
+
+    let providerCost = baseRate + doorToDoor + stateShippingRate;
     providerCost = Math.round(providerCost * 100) / 100;
     const profit = Math.round((num(invoice.total) - providerCost) * 100) / 100;
 

@@ -13,36 +13,26 @@ Deno.serve(async (req) => {
     const cfg = configs?.[0] || {};
 
     const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-    const seaRate = num(cfg.provider_rate_sea_general);
-    const insurancePct = num(cfg.provider_insurance_percentage);
-    const receptionFee = num(cfg.provider_reception_fee);
-    const specialRanges = Array.isArray(cfg.provider_special_cbm_rates) ? cfg.provider_special_cbm_rates : [];
+    const doorToDoor = num(cfg.provider_door_to_door_cost);
 
-    const computeProviderCost = (invoice) => {
-      let providerCost = 0;
-      let totalCbm = 0;
-      let trackingCount = 0;
-      for (const item of invoice.items || []) {
-        const d = item.details || {};
-        if (d.cbm !== undefined) {
-          const cbm = num(d.cbm);
-          totalCbm += cbm;
-          const range = cbm > 0 && cbm < 0.13
-            ? specialRanges.find((r) => cbm >= num(r.min_cbm) && cbm <= num(r.max_cbm))
-            : null;
-          providerCost += range ? num(range.rate_regular) : cbm * seaRate;
-        } else if (d.fob_value !== undefined) {
-          providerCost += num(d.fob_value) * insurancePct / 100;
-        } else if (d.package_count !== undefined) {
-          trackingCount = num(d.package_count);
-          providerCost += trackingCount * receptionFee;
-        }
-      }
-      return {
-        providerCost: Math.round(providerCost * 100) / 100,
-        totalCbm: Math.round(totalCbm * 10000) / 10000,
-        trackingCount
-      };
+    // Cache de tarifas por estado y datos de usuario para no repetir lecturas
+    const stateRateCache = {};
+    const getStateRate = async (stateCode) => {
+      if (!stateCode) return 0;
+      if (stateRateCache[stateCode] !== undefined) return stateRateCache[stateCode];
+      const states = await base44.asServiceRole.entities.StateConfig.filter({ state_code: stateCode });
+      const rate = num(states?.[0]?.shipping_rate);
+      stateRateCache[stateCode] = rate;
+      return rate;
+    };
+
+    const userCache = {};
+    const getUser = async (email) => {
+      if (userCache[email] !== undefined) return userCache[email];
+      const users = await base44.asServiceRole.entities.User.filter({ email });
+      const u = users?.[0] || {};
+      userCache[email] = u;
+      return u;
     };
 
     // Solo facturas manuales (prefijo INV-M-)
@@ -53,8 +43,24 @@ Deno.serve(async (req) => {
     let skippedNoAp = 0;
 
     for (const invoice of manualInvoices) {
-      const { providerCost, totalCbm, trackingCount } = computeProviderCost(invoice);
+      const clientUser = await getUser(invoice.client_email);
+      const stateCode = String(clientUser.state || '').trim().toLowerCase();
+      const isHighRisk = String(clientUser.risk_category || '').toLowerCase().includes('alto');
+      const stateShippingRate = await getStateRate(stateCode);
+      const baseRate = isHighRisk ? num(cfg.provider_rate_sea_sensitive) : num(cfg.provider_rate_sea_general);
+
+      // Tarifa base + puerta a puerta + tarifa de envío del estado del cliente
+      const providerCost = Math.round((baseRate + doorToDoor + stateShippingRate) * 100) / 100;
       const profit = Math.round((num(invoice.total) - providerCost) * 100) / 100;
+
+      let totalCbm = 0;
+      let trackingCount = 0;
+      for (const item of invoice.items || []) {
+        const d = item.details || {};
+        if (d.cbm !== undefined) totalCbm += num(d.cbm);
+        if (d.package_count !== undefined) trackingCount = num(d.package_count);
+      }
+      totalCbm = Math.round(totalCbm * 10000) / 10000;
 
       // Buscar la cuenta por pagar asociada (por descripción que incluye el número de factura)
       const invRef = invoice.invoice_number || invoice.id;
@@ -71,6 +77,7 @@ Deno.serve(async (req) => {
           original_amount_due: providerCost,
           balance_due: newBalance,
           status: newStatus,
+          state_code: stateCode || undefined,
           cbm: totalCbm,
           tracking_count: trackingCount
         });
