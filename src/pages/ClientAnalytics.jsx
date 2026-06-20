@@ -235,7 +235,7 @@ export default function ClientAnalytics() {
         />
       )}
 
-      {selectedClient && <ClientInvoicesList invoices={invoices} />}
+      {selectedClient && <ClientInvoicesList invoices={invoices} client={selectedClient} />}
 
       {selectedClient && <ClientPackagesTable packages={packages} client={selectedClient} />}
 

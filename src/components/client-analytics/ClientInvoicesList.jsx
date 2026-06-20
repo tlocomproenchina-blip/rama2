@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, ChevronDown, ChevronRight, Receipt } from 'lucide-react';
+import { FileText, ChevronDown, ChevronRight, Receipt, MessageCircle } from 'lucide-react';
+import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -22,10 +23,20 @@ function formatDate(value) {
   }
 }
 
-export default function ClientInvoicesList({ invoices }) {
+export default function ClientInvoicesList({ invoices, client }) {
   const [expanded, setExpanded] = useState(null);
 
   const list = Array.isArray(invoices) ? invoices : [];
+
+  const handleWhatsApp = (invoice, e) => {
+    e.stopPropagation();
+    const phone = client?.whatsapp || client?.phone;
+    const name = (client?.first_name || client?.full_name || '').split(' ')[0] || 'estimado cliente';
+    const message = `Hola ${name}, le contactamos de TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${num(invoice.total).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
+    const url = buildWhatsAppUrl(phone, message);
+    if (!url) return;
+    window.open(url, '_blank');
+  };
 
   return (
     <Card className="border-0 shadow-md">
@@ -109,6 +120,15 @@ export default function ClientInvoicesList({ invoices }) {
 
                     {invoice.notes && (
                       <p className="text-xs text-slate-500 break-words">{invoice.notes}</p>
+                    )}
+
+                    {invoice.status === 'pendiente' && (client?.whatsapp || client?.phone) && (
+                      <button
+                        onClick={(e) => handleWhatsApp(invoice, e)}
+                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                      >
+                        <MessageCircle className="h-4 w-4" /> Notificar pago por WhatsApp
+                      </button>
                     )}
                   </div>
                 )}
