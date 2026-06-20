@@ -113,23 +113,39 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
     try {
       const file_url = await uploadImageNoCredits(proofFile);
 
-      await base44.entities.Consolidation.update(consolidation.id, {
-        payment_proof_url: file_url,
-        payment_amount: parseFloat(amount),
-        payment_method: paymentMethod,
-        payment_date: new Date().toISOString(),
-        status: 'pago_pendiente_validacion'
-      });
+      // Actualizar la consolidación solo si existe un registro real (las facturas manuales no tienen Consolidation)
+      const consolidationId = consolidation.id;
+      let consolidationExists = false;
+      if (consolidationId && consolidationId !== 'manual') {
+        const existing = await base44.entities.Consolidation.filter({ id: consolidationId }).catch(() => []);
+        consolidationExists = (existing || []).length > 0;
+      }
+      if (consolidationExists) {
+        await base44.entities.Consolidation.update(consolidationId, {
+          payment_proof_url: file_url,
+          payment_amount: parseFloat(amount),
+          payment_method: paymentMethod,
+          payment_date: new Date().toISOString(),
+          status: 'pago_pendiente_validacion'
+        });
+      }
 
       // Cambiar facturas relacionadas a 'revision' (oculta métodos de pago hasta validación)
+      // Buscar por invoice id directo (facturas manuales) o por consolidation_id
       try {
-        const invs = await base44.entities.Invoice.filter({ consolidation_id: consolidation.id });
+        let invs = [];
+        if (consolidation.invoice_id) {
+          invs = await base44.entities.Invoice.filter({ id: consolidation.invoice_id });
+        } else if (consolidationId && consolidationId !== 'manual') {
+          invs = await base44.entities.Invoice.filter({ consolidation_id: consolidationId });
+        }
         for (const inv of invs) {
           if (inv.status === 'pendiente') {
             await base44.entities.Invoice.update(inv.id, {
               status: 'revision',
               payment_method: paymentMethod,
-              payment_date: new Date().toISOString()
+              payment_date: new Date().toISOString(),
+              payment_reference: file_url
             });
           }
         }

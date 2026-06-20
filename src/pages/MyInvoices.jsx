@@ -280,7 +280,7 @@ export default function MyInvoices({ user }) {
                 showPayPalButton={config?.payments_enable_paypal === true}
                 onOtherPay={(inv) => {
                   if (inv.status === 'pagada' || inv.status === 'revision') return;
-                  setSelectedConsolidation({ id: inv.consolidation_id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
+                  setSelectedConsolidation({ id: inv.consolidation_id, invoice_id: inv.id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
                   setPaymentOpen(true);
                 }}
                 showOtherMethodsButton={hasOtherMethodsConfigured}
