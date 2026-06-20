@@ -672,21 +672,23 @@ export default function AdminInvoices({ user }) {
                     Ganancia: ${Number(invoice.profit_amount).toFixed(2)}
                   </span>
                 )}
-                <label className="flex items-center gap-1.5 bg-white/90 rounded-full px-2 py-0.5 shadow-sm cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                  <Checkbox
-                    checked={!!invoice.provider_paid}
-                    onCheckedChange={(checked) => handleToggleProviderPaid(invoice, !!checked)}
-                  />
-                  <span className={`text-xs font-semibold ${invoice.provider_paid ? 'text-emerald-700' : 'text-slate-500'}`}>
-                    Pagado al proveedor
-                  </span>
-                </label>
               </div>
               <InvoiceCard
                 invoice={invoice}
                 onDownload={handleDownloadPDF}
                 showPayButton={false}
               />
+              <div className="px-6 pb-4 -mt-2">
+                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={!!invoice.provider_paid}
+                    onCheckedChange={(checked) => handleToggleProviderPaid(invoice, !!checked)}
+                  />
+                  <span className={`text-sm font-medium ${invoice.provider_paid ? 'text-emerald-700' : 'text-slate-600'}`}>
+                    Pagado al proveedor
+                  </span>
+                </label>
+              </div>
               <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button
                   variant="outline"
