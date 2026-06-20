@@ -350,6 +350,27 @@ export default function AdminInvoices({ user }) {
     setBulkProcessing(false);
   };
 
+  const handleToggleProviderPaid = async (invoice, checked) => {
+    try {
+      const paidDate = checked ? new Date().toISOString() : null;
+      await base44.entities.Invoice.update(invoice.id, { provider_paid: checked, provider_paid_date: paidDate });
+
+      // Sincronizar la cuenta por pagar asociada (por consolidación)
+      if (invoice.consolidation_id) {
+        const aps = await base44.entities.AccountsPayable.filter({ related_consolidation_id: invoice.consolidation_id }).catch(() => []);
+        await Promise.all((aps || []).map(ap => base44.entities.AccountsPayable.update(ap.id, checked
+          ? { status: 'pagado', amount_paid: Number(ap.original_amount_due || 0), balance_due: 0, payment_date: paidDate }
+          : { status: 'pendiente', amount_paid: 0, balance_due: Number(ap.original_amount_due || 0), payment_date: null }
+        )));
+      }
+
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_paid: checked, provider_paid_date: paidDate } : i));
+      toast.success(checked ? 'Marcado como pagado al proveedor' : 'Pago al proveedor revertido');
+    } catch (error) {
+      toast.error('Error al actualizar pago al proveedor');
+    }
+  };
+
   const handleDeconsolidate = async (invoice) => {
     if (!invoice.consolidation_id) {
       toast.error('Esta factura no tiene consolidación asociada');
@@ -651,6 +672,15 @@ export default function AdminInvoices({ user }) {
                     Ganancia: ${Number(invoice.profit_amount).toFixed(2)}
                   </span>
                 )}
+                <label className="flex items-center gap-1.5 bg-white/90 rounded-full px-2 py-0.5 shadow-sm cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={!!invoice.provider_paid}
+                    onCheckedChange={(checked) => handleToggleProviderPaid(invoice, !!checked)}
+                  />
+                  <span className={`text-xs font-semibold ${invoice.provider_paid ? 'text-emerald-700' : 'text-slate-500'}`}>
+                    Pagado al proveedor
+                  </span>
+                </label>
               </div>
               <InvoiceCard
                 invoice={invoice}

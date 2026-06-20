@@ -81,6 +81,16 @@
       "type": "number",
       "description": "Ganancia neta de la factura (total facturado - costo proveedor)"
     },
+    "provider_paid": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si el costo al proveedor de esta factura ya fue pagado"
+    },
+    "provider_paid_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se marc\u00f3 como pagado al proveedor"
+    },
     "status": {
       "type": "string",
       "enum": [
