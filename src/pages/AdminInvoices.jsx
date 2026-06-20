@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX } from 'lucide-react';
+import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle } from 'lucide-react';
+import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
 
 export default function AdminInvoices({ user }) {
@@ -350,6 +351,18 @@ export default function AdminInvoices({ user }) {
     setBulkProcessing(false);
   };
 
+  const handleNotifyPayment = (invoice) => {
+    const phone = invoice.client_whatsapp;
+    const name = (invoice.client_first_name || '').trim() || 'estimado cliente';
+    const message = `Hola ${name}, le contactamos de TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${Number(invoice.total || 0).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
+    const url = buildWhatsAppUrl(phone, message);
+    if (!url) {
+      toast.error('Este cliente no tiene número de WhatsApp registrado');
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
   const handleToggleProviderPaid = async (invoice, checked) => {
     try {
       const paidDate = checked ? new Date().toISOString() : null;
@@ -678,15 +691,25 @@ export default function AdminInvoices({ user }) {
                 onDownload={handleDownloadPDF}
                 showPayButton={false}
                 extraActions={(
-                  <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={!!invoice.provider_paid}
-                      onCheckedChange={(checked) => handleToggleProviderPaid(invoice, !!checked)}
-                    />
-                    <span className={`text-sm font-medium ${invoice.provider_paid ? 'text-emerald-700' : 'text-slate-600'}`}>
-                      Pagado al proveedor
-                    </span>
-                  </label>
+                  <>
+                    {invoice.status === 'pendiente' && invoice.client_whatsapp && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleNotifyPayment(invoice); }}
+                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                      >
+                        <MessageCircle className="h-4 w-4" /> Notificar pago
+                      </button>
+                    )}
+                    <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={!!invoice.provider_paid}
+                        onCheckedChange={(checked) => handleToggleProviderPaid(invoice, !!checked)}
+                      />
+                      <span className={`text-sm font-medium ${invoice.provider_paid ? 'text-emerald-700' : 'text-slate-600'}`}>
+                        Pagado al proveedor
+                      </span>
+                    </label>
+                  </>
                 )}
               />
               <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
