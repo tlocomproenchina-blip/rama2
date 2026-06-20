@@ -10,6 +10,7 @@ import ShippingCostBreakdownChart from '@/components/client-analytics/ShippingCo
 import ConsolidationEfficiencyChart from '@/components/client-analytics/ConsolidationEfficiencyChart';
 import ClientAnalyticsSearch from '@/components/client-analytics/ClientAnalyticsSearch';
 import ClientProfileCard from '@/components/client-analytics/ClientProfileCard';
+import ClientStateRatesCard from '@/components/manual-billing/ClientStateRatesCard';
 import ClientPackagesTable from '@/components/client-analytics/ClientPackagesTable';
 import ClientCbmHistory from '@/components/client-analytics/ClientCbmHistory';
 import ClientInvoicesList from '@/components/client-analytics/ClientInvoicesList';
@@ -39,6 +40,9 @@ export default function ClientAnalytics() {
   const [invoices, setInvoices] = useState([]);
   const [packages, setPackages] = useState([]);
   const [cbmIngresos, setCbmIngresos] = useState([]);
+  const [appConfig, setAppConfig] = useState(null);
+  const [pricing, setPricing] = useState(null);
+  const [stateConfigs, setStateConfigs] = useState([]);
 
   const loadClients = async () => {
     try {
@@ -99,6 +103,16 @@ export default function ClientAnalytics() {
 
   useEffect(() => {
     loadClients();
+    (async () => {
+      const [cfgs, prc, states] = await Promise.all([
+        base44.entities.AppConfig.filter({ config_key: 'main' }).catch(() => []),
+        base44.entities.PricingConfig.filter({ config_key: 'main' }).catch(() => []),
+        base44.entities.StateConfig.list('-updated_date', 100).catch(() => [])
+      ]);
+      setAppConfig(cfgs?.[0] || null);
+      setPricing(prc?.[0] || null);
+      setStateConfigs(states || []);
+    })();
   }, []);
 
   useEffect(() => {
@@ -185,6 +199,15 @@ export default function ClientAnalytics() {
       )}
 
       {selectedClient && <ClientProfileCard client={selectedClient} />}
+
+      {selectedClient && (
+        <ClientStateRatesCard
+          client={selectedClient}
+          stateConfigs={stateConfigs}
+          appConfig={appConfig}
+          pricing={pricing}
+        />
+      )}
 
       {selectedClient && <AnalyticsSummaryCards items={[
         {
