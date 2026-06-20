@@ -14,6 +14,9 @@ Deno.serve(async (req) => {
 
     const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
     const doorToDoor = num(cfg.provider_door_to_door_cost);
+    const DOOR_TO_DOOR_THRESHOLD = 0.130;
+    const specialRates = (Array.isArray(cfg.provider_special_cbm_rates) ? cfg.provider_special_cbm_rates : [])
+      .slice().sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
 
     // Cache de tarifas por estado y datos de usuario para no repetir lecturas
     const stateRateCache = {};
@@ -49,18 +52,27 @@ Deno.serve(async (req) => {
       const stateShippingRate = await getStateRate(stateCode);
       const baseRate = isHighRisk ? num(cfg.provider_rate_sea_sensitive) : num(cfg.provider_rate_sea_general);
 
-      // Tarifa base + puerta a puerta + tarifa de envío del estado del cliente
-      const providerCost = Math.round((baseRate + doorToDoor + stateShippingRate) * 100) / 100;
-      const profit = Math.round((num(invoice.total) - providerCost) * 100) / 100;
-
       let totalCbm = 0;
       let trackingCount = 0;
       for (const item of invoice.items || []) {
         const d = item.details || {};
-        if (d.cbm !== undefined) totalCbm += num(d.cbm);
+        if (d.billed_cbm !== undefined) totalCbm += num(d.billed_cbm);
+        else if (d.cbm !== undefined) totalCbm += num(d.cbm);
         if (d.package_count !== undefined) trackingCount = num(d.package_count);
       }
       totalCbm = Math.round(totalCbm * 10000) / 10000;
+
+      // Mismo cálculo que processInvoiceForAccounting
+      let providerCost;
+      if (totalCbm > 0 && totalCbm < DOOR_TO_DOOR_THRESHOLD) {
+        const found = specialRates.find((r) => totalCbm <= num(r.max_cbm));
+        providerCost = found ? (isHighRisk ? num(found.rate_high_risk) : num(found.rate_regular)) : 0;
+      } else {
+        const perCbm = baseRate + stateShippingRate;
+        providerCost = perCbm * totalCbm + doorToDoor;
+      }
+      providerCost = Math.round(providerCost * 100) / 100;
+      const profit = Math.round((num(invoice.total) - providerCost) * 100) / 100;
 
       // Buscar la cuenta por pagar asociada (por descripción que incluye el número de factura)
       const invRef = invoice.invoice_number || invoice.id;

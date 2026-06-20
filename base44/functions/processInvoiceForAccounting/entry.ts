@@ -44,17 +44,40 @@ Deno.serve(async (req) => {
     let trackingCount = 0;
     for (const item of invoice.items || []) {
       const d = item.details || {};
-      if (d.cbm !== undefined) totalCbm += num(d.cbm);
+      // Preferir el CBM facturado si está presente
+      if (d.billed_cbm !== undefined) totalCbm += num(d.billed_cbm);
+      else if (d.cbm !== undefined) totalCbm += num(d.cbm);
       if (d.package_count !== undefined) trackingCount = num(d.package_count);
     }
+    totalCbm = Math.round(totalCbm * 10000) / 10000;
 
-    const breakdown = [
-      { concepto: `Tarifa base ${isHighRisk ? 'Alto Riesgo' : 'Regular'}`, costo: Math.round(baseRate * 100) / 100 },
-      { concepto: 'Costo puerta a puerta', costo: Math.round(doorToDoor * 100) / 100 },
-      { concepto: `Tarifa de envío (${stateCode || 'sin estado'})`, costo: Math.round(stateShippingRate * 100) / 100 },
-    ];
+    const DOOR_TO_DOOR_THRESHOLD = 0.130;
 
-    let providerCost = baseRate + doorToDoor + stateShippingRate;
+    // Tarifas especiales del proveedor para cargas < 0.130 CBM (monto fijo por rango)
+    const specialRates = (Array.isArray(cfg.provider_special_cbm_rates) ? cfg.provider_special_cbm_rates : [])
+      .slice().sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
+
+    let providerCost;
+    const breakdown = [];
+
+    if (totalCbm > 0 && totalCbm < DOOR_TO_DOOR_THRESHOLD) {
+      // Carga pequeña: usar tarifa especial fija del proveedor según rango de CBM
+      const found = specialRates.find((r) => totalCbm <= num(r.max_cbm));
+      const specialCost = found ? (isHighRisk ? num(found.rate_high_risk) : num(found.rate_regular)) : 0;
+      providerCost = specialCost;
+      breakdown.push({ concepto: `Tarifa especial proveedor (${totalCbm} CBM ${isHighRisk ? 'Alto Riesgo' : 'Regular'})`, costo: Math.round(specialCost * 100) / 100 });
+    } else {
+      // Carga >= 0.130 CBM: (tarifa base + tarifa de envío del estado) × CBM + puerta a puerta
+      const perCbm = baseRate + stateShippingRate;
+      const cbmCost = perCbm * totalCbm;
+      providerCost = cbmCost + doorToDoor;
+      breakdown.push(
+        { concepto: `Tarifa base ${isHighRisk ? 'Alto Riesgo' : 'Regular'} × ${totalCbm} CBM`, costo: Math.round(baseRate * totalCbm * 100) / 100 },
+        { concepto: `Tarifa de envío (${stateCode || 'sin estado'}) × ${totalCbm} CBM`, costo: Math.round(stateShippingRate * totalCbm * 100) / 100 },
+        { concepto: 'Costo puerta a puerta', costo: Math.round(doorToDoor * 100) / 100 },
+      );
+    }
+
     providerCost = Math.round(providerCost * 100) / 100;
     const profit = Math.round((num(invoice.total) - providerCost) * 100) / 100;
 
