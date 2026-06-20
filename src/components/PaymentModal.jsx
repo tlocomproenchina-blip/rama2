@@ -153,7 +153,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
         console.error('Invoice status update error:', e);
       }
 
-      toast.success('¡Gracias! Tu comprobante fue enviado y será verificado en breve.');
+      toast.success('¡Comprobante recibido! Tu pago quedó en espera de confirmación.');
 
       const ref = consolidation.consolidation_tracking || consolidation.invoice_id || consolidation.id;
 
@@ -195,7 +195,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
       onClose();
     } catch (error) {
       console.error('Error submitting payment:', error);
-      toast.error('Error al enviar el pago');
+      toast.error(error?.message || 'Error al enviar el pago. Intenta de nuevo.');
     } finally {
       setUploading(false);
     }
