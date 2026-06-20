@@ -6,7 +6,7 @@ import { FileText, CreditCard, Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 
-export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false }) {
+export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, extraActions = null }) {
   const assistedDetails = invoice.items?.find((item) => item?.details)?.details || {};
   const isAssistedPayment = assistedDetails.request_type === 'assisted_payment' || String(invoice.consolidation_tracking || '').startsWith('AP-') || String(invoice.notes || '').toLowerCase().includes('pago asistido');
   const providerLabel = {
@@ -154,6 +154,7 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
           <div className="flex-1 min-w-40">
             <InvoicePDFGenerator invoice={invoice} user={user} />
           </div>
+          {extraActions}
         </div>
 
         {invoice.status === 'pagada' && invoice.payment_date && (
