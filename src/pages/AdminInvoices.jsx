@@ -74,10 +74,16 @@ export default function AdminInvoices({ user }) {
       );
       usersMap = new Map(usersArr.filter(Boolean).map((u) => [u.email, u]));
     }
-    const enrichedData = (data || []).map(inv => ({
-      ...inv,
-      shipping_mark: usersMap.get(inv.client_email)?.shipping_mark || ''
-    }));
+    const enrichedData = (data || []).map(inv => {
+      const u = usersMap.get(inv.client_email);
+      return {
+        ...inv,
+        shipping_mark: u?.shipping_mark || '',
+        client_first_name: u?.first_name || '',
+        client_last_name: u?.last_name || '',
+        client_whatsapp: u?.whatsapp || u?.phone || ''
+      };
+    });
     const nextList = append ? [...invoices, ...enrichedData] : enrichedData;
 
     // Calcular stats en un solo pase (antes: 4 .filter() iteraciones)

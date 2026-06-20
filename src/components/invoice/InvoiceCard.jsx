@@ -60,11 +60,21 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
                   <p className="text-sm text-slate-500 mt-1">
                     Consolidación: {invoice.consolidation_tracking}
                   </p>
-                  {invoice.shipping_mark && (
-                    <div className="mt-2">
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {invoice.shipping_mark}
-                      </Badge>
+                  {(invoice.shipping_mark || invoice.client_first_name || invoice.client_last_name || invoice.client_whatsapp) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {invoice.shipping_mark && (
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {invoice.shipping_mark}
+                        </Badge>
+                      )}
+                      {(invoice.client_first_name || invoice.client_last_name) && (
+                        <span className="text-xs text-slate-600">
+                          {`${invoice.client_first_name || ''} ${invoice.client_last_name || ''}`.trim()}
+                        </span>
+                      )}
+                      {invoice.client_whatsapp && (
+                        <span className="text-xs text-slate-500">· {invoice.client_whatsapp}</span>
+                      )}
                     </div>
                   )}
                 </>
