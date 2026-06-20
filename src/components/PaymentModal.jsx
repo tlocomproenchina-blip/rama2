@@ -155,19 +155,35 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
 
       toast.success('¡Gracias! Tu comprobante fue enviado y será verificado en breve.');
 
+      const ref = consolidation.consolidation_tracking || consolidation.invoice_id || consolidation.id;
+
+      // Confirmación in-app para el cliente
+      base44.auth.me().then(me => {
+        if (me?.email) {
+          base44.entities.Notification.create({
+            user_email: me.email,
+            title: '✅ Comprobante recibido',
+            message: `Recibimos tu comprobante de pago por $${amount}. Lo verificaremos en breve.`,
+            type: 'payment',
+            icon: 'check',
+            reference_id: consolidation.id
+          }).catch(err => console.error('Client notification error:', err));
+        }
+      }).catch(() => {});
+
       // Notify admin (async, don't wait)
       base44.entities.User.filter({ role: 'admin' }).then(admins => {
         admins.forEach(admin => {
           base44.integrations.Core.SendEmail({
             to: admin.email,
             subject: '💳 Nuevo pago reportado',
-            body: `Un cliente ha reportado un pago para la consolidación ${consolidation.consolidation_tracking}.\n\nMonto: $${amount}\nMétodo: ${paymentMethod}\n\nPor favor revisa y valida el pago.`
+            body: `Un cliente ha reportado un pago.\n\nReferencia: ${ref}\nMonto: $${amount}\nMétodo: ${paymentMethod}\n\nRevísalo en Validación de Pagos.`
           }).catch(err => console.error('Email error:', err));
 
           base44.entities.Notification.create({
             user_email: admin.email,
             title: '💳 Nuevo Pago Reportado',
-            message: `Pago de $${amount} para ${consolidation.consolidation_tracking} pendiente de validación`,
+            message: `Pago de $${amount} (${ref}) pendiente de validación`,
             type: 'payment',
             icon: 'dollar',
             reference_id: consolidation.id

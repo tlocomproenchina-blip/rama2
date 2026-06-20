@@ -15,9 +15,11 @@ import StatusBadge from '@/components/StatusBadge';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PaymentValidation from '@/components/admin/PaymentValidation';
+import InvoicePaymentValidation from '@/components/admin/InvoicePaymentValidation';
 
 export default function AdminPayments({ user }) {
   const [consolidations, setConsolidations] = useState([]);
+  const [reviewInvoices, setReviewInvoices] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -29,11 +31,13 @@ export default function AdminPayments({ user }) {
 
   const loadData = async () => {
     try {
-      const [cons, users] = await Promise.all([
+      const [cons, users, invs] = await Promise.all([
         base44.entities.Consolidation.list('-created_date'),
-        base44.entities.User.list()
+        base44.entities.User.list(),
+        base44.entities.Invoice.filter({ status: 'revision' }, '-invoice_date', 200)
       ]);
       setConsolidations(cons);
+      setReviewInvoices(invs);
       setClients(users);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -122,6 +126,16 @@ export default function AdminPayments({ user }) {
     return matchesSearch;
   });
 
+  const filteredReviewInvoices = reviewInvoices.filter(inv => {
+    const term = search.toLowerCase();
+    if (!term) return true;
+    return (
+      inv.invoice_number?.toLowerCase().includes(term) ||
+      inv.client_email?.toLowerCase().includes(term) ||
+      inv.consolidation_tracking?.toLowerCase().includes(term)
+    );
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -147,7 +161,7 @@ export default function AdminPayments({ user }) {
               <div>
                 <p className="text-sm text-slate-500">Pendientes</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {consolidations.filter(c => c.status === 'pago_pendiente_validacion').length}
+                  {consolidations.filter(c => c.status === 'pago_pendiente_validacion').length + reviewInvoices.length}
                 </p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-xl">
@@ -216,12 +230,36 @@ export default function AdminPayments({ user }) {
 
       {/* Consolidations List */}
       {statusFilter === 'pending' ? (
-        <PaymentValidation 
-          consolidations={filteredCons}
-          clients={clients}
-          onRefresh={loadData}
-          currentUser={user}
-        />
+        <div className="space-y-6">
+          {filteredReviewInvoices.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-slate-600 mb-3">Pagos reportados en facturas</h2>
+              <InvoicePaymentValidation
+                invoices={filteredReviewInvoices}
+                clients={clients}
+                onRefresh={loadData}
+                currentUser={user}
+              />
+            </div>
+          )}
+          {filteredCons.filter(c => c.status === 'pago_pendiente_validacion').length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-slate-600 mb-3">Pagos reportados en consolidaciones</h2>
+              <PaymentValidation
+                consolidations={filteredCons}
+                clients={clients}
+                onRefresh={loadData}
+                currentUser={user}
+              />
+            </div>
+          )}
+          {filteredReviewInvoices.length === 0 && filteredCons.filter(c => c.status === 'pago_pendiente_validacion').length === 0 && (
+            <div className="text-center py-12 text-slate-500">
+              <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No hay pagos pendientes de validación</p>
+            </div>
+          )}
+        </div>
       ) : filteredCons.length === 0 ? (
         <Card className="border-0 shadow-lg">
           <CardContent className="p-12 text-center">
