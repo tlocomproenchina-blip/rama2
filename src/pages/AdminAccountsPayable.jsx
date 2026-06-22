@@ -21,6 +21,24 @@ export default function AdminAccountsPayable({ user }) {
   const pageSize = 50;
   const [hasMore, setHasMore] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const [stateConfigs, setStateConfigs] = useState([]);
+  const [pricing, setPricing] = useState(null);
+
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+  // Precio final por estado (Regular / Alto riesgo) usando la misma fórmula de facturación
+  const getStatePrices = (stateCode) => {
+    const code = String(stateCode || '').trim().toLowerCase();
+    if (!code || !pricing) return null;
+    const match = stateConfigs.find((s) => String(s.state_code).toLowerCase() === code);
+    const shippingRate = num(match?.shipping_rate);
+    const profitFactor = 1 + num(pricing.profit_percentage) / 100;
+    const doorToDoor = num(pricing.door_to_door_cost);
+    return {
+      final_regular: num(pricing.base_rate_regular) * profitFactor + shippingRate + doorToDoor,
+      final_high: num(pricing.base_rate_high_risk) * profitFactor + shippingRate + doorToDoor,
+    };
+  };
 
   const handleRecalculate = async () => {
     setRecalculating(true);
@@ -45,6 +63,21 @@ export default function AdminAccountsPayable({ user }) {
   useEffect(() => {
     loadData();
   }, [page]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [states, pricings] = await Promise.all([
+          base44.entities.StateConfig.list('', 200),
+          base44.entities.PricingConfig.list('-updated_date', 1),
+        ]);
+        setStateConfigs(states || []);
+        setPricing(pricings?.[0] || null);
+      } catch (e) {
+        console.error('Error loading rate configs:', e);
+      }
+    })();
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -295,6 +328,9 @@ export default function AdminAccountsPayable({ user }) {
                       <TableHead>Proveedor</TableHead>
                       <TableHead>Descripción</TableHead>
                       <TableHead>Estado destino</TableHead>
+                      <TableHead className="text-right">CBM facturado</TableHead>
+                      <TableHead className="text-right">Final Regular / CBM</TableHead>
+                      <TableHead className="text-right">Final Alto Riesgo / CBM</TableHead>
                       <TableHead>Creado</TableHead>
                       <TableHead className="text-right">Original</TableHead>
                       <TableHead className="text-right">Pagado</TableHead>
@@ -305,7 +341,7 @@ export default function AdminAccountsPayable({ user }) {
                   <TableBody>
                     {filtered.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-slate-500">Sin registros</TableCell>
+                        <TableCell colSpan={12} className="text-center text-slate-500">Sin registros</TableCell>
                       </TableRow>
                     ) : (
                       filtered.map(ap => (
@@ -320,6 +356,16 @@ export default function AdminAccountsPayable({ user }) {
                           <TableCell className="font-medium">{ap.vendor_name || 'Proveedor'}</TableCell>
                           <TableCell className="max-w-[360px] truncate">{ap.description}</TableCell>
                           <TableCell>{ap.state_code ? ap.state_code.split('_').map(s => s.charAt(0).toUpperCase()+s.slice(1)).join(' ') : '—'}</TableCell>
+                          <TableCell className="text-right">{ap.cbm != null ? num(ap.cbm).toFixed(4) : '—'}</TableCell>
+                          {(() => {
+                            const prices = getStatePrices(ap.state_code);
+                            return (
+                              <>
+                                <TableCell className="text-right">{prices ? `$${prices.final_regular.toFixed(2)}` : '—'}</TableCell>
+                                <TableCell className="text-right">{prices ? `$${prices.final_high.toFixed(2)}` : '—'}</TableCell>
+                              </>
+                            );
+                          })()}
                           <TableCell>{ap.created_date ? new Date(ap.created_date).toLocaleString() : '—'}</TableCell>
                           <TableCell className="text-right">${(ap.original_amount_due || 0).toFixed(2)}</TableCell>
                           <TableCell className="text-right">${(ap.amount_paid || 0).toFixed(2)}</TableCell>
