@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Package, MessageCircle, FileSpreadsheet } from 'lucide-react';
+import { Search, Package, MessageCircle, FileSpreadsheet, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
@@ -188,6 +188,7 @@ export default function ClientPackagesTable({ packages, client }) {
                 <th className="py-2 pr-3">Bultos</th>
                 <th className="py-2 pr-3">CBM</th>
                 <th className="py-2 pr-3">Peso (kg)</th>
+                <th className="py-2 pr-3">Seguro</th>
                 <th className="py-2 pr-3">Registrado</th>
                 <th className="py-2 pr-3">Entrega vendedor</th>
                 <th className="py-2 pr-3">Recibido</th>
@@ -197,7 +198,7 @@ export default function ClientPackagesTable({ packages, client }) {
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="py-6 text-center text-slate-500">Sin paquetes</td>
+                  <td colSpan={12} className="py-6 text-center text-slate-500">Sin paquetes</td>
                 </tr>
               )}
               {filtered.map((p) => (
@@ -215,6 +216,16 @@ export default function ClientPackagesTable({ packages, client }) {
                   <td className="py-2 pr-3">{p.package_count || 1}</td>
                   <td className="py-2 pr-3">{Number(p.cbm || 0).toFixed(5)}</td>
                   <td className="py-2 pr-3">{Number(p.weight_kg || 0).toFixed(2)}</td>
+                  <td className="py-2 pr-3">
+                    {p.has_insurance ? (
+                      <div className="flex items-center gap-1.5 text-emerald-700">
+                        <ShieldCheck className="h-4 w-4 flex-shrink-0" />
+                        <span className="font-semibold whitespace-nowrap">${Number(p.fob_value || 0).toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
                   <td className="py-2 pr-3 text-xs text-slate-600">{fmt(p.created_date)}</td>
                   <td className="py-2 pr-3 text-xs text-indigo-700">{p.seller_delivery_date ? fmtShort(p.seller_delivery_date) : '—'}</td>
                   <td className="py-2 pr-3 text-xs text-slate-600">{fmt(p.received_date)}</td>
