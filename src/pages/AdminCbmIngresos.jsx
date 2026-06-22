@@ -39,6 +39,7 @@ export default function AdminCbmIngresos({ user }) {
   const [recordSearch, setRecordSearch] = useState('');
   const [orderFilter, setOrderFilter] = useState('');
   const [sortBy, setSortBy] = useState('fecha_desc');
+  const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
 
@@ -126,8 +127,13 @@ export default function AdminCbmIngresos({ user }) {
       };
       result.sort((a, b) => sortBy === 'orden_asc' ? orderNum(a) - orderNum(b) : orderNum(b) - orderNum(a));
     }
+    if (availabilityFilter === 'available') {
+      result = result.filter((item) => !!item.disponible_entrega);
+    } else if (availabilityFilter === 'unavailable') {
+      result = result.filter((item) => !item.disponible_entrega);
+    }
     return result;
-  }, [ingresos, allIngresos, recordSearch, orderFilter, sortBy]);
+  }, [ingresos, allIngresos, recordSearch, orderFilter, sortBy, availabilityFilter]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -379,6 +385,12 @@ export default function AdminCbmIngresos({ user }) {
                 <Button variant={sortBy === 'fecha_desc' ? 'secondary' : 'outline'} size="sm" onClick={() => setSortBy('fecha_desc')}>Más recientes</Button>
                 <Button variant={sortBy === 'orden_asc' ? 'secondary' : 'outline'} size="sm" onClick={() => setSortBy('orden_asc')}>Orden 1 → 9</Button>
                 <Button variant={sortBy === 'orden_desc' ? 'secondary' : 'outline'} size="sm" onClick={() => setSortBy('orden_desc')}>Orden 9 → 1</Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-xs text-slate-500">Despacho:</span>
+                <Button variant={availabilityFilter === 'all' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('all')}>Todos</Button>
+                <Button variant={availabilityFilter === 'available' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('available')} className="gap-1"><CheckSquare className="h-3.5 w-3.5" /> Disponibles</Button>
+                <Button variant={availabilityFilter === 'unavailable' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('unavailable')}>No disponibles</Button>
               </div>
               {(recordSearch || orderFilter) && (
                 <p className="text-xs text-muted-foreground">
