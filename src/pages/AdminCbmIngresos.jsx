@@ -123,6 +123,29 @@ export default function AdminCbmIngresos({ user }) {
     return Object.values(map).sort((a, b) => b.cbm - a.cbm);
   }, [ingresos]);
 
+  // Carga los paquetes recibidos del cliente, excluyendo los ya usados en otros CbmIngreso.
+  // Incluye también los paquetes cuyos trackings ya están en el registro que se está editando.
+  const loadClientPackages = async (email, options = {}) => {
+    const { editingRecordId = null, currentTrackings = [] } = options;
+    setLoadingPackages(true);
+    try {
+      const [pkgs, allCbm] = await Promise.all([
+        base44.entities.Package.filter({ client_email: email, status: 'recibido' }, '-received_date', 200),
+        base44.entities.CbmIngreso.filter({ client_email: email }, '-fecha', 500)
+      ]);
+      // Trackings usados en otros registros (no en el que se edita)
+      const usedTrackings = new Set();
+      (allCbm || []).forEach(cbm => {
+        if (editingRecordId && cbm.id === editingRecordId) return;
+        (cbm.tracking_numbers || []).forEach(t => usedTrackings.add(t));
+      });
+      const currentSet = new Set(currentTrackings || []);
+      const available = (pkgs || []).filter(p => !usedTrackings.has(p.tracking_number) || currentSet.has(p.tracking_number));
+      setClientPackages(available);
+    } catch { setClientPackages([]); }
+    setLoadingPackages(false);
+  };
+
   const handleSelectClient = async (client) => {
     setForm({
       ...form,
@@ -132,23 +155,7 @@ export default function AdminCbmIngresos({ user }) {
     });
     setClientSearch('');
     setClients([]);
-    // Load received packages for this client, excluding those already in a CbmIngreso
-    setLoadingPackages(true);
-    try {
-      const [pkgs, allCbm] = await Promise.all([
-        base44.entities.Package.filter({ client_email: client.email, status: 'recibido' }, '-received_date', 200),
-        base44.entities.CbmIngreso.filter({ client_email: client.email }, '-fecha', 500)
-      ]);
-      // Collect all tracking numbers already used in other CbmIngreso records (except the one being edited)
-      const usedTrackings = new Set();
-      (allCbm || []).forEach(cbm => {
-        if (editingId && cbm.id === editingId) return; // allow current record's trackings
-        (cbm.tracking_numbers || []).forEach(t => usedTrackings.add(t));
-      });
-      const available = (pkgs || []).filter(p => !usedTrackings.has(p.tracking_number));
-      setClientPackages(available);
-    } catch { setClientPackages([]); }
-    setLoadingPackages(false);
+    await loadClientPackages(client.email, { editingRecordId: editingId });
   };
 
   const handleClearClient = () => {
@@ -177,6 +184,10 @@ export default function AdminCbmIngresos({ user }) {
         disponible_entrega: !!fresh.disponible_entrega
       });
       setShowForm(true);
+      // Cargar paquetes recibidos del cliente para poder ver/seleccionar trackings al editar
+      if (fresh.client_email) {
+        await loadClientPackages(fresh.client_email, { editingRecordId: fresh.id, currentTrackings: fresh.tracking_numbers || [] });
+      }
     } catch (e) {
       toast.error('Este registro ya no existe');
       loadData();
