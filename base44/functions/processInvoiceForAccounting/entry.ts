@@ -31,14 +31,29 @@ Deno.serve(async (req) => {
     const stateCode = String(clientUser.state || '').trim().toLowerCase();
     const isHighRisk = String(clientUser.risk_category || '').toLowerCase().includes('alto');
 
+    // Tarifas reales del proveedor marítimo (ShippingProvider). Usar el predeterminado o el primer activo.
+    const providers = await base44.asServiceRole.entities.ShippingProvider.filter({ mode: 'maritimo' });
+    const provider = (providers || []).find((p) => p.is_default_for_mode && p.is_active)
+      || (providers || []).find((p) => p.is_active)
+      || (providers || [])[0]
+      || {};
+
+    // Tarifa de envío del estado: override del proveedor si existe, si no StateConfig
     let stateShippingRate = 0;
     if (stateCode) {
-      const states = await base44.asServiceRole.entities.StateConfig.filter({ state_code: stateCode });
-      stateShippingRate = num(states?.[0]?.shipping_rate);
+      const override = (provider.state_overrides || []).find((o) => String(o.state_code).toLowerCase() === stateCode);
+      if (override && override.shipping_rate !== undefined && override.shipping_rate !== null) {
+        stateShippingRate = num(override.shipping_rate);
+      } else {
+        const states = await base44.asServiceRole.entities.StateConfig.filter({ state_code: stateCode });
+        stateShippingRate = num(states?.[0]?.shipping_rate);
+      }
     }
 
-    const baseRate = isHighRisk ? num(cfg.provider_rate_sea_sensitive) : num(cfg.provider_rate_sea_general);
-    const doorToDoor = num(cfg.provider_door_to_door_cost);
+    const baseRate = isHighRisk ? num(provider.base_rate_high_risk) : num(provider.base_rate_regular);
+    const doorToDoor = num(provider.door_to_door_cost);
+    const perTracking = isHighRisk ? num(provider.per_tracking_high) : num(provider.per_tracking_regular);
+    const consolidationFeePct = num(provider.consolidation_fee_percentage);
 
     let totalCbm = 0;
     let trackingCount = 0;
@@ -58,32 +73,43 @@ Deno.serve(async (req) => {
       .slice().sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
 
     let providerCost;
+    let baseCost;
     const breakdown = [];
 
     if (totalCbm > 0 && totalCbm < DOOR_TO_DOOR_THRESHOLD) {
       // Carga pequeña: usar tarifa especial fija del proveedor según rango de CBM
       const found = specialRates.find((r) => totalCbm <= num(r.max_cbm));
       const specialCost = found ? (isHighRisk ? num(found.rate_high_risk) : num(found.rate_regular)) : 0;
-      providerCost = specialCost;
+      baseCost = specialCost;
       breakdown.push({ concepto: `Tarifa especial proveedor (${totalCbm} CBM ${isHighRisk ? 'Alto Riesgo' : 'Regular'})`, costo: Math.round(specialCost * 100) / 100 });
     } else {
       // Carga >= 0.130 CBM: (tarifa base + tarifa de envío del estado) × CBM + puerta a puerta
       const perCbm = baseRate + stateShippingRate;
       const cbmCost = perCbm * totalCbm;
-      providerCost = cbmCost + doorToDoor;
+      const trackingCost = perTracking * trackingCount;
+      baseCost = cbmCost + doorToDoor + trackingCost;
       breakdown.push(
         { concepto: `Tarifa base ${isHighRisk ? 'Alto Riesgo' : 'Regular'} × ${totalCbm} CBM`, costo: Math.round(baseRate * totalCbm * 100) / 100 },
         { concepto: `Tarifa de envío (${stateCode || 'sin estado'}) × ${totalCbm} CBM`, costo: Math.round(stateShippingRate * totalCbm * 100) / 100 },
         { concepto: 'Costo puerta a puerta', costo: Math.round(doorToDoor * 100) / 100 },
+        { concepto: `Por tracking ($${perTracking} × ${trackingCount})`, costo: Math.round(trackingCost * 100) / 100 },
       );
     }
+
+    // Cargo por consolidación (% sobre el costo base)
+    const consolidationFee = baseCost * (consolidationFeePct / 100);
+    if (consolidationFeePct > 0) {
+      breakdown.push({ concepto: `Cargo por consolidación (${consolidationFeePct}%)`, costo: Math.round(consolidationFee * 100) / 100 });
+    }
+    providerCost = baseCost + consolidationFee;
 
     providerCost = Math.round(providerCost * 100) / 100;
     const profit = Math.round((num(invoice.total) - providerCost) * 100) / 100;
 
     // Crear cuenta por pagar al proveedor
     const ap = await base44.asServiceRole.entities.AccountsPayable.create({
-      vendor_name: 'Proveedor Logística Marítima',
+      vendor_name: provider.name || 'Proveedor Logística Marítima',
+      shipping_provider_id: provider.id || '',
       description: `Costo proveedor - Factura ${invoice.invoice_number || invoice.id} (${invoice.client_email})`,
       original_amount_due: providerCost,
       balance_due: providerCost,
@@ -91,9 +117,15 @@ Deno.serve(async (req) => {
       status: 'pendiente',
       currency: 'USD',
       category: 'flete_maritimo',
+      account_code: provider.account_code || '501-01 Fletes',
+      cost_center: provider.cost_center || 'Operaciones',
       related_consolidation_id: invoice.consolidation_id || '',
+      risk_level: isHighRisk ? 'alto' : 'regular',
+      state_code: stateCode || '',
       cbm: Math.round(totalCbm * 10000) / 10000,
-      tracking_count: trackingCount
+      tracking_count: trackingCount,
+      consolidation_fee_percentage_applied: consolidationFeePct,
+      consolidation_fee_amount: Math.round(consolidationFee * 100) / 100
     });
 
     // Guardar costo y ganancia en la factura

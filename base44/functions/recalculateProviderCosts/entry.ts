@@ -13,18 +13,32 @@ Deno.serve(async (req) => {
     const cfg = configs?.[0] || {};
 
     const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-    const doorToDoor = num(cfg.provider_door_to_door_cost);
     const DOOR_TO_DOOR_THRESHOLD = 0.130;
     const specialRates = (Array.isArray(cfg.provider_special_cbm_rates) ? cfg.provider_special_cbm_rates : [])
       .slice().sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
 
-    // Cache de tarifas por estado y datos de usuario para no repetir lecturas
+    // Tarifas reales del proveedor marítimo (ShippingProvider)
+    const providers = await base44.asServiceRole.entities.ShippingProvider.filter({ mode: 'maritimo' });
+    const provider = (providers || []).find((p) => p.is_default_for_mode && p.is_active)
+      || (providers || []).find((p) => p.is_active)
+      || (providers || [])[0]
+      || {};
+    const doorToDoor = num(provider.door_to_door_cost);
+    const consolidationFeePct = num(provider.consolidation_fee_percentage);
+
+    // Cache de tarifas por estado: override del proveedor o StateConfig
     const stateRateCache = {};
     const getStateRate = async (stateCode) => {
       if (!stateCode) return 0;
       if (stateRateCache[stateCode] !== undefined) return stateRateCache[stateCode];
-      const states = await base44.asServiceRole.entities.StateConfig.filter({ state_code: stateCode });
-      const rate = num(states?.[0]?.shipping_rate);
+      const override = (provider.state_overrides || []).find((o) => String(o.state_code).toLowerCase() === stateCode);
+      let rate;
+      if (override && override.shipping_rate !== undefined && override.shipping_rate !== null) {
+        rate = num(override.shipping_rate);
+      } else {
+        const states = await base44.asServiceRole.entities.StateConfig.filter({ state_code: stateCode });
+        rate = num(states?.[0]?.shipping_rate);
+      }
       stateRateCache[stateCode] = rate;
       return rate;
     };
@@ -50,7 +64,8 @@ Deno.serve(async (req) => {
       const stateCode = String(clientUser.state || '').trim().toLowerCase();
       const isHighRisk = String(clientUser.risk_category || '').toLowerCase().includes('alto');
       const stateShippingRate = await getStateRate(stateCode);
-      const baseRate = isHighRisk ? num(cfg.provider_rate_sea_sensitive) : num(cfg.provider_rate_sea_general);
+      const baseRate = isHighRisk ? num(provider.base_rate_high_risk) : num(provider.base_rate_regular);
+      const perTracking = isHighRisk ? num(provider.per_tracking_high) : num(provider.per_tracking_regular);
 
       let totalCbm = 0;
       let trackingCount = 0;
@@ -63,14 +78,16 @@ Deno.serve(async (req) => {
       totalCbm = Math.round(totalCbm * 10000) / 10000;
 
       // Mismo cálculo que processInvoiceForAccounting
-      let providerCost;
+      let baseCost;
       if (totalCbm > 0 && totalCbm < DOOR_TO_DOOR_THRESHOLD) {
         const found = specialRates.find((r) => totalCbm <= num(r.max_cbm));
-        providerCost = found ? (isHighRisk ? num(found.rate_high_risk) : num(found.rate_regular)) : 0;
+        baseCost = found ? (isHighRisk ? num(found.rate_high_risk) : num(found.rate_regular)) : 0;
       } else {
         const perCbm = baseRate + stateShippingRate;
-        providerCost = perCbm * totalCbm + doorToDoor;
+        baseCost = perCbm * totalCbm + doorToDoor + perTracking * trackingCount;
       }
+      const consolidationFee = baseCost * (consolidationFeePct / 100);
+      let providerCost = baseCost + consolidationFee;
       providerCost = Math.round(providerCost * 100) / 100;
       const profit = Math.round((num(invoice.total) - providerCost) * 100) / 100;
 
@@ -86,12 +103,17 @@ Deno.serve(async (req) => {
         const newBalance = Math.max(providerCost - newPaid, 0);
         const newStatus = newBalance === 0 ? (providerCost > 0 ? 'pagado' : 'pendiente') : (newPaid > 0 ? 'parcial' : 'pendiente');
         await base44.asServiceRole.entities.AccountsPayable.update(ap.id, {
+          vendor_name: provider.name || ap.vendor_name,
+          shipping_provider_id: provider.id || ap.shipping_provider_id,
           original_amount_due: providerCost,
           balance_due: newBalance,
           status: newStatus,
+          risk_level: isHighRisk ? 'alto' : 'regular',
           state_code: stateCode || undefined,
           cbm: totalCbm,
-          tracking_count: trackingCount
+          tracking_count: trackingCount,
+          consolidation_fee_percentage_applied: consolidationFeePct,
+          consolidation_fee_amount: Math.round(consolidationFee * 100) / 100
         });
       } else {
         skippedNoAp++;
