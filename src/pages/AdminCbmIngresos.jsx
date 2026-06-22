@@ -37,6 +37,7 @@ export default function AdminCbmIngresos({ user }) {
   const [clientPackages, setClientPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
+  const [orderSearch, setOrderSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
 
@@ -98,8 +99,12 @@ export default function AdminCbmIngresos({ user }) {
     } else if (availabilityFilter === 'unavailable') {
       result = result.filter((item) => !item.disponible_entrega);
     }
+    const q = orderSearch.trim().toLowerCase();
+    if (q) {
+      result = result.filter((item) => String(item.invoice_number || '').toLowerCase().includes(q));
+    }
     return result;
-  }, [ingresos, availabilityFilter]);
+  }, [ingresos, availabilityFilter, orderSearch]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -328,6 +333,17 @@ export default function AdminCbmIngresos({ user }) {
         </TabsList>
 
         <TabsContent value="registros" className="mt-4 space-y-3">
+          {!loading && ingresos.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Buscar por número de orden (ej: 238)..."
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          )}
           {!loading && ingresos.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-500">Despacho:</span>
