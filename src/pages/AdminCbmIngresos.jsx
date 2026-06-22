@@ -93,18 +93,19 @@ export default function AdminCbmIngresos({ user }) {
   };
 
   const filteredIngresos = useMemo(() => {
+    const q = orderSearch.trim().toLowerCase();
+    // Cuando hay búsqueda por orden, buscar en TODO el histórico, ignorando el período y el filtro de disponibilidad
+    if (q) {
+      return (allIngresos || []).filter((item) => String(item.invoice_number || '').toLowerCase().includes(q));
+    }
     let result = [...ingresos];
     if (availabilityFilter === 'available') {
       result = result.filter((item) => !!item.disponible_entrega);
     } else if (availabilityFilter === 'unavailable') {
       result = result.filter((item) => !item.disponible_entrega);
     }
-    const q = orderSearch.trim().toLowerCase();
-    if (q) {
-      result = result.filter((item) => String(item.invoice_number || '').toLowerCase().includes(q));
-    }
     return result;
-  }, [ingresos, availabilityFilter, orderSearch]);
+  }, [ingresos, allIngresos, availabilityFilter, orderSearch]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -333,18 +334,23 @@ export default function AdminCbmIngresos({ user }) {
         </TabsList>
 
         <TabsContent value="registros" className="mt-4 space-y-3">
-          {!loading && ingresos.length > 0 && (
+          {!loading && allIngresos.length > 0 && (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar por número de orden (ej: 238)..."
+                placeholder="Buscar por número de orden en todo el histórico (ej: 238)..."
                 value={orderSearch}
                 onChange={(e) => setOrderSearch(e.target.value)}
                 className="pl-10"
               />
             </div>
           )}
-          {!loading && ingresos.length > 0 && (
+          {orderSearch.trim() && (
+            <p className="text-xs text-slate-500">
+              Buscando en todo el histórico · {filteredIngresos.length} resultado(s)
+            </p>
+          )}
+          {!loading && ingresos.length > 0 && !orderSearch.trim() && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-500">Despacho:</span>
               <Button variant={availabilityFilter === 'all' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('all')}>Todos</Button>
@@ -356,7 +362,7 @@ export default function AdminCbmIngresos({ user }) {
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>
-          ) : ingresos.length === 0 ? (
+          ) : ingresos.length === 0 && !orderSearch.trim() ? (
             <Card className="border-0 shadow-lg">
               <CardContent className="p-12 text-center">
                 <Package className="h-16 w-16 mx-auto mb-4 text-slate-300" />
