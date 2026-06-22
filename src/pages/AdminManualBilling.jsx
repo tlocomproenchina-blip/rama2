@@ -86,13 +86,35 @@ export default function AdminManualBilling() {
     setRows([]);
     setLoadingRows(true);
     try {
-      const ingresos = await base44.entities.CbmIngreso.filter({ client_email: selectedClient.email }, '-fecha', 200);
+      const [ingresos, pkgs] = await Promise.all([
+        base44.entities.CbmIngreso.filter({ client_email: selectedClient.email }, '-fecha', 200),
+        base44.entities.Package.filter({ client_email: selectedClient.email }, '-created_date', 500).catch(() => []),
+      ]);
+
+      // Normaliza un tracking: quita prefijo de transportista (texto antes de ":" o "：") y mayúsculas
+      const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
+
+      // Mapa de FOB asegurado por número de tracking normalizado (desde los paquetes con seguro)
+      const insuredFobByTracking = {};
+      (pkgs || []).forEach((p) => {
+        const fob = num(p.fob_value);
+        if (fob <= 0) return;
+        String(p.tracking_number || '')
+          .split(/[，,;|]+/)
+          .map(normTracking)
+          .filter(Boolean)
+          .forEach((t) => { insuredFobByTracking[t] = Math.max(insuredFobByTracking[t] || 0, fob); });
+      });
+
       // Excluir registros que ya fueron facturados (solo se liberan al desconsolidar)
       const available = (ingresos || []).filter((ing) => !ing.billed);
       const built = available.map((ing) => {
         const cbm = num(ing.cbm);
-        const totalFob = num(ing.fob_total);
         const trackings = ing.tracking_numbers || [];
+        // FOB asegurado: usar fob_total del registro o, si falta, sumar el FOB de los paquetes asegurados que coincidan por tracking
+        const trackingFob = trackings.reduce((s, t) => s + (insuredFobByTracking[normTracking(t)] || 0), 0);
+        const insuredCount = trackings.filter((t) => (insuredFobByTracking[normTracking(t)] || 0) > 0).length;
+        const totalFob = num(ing.fob_total) > 0 ? num(ing.fob_total) : trackingFob;
         return {
           id: ing.id,
           invoice_number: ing.invoice_number || ing.descripcion || '—',
@@ -103,7 +125,7 @@ export default function AdminManualBilling() {
           disponible_entrega: !!ing.disponible_entrega,
           total: num(ing.fob_total),
           package_count: trackings.length,
-          insured_count: totalFob > 0 ? trackings.length : 0,
+          insured_count: insuredCount > 0 ? insuredCount : (totalFob > 0 ? trackings.length : 0),
           total_fob: totalFob,
           selected: false,
           cbm_original: cbm,
