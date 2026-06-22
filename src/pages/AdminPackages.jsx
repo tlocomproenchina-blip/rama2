@@ -140,8 +140,9 @@ export default function AdminPackages({ user }) {
         received_by: user.email,
       });
 
-      const { sendNotification } = await import('@/components/NotificationUtils');
       if (nextStatus === 'rechazado') {
+        // El rechazo sí amerita un aviso inmediato por correo
+        const { sendNotification } = await import('@/components/NotificationUtils');
         sendNotification({
           to: receiveModal.client_email,
           subject: '⛔ Tu paquete fue rechazado',
@@ -151,13 +152,18 @@ export default function AdminPackages({ user }) {
           referenceId: receiveModal.id
         });
       } else {
-        sendNotification({
-          to: receiveModal.client_email,
-          subject: '📦 Tu paquete ha sido recibido',
-          body: `¡Buenas noticias! Tu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.\n\nPronto será procesado para consolidación.`,
+        // Recepción normal: SOLO notificación in-app (sin email).
+        // El cliente recibe un único correo diario con el resumen de lo recibido (sendDailyReceivedSummary).
+        const { sendInAppNotification } = await import('@/components/NotificationUtils');
+        sendInAppNotification({
+          user_email: receiveModal.client_email,
+          title: '📦 Tu paquete ha sido recibido',
+          message: `Tu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.`,
           type: 'package',
           icon: 'check',
-          referenceId: receiveModal.id
+          reference_id: receiveModal.id,
+          entity_type: 'Package',
+          priority: 'high'
         });
       }
 
