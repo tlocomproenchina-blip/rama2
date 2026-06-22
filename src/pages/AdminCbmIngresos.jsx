@@ -36,9 +36,6 @@ export default function AdminCbmIngresos({ user }) {
   const [loadingClients, setLoadingClients] = useState(false);
   const [clientPackages, setClientPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
-  const [recordSearch, setRecordSearch] = useState('');
-  const [orderFilter, setOrderFilter] = useState('');
-  const [sortBy, setSortBy] = useState('fecha_desc');
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
@@ -95,45 +92,14 @@ export default function AdminCbmIngresos({ user }) {
   };
 
   const filteredIngresos = useMemo(() => {
-    const q = recordSearch.trim().toLowerCase();
-    const orderQ = orderFilter.trim().toLowerCase();
-    const sortingByOrder = sortBy === 'orden_asc' || sortBy === 'orden_desc';
-    let result;
-    if (!q && !orderQ) {
-      // Al ordenar por número de orden, incluir todos los registros sin importar el período
-      result = sortingByOrder ? [...allIngresos] : [...ingresos];
-    } else {
-      // Al buscar, incluir todos los registros sin importar el período de fechas
-      result = allIngresos.filter((item) => {
-        if (orderQ && (item.invoice_number || '').trim().toLowerCase() !== orderQ) return false;
-        if (!q) return true;
-        const haystack = [
-          item.client_name,
-          item.client_email,
-          item.shipping_mark,
-          item.invoice_number,
-          item.proveedor,
-          item.descripcion,
-          item.notas,
-          ...(item.tracking_numbers || []),
-        ].filter(Boolean).join(' ').toLowerCase();
-        return haystack.includes(q);
-      });
-    }
-    if (sortingByOrder) {
-      const orderNum = (item) => {
-        const n = parseFloat(String(item.invoice_number || '').replace(/[^0-9.]/g, ''));
-        return isNaN(n) ? Infinity : n;
-      };
-      result.sort((a, b) => sortBy === 'orden_asc' ? orderNum(a) - orderNum(b) : orderNum(b) - orderNum(a));
-    }
+    let result = [...ingresos];
     if (availabilityFilter === 'available') {
       result = result.filter((item) => !!item.disponible_entrega);
     } else if (availabilityFilter === 'unavailable') {
       result = result.filter((item) => !item.disponible_entrega);
     }
     return result;
-  }, [ingresos, allIngresos, recordSearch, orderFilter, sortBy, availabilityFilter]);
+  }, [ingresos, availabilityFilter]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -363,40 +329,11 @@ export default function AdminCbmIngresos({ user }) {
 
         <TabsContent value="registros" className="mt-4 space-y-3">
           {!loading && ingresos.length > 0 && (
-            <div className="space-y-1">
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Buscar por cliente, shipping mark, tracking..."
-                    value={recordSearch}
-                    onChange={(e) => setRecordSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Input
-                  placeholder="N° de orden"
-                  value={orderFilter}
-                  onChange={(e) => setOrderFilter(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-xs text-slate-500">Ordenar:</span>
-                <Button variant={sortBy === 'fecha_desc' ? 'secondary' : 'outline'} size="sm" onClick={() => setSortBy('fecha_desc')}>Más recientes</Button>
-                <Button variant={sortBy === 'orden_asc' ? 'secondary' : 'outline'} size="sm" onClick={() => setSortBy('orden_asc')}>Orden 1 → 9</Button>
-                <Button variant={sortBy === 'orden_desc' ? 'secondary' : 'outline'} size="sm" onClick={() => setSortBy('orden_desc')}>Orden 9 → 1</Button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-xs text-slate-500">Despacho:</span>
-                <Button variant={availabilityFilter === 'all' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('all')}>Todos</Button>
-                <Button variant={availabilityFilter === 'available' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('available')} className="gap-1"><CheckSquare className="h-3.5 w-3.5" /> Disponibles</Button>
-                <Button variant={availabilityFilter === 'unavailable' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('unavailable')}>No disponibles</Button>
-              </div>
-              {(recordSearch || orderFilter) && (
-                <p className="text-xs text-muted-foreground">
-                  {filteredIngresos.length} de {allIngresos.length} registro(s) (búsqueda en todos los períodos)
-                </p>
-              )}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-500">Despacho:</span>
+              <Button variant={availabilityFilter === 'all' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('all')}>Todos</Button>
+              <Button variant={availabilityFilter === 'available' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('available')} className="gap-1"><CheckSquare className="h-3.5 w-3.5" /> Disponibles</Button>
+              <Button variant={availabilityFilter === 'unavailable' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('unavailable')}>No disponibles</Button>
             </div>
           )}
           {loading ? (
@@ -417,7 +354,7 @@ export default function AdminCbmIngresos({ user }) {
           ) : filteredIngresos.length === 0 ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-8 text-center text-slate-500">
-                Sin coincidencias para "{recordSearch}"
+                Sin registros para este filtro
               </CardContent>
             </Card>
           ) : (
@@ -453,9 +390,7 @@ export default function AdminCbmIngresos({ user }) {
                         />
                         <div className="text-center min-w-[36px]">
                           <p className="text-xs text-muted-foreground">
-                            {(sortBy === 'orden_asc' || sortBy === 'orden_desc')
-                              ? (item.invoice_number ? `N°${item.invoice_number}` : '—')
-                              : `#${filteredIngresos.length - idx}`}
+                            {`#${filteredIngresos.length - idx}`}
                           </p>
                         </div>
                         <div className="flex-1 min-w-0">
