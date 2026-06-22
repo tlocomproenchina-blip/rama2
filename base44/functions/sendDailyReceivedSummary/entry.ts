@@ -50,17 +50,37 @@ Deno.serve(async (req) => {
 
       const body = `Hola,\n\nHoy recibimos en nuestro almacén ${pkgs.length} paquete(s) tuyo(s):\n\n${lines}\n\nPuedes ver los detalles en tu portal de cliente.\n\nSaludos,\nEquipo ${appName}`;
 
+      const subject = `📦 Resumen diario: ${pkgs.length} paquete(s) recibido(s) - ${appName}`;
+      let emailSent = false;
+      let errMsg = null;
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: email,
-          subject: `📦 Resumen diario: ${pkgs.length} paquete(s) recibido(s) - ${appName}`,
+          subject,
           body,
           from_name: appName
         });
+        emailSent = true;
         sent++;
       } catch (e) {
+        errMsg = e.message;
         errors.push({ email, error: e.message });
       }
+
+      // Registrar en EmailLog para auditoría (con el cuerpo completo)
+      try {
+        await base44.asServiceRole.entities.EmailLog.create({
+          recipient_email: email,
+          from_name: appName,
+          subject,
+          body_preview: body,
+          source: 'campaign',
+          campaign_name: 'Resumen diario de recepción',
+          status: emailSent ? 'sent' : 'failed',
+          bounce_reason: emailSent ? null : errMsg,
+          sent_date: new Date().toISOString()
+        });
+      } catch (_) {}
     }
 
     return Response.json({ sent, clients: byClient.size, packages: received.length, errors });

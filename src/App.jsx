@@ -41,6 +41,7 @@ const AdminClients = lazy(() => import('./pages/AdminClients'));
 const AdminInvoices = lazy(() => import('./pages/AdminInvoices'));
 const AdminCreditUsage = lazy(() => import('./pages/AdminCreditUsage'));
 const AdminManualBilling = lazy(() => import('./pages/AdminManualBilling'));
+const AdminEmailHistory = lazy(() => import('./pages/AdminEmailHistory'));
 const Contract = lazy(() => import('./pages/Contract'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
@@ -157,6 +158,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminInvoices" element={lazyRoute(AdminInvoices, "AdminInvoices")} />
       <Route path="/AdminCreditUsage" element={lazyRoute(AdminCreditUsage, "AdminCreditUsage")} />
       <Route path="/AdminManualBilling" element={lazyRoute(AdminManualBilling, "AdminManualBilling")} />
+      <Route path="/AdminEmailHistory" element={lazyRoute(AdminEmailHistory, "AdminEmailHistory")} />
       <Route path="/Contract" element={lazyRoute(Contract, "Contract")} />
       <Route path="/About" element={lazyRoute(About, "About")} />
       <Route path="/Contact" element={lazyRoute(Contact, "Contact")} />
