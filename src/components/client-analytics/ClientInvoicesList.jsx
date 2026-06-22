@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, ChevronDown, ChevronRight, Receipt, MessageCircle } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
+import InvoicePDFGenerator from '@/components/invoice/InvoicePDFGenerator';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -122,14 +123,17 @@ export default function ClientInvoicesList({ invoices, client }) {
                       <p className="text-xs text-slate-500 break-words">{invoice.notes}</p>
                     )}
 
-                    {invoice.status === 'pendiente' && (client?.whatsapp || client?.phone) && (
-                      <button
-                        onClick={(e) => handleWhatsApp(invoice, e)}
-                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
-                      >
-                        <MessageCircle className="h-4 w-4" /> Notificar pago por WhatsApp
-                      </button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <InvoicePDFGenerator invoice={invoice} />
+                      {invoice.status === 'pendiente' && (client?.whatsapp || client?.phone) && (
+                        <button
+                          onClick={(e) => handleWhatsApp(invoice, e)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                        >
+                          <MessageCircle className="h-4 w-4" /> Notificar pago por WhatsApp
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
