@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Image as ImageIcon, Loader2, AlertCircle, Plus, Trash2, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
+import QuickBulkPreAlertForm from '@/components/admin/QuickBulkPreAlertForm';
 
 
 
@@ -20,6 +21,12 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [existingPackagesByTracking, setExistingPackagesByTracking] = useState({});
   const [cameraOpen, setCameraOpen] = useState(false);
   const [quickPreAlertOpen, setQuickPreAlertOpen] = useState({});
+  const [bulkPreAlertOpen, setBulkPreAlertOpen] = useState(false);
+
+  // Trackings que no existen en el sistema (necesitan pre-alerta)
+  const notFoundTrackings = trackingNumbers
+    .map((t) => t.trim())
+    .filter((t) => t && trackingStatusByCode[t]?.state === 'not_found');
 
   const removeScannedTracking = (index) => {
     const code = (trackingNumbers[index] || '').trim();
@@ -38,6 +45,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setExistingPackagesByTracking({});
     setCameraOpen(false);
     setQuickPreAlertOpen({});
+    setBulkPreAlertOpen(false);
   };
 
   const checkTrackingDuplicate = async (value) => {
@@ -265,6 +273,32 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 );
               })}
             </div>
+            {notFoundTrackings.length > 1 && (
+              <div className="space-y-2">
+                {!bulkPreAlertOpen ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-1.5 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                    onClick={() => setBulkPreAlertOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Asignar los {notFoundTrackings.length} trackings a un solo cliente
+                  </Button>
+                ) : (
+                  <QuickBulkPreAlertForm
+                    trackingNumbers={notFoundTrackings}
+                    onCreated={(client, created) => {
+                      setBulkPreAlertOpen(false);
+                      (created || []).forEach((t) => checkTrackingDuplicate(t));
+                    }}
+                    onCancel={() => setBulkPreAlertOpen(false)}
+                  />
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               {[...trackingNumbers].reverse().map((tracking, revIndex) => {
                 const index = trackingNumbers.length - 1 - revIndex;
