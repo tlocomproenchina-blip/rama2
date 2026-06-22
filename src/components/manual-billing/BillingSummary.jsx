@@ -10,6 +10,7 @@ import { Loader2, FileText } from 'lucide-react';
 export default function BillingSummary({
   rows, consolidationMode, setConsolidationMode, manualConsolidationFee, setManualConsolidationFee,
   consolidationFee, shippingTotal, insuranceTotal, total,
+  autoInsuranceTotal, manualInsurance, setManualInsurance,
   paymentMethod, setPaymentMethod, appConfig, onCreate, creating, canCreate,
   billedCbm, setBilledCbm,
 }) {
@@ -60,6 +61,17 @@ export default function BillingSummary({
           ) : (
             <p className="text-xs text-slate-500">Automático: $1 × {totalPackages} paquete(s) = ${Number(consolidationFee).toFixed(2)}</p>
           )}
+        </div>
+
+        <div className="space-y-2 border-t pt-3">
+          <Label className="text-sm">Monto del seguro</Label>
+          <Input
+            type="number" step="0.01" min="0"
+            value={manualInsurance}
+            onChange={(e) => setManualInsurance(e.target.value)}
+            placeholder={`Auto: $${Number(autoInsuranceTotal || 0).toFixed(2)}`}
+          />
+          <p className="text-xs text-slate-500">Déjalo vacío para usar el 5% del FOB calculado automáticamente.</p>
         </div>
 
         <div className="space-y-2 border-t pt-3">

@@ -22,6 +22,7 @@ export default function AdminManualBilling() {
   const [consolidationMode, setConsolidationMode] = useState('auto');
   const [manualConsolidationFee, setManualConsolidationFee] = useState('');
   const [billedCbm, setBilledCbm] = useState('');
+  const [manualInsurance, setManualInsurance] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [creating, setCreating] = useState(false);
   const [recovering, setRecovering] = useState(false);
@@ -157,7 +158,8 @@ export default function AdminManualBilling() {
   const shippingTotal = billedCbm !== ''
     ? calcShipping(num(billedCbm))
     : selectedRows.reduce((s, r) => s + num(r.shipping_amount), 0);
-  const insuranceTotal = selectedRows.reduce((s, r) => s + num(r.insurance_amount), 0);
+  const autoInsuranceTotal = selectedRows.reduce((s, r) => s + num(r.insurance_amount), 0);
+  const insuranceTotal = manualInsurance !== '' ? num(manualInsurance) : autoInsuranceTotal;
   const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0);
   const consolidationFee = consolidationMode === 'manual' ? num(manualConsolidationFee) : totalPackages * 1;
   const total = shippingTotal + insuranceTotal + consolidationFee;
@@ -170,6 +172,7 @@ export default function AdminManualBilling() {
       const billedCbmValue = billedCbm !== '' ? num(billedCbm) : totalCbm;
       const useManualCbm = billedCbm !== '';
 
+      const useManualInsurance = manualInsurance !== '';
       const items = [];
       if (useManualCbm) {
         const manualShipping = calcShipping(billedCbmValue);
@@ -180,17 +183,19 @@ export default function AdminManualBilling() {
           total: manualShipping,
           details: { cbm: billedCbmValue, billed_cbm: billedCbmValue, total_cbm: totalCbm },
         });
-        selectedRows.forEach((r) => {
-          if (num(r.insurance_amount) > 0) {
-            items.push({
-              description: `Seguro de carga - ${r.consolidation_tracking || r.invoice_number}`,
-              quantity: 1,
-              unit_price: num(r.insurance_amount),
-              total: num(r.insurance_amount),
-              details: { fob_value: r.total_fob, insured_packages: r.insured_count },
-            });
-          }
-        });
+        if (!useManualInsurance) {
+          selectedRows.forEach((r) => {
+            if (num(r.insurance_amount) > 0) {
+              items.push({
+                description: `Seguro de carga - ${r.consolidation_tracking || r.invoice_number}`,
+                quantity: 1,
+                unit_price: num(r.insurance_amount),
+                total: num(r.insurance_amount),
+                details: { fob_value: r.total_fob, insured_packages: r.insured_count },
+              });
+            }
+          });
+        }
       } else {
       selectedRows.forEach((r) => {
         items.push({
@@ -200,7 +205,7 @@ export default function AdminManualBilling() {
           total: num(r.shipping_amount),
           details: { cbm: num(r.cbm), source_invoice: r.invoice_number },
         });
-        if (num(r.insurance_amount) > 0) {
+        if (!useManualInsurance && num(r.insurance_amount) > 0) {
           items.push({
             description: `Seguro de carga - ${r.consolidation_tracking || r.invoice_number}`,
             quantity: 1,
@@ -210,6 +215,15 @@ export default function AdminManualBilling() {
           });
         }
       });
+      }
+      if (useManualInsurance && insuranceTotal > 0) {
+        items.push({
+          description: 'Seguro de carga',
+          quantity: 1,
+          unit_price: insuranceTotal,
+          total: insuranceTotal,
+          details: { manual: true },
+        });
       }
       if (consolidationFee > 0) {
         items.push({
@@ -268,6 +282,7 @@ export default function AdminManualBilling() {
       setPaymentMethod('');
       setManualConsolidationFee('');
       setBilledCbm('');
+      setManualInsurance('');
     } catch {
       toast.error('Error al generar la factura');
     }
@@ -363,6 +378,9 @@ export default function AdminManualBilling() {
               consolidationFee={consolidationFee}
               shippingTotal={shippingTotal}
               insuranceTotal={insuranceTotal}
+              autoInsuranceTotal={autoInsuranceTotal}
+              manualInsurance={manualInsurance}
+              setManualInsurance={setManualInsurance}
               total={total}
               paymentMethod={paymentMethod}
               setPaymentMethod={setPaymentMethod}
