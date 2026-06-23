@@ -34,6 +34,7 @@ function sanitize(u) {
     full_name: u.full_name || null,
     first_name: u.first_name || null,
     last_name: u.last_name || null,
+    cedula: u.cedula || null,
     state: u.state || null,
     city: u.city || null,
     address: u.address || null,
