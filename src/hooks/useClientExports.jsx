@@ -54,6 +54,7 @@ export default function useClientExports(filters) {
       all.forEach((client, index) => {
         const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim();
         lines.push(`Nombre: ${fullName}`);
+        lines.push(`Cedula: ${client.cedula || ''}`);
         lines.push(`Estado: ${client.state || ''}`);
         lines.push(`Ciudad: ${client.city || ''}`);
         lines.push(`Direccion: ${client.address || ''}`);
