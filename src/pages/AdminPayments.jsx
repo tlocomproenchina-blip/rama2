@@ -33,7 +33,7 @@ export default function AdminPayments({ user }) {
     try {
       const [cons, users, invs] = await Promise.all([
         base44.entities.Consolidation.list('-created_date'),
-        base44.entities.User.list(),
+        base44.entities.User.list('-created_date', 1000),
         base44.entities.Invoice.filter({ status: 'revision' }, '-invoice_date', 200)
       ]);
       setConsolidations(cons);

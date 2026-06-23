@@ -128,9 +128,9 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
                       <User className="w-4 h-4" /> Cliente
                     </div>
                     <div className="font-medium text-slate-800">
-                      {client.first_name} {client.last_name}
+                      {`${client.first_name || ''} ${client.last_name || ''}`.trim() || client.full_name || inv.client_email}
                     </div>
-                    <div className="text-xs text-slate-500">{client.shipping_mark || ''}</div>
+                    <div className="text-xs text-slate-500">{client.shipping_mark || inv.client_email}</div>
                   </div>
 
                   <div>
