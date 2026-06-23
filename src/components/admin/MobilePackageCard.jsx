@@ -9,7 +9,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { buildWhatsAppUrl, buildPackageContactMessage } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
 
-export default function MobilePackageCard({
+function MobilePackageCard({
   pkg,
   isSelected,
   onSelect,
@@ -159,3 +159,5 @@ export default function MobilePackageCard({
     </Card>
   );
 }
+
+export default React.memo(MobilePackageCard);
