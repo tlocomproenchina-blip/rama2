@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
+import ProviderCostControl from '@/components/invoice/ProviderCostControl';
 import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
@@ -356,6 +357,50 @@ export default function AdminInvoices({ user }) {
     window.open(url, '_blank');
   };
 
+  // Guarda manualmente cuánto se pagó al proveedor, recalcula la ganancia
+  // y sincroniza/crea la Cuenta por Pagar asociada a la consolidación.
+  const handleSaveProviderCost = async (invoice, cost) => {
+    try {
+      const profit = Number(invoice.total || 0) - Number(cost || 0);
+      await base44.entities.Invoice.update(invoice.id, {
+        provider_cost_total: Number(cost),
+        profit_amount: profit
+      });
+
+      // Sincronizar Cuentas por Pagar: actualizar el monto original a pagar.
+      if (invoice.consolidation_id) {
+        const aps = await base44.entities.AccountsPayable.filter({ related_consolidation_id: invoice.consolidation_id }).catch(() => []);
+        if (aps && aps.length > 0) {
+          await Promise.all(aps.map(ap => base44.entities.AccountsPayable.update(ap.id, {
+            original_amount_due: Number(cost),
+            balance_due: ap.status === 'pagado' ? 0 : Number(cost),
+            amount_paid: ap.status === 'pagado' ? Number(cost) : Number(ap.amount_paid || 0)
+          })));
+        } else {
+          // No existe AP aún: crear una para mantener Cuentas por Pagar al día.
+          await base44.entities.AccountsPayable.create({
+            vendor_name: 'Proveedor logístico',
+            description: `Costo proveedor factura ${invoice.invoice_number || ''}`.trim(),
+            original_amount_due: Number(cost),
+            balance_due: invoice.provider_paid ? 0 : Number(cost),
+            amount_paid: invoice.provider_paid ? Number(cost) : 0,
+            status: invoice.provider_paid ? 'pagado' : 'pendiente',
+            related_consolidation_id: invoice.consolidation_id
+          });
+        }
+      }
+
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: Number(cost), profit_amount: profit } : i));
+      setStats(prev => {
+        const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
+        return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
+      });
+      toast.success('Costo del proveedor y ganancia actualizados');
+    } catch (error) {
+      toast.error('Error al guardar el costo del proveedor');
+    }
+  };
+
   const handleToggleProviderPaid = async (invoice, checked) => {
     try {
       const paidDate = checked ? new Date().toISOString() : null;
@@ -684,7 +729,7 @@ export default function AdminInvoices({ user }) {
                 onDownload={handleDownloadPDF}
                 showPayButton={false}
                 extraActions={(
-                  <>
+                  <div className="w-full space-y-3">
                     {invoice.status === 'pendiente' && invoice.client_whatsapp && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleNotifyPayment(invoice); }}
@@ -693,16 +738,12 @@ export default function AdminInvoices({ user }) {
                         <MessageCircle className="h-4 w-4" /> Notificar pago
                       </button>
                     )}
-                    <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={!!invoice.provider_paid}
-                        onCheckedChange={(checked) => handleToggleProviderPaid(invoice, !!checked)}
-                      />
-                      <span className={`text-sm font-medium ${invoice.provider_paid ? 'text-emerald-700' : 'text-slate-600'}`}>
-                        Pagado al proveedor
-                      </span>
-                    </label>
-                  </>
+                    <ProviderCostControl
+                      invoice={invoice}
+                      onSaveCost={handleSaveProviderCost}
+                      onTogglePaid={handleToggleProviderPaid}
+                    />
+                  </div>
                 )}
               />
               <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
