@@ -65,18 +65,16 @@ export default function AdminInvoices({ user }) {
     const skip = append ? invoices.length : 0;
     const data = await base44.entities.Invoice.list('-invoice_date', pageSize, skip);
 
-    // Enriquecer con shipping_mark: filtrar SOLO por los emails de la página (no traer todos los usuarios)
+    // Enriquecer con datos del cliente: UNA sola llamada al punto único de verdad
+    // (getClientsByEmails) en lugar de N llamadas User.filter por email.
     const clientEmails = Array.from(new Set((data || []).map(inv => inv.client_email).filter(Boolean)));
-    let usersMap = new Map();
+    let clientsByEmail = {};
     if (clientEmails.length) {
-      // Filter por email es mucho más eficiente que User.list() (que trae miles de usuarios)
-      const usersArr = await Promise.all(
-        clientEmails.map((email) => base44.entities.User.filter({ email }).then((rows) => rows?.[0]).catch(() => null))
-      );
-      usersMap = new Map(usersArr.filter(Boolean).map((u) => [u.email, u]));
+      const res = await base44.functions.invoke('getClientsByEmails', { emails: clientEmails }).catch(() => null);
+      clientsByEmail = res?.data?.clients || {};
     }
     const enrichedData = (data || []).map(inv => {
-      const u = usersMap.get(inv.client_email);
+      const u = clientsByEmail[inv.client_email];
       return {
         ...inv,
         shipping_mark: u?.shipping_mark || '',
@@ -217,18 +215,13 @@ export default function AdminInvoices({ user }) {
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
     const cfg = configs[0] || {};
 
-    // Datos del cliente (robusto: filtro directo y luego búsqueda manual)
+    // Datos del cliente desde el punto único de verdad (getClientsByEmails)
     let clientUser = null;
-    try {
-      const clientUsers = await base44.entities.User.filter({ email: invoice.client_email });
-      clientUser = clientUsers?.[0] || null;
-    } catch { clientUser = null; }
-    if (!clientUser && invoice.client_email) {
+    if (invoice.client_email) {
       try {
-        const allUsers = await base44.entities.User.list('-created_date', 1000);
-        const target = (invoice.client_email || '').toLowerCase().trim();
-        clientUser = (allUsers || []).find(u => (u.email || '').toLowerCase().trim() === target) || null;
-      } catch { /* ignore */ }
+        const res = await base44.functions.invoke('getClientsByEmails', { emails: [invoice.client_email] });
+        clientUser = res?.data?.clients?.[invoice.client_email] || null;
+      } catch { clientUser = null; }
     }
 
     const { buildInvoicePdf } = await import('@/components/invoice/InvoicePdfBuilder');

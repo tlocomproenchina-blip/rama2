@@ -152,9 +152,9 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
                       Cliente
                     </div>
                     <div className="font-medium text-slate-800">
-                      {client.first_name} {client.last_name}
+                      {`${client.first_name || ''} ${client.last_name || ''}`.trim() || client.full_name || cons.client_email}
                     </div>
-                    <div className="text-xs text-slate-500">{client.shipping_mark || cons.shipping_mark}</div>
+                    <div className="text-xs text-slate-500">{client.shipping_mark || cons.shipping_mark || cons.client_email}</div>
                   </div>
 
                   <div>

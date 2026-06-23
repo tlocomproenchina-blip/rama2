@@ -31,14 +31,24 @@ export default function AdminPayments({ user }) {
 
   const loadData = async () => {
     try {
-      const [cons, users, invs] = await Promise.all([
+      const [cons, invs] = await Promise.all([
         base44.entities.Consolidation.list('-created_date'),
-        base44.entities.User.list('-created_date', 1000),
         base44.entities.Invoice.filter({ status: 'revision' }, '-invoice_date', 200)
       ]);
       setConsolidations(cons);
       setReviewInvoices(invs);
-      setClients(users);
+
+      // Datos de cliente solo para los emails involucrados (punto único de verdad)
+      const emails = Array.from(new Set([
+        ...cons.map(c => c.client_email),
+        ...invs.map(i => i.client_email)
+      ].filter(Boolean)));
+      if (emails.length) {
+        const res = await base44.functions.invoke('getClientsByEmails', { emails }).catch(() => null);
+        setClients(Object.values(res?.data?.clients || {}));
+      } else {
+        setClients([]);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Error al cargar datos');
