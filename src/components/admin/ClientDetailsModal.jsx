@@ -136,6 +136,10 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
               <p className="text-xs text-slate-600 font-medium mb-1">Ciudad</p>
               <p className="text-sm text-slate-800">{client.city || '—'}</p>
             </div>
+            <div>
+              <p className="text-xs text-slate-600 font-medium mb-1">Cédula</p>
+              <p className="text-sm text-slate-800">{client.cedula || client.id_number || client.identification || '—'}</p>
+            </div>
             <div className="col-span-2">
               <p className="text-xs text-slate-600 font-medium mb-1">Dirección</p>
               <p className="text-sm text-slate-800">{client.address || '—'}</p>
