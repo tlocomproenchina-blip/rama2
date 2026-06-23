@@ -26,7 +26,8 @@ import {
   Trash2,
   HardDrive,
   FlaskConical,
-  Download
+  Download,
+  PanelsTopLeft
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { toast } from 'sonner';
@@ -35,6 +36,7 @@ import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import ShippingMarkAutomationSettings from '@/components/admin/ShippingMarkAutomationSettings';
 import SpecialCbmRatesEditor from '@/components/admin/SpecialCbmRatesEditor';
 import ProviderCostsSettings from '@/components/admin/ProviderCostsSettings';
+import SidebarVisibilityManager from '@/components/admin/SidebarVisibilityManager';
 import { cacheManager } from '@/components/CacheManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
@@ -562,7 +564,7 @@ export default function AdminSettings({ user }) {
 
       <Tabs defaultValue="tarifas" className="space-y-6">
         <div className="flex items-center justify-between">
-          <TabsList className="grid grid-cols-8 w-full rounded-2xl p-1">
+          <TabsList className="grid grid-cols-9 w-full rounded-2xl p-1">
             <TabsTrigger value="tarifas" className="flex items-center gap-2 text-xs">
               <DollarSign className="h-4 w-4" />
               <span className="hidden md:inline">Tarifas</span>
@@ -590,6 +592,10 @@ export default function AdminSettings({ user }) {
             <TabsTrigger value="privacidad" className="flex items-center gap-2 text-xs">
               <ShieldCheck className="h-4 w-4" />
               <span className="hidden md:inline">Privacidad</span>
+            </TabsTrigger>
+            <TabsTrigger value="menu" className="flex items-center gap-2 text-xs">
+              <PanelsTopLeft className="h-4 w-4" />
+              <span className="hidden md:inline">Menú</span>
             </TabsTrigger>
             <TabsTrigger value="recursos" className="flex items-center gap-2 text-xs">
               <HardDrive className="h-4 w-4" />
@@ -1684,6 +1690,10 @@ export default function AdminSettings({ user }) {
           </Card>
         </TabsContent>
 
+
+      <TabsContent value="menu">
+        <SidebarVisibilityManager appConfig={appConfig} setAppConfig={setAppConfig} />
+      </TabsContent>
 
       <TabsContent value="recursos">
         <ResourceInspector />

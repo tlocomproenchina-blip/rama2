@@ -90,9 +90,12 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
   const visibleAdminPages = useMemo(() => {
     if (user?.role !== 'admin') return [];
-    if (!user?.custom_role) return adminMenuItems.map((item) => item.page);
-    return roleConfig?.visible_pages?.length ? roleConfig.visible_pages : adminMenuItems.map((item) => item.page);
-  }, [user?.role, user?.custom_role, roleConfig]);
+    const base = (!user?.custom_role)
+      ? adminMenuItems.map((item) => item.page)
+      : (roleConfig?.visible_pages?.length ? roleConfig.visible_pages : adminMenuItems.map((item) => item.page));
+    const hidden = new Set(config?.sidebar_hidden_pages || []);
+    return base.filter((page) => !hidden.has(page));
+  }, [user?.role, user?.custom_role, roleConfig, config?.sidebar_hidden_pages]);
 
   const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
   const filteredAdminGroups = useMemo(() => adminGroups.map((group) => ({

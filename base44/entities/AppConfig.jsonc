@@ -537,6 +537,14 @@
       "default": false,
       "description": "Permite que los cambios de Ruta, Veh\u00edculo, Chofer y Seguimiento env\u00eden emails. Apagado por defecto para reducir consumo."
     },
+    "sidebar_hidden_pages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Lista de p\u00e1ginas (page key) ocultas del men\u00fa lateral de administraci\u00f3n"
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,
