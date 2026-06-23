@@ -70,11 +70,11 @@ export default function Layout({ children, currentPageName }) {
   // Tuning sensato: se aplica una sola vez al montar
   useEffect(() => {
     setApiTuning({
-      maxReads: 60,
-      maxWrites: 30,
+      maxReads: 100,
+      maxWrites: 50,
       minIntervalMs: 5,
       backoffDelays: [1000, 2000, 4000, 8000, 16000],
-      circuitBreakerThreshold: 80,
+      circuitBreakerThreshold: 60,
       circuitOpenMinutes: 1
     });
   }, []);

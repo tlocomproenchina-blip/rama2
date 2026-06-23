@@ -23,19 +23,24 @@ class ApiQueueManager {
     this.debouncedOperations = new Map();
     this.lastOperationTime = 0;
     this.lastWriteTime = 0;
-    this.MAX_CONCURRENT_READS = 60;
-    this.MAX_CONCURRENT_WRITES = 30;
-    this.MIN_READS = 10;
-    this.MIN_WRITES = 5;
-    this.MAX_READS_CAP = 200;
-    this.MAX_WRITES_CAP = 100;
+    this.MAX_CONCURRENT_READS = 100;
+    this.MAX_CONCURRENT_WRITES = 50;
+    this.MIN_READS = 25;
+    this.MIN_WRITES = 12;
+    this.MAX_READS_CAP = 300;
+    this.MAX_WRITES_CAP = 150;
     this.activeReads = 0;
     this.activeWrites = 0;
     this.inflight = new Map();
     this.MIN_OPERATION_INTERVAL = 5; // 5ms mínimo entre operaciones
-    this.backoffDelays = [2000, 4000, 8000, 16000, 32000];
-    this.circuitBreakerThreshold = 30;
+    this.backoffDelays = [1000, 2000, 4000, 8000, 16000];
+    // El circuit breaker solo se abre tras MUCHOS 429 reales seguidos en una ventana corta
+    this.circuitBreakerThreshold = 60;
     this.circuitOpenMinutes = 1;
+    // Ventana deslizante: los 429 antiguos "expiran" para no acumular falsos positivos
+    this.rateLimitWindowMs = 12000;
+    this.rateLimitTimestamps = [];
+    this._lastFailureDecayAt = Date.now();
     // Auto-scaling: ajusta concurrencia según demanda y errores
     this.recentSuccess = 0;
     this.recentErrors = 0;
@@ -104,15 +109,19 @@ class ApiQueueManager {
           console.log('[AutoScaler] Circuit breaker auto-cerrado');
         }
 
+        // Limpiar 429 viejos de la ventana deslizante para que failureCount no se quede "pegado"
+        this.rateLimitTimestamps = this.rateLimitTimestamps.filter(t => now - t < this.rateLimitWindowMs);
+        this.failureCount = this.rateLimitTimestamps.length;
+
         const queueLen = this.queue.length;
         const errors = this.recentErrors;
         const success = this.recentSuccess;
 
         // Reglas simples:
-        // 1) Errores recientes → reducir 25%
+        // 1) Errores recientes → reducir suavemente (15%) para no colapsar la concurrencia
         if (errors > 0) {
-          this.MAX_CONCURRENT_READS = Math.max(this.MIN_READS, Math.floor(this.MAX_CONCURRENT_READS * 0.75));
-          this.MAX_CONCURRENT_WRITES = Math.max(this.MIN_WRITES, Math.floor(this.MAX_CONCURRENT_WRITES * 0.75));
+          this.MAX_CONCURRENT_READS = Math.max(this.MIN_READS, Math.floor(this.MAX_CONCURRENT_READS * 0.85));
+          this.MAX_CONCURRENT_WRITES = Math.max(this.MIN_WRITES, Math.floor(this.MAX_CONCURRENT_WRITES * 0.85));
         }
         // 2) Cola alta y sin errores → aumentar 50%
         else if (queueLen > 5 && success > 0) {
@@ -124,10 +133,10 @@ class ApiQueueManager {
           this.MAX_CONCURRENT_READS = Math.min(this.MAX_READS_CAP, Math.ceil(this.MAX_CONCURRENT_READS * 1.2));
           this.MAX_CONCURRENT_WRITES = Math.min(this.MAX_WRITES_CAP, Math.ceil(this.MAX_CONCURRENT_WRITES * 1.2));
         }
-        // 4) Sin cola y sin actividad → relajar gradualmente al baseline (60/30)
+        // 4) Sin cola y sin actividad → relajar gradualmente al baseline (100/50)
         else if (queueLen === 0 && success === 0 && errors === 0) {
-          if (this.MAX_CONCURRENT_READS > 60) this.MAX_CONCURRENT_READS = Math.max(60, Math.floor(this.MAX_CONCURRENT_READS * 0.9));
-          if (this.MAX_CONCURRENT_WRITES > 30) this.MAX_CONCURRENT_WRITES = Math.max(30, Math.floor(this.MAX_CONCURRENT_WRITES * 0.9));
+          if (this.MAX_CONCURRENT_READS > 100) this.MAX_CONCURRENT_READS = Math.max(100, Math.floor(this.MAX_CONCURRENT_READS * 0.9));
+          if (this.MAX_CONCURRENT_WRITES > 50) this.MAX_CONCURRENT_WRITES = Math.max(50, Math.floor(this.MAX_CONCURRENT_WRITES * 0.9));
         }
 
         // Reset contadores de ventana
@@ -144,20 +153,20 @@ class ApiQueueManager {
    * Registra un 429 y actualiza circuit breaker
    */
   registerRateLimitError() {
-    this.failureCount++;
+    const now = Date.now();
     this.recentErrors++;
-    console.error(`[Rate Limit] Error count: ${this.failureCount}/3`);
+    // Ventana deslizante: descartar 429 más viejos que rateLimitWindowMs
+    this.rateLimitTimestamps.push(now);
+    this.rateLimitTimestamps = this.rateLimitTimestamps.filter(t => now - t < this.rateLimitWindowMs);
+    this.failureCount = this.rateLimitTimestamps.length;
 
+    // Solo abrir el breaker si hay MUCHOS 429 reales concentrados en la ventana corta.
+    // Esto evita falsos positivos con 1 usuario o errores aislados.
     if (this.failureCount >= this.circuitBreakerThreshold) {
       this.circuitBreakerState = 'OPEN';
-      this.circuitOpenUntil = Date.now() + (this.circuitOpenMinutes * 60 * 1000);
+      this.circuitOpenUntil = now + (this.circuitOpenMinutes * 60 * 1000);
       const openUntilTime = new Date(this.circuitOpenUntil).toLocaleTimeString('es-ES');
-      
-      toast.error(
-        `🚨 Sistema en modo de protección hasta ${openUntilTime}. Demasiadas solicitudes simultáneas.`,
-        { duration: 10000 }
-      );
-      
+      this.rateLimitTimestamps = [];
       console.error('[Circuit Breaker] OPEN until', openUntilTime);
     }
   }
