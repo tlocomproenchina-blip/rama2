@@ -192,7 +192,7 @@ export default function ProfileSetupModal({ open, onComplete }) {
 
           {/* Cédula */}
           <div className="space-y-2">
-            <Label htmlFor="cedula" className="text-slate-700">NUMERO DE CEDULA</Label>
+            <Label htmlFor="cedula" className="text-slate-700">NÚMERO DE CÉDULA <span className="text-red-500">*</span></Label>
             <Input
               id="cedula"
               value={formData.cedula}
