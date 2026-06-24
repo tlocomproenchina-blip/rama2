@@ -16,18 +16,31 @@ export default function SidebarVisibilityManager({ appConfig, setAppConfig }) {
 
   const persist = async (nextHidden) => {
     const arr = Array.from(nextHidden);
-    setAppConfig({ ...appConfig, sidebar_hidden_pages: arr });
+    const prev = appConfig;
+    const nextConfig = { ...appConfig, sidebar_hidden_pages: arr };
+    setAppConfig(nextConfig);
     setSaving(true);
     try {
-      const existing = await base44.entities.AppConfig.filter({ config_key: 'main' });
-      if (existing.length > 0) {
-        await base44.entities.AppConfig.update(existing[0].id, { sidebar_hidden_pages: arr, config_key: 'main' });
+      // Usar el id ya cargado para evitar una relectura y posibles condiciones de carrera.
+      let saved;
+      if (appConfig?.id) {
+        saved = await base44.entities.AppConfig.update(appConfig.id, { sidebar_hidden_pages: arr, config_key: 'main' });
       } else {
-        await base44.entities.AppConfig.create({ ...appConfig, sidebar_hidden_pages: arr, config_key: 'main' });
+        const existing = await base44.entities.AppConfig.filter({ config_key: 'main' });
+        if (existing.length > 0) {
+          saved = await base44.entities.AppConfig.update(existing[0].id, { sidebar_hidden_pages: arr, config_key: 'main' });
+        } else {
+          saved = await base44.entities.AppConfig.create({ ...appConfig, sidebar_hidden_pages: arr, config_key: 'main' });
+        }
       }
-      cacheManager.remove('app_config');
+      // Mantener el id en el estado local (por si era un create) y refrescar el caché
+      // con el valor nuevo para que el menú lateral lo refleje sin recargar.
+      const merged = { ...nextConfig, ...(saved || {}) };
+      setAppConfig(merged);
+      cacheManager.set('app_config', merged, 3600000);
       toast.success('Menú actualizado');
     } catch (e) {
+      setAppConfig(prev);
       toast.error('No se pudo guardar el menú');
     }
     setSaving(false);

@@ -22,8 +22,13 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
   const loadConfig = useCallback(async () => {
     try {
       if (initialConfig) {
-        setConfig(initialConfig);
-        cacheManager.set('app_config', initialConfig, 3600000);
+        // Si el caché tiene una versión más reciente (ej. tras editar la
+        // visibilidad del menú), usarla para reflejar el cambio sin recargar.
+        const cachedConfig = cacheManager.get('app_config');
+        const cacheNewer = cachedConfig?.updated_date && initialConfig?.updated_date
+          && new Date(cachedConfig.updated_date) > new Date(initialConfig.updated_date);
+        setConfig(cacheNewer ? cachedConfig : initialConfig);
+        if (!cacheNewer) cacheManager.set('app_config', initialConfig, 3600000);
         return;
       }
 
