@@ -27,6 +27,7 @@ import {
   ShieldAlert,
   DollarSign,
   ReceiptText,
+  CalendarRange,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -75,6 +76,7 @@ export const adminMenuItems = [
   { name: 'Pagos Proveedores', page: 'AdminProviderPayments', icon: CreditCard },
   { name: 'Proveedores', page: 'AdminProviders', icon: Users },
   { name: 'CBM Almacén China', page: 'AdminCbmIngresos', icon: Package },
+  { name: 'Calendario de Llegadas', page: 'AdminArrivalCalendar', icon: CalendarRange },
   { name: 'Dashboard Ingresos', page: 'AdminRevenueDashboard', icon: DollarSign },
   { name: 'Enviar Emails', page: 'AdminEmailCampaigns', icon: Mail },
   { name: 'Historial de Emails', page: 'AdminEmailHistory', icon: History },
@@ -110,7 +112,7 @@ export const adminGroups = [
   { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminPackages', 'AdminPreAlerts', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
-  { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminCbmIngresos'] },
+  { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminCbmIngresos', 'AdminArrivalCalendar'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailHistory', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },

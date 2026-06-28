@@ -33,6 +33,7 @@ const AdminSeguimiento = lazy(() => import('./pages/AdminSeguimiento'));
 const AdminRutaDetalle = lazy(() => import('./pages/AdminRutaDetalle'));
 const AdminInternalMessages = lazy(() => import('./pages/AdminInternalMessages'));
 const AdminCbmIngresos = lazy(() => import('./pages/AdminCbmIngresos'));
+const AdminArrivalCalendar = lazy(() => import('./pages/AdminArrivalCalendar'));
 const AdminDuplicates = lazy(() => import('./pages/AdminDuplicates'));
 const AdminRevenueDashboard = lazy(() => import('./pages/AdminRevenueDashboard'));
 const AdminPreAlerts = lazy(() => import('./pages/AdminPreAlerts'));
@@ -150,6 +151,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminRutaDetalle" element={lazyRoute(AdminRutaDetalle, "AdminRutaDetalle")} />
       <Route path="/AdminInternalMessages" element={lazyRoute(AdminInternalMessages, "AdminInternalMessages")} />
       <Route path="/AdminCbmIngresos" element={lazyRoute(AdminCbmIngresos, "AdminCbmIngresos")} />
+      <Route path="/AdminArrivalCalendar" element={lazyRoute(AdminArrivalCalendar, "AdminArrivalCalendar")} />
       <Route path="/AdminDuplicates" element={lazyRoute(AdminDuplicates, "AdminDuplicates")} />
       <Route path="/AdminRevenueDashboard" element={lazyRoute(AdminRevenueDashboard, "AdminRevenueDashboard")} />
       <Route path="/AdminPreAlerts" element={lazyRoute(AdminPreAlerts, "AdminPreAlerts")} />
