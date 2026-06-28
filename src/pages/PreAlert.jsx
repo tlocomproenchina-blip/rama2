@@ -110,6 +110,23 @@ export default function PreAlert({ user }) {
     setCheckingTracking(false);
   };
 
+  // Validación en tiempo real con debounce mientras el cliente escribe el tracking
+  useEffect(() => {
+    const t = formData.tracking_number.trim();
+    if (!t || t.length < 5) {
+      setTrackingWarning(null);
+      setCheckingTracking(false);
+      return;
+    }
+    let active = true;
+    setCheckingTracking(true);
+    const timer = setTimeout(async () => {
+      await validateTracking(t);
+      if (active) setCheckingTracking(false);
+    }, 600);
+    return () => { active = false; clearTimeout(timer); };
+  }, [formData.tracking_number]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
