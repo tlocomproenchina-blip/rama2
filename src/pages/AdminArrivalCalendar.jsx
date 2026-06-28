@@ -23,6 +23,29 @@ export default function AdminArrivalCalendar({ user }) {
   const [loads, setLoads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedKey, setSelectedKey] = useState(null);
+  const [didAutoJump, setDidAutoJump] = useState(false);
+
+  // Al entrar, si el mes actual no tiene llegadas, saltar al primer mes que sí las tenga
+  useEffect(() => {
+    if (didAutoJump) return;
+    (async () => {
+      try {
+        const next = await base44.entities.CbmIngreso.filter(
+          { fecha_estimada_llegada: { $exists: true, $ne: '' } },
+          'fecha_estimada_llegada', 1
+        );
+        const eta = next?.[0]?.fecha_estimada_llegada;
+        if (eta) {
+          const key = String(eta).slice(0, 10);
+          const [y, m] = key.split('-').map(Number);
+          const target = new Date(y, m - 1, 1);
+          const now = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+          if (target > now) setMonth(target);
+        }
+      } catch (_) {}
+      setDidAutoJump(true);
+    })();
+  }, [didAutoJump]);
 
   const loadMonth = useCallback(async () => {
     setLoading(true);
@@ -39,7 +62,7 @@ export default function AdminArrivalCalendar({ user }) {
     setLoading(false);
   }, [month]);
 
-  useEffect(() => { loadMonth(); }, [loadMonth]);
+  useEffect(() => { if (didAutoJump) loadMonth(); }, [loadMonth, didAutoJump]);
 
   // Agrupa CBM y conteo por día
   const dayData = useMemo(() => {
