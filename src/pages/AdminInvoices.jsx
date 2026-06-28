@@ -520,7 +520,7 @@ export default function AdminInvoices({ user }) {
       );
       const matchesStatus =
         statusFilter === 'all' ? true :
-        statusFilter === 'provider_unpaid' ? !inv.provider_paid :
+        statusFilter === 'provider_unpaid' ? (inv.status === 'pagada' && !inv.provider_paid) :
         inv.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
