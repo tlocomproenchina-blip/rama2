@@ -518,7 +518,10 @@ export default function AdminInvoices({ user }) {
         (inv.client_email || '').toLowerCase().includes(q) ||
         (inv.consolidation_tracking || '').toLowerCase().includes(q)
       );
-      const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
+      const matchesStatus =
+        statusFilter === 'all' ? true :
+        statusFilter === 'provider_unpaid' ? !inv.provider_paid :
+        inv.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [invoices, search, statusFilter]);
@@ -638,6 +641,7 @@ export default function AdminInvoices({ user }) {
           <TabsTrigger value="pendiente">Pendientes</TabsTrigger>
           <TabsTrigger value="pagada">Pagadas</TabsTrigger>
           <TabsTrigger value="vencida">Vencidas</TabsTrigger>
+          <TabsTrigger value="provider_unpaid">No pagadas al proveedor</TabsTrigger>
         </TabsList>
       </Tabs>
 
