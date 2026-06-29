@@ -61,7 +61,7 @@ function PackagesTableRow({
       <td className="pl-3 pr-2 py-3 align-top">
         <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-mono font-medium text-slate-800 break-all">{pkg.tracking_number}</span>
+            <span className="font-mono font-medium text-slate-800 whitespace-nowrap">{pkg.tracking_number}</span>
             {pkg.has_insurance && (
               <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                 <Shield className="h-3 w-3" />
@@ -78,7 +78,7 @@ function PackagesTableRow({
           </div>
         </div>
       </td>
-      <td className="p-3 align-top font-mono text-slate-600 break-all">{pkg.shipping_mark || '-'}</td>
+      <td className="p-3 align-top font-mono text-slate-600 whitespace-nowrap">{pkg.shipping_mark || '-'}</td>
       <td className="pl-3 pr-2 py-3">
         <Tooltip>
           <TooltipTrigger asChild>
