@@ -311,7 +311,6 @@ export default function Profile({ user, refreshUser }) {
                   onChange={(e) => setFormData({ ...formData, whatsapp: sanitizeWhatsApp(e.target.value) })}
                   placeholder="+58 414 1234567"
                   inputMode="tel"
-                  pattern="^\\+?\\d*$"
                   disabled={isFieldDisabled('whatsapp')}
                   required
                 />
