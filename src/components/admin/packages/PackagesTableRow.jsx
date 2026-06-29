@@ -108,7 +108,7 @@ function PackagesTableRow({
           : <span className="text-slate-300">-</span>}
       </td>
       <td className="pl-3 pr-2 py-3">
-        <StatusBadge status={pkg.status} size="sm" />
+        <StatusBadge status={pkg.status} compact />
       </td>
       <td className="p-4 text-slate-600 text-xs whitespace-nowrap">
         <div>{formatShortDate(pkg.created_date)}</div>

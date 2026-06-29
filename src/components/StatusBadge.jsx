@@ -56,7 +56,7 @@ const statusConfig = {
   }
 };
 
-export default function StatusBadge({ status, size = 'default' }) {
+export default function StatusBadge({ status, size = 'default', compact = false }) {
   const config = statusConfig[status] || { 
     label: status, 
     color: 'bg-slate-100 text-slate-700 border-slate-200',
@@ -64,6 +64,19 @@ export default function StatusBadge({ status, size = 'default' }) {
   };
   
   const Icon = config.icon;
+
+  if (compact) {
+    return (
+      <Badge
+        variant="outline"
+        title={config.label}
+        className={`${config.color} h-6 w-6 p-0 font-semibold inline-flex items-center justify-center rounded-full border shrink-0`}
+      >
+        {(config.label || '?').charAt(0).toUpperCase()}
+      </Badge>
+    );
+  }
+
   const sizeClasses = size === 'sm' ? 'text-xs px-2 py-0.5' : 'text-sm px-3 py-1';
 
   return (
