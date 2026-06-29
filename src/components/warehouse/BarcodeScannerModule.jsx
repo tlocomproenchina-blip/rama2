@@ -36,6 +36,27 @@ export default function BarcodeScannerModule({
   const canvasRef = useRef(null);
   const lastCodeRef = useRef('');
   const lastDetectedAtRef = useRef(0);
+  const audioCtxRef = useRef(null);
+
+  const playBeep = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtxRef.current) audioCtxRef.current = new AudioCtx();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } catch (_) {}
+  }, []);
 
   const cameraSupported = typeof window !== 'undefined' && !!navigator?.mediaDevices?.getUserMedia;
   const nativeBarcodeSupported = typeof window !== 'undefined' && 'BarcodeDetector' in window;
@@ -126,6 +147,7 @@ export default function BarcodeScannerModule({
             lastDetectedAtRef.current = now;
             handleDetected(code);
             toast.success(`Código agregado: ${code}`);
+            playBeep();
             if (navigator.vibrate) navigator.vibrate(100);
             // Pausa breve antes de seguir escaneando el siguiente código
             await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -133,6 +155,8 @@ export default function BarcodeScannerModule({
         } else {
           handleDetected(code);
           toast.success('Código detectado');
+          playBeep();
+          if (navigator.vibrate) navigator.vibrate(100);
           setCameraOpen(false);
           stopCamera();
           return;
