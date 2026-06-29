@@ -122,9 +122,10 @@ export default function WhatsAppInput({ value, onChange, placeholder = '412 1234
         id={id}
         value={number}
         onChange={handleNumberChange}
+        onInvalid={(e) => e.preventDefault()}
         placeholder={placeholder}
-        inputMode="tel"
-        type="tel"
+        inputMode="numeric"
+        type="text"
         className={cn('flex-1', error && 'border-red-300')}
       />
     </div>
