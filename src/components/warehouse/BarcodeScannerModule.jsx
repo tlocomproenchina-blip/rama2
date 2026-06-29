@@ -271,7 +271,7 @@ export default function BarcodeScannerModule({
                 autoFocus={autoStartCamera}
               />
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap lg:items-center">
               <Button variant="outline" onClick={submitScan} disabled={!normalizeCode(currentValue)}>
                 {actionLabel}
               </Button>
@@ -279,12 +279,12 @@ export default function BarcodeScannerModule({
                 <Camera className="mr-2 h-4 w-4" />
                 {cameraLabel}
               </Button>
-              {!nativeBarcodeSupported && cameraSupported && (
-                <span className="text-xs text-amber-600 self-center">Tu navegador no soporta lectura nativa de códigos</span>
-              )}
               {extraAction}
             </div>
           </div>
+          {!nativeBarcodeSupported && cameraSupported && (
+            <p className="text-xs text-amber-600">Tu navegador no soporta lectura nativa de códigos. Usa la lectora USB o escribe el código manualmente.</p>
+          )}
           <p className="text-xs text-slate-500">
             La lectora USB funciona escribiendo el código en este campo y enviándolo con Enter.
           </p>
