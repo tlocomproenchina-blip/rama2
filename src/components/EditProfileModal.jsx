@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { base44 } from '@/api/base44Client';
-import { MapPin, Phone, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { MapPin, Phone, Loader2, AlertCircle, CheckCircle, IdCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { getDigits, sanitizeClientProfileData } from '@/lib/inputSanitizers';
 import WhatsAppInput from '@/components/common/WhatsAppInput';
@@ -12,7 +12,8 @@ import WhatsAppInput from '@/components/common/WhatsAppInput';
 export default function EditProfileModal({ open, onClose, user, onUpdate }) {
   const [formData, setFormData] = useState({
     city: '',
-    whatsapp: ''
+    whatsapp: '',
+    cedula: ''
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -37,7 +38,8 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
     if (user && open) {
       setFormData({
         city: user.city || '',
-        whatsapp: user.whatsapp || ''
+        whatsapp: user.whatsapp || '',
+        cedula: user.cedula || ''
       });
       setErrors({});
     }
@@ -47,6 +49,7 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
     const newErrors = {};
     if (!formData.city?.trim()) newErrors.city = 'Ciudad requerida';
     if (!formData.whatsapp?.trim()) newErrors.whatsapp = 'WhatsApp requerido';
+    if (!formData.cedula?.trim()) newErrors.cedula = 'Cédula requerida';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -126,6 +129,27 @@ export default function EditProfileModal({ open, onClose, user, onUpdate }) {
             {errors.city && (
               <p className="text-xs text-red-500 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" /> {errors.city}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cedula" className="flex items-center gap-2">
+              <IdCard className="h-4 w-4" /> Número de Cédula
+            </Label>
+            <Input
+              id="cedula"
+              value={formData.cedula}
+              onChange={(e) => {
+                setFormData({ ...formData, cedula: e.target.value });
+                setErrors({ ...errors, cedula: null });
+              }}
+              placeholder="Ej: 12345678"
+              className={errors.cedula ? 'border-red-300' : ''}
+            />
+            {errors.cedula && (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" /> {errors.cedula}
               </p>
             )}
           </div>
