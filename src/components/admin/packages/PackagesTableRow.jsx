@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatusBadge from '@/components/StatusBadge';
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
   Plane,
   Ship,
@@ -50,6 +50,7 @@ function PackagesTableRow({
     : (pkg.package_image_url ? [pkg.package_image_url] : []);
 
   return (
+    <TooltipProvider delayDuration={100}>
     <tr className="hover:bg-slate-50 transition-colors">
       <td className="pl-3 pr-2 py-3">
         <Checkbox
@@ -248,6 +249,7 @@ function PackagesTableRow({
         </div>
       </td>
     </tr>
+    </TooltipProvider>
   );
 }
 

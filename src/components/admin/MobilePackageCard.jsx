@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, Eye, Image as ImageIcon, MessageSquare, Plane, Ship, Shield, Undo2, Upload, Flag, FlagOff, Pencil, MessageCircle } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { buildWhatsAppUrl, buildPackageContactMessage } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
 
@@ -36,6 +36,7 @@ function MobilePackageCard({
     : (pkg.package_image_url ? [pkg.package_image_url] : []);
 
   return (
+    <TooltipProvider delayDuration={100}>
     <Card className="overflow-hidden border border-border/70 bg-card/95 shadow-card">
       <CardContent className="p-4 space-y-4">
         <div className="flex items-start justify-between gap-3">
@@ -177,6 +178,7 @@ function MobilePackageCard({
         </div>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
 
