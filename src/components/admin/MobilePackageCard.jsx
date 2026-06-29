@@ -6,8 +6,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, Eye, Image as ImageIcon, MessageSquare, Plane, Ship, Shield, Undo2, Upload, Flag, FlagOff, Pencil, MessageCircle } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { buildWhatsAppUrl, buildPackageContactMessage } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
+
+function formatShortDate(value) {
+  if (!value) return '-';
+  const d = new Date(value);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}-${mm}-${yy}`;
+}
 
 function MobilePackageCard({
   pkg,
@@ -35,7 +45,7 @@ function MobilePackageCard({
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="truncate font-mono text-base font-semibold text-foreground">{pkg.tracking_number}</p>
+                <p className="break-all font-mono text-base font-semibold text-foreground">{pkg.tracking_number}</p>
                 {pkg.has_insurance && (
                   <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
                     <Shield className="mr-1 h-3 w-3" /> Seguro
@@ -56,11 +66,21 @@ function MobilePackageCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="outline" className="font-mono">{pkg.shipping_mark || '-'}</Badge>
-          <Badge variant="outline" className="gap-1">
-            {pkg.shipping_type === 'aereo' ? <Plane className="h-3 w-3" /> : <Ship className="h-3 w-3" />}
-            {pkg.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}
-          </Badge>
+          <Badge variant="outline" className="font-mono break-all">{pkg.shipping_mark || '-'}</Badge>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center justify-center text-slate-600">
+                {pkg.shipping_type === 'aereo' ? <Plane className="h-4 w-4" /> : <Ship className="h-4 w-4" />}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{pkg.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className={`inline-block h-3 w-3 rounded-full ${pkg.risk_category === 'alto_riesgo' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+            </TooltipTrigger>
+            <TooltipContent>{pkg.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'}</TooltipContent>
+          </Tooltip>
           {!pkg.reported && <FlagOff className="h-3.5 w-3.5 text-slate-300" />}
         </div>
 
@@ -68,13 +88,13 @@ function MobilePackageCard({
           <div className="rounded-2xl border border-border/70 bg-background/70 p-3">
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Registro</p>
             <p className="mt-1 text-sm font-medium text-foreground">
-              {new Date(pkg.created_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {formatShortDate(pkg.created_date)}
             </p>
           </div>
           <div className="rounded-2xl border border-border/70 bg-background/70 p-3">
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">Recepción</p>
             <p className="mt-1 text-sm font-medium text-foreground">
-              {pkg.received_date ? new Date(pkg.received_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+              {pkg.received_date ? formatShortDate(pkg.received_date) : '-'}
             </p>
           </div>
         </div>

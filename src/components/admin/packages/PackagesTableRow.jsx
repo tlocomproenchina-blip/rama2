@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatusBadge from '@/components/StatusBadge';
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Plane,
   Ship,
@@ -21,6 +22,15 @@ import {
 } from 'lucide-react';
 import { buildWhatsAppUrl, buildPackageContactMessage } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
+
+function formatShortDate(value) {
+  if (!value) return '-';
+  const d = new Date(value);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}-${mm}-${yy}`;
+}
 
 function PackagesTableRow({
   pkg,
@@ -50,7 +60,7 @@ function PackagesTableRow({
       <td className="pl-3 pr-2 py-3 align-top">
         <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-mono font-medium text-slate-800 whitespace-nowrap truncate max-w-[18ch]">{pkg.tracking_number}</span>
+            <span className="font-mono font-medium text-slate-800 break-all">{pkg.tracking_number}</span>
             {pkg.has_insurance && (
               <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                 <Shield className="h-3 w-3" />
@@ -67,19 +77,26 @@ function PackagesTableRow({
           </div>
         </div>
       </td>
-      <td className="p-3 align-top font-mono text-slate-600 whitespace-nowrap truncate max-w-[14ch]">{pkg.shipping_mark || '-'}</td>
+      <td className="p-3 align-top font-mono text-slate-600 break-all">{pkg.shipping_mark || '-'}</td>
       <td className="pl-3 pr-2 py-3">
-        <div className="flex items-center gap-2 text-slate-600">
-          {pkg.shipping_type === 'aereo'
-            ? <><Plane className="h-4 w-4" /> Aéreo</>
-            : <><Ship className="h-4 w-4" /> Marítimo</>
-          }
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center justify-center text-slate-600">
+              {pkg.shipping_type === 'aereo'
+                ? <Plane className="h-5 w-5" />
+                : <Ship className="h-5 w-5" />}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{pkg.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}</TooltipContent>
+        </Tooltip>
       </td>
       <td className="pl-3 pr-2 py-3">
-        <Badge variant="outline" className={pkg.risk_category === 'alto_riesgo' ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700'}>
-          {pkg.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'}
-        </Badge>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`inline-block h-3 w-3 rounded-full ${pkg.risk_category === 'alto_riesgo' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+          </TooltipTrigger>
+          <TooltipContent>{pkg.risk_category === 'alto_riesgo' ? 'Alto riesgo' : 'General'}</TooltipContent>
+        </Tooltip>
       </td>
       <td className="pl-3 pr-2 py-3 text-slate-700 font-medium">
         {pkg.package_count || '-'}
@@ -92,19 +109,11 @@ function PackagesTableRow({
       <td className="pl-3 pr-2 py-3">
         <StatusBadge status={pkg.status} size="sm" />
       </td>
-      <td className="p-4 text-slate-600 text-xs">
-        <div>{new Date(pkg.created_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-        <div className="text-[11px] text-slate-400">{new Date(pkg.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+      <td className="p-4 text-slate-600 text-xs whitespace-nowrap">
+        <div>{formatShortDate(pkg.created_date)}</div>
       </td>
-      <td className="p-4 text-slate-600 text-xs">
-        {pkg.received_date ? (
-          <>
-            <div>{new Date(pkg.received_date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-            <div className="text-[11px] text-slate-400">{new Date(pkg.received_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-          </>
-        ) : (
-          <div>-</div>
-        )}
+      <td className="p-4 text-slate-600 text-xs whitespace-nowrap">
+        <div>{pkg.received_date ? formatShortDate(pkg.received_date) : '-'}</div>
       </td>
       <td className="pl-2 pr-3 py-3 align-top">
         <div className="flex min-w-0 w-full flex-col items-stretch gap-2">
