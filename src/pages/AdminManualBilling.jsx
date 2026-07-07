@@ -234,7 +234,6 @@ export default function AdminManualBilling() {
         total,
         status: 'pendiente',
         payment_method: paymentMethod || undefined,
-        provider_invoice_url: providerInvoiceUrl || undefined,
         billed_cbm: billedCbmValue,
         total_cbm: totalCbm,
         notes: `Factura manual combinada generada desde ${selectedRows.length} factura(s): ${selectedRows.map((r) => r.invoice_number).join(', ')}. CBM total: ${totalCbm.toFixed(5)} | CBM facturado: ${billedCbmValue.toFixed(5)}`,
@@ -249,7 +248,7 @@ export default function AdminManualBilling() {
 
       // Generar cuenta por pagar al proveedor y calcular ganancia
       try {
-        const res = await base44.functions.invoke('processInvoiceForAccounting', { invoiceId: invoice.id });
+        const res = await base44.functions.invoke('processInvoiceForAccounting', { invoiceId: invoice.id, providerInvoiceUrl: providerInvoiceUrl || '' });
         const profit = res?.data?.profit_amount;
         const cost = res?.data?.provider_cost_total;
         if (profit !== undefined) {

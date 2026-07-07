@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const { invoiceId } = await req.json();
+    const { invoiceId, providerInvoiceUrl } = await req.json();
     if (!invoiceId) {
       return Response.json({ error: 'invoiceId es requerido' }, { status: 400 });
     }
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
       account_code: provider.account_code || '501-01 Fletes',
       cost_center: provider.cost_center || 'Operaciones',
       related_consolidation_id: invoice.consolidation_id || '',
-      invoice_from_vendor_url: invoice.provider_invoice_url || '',
+      invoice_from_vendor_url: providerInvoiceUrl || invoice.provider_invoice_url || '',
       risk_level: isHighRisk ? 'alto' : 'regular',
       state_code: stateCode || '',
       cbm: Math.round(totalCbm * 10000) / 10000,

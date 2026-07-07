@@ -61,7 +61,7 @@ export default function ProviderInvoiceUploader({ value, onChange }) {
           {uploading ? 'Subiendo...' : 'Cargar imagen (JPG/PNG)'}
         </Button>
       )}
-      <p className="text-xs text-slate-500">Opcional. Solo imágenes. Se guarda en la factura y en la cuenta por pagar.</p>
+      <p className="text-xs text-slate-500">Opcional. Solo imágenes. Uso interno: se guarda en la cuenta por pagar, el cliente no la ve.</p>
     </div>
   );
 }
