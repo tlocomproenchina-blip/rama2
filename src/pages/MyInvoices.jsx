@@ -364,7 +364,13 @@ export default function MyInvoices({ user }) {
         onPaymentSubmitted={() => {
           toast.success('Pago enviado para validación');
           setPaymentOpen(false);
-          loadInvoices();
+          // Actualización en vivo: marcar la factura como "revision" de inmediato
+          const invId = selectedConsolidation?.invoice_id;
+          const consId = selectedConsolidation?.id;
+          setInvoices(prev => prev.map(inv => {
+            const matches = (invId && inv.id === invId) || (!invId && consId && inv.consolidation_id === consId);
+            return (matches && inv.status === 'pendiente') ? { ...inv, status: 'revision' } : inv;
+          }));
         }}
       />
     </div>
