@@ -93,7 +93,7 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
             </div>
           </div>
           <div className="flex flex-col items-end gap-1.5">
-            <Badge className={statusColors[invoice.status]}>
+            <Badge className={`${statusColors[invoice.status]} whitespace-nowrap`}>
               {statusLabels[invoice.status]}
             </Badge>
             {invoice.dispatched && (
