@@ -34,11 +34,13 @@ Deno.serve(async (req) => {
     const { startMonth, endMonth } = payload; // format: "YYYY-MM"
 
     // Fetch all data in parallel
-    const [cbmRecords, invoices, users] = await Promise.all([
+    const [cbmRecords, invoices, users, appConfigs] = await Promise.all([
       fetchAll(base44.asServiceRole.entities.CbmIngreso),
       fetchAll(base44.asServiceRole.entities.Invoice),
       fetchAll(base44.asServiceRole.entities.User),
+      base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }),
     ]);
+    const providerInsurancePct = Number(appConfigs?.[0]?.provider_insurance_percentage) || 0;
 
     // Build user name map
     const userNameMap = {};
@@ -85,6 +87,22 @@ Deno.serve(async (req) => {
     let totalPending = 0;
     let totalProfit = 0;
     let totalProviderCost = 0;
+    let totalInsuranceProfit = 0;
+
+    // Ganancia de seguros por factura: items cuya descripción indica seguro
+    const getInsuranceProfit = (inv) => {
+      let revenue = 0;
+      let cost = 0;
+      for (const it of (inv.items || [])) {
+        const d = (it.description || '').toLowerCase();
+        if (d.includes('seguro') || d.includes('insurance')) {
+          revenue += Number(it.total) || 0;
+          const fob = Number(it.details?.fob_value) || 0;
+          cost += fob * providerInsurancePct / 100;
+        }
+      }
+      return revenue - cost;
+    };
 
     invoices.forEach(inv => {
       const month = getMonthKey(inv.invoice_date);
@@ -109,6 +127,7 @@ Deno.serve(async (req) => {
         totalRevenue += total;
         totalProfit += profit;
         totalProviderCost += providerCost;
+        totalInsuranceProfit += getInsuranceProfit(inv);
         if (!revenueByMonth[month]) revenueByMonth[month] = 0;
         revenueByMonth[month] += total;
         if (!profitByMonth[month]) profitByMonth[month] = 0;
@@ -175,6 +194,8 @@ Deno.serve(async (req) => {
       summary: {
         totalRevenue: Math.round(totalRevenue * 100) / 100,
         totalProfit: Math.round(totalProfit * 100) / 100,
+        insuranceProfit: Math.round(totalInsuranceProfit * 100) / 100,
+        shippingProfit: Math.round((totalProfit - totalInsuranceProfit) * 100) / 100,
         totalProviderCost: Math.round(totalProviderCost * 100) / 100,
         totalPending: Math.round(totalPending * 100) / 100,
         totalCbm: Math.round(totalCbm * 100) / 100,
