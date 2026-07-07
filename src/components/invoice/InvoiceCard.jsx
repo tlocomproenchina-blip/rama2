@@ -92,9 +92,16 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
               </div>
             </div>
           </div>
-          <Badge className={statusColors[invoice.status]}>
-            {statusLabels[invoice.status]}
-          </Badge>
+          <div className="flex flex-col items-end gap-1.5">
+            <Badge className={statusColors[invoice.status]}>
+              {statusLabels[invoice.status]}
+            </Badge>
+            {invoice.dispatched && (
+              <Badge className="bg-blue-100 text-blue-800">
+                🚚 Despachada{invoice.dispatched_date ? ` · ${format(new Date(invoice.dispatched_date), 'dd/MM/yyyy')}` : ''}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>

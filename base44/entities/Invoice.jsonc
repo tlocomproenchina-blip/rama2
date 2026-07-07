@@ -91,6 +91,16 @@
       "format": "date-time",
       "description": "Fecha en que se marc\u00f3 como pagado al proveedor"
     },
+    "dispatched": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si la carga de esta factura ya fue despachada"
+    },
+    "dispatched_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se marc\u00f3 como despachada"
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -131,10 +141,6 @@
     "stripe_invoice_pdf_url": {
       "type": "string",
       "description": "URL directa del PDF de la factura de Stripe"
-    },
-    "provider_invoice_url": {
-      "type": "string",
-      "description": "URL de la imagen de la factura del proveedor (subida a ImgBB)"
     },
     "notes": {
       "type": "string",
