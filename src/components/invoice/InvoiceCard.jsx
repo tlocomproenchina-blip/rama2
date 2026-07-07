@@ -39,7 +39,11 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
     return description.includes('seguro') || description.includes('insurance') || Number(item?.details?.fob_value) > 0 || Number(item?.details?.insured_packages) > 0;
   };
   const insuranceTotal = invoiceItems.filter(isInsuranceItem).reduce((sum, item) => sum + getItemTotal(item), 0);
-  const consolidationTotal = invoiceItems.filter((item) => String(item?.description || '').toLowerCase().includes('consolid')).reduce((sum, item) => sum + getItemTotal(item), 0);
+  const isConsolidationFeeItem = (item) => {
+    const description = String(item?.description || '').toLowerCase().trim();
+    return description.startsWith('servicio de consolidación') || description.startsWith('consolidación de carga') || description.includes('$1 por paquete');
+  };
+  const consolidationTotal = invoiceItems.filter(isConsolidationFeeItem).reduce((sum, item) => sum + getItemTotal(item), 0);
   const shippingTotal = Math.max(0, Number(invoice.total || 0) - insuranceTotal - consolidationTotal);
 
   return (
