@@ -139,14 +139,14 @@
       word-break: break-all;
     }
 
-    button:not([role="switch"]),
+    button:not([role="switch"]):not([role="checkbox"]),
     [role="button"],
     a[role="button"] {
-      min-height: 44px;
-      min-width: 44px;
+      min-height: 40px;
     }
 
-    button[role="switch"] {
+    button[role="switch"],
+    button[role="checkbox"] {
       min-height: unset;
       min-width: unset;
     }
