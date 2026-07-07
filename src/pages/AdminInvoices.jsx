@@ -434,14 +434,9 @@ export default function AdminInvoices({ user }) {
     }
   };
 
-  // Abre el recibo de despacho con los datos del cliente y sus facturas pagadas
+  // Abre el recibo de despacho con los datos del cliente
   const openDispatchReceipt = (invoice) => {
-    const clientInvoices = invoices.filter(i => i.client_email === invoice.client_email);
-    // Asegurar que la factura actual esté incluida y actualizada en la lista
-    const merged = clientInvoices.some(i => i.id === invoice.id)
-      ? clientInvoices.map(i => i.id === invoice.id ? invoice : i)
-      : [...clientInvoices, invoice];
-    setDispatchReceipt({ invoice, clientInvoices: merged });
+    setDispatchReceipt(invoice);
   };
 
   const handleDeconsolidate = async (invoice) => {
@@ -1084,8 +1079,7 @@ export default function AdminInvoices({ user }) {
       <DispatchReceiptModal
         open={!!dispatchReceipt}
         onClose={() => setDispatchReceipt(null)}
-        invoice={dispatchReceipt?.invoice}
-        clientInvoices={dispatchReceipt?.clientInvoices}
+        invoice={dispatchReceipt}
       />
     </div>
   );

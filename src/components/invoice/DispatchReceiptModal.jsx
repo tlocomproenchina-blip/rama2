@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 /**
  * Genera un recibo de despacho en texto plano para copiar, a partir de una
- * factura marcada como pagada al proveedor y las facturas pagadas del cliente.
+ * factura marcada como pagada al proveedor.
  *
  * Formato:
  *   <shipping_mark>
@@ -16,16 +16,32 @@ import { toast } from 'sonner';
  *   <dirección, ciudad, estado>
  *   *Facturas pagadas* (Numero de orden)
  *   25 - 13 - 7 - 6
+ *
+ * Los números de orden corresponden a los CBM registrados al momento de generar
+ * la factura (items de tipo "Envío"), no al número de factura.
  */
-function extractOrderNumber(invoiceNumber) {
-  if (!invoiceNumber) return '';
-  // Tomar la última secuencia de dígitos del número de factura (ej: FAC-000025 -> 25)
-  const matches = String(invoiceNumber).match(/(\d+)(?!.*\d)/);
-  if (matches) return String(parseInt(matches[1], 10));
-  return String(invoiceNumber);
+function extractShippingOrderNumbers(invoice) {
+  const items = invoice?.items || [];
+  const numbers = [];
+  for (const item of items) {
+    const desc = String(item?.description || '');
+    // Solo items de envío (excluir seguro, consolidación, etc.)
+    if (!/^env[íi]o/i.test(desc)) continue;
+    // Preferir el número de orden guardado en details.source_invoice
+    let order = item?.details?.source_invoice;
+    if (order === undefined || order === null || order === '' || order === '—') {
+      // Fallback: extraer el primer número de la descripción (ej: "Envío - 25 (0.0040 CBM)" -> 25)
+      const m = desc.replace(/^env[íi]o\s*-?\s*/i, '').match(/(\d+)/);
+      order = m ? m[1] : null;
+    }
+    if (order !== null && order !== undefined && order !== '' && order !== '—') {
+      numbers.push(String(order).trim());
+    }
+  }
+  return Array.from(new Set(numbers));
 }
 
-export default function DispatchReceiptModal({ open, onClose, invoice, clientInvoices }) {
+export default function DispatchReceiptModal({ open, onClose, invoice }) {
   const [copied, setCopied] = useState(false);
 
   const text = useMemo(() => {
@@ -35,13 +51,7 @@ export default function DispatchReceiptModal({ open, onClose, invoice, clientInv
     const addressParts = [invoice.client_address, invoice.client_city, invoice.client_state].filter(Boolean);
     const address = addressParts.join(', ');
 
-    // Facturas pagadas del cliente (incluye esta). Ordenadas por número de orden desc.
-    const paid = (clientInvoices || [])
-      .filter(inv => inv.status === 'pagada')
-      .map(inv => extractOrderNumber(inv.invoice_number))
-      .filter(Boolean);
-    const uniqueOrders = Array.from(new Set(paid));
-    uniqueOrders.sort((a, b) => Number(b) - Number(a));
+    const orders = extractShippingOrderNumbers(invoice);
 
     const lines = [];
     if (invoice.shipping_mark) lines.push(invoice.shipping_mark);
@@ -50,10 +60,10 @@ export default function DispatchReceiptModal({ open, onClose, invoice, clientInv
     if (invoice.client_whatsapp) lines.push(invoice.client_whatsapp);
     if (address) lines.push(address);
     lines.push('*Facturas pagadas* (Numero de orden)');
-    lines.push(uniqueOrders.join(' - '));
+    lines.push(orders.join(' - '));
 
     return lines.join('\n');
-  }, [invoice, clientInvoices]);
+  }, [invoice]);
 
   const handleCopy = async () => {
     try {
