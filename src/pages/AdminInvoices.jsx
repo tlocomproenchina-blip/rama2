@@ -748,6 +748,7 @@ export default function AdminInvoices({ user }) {
                   invoice={invoice}
                   onDownload={handleDownloadPDF}
                   showPayButton={false}
+                  showInsuranceBreakdown={true}
                   selectionControl={(
                     <Checkbox 
                       checked={selectedInvoices.includes(invoice.id)}

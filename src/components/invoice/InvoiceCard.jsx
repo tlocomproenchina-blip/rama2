@@ -6,7 +6,7 @@ import { FileText, CreditCard, Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 
-export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, extraActions = null, selectionControl = null }) {
+export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, extraActions = null, selectionControl = null, showInsuranceBreakdown = false }) {
   const assistedDetails = invoice.items?.find((item) => item?.details)?.details || {};
   const isAssistedPayment = assistedDetails.request_type === 'assisted_payment' || String(invoice.consolidation_tracking || '').startsWith('AP-') || String(invoice.notes || '').toLowerCase().includes('pago asistido');
   const providerLabel = {
@@ -31,6 +31,16 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
     vencida: 'Vencida',
     cancelada: 'Cancelada'
   };
+
+  const invoiceItems = Array.isArray(invoice.items) ? invoice.items : [];
+  const getItemTotal = (item) => Number(item?.total || 0);
+  const isInsuranceItem = (item) => {
+    const description = String(item?.description || '').toLowerCase();
+    return description.includes('seguro') || description.includes('insurance') || Number(item?.details?.fob_value) > 0 || Number(item?.details?.insured_packages) > 0;
+  };
+  const insuranceTotal = invoiceItems.filter(isInsuranceItem).reduce((sum, item) => sum + getItemTotal(item), 0);
+  const consolidationTotal = invoiceItems.filter((item) => String(item?.description || '').toLowerCase().includes('consolid')).reduce((sum, item) => sum + getItemTotal(item), 0);
+  const shippingTotal = Math.max(0, Number(invoice.total || 0) - insuranceTotal - consolidationTotal);
 
   return (
     <Card className="border-0 shadow-lg">
@@ -104,15 +114,33 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
       </CardHeader>
       <CardContent>
         <div className="space-y-2 mb-4">
-          {invoice.items?.map((item, idx) => (
-            <div key={idx} className="flex justify-between text-sm">
-              <span className="text-slate-600">{item.description}</span>
-              <span className="font-medium text-slate-800">${item.total.toFixed(2)}</span>
+          {invoiceItems.map((item, idx) => (
+            <div key={idx} className="flex justify-between gap-4 text-sm">
+              <span className="text-slate-600 min-w-0">{item.description}</span>
+              <span className="font-medium text-slate-800 shrink-0">${getItemTotal(item).toFixed(2)}</span>
             </div>
           ))}
+          {showInsuranceBreakdown && insuranceTotal > 0 && (
+            <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/70 p-3 space-y-1 text-sm">
+              <div className="flex justify-between gap-4 text-slate-700">
+                <span>Subtotal envío</span>
+                <span className="font-semibold shrink-0">${shippingTotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between gap-4 text-emerald-700">
+                <span>Seguro cobrado</span>
+                <span className="font-semibold shrink-0">${insuranceTotal.toFixed(2)}</span>
+              </div>
+              {consolidationTotal > 0 && (
+                <div className="flex justify-between gap-4 text-slate-700">
+                  <span>Servicio de consolidación</span>
+                  <span className="font-semibold shrink-0">${consolidationTotal.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="border-t pt-2 flex justify-between font-semibold text-slate-800">
             <span>Total</span>
-            <span>${invoice.total.toFixed(2)}</span>
+            <span>${Number(invoice.total || 0).toFixed(2)}</span>
           </div>
         </div>
 
