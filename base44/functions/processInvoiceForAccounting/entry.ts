@@ -120,6 +120,7 @@ Deno.serve(async (req) => {
       account_code: provider.account_code || '501-01 Fletes',
       cost_center: provider.cost_center || 'Operaciones',
       related_consolidation_id: invoice.consolidation_id || '',
+      invoice_from_vendor_url: invoice.provider_invoice_url || '',
       risk_level: isHighRisk ? 'alto' : 'regular',
       state_code: stateCode || '',
       cbm: Math.round(totalCbm * 10000) / 10000,

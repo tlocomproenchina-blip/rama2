@@ -24,6 +24,7 @@ export default function AdminManualBilling() {
   const [billedCbm, setBilledCbm] = useState('');
   const [manualInsurance, setManualInsurance] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [providerInvoiceUrl, setProviderInvoiceUrl] = useState('');
   const [creating, setCreating] = useState(false);
   const [recovering, setRecovering] = useState(false);
 
@@ -253,6 +254,7 @@ export default function AdminManualBilling() {
         total,
         status: 'pendiente',
         payment_method: paymentMethod || undefined,
+        provider_invoice_url: providerInvoiceUrl || undefined,
         billed_cbm: billedCbmValue,
         total_cbm: totalCbm,
         notes: `Factura manual combinada generada desde ${selectedRows.length} factura(s): ${selectedRows.map((r) => r.invoice_number).join(', ')}. CBM total: ${totalCbm.toFixed(5)} | CBM facturado: ${billedCbmValue.toFixed(5)}`,
@@ -283,6 +285,7 @@ export default function AdminManualBilling() {
       setManualConsolidationFee('');
       setBilledCbm('');
       setManualInsurance('');
+      setProviderInvoiceUrl('');
     } catch {
       toast.error('Error al generar la factura');
     }
@@ -390,6 +393,8 @@ export default function AdminManualBilling() {
               canCreate={selectedRows.length > 0}
               billedCbm={billedCbm}
               setBilledCbm={setBilledCbm}
+              providerInvoiceUrl={providerInvoiceUrl}
+              setProviderInvoiceUrl={setProviderInvoiceUrl}
             />
           </div>
         </div>

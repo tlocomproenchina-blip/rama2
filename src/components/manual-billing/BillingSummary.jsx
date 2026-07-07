@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, FileText } from 'lucide-react';
+import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 
 export default function BillingSummary({
   rows, consolidationMode, setConsolidationMode, manualConsolidationFee, setManualConsolidationFee,
@@ -13,6 +14,7 @@ export default function BillingSummary({
   autoInsuranceTotal, manualInsurance, setManualInsurance,
   paymentMethod, setPaymentMethod, appConfig, onCreate, creating, canCreate,
   billedCbm, setBilledCbm,
+  providerInvoiceUrl, setProviderInvoiceUrl,
 }) {
   const selected = rows.filter(r => r.selected);
   const selectedCount = selected.length;
@@ -92,6 +94,8 @@ export default function BillingSummary({
             </SelectContent>
           </Select>
         </div>
+
+        <ProviderInvoiceUploader value={providerInvoiceUrl} onChange={setProviderInvoiceUrl} />
 
         <div className="space-y-1 border-t pt-3 text-sm">
           <div className="flex justify-between text-slate-600"><span>Envío</span><span>${Number(shippingTotal).toFixed(2)}</span></div>

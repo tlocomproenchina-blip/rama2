@@ -132,6 +132,10 @@
       "type": "string",
       "description": "URL directa del PDF de la factura de Stripe"
     },
+    "provider_invoice_url": {
+      "type": "string",
+      "description": "URL de la imagen de la factura del proveedor (subida a ImgBB)"
+    },
     "notes": {
       "type": "string",
       "description": "Notas adicionales"
