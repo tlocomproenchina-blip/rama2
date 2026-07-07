@@ -31,11 +31,12 @@ function Step({ done, label, date, isFirst, isLast }) {
   );
 }
 
-export default function CbmOrderCard({ item, paid }) {
+export default function CbmOrderCard({ item, paid, deliveredDate }) {
   const [showTrackings, setShowTrackings] = useState(false);
   const trackings = item.tracking_numbers || [];
   const salio = !!item.fecha_salida;
-  const disponible = !!item.disponible_entrega;
+  const entregado = !!deliveredDate;
+  const disponible = !!item.disponible_entrega || entregado;
 
   return (
     <div className="rounded-xl border border-border/70 bg-white p-4 space-y-3 shadow-sm">
@@ -63,6 +64,11 @@ export default function CbmOrderCard({ item, paid }) {
           done={disponible}
           label={disponible ? 'Disponible para entrega' : 'Llegada estimada'}
           date={disponible ? '¡Ya puedes recibirla!' : (item.fecha_estimada_llegada ? fmtDate(item.fecha_estimada_llegada) : null)}
+        />
+        <Step
+          done={entregado}
+          label="Entregado"
+          date={entregado ? (typeof deliveredDate === 'string' ? fmtDate(deliveredDate, true) : '✓') : null}
           isLast
         />
       </div>

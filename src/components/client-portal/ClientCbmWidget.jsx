@@ -11,6 +11,7 @@ import CbmTrackingSearch from '@/components/client-portal/CbmTrackingSearch';
 export default function ClientCbmWidget({ userEmail }) {
   const [ingresos, setIngresos] = useState([]);
   const [paidInvoiceIds, setPaidInvoiceIds] = useState(new Set());
+  const [dispatchedInvoices, setDispatchedInvoices] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,6 +24,11 @@ export default function ClientCbmWidget({ userEmail }) {
         ]);
         setIngresos(data || []);
         setPaidInvoiceIds(new Set((paidInvoices || []).map((inv) => inv.id)));
+        const dispatched = {};
+        (paidInvoices || []).forEach((inv) => {
+          if (inv.dispatched) dispatched[inv.id] = inv.dispatched_date || true;
+        });
+        setDispatchedInvoices(dispatched);
       } catch {
         setIngresos([]);
       }
@@ -114,6 +120,7 @@ export default function ClientCbmWidget({ userEmail }) {
                   key={item.id}
                   item={item}
                   paid={!!(item.billed_invoice_id && paidInvoiceIds.has(item.billed_invoice_id))}
+                  deliveredDate={item.billed_invoice_id ? dispatchedInvoices[item.billed_invoice_id] : null}
                 />
               ))}
             </div>
