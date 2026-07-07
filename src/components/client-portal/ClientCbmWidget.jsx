@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, TrendingUp, CalendarDays, Loader2, AlertTriangle, Ship, MapPinned } from 'lucide-react';
+import { TrendingUp, CalendarDays, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import CbmOrderCard from '@/components/client-portal/CbmOrderCard';
+import CbmTrackingSearch from '@/components/client-portal/CbmTrackingSearch';
 
 export default function ClientCbmWidget({ userEmail }) {
   const [ingresos, setIngresos] = useState([]);
@@ -54,9 +56,10 @@ export default function ClientCbmWidget({ userEmail }) {
     );
   }
 
-  if (ingresos.length === 0) return null;
-
   return (
+    <div className="space-y-4">
+    <CbmTrackingSearch userEmail={userEmail} ingresos={ingresos} />
+    {ingresos.length > 0 && (
     <Card className="border-border/70 bg-card/95 shadow-card">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between">
@@ -105,77 +108,20 @@ export default function ClientCbmWidget({ userEmail }) {
               </Badge>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {group.records.map((item) => (
-                <div
+                <CbmOrderCard
                   key={item.id}
-                  className="flex items-start justify-between gap-3 p-3 bg-slate-50 rounded-lg"
-                >
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-blue-700 text-sm">
-                        {Number(item.cbm).toFixed(5)} CBM
-                      </span>
-                      {item.invoice_number && (
-                        <Badge variant="outline" className="text-[10px]">
-                          Orden N: {item.invoice_number}
-                        </Badge>
-                      )}
-                      {item.billed_invoice_id && paidInvoiceIds.has(item.billed_invoice_id) && (
-                        <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold">
-                          PAGADA
-                        </Badge>
-                      )}
-                    </div>
-
-                    {item.tracking_numbers && item.tracking_numbers.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {item.tracking_numbers.map((t) => (
-                          <span
-                            key={t}
-                            className="inline-block text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-mono break-all"
-                          >
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {item.descripcion && (
-                      <p className="text-xs text-slate-500 truncate">
-                        {item.descripcion}
-                      </p>
-                    )}
-
-                    <p className="text-[11px] text-muted-foreground">
-                      {item.fecha
-                        ? format(new Date(item.fecha), 'dd MMM yyyy · HH:mm', { locale: es })
-                        : '—'}
-                    </p>
-                    {item.disponible_entrega && (
-                      <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold mt-1 w-fit">
-                        ✓ Disponible para entrega
-                      </Badge>
-                    )}
-                    {item.fecha_salida && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
-                        <span className="text-[11px] text-emerald-700 flex items-center gap-1 font-medium">
-                          <Ship className="h-3 w-3" /> Salida: {format(new Date(item.fecha_salida + 'T12:00:00'), 'dd MMM yyyy', { locale: es })}
-                        </span>
-                        {item.fecha_estimada_llegada && (
-                          <span className="text-[11px] text-blue-700 flex items-center gap-1 font-medium">
-                            <MapPinned className="h-3 w-3" /> Llegada est.: {format(new Date(item.fecha_estimada_llegada + 'T12:00:00'), 'dd MMM yyyy', { locale: es })}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  item={item}
+                  paid={!!(item.billed_invoice_id && paidInvoiceIds.has(item.billed_invoice_id))}
+                />
               ))}
             </div>
           </div>
         ))}
       </CardContent>
     </Card>
+    )}
+    </div>
   );
 }
