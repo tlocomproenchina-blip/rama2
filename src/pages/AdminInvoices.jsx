@@ -743,18 +743,18 @@ export default function AdminInvoices({ user }) {
         <div className="grid gap-4">
           {filteredInvoices.map(invoice => (
             <div key={invoice.id} className="flex flex-col lg:flex-row gap-3 items-stretch">
-              <div className="shrink-0 pt-5 pl-1 self-start">
-                <Checkbox 
-                  checked={selectedInvoices.includes(invoice.id)}
-                  onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked)}
-                  className="bg-white"
-                />
-              </div>
               <div className="flex-1 min-w-0">
                 <InvoiceCard
                   invoice={invoice}
                   onDownload={handleDownloadPDF}
                   showPayButton={false}
+                  selectionControl={(
+                    <Checkbox 
+                      checked={selectedInvoices.includes(invoice.id)}
+                      onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked)}
+                      className="bg-white"
+                    />
+                  )}
                   extraActions={(
                     <div className="w-full space-y-3">
                       {invoice.status === 'pendiente' && invoice.client_whatsapp && (

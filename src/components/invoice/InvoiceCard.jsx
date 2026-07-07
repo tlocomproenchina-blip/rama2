@@ -6,7 +6,7 @@ import { FileText, CreditCard, Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 
-export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, extraActions = null }) {
+export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, extraActions = null, selectionControl = null }) {
   const assistedDetails = invoice.items?.find((item) => item?.details)?.details || {};
   const isAssistedPayment = assistedDetails.request_type === 'assisted_payment' || String(invoice.consolidation_tracking || '').startsWith('AP-') || String(invoice.notes || '').toLowerCase().includes('pago asistido');
   const providerLabel = {
@@ -37,6 +37,7 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
+            {selectionControl && <div className="pt-1 shrink-0">{selectionControl}</div>}
             <div>
               <CardTitle className="text-lg text-slate-800">{invoice.invoice_number || 'Factura'}</CardTitle>
               {isAssistedPayment ? (
