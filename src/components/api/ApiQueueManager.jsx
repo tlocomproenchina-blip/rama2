@@ -46,10 +46,26 @@ class ApiQueueManager {
     this.recentErrors = 0;
     this._lastAutoScaleAt = 0;
     this._startAutoScaler();
-    this.OPERATION_TIMEOUT_MS = 60000; // 60s seguridad contra cuelgues
+    this.OPERATION_TIMEOUT_MS = 20000; // 20s: falla rápido en vez de colgarse
+    // Cuánto tiempo se conserva una copia "stale" para servir si la red falla
+    this.STALE_MAX_AGE_MS = 15 * 60 * 1000;
     // Realtime + caché granular
     this.cacheDisabledFor = new Set();
     this.entitySubscriptions = new Map();
+    // Recuperación automática al volver la conexión o la pestaña
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => {
+        this.forceResetCircuitBreaker();
+        if (!this._autoScalerActive) this._startAutoScaler();
+        this.processQueue();
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          if (!this._autoScalerActive) this._startAutoScaler();
+          if (this.queue.length > 0) this.processQueue();
+        }
+      });
+    }
   }
 
   /**
@@ -223,8 +239,17 @@ class ApiQueueManager {
                            error?.response?.status === 429;
         const retryAfter = error?.response?.headers?.['retry-after'] || error?.response?.headers?.['Retry-After'];
 
-        if ((isRateLimit || isTimeout) && attempt < maxRetries - 1) {
-          if (isRateLimit) this.registerRateLimitError();
+        // Timeouts: solo 1 reintento rápido — nunca esperas largas que congelan la UI
+        if (isTimeout) {
+          if (attempt < 1) {
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+          throw new Error('La conexión tardó demasiado. Verifica tu internet.');
+        }
+
+        if (isRateLimit && attempt < maxRetries - 1) {
+          this.registerRateLimitError();
           await this.exponentialBackoff(attempt, retryAfter);
           continue;
         }
@@ -269,11 +294,24 @@ class ApiQueueManager {
     const effectiveTtl = Number.isFinite(ttlMs) ? ttlMs : this.getEntityTTL(entity);
     const now = Date.now();
     if (now - cached.timestamp > effectiveTtl) {
-      this.cache.delete(key);
+      // No borrar: se conserva como copia "stale" de emergencia si la red falla
+      if (now - cached.timestamp > this.STALE_MAX_AGE_MS) this.cache.delete(key);
       return null;
     }
 
     // Cache hit (silenced to reduce console noise)
+    return cached.data;
+  }
+
+  /**
+   * Copia stale de emergencia: se usa cuando la red falla para no dejar la UI colgada
+   */
+  getStaleFromCache(key) {
+    const entity = String(key).split(':')[0];
+    if (this.cacheDisabledFor.has(entity)) return null;
+    const cached = this.cache.get(key);
+    if (!cached) return null;
+    if (Date.now() - cached.timestamp > this.STALE_MAX_AGE_MS) return null;
     return cached.data;
   }
 
@@ -443,14 +481,19 @@ class ApiQueueManager {
         const cached = this.getFromCache(cacheKey);
         if (cached) return cached;
 
-        const result = await this.enqueue(async () => {
-          const lim = Number.isFinite(limit) ? limit : 200;
-          const sk = Number.isFinite(skip) ? skip : 0;
-          return await base44Client.entities[entityName].list(sortBy, lim, sk);
-        }, 'NORMAL', 'read', cacheKey);
-
-        this.saveToCache(cacheKey, result);
-        return result;
+        try {
+          const result = await this.enqueue(async () => {
+            const lim = Number.isFinite(limit) ? limit : 200;
+            const sk = Number.isFinite(skip) ? skip : 0;
+            return await base44Client.entities[entityName].list(sortBy, lim, sk);
+          }, 'NORMAL', 'read', cacheKey);
+          this.saveToCache(cacheKey, result);
+          return result;
+        } catch (error) {
+          const stale = this.getStaleFromCache(cacheKey);
+          if (stale) return stale;
+          throw error;
+        }
       },
 
       filter: async (query, sortBy, limit, skip = 0) => {
@@ -458,14 +501,19 @@ class ApiQueueManager {
         const cached = this.getFromCache(cacheKey);
         if (cached) return cached;
 
-        const result = await this.enqueue(async () => {
-          const lim = Number.isFinite(limit) ? limit : 200;
-          const sk = Number.isFinite(skip) ? skip : 0;
-          return await base44Client.entities[entityName].filter(query, sortBy, lim, sk);
-        }, 'NORMAL', 'read', cacheKey);
-
-        this.saveToCache(cacheKey, result);
-        return result;
+        try {
+          const result = await this.enqueue(async () => {
+            const lim = Number.isFinite(limit) ? limit : 200;
+            const sk = Number.isFinite(skip) ? skip : 0;
+            return await base44Client.entities[entityName].filter(query, sortBy, lim, sk);
+          }, 'NORMAL', 'read', cacheKey);
+          this.saveToCache(cacheKey, result);
+          return result;
+        } catch (error) {
+          const stale = this.getStaleFromCache(cacheKey);
+          if (stale) return stale;
+          throw error;
+        }
       },
 
       get: async (id) => {
@@ -473,12 +521,17 @@ class ApiQueueManager {
         const cached = this.getFromCache(cacheKey);
         if (cached) return cached;
 
-        const result = await this.enqueue(async () => {
-          return await base44Client.entities[entityName].get(id);
-        }, 'NORMAL', 'read', cacheKey);
-
-        this.saveToCache(cacheKey, result);
-        return result;
+        try {
+          const result = await this.enqueue(async () => {
+            return await base44Client.entities[entityName].get(id);
+          }, 'NORMAL', 'read', cacheKey);
+          this.saveToCache(cacheKey, result);
+          return result;
+        } catch (error) {
+          const stale = this.getStaleFromCache(cacheKey);
+          if (stale) return stale;
+          throw error;
+        }
       },
 
       create: async (data) => {
@@ -542,12 +595,22 @@ class ApiQueueManager {
         const cached = this.getFromCache(cacheKey, 60000); // 1 minuto
         if (cached) return cached;
 
-        const result = await this.enqueue(async () => {
-          return await base44Client.auth.me();
-        }, 'HIGH', 'read', cacheKey);
-
-        this.saveToCache(cacheKey, result);
-        return result;
+        try {
+          const result = await this.enqueue(async () => {
+            return await base44Client.auth.me();
+          }, 'HIGH', 'read', cacheKey);
+          this.saveToCache(cacheKey, result);
+          return result;
+        } catch (error) {
+          // Si la red falló (no un error de auth real), usar la sesión conocida
+          // para no expulsar al usuario ni dejar la app colgada
+          const status = error?.response?.status;
+          if (status !== 401 && status !== 403) {
+            const stale = this.getStaleFromCache(cacheKey);
+            if (stale) return stale;
+          }
+          throw error;
+        }
       },
 
       updateMe: async (data) => {
