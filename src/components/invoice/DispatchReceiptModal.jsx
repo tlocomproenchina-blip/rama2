@@ -27,17 +27,39 @@ function extractShippingOrderNumbers(invoice) {
     const desc = String(item?.description || '');
     // Solo items de envío (excluir seguro, consolidación, etc.)
     if (!/^env[íi]o/i.test(desc)) continue;
+    // Item consolidado con CBM manual: lista de órdenes en details.source_invoices
+    const sourceList = item?.details?.source_invoices;
+    if (Array.isArray(sourceList) && sourceList.length > 0) {
+      sourceList.forEach((o) => {
+        if (o && o !== '—') numbers.push(String(o).trim());
+      });
+      continue;
+    }
     // Preferir el número de orden guardado en details.source_invoice
     let order = item?.details?.source_invoice;
     if (order === undefined || order === null || order === '' || order === '—') {
       // Fallback: extraer el primer número de la descripción (ej: "Envío - 25 (0.0040 CBM)" -> 25)
-      const m = desc.replace(/^env[íi]o\s*-?\s*/i, '').match(/(\d+)/);
+      // No aplica a items consolidados "X.XXXX CBM facturado" (el número sería el CBM)
+      const cleaned = desc.replace(/^env[íi]o\s*-?\s*/i, '');
+      const m = /cbm\s*facturado/i.test(cleaned) ? null : cleaned.match(/(\d+)/);
       order = m ? m[1] : null;
     }
     if (order !== null && order !== undefined && order !== '' && order !== '—') {
       numbers.push(String(order).trim());
     }
   }
+
+  // Fallback para facturas antiguas con CBM manual: extraer de las notas
+  // "…generada desde N factura(s): 12, 14, 15, 21. CBM total…"
+  if (numbers.length === 0 && invoice?.notes) {
+    const m = String(invoice.notes).match(/factura\(s\):\s*([^.]+)/i);
+    if (m) {
+      m[1].split(',').map((s) => s.trim()).forEach((o) => {
+        if (o && o !== '—') numbers.push(o);
+      });
+    }
+  }
+
   return Array.from(new Set(numbers));
 }
 

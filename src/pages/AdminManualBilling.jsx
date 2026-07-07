@@ -177,12 +177,13 @@ export default function AdminManualBilling() {
       const items = [];
       if (useManualCbm) {
         const manualShipping = calcShipping(billedCbmValue);
+        const sourceOrders = selectedRows.map((r) => r.invoice_number).filter((n) => n && n !== '—');
         items.push({
-          description: `Envío - ${billedCbmValue.toFixed(4)} CBM facturado`,
+          description: `Envío - ${sourceOrders.length > 0 ? `${sourceOrders.join(' - ')} - ` : ''}${billedCbmValue.toFixed(4)} CBM facturado`,
           quantity: 1,
           unit_price: manualShipping,
           total: manualShipping,
-          details: { cbm: billedCbmValue, billed_cbm: billedCbmValue, total_cbm: totalCbm },
+          details: { cbm: billedCbmValue, billed_cbm: billedCbmValue, total_cbm: totalCbm, source_invoices: sourceOrders },
         });
         if (!useManualInsurance) {
           selectedRows.forEach((r) => {
