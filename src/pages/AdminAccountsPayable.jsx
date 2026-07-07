@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, RefreshCcw, Calculator } from 'lucide-react';
+import { Loader2, RefreshCcw, Calculator, ImageIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -111,6 +111,7 @@ export default function AdminAccountsPayable({ user }) {
   const [payMethod, setPayMethod] = useState('transferencia');
   const [payReference, setPayReference] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [viewImageUrl, setViewImageUrl] = useState(null);
 
   const selectedBalanceTotal = useMemo(() => {
     const sel = aps.filter(a => selectedIds.includes(a.id));
@@ -327,6 +328,7 @@ export default function AdminAccountsPayable({ user }) {
                       </TableHead>
                       <TableHead>Proveedor</TableHead>
                       <TableHead>Descripción</TableHead>
+                      <TableHead>Factura</TableHead>
                       <TableHead>Estado destino</TableHead>
                       <TableHead className="text-right">CBM facturado</TableHead>
                       <TableHead className="text-right">Final Regular / CBM</TableHead>
@@ -341,7 +343,7 @@ export default function AdminAccountsPayable({ user }) {
                   <TableBody>
                     {filtered.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={12} className="text-center text-slate-500">Sin registros</TableCell>
+                        <TableCell colSpan={13} className="text-center text-slate-500">Sin registros</TableCell>
                       </TableRow>
                     ) : (
                       filtered.map(ap => (
@@ -355,6 +357,13 @@ export default function AdminAccountsPayable({ user }) {
                           </TableCell>
                           <TableCell className="font-medium">{ap.vendor_name || 'Proveedor'}</TableCell>
                           <TableCell className="max-w-[360px] truncate">{ap.description}</TableCell>
+                          <TableCell>
+                            {ap.invoice_from_vendor_url ? (
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => setViewImageUrl(ap.invoice_from_vendor_url)} title="Ver factura del proveedor">
+                                <ImageIcon className="h-4 w-4" />
+                              </Button>
+                            ) : '—'}
+                          </TableCell>
                           <TableCell>{ap.state_code ? ap.state_code.split('_').map(s => s.charAt(0).toUpperCase()+s.slice(1)).join(' ') : '—'}</TableCell>
                           <TableCell className="text-right">{ap.cbm != null ? num(ap.cbm).toFixed(4) : '—'}</TableCell>
                           {(() => {
@@ -381,6 +390,20 @@ export default function AdminAccountsPayable({ user }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal ver factura del proveedor */}
+      <Dialog open={!!viewImageUrl} onOpenChange={(open) => !open && setViewImageUrl(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Factura del proveedor</DialogTitle>
+          </DialogHeader>
+          {viewImageUrl && (
+            <a href={viewImageUrl} target="_blank" rel="noreferrer">
+              <img src={viewImageUrl} alt="Factura del proveedor" className="w-full max-h-[70vh] object-contain rounded-lg border" />
+            </a>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Pago/Abono */}
       <Dialog open={showPayModal} onOpenChange={setShowPayModal}>
