@@ -179,8 +179,12 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
   doc.setFontSize(9);
   doc.setTextColor(...colDark);
   ddpLines.forEach((line) => {
-    doc.text(line, marginL, y);
-    y += 5;
+    const wrapped = doc.splitTextToSize(String(line), marginR - marginL);
+    wrapped.forEach((wLine) => {
+      if (y > pageHeight - 25) { doc.addPage(); y = 22; }
+      doc.text(wLine, marginL, y);
+      y += 5;
+    });
   });
 
   y += 8;
