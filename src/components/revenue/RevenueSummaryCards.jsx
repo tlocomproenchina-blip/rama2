@@ -52,11 +52,9 @@ export default function RevenueSummaryCards({ summary, previousSummary }) {
 
   const normalizedSummary = {
     ...summary,
-    insuranceProfit: typeof summary.insuranceProfit === 'number' ? summary.insuranceProfit : 0,
-    insurancePending: typeof summary.insurancePending === 'number' ? summary.insurancePending : 0,
-    shippingProfit: typeof summary.shippingProfit === 'number'
-      ? summary.shippingProfit
-      : Math.round(((Number(summary.totalProfit) || 0) - (Number(summary.insuranceProfit) || 0)) * 100) / 100,
+    insuranceProfit: Number(summary.insuranceProfit) || 0,
+    insurancePending: Number(summary.insurancePending) || 0,
+    shippingProfit: Number(summary.shippingProfit) || (Math.round(((Number(summary.totalProfit) || 0) - (Number(summary.insuranceProfit) || 0)) * 100) / 100),
   };
 
   return (

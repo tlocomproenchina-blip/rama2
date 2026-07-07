@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 } from '@/api/base44Client';
 import { Loader2, BarChart3, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import RevenueSummaryCards from '@/components/revenue/RevenueSummaryCards';
@@ -38,11 +38,16 @@ export default function AdminRevenueDashboard({ user }) {
   const { data, isLoading, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['revenueMetrics-v2', startMonth, endMonth],
     queryFn: async () => {
-      const params = { metricsVersion: 'profit_split_v3' };
+      const params = {};
       if (startMonth) params.startMonth = startMonth;
       if (endMonth) params.endMonth = endMonth;
       const res = await base44.functions.invoke('getRevenueMetrics', params);
-      return res.data;
+      const result = res?.data ?? res;
+      if (result?.summary) {
+        result.summary.insuranceProfit = Number(result.summary.insuranceProfit) || 0;
+        result.summary.insurancePending = Number(result.summary.insurancePending) || 0;
+      }
+      return result;
     },
     staleTime: 0,
     gcTime: 0,
@@ -55,8 +60,13 @@ export default function AdminRevenueDashboard({ user }) {
     queryKey: ['revenueMetrics-v2', 'prev', prevPeriod?.startMonth, prevPeriod?.endMonth],
     queryFn: async () => {
       if (!prevPeriod) return null;
-      const res = await base44.functions.invoke('getRevenueMetrics', { ...prevPeriod, metricsVersion: 'profit_split_v3' });
-      return res.data;
+      const res = await base44.functions.invoke('getRevenueMetrics', prevPeriod);
+      const result = res?.data ?? res;
+      if (result?.summary) {
+        result.summary.insuranceProfit = Number(result.summary.insuranceProfit) || 0;
+        result.summary.insurancePending = Number(result.summary.insurancePending) || 0;
+      }
+      return result;
     },
     enabled: !!prevPeriod,
     staleTime: 0,
