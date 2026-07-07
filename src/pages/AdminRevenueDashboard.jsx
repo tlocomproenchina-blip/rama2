@@ -38,13 +38,15 @@ export default function AdminRevenueDashboard({ user }) {
   const { data, isLoading, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['revenueMetrics-v2', startMonth, endMonth],
     queryFn: async () => {
-      const params = {};
+      const params = { metricsVersion: 'profit_split_v3' };
       if (startMonth) params.startMonth = startMonth;
       if (endMonth) params.endMonth = endMonth;
       const res = await base44.functions.invoke('getRevenueMetrics', params);
       return res.data;
     },
-    staleTime: 60000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Fetch previous period for comparison
@@ -53,11 +55,13 @@ export default function AdminRevenueDashboard({ user }) {
     queryKey: ['revenueMetrics-v2', 'prev', prevPeriod?.startMonth, prevPeriod?.endMonth],
     queryFn: async () => {
       if (!prevPeriod) return null;
-      const res = await base44.functions.invoke('getRevenueMetrics', prevPeriod);
+      const res = await base44.functions.invoke('getRevenueMetrics', { ...prevPeriod, metricsVersion: 'profit_split_v3' });
       return res.data;
     },
     enabled: !!prevPeriod,
-    staleTime: 120000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
   });
 
   const handleRefresh = useCallback(() => refetch(), [refetch]);

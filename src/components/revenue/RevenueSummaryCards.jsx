@@ -50,10 +50,18 @@ function TrendIndicator({ change }) {
 export default function RevenueSummaryCards({ summary, previousSummary }) {
   if (!summary) return null;
 
+  const normalizedSummary = {
+    ...summary,
+    insuranceProfit: typeof summary.insuranceProfit === 'number' ? summary.insuranceProfit : 0,
+    shippingProfit: typeof summary.shippingProfit === 'number'
+      ? summary.shippingProfit
+      : Math.round(((Number(summary.totalProfit) || 0) - (Number(summary.insuranceProfit) || 0)) * 100) / 100,
+  };
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       {cards.map(({ key, label, sublabelKey, breakdown, icon: Icon, color, prefix, suffix, isCurrency, decimals }) => {
-        const change = previousSummary ? computeChange(summary[key], previousSummary[key]) : null;
+        const change = previousSummary ? computeChange(normalizedSummary[key], previousSummary[key]) : null;
         return (
           <Card key={key} className="overflow-hidden">
             <CardContent className="p-4">
@@ -64,23 +72,23 @@ export default function RevenueSummaryCards({ summary, previousSummary }) {
                 <TrendIndicator change={change} />
               </div>
               <p className="text-xl sm:text-2xl font-bold text-slate-800 truncate leading-tight">
-                {prefix}{formatNumber(summary[key], { isCurrency, decimals })}{suffix}
+                {prefix}{formatNumber(normalizedSummary[key], { isCurrency, decimals })}{suffix}
               </p>
               <p className="text-[11px] text-slate-500 mt-1">{label}</p>
               {breakdown && (
                 <div className="mt-1 space-y-0.5">
                   {breakdown.map(({ key: bKey, label: bLabel, textColor }) => (
-                    typeof summary[bKey] === 'number' && (
+                    typeof normalizedSummary[bKey] === 'number' && (
                       <p key={bKey} className={`text-[10px] font-medium ${textColor || 'text-emerald-700'}`}>
-                        {bLabel}: ${formatNumber(summary[bKey], { isCurrency: true })}
+                        {bLabel}: ${formatNumber(normalizedSummary[bKey], { isCurrency: true })}
                       </p>
                     )
                   ))}
                 </div>
               )}
-              {sublabelKey && typeof summary[sublabelKey] === 'number' && (
+              {sublabelKey && typeof normalizedSummary[sublabelKey] === 'number' && (
                 <p className="text-[10px] text-slate-400 mt-0.5">
-                  Costo proveedor: ${formatNumber(summary[sublabelKey], { isCurrency: true })}
+                  Costo proveedor: ${formatNumber(normalizedSummary[sublabelKey], { isCurrency: true })}
                 </p>
               )}
             </CardContent>
