@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle } from 'lucide-react';
+import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
+import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle, Truck } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
 
@@ -48,6 +49,7 @@ export default function AdminInvoices({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
   const [appConfig, setAppConfig] = useState(null);
+  const [dispatchReceipt, setDispatchReceipt] = useState(null);
 
   // Inicialización en paralelo (3 fetches concurrentes en lugar de secuenciales)
   useEffect(() => {
@@ -81,7 +83,11 @@ export default function AdminInvoices({ user }) {
         shipping_mark: u?.shipping_mark || '',
         client_first_name: u?.first_name || '',
         client_last_name: u?.last_name || '',
-        client_whatsapp: u?.whatsapp || u?.phone || ''
+        client_whatsapp: u?.whatsapp || u?.phone || '',
+        client_cedula: u?.cedula || '',
+        client_address: u?.address || '',
+        client_city: u?.city || '',
+        client_state: u?.state || ''
       };
     });
     const nextList = append ? [...invoices, ...enrichedData] : enrichedData;
@@ -415,11 +421,27 @@ export default function AdminInvoices({ user }) {
         )));
       }
 
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_paid: checked, provider_paid_date: paidDate } : i));
+      const updatedInvoice = { ...invoice, provider_paid: checked, provider_paid_date: paidDate };
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? updatedInvoice : i));
       toast.success(checked ? 'Marcado como pagado al proveedor' : 'Pago al proveedor revertido');
+
+      // Al marcar como pagado al proveedor, generar el recibo de despacho para copiar
+      if (checked) {
+        openDispatchReceipt(updatedInvoice);
+      }
     } catch (error) {
       toast.error('Error al actualizar pago al proveedor');
     }
+  };
+
+  // Abre el recibo de despacho con los datos del cliente y sus facturas pagadas
+  const openDispatchReceipt = (invoice) => {
+    const clientInvoices = invoices.filter(i => i.client_email === invoice.client_email);
+    // Asegurar que la factura actual esté incluida y actualizada en la lista
+    const merged = clientInvoices.some(i => i.id === invoice.id)
+      ? clientInvoices.map(i => i.id === invoice.id ? invoice : i)
+      : [...clientInvoices, invoice];
+    setDispatchReceipt({ invoice, clientInvoices: merged });
   };
 
   const handleDeconsolidate = async (invoice) => {
@@ -776,6 +798,17 @@ export default function AdminInvoices({ user }) {
                     Forzar pagada en Stripe
                   </Button>
                 )}
+                {invoice.provider_paid && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openDispatchReceipt(invoice)}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    <Truck className="h-4 w-4 mr-1" />
+                    Recibo despacho
+                  </Button>
+                )}
                 {invoice.consolidation_id && (
                   <Button
                     variant="outline"
@@ -1046,6 +1079,14 @@ export default function AdminInvoices({ user }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Recibo de Despacho */}
+      <DispatchReceiptModal
+        open={!!dispatchReceipt}
+        onClose={() => setDispatchReceipt(null)}
+        invoice={dispatchReceipt?.invoice}
+        clientInvoices={dispatchReceipt?.clientInvoices}
+      />
     </div>
   );
 }
