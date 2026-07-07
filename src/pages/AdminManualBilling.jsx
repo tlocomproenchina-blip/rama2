@@ -155,10 +155,10 @@ export default function AdminManualBilling() {
   };
 
   const selectedRows = rows.filter((r) => r.selected);
-  // Si hay un CBM facturado manual, el envío se recalcula con ese CBM total; si no, suma por fila
-  const shippingTotal = billedCbm !== ''
-    ? calcShipping(num(billedCbm))
-    : selectedRows.reduce((s, r) => s + num(r.shipping_amount), 0);
+  // El envío SIEMPRE se cobra consolidado: un solo cálculo sobre el CBM total
+  // (manual si se indicó "CBM facturado", o la suma de las cargas seleccionadas)
+  const selectedCbmSum = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
+  const shippingTotal = calcShipping(billedCbm !== '' ? num(billedCbm) : selectedCbmSum);
   const autoInsuranceTotal = selectedRows.reduce((s, r) => s + num(r.insurance_amount), 0);
   const insuranceTotal = manualInsurance !== '' ? num(manualInsurance) : autoInsuranceTotal;
   const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0);
@@ -171,52 +171,31 @@ export default function AdminManualBilling() {
     try {
       const totalCbm = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
       const billedCbmValue = billedCbm !== '' ? num(billedCbm) : totalCbm;
-      const useManualCbm = billedCbm !== '';
 
       const useManualInsurance = manualInsurance !== '';
       const items = [];
-      if (useManualCbm) {
-        const manualShipping = calcShipping(billedCbmValue);
-        const sourceOrders = selectedRows.map((r) => r.invoice_number).filter((n) => n && n !== '—');
-        items.push({
-          description: `Envío - ${sourceOrders.length > 0 ? `${sourceOrders.join(' - ')} - ` : ''}${billedCbmValue.toFixed(4)} CBM facturado`,
-          quantity: 1,
-          unit_price: manualShipping,
-          total: manualShipping,
-          details: { cbm: billedCbmValue, billed_cbm: billedCbmValue, total_cbm: totalCbm, source_invoices: sourceOrders },
-        });
-        if (!useManualInsurance) {
-          selectedRows.forEach((r) => {
-            if (num(r.insurance_amount) > 0) {
-              items.push({
-                description: `Seguro de carga - ${r.consolidation_tracking || r.invoice_number}`,
-                quantity: 1,
-                unit_price: num(r.insurance_amount),
-                total: num(r.insurance_amount),
-                details: { fob_value: r.total_fob, insured_packages: r.insured_count },
-              });
-            }
-          });
-        }
-      } else {
-      selectedRows.forEach((r) => {
-        items.push({
-          description: `Envío - ${r.consolidation_tracking || r.invoice_number} (${r.cbm || 0} CBM)`,
-          quantity: 1,
-          unit_price: num(r.shipping_amount),
-          total: num(r.shipping_amount),
-          details: { cbm: num(r.cbm), source_invoice: r.invoice_number },
-        });
-        if (!useManualInsurance && num(r.insurance_amount) > 0) {
-          items.push({
-            description: `Seguro de carga - ${r.consolidation_tracking || r.invoice_number}`,
-            quantity: 1,
-            unit_price: num(r.insurance_amount),
-            total: num(r.insurance_amount),
-            details: { fob_value: r.total_fob, insured_packages: r.insured_count },
-          });
-        }
+      // Envío SIEMPRE consolidado: un solo item con el CBM total de todas las cargas
+      const consolidatedShipping = calcShipping(billedCbmValue);
+      const sourceOrders = selectedRows.map((r) => r.invoice_number).filter((n) => n && n !== '—');
+      items.push({
+        description: `Envío - ${sourceOrders.length > 0 ? `${sourceOrders.join(' - ')} - ` : ''}${billedCbmValue.toFixed(4)} CBM facturado`,
+        quantity: 1,
+        unit_price: consolidatedShipping,
+        total: consolidatedShipping,
+        details: { cbm: billedCbmValue, billed_cbm: billedCbmValue, total_cbm: totalCbm, source_invoices: sourceOrders },
       });
+      if (!useManualInsurance) {
+        selectedRows.forEach((r) => {
+          if (num(r.insurance_amount) > 0) {
+            items.push({
+              description: `Seguro de carga - ${r.consolidation_tracking || r.invoice_number}`,
+              quantity: 1,
+              unit_price: num(r.insurance_amount),
+              total: num(r.insurance_amount),
+              details: { fob_value: r.total_fob, insured_packages: r.insured_count },
+            });
+          }
+        });
       }
       if (useManualInsurance && insuranceTotal > 0) {
         items.push({
