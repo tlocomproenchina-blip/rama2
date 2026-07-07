@@ -3,10 +3,10 @@ import { DollarSign, Package, Clock, Users, FileText, TrendingUp, TrendingDown, 
 
 const cards = [
   { key: 'totalRevenue', label: 'Ingresos Cobrados', icon: DollarSign, color: 'text-green-600 bg-green-50 border-green-100', prefix: '$', isCurrency: true },
-  { key: 'totalProfit', label: 'Ganancia Neta', sublabelKey: 'totalProviderCost', icon: PiggyBank, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', prefix: '$', isCurrency: true },
-  { key: 'shippingProfit', label: 'Ganancia Envíos', icon: Ship, color: 'text-cyan-600 bg-cyan-50 border-cyan-100', prefix: '$', isCurrency: true },
+  { key: 'shippingProfit', label: 'Ganancia Envíos', sublabelKey: 'totalProviderCost', icon: Ship, color: 'text-cyan-600 bg-cyan-50 border-cyan-100', prefix: '$', isCurrency: true },
   { key: 'insuranceProfit', label: 'Ganancia Seguros', icon: Shield, color: 'text-teal-600 bg-teal-50 border-teal-100', prefix: '$', isCurrency: true },
-  { key: 'totalPending', label: 'Pendiente de Cobro', breakdown: [{ key: 'insurancePending', label: 'Seguros por cobrar', textColor: 'text-amber-700' }], icon: Clock, color: 'text-amber-600 bg-amber-50 border-amber-100', prefix: '$', isCurrency: true },
+  { key: 'insurancePending', label: 'Seguros por Cobrar', icon: PiggyBank, color: 'text-amber-600 bg-amber-50 border-amber-100', prefix: '$', isCurrency: true },
+  { key: 'totalPending', label: 'Pendiente de Cobro', icon: Clock, color: 'text-orange-600 bg-orange-50 border-orange-100', prefix: '$', isCurrency: true },
   { key: 'totalCbm', label: 'CBM Procesados', icon: Package, color: 'text-blue-600 bg-blue-50 border-blue-100', suffix: ' CBM', decimals: 2 },
   { key: 'totalInvoices', label: 'Facturas Emitidas', icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-100' },
   { key: 'totalClients', label: 'Clientes Activos', icon: Users, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
