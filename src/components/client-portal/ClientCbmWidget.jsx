@@ -18,15 +18,16 @@ export default function ClientCbmWidget({ userEmail }) {
     if (!userEmail) return;
     (async () => {
       try {
-        const [data, paidInvoices] = await Promise.all([
+        const [data, paidInvoices, dispatchedList] = await Promise.all([
           base44.entities.CbmIngreso.filter({ client_email: userEmail }, '-fecha', 50),
-          base44.entities.Invoice.filter({ client_email: userEmail, status: 'pagada' }, '-invoice_date', 100)
+          base44.entities.Invoice.filter({ client_email: userEmail, status: 'pagada' }, '-invoice_date', 100),
+          base44.entities.Invoice.filter({ client_email: userEmail, dispatched: true }, '-invoice_date', 100)
         ]);
         setIngresos(data || []);
         setPaidInvoiceIds(new Set((paidInvoices || []).map((inv) => inv.id)));
         const dispatched = {};
-        (paidInvoices || []).forEach((inv) => {
-          if (inv.dispatched) dispatched[inv.id] = inv.dispatched_date || true;
+        (dispatchedList || []).forEach((inv) => {
+          dispatched[inv.id] = inv.dispatched_date || true;
         });
         setDispatchedInvoices(dispatched);
       } catch {
