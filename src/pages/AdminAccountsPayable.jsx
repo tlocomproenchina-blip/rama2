@@ -26,6 +26,12 @@ export default function AdminAccountsPayable({ user }) {
 
   const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
+  // Mostrar solo el número de la factura (ej: 1783441874447-8)
+  const shortDescription = (desc) => {
+    const m = String(desc || '').match(/INV(?:-M)?-(\d+(?:-\d+)?)/i);
+    return m ? m[1] : (desc || '—');
+  };
+
   // Precio final por estado (Regular / Alto riesgo) usando la misma fórmula de facturación
   const getStatePrices = (stateCode) => {
     const code = String(stateCode || '').trim().toLowerCase();
@@ -356,7 +362,7 @@ export default function AdminAccountsPayable({ user }) {
                             />
                           </TableCell>
                           <TableCell className="font-medium">{ap.vendor_name || 'Proveedor'}</TableCell>
-                          <TableCell className="max-w-[360px] truncate">{ap.description}</TableCell>
+                          <TableCell className="font-mono text-sm">{shortDescription(ap.description)}</TableCell>
                           <TableCell>
                             {ap.invoice_from_vendor_url ? (
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => setViewImageUrl(ap.invoice_from_vendor_url)} title="Ver factura del proveedor">
