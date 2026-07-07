@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, MapPin, Phone, Save, Loader2, DollarSign, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
+import WhatsAppInput from '@/components/common/WhatsAppInput';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
 
@@ -258,7 +259,7 @@ export default function Profile({ user, refreshUser }) {
           )}
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             {/* Nombre y Apellido */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -305,15 +306,18 @@ export default function Profile({ user, refreshUser }) {
                   <Phone className="h-4 w-4" />
                   WhatsApp *
                 </Label>
-                <Input
-                  id="whatsapp"
-                  value={formData.whatsapp}
-                  onChange={(e) => setFormData({ ...formData, whatsapp: sanitizeWhatsApp(e.target.value) })}
-                  placeholder="+58 414 1234567"
-                  inputMode="tel"
-                  disabled={isFieldDisabled('whatsapp')}
-                  required
-                />
+                {isFieldDisabled('whatsapp') ? (
+                  <Input id="whatsapp" value={formData.whatsapp} disabled />
+                ) : (
+                  <WhatsAppInput
+                    id="whatsapp"
+                    value={formData.whatsapp}
+                    onChange={(val) => setFormData({ ...formData, whatsapp: val })}
+                  />
+                )}
+                <p className="text-xs text-slate-500">
+                  Selecciona el prefijo de tu país e introduce solo los números.
+                </p>
               </div>
             </div>
 
