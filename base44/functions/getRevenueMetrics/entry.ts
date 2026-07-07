@@ -89,8 +89,10 @@ Deno.serve(async (req) => {
     let totalProviderCost = 0;
     let totalInsuranceProfit = 0;
 
-    // Ganancia de seguros por factura: items cuya descripción indica seguro
-    const getInsuranceProfit = (inv) => {
+    let totalInsurancePending = 0;
+
+    // Montos de seguro por factura: items cuya descripción indica seguro
+    const getInsuranceAmounts = (inv) => {
       let revenue = 0;
       let cost = 0;
       for (const it of (inv.items || [])) {
@@ -101,7 +103,7 @@ Deno.serve(async (req) => {
           cost += fob * providerInsurancePct / 100;
         }
       }
-      return revenue - cost;
+      return { revenue, cost };
     };
 
     invoices.forEach(inv => {
@@ -127,7 +129,8 @@ Deno.serve(async (req) => {
         totalRevenue += total;
         totalProfit += profit;
         totalProviderCost += providerCost;
-        totalInsuranceProfit += getInsuranceProfit(inv);
+        const ins = getInsuranceAmounts(inv);
+        totalInsuranceProfit += ins.revenue - ins.cost;
         if (!revenueByMonth[month]) revenueByMonth[month] = 0;
         revenueByMonth[month] += total;
         if (!profitByMonth[month]) profitByMonth[month] = 0;
@@ -136,6 +139,7 @@ Deno.serve(async (req) => {
         revenueByClient[email].profit += profit;
       } else if (inv.status === 'pendiente' || inv.status === 'vencida' || inv.status === 'revision') {
         totalPending += total;
+        totalInsurancePending += getInsuranceAmounts(inv).revenue;
         if (!pendingByMonth[month]) pendingByMonth[month] = 0;
         pendingByMonth[month] += total;
         revenueByClient[email].pending += total;
@@ -198,6 +202,7 @@ Deno.serve(async (req) => {
         shippingProfit: Math.round((totalProfit - totalInsuranceProfit) * 100) / 100,
         totalProviderCost: Math.round(totalProviderCost * 100) / 100,
         totalPending: Math.round(totalPending * 100) / 100,
+        insurancePending: Math.round(totalInsurancePending * 100) / 100,
         totalCbm: Math.round(totalCbm * 100) / 100,
         totalInvoices: invoices.filter(inv => { const m = getMonthKey(inv.invoice_date); return inRange(m); }).length,
         totalClients: clientData.length,
