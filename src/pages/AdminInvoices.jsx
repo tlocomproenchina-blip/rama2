@@ -742,45 +742,54 @@ export default function AdminInvoices({ user }) {
       ) : (
         <div className="grid gap-4">
           {filteredInvoices.map(invoice => (
-            <div key={invoice.id} className="relative group">
-              <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+            <div key={invoice.id} className="relative flex flex-col lg:flex-row gap-3 items-stretch">
+              <div className="absolute top-4 left-4 z-10">
                 <Checkbox 
                   checked={selectedInvoices.includes(invoice.id)}
                   onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked)}
                   className="bg-white"
                 />
+              </div>
+              <div className="flex-1 min-w-0">
+                <InvoiceCard
+                  invoice={invoice}
+                  onDownload={handleDownloadPDF}
+                  showPayButton={false}
+                  extraActions={(
+                    <div className="w-full space-y-3">
+                      {invoice.status === 'pendiente' && invoice.client_whatsapp && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleNotifyPayment(invoice); }}
+                          className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                        >
+                          <MessageCircle className="h-4 w-4" /> Notificar pago
+                        </button>
+                      )}
+                      <ProviderCostControl
+                        invoice={invoice}
+                        onSaveCost={handleSaveProviderCost}
+                        onTogglePaid={handleToggleProviderPaid}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
+              {/* Columna lateral derecha: badges + acciones apiladas */}
+              <div className="flex flex-row flex-wrap lg:flex-col gap-2 lg:w-44 shrink-0 items-stretch content-start">
                 {invoice.profit_amount != null && (
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${Number(invoice.profit_amount) >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
+                  <span className={`text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap ${Number(invoice.profit_amount) >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
                     Ganancia: ${Number(invoice.profit_amount).toFixed(2)}
                   </span>
                 )}
-              </div>
-              <InvoiceCard
-                invoice={invoice}
-                onDownload={handleDownloadPDF}
-                showPayButton={false}
-                extraActions={(
-                  <div className="w-full space-y-3">
-                    {invoice.status === 'pendiente' && invoice.client_whatsapp && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleNotifyPayment(invoice); }}
-                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
-                      >
-                        <MessageCircle className="h-4 w-4" /> Notificar pago
-                      </button>
-                    )}
-                    <ProviderCostControl
-                      invoice={invoice}
-                      onSaveCost={handleSaveProviderCost}
-                      onTogglePaid={handleToggleProviderPaid}
-                    />
-                  </div>
+                {invoice.provider_paid && (
+                  <span className="text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap bg-emerald-100 text-emerald-700">
+                    ✓ Pagado al proveedor
+                  </span>
                 )}
-              />
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="justify-start"
                   onClick={() => {
                     setEditingInvoice(invoice);
                     setShowEditModal(true);
@@ -793,6 +802,7 @@ export default function AdminInvoices({ user }) {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="justify-start"
                     onClick={async () => {
                       const res = await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: invoice.id });
                       if (res?.data?.ok) toast.success('Stripe actualizado');
@@ -808,7 +818,7 @@ export default function AdminInvoices({ user }) {
                     variant="outline"
                     size="sm"
                     onClick={() => openDispatchReceipt(invoice)}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    className="justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                   >
                     <Truck className="h-4 w-4 mr-1" />
                     Recibo despacho
@@ -819,7 +829,7 @@ export default function AdminInvoices({ user }) {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeconsolidate(invoice)}
-                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                    className="justify-start text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                   >
                     <PackageX className="h-4 w-4 mr-1" />
                     Desconsolidar
@@ -829,9 +839,10 @@ export default function AdminInvoices({ user }) {
                   variant="outline"
                   size="sm"
                   onClick={() => setDeleteInvoice(invoice)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Borrar
                 </Button>
               </div>
             </div>
