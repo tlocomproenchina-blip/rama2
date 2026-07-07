@@ -157,6 +157,7 @@ export default function AdminClients({ user }) {
     setEditData({
       first_name: client.first_name || '',
       last_name: client.last_name || '',
+      cedula: client.cedula || '',
       state: client.state || '',
       city: client.city || '',
       address: client.address || '',

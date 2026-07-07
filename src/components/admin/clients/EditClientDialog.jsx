@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Phone, Tag, X, Save, Loader2 } from 'lucide-react';
+import { MapPin, Phone, Tag, X, Save, Loader2, IdCard } from 'lucide-react';
 
 export default function EditClientDialog({
   open, onOpenChange,
@@ -41,6 +41,17 @@ export default function EditClientDialog({
                 placeholder="Apellido"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <IdCard className="h-4 w-4" /> Cédula
+            </Label>
+            <Input
+              value={editData.cedula || ''}
+              onChange={(e) => setEditData({ ...editData, cedula: e.target.value })}
+              placeholder="V-12345678"
+            />
           </div>
 
           <div className="space-y-2">
