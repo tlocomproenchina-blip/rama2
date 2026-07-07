@@ -742,8 +742,8 @@ export default function AdminInvoices({ user }) {
       ) : (
         <div className="grid gap-4">
           {filteredInvoices.map(invoice => (
-            <div key={invoice.id} className="relative flex flex-col lg:flex-row gap-3 items-stretch">
-              <div className="absolute top-4 left-4 z-10">
+            <div key={invoice.id} className="flex flex-col lg:flex-row gap-3 items-stretch">
+              <div className="shrink-0 pt-5 pl-1 self-start">
                 <Checkbox 
                   checked={selectedInvoices.includes(invoice.id)}
                   onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked)}
