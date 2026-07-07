@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy, useCallback, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { base44, setApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -59,8 +59,6 @@ export default function Layout({ children, currentPageName }) {
   const [showProfile, setShowProfile] = useState(false);
   const [isInstalledApp, setIsInstalledApp] = useState(false);
   const [showTour, setShowTour] = useState(false);
-  const [slideDirection, setSlideDirection] = useState(1);
-  const historyIndexRef = React.useRef(typeof window !== 'undefined' ? (window.history.state?.idx ?? 0) : 0);
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
@@ -79,11 +77,12 @@ export default function Layout({ children, currentPageName }) {
     });
   }, []);
 
+  // Precargar en segundo plano los módulos admin más usados (solo descarga JS, no datos)
   useEffect(() => {
-    const currentIndex = typeof window !== 'undefined' ? (window.history.state?.idx ?? historyIndexRef.current) : historyIndexRef.current;
-    setSlideDirection(currentIndex < historyIndexRef.current ? -1 : 1);
-    historyIndexRef.current = currentIndex;
-  }, [location.pathname, location.search]);
+    if (user?.role === 'admin') {
+      import('@/lib/idleChunkPrefetch').then((m) => m.prefetchAdminChunks()).catch(() => {});
+    }
+  }, [user?.role]);
 
   // Detect if running as installed PWA (standalone)
   useEffect(() => {
@@ -579,17 +578,14 @@ export default function Layout({ children, currentPageName }) {
               )}
               <ErrorBoundary>
                 <SoftErrorBoundary name={currentPageName || 'page-content'}>
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={location.pathname + location.search}
-                      initial={{ opacity: 0, x: slideDirection > 0 ? 28 : -28 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: slideDirection > 0 ? -20 : 20 }}
-                      transition={{ duration: 0.22, ease: 'easeOut' }}
-                    >
-                      {React.cloneElement(children, { user, refreshUser: loadUser })}
-                    </motion.div>
-                  </AnimatePresence>
+                  <motion.div
+                    key={location.pathname + location.search}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.12 }}
+                  >
+                    {React.cloneElement(children, { user, refreshUser: loadUser })}
+                  </motion.div>
                 </SoftErrorBoundary>
               </ErrorBoundary>
             </div>

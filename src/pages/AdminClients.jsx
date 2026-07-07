@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from "@/components/ui/input";
 import { Search, Loader2 } from 'lucide-react';
@@ -48,6 +48,7 @@ export default function AdminClients({ user }) {
   const [totalFiltered, setTotalFiltered] = useState(0);
   const [globalCounts, setGlobalCounts] = useState(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const reqSeqRef = useRef(0);
 
   // Hooks especializados (extraídos para mantener este archivo enfocado)
   const { bulkProgress, handleExportRemarketing, handleExportFiltered } = useClientExports({
@@ -67,9 +68,9 @@ export default function AdminClients({ user }) {
     onPackageAdded: (email) => setPackagesCount((prev) => ({ ...prev, [email]: (prev[email] || 0) + 1 })),
   });
 
-  // Debounce de la búsqueda (350ms) para no martillar el backend al teclear
+  // Debounce de la búsqueda (250ms) para no martillar el backend al teclear
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    const t = setTimeout(() => setDebouncedSearch(search), 250);
     return () => clearTimeout(t);
   }, [search]);
 
@@ -110,6 +111,7 @@ export default function AdminClients({ user }) {
   };
 
   const loadClients = async (append = false, forceRefresh = false) => {
+    const seq = ++reqSeqRef.current;
     try {
       if (append) setLoadingMore(true); else setLoading(true);
       if (!canViewClients) {
@@ -135,6 +137,9 @@ export default function AdminClients({ user }) {
         forceRefresh,
       });
 
+      // Ignorar respuestas obsoletas (el usuario siguió tecleando / cambió filtros)
+      if (seq !== reqSeqRef.current) return;
+
       const payload = res?.data || {};
       const users = Array.isArray(payload.data) ? payload.data : [];
 
@@ -148,7 +153,9 @@ export default function AdminClients({ user }) {
       if (payload.counts) setGlobalCounts(payload.counts);
       if (payload.packageCounts) setPackagesCount(payload.packageCounts);
     } finally {
-      if (append) setLoadingMore(false); else setLoading(false);
+      if (seq === reqSeqRef.current) {
+        if (append) setLoadingMore(false); else setLoading(false);
+      }
     }
   };
 

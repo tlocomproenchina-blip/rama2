@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
 
@@ -18,14 +18,16 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
   const [totalFiltered, setTotalFiltered] = useState(0);
   const [globalCounts, setGlobalCounts] = useState(null);
   const [hasMore, setHasMore] = useState(false);
+  const reqSeqRef = useRef(0);
 
   // Debounce del input de búsqueda
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    const t = setTimeout(() => setDebouncedSearch(search), 250);
     return () => clearTimeout(t);
   }, [search]);
 
   const loadPackages = useCallback(async (append = false, skipOverride = 0) => {
+    const seq = ++reqSeqRef.current;
     if (append) setLoadingMore(true); else setLoading(true);
     const skip = append ? skipOverride : 0;
     try {
@@ -38,6 +40,8 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
         advancedFilters,
         includeCounts: !append,
       });
+      // Ignorar respuestas obsoletas (llegó una búsqueda más reciente)
+      if (seq !== reqSeqRef.current) return;
       const pkgs = res?.data?.data || [];
       const total = res?.data?.total || 0;
       const counts = res?.data?.counts;
@@ -53,6 +57,7 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
       console.error('Error loading packages:', e);
       toast.error('Error al cargar paquetes');
     }
+    if (seq !== reqSeqRef.current) return;
     if (append) setLoadingMore(false); else setLoading(false);
   }, [debouncedSearch, statusFilter, reportedFilter, advancedFilters, pageSize]);
 

@@ -114,8 +114,56 @@ Deno.serve(async (req) => {
       ? { $and: [query, ...andClauses] }
       : query;
 
-    // === Página actual ===
-    const data = await base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', pageLimit, pageSkip);
+    // === Página, total y conteos globales EN PARALELO (antes era secuencial) ===
+    const fetchTotal = async () => {
+      let t = 0;
+      let countSkip = 0;
+      const COUNT_BATCH = 1000;
+      while (true) {
+        const batch = await base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', COUNT_BATCH, countSkip);
+        t += batch.length;
+        if (batch.length < COUNT_BATCH) break;
+        countSkip += COUNT_BATCH;
+        if (countSkip > 50000) break; // safety cap
+      }
+      return t;
+    };
+
+    const fetchGlobalCounts = async () => {
+      const now = Date.now();
+      if (_countsCache.counts && (now - _countsCache.at) < COUNTS_TTL_MS) return _countsCache.counts;
+      const staleThreshold = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const acc = { total: 0, pre_alerta_no_recibido: 0, recibido: 0, consolidado: 0, en_transito: 0, entregado: 0, stale: 0 };
+      const B = 1000;
+      let s = 0;
+      while (true) {
+        const batch = await base44.asServiceRole.entities.Package.list('-created_date', B, s);
+        if (!batch || batch.length === 0) break;
+        for (const p of batch) {
+          acc.total++;
+          const st = p?.status;
+          if (st === 'recibido') acc.recibido++;
+          else if (st === 'consolidado') acc.consolidado++;
+          else if (st === 'en_transito') acc.en_transito++;
+          else if (st === 'entregado') acc.entregado++;
+          else if (st === 'pre_alerta') {
+            if (!p.received_date) acc.pre_alerta_no_recibido++;
+            if (p.created_date && p.created_date <= staleThreshold) acc.stale++;
+          }
+        }
+        if (batch.length < B) break;
+        s += B;
+        if (s > 50000) break; // safety cap
+      }
+      _countsCache = { at: now, counts: acc };
+      return acc;
+    };
+
+    const [data, total, counts] = await Promise.all([
+      base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', pageLimit, pageSkip),
+      fetchTotal(),
+      includeCounts ? fetchGlobalCounts() : Promise.resolve(null),
+    ]);
 
     // === Enriquecer con datos del cliente (whatsapp, nombre) ===
     // Lookup batched por email para mostrar botón de contacto WhatsApp
@@ -137,70 +185,7 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* no bloquear listado por error de lookup */ }
 
-    // === Total que coincide ===
-    let total = 0;
-    if (data.length < pageLimit && pageSkip === 0) {
-      total = data.length;
-    } else {
-      // Contar total iterando (limit alto, skip 0 solo para count)
-      let countSkip = 0;
-      const COUNT_BATCH = 1000;
-      while (true) {
-        const batch = await base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', COUNT_BATCH, countSkip);
-        total += batch.length;
-        if (batch.length < COUNT_BATCH) break;
-        countSkip += COUNT_BATCH;
-        if (countSkip > 50000) break; // safety cap
-      }
-    }
-
     const hasMore = pageSkip + data.length < total;
-
-    // === Conteos globales (todos los paquetes, ignorando filtros) ===
-    // Optimización: usamos UNA sola pasada paginada sobre Package, agrupando
-    // en memoria por estado, en vez de 7 queries que recorren la colección
-    // completa. Además cacheamos por 60s para no repetir en cada filtrado.
-    let counts = null;
-    if (includeCounts) {
-      const now = Date.now();
-      if (_countsCache.counts && (now - _countsCache.at) < COUNTS_TTL_MS) {
-        counts = _countsCache.counts;
-      } else {
-        const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const acc = {
-          total: 0,
-          pre_alerta_no_recibido: 0,
-          recibido: 0,
-          consolidado: 0,
-          en_transito: 0,
-          entregado: 0,
-          stale: 0,
-        };
-        const B = 1000;
-        let s = 0;
-        while (true) {
-          const batch = await base44.asServiceRole.entities.Package.list('-created_date', B, s);
-          if (!batch || batch.length === 0) break;
-          for (const p of batch) {
-            acc.total++;
-            const st = p?.status;
-            if (st === 'recibido') acc.recibido++;
-            else if (st === 'consolidado') acc.consolidado++;
-            else if (st === 'en_transito') acc.en_transito++;
-            else if (st === 'entregado') acc.entregado++;
-            else if (st === 'pre_alerta') {
-              if (!p.received_date) acc.pre_alerta_no_recibido++;
-              if (p.created_date && p.created_date <= sevenDaysAgo) acc.stale++;
-            }
-          }
-          if (batch.length < B) break;
-          s += B;
-          if (s > 50000) break; // safety cap
-        }
-        counts = acc;
-        _countsCache = { at: now, counts };
-      }
-    }
 
     return Response.json({ data, total, skip: pageSkip, limit: pageLimit, hasMore, counts });
   } catch (error) {
