@@ -69,7 +69,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
 
   // Prefijar monto al total (no aceptamos multipagos)
   useEffect(() => {
-    if (open && effectiveTotal > 0) {
+    if (open) {
       setAmount(effectiveTotal.toFixed(2));
     }
   }, [open, effectiveTotal]);
@@ -122,12 +122,8 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
       toast.error('Por favor sube el comprobante de pago');
       return;
     }
-    if (effectiveTotal <= 0) {
-      toast.error('No se pudo determinar el total a pagar. Cierra e intenta de nuevo.');
-      return;
-    }
     const mustPay = effectiveTotal.toFixed(2);
-    if (!amount || parseFloat(amount) <= 0 || Number(parseFloat(amount).toFixed(2)) !== Number(mustPay)) {
+    if (Number(parseFloat(amount || '0').toFixed(2)) !== Number(mustPay)) {
       toast.error(`El monto debe ser exactamente $${mustPay}`);
       return;
     }
