@@ -37,9 +37,6 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
-            <div className="p-3 bg-blue-50 rounded-xl">
-              <FileText className="h-6 w-6 text-blue-600" />
-            </div>
             <div>
               <CardTitle className="text-lg text-slate-800">{invoice.invoice_number || 'Factura'}</CardTitle>
               {isAssistedPayment ? (
