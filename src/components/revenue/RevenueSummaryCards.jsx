@@ -4,7 +4,7 @@ import { DollarSign, Package, Clock, Users, FileText, TrendingUp, TrendingDown, 
 const cards = [
   { key: 'totalRevenue', label: 'Ingresos Cobrados', icon: DollarSign, color: 'text-green-600 bg-green-50 border-green-100', prefix: '$', isCurrency: true },
   { key: 'shippingProfit', label: 'Ganancia Envíos', sublabelKey: 'totalProviderCost', icon: Ship, color: 'text-cyan-600 bg-cyan-50 border-cyan-100', prefix: '$', isCurrency: true },
-  { key: 'insuranceProfit', label: 'Ganancia Seguros', icon: Shield, color: 'text-teal-600 bg-teal-50 border-teal-100', prefix: '$', isCurrency: true },
+  { key: 'insuranceProfit', label: 'Seguros Cobrados', icon: Shield, color: 'text-teal-600 bg-teal-50 border-teal-100', prefix: '$', isCurrency: true },
   { key: 'insurancePending', label: 'Seguros por Cobrar', icon: PiggyBank, color: 'text-amber-600 bg-amber-50 border-amber-100', prefix: '$', isCurrency: true },
   { key: 'totalPending', label: 'Pendiente de Cobro', icon: Clock, color: 'text-orange-600 bg-orange-50 border-orange-100', prefix: '$', isCurrency: true },
   { key: 'totalCbm', label: 'CBM Procesados', icon: Package, color: 'text-blue-600 bg-blue-50 border-blue-100', suffix: ' CBM', decimals: 2 },
@@ -53,6 +53,7 @@ export default function RevenueSummaryCards({ summary, previousSummary }) {
   const normalizedSummary = {
     ...summary,
     insuranceProfit: typeof summary.insuranceProfit === 'number' ? summary.insuranceProfit : 0,
+    insurancePending: typeof summary.insurancePending === 'number' ? summary.insurancePending : 0,
     shippingProfit: typeof summary.shippingProfit === 'number'
       ? summary.shippingProfit
       : Math.round(((Number(summary.totalProfit) || 0) - (Number(summary.insuranceProfit) || 0)) * 100) / 100,

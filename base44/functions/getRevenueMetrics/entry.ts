@@ -91,13 +91,14 @@ Deno.serve(async (req) => {
 
     let totalInsurancePending = 0;
 
-    // Montos de seguro por factura: items cuya descripción indica seguro
+    // Montos de seguro por factura: items de seguro cobrados o por cobrar
     const getInsuranceAmounts = (inv) => {
       let revenue = 0;
       let cost = 0;
       for (const it of (inv.items || [])) {
         const d = (it.description || '').toLowerCase();
-        if (d.includes('seguro') || d.includes('insurance')) {
+        const isInsuranceItem = d.includes('seguro') || d.includes('insurance') || Number(it.details?.fob_value) > 0 || Number(it.details?.insured_packages) > 0;
+        if (isInsuranceItem) {
           revenue += Number(it.total) || 0;
           const fob = Number(it.details?.fob_value) || 0;
           cost += fob * providerInsurancePct / 100;
@@ -130,7 +131,7 @@ Deno.serve(async (req) => {
         totalProfit += profit;
         totalProviderCost += providerCost;
         const ins = getInsuranceAmounts(inv);
-        totalInsuranceProfit += ins.revenue - ins.cost;
+        totalInsuranceProfit += ins.revenue;
         if (!revenueByMonth[month]) revenueByMonth[month] = 0;
         revenueByMonth[month] += total;
         if (!profitByMonth[month]) profitByMonth[month] = 0;
