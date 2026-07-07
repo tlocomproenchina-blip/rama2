@@ -76,6 +76,7 @@ export default function RevenueMonthlyChart({ data }) {
               <Legend iconType="circle" iconSize={8} formatter={v => <span className="text-xs text-slate-600">{v}</span>} />
               <Bar dataKey="revenue" name="Cobrado" fill="url(#barRevenue)" radius={[6, 6, 0, 0]} barSize={20} />
               <Bar dataKey="pending" name="Pendiente" fill="url(#barPending)" radius={[6, 6, 0, 0]} barSize={20} />
+              <Line type="monotone" dataKey="profit" name="Ganancia" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, fill: '#10b981' }} />
               <Line type="monotone" dataKey="total" name="Total" stroke="#6366f1" strokeWidth={2} dot={{ r: 3, fill: '#6366f1' }} strokeDasharray="4 4" />
             </ComposedChart>
           </ResponsiveContainer>

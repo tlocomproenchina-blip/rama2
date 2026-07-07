@@ -1,8 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, Package, Clock, Users, FileText, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { DollarSign, Package, Clock, Users, FileText, TrendingUp, TrendingDown, Minus, PiggyBank } from 'lucide-react';
 
 const cards = [
   { key: 'totalRevenue', label: 'Ingresos Cobrados', icon: DollarSign, color: 'text-green-600 bg-green-50 border-green-100', prefix: '$', isCurrency: true },
+  { key: 'totalProfit', label: 'Ganancia Neta', sublabelKey: 'totalProviderCost', icon: PiggyBank, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', prefix: '$', isCurrency: true },
   { key: 'totalPending', label: 'Pendiente de Cobro', icon: Clock, color: 'text-amber-600 bg-amber-50 border-amber-100', prefix: '$', isCurrency: true },
   { key: 'totalCbm', label: 'CBM Procesados', icon: Package, color: 'text-blue-600 bg-blue-50 border-blue-100', suffix: ' CBM', decimals: 2 },
   { key: 'totalInvoices', label: 'Facturas Emitidas', icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-100' },
@@ -48,8 +49,8 @@ export default function RevenueSummaryCards({ summary, previousSummary }) {
   if (!summary) return null;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-      {cards.map(({ key, label, icon: Icon, color, prefix, suffix, isCurrency, decimals }) => {
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      {cards.map(({ key, label, sublabelKey, icon: Icon, color, prefix, suffix, isCurrency, decimals }) => {
         const change = previousSummary ? computeChange(summary[key], previousSummary[key]) : null;
         return (
           <Card key={key} className="overflow-hidden">
@@ -64,6 +65,11 @@ export default function RevenueSummaryCards({ summary, previousSummary }) {
                 {prefix}{formatNumber(summary[key], { isCurrency, decimals })}{suffix}
               </p>
               <p className="text-[11px] text-slate-500 mt-1">{label}</p>
+              {sublabelKey && typeof summary[sublabelKey] === 'number' && (
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Costo proveedor: ${formatNumber(summary[sublabelKey], { isCurrency: true })}
+                </p>
+              )}
             </CardContent>
           </Card>
         );

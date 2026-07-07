@@ -79,29 +79,42 @@ Deno.serve(async (req) => {
     // --- Invoice aggregation ---
     const revenueByMonth = {};
     const pendingByMonth = {};
+    const profitByMonth = {};
     const revenueByClient = {};
     let totalRevenue = 0;
     let totalPending = 0;
+    let totalProfit = 0;
+    let totalProviderCost = 0;
 
     invoices.forEach(inv => {
       const month = getMonthKey(inv.invoice_date);
       if (!inRange(month)) return;
 
       const total = Number(inv.total) || 0;
+      const providerCost = Number(inv.provider_cost_total) || 0;
+      // Ganancia real por factura: profit_amount si existe, si no total - costo proveedor
+      const profit = (inv.profit_amount !== undefined && inv.profit_amount !== null)
+        ? Number(inv.profit_amount) || 0
+        : total - providerCost;
       const email = inv.client_email || 'sin_cliente';
       const name = userNameMap[email] || email;
 
       if (!revenueByClient[email]) {
-        revenueByClient[email] = { email, name, paid: 0, pending: 0, total: 0, invoiceCount: 0 };
+        revenueByClient[email] = { email, name, paid: 0, pending: 0, total: 0, profit: 0, invoiceCount: 0 };
       }
       revenueByClient[email].invoiceCount++;
       revenueByClient[email].total += total;
 
       if (inv.status === 'pagada') {
         totalRevenue += total;
+        totalProfit += profit;
+        totalProviderCost += providerCost;
         if (!revenueByMonth[month]) revenueByMonth[month] = 0;
         revenueByMonth[month] += total;
+        if (!profitByMonth[month]) profitByMonth[month] = 0;
+        profitByMonth[month] += profit;
         revenueByClient[email].paid += total;
+        revenueByClient[email].profit += profit;
       } else if (inv.status === 'pendiente' || inv.status === 'vencida' || inv.status === 'revision') {
         totalPending += total;
         if (!pendingByMonth[month]) pendingByMonth[month] = 0;
@@ -121,6 +134,7 @@ Deno.serve(async (req) => {
       cbm: Math.round((cbmByMonth[month] || 0) * 100) / 100,
       revenue: Math.round((revenueByMonth[month] || 0) * 100) / 100,
       pending: Math.round((pendingByMonth[month] || 0) * 100) / 100,
+      profit: Math.round((profitByMonth[month] || 0) * 100) / 100,
     }));
 
     // --- Build client table data ---
@@ -130,13 +144,14 @@ Deno.serve(async (req) => {
     ]);
     const clientData = Array.from(clientEmails).map(email => {
       const cbmInfo = cbmByClient[email] || { cbm: 0 };
-      const revInfo = revenueByClient[email] || { paid: 0, pending: 0, total: 0, invoiceCount: 0 };
+      const revInfo = revenueByClient[email] || { paid: 0, pending: 0, total: 0, profit: 0, invoiceCount: 0 };
       return {
         email,
         name: revInfo.name || cbmInfo.name || userNameMap[email] || email,
         cbm: Math.round((cbmInfo.cbm || 0) * 100) / 100,
         paid: Math.round(revInfo.paid * 100) / 100,
         pending: Math.round(revInfo.pending * 100) / 100,
+        profit: Math.round((revInfo.profit || 0) * 100) / 100,
         totalInvoiced: Math.round(revInfo.total * 100) / 100,
         invoiceCount: revInfo.invoiceCount,
       };
@@ -159,6 +174,8 @@ Deno.serve(async (req) => {
     return Response.json({
       summary: {
         totalRevenue: Math.round(totalRevenue * 100) / 100,
+        totalProfit: Math.round(totalProfit * 100) / 100,
+        totalProviderCost: Math.round(totalProviderCost * 100) / 100,
         totalPending: Math.round(totalPending * 100) / 100,
         totalCbm: Math.round(totalCbm * 100) / 100,
         totalInvoices: invoices.filter(inv => { const m = getMonthKey(inv.invoice_date); return inRange(m); }).length,

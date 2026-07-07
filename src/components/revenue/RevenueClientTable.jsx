@@ -10,6 +10,7 @@ const COLUMNS = [
   { key: 'cbm', label: 'CBM', align: 'right', sortable: true, format: 'cbm' },
   { key: 'paid', label: 'Cobrado', align: 'right', sortable: true, format: 'currency', color: 'text-green-700' },
   { key: 'pending', label: 'Pendiente', align: 'right', sortable: true, format: 'currency', color: 'text-amber-700' },
+  { key: 'profit', label: 'Ganancia', align: 'right', sortable: true, format: 'currency', color: 'text-emerald-700' },
   { key: 'totalInvoiced', label: 'Total Facturado', align: 'right', sortable: true, format: 'currency', color: 'text-slate-800', bold: true },
   { key: 'invoiceCount', label: 'Facturas', align: 'right', sortable: true },
 ];
@@ -64,18 +65,19 @@ export default function RevenueClientTable({ data }) {
       cbm: acc.cbm + (c.cbm || 0),
       paid: acc.paid + (c.paid || 0),
       pending: acc.pending + (c.pending || 0),
+      profit: acc.profit + (c.profit || 0),
       totalInvoiced: acc.totalInvoiced + (c.totalInvoiced || 0),
       invoiceCount: acc.invoiceCount + (c.invoiceCount || 0),
-    }), { cbm: 0, paid: 0, pending: 0, totalInvoiced: 0, invoiceCount: 0 });
+    }), { cbm: 0, paid: 0, pending: 0, profit: 0, totalInvoiced: 0, invoiceCount: 0 });
   }, [filtered]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const exportCSV = () => {
-    const header = 'Cliente,Email,CBM,Cobrado,Pendiente,Total Facturado,Facturas';
+    const header = 'Cliente,Email,CBM,Cobrado,Pendiente,Ganancia,Total Facturado,Facturas';
     const rows = filtered.map(c =>
-      `"${c.name}","${c.email}",${c.cbm.toFixed(2)},${c.paid.toFixed(2)},${c.pending.toFixed(2)},${c.totalInvoiced.toFixed(2)},${c.invoiceCount}`
+      `"${c.name}","${c.email}",${c.cbm.toFixed(2)},${c.paid.toFixed(2)},${c.pending.toFixed(2)},${(c.profit || 0).toFixed(2)},${c.totalInvoiced.toFixed(2)},${c.invoiceCount}`
     );
     const csv = [header, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -160,12 +162,13 @@ export default function RevenueClientTable({ data }) {
                   <td className="text-right px-4 py-2.5 font-mono text-xs text-slate-700">{c.cbm.toFixed(2)}</td>
                   <td className="text-right px-4 py-2.5 font-mono text-xs text-green-700">{fmt(c.paid, 'currency')}</td>
                   <td className="text-right px-4 py-2.5 font-mono text-xs text-amber-700">{fmt(c.pending, 'currency')}</td>
+                  <td className="text-right px-4 py-2.5 font-mono text-xs text-emerald-700">{fmt(c.profit || 0, 'currency')}</td>
                   <td className="text-right px-4 py-2.5 font-mono text-xs font-semibold text-slate-800">{fmt(c.totalInvoiced, 'currency')}</td>
                   <td className="text-right px-4 py-2.5 text-xs text-slate-600">{c.invoiceCount}</td>
                 </tr>
               ))}
               {paged.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-xs">Sin resultados</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400 text-xs">Sin resultados</td></tr>
               )}
             </tbody>
             {/* Totals footer */}
@@ -178,6 +181,7 @@ export default function RevenueClientTable({ data }) {
                   <td className="text-right px-4 py-3 font-mono text-xs text-slate-800">{totals.cbm.toFixed(2)}</td>
                   <td className="text-right px-4 py-3 font-mono text-xs text-green-700">{fmt(totals.paid, 'currency')}</td>
                   <td className="text-right px-4 py-3 font-mono text-xs text-amber-700">{fmt(totals.pending, 'currency')}</td>
+                  <td className="text-right px-4 py-3 font-mono text-xs text-emerald-700">{fmt(totals.profit, 'currency')}</td>
                   <td className="text-right px-4 py-3 font-mono text-xs text-slate-900">{fmt(totals.totalInvoiced, 'currency')}</td>
                   <td className="text-right px-4 py-3 text-xs text-slate-700">{totals.invoiceCount}</td>
                 </tr>
