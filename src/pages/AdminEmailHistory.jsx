@@ -19,12 +19,21 @@ export default function AdminEmailHistory() {
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const rows = await base44.entities.EmailLog.list('-sent_date', 300);
-      setLogs(rows || []);
+      // FASE 1: primeros 50 al instante (los emails guardan el cuerpo completo,
+      // pedir 300 de golpe hacía la carga muy lenta)
+      const first = await base44.entities.EmailLog.list('-sent_date', 50);
+      setLogs(first || []);
+      setLoading(false);
+
+      // FASE 2: el resto en segundo plano
+      if ((first || []).length === 50) {
+        const rest = await base44.entities.EmailLog.list('-sent_date', 250, 50).catch(() => []);
+        if (rest && rest.length) setLogs([...(first || []), ...rest]);
+      }
     } catch (_) {
       setLogs([]);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => { loadLogs(); }, []);
