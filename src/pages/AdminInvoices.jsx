@@ -51,59 +51,69 @@ export default function AdminInvoices({ user }) {
   const [appConfig, setAppConfig] = useState(null);
   const [dispatchReceipt, setDispatchReceipt] = useState(null);
 
-  // Inicialización en paralelo (3 fetches concurrentes en lugar de secuenciales)
+  // Inicialización en paralelo. Las consolidaciones se cargan solo al abrir
+  // el modal de crear factura (no bloquean la carga inicial).
   useEffect(() => {
     (async () => {
       const [cfgs] = await Promise.all([
         base44.entities.AppConfig.filter({ config_key: 'main' }),
         loadInvoices(false),
-        loadConsolidations(),
       ]);
       setAppConfig(cfgs?.[0] || null);
     })();
   }, []);
+
+  useEffect(() => {
+    if (showCreateModal && consolidations.length === 0) loadConsolidations();
+  }, [showCreateModal]);
+
+  const computeStats = (list) => {
+    let paid = 0, pending = 0, revenue = 0, profit = 0;
+    for (const i of list) {
+      if (i.status === 'pagada') { paid++; revenue += Number(i.total) || 0; }
+      else if (i.status === 'pendiente') pending++;
+      if (i.profit_amount !== undefined && i.profit_amount !== null) profit += Number(i.profit_amount) || 0;
+    }
+    setStats({ total: list.length, paid, pending, revenue, profit });
+  };
+
+  const enrichInvoice = (inv, clientsByEmail) => {
+    const u = clientsByEmail[inv.client_email];
+    if (!u) return inv;
+    return {
+      ...inv,
+      shipping_mark: u.shipping_mark || '',
+      client_first_name: u.first_name || '',
+      client_last_name: u.last_name || '',
+      client_whatsapp: u.whatsapp || u.phone || '',
+      client_cedula: u.cedula || '',
+      client_address: u.address || '',
+      client_city: u.city || '',
+      client_state: u.state || ''
+    };
+  };
 
   const loadInvoices = async (append = false) => {
     if (append) setLoadingMore(true); else setLoading(true);
     const skip = append ? invoices.length : 0;
     const data = await base44.entities.Invoice.list('-invoice_date', pageSize, skip);
 
-    // Enriquecer con datos del cliente: UNA sola llamada al punto único de verdad
-    // (getClientsByEmails) en lugar de N llamadas User.filter por email.
-    const clientEmails = Array.from(new Set((data || []).map(inv => inv.client_email).filter(Boolean)));
-    let clientsByEmail = {};
-    if (clientEmails.length) {
-      const res = await base44.functions.invoke('getClientsByEmails', { emails: clientEmails }).catch(() => null);
-      clientsByEmail = res?.data?.clients || {};
-    }
-    const enrichedData = (data || []).map(inv => {
-      const u = clientsByEmail[inv.client_email];
-      return {
-        ...inv,
-        shipping_mark: u?.shipping_mark || '',
-        client_first_name: u?.first_name || '',
-        client_last_name: u?.last_name || '',
-        client_whatsapp: u?.whatsapp || u?.phone || '',
-        client_cedula: u?.cedula || '',
-        client_address: u?.address || '',
-        client_city: u?.city || '',
-        client_state: u?.state || ''
-      };
-    });
-    const nextList = append ? [...invoices, ...enrichedData] : enrichedData;
-
-    // Calcular stats en un solo pase (antes: 4 .filter() iteraciones)
-    let paid = 0, pending = 0, revenue = 0, profit = 0;
-    for (const i of nextList) {
-      if (i.status === 'pagada') { paid++; revenue += Number(i.total) || 0; }
-      else if (i.status === 'pendiente') pending++;
-      if (i.profit_amount !== undefined && i.profit_amount !== null) profit += Number(i.profit_amount) || 0;
-    }
-    setStats({ total: nextList.length, paid, pending, revenue, profit });
-
-    setInvoices(nextList);
+    // FASE 1: mostrar las facturas de inmediato (sin esperar los datos del cliente)
+    const baseList = append ? [...invoices, ...(data || [])] : (data || []);
+    setInvoices(baseList);
+    computeStats(baseList);
     setHasMore(data.length === pageSize);
     if (append) setLoadingMore(false); else setLoading(false);
+
+    // FASE 2: enriquecer con datos del cliente en segundo plano
+    const clientEmails = Array.from(new Set((data || []).map(inv => inv.client_email).filter(Boolean)));
+    if (clientEmails.length) {
+      const res = await base44.functions.invoke('getClientsByEmails', { emails: clientEmails }, { opType: 'read', priority: 'HIGH' }).catch(() => null);
+      const clientsByEmail = res?.data?.clients || {};
+      if (Object.keys(clientsByEmail).length) {
+        setInvoices(prev => prev.map(inv => (inv.client_first_name || inv.shipping_mark) ? inv : enrichInvoice(inv, clientsByEmail)));
+      }
+    }
   };
 
   const loadConsolidations = async () => {

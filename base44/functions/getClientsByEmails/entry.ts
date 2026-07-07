@@ -77,6 +77,22 @@ Deno.serve(async (req) => {
     const now = Date.now();
     const cacheValid = !forceRefresh && _cache.byEmail && (now - _cache.at) < CACHE_TTL_MS;
 
+    // FAST PATH: emails específicos sin caché válido → una sola consulta directa
+    // con $in en lugar de escanear TODA la base de usuarios (que tardaba varios
+    // segundos en cada cold start del backend).
+    if (emails.length > 0 && !cacheValid) {
+      const users = await base44.asServiceRole.entities.User.filter(
+        { email: { $in: emails } }, undefined, emails.length + 10
+      );
+      const result = {};
+      for (const u of users || []) {
+        if (u && u.email && u.custom_role !== 'super_admin_oculto') {
+          result[u.email] = sanitize(u);
+        }
+      }
+      return Response.json({ clients: result, total: Object.keys(result).length });
+    }
+
     let byEmail;
     if (cacheValid) {
       byEmail = _cache.byEmail;

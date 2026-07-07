@@ -131,11 +131,32 @@ export default function Layout({ children, currentPageName }) {
 
       let resolvedRoleConfig = null;
       if (currentUser?.role === 'admin' && currentUser?.custom_role) {
+        const roleCacheKey = `roleConfig:${currentUser.custom_role}`;
+        // Usa la copia en sesión de inmediato (sin roundtrip) y refresca en segundo plano
         try {
-          const roleRows = await base44.entities.RoleConfig.filter({ role_code: currentUser.custom_role, is_active: true }, '-updated_date', 1);
-          resolvedRoleConfig = roleRows?.[0] || getDefaultRoleConfig(currentUser.custom_role);
-        } catch {
-          resolvedRoleConfig = getDefaultRoleConfig(currentUser.custom_role);
+          const cached = sessionStorage.getItem(roleCacheKey);
+          if (cached) resolvedRoleConfig = JSON.parse(cached);
+        } catch (_) {}
+
+        if (resolvedRoleConfig) {
+          base44.entities.RoleConfig.filter({ role_code: currentUser.custom_role, is_active: true }, '-updated_date', 1)
+            .then((rows) => {
+              if (rows?.[0]) {
+                try { sessionStorage.setItem(roleCacheKey, JSON.stringify(rows[0])); } catch (_) {}
+                setRoleConfig(rows[0]);
+              }
+            })
+            .catch(() => {});
+        } else {
+          try {
+            const roleRows = await base44.entities.RoleConfig.filter({ role_code: currentUser.custom_role, is_active: true }, '-updated_date', 1);
+            resolvedRoleConfig = roleRows?.[0] || getDefaultRoleConfig(currentUser.custom_role);
+            if (roleRows?.[0]) {
+              try { sessionStorage.setItem(roleCacheKey, JSON.stringify(roleRows[0])); } catch (_) {}
+            }
+          } catch {
+            resolvedRoleConfig = getDefaultRoleConfig(currentUser.custom_role);
+          }
         }
       }
       setRoleConfig(resolvedRoleConfig);
