@@ -111,6 +111,14 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
   const adminItemsByPage = useMemo(() => Object.fromEntries(filteredAdminMenuItems.map((item) => [item.page, item])), [filteredAdminMenuItems]);
   const clientItemsByPage = useMemo(() => Object.fromEntries(clientMenuItems.map((item) => [item.page, item])), []);
 
+  const filteredClientGroups = useMemo(() => {
+    const hidden = new Set(config?.client_hidden_pages || []);
+    return clientGroups.map((group) => ({
+      ...group,
+      items: group.items.filter((page) => !hidden.has(page))
+    })).filter((group) => group.items.length > 0);
+  }, [config?.client_hidden_pages]);
+
 
   const handleLogout = useCallback(() => {
     base44.auth.logout();
@@ -228,7 +236,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
               />
             ))
           ) : (
-            clientGroups.map((group) => (
+            filteredClientGroups.map((group) => (
               <SidebarNavGroup
                 key={group.label}
                 label={group.label}

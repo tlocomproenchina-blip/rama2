@@ -37,6 +37,7 @@ import ShippingMarkAutomationSettings from '@/components/admin/ShippingMarkAutom
 import SpecialCbmRatesEditor from '@/components/admin/SpecialCbmRatesEditor';
 import ProviderCostsSettings from '@/components/admin/ProviderCostsSettings';
 import SidebarVisibilityManager from '@/components/admin/SidebarVisibilityManager';
+import ClientMenuVisibilityManager from '@/components/admin/ClientMenuVisibilityManager';
 import { cacheManager } from '@/components/CacheManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
@@ -1691,8 +1692,9 @@ export default function AdminSettings({ user }) {
         </TabsContent>
 
 
-      <TabsContent value="menu">
+      <TabsContent value="menu" className="space-y-6">
         <SidebarVisibilityManager appConfig={appConfig} setAppConfig={setAppConfig} />
+        <ClientMenuVisibilityManager appConfig={appConfig} setAppConfig={setAppConfig} />
       </TabsContent>
 
       <TabsContent value="recursos">

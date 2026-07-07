@@ -545,6 +545,14 @@
       "default": [],
       "description": "Lista de p\u00e1ginas (page key) ocultas del men\u00fa lateral de administraci\u00f3n"
     },
+    "client_hidden_pages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Lista de p\u00e1ginas (page key) ocultas del men\u00fa lateral del cliente"
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,
