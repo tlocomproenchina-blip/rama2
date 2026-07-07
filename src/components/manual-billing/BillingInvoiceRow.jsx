@@ -3,7 +3,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, Package as PackageIcon, Boxes } from 'lucide-react';
+import { ShieldCheck, Package as PackageIcon, Boxes, Ship, CalendarClock } from 'lucide-react';
+
+const fmtDate = (d) => {
+  if (!d) return null;
+  const dt = new Date(String(d).includes('T') ? d : `${d}T12:00:00`);
+  if (isNaN(dt)) return null;
+  const dd = String(dt.getDate()).padStart(2, '0');
+  const mm = String(dt.getMonth() + 1).padStart(2, '0');
+  const yy = String(dt.getFullYear()).slice(-2);
+  return `${dd}-${mm}-${yy}`;
+};
 
 export default function BillingInvoiceRow({ row, onChange }) {
   const update = (patch) => onChange({ ...row, ...patch });
@@ -35,6 +45,16 @@ export default function BillingInvoiceRow({ row, onChange }) {
               {row.total_fob > 0 && (
                 <span className="inline-flex items-center gap-1 text-emerald-700">
                   <ShieldCheck className="h-3 w-3" /> FOB ${Number(row.total_fob || 0).toFixed(2)}
+                </span>
+              )}
+              {fmtDate(row.fecha_salida) && (
+                <span className="inline-flex items-center gap-1 text-sky-700">
+                  <Ship className="h-3 w-3" /> Salió: {fmtDate(row.fecha_salida)}
+                </span>
+              )}
+              {fmtDate(row.fecha_estimada_llegada) && (
+                <span className="inline-flex items-center gap-1 text-indigo-700">
+                  <CalendarClock className="h-3 w-3" /> Llegada est.: {fmtDate(row.fecha_estimada_llegada)}
                 </span>
               )}
             </div>

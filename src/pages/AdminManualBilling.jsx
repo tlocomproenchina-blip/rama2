@@ -124,6 +124,8 @@ export default function AdminManualBilling() {
           consolidation_id: ing.id,
           tracking_numbers: trackings,
           fecha: ing.fecha,
+          fecha_salida: ing.fecha_salida || null,
+          fecha_estimada_llegada: ing.fecha_estimada_llegada || null,
           disponible_entrega: !!ing.disponible_entrega,
           total: num(ing.fob_total),
           package_count: trackings.length,
