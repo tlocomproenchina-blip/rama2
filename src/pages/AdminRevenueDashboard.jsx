@@ -45,7 +45,6 @@ export default function AdminRevenueDashboard({ user }) {
       const result = res?.data ?? res;
       if (result?.summary) {
         result.summary.insuranceProfit = Number(result.summary.insuranceProfit) || 0;
-        result.summary.insurancePending = Number(result.summary.insurancePending) || 0;
       }
       return result;
     },
@@ -64,7 +63,6 @@ export default function AdminRevenueDashboard({ user }) {
       const result = res?.data ?? res;
       if (result?.summary) {
         result.summary.insuranceProfit = Number(result.summary.insuranceProfit) || 0;
-        result.summary.insurancePending = Number(result.summary.insurancePending) || 0;
       }
       return result;
     },
