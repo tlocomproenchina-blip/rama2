@@ -17,6 +17,12 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [availableMethods, setAvailableMethods] = useState([]);
+  const [invoiceTotal, setInvoiceTotal] = useState(null);
+
+  // Total efectivo: usa el de la consolidación y, si falta o es 0, el de la factura
+  const effectiveTotal = (Number(consolidation?.total_cost) > 0)
+    ? Number(consolidation.total_cost)
+    : (Number(invoiceTotal) > 0 ? Number(invoiceTotal) : 0);
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -47,13 +53,26 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
     if (open) loadConfig();
   }, [open]);
 
-  // Prefijar monto al total de la consolidación (no aceptamos multipagos)
+  // Si el total viene vacío o en 0, buscar el total real de la factura
   useEffect(() => {
-    if (open && consolidation?.total_cost != null) {
-      const v = Number(consolidation.total_cost) || 0;
-      setAmount(v.toFixed(2));
+    if (!open) return;
+    setInvoiceTotal(null);
+    const needsFallback = !(Number(consolidation?.total_cost) > 0);
+    if (needsFallback && consolidation?.invoice_id) {
+      base44.entities.Invoice.filter({ id: consolidation.invoice_id })
+        .then((invs) => {
+          if (invs?.[0]?.total != null) setInvoiceTotal(Number(invs[0].total));
+        })
+        .catch(() => {});
     }
   }, [open, consolidation]);
+
+  // Prefijar monto al total (no aceptamos multipagos)
+  useEffect(() => {
+    if (open && effectiveTotal > 0) {
+      setAmount(effectiveTotal.toFixed(2));
+    }
+  }, [open, effectiveTotal]);
 
   const getWalletAddress = () => {
     if (!config) return '';
@@ -103,7 +122,11 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
       toast.error('Por favor sube el comprobante de pago');
       return;
     }
-    const mustPay = Number(consolidation?.total_cost || 0).toFixed(2);
+    if (effectiveTotal <= 0) {
+      toast.error('No se pudo determinar el total a pagar. Cierra e intenta de nuevo.');
+      return;
+    }
+    const mustPay = effectiveTotal.toFixed(2);
     if (!amount || parseFloat(amount) <= 0 || Number(parseFloat(amount).toFixed(2)) !== Number(mustPay)) {
       toast.error(`El monto debe ser exactamente $${mustPay}`);
       return;
@@ -226,7 +249,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
                 Pagar Consolidación
               </DialogTitle>
               <DialogDescription className="text-slate-500">
-                Total a pagar: <span className="font-bold text-emerald-600">${consolidation?.total_cost?.toFixed(2)}</span>
+                Total a pagar: <span className="font-bold text-emerald-600">${effectiveTotal.toFixed(2)}</span>
               </DialogDescription>
               <p className="text-xs text-slate-500 mt-1">El pago debe coincidir exactamente con el total; no aceptamos multipagos.</p>
             </div>
