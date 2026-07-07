@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, X, ImageIcon } from 'lucide-react';
+import { Loader2, Upload, X, ImageIcon, Clipboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
@@ -10,10 +10,8 @@ export default function ProviderInvoiceUploader({ value, onChange }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
-  const handleFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
+  const uploadFile = async (file) => {
+    if (!file || !file.type.startsWith('image/')) {
       toast.error('Solo se permiten imágenes (JPG o PNG)');
       return;
     }
@@ -29,8 +27,36 @@ export default function ProviderInvoiceUploader({ value, onChange }) {
     if (inputRef.current) inputRef.current.value = '';
   };
 
+  const handleFile = (e) => uploadFile(e.target.files?.[0]);
+
+  const handlePasteButton = async () => {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imgType = item.types.find((t) => t.startsWith('image/'));
+        if (imgType) {
+          const blob = await item.getType(imgType);
+          await uploadFile(new File([blob], 'pasted-image.png', { type: imgType }));
+          return;
+        }
+      }
+      toast.error('No hay ninguna imagen en el portapapeles');
+    } catch (_) {
+      toast.error('No se pudo leer el portapapeles. Usa Ctrl+V sobre esta sección.');
+    }
+  };
+
+  const handlePasteEvent = (e) => {
+    const file = Array.from(e.clipboardData?.items || [])
+      .find((i) => i.type.startsWith('image/'))?.getAsFile();
+    if (file) {
+      e.preventDefault();
+      uploadFile(file);
+    }
+  };
+
   return (
-    <div className="space-y-2 border-t pt-3">
+    <div className="space-y-2 border-t pt-3" onPaste={handlePasteEvent} tabIndex={-1}>
       <Label className="text-sm">Factura del proveedor (imagen)</Label>
       <input
         ref={inputRef}
@@ -50,16 +76,28 @@ export default function ProviderInvoiceUploader({ value, onChange }) {
           </Button>
         </div>
       ) : (
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-          {uploading ? 'Subiendo...' : 'Cargar imagen (JPG/PNG)'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            {uploading ? 'Subiendo...' : 'Cargar imagen'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1"
+            disabled={uploading}
+            onClick={handlePasteButton}
+          >
+            <Clipboard className="h-4 w-4 mr-2" />
+            Pegar imagen
+          </Button>
+        </div>
       )}
       <p className="text-xs text-slate-500">Opcional. Solo imágenes. Uso interno: se guarda en la cuenta por pagar, el cliente no la ve.</p>
     </div>
