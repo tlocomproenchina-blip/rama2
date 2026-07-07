@@ -178,3 +178,84 @@
     }
   }
 }
+
+/* ===== PWA / Mobile optimizations (moved from Layout inline styles) ===== */
+
+/* Respect safe areas */
+:root {
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+}
+
+/* Toasts visible + prevent horizontal scroll */
+html { -webkit-text-size-adjust: 100%; }
+body { overflow-x: hidden; overscroll-behavior-y: contain; }
+
+button, a, [role="button"], [role="tab"] { -webkit-tap-highlight-color: transparent; }
+button, a, [role="button"], [role="tab"], nav { -webkit-user-select: none; user-select: none; }
+input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
+
+/* Mobile responsiveness improvements */
+@media (max-width: 640px) {
+  [role="tablist"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+  [role="tablist"] > * { flex: 0 0 auto; }
+
+  .header-actions, .actions-row, .btn-row, .toolbar, .filters-row,
+  .flex.justify-between, .flex.items-center.gap-2 {
+    flex-wrap: wrap !important;
+    row-gap: .5rem;
+  }
+
+  .grid[class*="grid-cols-"] { grid-template-columns: 1fr !important; }
+
+  div:has(> table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+  table {
+    width: 100%;
+    min-width: max-content;
+  }
+  table td, table th {
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+
+  .ql-toolbar { max-width: 100% !important; overflow: hidden; }
+  .ql-container { max-width: 100% !important; }
+  .ql-toolbar .ql-formats { flex-wrap: wrap; }
+
+  img, canvas, svg { max-width: 100%; height: auto; }
+  .recharts-wrapper, .recharts-responsive-container { max-width: 100% !important; }
+
+  /* Mobile header tap targets */
+  header .h-10.w-10, header .h-9.w-9 { height: 48px !important; width: 48px !important; }
+  header .rounded-lg, header .rounded-md { border-radius: 12px !important; }
+  header svg { width: 24px; height: 24px; }
+  aside nav { -webkit-overflow-scrolling: touch; }
+}
+
+/* Sidebar scrollbar */
+aside nav::-webkit-scrollbar { width: 8px; }
+aside nav::-webkit-scrollbar-track { background: transparent; }
+aside nav::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* UI degradation rules (activated via data-degrade on <html>) */
+[data-degrade="light"] * { transition-duration: 0ms !important; }
+[data-degrade="aggressive"] *, [data-degrade="aggressive"] *::before, [data-degrade="aggressive"] *::after {
+  animation: none !important;
+  transition: none !important;
+  filter: none !important;
+}

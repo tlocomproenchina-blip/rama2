@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { base44, setApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { queryClientInstance } from '@/lib/query-client';
 import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
@@ -387,66 +388,6 @@ export default function Layout({ children, currentPageName }) {
     <div className={`min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
       {config?.demo_mode && <DemoModeBanner message={config?.demo_mode_message || 'Modo demo activo: integraciones externas desactivadas.'} />}
       <SkipToContent />
-      <style>{`
-        /* Respect safe areas */
-        :root { 
-          --sat: env(safe-area-inset-top); 
-          --sab: env(safe-area-inset-bottom); 
-        }
-        /* toasts visible */
-        html { -webkit-text-size-adjust: 100%; }
-        body { overflow-x: hidden; overscroll-behavior-y: contain; }
-        button, a, [role="button"], [role="tab"] { -webkit-tap-highlight-color: transparent; }
-        button, a, [role="button"], [role="tab"], nav { -webkit-user-select: none; user-select: none; }
-        input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
-
-        /* Mobile responsiveness improvements */
-        @media (max-width: 640px) {
-          /* Keep tab lists clean on mobile without horizontal scroll */
-          [role="tablist"] {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            overflow: visible !important;
-            white-space: normal !important;
-          }
-          [role="tablist"] > * { flex: 0 0 auto; }
-
-          /* Wrap common action rows/buttons instead of overflowing */
-          .header-actions, .actions-row, .btn-row, .toolbar, .filters-row,
-          .flex.justify-between, .flex.items-center.gap-2 {
-            flex-wrap: wrap !important;
-            row-gap: .5rem;
-          }
-
-          /* Ensure complex grids collapse to 1 column on mobile */
-          .grid[class*="grid-cols-"] { grid-template-columns: 1fr !important; }
-
-          /* Tables: keep real table layout, scroll inside parent container */
-          div:has(> table) {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            max-width: 100%;
-          }
-          table {
-            width: 100%;
-            min-width: max-content;
-          }
-          table td, table th {
-            white-space: nowrap;
-            overflow-wrap: normal;
-          }
-
-          /* Editors/toolbars should never overflow */
-          .ql-toolbar { max-width: 100% !important; overflow: hidden; }
-          .ql-container { max-width: 100% !important; }
-          .ql-toolbar .ql-formats { flex-wrap: wrap; }
-
-          /* Charts/images full width */
-          img, canvas, svg { max-width: 100%; height: auto; }
-          .recharts-wrapper, .recharts-responsive-container { max-width: 100% !important; }
-        }
-      `}</style>
       
       
       
@@ -536,38 +477,9 @@ export default function Layout({ children, currentPageName }) {
         {/* Desktop Notification Center */}
 
 
-        {/* Improve mobile tap targets in header */}
-        <style>{`
-          @media (max-width: 640px) {
-            header .h-10.w-10, header .h-9.w-9 { height: 48px !important; width: 48px !important; }
-            header .rounded-lg, header .rounded-md { border-radius: 12px !important; }
-            header svg { width: 24px; height: 24px; }
-            aside nav { -webkit-overflow-scrolling: touch; }
-          }
-
-          aside nav::-webkit-scrollbar { width: 8px; }
-          aside nav::-webkit-scrollbar-track { background: transparent; }
-          aside nav::-webkit-scrollbar-thumb {
-            background: hsl(var(--border));
-            border-radius: 9999px;
-            border: 2px solid transparent;
-            background-clip: padding-box;
-          }
-        `}</style>
-
-        {/* Reglas de degradación UI (activadas por data-degrade en <html>) */}
-        <style>{`
-          [data-degrade="light"] * { transition-duration: 0ms !important; }
-          [data-degrade="aggressive"] *, [data-degrade="aggressive"] *::before, [data-degrade="aggressive"] *::after {
-            animation: none !important;
-            transition: none !important;
-            filter: none !important;
-          }
-        `}</style>
-
          {/* Main Content */}
         <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
-          <PullToRefresh enabled={!!user} onRefresh={() => window.location.reload()}>
+          <PullToRefresh enabled={!!user} onRefresh={async () => { await queryClientInstance.invalidateQueries(); }}>
             <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
               {showBackButton && (
                 <div className="mb-3">
@@ -579,10 +491,10 @@ export default function Layout({ children, currentPageName }) {
               <ErrorBoundary>
                 <SoftErrorBoundary name={currentPageName || 'page-content'}>
                   <motion.div
-                    key={location.pathname + location.search}
+                    key={location.pathname}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.12 }}
+                    transition={{ duration: 0.1, ease: 'easeOut' }}
                   >
                     {React.cloneElement(children, { user, refreshUser: loadUser })}
                   </motion.div>

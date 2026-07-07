@@ -56,9 +56,10 @@ export default function PullToRefresh({ children, onRefresh, enabled = true }) {
         <div
           className="flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-xs font-medium text-slate-600 shadow"
           style={{
-            transform: `translateY(${Math.max(8, pullDistance - 44)}px)`,
+            transform: `translateY(${Math.max(8, pullDistance - 44)}px) translateZ(0)`,
             opacity: pullDistance > 0 || refreshing ? 1 : 0,
-            transition: 'transform 180ms ease, opacity 180ms ease'
+            transition: 'transform 180ms ease, opacity 180ms ease',
+            willChange: pullDistance > 0 || refreshing ? 'transform, opacity' : 'auto'
           }}
         >
           <Loader2 className={cn('h-4 w-4', (refreshing || pullDistance >= threshold) && 'animate-spin text-blue-600')} />
@@ -68,8 +69,9 @@ export default function PullToRefresh({ children, onRefresh, enabled = true }) {
 
       <div
         style={{
-          transform: `translateY(${pullDistance}px)`,
-          transition: 'transform 180ms ease'
+          transform: `translateY(${pullDistance}px) translateZ(0)`,
+          transition: 'transform 180ms ease',
+          willChange: pullDistance > 0 ? 'transform' : 'auto'
         }}
       >
         {children}
