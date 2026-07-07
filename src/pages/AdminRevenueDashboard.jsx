@@ -36,7 +36,7 @@ export default function AdminRevenueDashboard({ user }) {
   const [endMonth, setEndMonth] = useState('');
 
   const { data, isLoading, error, refetch, isFetching, dataUpdatedAt } = useQuery({
-    queryKey: ['revenueMetrics', startMonth, endMonth],
+    queryKey: ['revenueMetrics-v2', startMonth, endMonth],
     queryFn: async () => {
       const params = {};
       if (startMonth) params.startMonth = startMonth;
@@ -50,7 +50,7 @@ export default function AdminRevenueDashboard({ user }) {
   // Fetch previous period for comparison
   const prevPeriod = computePreviousPeriod(startMonth, endMonth);
   const { data: prevData } = useQuery({
-    queryKey: ['revenueMetrics', 'prev', prevPeriod?.startMonth, prevPeriod?.endMonth],
+    queryKey: ['revenueMetrics-v2', 'prev', prevPeriod?.startMonth, prevPeriod?.endMonth],
     queryFn: async () => {
       if (!prevPeriod) return null;
       const res = await base44.functions.invoke('getRevenueMetrics', prevPeriod);
