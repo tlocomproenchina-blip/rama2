@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
       body: data.message || '',
       url: '/AccountingDashboard',
       icon: 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/a3f02ea86_generated_image.png',
+      badge: 'https://base44.app/api/apps/695da428c9924ef9b68e8866/files/mp/public/695da428c9924ef9b68e8866/f98391e7a_badge-ship.png',
       tag: `admin-notification-${data.id || Date.now()}`
     });
 
