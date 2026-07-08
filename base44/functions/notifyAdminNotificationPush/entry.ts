@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       title: data.title,
       body: data.message || '',
       url: '/AccountingDashboard',
-      icon: '/icon-192x192.png',
+      icon: 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/a3f02ea86_generated_image.png',
       tag: `admin-notification-${data.id || Date.now()}`
     });
 
