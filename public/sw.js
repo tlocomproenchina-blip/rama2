@@ -1,11 +1,15 @@
-// TLEC CARGO Service Worker — cache offline + push notifications
-const CACHE_NAME = 'tlec-cache-v2';
+// TLEC CARGO Service Worker
+const CACHE_NAME = 'tlec-cargo-v3';
+const APP_SHELL = ['/'];
+
+const SHIP_ICON = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/a3f02ea86_generated_image.png';
+const SHIP_BADGE = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/d34528149_generated_image.png';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(['/']).catch(() => {}))
-  );
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(() => {})
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -17,51 +21,44 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  if (request.method !== 'GET') return;
+  const req = event.request;
+  if (req.method !== 'GET') return;
 
-  const url = new URL(request.url);
-
-  // Navegación (abrir la app): red primero, si no hay conexión usar la copia guardada
-  if (request.mode === 'navigate') {
+  // Network-first for navigations (offline fallback to cache)
+  if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('/', copy)).catch(() => {});
-          return response;
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
+          return res;
         })
-        .catch(() => caches.match('/').then((cached) => cached || caches.match(request)))
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('/')))
     );
     return;
   }
 
-  // Recursos estáticos (JS, CSS, fuentes, imágenes): cache primero, actualizar en segundo plano
-  const isStatic =
-    ['script', 'style', 'font', 'image'].includes(request.destination) ||
-    url.pathname.startsWith('/assets/') ||
-    url.hostname.includes('fonts.googleapis.com') ||
-    url.hostname.includes('fonts.gstatic.com');
-
-  if (isStatic) {
+  // Cache-first with background revalidation for static assets
+  const dest = req.destination;
+  if (['script', 'style', 'font', 'image'].includes(dest)) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const fetchPromise = fetch(request)
-          .then((response) => {
-            if (response && response.status === 200) {
-              const copy = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+      caches.match(req).then((cached) => {
+        const network = fetch(req)
+          .then((res) => {
+            if (res && res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
             }
-            return response;
+            return res;
           })
           .catch(() => cached);
-        return cached || fetchPromise;
+        return cached || network;
       })
     );
   }
 });
 
-// ===== Push Notifications =====
+// Push notifications
 self.addEventListener('push', (event) => {
   let data = {};
   try {
@@ -73,11 +70,11 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'TLEC CARGO';
   const options = {
     body: data.body || '',
-    icon: data.icon || '/icon-192x192.png',
-    badge: '/icon-192x192.png',
-    tag: data.tag || `notification-${Date.now()}`,
+    icon: data.icon || SHIP_ICON,
+    badge: data.badge || SHIP_BADGE,
+    tag: data.tag || `tlec-${Date.now()}`,
     data: { url: data.url || '/' },
-    vibrate: [100, 50, 100]
+    vibrate: [100, 50, 100],
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -85,19 +82,16 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
-
+  const url = event.notification.data?.url || '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if ('focus' in client) {
-          client.navigate(targetUrl);
+          client.navigate(url).catch(() => {});
           return client.focus();
         }
       }
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
-      }
+      return self.clients.openWindow(url);
     })
   );
 });

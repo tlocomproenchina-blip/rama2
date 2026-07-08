@@ -45,7 +45,7 @@ export default function PushTestCard({ user }) {
       // Crear notificación de prueba in-app
       await base44.entities.Notification.create({
         user_email: user.email,
-        title: '🔔 Notificación de prueba',
+        title: 'Notificación de prueba',
         message: 'Si ves esto en tu teléfono, el push del administrador funciona correctamente.',
         type: 'system',
         icon: 'bell',
@@ -54,7 +54,7 @@ export default function PushTestCard({ user }) {
       // Enviar el push directamente (sin depender de automatizaciones)
       const { data: pushResult } = await base44.functions.invoke('sendPushNotification', {
         userEmail: user.email,
-        title: '🔔 Notificación de prueba',
+        title: 'Notificación de prueba',
         body: 'Si ves esto en tu teléfono, el push funciona correctamente.',
         url: '/AccountingDashboard',
       });
