@@ -454,7 +454,7 @@ export default function Layout({ children, currentPageName }) {
               <Button 
                 variant="ghost" 
                 size="icon"
-                className={`h-11 w-11 rounded-2xl border p-0 touch-manipulation select-none transition-colors duration-150 active:opacity-80 ${sidebarOpen ? 'border-primary/20 bg-accent text-foreground shadow-sm' : 'border-border/70 bg-white/80'}`}
+                className={`h-11 w-11 rounded-2xl border p-0 touch-manipulation select-none ${sidebarOpen ? 'border-primary/20 bg-accent text-foreground shadow-sm' : 'border-border/70 bg-white/80'}`}
                 onClick={() => setSidebarOpen(true)}
               >
                 <Menu className="h-5 w-5" />

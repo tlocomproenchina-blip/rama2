@@ -288,11 +288,17 @@ aside nav::-webkit-scrollbar-thumb {
     transition-property: background-color, color, border-color, opacity !important;
   }
 
-  /* Kill ALL inner transitions/animations inside the sidebar while it slides —
-     only the aside itself animates its transform */
+  /* Kill ALL transitions/animations in the sidebar (drawer opens/closes instantly) */
+  aside,
   aside * {
-    transition-duration: 0ms !important;
+    transition: none !important;
     animation: none !important;
+  }
+
+  /* Bottom nav and mobile header: no transitions at all */
+  nav.fixed *,
+  header * {
+    transition: none !important;
   }
 
   /* Remove the decorative radial gradient on the body (repaint cost on scroll) */

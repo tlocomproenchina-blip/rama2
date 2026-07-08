@@ -25,7 +25,7 @@ export default function MobileBottomNav() {
               key={item.path}
               to={item.path}
               className={[
-                'flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-semibold transition-colors duration-150',
+                'flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[11px] font-semibold',
                 isActive
                   ? 'bg-accent text-primary shadow-sm'
                   : 'text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
