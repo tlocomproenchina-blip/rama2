@@ -287,6 +287,37 @@ aside nav::-webkit-scrollbar-thumb {
   aside button {
     transition-property: background-color, color, border-color, opacity !important;
   }
+
+  /* Kill ALL inner transitions/animations inside the sidebar while it slides —
+     only the aside itself animates its transform */
+  aside * {
+    transition-duration: 0ms !important;
+    animation: none !important;
+  }
+
+  /* Remove the decorative radial gradient on the body (repaint cost on scroll) */
+  body {
+    background-image: none !important;
+  }
+
+  /* Lighter global shadows on mobile: large blurred shadows are GPU-expensive */
+  .shadow-card {
+    box-shadow: 0 4px 12px -6px rgb(15 23 42 / 0.15) !important;
+  }
+  .shadow-premium {
+    box-shadow: 0 6px 16px -8px rgb(15 23 42 / 0.2) !important;
+  }
+  .blur-3xl,
+  .blur-2xl {
+    filter: none !important;
+    display: none !important;
+  }
+
+  /* Buttons: no hover-lift transforms on touch devices */
+  button:not([role="switch"]),
+  [role="button"] {
+    transition-property: background-color, color, border-color, opacity !important;
+  }
 }
 
 /* UI degradation rules (activated via data-degrade on <html>) */

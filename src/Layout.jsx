@@ -1,5 +1,4 @@
 import React, { useState, useEffect, Suspense, lazy, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { base44, setApiTuning } from '@/components/api/ApiQueueManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -450,7 +449,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Mobile Header */}
         {user && (
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card transition-all duration-300">
+          <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card">
             <div className="flex items-center justify-between gap-2">
               <Button 
                 variant="ghost" 
@@ -492,14 +491,9 @@ export default function Layout({ children, currentPageName }) {
               )}
               <ErrorBoundary>
                 <SoftErrorBoundary name={currentPageName || 'page-content'}>
-                  <motion.div
-                    key={location.pathname}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.1, ease: 'easeOut' }}
-                  >
+                  <div key={location.pathname}>
                     {React.cloneElement(children, { user, refreshUser: loadUser })}
-                  </motion.div>
+                  </div>
                 </SoftErrorBoundary>
               </ErrorBoundary>
             </div>
