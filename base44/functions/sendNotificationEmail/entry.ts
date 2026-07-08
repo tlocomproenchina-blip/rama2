@@ -99,6 +99,27 @@ Deno.serve(async (req) => {
           read: false
         });
       } catch (_) {}
+
+      // Push directo al destinatario (sin automatización) — mejor esfuerzo
+      try {
+        const targetUsers = await base44.asServiceRole.entities.User.filter({ email: in_app.user_email });
+        const pushSub = targetUsers[0]?.push_subscription;
+        const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+        const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+        if (pushSub && vapidPublicKey && vapidPrivateKey) {
+          const webpush = await import('npm:web-push@3.6.7');
+          webpush.default.setVapidDetails('mailto:admin@tleclogistics.com', vapidPublicKey, vapidPrivateKey);
+          await webpush.default.sendNotification(pushSub, JSON.stringify({
+            title: in_app.title || subject,
+            body: in_app.message || emailBody || '',
+            url: '/',
+            icon: '/icon-192x192.png',
+            tag: `notification-${Date.now()}`
+          }));
+        }
+      } catch (pushErr) {
+        console.warn('Push send failed:', pushErr?.message || pushErr);
+      }
     }
 
     return Response.json({ success: true, email_sent: emailSent, error: errorMessage });

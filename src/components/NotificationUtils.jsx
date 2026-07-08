@@ -37,6 +37,13 @@ export async function sendInAppNotification({ user_email, title, message, type =
       icon,
       read: false
     });
+
+    // Push directo al destinatario (sin automatización) — mejor esfuerzo, no bloquea
+    base44.functions.invoke('sendPushNotification', {
+      userEmail: user_email,
+      title: title || message || 'Notificación',
+      body: message || title || ''
+    }).catch(() => {});
   } catch (_) {
     // no bloquear por notificación
   }
