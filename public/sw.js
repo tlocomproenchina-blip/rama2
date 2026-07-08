@@ -1,7 +1,10 @@
-/* TLEC CARGO Service Worker: cache de assets estáticos + notificaciones push */
-const CACHE_NAME = 'tlec-static-v2';
+// TLEC CARGO Service Worker — cache offline + push notifications
+const CACHE_NAME = 'tlec-cache-v2';
 
 self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(['/']).catch(() => {}))
+  );
   self.skipWaiting();
 });
 
@@ -13,34 +16,52 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Cache-first para assets estáticos (JS/CSS/fuentes/imágenes con hash de Vite)
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
+  const request = event.request;
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  const isStaticAsset =
+
+  // Navegación (abrir la app): red primero, si no hay conexión usar la copia guardada
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/', copy)).catch(() => {});
+          return response;
+        })
+        .catch(() => caches.match('/').then((cached) => cached || caches.match(request)))
+    );
+    return;
+  }
+
+  // Recursos estáticos (JS, CSS, fuentes, imágenes): cache primero, actualizar en segundo plano
+  const isStatic =
+    ['script', 'style', 'font', 'image'].includes(request.destination) ||
     url.pathname.startsWith('/assets/') ||
-    /\.(js|css|woff2?|ttf|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname) ||
-    url.hostname === 'fonts.googleapis.com' ||
-    url.hostname === 'fonts.gstatic.com';
+    url.hostname.includes('fonts.googleapis.com') ||
+    url.hostname.includes('fonts.gstatic.com');
 
-  if (!isStaticAsset) return;
-
-  event.respondWith(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      const cached = await cache.match(request);
-      if (cached) return cached;
-      const response = await fetch(request);
-      if (response && response.status === 200 && (response.type === 'basic' || response.type === 'cors')) {
-        cache.put(request, response.clone());
-      }
-      return response;
-    })
-  );
+  if (isStatic) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const fetchPromise = fetch(request)
+          .then((response) => {
+            if (response && response.status === 200) {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+            }
+            return response;
+          })
+          .catch(() => cached);
+        return cached || fetchPromise;
+      })
+    );
+  }
 });
 
-// ===== Notificaciones Push =====
+// ===== Push Notifications =====
 self.addEventListener('push', (event) => {
   let data = {};
   try {
@@ -53,10 +74,10 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body || '',
     icon: data.icon || '/icon-192x192.png',
-    badge: data.badge || '/icon-192x192.png',
-    tag: data.tag || 'tlec-notification',
+    badge: '/icon-192x192.png',
+    tag: data.tag || `notification-${Date.now()}`,
     data: { url: data.url || '/' },
-    vibrate: [100, 50, 100],
+    vibrate: [100, 50, 100]
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -64,15 +85,14 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/';
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if ('focus' in client) {
-          client.focus();
-          if ('navigate' in client) client.navigate(targetUrl);
-          return;
+          client.navigate(targetUrl);
+          return client.focus();
         }
       }
       if (self.clients.openWindow) {

@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import { setupQueryPersistence } from '@/lib/queryPersist';
 
 
 export const queryClientInstance = new QueryClient({
@@ -14,3 +15,6 @@ export const queryClientInstance = new QueryClient({
 		},
 	},
 });
+
+// Restaura los últimos datos guardados al abrir la app (modo offline)
+setupQueryPersistence(queryClientInstance);
