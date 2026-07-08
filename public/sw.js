@@ -3,7 +3,7 @@ const CACHE_NAME = 'tlec-cargo-v3';
 const APP_SHELL = ['/'];
 
 const SHIP_ICON = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/a3f02ea86_generated_image.png';
-const SHIP_BADGE = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/d34528149_generated_image.png';
+const SHIP_BADGE = 'https://base44.app/api/apps/695da428c9924ef9b68e8866/files/mp/public/695da428c9924ef9b68e8866/f98391e7a_badge-ship.png';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
