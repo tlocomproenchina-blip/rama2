@@ -28,6 +28,7 @@ import SkipToContent from '@/components/common/SkipToContent';
 import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
 import DemoModeBanner from '@/components/common/DemoModeBanner';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
+import PushNotificationPrompt from '@/components/push/PushNotificationPrompt';
 
 // Lazy loaded onboarding tour
 const GuidedTour = lazy(() =>
@@ -397,6 +398,7 @@ export default function Layout({ children, currentPageName }) {
       {user && (
         <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
       )}
+      {user && <PushNotificationPrompt user={user} />}
       {user?.role === 'user' && (
         <Suspense fallback={null}><WhatsAppSupport /></Suspense>
       )}

@@ -1,80 +1,83 @@
-// TLEC CARGO - Service Worker for PWA performance
-// Cache-first for static assets, network-first for API/navigation
+/* TLEC CARGO Service Worker: cache de assets estáticos + notificaciones push */
+const CACHE_NAME = 'tlec-static-v2';
 
-const CACHE_NAME = 'tlec-cargo-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-];
-
-// Install: pre-cache app shell
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS).catch(() => {}))
-  );
   self.skipWaiting();
 });
 
-// Activate: clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch strategy
+// Cache-first para assets estáticos (JS/CSS/fuentes/imágenes con hash de Vite)
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-
-  // Only handle GET
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
+  const isStaticAsset =
+    url.pathname.startsWith('/assets/') ||
+    /\.(js|css|woff2?|ttf|png|jpg|jpeg|svg|webp|ico)$/.test(url.pathname) ||
+    url.hostname === 'fonts.googleapis.com' ||
+    url.hostname === 'fonts.gstatic.com';
 
-  // Skip cross-origin API calls (base44 backend, Stripe, etc.)
-  if (url.origin !== self.location.origin) return;
+  if (!isStaticAsset) return;
 
-  // Skip API/function calls - always go to network
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/v1/')) return;
+  event.respondWith(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      const response = await fetch(request);
+      if (response && response.status === 200 && (response.type === 'basic' || response.type === 'cors')) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+  );
+});
 
-  // Navigation requests: network-first, fallback to cached index.html
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('/', clone));
-          return response;
-        })
-        .catch(() => caches.match('/index.html').then((r) => r || caches.match('/')))
-    );
-    return;
+// ===== Notificaciones Push =====
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_) {
+    data = { title: 'TLEC CARGO', body: event.data ? event.data.text() : '' };
   }
 
-  // Static assets (JS, CSS, fonts, images): cache-first
-  if (
-    request.destination === 'script' ||
-    request.destination === 'style' ||
-    request.destination === 'font' ||
-    request.destination === 'image' ||
-    url.pathname.match(/\.(js|css|woff2?|ttf|png|jpg|jpeg|svg|webp|ico)$/)
-  ) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        });
-      })
-    );
-    return;
-  }
+  const title = data.title || 'TLEC CARGO';
+  const options = {
+    body: data.body || '',
+    icon: data.icon || '/icon-192x192.png',
+    badge: data.badge || '/icon-192x192.png',
+    tag: data.tag || 'tlec-notification',
+    data: { url: data.url || '/' },
+    vibrate: [100, 50, 100],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client) client.navigate(targetUrl);
+          return;
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
 });
