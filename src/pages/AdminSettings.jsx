@@ -40,6 +40,7 @@ import SidebarVisibilityManager from '@/components/admin/SidebarVisibilityManage
 import ClientMenuVisibilityManager from '@/components/admin/ClientMenuVisibilityManager';
 import { cacheManager } from '@/components/CacheManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
+import PushTestCard from '@/components/admin/PushTestCard';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -1046,6 +1047,9 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
+              {/* Prueba de Notificaciones Push */}
+              <PushTestCard user={user} />
+
               {/* Modo Mantenimiento */}
               <div className="p-4 md:p-6 bg-rose-50 rounded-xl border border-rose-200 space-y-4">
                 <div className="flex items-center justify-between">
