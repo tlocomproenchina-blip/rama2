@@ -42,7 +42,7 @@ export default function PushTestCard({ user }) {
         subscription: subscription.toJSON(),
       });
 
-      // Crear notificación de prueba — la automatización dispara el push
+      // Crear notificación de prueba in-app
       await base44.entities.Notification.create({
         user_email: user.email,
         title: '🔔 Notificación de prueba',
@@ -51,7 +51,19 @@ export default function PushTestCard({ user }) {
         icon: 'bell',
       });
 
-      toast.success('Notificación de prueba enviada. Deberías recibir el push en unos segundos.');
+      // Enviar el push directamente (sin depender de automatizaciones)
+      const { data: pushResult } = await base44.functions.invoke('sendPushNotification', {
+        userEmail: user.email,
+        title: '🔔 Notificación de prueba',
+        body: 'Si ves esto en tu teléfono, el push funciona correctamente.',
+        url: '/AccountingDashboard',
+      });
+
+      if (pushResult?.success) {
+        toast.success('Push enviado. Deberías recibirlo en tu dispositivo en unos segundos.');
+      } else {
+        toast.error('El push no pudo enviarse: ' + (pushResult?.error || 'error desconocido'));
+      }
     } catch (error) {
       console.error('Push test error:', error);
       toast.error('Error al enviar la prueba: ' + (error.message || ''));
