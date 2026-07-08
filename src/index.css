@@ -252,6 +252,43 @@ aside nav::-webkit-scrollbar-thumb {
   background-clip: padding-box;
 }
 
+/* ===== Mobile GPU relief: backdrop-filter is extremely expensive on phone GPUs,
+   especially inside animated/transformed elements (sidebar). Disable it under lg. ===== */
+@media (max-width: 1023px) {
+  .backdrop-blur,
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Solidify translucent surfaces that relied on blur, so nothing looks washed out */
+  aside.bg-sidebar\/95,
+  aside[class*="bg-sidebar"] {
+    background-color: hsl(var(--sidebar-background)) !important;
+  }
+
+  aside [class*="bg-white/"],
+  header [class*="bg-white/"] {
+    background-color: rgb(255 255 255 / 0.96) !important;
+  }
+
+  /* Cheaper shadows during sidebar animation */
+  aside .shadow-card,
+  aside .shadow-premium {
+    box-shadow: 0 4px 12px -6px rgb(15 23 42 / 0.15) !important;
+  }
+
+  /* Disable hover-lift transitions on touch (they trigger repaints on tap) */
+  aside a,
+  aside button {
+    transition-property: background-color, color, border-color, opacity !important;
+  }
+}
+
 /* UI degradation rules (activated via data-degrade on <html>) */
 [data-degrade="light"] * { transition-duration: 0ms !important; }
 [data-degrade="aggressive"] *, [data-degrade="aggressive"] *::before, [data-degrade="aggressive"] *::after {

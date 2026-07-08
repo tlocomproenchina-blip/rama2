@@ -47,7 +47,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
                     onItemClick(item.page);
                   }}
                   className={[
-                    'group relative flex min-h-[58px] items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 touch-manipulation will-change-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2',
+                    'group relative flex min-h-[58px] items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2',
                     isActive
                       ? 'border-primary/10 bg-gradient-to-r from-primary via-sky-500 to-blue-500 text-primary-foreground shadow-premium'
                       : 'border-transparent bg-white/60 text-slate-600 hover:-translate-y-0.5 hover:border-border/70 hover:bg-white hover:text-foreground hover:shadow-card'
