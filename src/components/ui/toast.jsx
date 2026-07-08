@@ -6,8 +6,7 @@ import { cn } from "@/lib/utils";
 const ToastProvider = React.forwardRef(({ ...props }, ref) => (
   <div
     ref={ref}
-    className="pointer-events-none fixed top-0 z-[200] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]"
-    style={{ paddingTop: "calc(env(safe-area-inset-top) + 1rem)" }}
+    className="fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]"
     {...props}
   />
 ));
@@ -16,8 +15,7 @@ ToastProvider.displayName = "ToastProvider";
 const ToastViewport = React.forwardRef(({ ...props }, ref) => (
   <div
     ref={ref}
-    className="pointer-events-none fixed top-0 z-[200] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]"
-    style={{ paddingTop: "calc(env(safe-area-inset-top) + 1rem)" }}
+    className="fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]"
     {...props}
   />
 ));
@@ -39,12 +37,11 @@ const toastVariants = cva(
   }
 );
 
-const Toast = React.forwardRef(({ className, variant, open, onOpenChange, ...props }, ref) => {
+const Toast = React.forwardRef(({ className, variant, ...props }, ref) => {
   return (
     <div
       ref={ref}
-      data-state={open === false ? "closed" : "open"}
-      className={cn(toastVariants({ variant }), "mb-2 last:mb-0", className)}
+      className={cn(toastVariants({ variant }), className)}
       {...props}
     />
   );
@@ -104,4 +101,4 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
-};
+}; 
