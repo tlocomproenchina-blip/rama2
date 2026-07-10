@@ -5,6 +5,12 @@ import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
 
+// Evita spinners infinitos: si una petición de auth se queda colgada, falla a los 15s
+const withTimeout = (promise, ms = 15000) => Promise.race([
+  promise,
+  new Promise((_, reject) => setTimeout(() => reject(new Error('AUTH_TIMEOUT')), ms))
+]);
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -16,7 +22,7 @@ export const AuthProvider = ({ children }) => {
   const checkUserAuth = useCallback(async () => {
     try {
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = await withTimeout(base44.auth.me());
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
@@ -49,7 +55,7 @@ export const AuthProvider = ({ children }) => {
       });
       
       try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        const publicSettings = await withTimeout(appClient.get(`/prod/public-settings/by-id/${appParams.appId}`));
         setAppPublicSettings(publicSettings);
         
         if (appParams.token) {
