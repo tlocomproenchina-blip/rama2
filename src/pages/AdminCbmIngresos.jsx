@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
 import { format, subMonths, addDays } from 'date-fns';
@@ -63,10 +63,16 @@ export default function AdminCbmIngresos({ user }) {
 
   useEffect(() => { loadData(); }, [dateFrom, dateTo]);
 
-  // Load clients for search
-  const searchClients = async (query) => {
-    if (!query || query.length < 2) { setClients([]); return; }
+  // Load clients for search (con debounce para evitar ráfagas de llamadas por cada tecla)
+  const searchTimeout = useRef(null);
+  const searchClients = (query) => {
+    clearTimeout(searchTimeout.current);
+    if (!query || query.length < 2) { setClients([]); setLoadingClients(false); return; }
     setLoadingClients(true);
+    searchTimeout.current = setTimeout(() => doSearchClients(query), 450);
+  };
+
+  const doSearchClients = async (query) => {
     // Traer todos los usuarios para búsqueda completa
     let allUsers = [];
     let skip = 0;
