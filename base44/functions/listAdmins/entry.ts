@@ -7,6 +7,10 @@ Deno.serve(async (req) => {
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // Solo administradores pueden ver la lista de emails de administradores
+    if (user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
 
     // Usar service role para listar admins sin depender de permisos del usuario
     const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });

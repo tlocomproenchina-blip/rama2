@@ -125,6 +125,22 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.User.delete(targetUser.id);
     results.userDeleted = true;
 
+    // Strict audit logging for cascade deletions (best-effort)
+    try {
+      await base44.asServiceRole.entities.ActivityAuditLog.create({
+        entity_name: 'User',
+        entity_id: targetUser.id,
+        entity_label: targetEmail,
+        action_type: 'delete',
+        action_detail: JSON.stringify(results),
+        actor_email: caller.email,
+        actor_name: caller.full_name || caller.email,
+        actor_role: caller.role,
+        module_name: 'deleteUserCascade',
+        summary: `Eliminación en cascada del usuario ${targetEmail}`,
+      });
+    } catch (_) { /* no bloquear la respuesta por el log */ }
+
     return Response.json({ success: true, email: targetEmail, results });
   } catch (error) {
     console.error('deleteUserCascade error:', error);

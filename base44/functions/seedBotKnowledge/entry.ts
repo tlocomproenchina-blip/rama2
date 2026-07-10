@@ -96,17 +96,21 @@ Deno.serve(async (req) => {
     // Allow passing custom file_url, but default to the uploaded one from chat
     const fileUrl = body.file_url || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/089268fd0_clientes-filtrados-2026-03-02.txt';
 
-    // SSRF guard: only HTTPS URLs from trusted storage hosts are allowed
-    const ALLOWED_HOSTS = ['qtrypzzcjebvfcihiynt.supabase.co', 'media.base44.com', 'base44.app'];
+    // SSRF guard: strict FQDN allowlist (no wildcards/subdomains) + app-scoped storage path
+    const ALLOWED_HOSTS = ['qtrypzzcjebvfcihiynt.supabase.co', 'media.base44.com'];
+    const APP_STORAGE_PREFIX = '/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/';
     let parsedUrl;
     try { parsedUrl = new URL(fileUrl); } catch {
       return Response.json({ error: 'file_url inválida' }, { status: 400 });
     }
-    if (parsedUrl.protocol !== 'https:' || !ALLOWED_HOSTS.some(h => parsedUrl.hostname === h || parsedUrl.hostname.endsWith('.' + h))) {
+    if (parsedUrl.protocol !== 'https:' || !ALLOWED_HOSTS.includes(parsedUrl.hostname)) {
       return Response.json({ error: 'file_url no permitida: solo HTTPS desde almacenamiento autorizado' }, { status: 400 });
     }
+    if (parsedUrl.hostname === 'qtrypzzcjebvfcihiynt.supabase.co' && !parsedUrl.pathname.startsWith(APP_STORAGE_PREFIX)) {
+      return Response.json({ error: 'file_url no permitida: el archivo debe pertenecer a esta aplicación' }, { status: 400 });
+    }
 
-    const res = await fetch(fileUrl);
+    const res = await fetch(parsedUrl.toString());
     if (!res.ok) {
       return Response.json({ error: `No se pudo descargar el archivo (${res.status})` }, { status: 400 });
     }

@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export default function TermsOfService() {
   const [privacyCfg, setPrivacyCfg] = useState(null);
@@ -42,7 +43,7 @@ export default function TermsOfService() {
         <CardContent className="prose prose-slate max-w-none">
           {content ? (
             isHtml ? (
-              <div dangerouslySetInnerHTML={{ __html: content }} />
+              <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
             ) : (
               <ReactMarkdown>{content}</ReactMarkdown>
             )
