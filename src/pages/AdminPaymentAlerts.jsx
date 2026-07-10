@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,7 +65,6 @@ export default function AdminPaymentAlerts({ user }) {
 
   const loadData = async () => {
     setLoading(true);
-    const { fetchAllPaginated } = await import('@/lib/fetchAllPaginated');
     const [cons, invoices] = await Promise.all([
       fetchAllPaginated('Consolidation', { method: 'filter', query: { status: 'pendiente_pago' } }),
       fetchAllPaginated('Invoice', { method: 'filter', query: { status: 'pendiente' } })

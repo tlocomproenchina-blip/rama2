@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import { Input } from "@/components/ui/input";
@@ -117,7 +118,6 @@ export default function AdminInvoices({ user }) {
   };
 
   const loadConsolidations = async () => {
-    const { fetchAllPaginated } = await import('@/lib/fetchAllPaginated');
     const data = await fetchAllPaginated('Consolidation', { sort: '-created_date' });
     setConsolidations(data);
   };

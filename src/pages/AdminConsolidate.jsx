@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,7 +91,6 @@ export default function AdminConsolidate({ user }) {
 
   const loadData = async () => {
     // Cargar TODO en paralelo, paginado para no perder registros con datasets grandes
-    const { fetchAllPaginated } = await import('@/lib/fetchAllPaginated');
     const [reqs, approvedRequests, consolidatedRequests, preAlertPackages, receivedPackages, cfgs] = await Promise.all([
       fetchAllPaginated('ConsolidationRequest', { method: 'filter', query: { status: 'pendiente' }, sort: '-created_date' }),
       fetchAllPaginated('ConsolidationRequest', { method: 'filter', query: { status: 'aprobada' }, sort: '-created_date' }),

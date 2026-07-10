@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
 import { format, subMonths, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,7 +48,6 @@ export default function AdminCbmIngresos({ user }) {
 
   const loadData = async () => {
     setLoading(true);
-    const { fetchAllPaginated } = await import('@/lib/fetchAllPaginated');
     const all = await fetchAllPaginated('CbmIngreso', { sort: '-fecha' });
     setAllIngresos(all || []);
     const fromDate = new Date(dateFrom + 'T00:00:00');
