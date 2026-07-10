@@ -17,6 +17,21 @@ export default function GlobalErrorListener() {
   const [viewerRole, setViewerRole] = useState(null);
   const dismissedErrorIdsRef = useRef(new Set());
 
+  // Error típico tras un nuevo deploy: el navegador tiene la versión vieja y pide un chunk que ya no existe.
+  // Se resuelve recargando la app (una vez, con guardia anti-bucle) en vez de mostrar el banner de error.
+  const isStaleChunkError = (message = '') =>
+    /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed|failed to load module script/i.test(String(message));
+
+  const reloadForStaleChunk = () => {
+    try {
+      const last = Number(sessionStorage.getItem('staleChunkReloadAt') || '0');
+      if (Date.now() - last < 60000) return false; // ya recargamos hace poco, no entrar en bucle
+      sessionStorage.setItem('staleChunkReloadAt', String(Date.now()));
+    } catch (_) {}
+    window.location.reload();
+    return true;
+  };
+
   const isIntegrationQuotaError = (message = '', stack = '') => /credit|cr[eé]dito|quota|cuota|insufficient credits|integration credits|rate limit|too many requests|429|limit exceeded|usage limit|billing|invoke llm|sendemail|uploadfile|extractdatafromuploadedfile|generateimage|core\./i.test(`${String(message)} ${String(stack)}`);
 
   useEffect(() => {
@@ -76,6 +91,7 @@ export default function GlobalErrorListener() {
         url: typeof window !== 'undefined' ? window.location.href : null,
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
       };
+      if (isStaleChunkError(details.message) && reloadForStaleChunk()) return;
       console.error('[GlobalErrorListener] window.error:', details);
       try {
         base44.analytics.track({ eventName: 'global_error', properties: details });
@@ -94,6 +110,7 @@ export default function GlobalErrorListener() {
         url: typeof window !== 'undefined' ? window.location.href : null,
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
       };
+      if (isStaleChunkError(details.message) && reloadForStaleChunk()) return;
       console.error('[GlobalErrorListener] unhandledrejection:', details);
       try {
         base44.analytics.track({ eventName: 'global_error', properties: details });
