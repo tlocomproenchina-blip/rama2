@@ -338,7 +338,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                         : 'text-amber-600'
                     }`}>
                       <AlertCircle className="h-4 w-4 shrink-0" />
-                      <span className="flex-1">{tracking}: {status.message}</span>
+                      <span className="flex-1 min-w-0 break-words">{tracking}: {status.message}</span>
                       {status.state === 'not_found' && !quickPreAlertOpen[trimmed] && (
                         <Button
                           type="button"
