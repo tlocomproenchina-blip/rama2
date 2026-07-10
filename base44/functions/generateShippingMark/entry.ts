@@ -99,8 +99,6 @@ Deno.serve(async (req) => {
       payload = {};
     }
 
-    const isAutomation = payload?.event?.entity_name === 'User';
-
     let authedUser = null;
     try {
       authedUser = await base44.auth.me();
@@ -108,8 +106,15 @@ Deno.serve(async (req) => {
       authedUser = null;
     }
 
-    if (!isAutomation && !authedUser) {
+    // Strict auth: payload shape must never bypass authentication.
+    if (!authedUser) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Targeting another user (via automation-style event payload) requires admin
+    const isAutomation = payload?.event?.entity_name === 'User';
+    if (isAutomation && authedUser.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
     const appConfigs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
