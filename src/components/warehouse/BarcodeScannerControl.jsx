@@ -121,7 +121,12 @@ export default function BarcodeScannerControl({
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent
+          className="sm:max-w-xl"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Escanear código</DialogTitle>
             <DialogDescription>Apunta la cámara al código de barras para capturarlo automáticamente.</DialogDescription>

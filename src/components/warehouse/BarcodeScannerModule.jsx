@@ -264,8 +264,10 @@ export default function BarcodeScannerModule({
     if (autoStartCamera && cameraSupported) {
       setCameraOpen(true);
     }
-    // Auto-focus the input so USB barcode scanners work immediately
-    if (autoStartCamera && inputRef.current) {
+    // Auto-focus the input so USB barcode scanners work immediately.
+    // Solo cuando NO se abre el diálogo de cámara: enfocar un elemento detrás
+    // del diálogo hace que Radix lo cierre de inmediato (bug en móvil).
+    if (autoStartCamera && !cameraSupported && inputRef.current) {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [autoStartCamera, cameraSupported]);
@@ -307,7 +309,7 @@ export default function BarcodeScannerModule({
                 onKeyDown={(e) => e.key === 'Enter' && submitScan()}
                 placeholder={placeholder}
                 className={`pl-10 ${inputClassName}`.trim()}
-                autoFocus={autoStartCamera}
+                autoFocus={autoStartCamera && !cameraSupported}
               />
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap lg:items-center">
@@ -336,7 +338,12 @@ export default function BarcodeScannerModule({
       </Card>
 
       <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-        <DialogContent className="max-w-2xl top-[8%] translate-y-0">
+        <DialogContent
+          className="max-w-2xl top-[8%] translate-y-0"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Escanear con cámara</DialogTitle>
             <DialogDescription>
