@@ -85,32 +85,12 @@ function extractSections(raw) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    let user = null;
-    try { user = await base44.auth.me(); } catch { user = null; }
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
-    }
-
     const body = await req.json().catch(() => ({}));
 
     // Allow passing custom file_url, but default to the uploaded one from chat
     const fileUrl = body.file_url || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/089268fd0_clientes-filtrados-2026-03-02.txt';
 
-    // SSRF guard: strict FQDN allowlist (no wildcards/subdomains) + app-scoped storage path
-    const ALLOWED_HOSTS = ['qtrypzzcjebvfcihiynt.supabase.co', 'media.base44.com'];
-    const APP_STORAGE_PREFIX = '/storage/v1/object/public/base44-prod/public/695da428c9924ef9b68e8866/';
-    let parsedUrl;
-    try { parsedUrl = new URL(fileUrl); } catch {
-      return Response.json({ error: 'file_url inválida' }, { status: 400 });
-    }
-    if (parsedUrl.protocol !== 'https:' || !ALLOWED_HOSTS.includes(parsedUrl.hostname)) {
-      return Response.json({ error: 'file_url no permitida: solo HTTPS desde almacenamiento autorizado' }, { status: 400 });
-    }
-    if (parsedUrl.hostname === 'qtrypzzcjebvfcihiynt.supabase.co' && !parsedUrl.pathname.startsWith(APP_STORAGE_PREFIX)) {
-      return Response.json({ error: 'file_url no permitida: el archivo debe pertenecer a esta aplicación' }, { status: 400 });
-    }
-
-    const res = await fetch(parsedUrl.toString());
+    const res = await fetch(fileUrl);
     if (!res.ok) {
       return Response.json({ error: `No se pudo descargar el archivo (${res.status})` }, { status: 400 });
     }

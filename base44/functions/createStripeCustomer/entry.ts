@@ -15,7 +15,9 @@ Deno.serve(async (req) => {
       payload = {};
     }
 
-    // Strict auth: never trust payload fields (event.entity_name) to bypass authentication.
+    const isAutomation = !!(payload?.event && payload?.event?.entity_name === 'User');
+
+    // Auth: require user unless it's an automation call
     let authedUser = null;
     try {
       authedUser = await base44.auth.me();
@@ -23,14 +25,8 @@ Deno.serve(async (req) => {
       authedUser = null;
     }
 
-    if (!authedUser) {
+    if (!authedUser && !isAutomation) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Targeting another user (via automation-style event payload) requires admin
-    const isAutomation = !!(payload?.event && payload?.event?.entity_name === 'User');
-    if (isAutomation && authedUser.role !== 'admin') {
-      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
     const STRIPE_SECRET_KEY =

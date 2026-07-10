@@ -148,18 +148,26 @@ function inferEntityTypeFromType(type) {
 // Los administradores no necesitan recibir un correo por cada acción de cliente — usan el centro de notificaciones.
 export async function notifyAdmins({ subject, body, message, type = 'system', icon = 'bell', referenceId = null }) {
   try {
-    // Backend crea las notificaciones sin exponer los emails de los admins al frontend
-    const res = await base44.functions.invoke('notifyAdminsInApp', {
-      title: subject,
-      message: message || body,
-      type,
-      icon,
-      reference_id: referenceId,
-      entity_type: inferEntityTypeFromType(type),
-      priority: type === 'package' ? 'high' : 'medium'
-    });
+    const res = await base44.functions.invoke('listAdmins', {});
+    const admins = Array.isArray(res?.data?.admins) ? res.data.admins : [];
+    if (admins.length === 0) return { success: true, notified: 0 };
 
-    return { success: true, notified: res?.data?.notified || 0 };
+    await Promise.all(
+      admins.map((a) =>
+        sendInAppNotification({
+          user_email: a.email,
+          title: subject,
+          message: message || body,
+          type,
+          icon,
+          reference_id: referenceId,
+          entity_type: inferEntityTypeFromType(type),
+          priority: type === 'package' ? 'high' : 'medium'
+        })
+      )
+    );
+
+    return { success: true, notified: admins.length };
   } catch (error) {
     console.error('notifyAdmins failed:', error);
     return { success: false, notified: 0 };

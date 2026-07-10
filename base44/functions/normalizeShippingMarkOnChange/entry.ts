@@ -18,18 +18,6 @@ function fixMark(mark) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-
-    // Strict auth: payload shape (event/data) is attacker-controlled and must
-    // never grant service-role writes. Admin only.
-    let user = null;
-    try { user = await base44.auth.me(); } catch { user = null; }
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (user.role !== 'admin') {
-      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
-    }
-
     const sb = base44.asServiceRole;
 
     const payload = await req.json().catch(() => ({}));

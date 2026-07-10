@@ -15,9 +15,7 @@ async function getSettings(base44) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    let user = null;
-    try { user = await base44.auth.me(); } catch (_) { user = null; }
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    try { await base44.auth.me(); } catch (_) {}
 
     const payload = await req.json().catch(() => ({}));
     const invoiceId = payload?.invoice_id || payload?.event?.entity_id;
@@ -26,12 +24,6 @@ Deno.serve(async (req) => {
     const invRows = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
     const invoice = invRows[0];
     if (!invoice) return Response.json({ error: 'invoice not found' }, { status: 404 });
-
-    // Only admins or the invoice owner may apply credits
-    const isOwner = invoice.client_email && user.email === invoice.client_email;
-    if (user.role !== 'admin' && !isOwner) {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     const settings = await getSettings(base44);
     const subtotal = typeof invoice.subtotal === 'number' ? invoice.subtotal : (typeof invoice.subtotal_usd === 'number' ? invoice.subtotal_usd : 0);

@@ -37,7 +37,6 @@ import { toast } from 'sonner';
 import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
 import { getEmailQueueStats } from '@/components/NotificationUtils';
 import { logActionAudit } from '@/lib/actionAudit';
-import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export default function AdminEmailCampaigns({ user }) {
   const [clients, setClients] = useState([]);
@@ -993,7 +992,7 @@ export default function AdminEmailCampaigns({ user }) {
                   <p className="text-xs text-slate-500 mb-2">Mensaje:</p>
                   <div 
                     className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(emailData.body) }}
+                    dangerouslySetInnerHTML={{ __html: emailData.body }}
                   />
                 </div>
                 {attachments.length > 0 && (
