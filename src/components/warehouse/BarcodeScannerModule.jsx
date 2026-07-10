@@ -21,6 +21,7 @@ export default function BarcodeScannerModule({
   inputClassName = '',
   autoStartCamera = false,
   continuous = false,
+  onPhotoCaptured,
 }) {
   const [scanValue, setScanValue] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -139,12 +140,25 @@ export default function BarcodeScannerModule({
       }
 
       if (code) {
+        // Captura el frame completo de la cámara en el instante exacto de la detección
+        const capturePhoto = () => {
+          if (!onPhotoCaptured) return;
+          try {
+            const canvas = captureFrame(0);
+            if (canvas) {
+              const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+              if (base64) onPhotoCaptured(code, base64);
+            }
+          } catch (_) {}
+        };
+
         if (continuous) {
           const now = Date.now();
           const isDuplicate = code === lastCodeRef.current && now - lastDetectedAtRef.current < 4000;
           if (!isDuplicate) {
             lastCodeRef.current = code;
             lastDetectedAtRef.current = now;
+            capturePhoto();
             handleDetected(code);
             toast.success(`Código agregado: ${code}`);
             playBeep();
@@ -153,6 +167,7 @@ export default function BarcodeScannerModule({
             await new Promise((resolve) => setTimeout(resolve, 1200));
           }
         } else {
+          capturePhoto();
           handleDetected(code);
           toast.success('Código detectado');
           playBeep();

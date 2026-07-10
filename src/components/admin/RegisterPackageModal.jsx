@@ -22,6 +22,23 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [cameraOpen, setCameraOpen] = useState(false);
   const [quickPreAlertOpen, setQuickPreAlertOpen] = useState({});
   const [bulkPreAlertOpen, setBulkPreAlertOpen] = useState(false);
+  const [scannedPhotoByTracking, setScannedPhotoByTracking] = useState({});
+
+  // Foto capturada automáticamente por el escáner en el momento del pitido.
+  // Se sube a ImgBB en segundo plano y se vincula al tracking correspondiente.
+  const handleScannedPhoto = async (code, base64) => {
+    setScannedPhotoByTracking((prev) => ({ ...prev, [code]: { status: 'uploading' } }));
+    try {
+      const { data } = await base44.functions.invoke('uploadImageToImgbb', { image_base64: base64 });
+      if (data?.url) {
+        setScannedPhotoByTracking((prev) => ({ ...prev, [code]: { status: 'ready', url: data.url } }));
+      } else {
+        setScannedPhotoByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
+      }
+    } catch (_) {
+      setScannedPhotoByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
+    }
+  };
 
   // Trackings que no existen en el sistema (necesitan pre-alerta)
   const notFoundTrackings = trackingNumbers
@@ -35,6 +52,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     if (code && !next.some((t) => t.trim() === code)) {
       setTrackingStatusByCode((prev) => { const c = { ...prev }; delete c[code]; return c; });
       setExistingPackagesByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
+      setScannedPhotoByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
     }
   };
 
@@ -46,6 +64,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setCameraOpen(false);
     setQuickPreAlertOpen({});
     setBulkPreAlertOpen(false);
+    setScannedPhotoByTracking({});
   };
 
   const checkTrackingDuplicate = async (value) => {
@@ -140,10 +159,11 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       const processedPackages = [];
       for (const tracking of validTrackings) {
         const existingPackage = existingPackagesByTracking[tracking];
+        const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
         const response = await base44.functions.invoke('processReceptionPhoto', {
           tracking_number: tracking,
           client_email: existingPackage.client_email,
-          package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : null,
+          package_image_url: scannedPhotoUrl || ((imageUrls && imageUrls[0]) ? imageUrls[0] : null),
           skip_email: true,
         });
         processedPackages.push(response?.data?.package || existingPackage);
@@ -412,6 +432,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             continuous
             value=""
             onValueChange={() => {}}
+            onPhotoCaptured={handleScannedPhoto}
             onDetected={(value) => {
               const code = String(value || '').trim();
               if (!code) return;
@@ -438,6 +459,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 </p>
                 {reversed.map((item, idx) => {
                   const status = trackingStatusByCode[item.code];
+                  const photo = scannedPhotoByTracking[item.code];
                   const isLast = idx === 0;
                   return (
                     <div
@@ -447,6 +469,13 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                       }`}
                     >
                       <CheckCircle className={`h-4 w-4 shrink-0 ${isLast ? 'text-blue-600' : 'text-emerald-500'}`} />
+                      {photo?.status === 'ready' && photo.url ? (
+                        <img src={photo.url} alt="Foto capturada" className="h-10 w-10 shrink-0 rounded-md object-cover border" />
+                      ) : photo?.status === 'uploading' ? (
+                        <div className="h-10 w-10 shrink-0 rounded-md border border-dashed flex items-center justify-center">
+                          <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                        </div>
+                      ) : null}
                       <div className="flex-1 min-w-0">
                         <p className="font-mono text-sm font-semibold text-slate-800 truncate">
                           {item.code} {isLast && <span className="text-xs font-sans font-medium text-blue-600">(último)</span>}
