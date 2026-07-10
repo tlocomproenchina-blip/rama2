@@ -3,7 +3,21 @@ import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
-const AuthContext = createContext();
+// Valor por defecto seguro: evita que la app se caiga si un módulo consume el
+// contexto durante una recarga en caliente (HMR) donde la instancia del contexto se duplica.
+const DEFAULT_AUTH_VALUE = {
+  user: null,
+  isAuthenticated: false,
+  isLoadingAuth: true,
+  isLoadingPublicSettings: true,
+  authError: null,
+  appPublicSettings: null,
+  logout: () => {},
+  navigateToLogin: () => {},
+  checkAppState: () => {}
+};
+
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -151,7 +165,9 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // No romper la app: devolver estado neutro (sesión aún cargando).
+    console.warn('useAuth used outside AuthProvider — returning safe defaults');
+    return DEFAULT_AUTH_VALUE;
   }
   return context;
 };
