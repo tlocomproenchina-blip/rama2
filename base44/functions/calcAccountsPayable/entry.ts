@@ -111,15 +111,18 @@ Deno.serve(async (req) => {
     let body = {};
     try { body = await req.json(); } catch {}
 
-    const isAutomation = !!body?.event && body?.event?.entity_name === 'Consolidation';
-
-    // If not automation, require auth
-    if (!isAutomation) {
-      const user = await base44.auth.me();
-      if (!user) {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    // Strict auth: payload fields (e.g. event.entity_name) are attacker-controlled
+    // and must never be used to bypass authentication. Admin only.
+    let user = null;
+    try { user = await base44.auth.me(); } catch { user = null; }
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
+
+    const isAutomation = !!body?.event && body?.event?.entity_name === 'Consolidation';
 
     // Get consolidation
     let cons = null;

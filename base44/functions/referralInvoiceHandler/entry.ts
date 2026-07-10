@@ -68,8 +68,15 @@ async function createLedgerReversal(base44, userId, amountUsd, invoiceId, notes)
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    // Auth may be null for automations; do not block execution
-    try { await base44.auth.me(); } catch (_) {}
+    // Strict auth: never allow silent auth failures before privileged operations. Admin only.
+    let user = null;
+    try { user = await base44.auth.me(); } catch { user = null; }
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
 
     const payload = await req.json().catch(() => ({}));
 
