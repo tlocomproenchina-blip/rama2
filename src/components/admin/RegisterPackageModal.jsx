@@ -415,12 +415,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       </DialogContent>
 
       <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-        <DialogContent
-          className="max-w-4xl"
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Escanear con cámara</DialogTitle>
             <DialogDescription>

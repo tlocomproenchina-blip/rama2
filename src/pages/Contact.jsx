@@ -22,10 +22,10 @@ export default function Contact() {
     }
     setSending(true);
     try {
-      await base44.functions.invoke('submitContactForm', {
-        name: form.name,
-        email: form.email,
-        message: form.message,
+      await base44.integrations.Core.SendEmail({
+        to: 'soporte@tleccargo.com',
+        subject: `Nuevo mensaje de contacto: ${form.name}`,
+        body: `Nombre: ${form.name}\nEmail: ${form.email}\n\nMensaje:\n${form.message}`,
       });
       toast.success('¡Mensaje enviado! Te responderemos pronto.');
       setForm({ name: '', email: '', message: '' });

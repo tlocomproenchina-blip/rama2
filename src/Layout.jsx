@@ -245,14 +245,8 @@ export default function Layout({ children, currentPageName }) {
         setLoading(false);
         return;
       }
-      // Solo redirigir a login si es un error real de autenticación (401/403).
-      // Errores de red/timeout NO deben crear un bucle de redirección infinito.
-      const status = error?.response?.status || error?.status;
-      if (status === 401 || status === 403) {
-        base44.auth.redirectToLogin();
-      } else {
-        setUser(null);
-      }
+      // Otherwise require login
+      base44.auth.redirectToLogin();
       setLoading(false);
     }
   }
@@ -265,12 +259,6 @@ export default function Layout({ children, currentPageName }) {
       loadUser();
       loadConfig();
     }
-  }, []);
-
-  // Watchdog: si la carga inicial se queda colgada más de 20s, liberar la UI
-  useEffect(() => {
-    const t = setTimeout(() => setLoading((l) => (l ? false : l)), 20000);
-    return () => clearTimeout(t);
   }, []);
 
   const handleContractAccept = useCallback(async () => {
