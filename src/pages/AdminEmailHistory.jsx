@@ -8,6 +8,7 @@ import { Search, Loader2, Mail, RefreshCw, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 import EmailLogCard from '@/components/communications/EmailLogCard';
+import EmailQueuePendingPanel from '@/components/communications/EmailQueuePendingPanel';
 
 export default function AdminEmailHistory() {
   const [logs, setLogs] = useState([]);
@@ -68,6 +69,8 @@ export default function AdminEmailHistory() {
         title="Historial de Emails"
         subtitle="Registro de los correos enviados a los clientes, con su asunto y contenido."
       />
+
+      <EmailQueuePendingPanel />
 
       <div className="grid grid-cols-3 gap-3">
         <Card><CardContent className="p-4">
