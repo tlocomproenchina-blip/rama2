@@ -372,7 +372,7 @@ export default function AdminCbmIngresos({ user }) {
               Buscando en todo el histórico · {filteredIngresos.length} resultado(s)
             </p>
           )}
-          {!loading && ingresos.length > 0 && !orderSearch.trim() && (
+          {!loading && !orderSearch.trim() && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-500">Despacho:</span>
               <Button variant={availabilityFilter === 'all' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('all')}>Todos</Button>
@@ -397,7 +397,7 @@ export default function AdminCbmIngresos({ user }) {
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>
-          ) : ingresos.length === 0 && !orderSearch.trim() ? (
+          ) : ingresos.length === 0 && !orderSearch.trim() && !sinSalidaFilter ? (
             <Card className="border-0 shadow-lg">
               <CardContent className="p-12 text-center">
                 <Package className="h-16 w-16 mx-auto mb-4 text-slate-300" />
