@@ -107,7 +107,7 @@ export default function AdminCbmIngresos({ user }) {
     }
     // Filtro "Sin fecha de salida": busca en TODO el histórico
     if (sinSalidaFilter) {
-      return (allIngresos || []).filter((item) => !item.fecha_salida);
+      return (allIngresos || []).filter((item) => !item.fecha_salida && !item.disponible_entrega);
     }
     let result = [...ingresos];
     if (availabilityFilter === 'available') {
