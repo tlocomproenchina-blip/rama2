@@ -105,11 +105,15 @@ export default function MyPackages({ user }) {
     if (!sellerDateModal) return;
     setSavingSellerDate(true);
     const updates = { seller_delivery_date: sellerDateValue || null };
-    await base44.entities.Package.update(sellerDateModal.id, updates);
-    setPackages((prev) => prev.map((p) => p.id === sellerDateModal.id ? { ...p, ...updates } : p));
+    try {
+      await base44.functions.invoke('updateMyPackage', { package_id: sellerDateModal.id, updates });
+      setPackages((prev) => prev.map((p) => p.id === sellerDateModal.id ? { ...p, ...updates } : p));
+      setSellerDateModal(null);
+      toast.success('Fecha de entrega del vendedor guardada');
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'No se pudo guardar la fecha');
+    }
     setSavingSellerDate(false);
-    setSellerDateModal(null);
-    toast.success('Fecha de entrega del vendedor guardada');
   };
 
   const saveEdit = async () => {
@@ -123,12 +127,15 @@ export default function MyPackages({ user }) {
       shipping_type: editForm.shipping_type || 'aereo',
       seller_delivery_date: editForm.seller_delivery_date || null
     };
-    await base44.entities.Package.update(editModal.id, updates);
-    // Optimistic update: actualiza solo el item editado en lugar de recargar toda la lista
-    setPackages((prev) => prev.map((p) => p.id === editModal.id ? { ...p, ...updates } : p));
+    try {
+      await base44.functions.invoke('updateMyPackage', { package_id: editModal.id, updates });
+      setPackages((prev) => prev.map((p) => p.id === editModal.id ? { ...p, ...updates } : p));
+      setEditModal(null);
+      toast.success('Paquete actualizado');
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'No se pudo actualizar el paquete');
+    }
     setSaving(false);
-    setEditModal(null);
-    toast.success('Paquete actualizado');
   };
 
   const openDelete = (pkg) => setDeleteConfirm(pkg);
@@ -136,12 +143,15 @@ export default function MyPackages({ user }) {
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
     setDeleting(true);
-    await base44.entities.Package.delete(deleteConfirm.id);
-    // Optimistic update: quita el item localmente sin recargar todo
-    setPackages((prev) => prev.filter((p) => p.id !== deleteConfirm.id));
+    try {
+      await base44.functions.invoke('updateMyPackage', { package_id: deleteConfirm.id, action: 'delete' });
+      setPackages((prev) => prev.filter((p) => p.id !== deleteConfirm.id));
+      setDeleteConfirm(null);
+      toast.success('Paquete eliminado');
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'No se pudo eliminar el paquete');
+    }
     setDeleting(false);
-    setDeleteConfirm(null);
-    toast.success('Paquete eliminado');
   };
 
   const filteredPackages = useMemo(() => {
