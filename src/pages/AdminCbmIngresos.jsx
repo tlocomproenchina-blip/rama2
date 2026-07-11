@@ -39,6 +39,7 @@ export default function AdminCbmIngresos({ user }) {
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
+  const [sinSalidaFilter, setSinSalidaFilter] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
 
@@ -104,6 +105,10 @@ export default function AdminCbmIngresos({ user }) {
     if (q) {
       return (allIngresos || []).filter((item) => String(item.invoice_number || '').toLowerCase().includes(q));
     }
+    // Filtro "Sin fecha de salida": busca en TODO el histórico
+    if (sinSalidaFilter) {
+      return (allIngresos || []).filter((item) => !item.fecha_salida);
+    }
     let result = [...ingresos];
     if (availabilityFilter === 'available') {
       result = result.filter((item) => !!item.disponible_entrega);
@@ -111,7 +116,7 @@ export default function AdminCbmIngresos({ user }) {
       result = result.filter((item) => !item.disponible_entrega);
     }
     return result;
-  }, [ingresos, allIngresos, availabilityFilter, orderSearch]);
+  }, [ingresos, allIngresos, availabilityFilter, orderSearch, sinSalidaFilter]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -373,7 +378,20 @@ export default function AdminCbmIngresos({ user }) {
               <Button variant={availabilityFilter === 'all' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('all')}>Todos</Button>
               <Button variant={availabilityFilter === 'available' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('available')} className="gap-1"><CheckSquare className="h-3.5 w-3.5" /> Disponibles</Button>
               <Button variant={availabilityFilter === 'unavailable' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('unavailable')}>No disponibles</Button>
+              <Button
+                variant={sinSalidaFilter ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => setSinSalidaFilter(!sinSalidaFilter)}
+                className={`gap-1 ${sinSalidaFilter ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : ''}`}
+              >
+                <Ship className="h-3.5 w-3.5" /> Sin fecha de salida
+              </Button>
             </div>
+          )}
+          {sinSalidaFilter && !orderSearch.trim() && (
+            <p className="text-xs text-amber-700 font-medium">
+              Mostrando todas las órdenes sin fecha de salida (histórico completo) · {filteredIngresos.length} registro(s)
+            </p>
           )}
           {loading ? (
             <div className="flex justify-center py-12">
