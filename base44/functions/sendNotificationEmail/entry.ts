@@ -45,44 +45,32 @@ Deno.serve(async (req) => {
       if (cfg2.emails_enabled === false) emailsEnabled = false;
     } catch (_) {}
 
-    // Enviar email con service role (sin pasar por circuit breaker del cliente)
-    let emailSent = false;
+    // Encolar el email en EmailQueue (no envía de inmediato).
+    // La función programada processEmailQueue procesa la cola en lotes.
+    let queued = false;
     let errorMessage = null;
     if (!emailsEnabled) {
       errorMessage = 'emails_enabled=false (kill switch global)';
-      console.warn('SendEmail skipped:', errorMessage);
+      console.warn('Email no encolado:', errorMessage);
     } else {
       try {
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to,
+        await base44.asServiceRole.entities.EmailQueue.create({
+          recipient_email: to,
           subject,
           body: emailBody || '',
-          from_name: resolvedFromName
+          from_name: resolvedFromName,
+          status: 'pending',
+          attempts: 0,
+          scheduled_at: new Date().toISOString(),
+          source: 'notification',
+          priority: 1
         });
-        emailSent = true;
+        queued = true;
       } catch (err) {
         errorMessage = err?.message || String(err);
-        console.error('SendEmail failed:', errorMessage);
+        console.error('Encolado de email falló:', errorMessage);
       }
     }
-
-    // Log en EmailLog
-    try {
-      await base44.asServiceRole.entities.EmailLog.create({
-        recipient_email: to,
-        recipient_name: null,
-        sender_email: null,
-        from_name: resolvedFromName,
-        subject,
-        body_preview: String(emailBody || '').slice(0, 200),
-        campaign_id: null,
-        campaign_name: null,
-        source: 'manual',
-        status: emailSent ? 'sent' : 'failed',
-        bounce_reason: emailSent ? null : errorMessage,
-        sent_date: new Date().toISOString()
-      });
-    } catch (_) {}
 
     // Notificación in-app (opcional)
     if (in_app && in_app.user_email) {
@@ -122,7 +110,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ success: true, email_sent: emailSent, error: errorMessage });
+    return Response.json({ success: true, email_sent: queued, queued, error: errorMessage });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
