@@ -195,11 +195,9 @@ export default function PreAlert({ user }) {
         }
       }
 
-      // Create package
-      const newPackage = await base44.entities.Package.create({
+      // Create package (vía función segura del servidor)
+      const { data: createRes } = await base44.functions.invoke('createMyPrealert', {
         tracking_number: formData.tracking_number,
-        client_email: user.email,
-        shipping_mark: user.shipping_mark,
         shipping_type: formData.shipping_type,
         risk_category: formData.risk_category,
         package_count: Number(formData.package_count),
@@ -207,9 +205,9 @@ export default function PreAlert({ user }) {
         has_insurance: formData.has_insurance,
         fob_value: parseFloat(formData.fob_value),
         invoice_url: invoiceUrl,
-        product_image_url: productPhotoUrl,
-        status: 'pre_alerta'
+        product_image_url: productPhotoUrl
       });
+      const newPackage = createRes.package;
 
       await logActionAudit(base44, user, {
         target_email: user?.email,
@@ -241,7 +239,7 @@ export default function PreAlert({ user }) {
       navigate(createPageUrl('MyPackages'));
     } catch (error) {
       console.error('Error creating pre-alert:', error);
-      toast.error('Error al crear la pre-alerta. Por favor intenta nuevamente.');
+      toast.error(error?.response?.data?.error || 'Error al crear la pre-alerta. Por favor intenta nuevamente.');
       setSaving(false);
     }
   };
