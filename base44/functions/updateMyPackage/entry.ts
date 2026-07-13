@@ -17,9 +17,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No autorizado para este paquete' }, { status: 403 });
     }
 
-    // Bloqueo total: un paquete entregado no puede ser modificado ni borrado por el cliente
-    if (user.role !== 'admin' && pkg.status === 'entregado') {
-      return Response.json({ error: 'El paquete ya fue entregado y no puede modificarse ni eliminarse' }, { status: 403 });
+    // Bloqueo total: un paquete recibido o entregado no puede ser modificado ni borrado por el cliente
+    if (user.role !== 'admin' && ['recibido', 'entregado'].includes(pkg.status)) {
+      return Response.json({ error: 'El paquete ya fue recibido/entregado y no puede modificarse ni eliminarse' }, { status: 403 });
     }
 
     if (action === 'delete') {
