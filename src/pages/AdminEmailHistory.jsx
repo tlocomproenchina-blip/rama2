@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 import EmailLogCard from '@/components/communications/EmailLogCard';
 import EmailQueuePendingPanel from '@/components/communications/EmailQueuePendingPanel';
+import DailyEmailQuotaCard from '@/components/communications/DailyEmailQuotaCard';
 
 export default function AdminEmailHistory() {
   const [logs, setLogs] = useState([]);
@@ -69,6 +70,8 @@ export default function AdminEmailHistory() {
         title="Historial de Emails"
         subtitle="Registro de los correos enviados a los clientes, con su asunto y contenido."
       />
+
+      <DailyEmailQuotaCard />
 
       <EmailQueuePendingPanel />
 
