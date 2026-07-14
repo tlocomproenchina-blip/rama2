@@ -3,7 +3,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
+
+    // Solo usuarios autenticados pueden disparar pushes
+    let caller = null;
+    try { caller = await base44.auth.me(); } catch (_) {}
+    if (!caller) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { userEmail, title, body, url } = await req.json();
 
     if (!userEmail || !title) {
