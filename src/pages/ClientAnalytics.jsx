@@ -260,7 +260,7 @@ export default function ClientAnalytics() {
 
       {selectedClient && <ClientInvoicesList invoices={invoices} client={selectedClient} />}
 
-      {selectedClient && <ClientPackagesTable packages={packages} client={selectedClient} />}
+      {selectedClient && <ClientPackagesTable packages={packages} client={selectedClient} cbmIngresos={cbmIngresos} />}
 
       {selectedClient && analytics.shipmentCostHistory.length === 0 && !loading && (
         <Card className="border-0 shadow-md">

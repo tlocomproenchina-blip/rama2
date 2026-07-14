@@ -22,10 +22,24 @@ const STATUS_TABS = [
 const fmt = (d) => (d ? format(new Date(d), 'dd/MM/yyyy HH:mm') : '—');
 const fmtShort = (d) => (d ? format(new Date(d), 'dd/MM/yyyy') : '—');
 
-export default function ClientPackagesTable({ packages, client }) {
+export default function ClientPackagesTable({ packages, client, cbmIngresos = [] }) {
   const [tab, setTab] = useState('all');
   const [q, setQ] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Mapa tracking → número de recibo/factura (desde los ingresos CBM)
+  const receiptByTracking = useMemo(() => {
+    const map = {};
+    (cbmIngresos || []).forEach((ing) => {
+      const num = ing.invoice_number;
+      if (!num) return;
+      (ing.tracking_numbers || []).forEach((tn) => {
+        const key = (tn || '').trim();
+        if (key && !map[key]) map[key] = num;
+      });
+    });
+    return map;
+  }, [cbmIngresos]);
 
   const filtered = useMemo(() => {
     let list = packages || [];
@@ -190,6 +204,7 @@ export default function ClientPackagesTable({ packages, client }) {
                 <th className="py-2 pr-3">Peso (kg)</th>
                 <th className="py-2 pr-3">Seguro</th>
                 <th className="py-2 pr-3">Despachada</th>
+                <th className="py-2 pr-3">Recibo</th>
                 <th className="py-2 pr-3">Registrado</th>
                 <th className="py-2 pr-3">Entrega vendedor</th>
                 <th className="py-2 pr-3">Recibido</th>
@@ -199,7 +214,7 @@ export default function ClientPackagesTable({ packages, client }) {
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="py-6 text-center text-slate-500">Sin paquetes</td>
+                  <td colSpan={14} className="py-6 text-center text-slate-500">Sin paquetes</td>
                 </tr>
               )}
               {filtered.map((p) => (
@@ -232,6 +247,13 @@ export default function ClientPackagesTable({ packages, client }) {
                       <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs" variant="outline">SÍ</Badge>
                     ) : (
                       <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-xs" variant="outline">NO</Badge>
+                    )}
+                  </td>
+                  <td className="py-2 pr-3">
+                    {receiptByTracking[(p.tracking_number || '').trim()] ? (
+                      <span className="font-mono text-xs font-semibold text-blue-700">{receiptByTracking[(p.tracking_number || '').trim()]}</span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
                     )}
                   </td>
                   <td className="py-2 pr-3 text-xs text-slate-600">{fmt(p.created_date)}</td>
