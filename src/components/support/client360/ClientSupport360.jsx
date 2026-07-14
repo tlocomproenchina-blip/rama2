@@ -17,11 +17,11 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
     let active = true;
     setLoading(true);
     Promise.allSettled([
-      base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 200),
-      base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 100),
-      base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-created_date', 100),
-      base44.entities.SupportTicket.filter({ client_email: clientEmail }, '-created_date', 30)
-    ]).then(([p, i, r, t]) => {
+    base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 200),
+    base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 100),
+    base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-created_date', 100),
+    base44.entities.SupportTicket.filter({ client_email: clientEmail }, '-created_date', 30)]
+    ).then(([p, i, r, t]) => {
       if (!active) return;
       setData({
         packages: p.status === 'fulfilled' ? p.value : [],
@@ -31,7 +31,7 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
       });
       setLoading(false);
     });
-    return () => { active = false; };
+    return () => {active = false;};
   }, [clientEmail, currentTicketId]);
 
   const filtered = useMemo(() => {
@@ -54,8 +54,8 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -65,13 +65,13 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar en todo: tracking, pre alerta, factura, recibo, estado..."
-        />
+          placeholder="Buscar en todo: tracking, pre alerta, factura, recibo, estado..." className="min-h-[48px]" />
+        
       </div>
       <Client360Packages packages={filtered.packages} />
       <Client360Recibos recibos={filtered.recibos} />
       <Client360Invoices invoices={filtered.invoices} />
       <Client360Tickets tickets={filtered.tickets} />
-    </div>
-  );
+    </div>);
+
 }
