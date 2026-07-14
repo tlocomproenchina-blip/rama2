@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import TicketChat from '@/components/support/TicketChat';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MessageSquare, UserSearch } from 'lucide-react';
+import ClientSupport360 from '@/components/support/client360/ClientSupport360';
 import { base44 } from '@/api/base44Client';
 
 export default function AdminSupportTicketDetailDialog({ selectedTicket, setSelectedTicket, statusConfig, handleSendMessage, handleStatusChange, user, setOpenedTicketIds, setManuallyUnreadTicketIds }) {
@@ -47,7 +50,7 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
 
   return (
     <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
@@ -77,21 +80,38 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
             </Badge>
           </div>
         </DialogHeader>
-        <TicketChat
-          messages={selectedTicket?.messages || []}
-          onSendMessage={handleSendMessage}
-          currentUserEmail={user.email}
-          disabled={selectedTicket?.status === 'cerrado'}
-          maxFiles={Math.max(1, (selectedTicket?.related_tracking || '').split(',').map(item => item.trim()).filter(Boolean).length || 3)}
-          status={selectedTicket?.status}
-          onStatusChange={(value) => handleStatusChange?.(selectedTicket, value)}
-          statusOptions={[
-            { value: 'abierto', label: 'Abierto' },
-            { value: 'en_proceso', label: 'En Proceso' },
-            { value: 'resuelto', label: 'Resuelto' },
-            { value: 'cerrado', label: 'Cerrado' }
-          ]}
-        />
+        <Tabs defaultValue="chat">
+          <TabsList>
+            <TabsTrigger value="chat">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Conversación
+            </TabsTrigger>
+            <TabsTrigger value="cliente">
+              <UserSearch className="h-4 w-4 mr-2" />
+              Datos del cliente
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="chat">
+            <TicketChat
+              messages={selectedTicket?.messages || []}
+              onSendMessage={handleSendMessage}
+              currentUserEmail={user.email}
+              disabled={selectedTicket?.status === 'cerrado'}
+              maxFiles={Math.max(1, (selectedTicket?.related_tracking || '').split(',').map(item => item.trim()).filter(Boolean).length || 3)}
+              status={selectedTicket?.status}
+              onStatusChange={(value) => handleStatusChange?.(selectedTicket, value)}
+              statusOptions={[
+                { value: 'abierto', label: 'Abierto' },
+                { value: 'en_proceso', label: 'En Proceso' },
+                { value: 'resuelto', label: 'Resuelto' },
+                { value: 'cerrado', label: 'Cerrado' }
+              ]}
+            />
+          </TabsContent>
+          <TabsContent value="cliente">
+            <ClientSupport360 clientEmail={selectedTicket?.client_email} currentTicketId={selectedTicket?.id} />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
