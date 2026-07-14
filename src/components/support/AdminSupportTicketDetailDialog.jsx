@@ -1,10 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import TicketChat from '@/components/support/TicketChat';
+import { base44 } from '@/api/base44Client';
 
 export default function AdminSupportTicketDetailDialog({ selectedTicket, setSelectedTicket, statusConfig, handleSendMessage, handleStatusChange, user, setOpenedTicketIds, setManuallyUnreadTicketIds }) {
-  const client = selectedTicket?.client;
+  const [fetchedClient, setFetchedClient] = useState(null);
+
+  // Si el cliente no vino en la lista precargada, buscarlo directamente por email
+  useEffect(() => {
+    setFetchedClient(null);
+    const email = selectedTicket?.client_email;
+    if (!email || selectedTicket?.client) return;
+    let active = true;
+    base44.functions.invoke('listClientsForSupport', { q: email, limit: 5, skip: 0, includeCounts: false })
+      .then((res) => {
+        if (!active) return;
+        const list = res?.data?.data || [];
+        const match = list.find((c) => (c.email || '').toLowerCase() === email.toLowerCase());
+        if (match) setFetchedClient(match);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [selectedTicket?.client_email, selectedTicket?.client]);
+
+  const client = selectedTicket?.client || fetchedClient;
   const clientName = [client?.first_name, client?.last_name].filter(Boolean).join(' ') || client?.full_name || 'Sin nombre';
   const clientPhone = client?.whatsapp || client?.phone || client?.phone_number || 'Sin número';
   const clientShippingMark = client?.shipping_mark || 'Sin shipping mark';
