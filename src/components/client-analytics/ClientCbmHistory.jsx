@@ -8,12 +8,14 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { base44 } from '@/components/api/ApiQueueManager';
+import TrackingListDialog from '@/components/client-analytics/TrackingListDialog';
 
 const fmtDate = (d) => (d ? format(new Date(d), 'dd/MM/yyyy') : '—');
 
 export default function ClientCbmHistory({ ingresos, totalCbm, client, onRefresh }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [markingAvailable, setMarkingAvailable] = useState(false);
+  const [trackingDialogIngreso, setTrackingDialogIngreso] = useState(null);
 
   const toggleOne = (id) => {
     setSelectedIds((prev) => {
@@ -179,14 +181,20 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, onRefresh
                     </td>
                     <td className="py-2 pr-3">{i.proveedor || '—'}</td>
                     <td className="py-2 pr-3">
-                      <div className="flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        onClick={() => (i.tracking_numbers || []).length > 0 && setTrackingDialogIngreso(i)}
+                        className={`flex flex-wrap gap-1 text-left ${(i.tracking_numbers || []).length > 0 ? 'cursor-pointer hover:opacity-70' : 'cursor-default'}`}
+                        title={(i.tracking_numbers || []).length > 0 ? 'Ver todos los trackings' : undefined}
+                      >
                         {(i.tracking_numbers || []).slice(0, 3).map((t) => (
                           <span key={t} className="inline-block text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-mono">{t}</span>
                         ))}
                         {(i.tracking_numbers || []).length > 3 && (
-                          <span className="text-[10px] text-slate-500">+{i.tracking_numbers.length - 3}</span>
+                          <span className="text-[10px] text-blue-600 font-semibold underline">+{i.tracking_numbers.length - 3}</span>
                         )}
-                      </div>
+                        {(i.tracking_numbers || []).length === 0 && <span className="text-xs text-slate-400">—</span>}
+                      </button>
                     </td>
                     <td className="py-2 pr-3 text-xs">
                       {i.fecha_salida ? (
@@ -200,6 +208,12 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, onRefresh
             </table>
           </div>
         )}
+
+        <TrackingListDialog
+          open={!!trackingDialogIngreso}
+          onClose={() => setTrackingDialogIngreso(null)}
+          ingreso={trackingDialogIngreso}
+        />
       </CardContent>
     </Card>
   );
