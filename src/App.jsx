@@ -14,6 +14,7 @@ const WarehouseReceive = lazy(() => import('./pages/WarehouseReceive'));
 const WarehouseLocations = lazy(() => import('./pages/WarehouseLocations'));
 const WarehouseDashboard = lazy(() => import('./pages/WarehouseDashboard'));
 const WarehousePickPackShip = lazy(() => import('./pages/WarehousePickPackShip'));
+const WarehouseDispatch = lazy(() => import('./pages/WarehouseDispatch'));
 const ClientAnalytics = lazy(() => import('./pages/ClientAnalytics'));
 const AccountingDashboard = lazy(() => import('./pages/AccountingDashboard'));
 const AdminEmployees = lazy(() => import('./pages/AdminEmployees'));
@@ -132,6 +133,7 @@ const AuthenticatedApp = () => {
       <Route path="/WarehouseLocations" element={lazyRoute(WarehouseLocations, "WarehouseLocations")} />
       <Route path="/WarehouseDashboard" element={lazyRoute(WarehouseDashboard, "WarehouseDashboard")} />
       <Route path="/WarehousePickPackShip" element={lazyRoute(WarehousePickPackShip, "WarehousePickPackShip")} />
+      <Route path="/WarehouseDispatch" element={lazyRoute(WarehouseDispatch, "WarehouseDispatch")} />
       <Route path="/ClientAnalytics" element={lazyRoute(ClientAnalytics, "ClientAnalytics")} />
       <Route path="/AccountingDashboard" element={lazyRoute(AccountingDashboard, "AccountingDashboard")} />
       <Route path="/AdminEmployees" element={lazyRoute(AdminEmployees, "AdminEmployees")} />

@@ -49,6 +49,7 @@
         "consolidado",
         "en_transito",
         "disponible",
+        "despachado",
         "entregado"
       ],
       "default": "pre_alerta"
@@ -92,6 +93,15 @@
     },
     "received_by": {
       "type": "string"
+    },
+    "dispatched_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en la que el paquete fue despachado en almac\u00e9n"
+    },
+    "dispatched_by": {
+      "type": "string",
+      "description": "Usuario que marc\u00f3 el paquete como despachado"
     },
     "reported": {
       "type": "boolean",

@@ -1,0 +1,61 @@
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { User, Package as PackageIcon, CheckCircle2, AlertTriangle } from 'lucide-react';
+
+export default function DispatchResultCard({ result }) {
+  if (!result) return null;
+
+  if (result.error) {
+    return (
+      <Card className="border-rose-300 bg-rose-50">
+        <CardContent className="p-4 flex items-center gap-3">
+          <AlertTriangle className="h-8 w-8 text-rose-600 shrink-0" />
+          <div>
+            <p className="font-semibold text-rose-700">Tracking: {result.tracking}</p>
+            <p className="text-sm text-rose-600">{result.error}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const clientName = result.client?.full_name || result.package?.client_email;
+  const mark = result.package?.shipping_mark || result.client?.shipping_mark;
+
+  return (
+    <Card className={result.already_dispatched ? 'border-amber-300 bg-amber-50' : 'border-emerald-300 bg-emerald-50'}>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-3">
+            <User className="h-8 w-8 text-slate-700 shrink-0" />
+            <div>
+              <p className="text-lg font-bold text-slate-800 break-all">{clientName}</p>
+              {mark && <p className="font-mono text-sm font-semibold text-blue-700">Mark: {mark}</p>}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            {result.already_dispatched ? (
+              <Badge className="bg-amber-500 text-white">Ya estaba despachado</Badge>
+            ) : (
+              <Badge className="bg-emerald-600 text-white">
+                <CheckCircle2 className="h-3 w-3 mr-1" /> Despachado
+              </Badge>
+            )}
+            {result.auto_received && (
+              <Badge variant="outline" className="border-blue-400 text-blue-700 bg-blue-50">
+                Recibido automáticamente
+              </Badge>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-slate-600">
+          <PackageIcon className="h-4 w-4 shrink-0" />
+          <span className="font-mono break-all">{result.package?.tracking_number}</span>
+          <span className="text-slate-400">·</span>
+          <span className="truncate">{result.package?.description}</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
