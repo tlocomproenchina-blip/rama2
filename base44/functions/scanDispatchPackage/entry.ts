@@ -43,7 +43,11 @@ Deno.serve(async (req) => {
           full_name: clientDup.full_name,
           email: clientDup.email,
           shipping_mark: clientDup.shipping_mark,
-          city: clientDup.city
+          city: clientDup.city,
+          state: clientDup.state,
+          cedula: clientDup.cedula,
+          whatsapp: clientDup.whatsapp,
+          address: clientDup.address
         } : null
       });
     }
@@ -86,7 +90,11 @@ Deno.serve(async (req) => {
         full_name: client.full_name,
         email: client.email,
         shipping_mark: client.shipping_mark,
-        city: client.city
+        city: client.city,
+        state: client.state,
+        cedula: client.cedula,
+        whatsapp: client.whatsapp,
+        address: client.address
       } : null
     });
   } catch (error) {

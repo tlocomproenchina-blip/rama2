@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
+import DispatchOrderButton from '@/components/warehouse/DispatchOrderButton';
 
 export default function DispatchGroupedList({ scans }) {
   const groups = {};
@@ -36,7 +37,10 @@ export default function DispatchGroupedList({ scans }) {
                 <p className="font-semibold text-slate-800 break-all">{group.name}</p>
                 {group.mark && <p className="font-mono text-xs text-blue-700">Mark: {group.mark}</p>}
               </div>
-              <Badge variant="secondary">{group.items.length} paquete{group.items.length !== 1 ? 's' : ''}</Badge>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary">{group.items.length} paquete{group.items.length !== 1 ? 's' : ''}</Badge>
+                <DispatchOrderButton group={group} email={email} />
+              </div>
             </div>
             <ul className="space-y-1">
               {group.items.map((item, idx) => (
