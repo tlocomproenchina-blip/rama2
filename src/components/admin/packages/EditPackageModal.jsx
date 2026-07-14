@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, Pencil, Search, User as UserIcon, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import PackageBillingInfo from '@/components/admin/packages/PackageBillingInfo';
 
 export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -117,6 +118,7 @@ export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {pkg?.tracking_number && <PackageBillingInfo tracking={pkg.tracking_number} />}
           <div className="space-y-2">
             <Label>Tracking *</Label>
             <Input
