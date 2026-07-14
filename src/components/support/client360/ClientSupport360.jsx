@@ -59,7 +59,7 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-full min-w-0 overflow-hidden">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input

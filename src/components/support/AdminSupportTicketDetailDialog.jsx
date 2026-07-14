@@ -50,7 +50,7 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
 
   return (
     <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-4xl max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
