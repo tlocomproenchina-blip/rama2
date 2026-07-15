@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
 
     const newPackage = await base44.asServiceRole.entities.Package.create({
       tracking_number: tracking,
+      shipping_company: String(body.shipping_company || '').trim() || null,
       client_email: user.email,
       shipping_mark: user.shipping_mark,
       shipping_type: body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo',

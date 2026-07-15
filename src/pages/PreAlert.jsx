@@ -35,6 +35,7 @@ export default function PreAlert({ user }) {
   const [saving, setSaving] = useState(false);
   const enabledTypes = useEnabledShippingTypes();
   const [formData, setFormData] = useState({
+    shipping_company: '',
     tracking_number: '',
     shipping_type: '',
     risk_category: 'general',
@@ -132,6 +133,10 @@ export default function PreAlert({ user }) {
     
     const newErrors = {};
     
+    if (!formData.shipping_company.trim()) {
+      newErrors.shipping_company = 'Empresa de envío requerida';
+    }
+
     if (!formData.tracking_number.trim()) {
       newErrors.tracking_number = 'Tracking requerido';
     }
@@ -197,6 +202,7 @@ export default function PreAlert({ user }) {
 
       // Create package (vía función segura del servidor)
       const { data: createRes } = await base44.functions.invoke('createMyPrealert', {
+        shipping_company: formData.shipping_company,
         tracking_number: formData.tracking_number,
         shipping_type: formData.shipping_type,
         risk_category: formData.risk_category,
@@ -332,6 +338,30 @@ export default function PreAlert({ user }) {
       <form onSubmit={handleSubmit}>
         <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-6 space-y-6">
+            {/* Empresa de envío */}
+            <div className="space-y-2">
+              <Label htmlFor="shipping_company" className="text-slate-700 font-medium">
+                Empresa de envío *
+              </Label>
+              <Input
+                id="shipping_company"
+                value={formData.shipping_company}
+                onChange={(e) => {
+                  setFormData({ ...formData, shipping_company: e.target.value });
+                  setErrors({ ...errors, shipping_company: null });
+                }}
+                placeholder="Ej: ZTO EXPRESS, YTO, SF Express"
+                className={errors.shipping_company ? 'border-red-300' : ''}
+              />
+              <p className="text-xs text-slate-500">Escribe aquí el nombre de la empresa de carga/transporte, no lo incluyas en el tracking.</p>
+              {errors.shipping_company && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.shipping_company}
+                </p>
+              )}
+            </div>
+
             {/* Tracking Number */}
             <div className="space-y-2">
               <Label htmlFor="tracking" className="text-slate-700 font-medium">
