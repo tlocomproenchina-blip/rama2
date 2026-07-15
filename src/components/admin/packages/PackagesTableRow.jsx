@@ -60,6 +60,9 @@ function PackagesTableRow({
       </td>
       <td className="pl-3 pr-2 py-3 align-top">
         <div className="space-y-1 min-w-0">
+          {pkg.shipping_company && (
+            <div className="text-xs font-semibold text-slate-700 uppercase">{pkg.shipping_company}</div>
+          )}
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-mono font-medium text-slate-800 whitespace-nowrap">{pkg.tracking_number}</span>
             {pkg.has_insurance && (
