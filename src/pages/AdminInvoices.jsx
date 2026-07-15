@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
+import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
 import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle, Truck } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
@@ -444,6 +445,17 @@ export default function AdminInvoices({ user }) {
     }
   };
 
+  // Guarda/quita la imagen de la factura del proveedor (ImgBB, uso interno)
+  const handleSaveProviderInvoiceImage = async (invoice, url) => {
+    try {
+      await base44.entities.Invoice.update(invoice.id, { provider_invoice_image_url: url || null });
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_invoice_image_url: url || null } : i));
+      if (!url) toast.success('Imagen de factura del proveedor eliminada');
+    } catch (error) {
+      toast.error('No se pudo guardar la imagen de la factura');
+    }
+  };
+
   // Abre el recibo de despacho con los datos del cliente
   const openDispatchReceipt = (invoice) => {
     setDispatchReceipt(invoice);
@@ -771,6 +783,12 @@ export default function AdminInvoices({ user }) {
                         onSaveCost={handleSaveProviderCost}
                         onTogglePaid={handleToggleProviderPaid}
                       />
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <ProviderInvoiceUploader
+                          value={invoice.provider_invoice_image_url || ''}
+                          onChange={(url) => handleSaveProviderInvoiceImage(invoice, url)}
+                        />
+                      </div>
                     </div>
                   )}
                 />

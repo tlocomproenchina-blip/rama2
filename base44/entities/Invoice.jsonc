@@ -91,6 +91,10 @@
       "format": "date-time",
       "description": "Fecha en que se marc\u00f3 como pagado al proveedor"
     },
+    "provider_invoice_image_url": {
+      "type": "string",
+      "description": "URL de la imagen de la factura del proveedor (ImgBB, uso interno)"
+    },
     "dispatched": {
       "type": "boolean",
       "default": false,
