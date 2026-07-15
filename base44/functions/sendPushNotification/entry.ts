@@ -48,7 +48,18 @@ Deno.serve(async (req) => {
       tag: `notification-${Date.now()}`
     });
 
-    await webpush.default.sendNotification(subscription, payload);
+    try {
+      await webpush.default.sendNotification(subscription, payload);
+    } catch (pushError) {
+      const status = pushError.statusCode;
+      console.error('web-push error:', status, pushError.body || pushError.message);
+      if (status === 404 || status === 410) {
+        // Suscripción expirada o inválida: limpiarla para forzar re-suscripción
+        await base44.asServiceRole.entities.User.update(users[0].id, { push_subscription: null });
+        return Response.json({ error: 'La suscripción push expiró. Pulsa el botón de nuevo para re-suscribirte.' }, { status: 410 });
+      }
+      return Response.json({ error: `El servicio push rechazó el envío (${status || 'sin código'}): ${pushError.body || pushError.message}` }, { status: 500 });
+    }
 
     return Response.json({ success: true });
   } catch (error) {

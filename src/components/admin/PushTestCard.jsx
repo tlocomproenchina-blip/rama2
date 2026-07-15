@@ -28,16 +28,26 @@ export default function PushTestCard({ user }) {
         return;
       }
 
-      // Asegurar suscripción en este dispositivo
-      const registration = await navigator.serviceWorker.ready;
-      let subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
-        const { data } = await base44.functions.invoke('getPushVapidKey', {});
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(data.publicKey),
-        });
+      // Asegurar service worker activo (con registro y timeout para no colgarse)
+      let registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        registration = await navigator.serviceWorker.register('/sw.js');
       }
+      registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('El service worker no está activo. Recarga la página e inténtalo de nuevo.')), 8000)),
+      ]);
+
+      // Crear una suscripción fresca con las claves actuales (evita claves VAPID viejas)
+      const { data } = await base44.functions.invoke('getPushVapidKey', {});
+      const existing = await registration.pushManager.getSubscription();
+      if (existing) {
+        try { await existing.unsubscribe(); } catch (_) {}
+      }
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+      });
       await base44.functions.invoke('savePushSubscription', {
         subscription: subscription.toJSON(),
       });
@@ -66,7 +76,8 @@ export default function PushTestCard({ user }) {
       }
     } catch (error) {
       console.error('Push test error:', error);
-      toast.error('Error al enviar la prueba: ' + (error.message || ''));
+      const serverError = error?.response?.data?.error;
+      toast.error('Error al enviar la prueba: ' + (serverError || error.message || ''));
     } finally {
       setWorking(false);
     }
