@@ -4,10 +4,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Mail, MessageSquare, UserCheck } from 'lucide-react';
 
 export default function AdminSupportTicketsList({
   filteredTickets,
+  selectedTicketIds = [],
+  setSelectedTicketIds = () => {},
   staffUsers,
   roleLabels,
   roleByCategory,
@@ -35,8 +38,22 @@ export default function AdminSupportTicketsList({
     );
   }
 
+  const allSelected = filteredTickets.length > 0 && filteredTickets.every((t) => selectedTicketIds.includes(t.id));
+  const toggleSelectAll = () => {
+    setSelectedTicketIds(allSelected ? [] : filteredTickets.map((t) => t.id));
+  };
+  const toggleSelect = (id) => {
+    setSelectedTicketIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
+  };
+
   return (
     <div className="grid gap-4">
+      <div className="flex items-center gap-2 px-2">
+        <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} id="select-all-tickets" />
+        <label htmlFor="select-all-tickets" className="text-sm text-slate-600 cursor-pointer select-none">
+          Seleccionar todos ({filteredTickets.length})
+        </label>
+      </div>
       {filteredTickets.map((ticket) => {
         const statusInfo = statusConfig[ticket.status];
         const StatusIcon = statusInfo.icon;
@@ -54,6 +71,12 @@ export default function AdminSupportTicketsList({
           >
             <CardContent className="p-5">
               <div className="flex items-start justify-between gap-4">
+                <div className="pt-1">
+                  <Checkbox
+                    checked={selectedTicketIds.includes(ticket.id)}
+                    onCheckedChange={() => toggleSelect(ticket.id)}
+                  />
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start gap-3 mb-3">
                     <div

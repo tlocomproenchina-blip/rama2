@@ -36,6 +36,7 @@ import AdminSupportRealtimeKpis from '@/components/support/AdminSupportRealtimeK
 import AdminSupportChartsPanel from '@/components/support/AdminSupportChartsPanel';
 import AdminSupportNewTicketDialog from '@/components/support/AdminSupportNewTicketDialog';
 import AdminSupportTicketDetailDialog from '@/components/support/AdminSupportTicketDetailDialog';
+import AdminSupportBulkBar from '@/components/support/AdminSupportBulkBar';
 
 export default function AdminSupportTickets({ user }) {
   const [tickets, setTickets] = useState([]);
@@ -84,6 +85,8 @@ export default function AdminSupportTickets({ user }) {
     otro: 'customer_service'
   };
   const [hasMore, setHasMore] = useState(false);
+  const [selectedTicketIds, setSelectedTicketIds] = useState([]);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
   const [openedTicketIds, setOpenedTicketIds] = useState(() => {
     try {
       const saved = localStorage.getItem('adminSupportOpenedTicketIds');
@@ -338,6 +341,90 @@ export default function AdminSupportTickets({ user }) {
     }
   };
 
+  const markTicketsAsSeen = (targets) => {
+    const ids = targets.map((t) => t.id);
+    setManuallyUnreadTicketIds((prev) => prev.filter((id) => !ids.includes(id)));
+    setOpenedTicketIds((prev) => {
+      const next = [...prev];
+      targets.forEach((ticket) => {
+        const lastClientMessage = [...(ticket.messages || [])].reverse().find((msg) => !msg.is_admin);
+        if (!lastClientMessage) return;
+        const key = `${ticket.id}:${lastClientMessage.timestamp}`;
+        if (!next.includes(key)) next.push(key);
+      });
+      return next;
+    });
+  };
+
+  const handleBulkStatusChange = async (newStatus) => {
+    const targets = tickets.filter((t) => selectedTicketIds.includes(t.id));
+    if (targets.length === 0) return;
+    const updates = { status: newStatus };
+    if (newStatus === 'resuelto' || newStatus === 'cerrado') {
+      updates.resolved_date = new Date().toISOString();
+    }
+    setBulkProcessing(true);
+    try {
+      await Promise.all(targets.map((t) => base44.entities.SupportTicket.update(t.id, updates)));
+      const statusMessages = {
+        en_proceso: 'Tu ticket está siendo atendido',
+        resuelto: 'Tu ticket ha sido resuelto',
+        cerrado: 'Tu ticket ha sido cerrado'
+      };
+      targets.forEach((ticket) => {
+        if (statusMessages[newStatus]) {
+          base44.entities.Notification.create({
+            user_email: ticket.client_email,
+            title: '🔔 Actualización de Ticket',
+            message: `${ticket.ticket_number}: ${statusMessages[newStatus]}`,
+            type: 'general',
+            icon: 'check',
+            reference_id: ticket.id
+          }).catch(err => console.error(err));
+        }
+      });
+      setTickets((prev) => prev.map((item) => selectedTicketIds.includes(item.id) ? { ...item, ...updates, updated_date: new Date().toISOString() } : item));
+      markTicketsAsSeen(targets);
+      setSelectedTicketIds([]);
+      toast.success(`${targets.length} ticket(s) actualizados y marcados como vistos`);
+    } catch {
+      toast.error('No se pudieron actualizar algunos tickets');
+    }
+    setBulkProcessing(false);
+  };
+
+  const handleBulkAssign = async (assigneeEmail) => {
+    const targets = tickets.filter((t) => selectedTicketIds.includes(t.id));
+    if (targets.length === 0) return;
+    const assignee = staffUsers.find((member) => member.email === assigneeEmail);
+    setBulkProcessing(true);
+    try {
+      await Promise.all(targets.map((ticket) => base44.entities.SupportTicket.update(ticket.id, {
+        assigned_to: assigneeEmail,
+        status: ticket.status === 'abierto' ? 'en_proceso' : ticket.status
+      })));
+      base44.entities.Notification.create({
+        user_email: assigneeEmail,
+        title: '📋 Tickets Asignados',
+        message: `Se te han asignado ${targets.length} ticket(s): ${targets.map((t) => t.ticket_number).join(', ')}`,
+        type: 'general',
+        icon: 'alert'
+      }).catch(err => console.error(err));
+      setTickets((prev) => prev.map((item) => selectedTicketIds.includes(item.id) ? {
+        ...item,
+        assigned_to: assigneeEmail,
+        status: item.status === 'abierto' ? 'en_proceso' : item.status,
+        updated_date: new Date().toISOString()
+      } : item));
+      markTicketsAsSeen(targets);
+      setSelectedTicketIds([]);
+      toast.success(`${targets.length} ticket(s) asignados a ${assignee?.full_name || assigneeEmail}`);
+    } catch {
+      toast.error('No se pudieron asignar algunos tickets');
+    }
+    setBulkProcessing(false);
+  };
+
   const handleMarkAsUnread = (ticket) => {
     const messages = ticket?.messages || [];
     const lastClientMessage = [...messages].reverse().find((msg) => !msg.is_admin);
@@ -531,8 +618,18 @@ export default function AdminSupportTickets({ user }) {
             setFilterDate={setFilterDate}
             staffUsers={staffUsers}
           />
+          <AdminSupportBulkBar
+            selectedCount={selectedTicketIds.length}
+            staffUsers={staffUsers}
+            onStatusChange={handleBulkStatusChange}
+            onAssign={handleBulkAssign}
+            onClear={() => setSelectedTicketIds([])}
+            processing={bulkProcessing}
+          />
           <AdminSupportTicketsList
             filteredTickets={filteredTickets}
+            selectedTicketIds={selectedTicketIds}
+            setSelectedTicketIds={setSelectedTicketIds}
             staffUsers={staffUsers}
             roleLabels={roleLabels}
             roleByCategory={roleByCategory}
