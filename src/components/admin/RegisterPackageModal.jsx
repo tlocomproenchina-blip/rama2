@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 
 import { Label } from '@/components/ui/label';
@@ -151,8 +152,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       let imageUrls = [];
       if (imageFiles && imageFiles.length > 0) {
         for (const f of imageFiles.slice(0, 3)) {
-          const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-          imageUrls.push(file_url);
+          const url = await uploadImageNoCredits(f);
+          imageUrls.push(url);
         }
       }
 
