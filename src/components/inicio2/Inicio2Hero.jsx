@@ -30,7 +30,7 @@ export default function Inicio2Hero() {
             Llevamos tus compras de <span className="text-orange-500">China a Venezuela</span>
           </h1>
           <p className="mt-6 max-w-lg text-base leading-7 text-zinc-400">
-            Compra en Alibaba, 1688, Pinduoduo, Taobao, Weidian o cualquier tienda online y recíbelo en la puerta de tu casa en Venezuela. Consolidación de mercancía 100% gratuita.
+            Compra en Alibaba, 1688, Pinduoduo, Taobao, Weidian o cualquier tienda online en china y recíbelo en la puerta de tu casa en Venezuela. Consolidación de mercancía 100% gratuita.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
