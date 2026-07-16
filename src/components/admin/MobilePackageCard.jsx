@@ -61,6 +61,9 @@ function MobilePackageCard({
               {pkg.description && (
                 <p className="mt-1 text-sm leading-5 text-muted-foreground">{pkg.description}</p>
               )}
+              {pkg.shipping_company && (
+                <p className="mt-1 text-xs font-medium text-sky-700">🚚 {pkg.shipping_company}</p>
+              )}
             </div>
           </div>
           <StatusBadge status={pkg.status} size="sm" />
