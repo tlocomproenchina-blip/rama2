@@ -5,11 +5,11 @@ import { HelpCircle } from 'lucide-react';
 const faqs = [
   {
     q: '¿Cómo funciona el Casillero Virtual y cuánto cuesta?',
-    a: 'El Casillero Virtual de TLEC Cargo para importar desde China es 100% gratuito. No cobramos mensualidad, afiliación ni registro. Al registrarte obtienes un código exclusivo de cliente (ej: TLEC-5540) y la dirección de nuestro almacén físico en Yiwu, China. Al comprar a tus proveedores de Alibaba, 1688 o tiendas online como Temu y Shein, ingresas esa dirección. Nosotros recibimos tu mercancía, la registramos en sistema, la reempacamos gratis y la llevamos mediante flete marítimo seguro hasta la puerta de tu casa u oficina en Venezuela.',
+    a: 'El Casillero Virtual de TLEC Cargo para importar desde China es 100% gratuito. No cobramos mensualidad, afiliación ni registro. Al registrarte obtienes un código exclusivo de cliente (ej: TLEC-5540) y la dirección de nuestro almacén físico en Yiwu, China. Al comprar a tus proveedores de Alibaba, 1688, Pinduoduo, Weidian, etc, ingresas esa dirección. Nosotros recibimos tu mercancía, la registramos en sistema, la consolidamos y la llevamos mediante flete marítimo seguro hasta la puerta de tu casa u oficina en Venezuela.',
   },
   {
-    q: '¿Qué es el Reempaque Gratuito y cómo me ayuda a ahorrar?',
-    a: 'Las tiendas suelen enviar cajas mucho más grandes de lo necesario. En nuestro almacén de Yiwu descartamos las cajas comerciales sobredimensionadas y consolidamos todas tus compras en una sola caja óptima. Esto reduce el volumen (CBM) de tu carga, que es lo que determina el costo del flete marítimo, ahorrándote dinero en cada envío.',
+    q: '¿Qué es la consolidacion y cómo me ayuda a ahorrar?',
+    a: 'La consolidación en TLEC Cargo consiste en recibir las compras que realizas a distintos proveedores y unificar todos esos paquetes en uno solo. Esto te ayuda a ahorrar porque te permite pagar un único flete por toda tu mercancía agrupada, evitando los altos costos operativos y las tarifas mínimas de hacer envíos individuales por cada paquete.',
   },
   {
     q: '¿Cómo se calcula el costo del Envío Marítimo Consolidado?',
