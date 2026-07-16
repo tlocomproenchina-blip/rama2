@@ -10,7 +10,7 @@ const services = [
     ideal: 'Cajas de alimentos, electrodomésticos, muebles, mudanzas y carga comercial.',
   },
   {
-    icon: Package, color: 'bg-emerald-50 text-emerald-600', tag: 'IDEAL PARA VARIOS PROVEEDORES',
+    icon: Package, color: 'bg-emerald-50 text-emerald-600', tag: 'IDEAL PARA QUIENES TIENEN VARIOS PROVEEDORES',
     title: 'Consolidación',
     desc: 'Combinamos tus compras de múltiples tiendas (Alibaba, 1688, Pinduoduo, Weidian, etc.) en una sola caja óptima para reducir peso volumétrico.',
     details: ['Descarte de cajas comerciales sobredimensionadas.', 'Agrupación en una sola guía para fácil rastreo.'],
