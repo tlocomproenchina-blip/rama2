@@ -239,7 +239,7 @@ export default function Layout({ children, currentPageName }) {
         }
       } catch (_) {}
       // Allow specific public pages without login
-      const publicPages = ['Home', 'ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact'];
+      const publicPages = ['Home', 'ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2'];
       if (publicPages.includes(currentPageName)) {
         setUser(null);
         setLoading(false);
