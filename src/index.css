@@ -219,13 +219,28 @@ input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-sele
     -webkit-overflow-scrolling: touch;
     max-width: 100%;
   }
+  /* Tablas adaptadas al ancho de pantalla: el contenido envuelve en vez de desbordar */
   table {
     width: 100%;
-    min-width: max-content;
+    max-width: 100%;
+    table-layout: auto;
   }
   table td, table th {
-    white-space: nowrap;
-    overflow-wrap: normal;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    font-size: 0.8125rem;
+  }
+  table .font-mono,
+  table code {
+    word-break: break-all;
+  }
+  /* Botones y badges dentro de celdas no deben forzar ancho extra */
+  table td button,
+  table td a[role="button"] {
+    white-space: normal;
   }
 
   .ql-toolbar { max-width: 100% !important; overflow: hidden; }
