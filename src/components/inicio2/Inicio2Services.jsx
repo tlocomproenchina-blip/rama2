@@ -6,7 +6,7 @@ const services = [
     icon: Ship, color: 'bg-sky-50 text-sky-600', tag: 'IDEAL PARA VOLUMEN',
     title: 'Envío Marítimo Consolidado',
     desc: 'Salidas quincenales para cargas pesadas o compras de gran tamaño. Una solución sumamente económica y confiable.',
-    details: ['Tiempo China: 35 a 45 días estimados de navegación.', 'Tarifa China: $320.00 por CBM / metro cúbico (Mínimo $150.00 flete).'],
+    details: ['Tiempo China: 75 a 90 días estimados de navegación.', 'Tarifa por CBM según tu estado de destino — calcúlala arriba en segundos.'],
     ideal: 'Cajas de alimentos, electrodomésticos, muebles, mudanzas y carga comercial.',
   },
   {

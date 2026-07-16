@@ -13,7 +13,7 @@ const faqs = [
   },
   {
     q: '¿Cómo se calcula el costo del Envío Marítimo Consolidado?',
-    a: 'El flete marítimo desde China se calcula por volumen: $320.00 por CBM (metro cúbico), con un mínimo comercial de $150.00 por envío. El CBM se obtiene multiplicando largo × ancho × alto de tu caja. Puedes usar nuestra calculadora en esta misma página para estimar tu costo al instante.',
+    a: 'El flete marítimo desde China se calcula por volumen (CBM = largo × ancho × alto en metros cúbicos) y la tarifa varía según tu estado de destino en Venezuela. Las cargas menores a 0.130 CBM tienen tarifas fijas por rango y llegan a nuestro almacén en Valencia con despacho vía MRW cobro destino. Usa nuestra calculadora en esta misma página para estimar tu costo exacto al instante.',
   },
   {
     q: '¿Cuáles son las formas de pago aceptadas?',

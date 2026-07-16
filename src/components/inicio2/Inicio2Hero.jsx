@@ -63,7 +63,7 @@ export default function Inicio2Hero() {
               <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-orange-400">
                 <Globe2 className="h-4 w-4" /> Ruta Marítima Directa
               </p>
-              <span className="rounded-md bg-white/10 px-2 py-1 text-[10px] font-bold text-zinc-200">35-45 DÍAS</span>
+              <span className="rounded-md bg-white/10 px-2 py-1 text-[10px] font-bold text-zinc-200">75-90 DÍAS</span>
             </div>
             <div className="relative mt-4 flex h-56 items-center justify-center overflow-hidden rounded-xl border border-white/5 bg-zinc-950">
               <div
