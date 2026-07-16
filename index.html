@@ -17,11 +17,22 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
+    <script type="module">
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
-        });
+        if (import.meta.env.DEV) {
+          // In the dev/preview environment: unregister any stale service worker
+          // and clear its caches so old JS chunks are never served.
+          navigator.serviceWorker.getRegistrations()
+            .then((regs) => regs.forEach((reg) => reg.unregister()))
+            .catch(() => {});
+          if (window.caches?.keys) {
+            caches.keys().then((keys) => keys.forEach((key) => caches.delete(key))).catch(() => {});
+          }
+        } else {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+          });
+        }
       }
     </script>
   </body>
