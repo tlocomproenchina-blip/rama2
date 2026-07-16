@@ -12,7 +12,7 @@ const services = [
   {
     icon: Package, color: 'bg-emerald-50 text-emerald-600', tag: '100% GRATUITO',
     title: 'Consolidación',
-    desc: 'Combinamos tus compras de múltiples tiendas (Alibaba, 1688, Temu, Shein, etc.) en una sola caja óptima para reducir peso volumétrico.',
+    desc: 'Combinamos tus compras de múltiples tiendas (Alibaba, 1688, Pinduoduo, Weidian, etc.) en una sola caja óptima para reducir peso volumétrico.',
     details: ['Descarte de cajas comerciales sobredimensionadas.', 'Agrupación en una sola guía para fácil rastreo.'],
     ideal: 'Compras variadas en múltiples tiendas durante la misma semana.',
   },
