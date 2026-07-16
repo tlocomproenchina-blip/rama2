@@ -1,6 +1,6 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
-import { Ship } from 'lucide-react';
+
 
 export default function Inicio2Footer() {
   return (
@@ -18,10 +18,12 @@ export default function Inicio2Footer() {
         </div>
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 sm:flex-row">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white">
-              <Ship className="h-4 w-4" />
-            </div>
-            <p className="font-display text-sm font-extrabold text-white">TLEC<span className="text-orange-500">Cargo</span></p>
+            <img
+              src="https://media.base44.com/images/public/695da428c9924ef9b68e8866/52211ee9d_f747206d-9aac-45da-b57b-eecb77f854af.jpg"
+              alt="TLEC Cargo"
+              className="h-8 w-8 rounded-lg object-cover"
+            />
+            <p className="font-display text-sm font-extrabold text-white">TL<span className="text-orange-500">E</span>C CARGO</p>
           </div>
           <p className="text-xs">© {new Date().getFullYear()} TLEC Cargo. Envíos marítimos de China a Venezuela.</p>
         </div>

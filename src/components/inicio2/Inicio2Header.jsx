@@ -1,6 +1,6 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
-import { Ship, Headphones } from 'lucide-react';
+import { Headphones } from 'lucide-react';
 
 export default function Inicio2Header() {
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -8,12 +8,14 @@ export default function Inicio2Header() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500 text-white">
-            <Ship className="h-5 w-5" />
-          </div>
+          <img
+            src="https://media.base44.com/images/public/695da428c9924ef9b68e8866/52211ee9d_f747206d-9aac-45da-b57b-eecb77f854af.jpg"
+            alt="TLEC Cargo"
+            className="h-10 w-10 rounded-lg object-cover"
+          />
           <div className="leading-tight">
-            <p className="font-display text-base font-extrabold text-white">TLEC<span className="text-orange-500">Cargo</span></p>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-orange-400">Couriers &amp; Logistics</p>
+            <p className="font-display text-base font-extrabold text-white">TL<span className="text-orange-500">E</span>C <span className="text-white">CARGO</span></p>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-orange-400">Lo que necesitas, sin límites</p>
           </div>
         </div>
         <nav className="hidden items-center gap-6 text-sm font-medium text-zinc-300 md:flex">
