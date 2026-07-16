@@ -11,11 +11,11 @@ export default function Inicio2Header() {
           <img
             src="https://media.base44.com/images/public/695da428c9924ef9b68e8866/52211ee9d_f747206d-9aac-45da-b57b-eecb77f854af.jpg"
             alt="TLEC Cargo"
-            className="h-10 w-10 rounded-lg object-cover"
-          />
+            className="h-10 w-10 rounded-lg object-cover" />
+          
           <div className="leading-tight">
             <p className="font-display text-base font-extrabold text-white">TL<span className="text-orange-500">E</span>C <span className="text-white">CARGO</span></p>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-orange-400">Lo que necesitas, sin límites</p>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-orange-400">Couriers & Logistics</p>
           </div>
         </div>
         <nav className="hidden items-center gap-6 text-sm font-medium text-zinc-300 md:flex">
@@ -29,18 +29,18 @@ export default function Inicio2Header() {
           </a>
           <button
             onClick={() => scrollTo('calculadora2')}
-            className="hidden rounded-lg border border-orange-500/60 px-4 py-2 text-sm font-semibold text-orange-400 hover:bg-orange-500/10 sm:block"
-          >
+            className="hidden rounded-lg border border-orange-500/60 px-4 py-2 text-sm font-semibold text-orange-400 hover:bg-orange-500/10 sm:block">
+            
             Cotizar
           </button>
           <button
             onClick={() => base44.auth.redirectToLogin('/Dashboard')}
-            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 hover:bg-orange-600"
-          >
+            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 hover:bg-orange-600">
+            
             Crear Casillero Gratis
           </button>
         </div>
       </div>
-    </header>
-  );
+    </header>);
+
 }
