@@ -1,5 +1,5 @@
 // TLEC CARGO Service Worker
-const CACHE_NAME = 'tlec-cargo-v5';
+const CACHE_NAME = 'tlec-cargo-v6';
 const APP_SHELL = ['/'];
 
 const SHIP_BADGE = 'https://base44.app/api/apps/695da428c9924ef9b68e8866/files/mp/public/695da428c9924ef9b68e8866/f98391e7a_badge-ship.png';
