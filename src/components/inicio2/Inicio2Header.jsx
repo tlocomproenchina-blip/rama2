@@ -1,5 +1,6 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
+import { createPageUrl } from '@/utils';
 import { Headphones } from 'lucide-react';
 
 export default function Inicio2Header() {
@@ -34,10 +35,10 @@ export default function Inicio2Header() {
             Cotizar
           </button>
           <button
-            onClick={() => base44.auth.redirectToLogin('/Dashboard')}
+            onClick={() => base44.auth.redirectToLogin(createPageUrl('ClientPortal'))}
             className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 hover:bg-orange-600">
             
-            Crear Casillero Gratis
+            Iniciar Sesión
           </button>
         </div>
       </div>

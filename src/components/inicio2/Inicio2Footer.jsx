@@ -1,5 +1,6 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
+import { createPageUrl } from '@/utils';
 
 
 export default function Inicio2Footer() {
@@ -10,7 +11,7 @@ export default function Inicio2Footer() {
           <h3 className="font-display text-2xl font-extrabold sm:text-3xl">¿Listo para importar desde China?</h3>
           <p className="mx-auto mt-2 max-w-md text-sm text-orange-100">Abre tu casillero gratis en Yiwu, China y recibe tus compras en la puerta de tu casa en Venezuela.</p>
           <button
-            onClick={() => base44.auth.redirectToLogin('/Dashboard')}
+            onClick={() => base44.auth.redirectToLogin(createPageUrl('ClientPortal'))}
             className="mt-6 rounded-xl bg-white px-8 py-3 text-sm font-bold text-orange-600 shadow-lg hover:bg-orange-50"
           >
             Crear Casillero Gratis

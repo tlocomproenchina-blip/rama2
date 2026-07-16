@@ -1,5 +1,6 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
+import { createPageUrl } from '@/utils';
 import { ArrowRight } from 'lucide-react';
 import InteractiveGlobe from '@/components/inicio2/InteractiveGlobe';
 
@@ -33,7 +34,7 @@ export default function Inicio2Hero() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
-              onClick={() => base44.auth.redirectToLogin('/Dashboard')}
+              onClick={() => base44.auth.redirectToLogin(createPageUrl('ClientPortal'))}
               className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-orange-500/30 hover:bg-orange-600"
             >
               Abrir Casillero Gratis <ArrowRight className="h-4 w-4" />

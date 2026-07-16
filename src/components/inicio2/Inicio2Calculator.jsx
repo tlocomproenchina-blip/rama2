@@ -167,12 +167,6 @@ export default function Inicio2Calculator() {
               </p>
               {result && <p className="mt-2 text-[11px] text-slate-400">Incluye $1.00 de recepción de paquete. No incluye seguro.</p>}
             </div>
-            <button
-              onClick={() => base44.auth.redirectToLogin('/Dashboard')}
-              className="mt-6 w-full rounded-xl bg-orange-500 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 hover:bg-orange-600"
-            >
-              Reservar esta Tarifa
-            </button>
           </div>
         </div>
         )}
