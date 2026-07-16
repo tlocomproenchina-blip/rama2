@@ -10,7 +10,7 @@ const services = [
     ideal: 'Cajas de alimentos, electrodomésticos, muebles, mudanzas y carga comercial.',
   },
   {
-    icon: Package, color: 'bg-emerald-50 text-emerald-600', tag: '100% GRATUITO',
+    icon: Package, color: 'bg-emerald-50 text-emerald-600', tag: '7 DIAS',
     title: 'Consolidación',
     desc: 'Combinamos tus compras de múltiples tiendas (Alibaba, 1688, Pinduoduo, Weidian, etc.) en una sola caja óptima para reducir peso volumétrico.',
     details: ['Descarte de cajas comerciales sobredimensionadas.', 'Agrupación en una sola guía para fácil rastreo.'],
