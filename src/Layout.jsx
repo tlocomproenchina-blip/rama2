@@ -192,7 +192,7 @@ export default function Layout({ children, currentPageName }) {
       }
 
       // Redirect admin to AccountingDashboard when landing on Home/Dashboard or no page specified
-      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Home')) {
+      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Home' || currentPageName === 'Inicio2')) {
         navigate(createPageUrl('AccountingDashboard'));
         setLoading(false);
         return;
@@ -206,7 +206,7 @@ export default function Layout({ children, currentPageName }) {
 
       // Check contract and profile for regular users
       if (currentUser.role === 'user') {
-        if (!currentPageName || currentPageName === 'Home' || currentPageName === 'ClientPortal') {
+        if (!currentPageName || currentPageName === 'Home' || currentPageName === 'ClientPortal' || currentPageName === 'Inicio2') {
           navigate(createPageUrl('Dashboard'));
           setLoading(false);
           return;
