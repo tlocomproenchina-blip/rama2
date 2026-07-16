@@ -24,8 +24,8 @@ const faqs = [
     a: 'No se pueden enviar armas ni réplicas, municiones, explosivos, sustancias ilícitas, material inflamable, baterías de litio sueltas en grandes cantidades, dinero en efectivo, medicamentos sin permiso sanitario y artículos falsificados de marcas registradas. Si tienes dudas sobre un producto específico, consúltanos por WhatsApp antes de comprarlo.',
   },
   {
-    q: '¿Puedo comprar en tiendas de China como Alibaba, Temu, AliExpress o Shein?',
-    a: 'Sí. Puedes comprar en Alibaba, 1688, Taobao, Pinduoduo, Weidian, Temu, AliExpress, Shein y cualquier tienda o proveedor chino que haga entregas dentro de China. Solo colocas la dirección de nuestro almacén en Yiwu como dirección de entrega, y nosotros nos encargamos del resto hasta tu puerta en Venezuela.',
+    q: '¿Puedo comprar en tiendas de China como Alibaba, 1688, Pinduoduo, Weidian?',
+    a: 'Sí. Puedes comprar en Alibaba, 1688, Pinduoduo, Weidian, etc y cualquier tienda o proveedor chino que haga entregas dentro de China. Solo colocas la dirección de nuestro almacén en Yiwu como dirección de entrega, y nosotros nos encargamos del resto hasta tu puerta en Venezuela.',
   },
 ];
 
