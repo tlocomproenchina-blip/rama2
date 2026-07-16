@@ -13,6 +13,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const tracking = String(body.tracking_number || '').trim();
     const description = String(body.description || '').trim();
+    const shippingCompany = String(body.shipping_company || '').trim();
+    if (!shippingCompany) return Response.json({ error: 'Empresa de envío requerida' }, { status: 400 });
     if (!tracking) return Response.json({ error: 'Tracking requerido' }, { status: 400 });
     if (!description) return Response.json({ error: 'Descripción requerida' }, { status: 400 });
 
@@ -24,7 +26,7 @@ Deno.serve(async (req) => {
 
     const newPackage = await base44.asServiceRole.entities.Package.create({
       tracking_number: tracking,
-      shipping_company: String(body.shipping_company || '').trim() || null,
+      shipping_company: shippingCompany,
       client_email: user.email,
       shipping_mark: user.shipping_mark,
       shipping_type: body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo',
