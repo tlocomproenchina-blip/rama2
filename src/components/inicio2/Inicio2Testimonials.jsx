@@ -17,6 +17,56 @@ const testimonials = [
     text: '"Compro repuestos de moto a proveedores en China. El servicio de recepción en Yiwu y consolidación agrupó toda la carga. Llegó todo completo y sin ningún rasguño."',
     route: 'Yiwu → Barquisimeto', item: 'Repuestos Automotrices',
   },
+  {
+    initials: 'FG', color: 'bg-indigo-600', name: 'Frander Guedez', city: 'Puerto Cabello, Carabobo',
+    text: '"Traje varias compras de ropa desde Yiwu y todo llegó agrupado en una sola carga. El proceso de pre-alerta en la app es muy fácil y siempre supe dónde estaba mi mercancía."',
+    route: 'Yiwu → Puerto Cabello', item: 'Blusas y Pantalones',
+  },
+  {
+    initials: 'DA', color: 'bg-rose-600', name: 'Darwin Arroyo', city: 'Barquisimeto, Lara',
+    text: '"Importé calzado para mi tienda y el equipo de TLEC me envió fotos de cada caja al recibirla en el almacén de Yiwu. La carga llegó completa a Barquisimeto."',
+    route: 'Yiwu → Barquisimeto', item: 'Zapatillas y Tacones',
+  },
+  {
+    initials: 'DG', color: 'bg-teal-600', name: 'Dennys Guerra', city: 'Maracaibo, Zulia',
+    text: '"Excelente comunicación durante todo el trayecto marítimo. Mis corsets llegaron perfectos y bien embalados. Ya voy por mi tercera importación con ellos."',
+    route: 'Yiwu → Maracaibo', item: 'Corsets y Ropa',
+  },
+  {
+    initials: 'LH', color: 'bg-amber-600', name: 'Luis Hernández', city: 'San Diego, Carabobo',
+    text: '"Compré papel fotográfico y material de imprenta para mi negocio. Todo llegó seco, protegido y sin daños. La consolidación me ahorró bastante en flete."',
+    route: 'Yiwu → San Diego', item: 'Papel Fotográfico',
+  },
+  {
+    initials: 'SP', color: 'bg-fuchsia-600', name: 'Sinay Peñaloza', city: 'Cúa, Miranda',
+    text: '"Primera vez importando y me guiaron paso a paso por WhatsApp. Mi pedido de pestañas y cosméticos llegó completo hasta Miranda. Muy confiables."',
+    route: 'Yiwu → Cúa', item: 'Pestañas y Cosméticos',
+  },
+  {
+    initials: 'MD', color: 'bg-cyan-600', name: 'María Daniela Díaz', city: 'Puerto La Cruz, Anzoátegui',
+    text: '"El seguimiento en la app es excelente, vi cada cambio de estado de mi carga. Mis blusas tejidas llegaron a Puerto La Cruz en el tiempo estimado."',
+    route: 'Yiwu → Puerto La Cruz', item: 'Blusas Tejidas',
+  },
+  {
+    initials: 'VP', color: 'bg-lime-600', name: 'Víctor Portillo', city: 'Valencia, Carabobo',
+    text: '"Consolidé compras de varios proveedores en Alibaba y TLEC las agrupó todas en Yiwu. Un solo flete, una sola entrega. Así da gusto importar."',
+    route: 'Yiwu → Valencia', item: 'Ropa al Mayor',
+  },
+  {
+    initials: 'GS', color: 'bg-violet-600', name: 'Georgelis Sierra', city: 'Maracaibo, Zulia',
+    text: '"Pedí protector solar y productos de cuidado personal. Me asesoraron sobre qué se podía enviar y todo llegó sin problemas de aduana. 100% recomendados."',
+    route: 'Yiwu → Maracaibo', item: 'Cuidado Personal',
+  },
+  {
+    initials: 'FT', color: 'bg-sky-700', name: 'Freddy Torres', city: 'Barinas, Barinas',
+    text: '"Aunque estoy en Barinas, la entrega llegó hasta mi puerta. Los pantalones y franelas para mi local llegaron completos y en excelente estado."',
+    route: 'Yiwu → Barinas', item: 'Pantalones y Franelas',
+  },
+  {
+    initials: 'GA', color: 'bg-emerald-700', name: 'Gissette Adams', city: 'Zaraza, Guárico',
+    text: '"Vivo en una ciudad pequeña y pensé que sería complicado, pero mi carga llegó hasta Zaraza sin inconvenientes. La atención al cliente es de primera."',
+    route: 'Yiwu → Zaraza', item: 'Mercancía Variada',
+  },
 ];
 
 export default function Inicio2Testimonials() {
