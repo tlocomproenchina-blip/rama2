@@ -87,9 +87,13 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         const info = `Cliente: ${pkg.client_email} · Estado: ${pkg.status}`;
         const alreadyReceived = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'].includes(pkg.status);
         if (alreadyReceived) {
+          const regDate = pkg.received_date || pkg.created_date;
+          const dateStr = regDate
+            ? new Date(regDate).toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : 'sin fecha';
           setTrackingStatusByCode((prev) => ({
             ...prev,
-            [t]: { state: 'already_received', message: `⚠️ Ya fue procesado (${pkg.status}). ${info}` }
+            [t]: { state: 'already_received', message: `⚠️ Ya fue procesado (${pkg.status}) el ${dateStr}. ${info}` }
           }));
         } else {
           setTrackingStatusByCode((prev) => ({
