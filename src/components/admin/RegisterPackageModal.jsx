@@ -192,7 +192,21 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange?.(v); }}>
-      <DialogContent className="max-w-lg overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y">
+      <DialogContent
+        className="max-w-lg overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y"
+        onPaste={(e) => {
+          const items = Array.from(e.clipboardData?.items || []);
+          const files = items
+            .filter((item) => item.type.startsWith('image/'))
+            .map((item) => item.getAsFile())
+            .filter(Boolean);
+          if (files.length > 0) {
+            e.preventDefault();
+            setImageFiles((prev) => [...prev, ...files].slice(0, 3));
+            toast.success(`${files.length} imagen(es) pegada(s)`);
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Recepción de Paquetes</DialogTitle>
           <DialogDescription>Ingresa los números de tracking para marcarlos como recibidos. Cada paquete se asigna automáticamente a su cliente.</DialogDescription>
@@ -400,7 +414,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 ) : (
                   <div className="text-slate-500">
                     <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                    <p className="text-sm">Click para subir hasta 3 fotos</p>
+                    <p className="text-sm">Click para subir hasta 3 fotos o pega una imagen (Ctrl+V)</p>
                   </div>
                 )}
               </label>
