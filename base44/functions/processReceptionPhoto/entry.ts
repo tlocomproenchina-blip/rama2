@@ -23,6 +23,10 @@ Deno.serve(async (req) => {
     const trackingNumber = String(body?.tracking_number || '').trim();
     const clientEmail = String(body?.client_email || '').trim();
     const packageImageUrl = String(body?.package_image_url || '').trim();
+    const bodyUrls = Array.isArray(body?.package_image_urls)
+      ? body.package_image_urls.map((u) => String(u || '').trim()).filter(Boolean).slice(0, 3)
+      : [];
+    const imageUrls = bodyUrls.length ? bodyUrls : (packageImageUrl ? [packageImageUrl] : []);
     const skipEmail = body?.skip_email === true;
 
     if (!trackingNumber) {
@@ -50,14 +54,14 @@ Deno.serve(async (req) => {
         reported: true,
         received_date: new Date().toISOString(),
         received_by: user.email,
-        package_image_url: packageImageUrl || null,
-        package_image_urls: packageImageUrl ? [packageImageUrl] : [],
+        package_image_url: imageUrls[0] || null,
+        package_image_urls: imageUrls,
       });
     } else {
       pkg = await base44.asServiceRole.entities.Package.update(pkg.id, {
-        package_image_url: packageImageUrl || pkg.package_image_url || null,
-        package_image_urls: packageImageUrl
-          ? [packageImageUrl]
+        package_image_url: imageUrls[0] || pkg.package_image_url || null,
+        package_image_urls: imageUrls.length
+          ? imageUrls
           : (Array.isArray(pkg.package_image_urls) ? pkg.package_image_urls : (pkg.package_image_url ? [pkg.package_image_url] : [])),
         status: 'recibido',
         received_date: new Date().toISOString(),

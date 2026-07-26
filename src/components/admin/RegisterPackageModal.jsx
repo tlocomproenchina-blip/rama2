@@ -11,12 +11,13 @@ import { CheckCircle, Image as ImageIcon, Loader2, AlertCircle, Plus, Trash2, Ca
 import { toast } from 'sonner';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 import QuickBulkPreAlertForm from '@/components/admin/QuickBulkPreAlertForm';
+import TrackingPhotoUploader from '@/components/admin/packages/TrackingPhotoUploader';
 
 
 
 export default function RegisterPackageModal({ open, onOpenChange, onCreated }) {
   const [trackingNumbers, setTrackingNumbers] = useState(['']);
-  const [imageFiles, setImageFiles] = useState([]);
+  const [imageFilesByTracking, setImageFilesByTracking] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [trackingStatusByCode, setTrackingStatusByCode] = useState({});
   const [existingPackagesByTracking, setExistingPackagesByTracking] = useState({});
@@ -54,12 +55,13 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       setTrackingStatusByCode((prev) => { const c = { ...prev }; delete c[code]; return c; });
       setExistingPackagesByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
       setScannedPhotoByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
+      setImageFilesByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
     }
   };
 
   const resetForm = () => {
     setTrackingNumbers(['']);
-    setImageFiles([]);
+    setImageFilesByTracking({});
     setTrackingStatusByCode({});
     setExistingPackagesByTracking({});
     setCameraOpen(false);
@@ -153,22 +155,21 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setSubmitting(true);
 
     try {
-      let imageUrls = [];
-      if (imageFiles && imageFiles.length > 0) {
-        for (const f of imageFiles.slice(0, 3)) {
-          const url = await uploadImageNoCredits(f);
-          imageUrls.push(url);
-        }
-      }
-
       const processedPackages = [];
       for (const tracking of validTrackings) {
         const existingPackage = existingPackagesByTracking[tracking];
         const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
+        const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
+        const uploadedUrls = [];
+        for (const f of files) {
+          uploadedUrls.push(await uploadImageNoCredits(f));
+        }
+        const allUrls = [scannedPhotoUrl, ...uploadedUrls].filter(Boolean).slice(0, 3);
         const response = await base44.functions.invoke('processReceptionPhoto', {
           tracking_number: tracking,
           client_email: existingPackage.client_email,
-          package_image_url: scannedPhotoUrl || ((imageUrls && imageUrls[0]) ? imageUrls[0] : null),
+          package_image_url: allUrls[0] || null,
+          package_image_urls: allUrls,
           skip_email: true,
         });
         processedPackages.push(response?.data?.package || existingPackage);
@@ -202,8 +203,17 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             .filter(Boolean);
           if (files.length > 0) {
             e.preventDefault();
-            setImageFiles((prev) => [...prev, ...files].slice(0, 3));
-            toast.success(`${files.length} imagen(es) pegada(s)`);
+            const filled = trackingNumbers.map((t) => t.trim()).filter(Boolean);
+            const target = filled[filled.length - 1];
+            if (!target) {
+              toast.error('Ingresa primero un número de tracking');
+              return;
+            }
+            setImageFilesByTracking((prev) => ({
+              ...prev,
+              [target]: [...(prev[target] || []), ...files].slice(0, 3)
+            }));
+            toast.success(`Imagen agregada al tracking ${target}`);
           }
         }}
       >
@@ -393,33 +403,27 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             )}
           </div>
 
-          {/* Fotos (hasta 3) */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Fotos del paquete (opcional, máx. 3)</Label>
-            <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-blue-400 transition-colors">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => setImageFiles(Array.from(e.target.files || []).slice(0,3))}
-                className="hidden"
-                id="reg-pkg-image"
-              />
-              <label htmlFor="reg-pkg-image" className="cursor-pointer">
-                {imageFiles && imageFiles.length > 0 ? (
-                  <div className="flex items-center justify-center gap-2 text-emerald-600">
-                    <CheckCircle className="h-5 w-5" />
-                    <span className="font-medium text-sm">{imageFiles.length} archivo(s) seleccionados</span>
-                  </div>
-                ) : (
-                  <div className="text-slate-500">
-                    <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                    <p className="text-sm">Click para subir hasta 3 fotos o pega una imagen (Ctrl+V)</p>
-                  </div>
-                )}
-              </label>
-            </div>
-          </div>
+          {/* Fotos por tracking (hasta 3 c/u) */}
+          {(() => {
+            const filled = [...new Set(trackingNumbers.map((t) => t.trim()).filter(Boolean))];
+            if (filled.length === 0) return null;
+            return (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Fotos por paquete (opcional, máx. 3 c/u)</Label>
+                <div className="space-y-2">
+                  {filled.map((code) => (
+                    <TrackingPhotoUploader
+                      key={code}
+                      trackingCode={code}
+                      files={imageFilesByTracking[code] || []}
+                      onChange={(next) => setImageFilesByTracking((prev) => ({ ...prev, [code]: next }))}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500">También puedes pegar una imagen (Ctrl+V); se asigna al último tracking ingresado.</p>
+              </div>
+            );
+          })()}
         </div>
 
         <DialogFooter>
