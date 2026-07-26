@@ -99,15 +99,25 @@ export default function AdminCbmIngresos({ user }) {
     setLoadingClients(false);
   };
 
+  // Orden descendente por número de orden (271, 270, 269...); los sin orden van al final por fecha
+  const sortByOrderDesc = (list) => [...list].sort((a, b) => {
+    const na = parseFloat(a.invoice_number);
+    const nb = parseFloat(b.invoice_number);
+    const va = Number.isFinite(na) ? na : -Infinity;
+    const vb = Number.isFinite(nb) ? nb : -Infinity;
+    if (vb !== va) return vb - va;
+    return new Date(b.fecha || 0) - new Date(a.fecha || 0);
+  });
+
   const filteredIngresos = useMemo(() => {
     const q = orderSearch.trim().toLowerCase();
     // Cuando hay búsqueda por orden, buscar en TODO el histórico, ignorando el período y el filtro de disponibilidad
     if (q) {
-      return (allIngresos || []).filter((item) => String(item.invoice_number || '').toLowerCase().includes(q));
+      return sortByOrderDesc((allIngresos || []).filter((item) => String(item.invoice_number || '').toLowerCase().includes(q)));
     }
     // Filtro "Sin fecha de salida": busca en TODO el histórico
     if (sinSalidaFilter) {
-      return (allIngresos || []).filter((item) => !item.fecha_salida && !item.disponible_entrega);
+      return sortByOrderDesc((allIngresos || []).filter((item) => !item.fecha_salida && !item.disponible_entrega));
     }
     let result = [...ingresos];
     if (availabilityFilter === 'available') {
@@ -115,7 +125,7 @@ export default function AdminCbmIngresos({ user }) {
     } else if (availabilityFilter === 'unavailable') {
       result = result.filter((item) => !item.disponible_entrega);
     }
-    return result;
+    return sortByOrderDesc(result);
   }, [ingresos, allIngresos, availabilityFilter, orderSearch, sinSalidaFilter]);
 
   const totalCbm = useMemo(() =>
@@ -215,6 +225,18 @@ export default function AdminCbmIngresos({ user }) {
     const cbmVal = parseFloat(form.cbm);
     if (!cbmVal || cbmVal <= 0) { toast.error('Ingresa un CBM válido'); return; }
     if (!form.client_email) { toast.error('Selecciona un cliente'); return; }
+    // Bloquear números de orden duplicados
+    const orderNum = String(form.invoice_number || '').trim();
+    if (orderNum) {
+      const dup = (allIngresos || []).find((i) =>
+        i.id !== editingId &&
+        String(i.invoice_number || '').trim().toLowerCase() === orderNum.toLowerCase()
+      );
+      if (dup) {
+        toast.error(`El número de orden ${orderNum} ya está registrado (${dup.client_name || dup.client_email || 'otro registro'}). Usa un número diferente.`);
+        return;
+      }
+    }
     setSaving(true);
     const fechaObj = form.fecha ? new Date(form.fecha) : new Date();
     const payload = {
