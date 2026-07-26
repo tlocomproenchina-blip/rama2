@@ -255,8 +255,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
               {[...trackingNumbers].reverse().map((tracking, revIndex) => {
                 const index = trackingNumbers.length - 1 - revIndex;
                 return (
-                <div key={index} className="flex items-center gap-2 min-w-0">
-                  <div className="relative flex-1">
+                <div key={index} className="flex items-center gap-2 min-w-0 w-full max-w-full">
+                  <div className="relative flex-1 min-w-0 overflow-hidden">
                     <Input
                       placeholder={`Ingresa el número de tracking ${index + 1}`}
                       value={tracking}
@@ -309,7 +309,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10"
+                      className="h-10 w-10 shrink-0"
                       onClick={() => {
                         const next = trackingNumbers.filter((_, itemIndex) => itemIndex !== index);
                         setTrackingNumbers(next.length ? next : ['']);
