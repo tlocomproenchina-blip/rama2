@@ -25,6 +25,7 @@ export default function AdminManualBilling() {
   const [manualInsurance, setManualInsurance] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [providerInvoiceUrl, setProviderInvoiceUrl] = useState('');
+  const [manualReceiptNumber, setManualReceiptNumber] = useState('');
   const [creating, setCreating] = useState(false);
   const [recovering, setRecovering] = useState(false);
 
@@ -168,9 +169,21 @@ export default function AdminManualBilling() {
   const total = shippingTotal + insuranceTotal + consolidationFee;
 
   const handleCreate = async () => {
-    if (selectedRows.length === 0) { toast.error('Selecciona al menos una factura'); return; }
+    const manualReceipt = String(manualReceiptNumber || '').trim();
+    if (selectedRows.length === 0 && !manualReceipt) { toast.error('Selecciona al menos una factura o ingresa un número de recibo nuevo'); return; }
+    if (selectedRows.length === 0 && num(billedCbm) <= 0) { toast.error('Ingresa el CBM facturado (manual) para el recibo nuevo'); return; }
     setCreating(true);
     try {
+      // Validar que el número de recibo nuevo no exista ya
+      if (manualReceipt) {
+        const existing = await base44.entities.CbmIngreso.filter({ invoice_number: manualReceipt }, '-fecha', 1).catch(() => []);
+        if (existing && existing.length > 0) {
+          toast.error(`El número de recibo ${manualReceipt} ya existe. Usa uno diferente.`);
+          setCreating(false);
+          return;
+        }
+      }
+
       const totalCbm = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
       const billedCbmValue = billedCbm !== '' ? num(billedCbm) : totalCbm;
 
@@ -178,7 +191,10 @@ export default function AdminManualBilling() {
       const items = [];
       // Envío SIEMPRE consolidado: un solo item con el CBM total de todas las cargas
       const consolidatedShipping = calcShipping(billedCbmValue);
-      const sourceOrders = selectedRows.map((r) => r.invoice_number).filter((n) => n && n !== '—');
+      const sourceOrders = [
+        ...selectedRows.map((r) => r.invoice_number).filter((n) => n && n !== '—'),
+        ...(manualReceipt ? [manualReceipt] : []),
+      ];
       items.push({
         description: `Envío - ${sourceOrders.length > 0 ? `${sourceOrders.join(' - ')} - ` : ''}${billedCbmValue.toFixed(4)} CBM facturado`,
         quantity: 1,
@@ -226,7 +242,7 @@ export default function AdminManualBilling() {
       const invoice = await base44.entities.Invoice.create({
         invoice_number: `INV-M-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         client_email: client.email,
-        consolidation_id: selectedRows[0].consolidation_id || 'manual',
+        consolidation_id: selectedRows[0]?.consolidation_id || 'manual',
         consolidation_tracking: selectedRows.map((r) => r.consolidation_tracking).filter(Boolean).join(', '),
         invoice_date: new Date().toISOString(),
         due_date: dueDate.toISOString(),
@@ -238,13 +254,29 @@ export default function AdminManualBilling() {
         payment_method: paymentMethod || undefined,
         billed_cbm: billedCbmValue,
         total_cbm: totalCbm,
-        notes: `Factura manual combinada generada desde ${selectedRows.length} factura(s): ${selectedRows.map((r) => r.invoice_number).join(', ')}. CBM total: ${totalCbm.toFixed(5)} | CBM facturado: ${billedCbmValue.toFixed(5)}`,
+        notes: `Factura manual combinada generada desde ${sourceOrders.length} recibo(s): ${sourceOrders.join(', ')}. CBM total: ${totalCbm.toFixed(5)} | CBM facturado: ${billedCbmValue.toFixed(5)}`,
       });
 
       // Marcar los registros de CBM usados como facturados (se liberan al desconsolidar)
       await Promise.all(selectedRows.map((r) =>
         base44.entities.CbmIngreso.update(r.id, { billed: true, billed_invoice_id: invoice.id })
       ));
+
+      // Registrar el recibo nuevo como CbmIngreso ya facturado
+      if (manualReceipt) {
+        const newReceiptCbm = Math.max(billedCbmValue - totalCbm, 0);
+        await base44.entities.CbmIngreso.create({
+          fecha: new Date().toISOString(),
+          cbm: newReceiptCbm,
+          mes: new Date().toISOString().slice(0, 7),
+          client_email: client.email,
+          client_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.full_name || client.email,
+          shipping_mark: client.shipping_mark || '',
+          invoice_number: manualReceipt,
+          billed: true,
+          billed_invoice_id: invoice.id,
+        }).catch(() => {});
+      }
 
       toast.success(`Factura ${invoice.invoice_number} generada`);
 
@@ -267,6 +299,7 @@ export default function AdminManualBilling() {
       setBilledCbm('');
       setManualInsurance('');
       setProviderInvoiceUrl('');
+      setManualReceiptNumber('');
     } catch {
       toast.error('Error al generar la factura');
     }
@@ -371,9 +404,11 @@ export default function AdminManualBilling() {
               appConfig={appConfig}
               onCreate={handleCreate}
               creating={creating}
-              canCreate={selectedRows.length > 0}
+              canCreate={selectedRows.length > 0 || (manualReceiptNumber.trim() !== '' && num(billedCbm) > 0)}
               billedCbm={billedCbm}
               setBilledCbm={setBilledCbm}
+              manualReceiptNumber={manualReceiptNumber}
+              setManualReceiptNumber={setManualReceiptNumber}
               providerInvoiceUrl={providerInvoiceUrl}
               setProviderInvoiceUrl={setProviderInvoiceUrl}
             />

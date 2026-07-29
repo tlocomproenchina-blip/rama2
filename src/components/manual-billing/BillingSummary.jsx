@@ -15,6 +15,7 @@ export default function BillingSummary({
   paymentMethod, setPaymentMethod, appConfig, onCreate, creating, canCreate,
   billedCbm, setBilledCbm,
   providerInvoiceUrl, setProviderInvoiceUrl,
+  manualReceiptNumber, setManualReceiptNumber,
 }) {
   const selected = rows.filter(r => r.selected);
   const selectedCount = selected.length;
@@ -42,6 +43,16 @@ export default function BillingSummary({
             placeholder={`Ej: ${totalCbm.toFixed(5)}`}
           />
           <p className="text-xs text-slate-500">CBM que se mostrará en la factura. Déjalo vacío para usar el CBM total.</p>
+        </div>
+
+        <div className="space-y-2 border-t pt-3">
+          <Label className="text-sm">Número de recibo nuevo (opcional)</Label>
+          <Input
+            value={manualReceiptNumber || ''}
+            onChange={(e) => setManualReceiptNumber(e.target.value)}
+            placeholder="Ej: 272"
+          />
+          <p className="text-xs text-slate-500">Permite facturar sin seleccionar registros. El recibo se registrará automáticamente con el CBM facturado.</p>
         </div>
 
         <div className="space-y-2 border-t pt-3">
