@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, ScanLine, Truck } from 'lucide-react';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import DispatchResultCard from '@/components/warehouse/DispatchResultCard';
+import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 import DispatchGroupedList from '@/components/warehouse/DispatchGroupedList';
 
 export default function WarehouseDispatch() {
@@ -24,7 +25,8 @@ export default function WarehouseDispatch() {
       if (action === 'dispatch') setScans((prev) => [data, ...prev]);
     } catch (error) {
       const message = error?.response?.data?.error || error?.message || 'Error al procesar el escaneo';
-      setLastResult({ error: message, tracking: cleaned });
+      const notFound = error?.response?.status === 404 || error?.response?.data?.not_found;
+      setLastResult({ error: message, tracking: cleaned, not_found: !!notFound });
     } finally {
       setProcessing(false);
     }
@@ -71,6 +73,14 @@ export default function WarehouseDispatch() {
         onMarkReceived={handleMarkReceived}
         onMarkDispatched={handleMarkDispatched}
       />
+
+      {lastResult?.not_found && lastResult?.tracking && (
+        <QuickPreAlertForm
+          trackingNumber={lastResult.tracking}
+          onCreated={() => handleScan(lastResult.tracking)}
+          onCancel={() => setLastResult(null)}
+        />
+      )}
 
       {scans.length === 0 && !lastResult && (
         <div className="text-center py-10 text-slate-400">
