@@ -6,6 +6,7 @@ import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import DispatchResultCard from '@/components/warehouse/DispatchResultCard';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 import DispatchGroupedList from '@/components/warehouse/DispatchGroupedList';
+import RecentDispatchOrders from '@/components/warehouse/RecentDispatchOrders';
 
 export default function WarehouseDispatch() {
   const [code, setCode] = useState('');
@@ -90,6 +91,8 @@ export default function WarehouseDispatch() {
       )}
 
       <DispatchGroupedList scans={scans} />
+
+      <RecentDispatchOrders />
     </div>
   );
 }

@@ -16,7 +16,9 @@ export default function DispatchOrderButton({ group, email }) {
 
       const client = group.items.find((i) => i.client)?.client || {};
       const now = new Date();
-      const orderNumber = `OD-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+      const pad = (n) => String(n).padStart(2, '0');
+      const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
+      const orderNumber = `OD-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}-${rand}`;
 
       const orderData = {
         order_number: orderNumber,
@@ -41,9 +43,9 @@ export default function DispatchOrderButton({ group, email }) {
         dispatched_date: now.toISOString(),
       };
 
-      await base44.entities.DispatchOrder.create(orderData).catch(() => null);
+      await base44.entities.DispatchOrder.create(orderData);
       await generateDispatchOrderPdf(orderData, appName);
-      toast.success('Orden de despacho generada y guardada en el historial');
+      toast.success(`Orden ${orderNumber} generada y guardada en el historial`);
     } catch (error) {
       console.error('Error generando orden:', error);
       toast.error('Error al generar la orden de despacho');

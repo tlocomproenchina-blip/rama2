@@ -17,7 +17,7 @@ export default function WarehouseDispatchHistory({ user }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const rows = await base44.entities.DispatchOrder.list('-dispatched_date', 100);
+      const rows = await base44.entities.DispatchOrder.list('-created_date', 100);
       setOrders(rows || []);
     } catch (e) {
       toast.error('No se pudo cargar el historial');
