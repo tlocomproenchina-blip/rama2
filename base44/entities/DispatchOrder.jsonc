@@ -1,0 +1,124 @@
+{
+  "name": "DispatchOrder",
+  "type": "object",
+  "properties": {
+    "order_number": {
+      "type": "string",
+      "description": "N\u00famero \u00fanico de la orden de despacho"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark del cliente"
+    },
+    "client_snapshot": {
+      "type": "object",
+      "description": "Datos del cliente al momento del despacho",
+      "properties": {
+        "full_name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "cedula": {
+          "type": "string"
+        },
+        "whatsapp": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "shipping_mark": {
+          "type": "string"
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "default": [],
+      "description": "Paquetes incluidos en la orden",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tracking_number": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "emitida",
+        "cancelada"
+      ],
+      "default": "emitida",
+      "description": "Estado de la orden de despacho"
+    },
+    "dispatched_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de emisi\u00f3n de la orden"
+    },
+    "cancelled_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de cancelaci\u00f3n"
+    },
+    "cancelled_by": {
+      "type": "string",
+      "description": "Usuario que cancel\u00f3 la orden"
+    },
+    "created_by_email": {
+      "type": "string",
+      "description": "Usuario que emiti\u00f3 la orden"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas de la orden"
+    }
+  },
+  "required": [
+    "client_email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
