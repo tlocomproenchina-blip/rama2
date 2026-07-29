@@ -12,16 +12,16 @@ export default function WarehouseDispatch() {
   const [lastResult, setLastResult] = useState(null);
   const [scans, setScans] = useState([]);
 
-  const handleScan = useCallback(async (tracking) => {
+  const runScan = useCallback(async (tracking, action) => {
     const cleaned = (tracking || '').trim();
     if (!cleaned || processing) return;
     setProcessing(true);
-    setCode('');
+    if (action === 'lookup') setCode('');
     try {
-      const response = await base44.functions.invoke('scanDispatchPackage', { tracking_number: cleaned });
+      const response = await base44.functions.invoke('scanDispatchPackage', { tracking_number: cleaned, action });
       const data = response?.data || response;
       setLastResult(data);
-      setScans((prev) => [data, ...prev]);
+      if (action === 'dispatch') setScans((prev) => [data, ...prev]);
     } catch (error) {
       const message = error?.response?.data?.error || error?.message || 'Error al procesar el escaneo';
       setLastResult({ error: message, tracking: cleaned });
@@ -29,6 +29,10 @@ export default function WarehouseDispatch() {
       setProcessing(false);
     }
   }, [processing]);
+
+  const handleScan = useCallback((tracking) => runScan(tracking, 'lookup'), [runScan]);
+  const handleMarkReceived = useCallback((tracking) => runScan(tracking, 'receive'), [runScan]);
+  const handleMarkDispatched = useCallback((tracking) => runScan(tracking, 'dispatch'), [runScan]);
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -46,7 +50,7 @@ export default function WarehouseDispatch() {
         title="Escaneo de despacho"
         description="Usa la cámara, una lectora USB o escribe el tracking para despachar."
         placeholder="Escanea o escribe el tracking"
-        actionLabel="Despachar"
+        actionLabel="Buscar"
         value={code}
         onValueChange={setCode}
         onDetected={handleScan}
@@ -61,7 +65,12 @@ export default function WarehouseDispatch() {
         </Card>
       )}
 
-      <DispatchResultCard result={lastResult} />
+      <DispatchResultCard
+        result={lastResult}
+        processing={processing}
+        onMarkReceived={handleMarkReceived}
+        onMarkDispatched={handleMarkDispatched}
+      />
 
       {scans.length === 0 && !lastResult && (
         <div className="text-center py-10 text-slate-400">

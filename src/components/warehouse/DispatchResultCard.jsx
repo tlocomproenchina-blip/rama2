@@ -1,9 +1,10 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, Package as PackageIcon, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { User, Package as PackageIcon, CheckCircle2, AlertTriangle, Truck, Loader2 } from 'lucide-react';
 
-export default function DispatchResultCard({ result }) {
+export default function DispatchResultCard({ result, onMarkReceived, onMarkDispatched, processing }) {
   if (!result) return null;
 
   if (result.error) {
@@ -36,11 +37,13 @@ export default function DispatchResultCard({ result }) {
           </div>
           <div className="flex flex-col items-end gap-1">
             {result.already_dispatched ? (
-              <Badge className="bg-amber-500 text-white">Ya estaba despachado</Badge>
-            ) : (
-              <Badge className="bg-emerald-600 text-white">
-                <CheckCircle2 className="h-3 w-3 mr-1" /> Despachado
+              <Badge className="bg-amber-500 text-white">Despachado</Badge>
+            ) : result.is_received ? (
+              <Badge className="bg-blue-600 text-white">
+                <CheckCircle2 className="h-3 w-3 mr-1" /> Recibido
               </Badge>
+            ) : (
+              <Badge className="bg-slate-500 text-white">Pre-alerta (sin recibir)</Badge>
             )}
             {result.auto_received && (
               <Badge variant="outline" className="border-blue-400 text-blue-700 bg-blue-50">
@@ -55,6 +58,23 @@ export default function DispatchResultCard({ result }) {
           <span className="text-slate-400">·</span>
           <span className="truncate">{result.package?.description}</span>
         </div>
+
+        {(onMarkReceived || onMarkDispatched) && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {!result.is_received && onMarkReceived && (
+              <Button variant="outline" disabled={processing} onClick={() => onMarkReceived(result.package?.tracking_number)}>
+                {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Marcar como recibido
+              </Button>
+            )}
+            {!result.already_dispatched && onMarkDispatched && (
+              <Button disabled={processing} onClick={() => onMarkDispatched(result.package?.tracking_number)}>
+                {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
+                Marcar como despachado
+              </Button>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

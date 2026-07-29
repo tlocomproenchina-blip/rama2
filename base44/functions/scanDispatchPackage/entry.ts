@@ -7,7 +7,8 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Solo personal autorizado' }, { status: 403 });
 
-    const { tracking_number } = await req.json();
+    const { tracking_number, action } = await req.json();
+    const mode = action || 'dispatch'; // 'lookup' | 'receive' | 'dispatch'
     const tracking = (tracking_number || '').trim();
     if (!tracking) return Response.json({ error: 'tracking_number requerido' }, { status: 400 });
 
@@ -18,6 +19,77 @@ Deno.serve(async (req) => {
     }
 
     const previousStatus = pkg.status;
+
+    const loadClient = async () => {
+      try {
+        const users = await base44.asServiceRole.entities.User.filter({ email: pkg.client_email });
+        const c = users?.[0];
+        return c ? {
+          full_name: c.full_name,
+          email: c.email,
+          shipping_mark: c.shipping_mark,
+          city: c.city,
+          state: c.state,
+          cedula: c.cedula,
+          whatsapp: c.whatsapp,
+          address: c.address
+        } : null;
+      } catch (_) { return null; }
+    };
+
+    // Solo consultar: no modifica nada, permite decidir manualmente
+    if (mode === 'lookup') {
+      const c = await loadClient();
+      return Response.json({
+        success: true,
+        mode: 'lookup',
+        already_dispatched: previousStatus === 'despachado',
+        is_received: previousStatus !== 'pre_alerta',
+        auto_received: false,
+        previous_status: previousStatus,
+        package: {
+          id: pkg.id,
+          tracking_number: pkg.tracking_number,
+          description: pkg.description,
+          shipping_type: pkg.shipping_type,
+          client_email: pkg.client_email,
+          shipping_mark: pkg.shipping_mark || c?.shipping_mark,
+          dispatched_date: pkg.dispatched_date
+        },
+        client: c
+      });
+    }
+
+    // Marcar como recibido únicamente
+    if (mode === 'receive') {
+      const nowR = new Date().toISOString();
+      if (previousStatus === 'pre_alerta') {
+        await base44.asServiceRole.entities.Package.update(pkg.id, {
+          status: 'recibido',
+          received_date: nowR,
+          received_by: user.email
+        });
+      }
+      const c = await loadClient();
+      return Response.json({
+        success: true,
+        mode: 'receive',
+        already_dispatched: false,
+        is_received: true,
+        auto_received: previousStatus === 'pre_alerta',
+        previous_status: previousStatus,
+        package: {
+          id: pkg.id,
+          tracking_number: pkg.tracking_number,
+          description: pkg.description,
+          shipping_type: pkg.shipping_type,
+          client_email: pkg.client_email,
+          shipping_mark: pkg.shipping_mark || c?.shipping_mark
+        },
+        client: c
+      });
+    }
+
     if (previousStatus === 'despachado') {
       // Ya fue despachado: solo informar, no volver a marcar
       let clientDup = null;
@@ -74,7 +146,9 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
+      mode: 'dispatch',
       already_dispatched: false,
+      is_received: true,
       auto_received: autoReceived,
       previous_status: previousStatus,
       package: {
