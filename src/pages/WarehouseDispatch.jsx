@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, ScanLine, Truck } from 'lucide-react';
-import BarcodeScannerControl from '@/components/warehouse/BarcodeScannerControl';
+import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import DispatchResultCard from '@/components/warehouse/DispatchResultCard';
 import DispatchGroupedList from '@/components/warehouse/DispatchGroupedList';
 
@@ -42,24 +42,24 @@ export default function WarehouseDispatch() {
         </p>
       </div>
 
-      <Card>
-        <CardContent className="p-4 space-y-3">
-          <BarcodeScannerControl
-            value={code}
-            onChange={setCode}
-            onSubmit={handleScan}
-            placeholder="Escanea o escribe el tracking"
-            buttonLabel="Despachar"
-            helperText="Puedes usar lectora USB, la cámara del dispositivo o escribir el código."
-            submitDisabled={processing}
-          />
-          {processing && (
+      <BarcodeScannerModule
+        title="Escaneo de despacho"
+        description="Usa la cámara, una lectora USB o escribe el tracking para despachar."
+        placeholder="Escanea o escribe el tracking"
+        actionLabel="Despachar"
+        value={code}
+        onValueChange={setCode}
+        onDetected={handleScan}
+      />
+      {processing && (
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" /> Procesando escaneo...
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <DispatchResultCard result={lastResult} />
 
