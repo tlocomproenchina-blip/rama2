@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
 import DispatchOrderButton from '@/components/warehouse/DispatchOrderButton';
 
-export default function DispatchGroupedList({ scans }) {
+export default function DispatchGroupedList({ scans, onOrderCreated }) {
   const groups = {};
   scans.forEach((s) => {
     if (s.error) return;
@@ -39,7 +39,7 @@ export default function DispatchGroupedList({ scans }) {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary">{group.items.length} paquete{group.items.length !== 1 ? 's' : ''}</Badge>
-                <DispatchOrderButton group={group} email={email} />
+                <DispatchOrderButton group={group} email={email} onCreated={onOrderCreated} />
               </div>
             </div>
             <ul className="space-y-1">

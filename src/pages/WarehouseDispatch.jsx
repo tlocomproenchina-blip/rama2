@@ -13,6 +13,7 @@ export default function WarehouseDispatch() {
   const [processing, setProcessing] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [scans, setScans] = useState([]);
+  const [ordersKey, setOrdersKey] = useState(0);
 
   const runScan = useCallback(async (tracking, action) => {
     const cleaned = (tracking || '').trim();
@@ -23,7 +24,12 @@ export default function WarehouseDispatch() {
       const response = await base44.functions.invoke('scanDispatchPackage', { tracking_number: cleaned, action });
       const data = response?.data || response;
       setLastResult(data);
-      if (action === 'dispatch') setScans((prev) => [data, ...prev]);
+      if (data?.package?.tracking_number) {
+        setScans((prev) => [
+          data,
+          ...prev.filter((s) => s?.package?.tracking_number !== data.package.tracking_number)
+        ]);
+      }
     } catch (error) {
       const message = error?.response?.data?.error || error?.message || 'Error al procesar el escaneo';
       const notFound = error?.response?.status === 404 || error?.response?.data?.not_found;
@@ -90,9 +96,9 @@ export default function WarehouseDispatch() {
         </div>
       )}
 
-      <DispatchGroupedList scans={scans} />
+      <DispatchGroupedList scans={scans} onOrderCreated={() => setOrdersKey((k) => k + 1)} />
 
-      <RecentDispatchOrders />
+      <RecentDispatchOrders key={ordersKey} />
     </div>
   );
 }

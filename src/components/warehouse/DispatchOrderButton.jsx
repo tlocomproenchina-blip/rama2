@@ -5,7 +5,7 @@ import { FileDown, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateDispatchOrderPdf } from '@/lib/dispatchOrderPdf';
 
-export default function DispatchOrderButton({ group, email }) {
+export default function DispatchOrderButton({ group, email, onCreated }) {
   const [generating, setGenerating] = useState(false);
 
   const generateOrder = async () => {
@@ -46,6 +46,7 @@ export default function DispatchOrderButton({ group, email }) {
       await base44.entities.DispatchOrder.create(orderData);
       await generateDispatchOrderPdf(orderData, appName);
       toast.success(`Orden ${orderNumber} generada y guardada en el historial`);
+      onCreated?.();
     } catch (error) {
       console.error('Error generando orden:', error);
       toast.error('Error al generar la orden de despacho');
