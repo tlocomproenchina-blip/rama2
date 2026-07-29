@@ -40,6 +40,7 @@ import SidebarVisibilityManager from '@/components/admin/SidebarVisibilityManage
 import ClientMenuVisibilityManager from '@/components/admin/ClientMenuVisibilityManager';
 import { cacheManager } from '@/components/CacheManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
+import { generateClientPriceListPdf } from '@/lib/clientPriceListPdf';
 import PushTestCard from '@/components/admin/PushTestCard';
 
 const VENEZUELAN_STATES = [
@@ -427,6 +428,19 @@ export default function AdminSettings({ user }) {
     state.state_name.toLowerCase().includes(stateSearch.toLowerCase())
   );
 
+  const handleDownloadClientPriceList = async () => {
+    try {
+      await generateClientPriceListPdf({
+        states: statesConfig.filter((s) => s.is_active),
+        pricing: pricingConfig,
+        appConfig
+      });
+      toast.success('PDF de tarifas generado');
+    } catch (error) {
+      toast.error('Error al generar el PDF de tarifas');
+    }
+  };
+
   const handleDownloadPricePdf = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -692,6 +706,10 @@ export default function AdminSettings({ user }) {
                 <Button variant="outline" onClick={handleDownloadPricePdf} className="w-full sm:w-auto">
                   <Download className="h-4 w-4 mr-2" />
                   Descargar PDF
+                </Button>
+                <Button variant="outline" onClick={handleDownloadClientPriceList} className="w-full sm:w-auto">
+                  <Download className="h-4 w-4 mr-2" />
+                  PDF tarifas por estado (clientes)
                 </Button>
               </div>
 
