@@ -7,11 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Loader2, UserPlus, X, Plane, Ship } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
+import useClientSearch from '@/hooks/useClientSearch';
 
 export default function QuickPreAlertForm({ trackingNumber, onCreated, onCancel }) {
-  const [clientSearch, setClientSearch] = useState('');
-  const [clientResults, setClientResults] = useState([]);
-  const [searching, setSearching] = useState(false);
+  const { query: clientSearch, setQuery: setClientSearch, results: clientResults, setResults: setClientResults, searching } = useClientSearch();
   const [selectedClient, setSelectedClient] = useState(null);
   const [shippingType, setShippingType] = useState('');
   const [creating, setCreating] = useState(false);
@@ -31,32 +30,6 @@ export default function QuickPreAlertForm({ trackingNumber, onCreated, onCancel 
       setShippingType(shippingOptions[0].value);
     }
   }, [enabledTypes.loading, shippingOptions.length]);
-
-  useEffect(() => {
-    if (!clientSearch || clientSearch.length < 2) {
-      setClientResults([]);
-      return;
-    }
-    clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        // Búsqueda vía backend (service role): funciona para cualquier admin,
-        // sin depender de listar todos los usuarios desde el cliente.
-        const res = await base44.functions.invoke('listClientsForSupport', {
-          q: clientSearch,
-          limit: 8,
-          includeCounts: false,
-        });
-        setClientResults(res?.data?.data || []);
-      } catch (e) {
-        setClientResults([]);
-        toast.error('No se pudo buscar clientes. Intenta de nuevo.');
-      }
-      setSearching(false);
-    }, 400);
-    return () => clearTimeout(searchTimeout.current);
-  }, [clientSearch]);
 
   const handleCreate = async () => {
     if (!selectedClient || !trackingNumber) return;

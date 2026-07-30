@@ -1,36 +1,11 @@
-import React, { useState } from 'react';
-import { base44 } from '@/components/api/ApiQueueManager';
+import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Loader2, User } from 'lucide-react';
+import useClientSearch from '@/hooks/useClientSearch';
 
 export default function ClientSearchBox({ onSelect }) {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-
-  const runSearch = async (q) => {
-    setQuery(q);
-    if (!q || q.length < 2) {
-      setResults([]);
-      return;
-    }
-    setSearching(true);
-    try {
-      const all = await base44.entities.User.filter({ role: 'user' }, '-created_date', 500);
-      const lower = q.toLowerCase();
-      const filtered = (all || []).filter((u) =>
-        (u.full_name || '').toLowerCase().includes(lower) ||
-        (u.email || '').toLowerCase().includes(lower) ||
-        (u.shipping_mark || '').toLowerCase().includes(lower) ||
-        (u.whatsapp || '').toLowerCase().includes(lower)
-      ).slice(0, 15);
-      setResults(filtered);
-    } catch {
-      setResults([]);
-    }
-    setSearching(false);
-  };
+  const { query, setQuery, results, setResults, searching } = useClientSearch({ limit: 15 });
 
   return (
     <div className="space-y-2">
@@ -38,7 +13,7 @@ export default function ClientSearchBox({ onSelect }) {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
         <Input
           value={query}
-          onChange={(e) => runSearch(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar cliente por nombre, email, shipping mark o WhatsApp..."
           className="pl-10"
         />

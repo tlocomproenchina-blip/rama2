@@ -15,13 +15,8 @@ export default function DispatchOrderButton({ group, email, onCreated }) {
       const appName = configs?.[0]?.app_name || 'TLEC CARGO';
 
       const client = group.items.find((i) => i.client)?.client || {};
-      const now = new Date();
-      const pad = (n) => String(n).padStart(2, '0');
-      const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
-      const orderNumber = `OD-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}-${rand}`;
 
-      const orderData = {
-        order_number: orderNumber,
+      const payload = {
         client_email: email,
         client_name: client.full_name || group.name || email,
         shipping_mark: group.mark || client.shipping_mark || '',
@@ -39,13 +34,15 @@ export default function DispatchOrderButton({ group, email, onCreated }) {
           tracking_number: i.package?.tracking_number || '',
           description: i.package?.description || '',
         })),
-        status: 'emitida',
-        dispatched_date: now.toISOString(),
       };
 
-      await base44.entities.DispatchOrder.create(orderData);
+      // El número de orden se genera en el backend para garantizar unicidad
+      const res = await base44.functions.invoke('createDispatchOrder', payload);
+      const orderData = res?.data?.order;
+      if (!orderData) throw new Error('No se pudo crear la orden');
+
       await generateDispatchOrderPdf(orderData, appName);
-      toast.success(`Orden ${orderNumber} generada y guardada en el historial`);
+      toast.success(`Orden ${orderData.order_number} generada y guardada en el historial`);
       onCreated?.();
     } catch (error) {
       console.error('Error generando orden:', error);

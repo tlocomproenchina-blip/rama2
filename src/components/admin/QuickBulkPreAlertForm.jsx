@@ -7,11 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Loader2, UserPlus, X, Plane, Ship, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
+import useClientSearch from '@/hooks/useClientSearch';
 
 export default function QuickBulkPreAlertForm({ trackingNumbers = [], onCreated, onCancel }) {
-  const [clientSearch, setClientSearch] = useState('');
-  const [clientResults, setClientResults] = useState([]);
-  const [searching, setSearching] = useState(false);
+  const { query: clientSearch, setQuery: setClientSearch, results: clientResults, setResults: setClientResults, searching } = useClientSearch();
   const [selectedClient, setSelectedClient] = useState(null);
   const [shippingType, setShippingType] = useState('');
   const [creating, setCreating] = useState(false);
@@ -30,41 +29,6 @@ export default function QuickBulkPreAlertForm({ trackingNumbers = [], onCreated,
       setShippingType(shippingOptions[0].value);
     }
   }, [enabledTypes.loading, shippingOptions.length]);
-
-  useEffect(() => {
-    if (!clientSearch || clientSearch.length < 2) {
-      setClientResults([]);
-      return;
-    }
-    clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(async () => {
-      setSearching(true);
-      try {
-        let allUsers = [];
-        let skip = 0;
-        while (true) {
-          const batch = await base44.entities.User.list('-created_date', 200, skip);
-          if (!batch || batch.length === 0) break;
-          allUsers = allUsers.concat(batch);
-          if (batch.length < 200) break;
-          skip += 200;
-        }
-        const q = clientSearch.toLowerCase();
-        const matches = allUsers.filter(u => u.role === 'user' && (
-          (u.full_name || '').toLowerCase().includes(q) ||
-          (u.email || '').toLowerCase().includes(q) ||
-          (u.shipping_mark || '').toLowerCase().includes(q) ||
-          (u.first_name || '').toLowerCase().includes(q) ||
-          (u.last_name || '').toLowerCase().includes(q)
-        )).slice(0, 8);
-        setClientResults(matches);
-      } catch (_) {
-        setClientResults([]);
-      }
-      setSearching(false);
-    }, 400);
-    return () => clearTimeout(searchTimeout.current);
-  }, [clientSearch]);
 
   const handleCreate = async () => {
     if (!selectedClient || trackingNumbers.length === 0) return;

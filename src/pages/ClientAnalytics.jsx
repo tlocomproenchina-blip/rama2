@@ -44,32 +44,19 @@ export default function ClientAnalytics() {
   const [pricing, setPricing] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
 
+  // Preselección de cliente si viene ?q= en la URL (búsqueda en backend)
   const loadClients = async () => {
     try {
       setLoadingClients(true);
-      const users = await base44.entities.User.list('-created_date', 500);
-      const customerUsers = (users || []).filter((item) => !item.role || item.role === 'user');
-      setClients(customerUsers);
-
-      // Preseleccionar cliente si viene ?q= en la URL
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const q = (params.get('q') || '').trim().toLowerCase();
-        if (q) {
-          const match = customerUsers.find((u) =>
-            (u.email || '').toLowerCase() === q ||
-            (u.email || '').toLowerCase().includes(q) ||
-            (u.full_name || '').toLowerCase().includes(q) ||
-            (u.shipping_mark || '').toLowerCase().includes(q)
-          );
-          if (match) {
-            setSelectedClient(match);
-            setSearchTerm(match.full_name || match.email);
-          }
-        }
-      } catch {}
+      const params = new URLSearchParams(window.location.search);
+      const q = (params.get('q') || '').trim();
+      if (q) {
+        const res = await base44.functions.invoke('listClientsForSupport', { q, limit: 1, includeCounts: false });
+        const match = res?.data?.data?.[0];
+        if (match) setSelectedClient(match);
+      }
     } catch {
-      toast.error('No se pudieron cargar los clientes');
+      toast.error('No se pudo cargar el cliente');
     }
     setLoadingClients(false);
   };
@@ -183,9 +170,6 @@ export default function ClientAnalytics() {
       </div>
 
       <ClientAnalyticsSearch
-        clients={clients}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
         selectedClient={selectedClient}
         onSelectClient={setSelectedClient}
       />

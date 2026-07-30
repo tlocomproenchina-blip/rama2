@@ -1,42 +1,27 @@
-import React, { useMemo } from 'react';
-import { Search, X } from 'lucide-react';
+import React from 'react';
+import { Search, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import useClientSearch from '@/hooks/useClientSearch';
 
-export default function ClientAnalyticsSearch({
-  clients,
-  searchTerm,
-  setSearchTerm,
-  selectedClient,
-  onSelectClient
-}) {
-  const filteredClients = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return [];
-
-    return clients
-      .filter((client) => {
-        const name = String(client.full_name || '').toLowerCase();
-        const email = String(client.email || '').toLowerCase();
-        const shippingMark = String(client.shipping_mark || '').toLowerCase();
-        return name.includes(term) || email.includes(term) || shippingMark.includes(term);
-      })
-      .slice(0, 8);
-  }, [clients, searchTerm]);
+export default function ClientAnalyticsSearch({ selectedClient, onSelectClient }) {
+  const { query, setQuery, results, setResults, searching } = useClientSearch();
 
   return (
     <div className="relative">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar cliente por nombre, email o shipping mark"
           className="h-11 rounded-xl border-slate-200 bg-white pl-10 pr-10 shadow-sm"
         />
-        {searchTerm && (
+        {searching ? (
+          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
+        ) : query && (
           <button
             type="button"
-            onClick={() => setSearchTerm('')}
+            onClick={() => { setQuery(''); setResults([]); }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
           >
             <X className="h-4 w-4" />
@@ -44,16 +29,13 @@ export default function ClientAnalyticsSearch({
         )}
       </div>
 
-      {searchTerm && filteredClients.length > 0 && (
+      {results.length > 0 && (
         <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-          {filteredClients.map((client) => (
+          {results.map((client) => (
             <button
               key={client.id}
               type="button"
-              onClick={() => {
-                onSelectClient(client);
-                setSearchTerm('');
-              }}
+              onClick={() => { onSelectClient(client); setQuery(''); setResults([]); }}
               className="flex w-full flex-col items-start gap-1 border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50"
             >
               <span className="font-medium text-slate-800">{client.full_name || 'Sin nombre'}</span>
