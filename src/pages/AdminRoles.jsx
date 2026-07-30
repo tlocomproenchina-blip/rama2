@@ -17,6 +17,11 @@ const PERMISSION_PAGES = adminMenuItems
   .map((item) => item.page)
   .filter((page) => !['AdminAdministrators', 'AdminRoles', 'AdminDelete', 'AdminSettings'].includes(page));
 
+// Módulos que corresponden por defecto a cada área. El rol Administrador
+// recibe acceso a todos los módulos del sistema.
+const defaultPagesFor = (roleCode) =>
+  roleCode === 'administrador' ? PERMISSION_PAGES : (ROLE_PRESETS[roleCode]?.visible_pages || []);
+
 export default function AdminRoles({ user }) {
   const [admins, setAdmins] = useState([]);
   const [roleConfigs, setRoleConfigs] = useState({});
@@ -36,13 +41,16 @@ export default function AdminRoles({ user }) {
 
       setAdmins(adminUsers || []);
 
-      const mappedConfigs = { ...ROLE_PRESETS };
+      const mappedConfigs = {};
+      ROLE_OPTIONS.forEach((code) => {
+        mappedConfigs[code] = { ...ROLE_PRESETS[code], visible_pages: defaultPagesFor(code) };
+      });
       (configRows || []).forEach((row) => {
-        if (row?.role_code) {
+        if (row?.role_code && mappedConfigs[row.role_code]) {
           mappedConfigs[row.role_code] = {
             ...mappedConfigs[row.role_code],
             ...row,
-            visible_pages: row.visible_pages || mappedConfigs[row.role_code]?.visible_pages || []
+            visible_pages: row.visible_pages?.length ? row.visible_pages : defaultPagesFor(row.role_code)
           };
         }
       });
@@ -90,9 +98,19 @@ export default function AdminRoles({ user }) {
       // Aplicar automáticamente los permisos predeterminados del área
       if (nextRole !== 'sin_area') {
         const savedConfig = await ensureRoleConfig(base44, nextRole);
-        if (savedConfig?.id && !roleConfigs[nextRole]?.id) {
-          setRoleConfigs((prev) => ({ ...prev, [nextRole]: { ...prev[nextRole], ...savedConfig } }));
+        if (savedConfig?.id) {
+          setRoleConfigs((prev) => ({
+            ...prev,
+            [nextRole]: {
+              ...prev[nextRole],
+              ...savedConfig,
+              visible_pages: savedConfig.visible_pages?.length
+                ? savedConfig.visible_pages
+                : defaultPagesFor(nextRole)
+            }
+          }));
         }
+        setSelectedRoleCode(nextRole);
       }
       await createAuditLog({
         target_email: targetUser.email,
@@ -278,9 +296,19 @@ export default function AdminRoles({ user }) {
                 <>
                   {selectedRoleCode === 'administrador' && (
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-                      El rol <strong>Administrador</strong> tiene acceso completo a todos los módulos. Si no marcas ningún módulo, no se aplica ninguna restricción. Marca módulos solo si quieres limitarlo.
+                      El rol <strong>Administrador</strong> tiene marcados todos los módulos del sistema. Desmarca solo los que quieras restringir.
                     </div>
                   )}
+                  <Button
+                    variant="outline"
+                    onClick={() => setRoleConfigs((prev) => ({
+                      ...prev,
+                      [selectedRoleCode]: { ...prev[selectedRoleCode], visible_pages: defaultPagesFor(selectedRoleCode) }
+                    }))}
+                    className="w-full"
+                  >
+                    Restaurar módulos predeterminados de {config.role_name}
+                  </Button>
                   <RolePermissionsCard
                     roleName={config.role_name}
                     description={config.description}
