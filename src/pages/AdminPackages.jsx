@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { base44 } from '@/components/api/ApiQueueManager';
 
@@ -87,6 +87,20 @@ export default function AdminPackages({ user }) {
   const [preAlertInvoiceFile, setPreAlertInvoiceFile] = useState(null);
   const [editPackageModal, setEditPackageModal] = useState(null);
   const [editPackageProcessing, setEditPackageProcessing] = useState(false);
+
+  // Deep link desde notificaciones: ?packageId=... busca ese tracking
+  useEffect(() => {
+    const packageId = new URLSearchParams(window.location.search).get('packageId');
+    if (!packageId) return;
+    (async () => {
+      try {
+        const pkg = await base44.entities.Package.get(packageId);
+        if (pkg?.tracking_number) setSearch(pkg.tracking_number);
+      } catch {
+        toast.error('No se encontró el paquete de la notificación');
+      }
+    })();
+  }, []);
 
   const handleSavePackageEdit = async (patch) => {
     if (!editPackageModal) return;

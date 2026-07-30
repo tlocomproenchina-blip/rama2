@@ -442,6 +442,20 @@ export default function AdminSupportTickets({ user }) {
     loadData();
   }, [loadData]);
 
+  // Deep link desde notificaciones: ?ticketId=... abre el ticket
+  useEffect(() => {
+    const ticketId = new URLSearchParams(window.location.search).get('ticketId');
+    if (!ticketId || loading) return;
+    const found = tickets.find((t) => t.id === ticketId);
+    if (found) {
+      setSelectedTicket(found);
+      return;
+    }
+    base44.entities.SupportTicket.get(ticketId)
+      .then((t) => t && setSelectedTicket(t))
+      .catch(() => toast.error('No se encontró el ticket de la notificación'));
+  }, [loading]);
+
   useEffect(() => {
     localStorage.setItem('adminSupportOpenedTicketIds', JSON.stringify(openedTicketIds));
   }, [openedTicketIds]);

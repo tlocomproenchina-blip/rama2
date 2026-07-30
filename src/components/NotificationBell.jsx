@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getNotificationUrl } from '@/lib/notificationTarget';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -99,23 +100,11 @@ export default function NotificationBell({ user }) {
       await base44.entities.Notification.update(notif.id, { read: true });
     }
 
-    // Navigate based on type and reference_id
-    if (notif.reference_id) {
-      try {
-        if (notif.type === 'package') {
-          const pageName = user.role === 'admin' ? 'AdminPackages' : 'MyPackages';
-          navigate(createPageUrl(pageName));
-        } else if (notif.type === 'consolidation') {
-          const pageName = user.role === 'admin' ? 'ShipmentTracking' : 'MyConsolidations';
-          navigate(createPageUrl(pageName));
-        } else if (notif.type === 'payment') {
-          const pageName = user.role === 'admin' ? 'AdminInvoices' : 'MyInvoices';
-          navigate(createPageUrl(pageName));
-        }
-        setOpen(false);
-      } catch (error) {
-        console.error('Navigation error:', error);
-      }
+    // Navigate directly to the related record
+    const url = getNotificationUrl(notif, user);
+    if (url) {
+      setOpen(false);
+      navigate(url);
     }
   };
 
