@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Loader2, ShieldCheck, UserMinus, UserPlus, Search, Briefcase, Users, KeyRound, Mail } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ROLE_PRESETS } from '@/lib/rolePermissions';
 import PageHero from '@/components/common/PageHero';
@@ -115,6 +116,20 @@ export default function AdminAdministrators({ user }) {
         badge="Acceso administrativo"
         title="Administradores"
         description="Gestiona administradores, revisa si tienen área asignada y accede al módulo de Roles para controlar permisos por área."
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => setOpenInvite(true)} className="bg-blue-600 hover:bg-blue-700">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Invitar administrador
+            </Button>
+            <Button asChild variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+              <Link to="/AdminRoles">
+                <KeyRound className="mr-2 h-4 w-4" />
+                Editar roles y permisos
+              </Link>
+            </Button>
+          </div>
+        }
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

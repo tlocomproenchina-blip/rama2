@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Briefcase, Loader2, Mail, Search, ShieldCheck, UserCog, Users } from 'lucide-react';
+import { Briefcase, KeyRound, Loader2, Mail, Search, ShieldCheck, UserCog, UserPlus, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ROLE_OPTIONS, ROLE_PRESETS } from '@/lib/rolePermissions';
 import PageHero from '@/components/common/PageHero';
@@ -201,6 +202,20 @@ export default function AdminEmployees({ user }) {
         badge="Gestión de empleados internos"
         title="Empleados"
         description="Visualiza, busca y edita a los empleados del sistema, incluyendo la asignación directa del rol por área."
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => setOpenInvite(true)} className="bg-blue-600 hover:bg-blue-700">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Agregar empleado
+            </Button>
+            <Button asChild variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+              <Link to="/AdminRoles">
+                <KeyRound className="mr-2 h-4 w-4" />
+                Roles y permisos por área
+              </Link>
+            </Button>
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -332,6 +347,10 @@ export default function AdminEmployees({ user }) {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-slate-500">
+                Los módulos que puede ver cada área se configuran en{' '}
+                <Link to="/AdminRoles" className="font-medium text-blue-600 underline">Roles y permisos</Link>.
+              </p>
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Dirección</Label>
