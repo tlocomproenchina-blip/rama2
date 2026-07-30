@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Briefcase, KeyRound, Loader2, Mail, Search, ShieldCheck, UserCog, UserPlus, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ROLE_OPTIONS, ROLE_PRESETS } from '@/lib/rolePermissions';
+import { ROLE_OPTIONS, ROLE_PRESETS, ensureRoleConfig } from '@/lib/rolePermissions';
 import PageHero from '@/components/common/PageHero';
 
 export default function AdminEmployees({ user }) {
@@ -109,6 +109,9 @@ export default function AdminEmployees({ user }) {
         .map(([key]) => key);
 
       await base44.entities.User.update(editingEmployee.id, payload);
+      if (payload.custom_role) {
+        try { await ensureRoleConfig(base44, payload.custom_role); } catch {}
+      }
       await createAuditLog({
         target_email: editingEmployee.email,
         target_name: editingEmployee.full_name || `${payload.first_name || ''} ${payload.last_name || ''}`.trim(),
@@ -141,6 +144,9 @@ export default function AdminEmployees({ user }) {
           role: 'admin',
           custom_role: inviteArea === 'sin_area' ? null : inviteArea,
         });
+        if (inviteArea !== 'sin_area') {
+          try { await ensureRoleConfig(base44, inviteArea); } catch {}
+        }
 
         await createAuditLog({
           target_email: normalizedEmail,

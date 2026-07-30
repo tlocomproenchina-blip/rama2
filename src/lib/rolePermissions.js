@@ -1,4 +1,10 @@
 export const ROLE_PRESETS = {
+  administrador: {
+    role_code: 'administrador',
+    role_name: 'Administrador',
+    description: 'Acceso completo a todos los módulos del sistema, sin restricciones.',
+    visible_pages: []
+  },
   operaciones: {
     role_code: 'operaciones',
     role_name: 'Operaciones',
@@ -103,4 +109,21 @@ export const PAGE_LABELS = {
 
 export function getDefaultRoleConfig(roleCode) {
   return ROLE_PRESETS[roleCode] || null;
+}
+
+// Asegura que exista un RoleConfig en la base de datos con los permisos
+// predeterminados del área. Se llama al asignar un área a un empleado para
+// que sus permisos queden aplicados automáticamente.
+export async function ensureRoleConfig(base44, roleCode) {
+  const preset = ROLE_PRESETS[roleCode];
+  if (!preset) return null;
+  const rows = await base44.entities.RoleConfig.filter({ role_code: roleCode }, '-updated_date', 1);
+  if (rows?.length) return rows[0];
+  return base44.entities.RoleConfig.create({
+    role_code: roleCode,
+    role_name: preset.role_name,
+    description: preset.description,
+    visible_pages: preset.visible_pages || [],
+    is_active: true,
+  });
 }

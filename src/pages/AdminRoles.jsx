@@ -9,7 +9,7 @@ import { Loader2, Search, ShieldCheck, Briefcase, Save, Users, KeyRound, LayoutP
 import { toast } from 'sonner';
 import RolePermissionsCard from '@/components/admin/RolePermissionsCard';
 import RoleAreaSidebar from '@/components/admin/RoleAreaSidebar';
-import { ROLE_OPTIONS, ROLE_PRESETS, PAGE_LABELS } from '@/lib/rolePermissions';
+import { ROLE_OPTIONS, ROLE_PRESETS, PAGE_LABELS, ensureRoleConfig } from '@/lib/rolePermissions';
 import { adminMenuItems } from '@/components/sidebar/sidebarConfig';
 import PageHero from '@/components/common/PageHero';
 
@@ -87,6 +87,13 @@ export default function AdminRoles({ user }) {
     setProcessingUserId(targetUser.id);
     try {
       await base44.entities.User.update(targetUser.id, { custom_role: nextRole === 'sin_area' ? null : nextRole });
+      // Aplicar automáticamente los permisos predeterminados del área
+      if (nextRole !== 'sin_area') {
+        const savedConfig = await ensureRoleConfig(base44, nextRole);
+        if (savedConfig?.id && !roleConfigs[nextRole]?.id) {
+          setRoleConfigs((prev) => ({ ...prev, [nextRole]: { ...prev[nextRole], ...savedConfig } }));
+        }
+      }
       await createAuditLog({
         target_email: targetUser.email,
         target_name: targetUser.full_name || targetUser.email,
@@ -269,6 +276,11 @@ export default function AdminRoles({ user }) {
               const config = roleConfigs[selectedRoleCode] || ROLE_PRESETS[selectedRoleCode];
               return (
                 <>
+                  {selectedRoleCode === 'administrador' && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                      El rol <strong>Administrador</strong> tiene acceso completo a todos los módulos. Si no marcas ningún módulo, no se aplica ninguna restricción. Marca módulos solo si quieres limitarlo.
+                    </div>
+                  )}
                   <RolePermissionsCard
                     roleName={config.role_name}
                     description={config.description}
