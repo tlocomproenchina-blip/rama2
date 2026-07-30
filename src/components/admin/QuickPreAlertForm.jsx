@@ -41,26 +41,17 @@ export default function QuickPreAlertForm({ trackingNumber, onCreated, onCancel 
     searchTimeout.current = setTimeout(async () => {
       setSearching(true);
       try {
-        let allUsers = [];
-        let skip = 0;
-        while (true) {
-          const batch = await base44.entities.User.list('-created_date', 200, skip);
-          if (!batch || batch.length === 0) break;
-          allUsers = allUsers.concat(batch);
-          if (batch.length < 200) break;
-          skip += 200;
-        }
-        const q = clientSearch.toLowerCase();
-        const matches = allUsers.filter(u => u.role === 'user' && (
-          (u.full_name || '').toLowerCase().includes(q) ||
-          (u.email || '').toLowerCase().includes(q) ||
-          (u.shipping_mark || '').toLowerCase().includes(q) ||
-          (u.first_name || '').toLowerCase().includes(q) ||
-          (u.last_name || '').toLowerCase().includes(q)
-        )).slice(0, 8);
-        setClientResults(matches);
-      } catch (_) {
+        // Búsqueda vía backend (service role): funciona para cualquier admin,
+        // sin depender de listar todos los usuarios desde el cliente.
+        const res = await base44.functions.invoke('listClientsForSupport', {
+          q: clientSearch,
+          limit: 8,
+          includeCounts: false,
+        });
+        setClientResults(res?.data?.data || []);
+      } catch (e) {
         setClientResults([]);
+        toast.error('No se pudo buscar clientes. Intenta de nuevo.');
       }
       setSearching(false);
     }, 400);
