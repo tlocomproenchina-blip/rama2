@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
 import { getEmailQueueStats } from '@/components/NotificationUtils';
 import { logActionAudit } from '@/lib/actionAudit';
+import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
 
 export default function AdminEmailCampaigns({ user }) {
   const [clients, setClients] = useState([]);
@@ -105,9 +106,10 @@ export default function AdminEmailCampaigns({ user }) {
   };
 
   const loadClients = async () => {
+    // Paginado: sin esto el backend devuelve solo los primeros 200 registros
     const [users, pkgs] = await Promise.all([
-      base44.entities.User.filter({ role: 'user' }),
-      base44.entities.Package.list()
+      fetchAllPaginated('User', { method: 'filter', query: { role: 'user' }, sort: '-created_date' }),
+      fetchAllPaginated('Package', { sort: '-created_date' })
     ]);
     setClients(users);
     setPackages(pkgs);
