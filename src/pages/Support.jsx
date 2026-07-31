@@ -173,6 +173,7 @@ export default function Support({ user }) {
     setSelectedTicket(updatedTicket);
     // Optimistic update local
     setTickets((prev) => prev.map((t) => t.id === selectedTicket.id ? updatedTicket : t));
+    return true;
   };
 
   const getTicketPhotoLimit = (ticket) => {
