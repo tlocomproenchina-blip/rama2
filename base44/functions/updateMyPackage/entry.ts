@@ -17,12 +17,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No autorizado para este paquete' }, { status: 403 });
     }
 
-    // Bloqueo total: un paquete recibido o entregado no puede ser modificado ni borrado por el cliente
-    if (user.role !== 'admin' && ['recibido', 'entregado'].includes(pkg.status)) {
-      return Response.json({ error: 'El paquete ya fue recibido/entregado y no puede modificarse ni eliminarse' }, { status: 403 });
-    }
-
     if (action === 'delete') {
+      if (user.role !== 'admin' && ['recibido', 'entregado'].includes(pkg.status)) {
+        return Response.json({ error: 'El paquete ya fue recibido/entregado y no puede eliminarse' }, { status: 403 });
+      }
       if (pkg.status !== 'pre_alerta') {
         return Response.json({ error: 'Solo se pueden eliminar pre-alertas' }, { status: 403 });
       }
@@ -31,7 +29,7 @@ Deno.serve(async (req) => {
     }
 
     // Campos permitidos para el cliente
-    const allowedFields = ['tracking_number', 'description', 'shipping_type', 'seller_delivery_date'];
+    const allowedFields = ['tracking_number', 'description', 'shipping_type', 'seller_delivery_date', 'has_insurance', 'fob_value', 'invoice_url'];
     const safeUpdates = {};
     for (const key of allowedFields) {
       if (updates && Object.prototype.hasOwnProperty.call(updates, key)) {
@@ -42,9 +40,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Sin cambios válidos' }, { status: 400 });
     }
 
-    // Edición completa solo en pre-alerta; la fecha del vendedor se permite siempre
-    const onlySellerDate = Object.keys(safeUpdates).every((k) => k === 'seller_delivery_date');
-    if (!onlySellerDate && pkg.status !== 'pre_alerta' && user.role !== 'admin') {
+    // Edición completa solo en pre-alerta; la fecha del vendedor y los datos de seguro se permiten siempre
+    const flexibleFields = ['seller_delivery_date', 'has_insurance', 'fob_value', 'invoice_url'];
+    const onlyFlexible = Object.keys(safeUpdates).every((k) => flexibleFields.includes(k));
+    if (!onlyFlexible && pkg.status !== 'pre_alerta' && user.role !== 'admin') {
       return Response.json({ error: 'Solo se pueden editar pre-alertas' }, { status: 403 });
     }
 

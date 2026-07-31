@@ -33,6 +33,7 @@ import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
+import InsurePackageModal from '@/components/client-portal/InsurePackageModal';
 
 export default function MyPackages({ user }) {
   const PAGE_SIZE = 200;
@@ -52,6 +53,7 @@ export default function MyPackages({ user }) {
   const [deleting, setDeleting] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [insureModal, setInsureModal] = useState(null);
 
   useEffect(() => {
     loadPackages(false);
@@ -296,11 +298,26 @@ export default function MyPackages({ user }) {
 
                   {/* Badges */}
                   <div className="flex flex-wrap items-center gap-2">
-                    {pkg.has_insurance && (
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">
+                    {pkg.has_insurance ? (
+                      <Badge
+                        variant="outline"
+                        className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs cursor-pointer"
+                        onClick={() => setInsureModal(pkg)}
+                      >
                         <Shield className="h-3 w-3 mr-1" />
                         Asegurado
                       </Badge>
+                    ) : (
+                      !['despachado', 'entregado'].includes(pkg.status) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setInsureModal(pkg)}
+                          className="text-emerald-700 border-emerald-200 text-xs"
+                        >
+                          <Shield className="h-3 w-3 mr-1" /> Asegurar
+                        </Button>
+                      )
                     )}
                     {(pkg.package_image_urls && pkg.package_image_urls.length > 0 || pkg.package_image_url) && (
                       <Button
@@ -504,6 +521,13 @@ export default function MyPackages({ user }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Insure Package Modal */}
+      <InsurePackageModal
+        pkg={insureModal}
+        onClose={() => setInsureModal(null)}
+        onSaved={(id, updates) => setPackages((prev) => prev.map((p) => p.id === id ? { ...p, ...updates } : p))}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
