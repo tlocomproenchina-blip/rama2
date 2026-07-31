@@ -195,8 +195,16 @@ export default function AdminManualBilling() {
         ...selectedRows.map((r) => r.invoice_number).filter((n) => n && n !== '—'),
         ...(manualReceipt ? [manualReceipt] : []),
       ];
+      // Detalle por recibo: número + CBM individual
+      const manualReceiptCbm = Math.max(billedCbmValue - totalCbm, 0);
+      const orderDetails = [
+        ...selectedRows
+          .filter((r) => r.invoice_number && r.invoice_number !== '—')
+          .map((r) => `${r.invoice_number} (${num(r.cbm).toFixed(4)} CBM)`),
+        ...(manualReceipt ? [`${manualReceipt} (${manualReceiptCbm.toFixed(4)} CBM)`] : []),
+      ];
       items.push({
-        description: `Envío - ${sourceOrders.length > 0 ? `${sourceOrders.join(' - ')} - ` : ''}${billedCbmValue.toFixed(4)} CBM facturado`,
+        description: `Envío - ${orderDetails.length > 0 ? `${orderDetails.join(' + ')} = ` : ''}${billedCbmValue.toFixed(4)} CBM facturado`,
         quantity: 1,
         unit_price: consolidatedShipping,
         total: consolidatedShipping,
