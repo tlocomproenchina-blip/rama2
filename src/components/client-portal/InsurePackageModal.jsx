@@ -76,7 +76,7 @@ export default function InsurePackageModal({ pkg, onClose, onSaved }) {
             <Label>Foto de la factura *</Label>
             <Input
               type="file"
-              accept="image/*,application/pdf"
+              accept="image/*"
               onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
               className="mt-1"
             />
