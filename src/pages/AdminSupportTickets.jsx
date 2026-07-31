@@ -494,11 +494,12 @@ export default function AdminSupportTickets({ user }) {
     const lastClientMessage = [...msgs].reverse().find((msg) => !msg.is_admin);
     if (!lastClientMessage) return false;
 
-    const lastAdminMessage = [...msgs].reverse().find((msg) => msg.is_admin);
-    const lastClientTime = new Date(lastClientMessage.timestamp || 0).getTime();
-    const lastAdminTime = new Date(lastAdminMessage?.timestamp || 0).getTime();
+    // Usar el ORDEN de los mensajes (no las horas, que dependen del reloj de cada dispositivo):
+    // si el último mensaje de la conversación es del admin, el ticket ya está respondido.
+    const lastClientIdx = msgs.map((m) => !m.is_admin).lastIndexOf(true);
+    const lastAdminIdx = msgs.map((m) => !!m.is_admin).lastIndexOf(true);
 
-    if (lastAdminTime >= lastClientTime) return false;
+    if (lastAdminIdx > lastClientIdx) return false;
 
     const lastMessageKey = `${ticket.id}:${lastClientMessage.timestamp}`;
     return !openedTicketIds.includes(lastMessageKey);

@@ -38,10 +38,10 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
     const lastClientMessage = [...messages].reverse().find((msg) => !msg.is_admin);
     if (!lastClientMessage) return;
 
-    const lastAdminMessage = [...messages].reverse().find((msg) => msg.is_admin);
-    const lastClientTime = new Date(lastClientMessage.timestamp || 0).getTime();
-    const lastAdminTime = new Date(lastAdminMessage?.timestamp || 0).getTime();
-    if (lastAdminTime >= lastClientTime) return;
+    // Comparar por orden en la conversación (no por horas, que dependen del reloj del dispositivo)
+    const lastClientIdx = messages.map((m) => !m.is_admin).lastIndexOf(true);
+    const lastAdminIdx = messages.map((m) => !!m.is_admin).lastIndexOf(true);
+    if (lastAdminIdx > lastClientIdx) return;
 
     const lastMessageKey = `${selectedTicket.id}:${lastClientMessage.timestamp}`;
     setOpenedTicketIds?.((prev) => prev.includes(lastMessageKey) ? prev : [...prev, lastMessageKey]);
