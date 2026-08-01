@@ -153,6 +153,7 @@ export default function AdminInvoices({ user }) {
       const updatePayload = {
         status: editingInvoice.status,
         notes: editingInvoice.notes,
+        provider_invoice_image_url: editingInvoice.provider_invoice_image_url || null,
       };
       if (editingInvoice.payment_method) updatePayload.payment_method = editingInvoice.payment_method;
       if (editingInvoice.payment_reference) updatePayload.payment_reference = editingInvoice.payment_reference;
@@ -976,6 +977,11 @@ export default function AdminInvoices({ user }) {
                   placeholder="Ej: ID de transacción, voucher, etc."
                 />
               </div>
+
+              <ProviderInvoiceUploader
+                value={editingInvoice.provider_invoice_image_url || ''}
+                onChange={(url) => setEditingInvoice({ ...editingInvoice, provider_invoice_image_url: url })}
+              />
             </div>
           )}
           <DialogFooter>
