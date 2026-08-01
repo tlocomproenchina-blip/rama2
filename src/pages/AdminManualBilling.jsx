@@ -26,6 +26,9 @@ export default function AdminManualBilling() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [providerInvoiceUrl, setProviderInvoiceUrl] = useState('');
   const [manualReceiptNumber, setManualReceiptNumber] = useState('');
+  const [extraAmount, setExtraAmount] = useState('');
+  const [extraConcept, setExtraConcept] = useState('');
+  const [doorToDoorFee, setDoorToDoorFee] = useState('');
   const [creating, setCreating] = useState(false);
   const [recovering, setRecovering] = useState(false);
 
@@ -166,7 +169,9 @@ export default function AdminManualBilling() {
   const insuranceTotal = manualInsurance !== '' ? num(manualInsurance) : autoInsuranceTotal;
   const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0);
   const consolidationFee = consolidationMode === 'manual' ? num(manualConsolidationFee) : totalPackages * 1;
-  const total = shippingTotal + insuranceTotal + consolidationFee;
+  const extraAmountValue = num(extraAmount);
+  const doorToDoorValue = num(doorToDoorFee);
+  const total = shippingTotal + insuranceTotal + consolidationFee + extraAmountValue + doorToDoorValue;
 
   const handleCreate = async () => {
     const manualReceipt = String(manualReceiptNumber || '').trim();
@@ -243,6 +248,24 @@ export default function AdminManualBilling() {
           details: { package_count: totalPackages },
         });
       }
+      if (doorToDoorValue > 0) {
+        items.push({
+          description: 'Envío puerta a puerta',
+          quantity: 1,
+          unit_price: doorToDoorValue,
+          total: doorToDoorValue,
+          details: { door_to_door: true },
+        });
+      }
+      if (extraAmountValue > 0) {
+        items.push({
+          description: String(extraConcept || '').trim() || 'Monto adicional',
+          quantity: 1,
+          unit_price: extraAmountValue,
+          total: extraAmountValue,
+          details: { extra_charge: true },
+        });
+      }
 
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + num(appConfig?.invoice_overdue_days || 7));
@@ -308,6 +331,9 @@ export default function AdminManualBilling() {
       setManualInsurance('');
       setProviderInvoiceUrl('');
       setManualReceiptNumber('');
+      setExtraAmount('');
+      setExtraConcept('');
+      setDoorToDoorFee('');
     } catch {
       toast.error('Error al generar la factura');
     }
@@ -419,6 +445,12 @@ export default function AdminManualBilling() {
               setManualReceiptNumber={setManualReceiptNumber}
               providerInvoiceUrl={providerInvoiceUrl}
               setProviderInvoiceUrl={setProviderInvoiceUrl}
+              extraAmount={extraAmount}
+              setExtraAmount={setExtraAmount}
+              extraConcept={extraConcept}
+              setExtraConcept={setExtraConcept}
+              doorToDoorFee={doorToDoorFee}
+              setDoorToDoorFee={setDoorToDoorFee}
             />
           </div>
         </div>

@@ -16,6 +16,9 @@ export default function BillingSummary({
   billedCbm, setBilledCbm,
   providerInvoiceUrl, setProviderInvoiceUrl,
   manualReceiptNumber, setManualReceiptNumber,
+  extraAmount, setExtraAmount,
+  extraConcept, setExtraConcept,
+  doorToDoorFee, setDoorToDoorFee,
 }) {
   const selected = rows.filter(r => r.selected);
   const selectedCount = selected.length;
@@ -88,6 +91,33 @@ export default function BillingSummary({
         </div>
 
         <div className="space-y-2 border-t pt-3">
+          <Label className="text-sm">Envío puerta a puerta</Label>
+          <Input
+            type="number" step="0.01" min="0"
+            value={doorToDoorFee || ''}
+            onChange={(e) => setDoorToDoorFee(e.target.value)}
+            placeholder="Ej: 10.00"
+          />
+          <p className="text-xs text-slate-500">Tarifa opcional de envío puerta a puerta. Se agrega como línea en la factura.</p>
+        </div>
+
+        <div className="space-y-2 border-t pt-3">
+          <Label className="text-sm">Monto adicional a cobrar</Label>
+          <Input
+            value={extraConcept || ''}
+            onChange={(e) => setExtraConcept(e.target.value)}
+            placeholder="Concepto (Ej: Embalaje especial)"
+          />
+          <Input
+            type="number" step="0.01" min="0"
+            value={extraAmount || ''}
+            onChange={(e) => setExtraAmount(e.target.value)}
+            placeholder="Monto (Ej: 5.00)"
+          />
+          <p className="text-xs text-slate-500">Cargo extra opcional con su concepto. Se agrega como línea en la factura.</p>
+        </div>
+
+        <div className="space-y-2 border-t pt-3">
           <Label className="text-sm">Método de pago</Label>
           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
             <SelectTrigger><SelectValue placeholder="Selecciona método" /></SelectTrigger>
@@ -112,6 +142,12 @@ export default function BillingSummary({
           <div className="flex justify-between text-slate-600"><span>Envío</span><span>${Number(shippingTotal).toFixed(2)}</span></div>
           <div className="flex justify-between text-slate-600"><span>Consolidación</span><span>${Number(consolidationFee).toFixed(2)}</span></div>
           <div className="flex justify-between text-slate-600"><span>Seguro</span><span>${Number(insuranceTotal).toFixed(2)}</span></div>
+          {Number(doorToDoorFee) > 0 && (
+            <div className="flex justify-between text-slate-600"><span>Puerta a puerta</span><span>${Number(doorToDoorFee).toFixed(2)}</span></div>
+          )}
+          {Number(extraAmount) > 0 && (
+            <div className="flex justify-between text-slate-600"><span>{String(extraConcept || '').trim() || 'Monto adicional'}</span><span>${Number(extraAmount).toFixed(2)}</span></div>
+          )}
           <div className="flex justify-between text-lg font-bold text-slate-800 border-t pt-2 mt-1">
             <span>Total</span><span>${Number(total).toFixed(2)}</span>
           </div>
