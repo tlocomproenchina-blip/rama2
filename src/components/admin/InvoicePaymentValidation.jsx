@@ -27,6 +27,7 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
   const [rejectModal, setRejectModal] = useState({ open: false, invoice: null });
   const [rejectComment, setRejectComment] = useState('');
   const [processing, setProcessing] = useState(null);
+  const [validatedIds, setValidatedIds] = useState([]);
 
   const getClientInfo = (email) => clients?.find(c => c.email === email) || {};
   const isProofUrl = (val) => typeof val === 'string' && val.startsWith('http');
@@ -40,11 +41,11 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
         payment_method: invoice.payment_method || 'transferencia'
       });
 
-      try {
-        await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: invoice.id });
-      } catch (e) {
-        console.error('No se pudo marcar la factura de Stripe como pagada:', e);
-      }
+      // Sincronización con Stripe en segundo plano (no bloquea la validación)
+      base44.functions.invoke('markStripeInvoicePaid', { invoiceId: invoice.id })
+        .catch((e) => console.error('No se pudo marcar la factura de Stripe como pagada:', e));
+
+      setValidatedIds((prev) => [...prev, invoice.id]);
 
       base44.entities.Notification.create({
         user_email: invoice.client_email,
@@ -110,12 +111,13 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
     }
   };
 
-  if (!invoices || invoices.length === 0) return null;
+  const visibleInvoices = (invoices || []).filter((i) => !validatedIds.includes(i.id));
+  if (visibleInvoices.length === 0) return null;
 
   return (
     <>
       <div className="space-y-4">
-        {invoices.map((inv) => {
+        {visibleInvoices.map((inv) => {
           const client = getClientInfo(inv.client_email);
           const proofUrl = isProofUrl(inv.payment_reference) ? inv.payment_reference : null;
 

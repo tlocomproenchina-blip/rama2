@@ -44,12 +44,9 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
           payment_date: new Date().toISOString(),
           payment_method: consolidation.payment_method || relatedInvoices[0].payment_method || 'transferencia'
         });
-        // Marcar la factura de Stripe como pagada fuera de banda para quitar "Pagar en línea" del PDF
-        try {
-          await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: relatedInvoices[0].id });
-        } catch (e) {
-          console.error('No se pudo marcar la factura de Stripe como pagada:', e);
-        }
+        // Marcar la factura de Stripe como pagada en segundo plano (no bloquea la validación)
+        base44.functions.invoke('markStripeInvoicePaid', { invoiceId: relatedInvoices[0].id })
+          .catch((e) => console.error('No se pudo marcar la factura de Stripe como pagada:', e));
       }
 
       // Notify client (async, don't wait)
