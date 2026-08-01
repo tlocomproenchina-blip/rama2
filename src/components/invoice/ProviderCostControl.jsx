@@ -27,6 +27,10 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid 
     setSaving(true);
     try {
       await onSaveCost(invoice, cost);
+      // Al guardar el monto, se marca automáticamente como pagado al proveedor
+      if (!invoice.provider_paid) {
+        await onTogglePaid({ ...invoice, provider_cost_total: cost }, true);
+      }
     } finally {
       setSaving(false);
     }
@@ -80,6 +84,7 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid 
           Marcar como pagado al proveedor
         </span>
       </label>
+      <p className="text-xs text-slate-500">Al guardar el monto se marca automáticamente como pagado al proveedor.</p>
     </div>
   );
 }
