@@ -99,6 +99,7 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
         body: `Tu pago de la factura ${rejectModal.invoice.invoice_number} no pudo ser validado.\n\nMotivo: ${rejectComment}\n\nPor favor intenta nuevamente.`
       }).catch(err => console.error('Email error:', err));
 
+      setValidatedIds((prev) => [...prev, rejectModal.invoice.id]);
       toast.success('Pago rechazado');
       setRejectModal({ open: false, invoice: null });
       setRejectComment('');

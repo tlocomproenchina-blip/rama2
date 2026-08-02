@@ -14,8 +14,10 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
   const [rejectModal, setRejectModal] = useState({ open: false, consolidation: null });
   const [rejectComment, setRejectComment] = useState('');
   const [processing, setProcessing] = useState(null);
+  const [hiddenIds, setHiddenIds] = useState([]);
 
-  const pendingPayments = consolidations?.filter(c => c.status === 'pago_pendiente_validacion') || [];
+  const pendingPayments = (consolidations?.filter(c => c.status === 'pago_pendiente_validacion') || [])
+    .filter(c => !hiddenIds.includes(c.id));
 
   const getClientInfo = (email) => {
     return clients?.find(c => c.email === email) || {};
@@ -65,6 +67,7 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
         reference_id: consolidation.id
       }).catch(err => console.error('Notification error:', err));
 
+      setHiddenIds((prev) => [...prev, consolidation.id]);
       toast.success('Pago validado correctamente');
       onRefresh?.();
     } catch (error) {
@@ -113,6 +116,7 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
         reference_id: rejectModal.consolidation.id
       }).catch(err => console.error('Notification error:', err));
 
+      setHiddenIds((prev) => [...prev, rejectModal.consolidation.id]);
       toast.success('Pago rechazado');
       setRejectModal({ open: false, consolidation: null });
       setRejectComment('');
