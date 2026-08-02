@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PaymentValidation from '@/components/admin/PaymentValidation';
 import InvoicePaymentValidation from '@/components/admin/InvoicePaymentValidation';
+import useEntitySubscription from '@/hooks/useEntitySubscription';
 
 export default function AdminPayments({ user }) {
   const [consolidations, setConsolidations] = useState([]);
@@ -28,6 +29,31 @@ export default function AdminPayments({ user }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Tiempo real: cambios en consolidaciones se reflejan al instante en todas las pantallas
+  useEntitySubscription('Consolidation', (event) => {
+    setConsolidations((prev) => {
+      if (event.type === 'delete') return prev.filter((c) => c.id !== event.id);
+      if (!event.data) return prev;
+      if (event.type === 'create') return [event.data, ...prev.filter((c) => c.id !== event.data.id)];
+      return prev.map((c) => (c.id === event.data.id ? { ...c, ...event.data } : c));
+    });
+  });
+
+  // Tiempo real: facturas entran/salen de revisión automáticamente
+  useEntitySubscription('Invoice', (event) => {
+    setReviewInvoices((prev) => {
+      if (event.type === 'delete') return prev.filter((i) => i.id !== event.id);
+      if (!event.data) return prev;
+      if (event.data.status === 'revision') {
+        const exists = prev.some((i) => i.id === event.data.id);
+        return exists
+          ? prev.map((i) => (i.id === event.data.id ? { ...i, ...event.data } : i))
+          : [event.data, ...prev];
+      }
+      return prev.filter((i) => i.id !== event.data.id);
+    });
+  });
 
   const loadData = async () => {
     try {
