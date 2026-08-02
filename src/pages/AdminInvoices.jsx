@@ -556,7 +556,9 @@ export default function AdminInvoices({ user }) {
       const matchesSearch = !q || (
         (inv.invoice_number || '').toLowerCase().includes(q) ||
         (inv.client_email || '').toLowerCase().includes(q) ||
-        (inv.consolidation_tracking || '').toLowerCase().includes(q)
+        (inv.consolidation_tracking || '').toLowerCase().includes(q) ||
+        (inv.shipping_mark || '').toLowerCase().includes(q) ||
+        `${inv.client_first_name || ''} ${inv.client_last_name || ''}`.toLowerCase().includes(q)
       );
       const matchesStatus =
         statusFilter === 'all' ? true :
@@ -667,7 +669,7 @@ export default function AdminInvoices({ user }) {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por número, cliente o tracking..."
+              placeholder="Buscar por número, cliente, shipping mark o tracking..."
               className="pl-10"
             />
           </div>
