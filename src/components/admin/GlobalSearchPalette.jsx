@@ -90,19 +90,17 @@ export default function GlobalSearchPalette() {
     const regex = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     try {
-      const [byEmail, byName, byMark, byTracking, byShippingMark] = await Promise.all([
-        base44.entities.User.filter({ email: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-        base44.entities.User.filter({ full_name: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-        base44.entities.User.filter({ shipping_mark: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
+      // Clientes: mismo nodo de búsqueda que usa la página de Analítica (listClientsForSupport).
+      // Así el cliente que aparece aquí es el mismo que se cargará al navegar.
+      const [clientsRes, byTracking, byShippingMark] = await Promise.all([
+        base44.functions.invoke('listClientsForSupport', { q: trimmed, limit: 8, includeCounts: false }).catch(() => null),
         base44.entities.Package.filter({ tracking_number: { $regex: regex, $options: 'i' } }, '-updated_date', 8).catch(() => []),
         base44.entities.Package.filter({ shipping_mark: { $regex: regex, $options: 'i' } }, '-updated_date', 8).catch(() => []),
       ]);
 
       if (myReq !== reqIdRef.current) return; // stale
 
-      // Dedupe clients by id
-      const clientMap = new Map();
-      [...byEmail, ...byName, ...byMark].forEach((u) => { if (u?.id) clientMap.set(u.id, u); });
+      const clients = clientsRes?.data?.data || [];
 
       // Dedupe packages by id
       const pkgMap = new Map();
@@ -119,7 +117,7 @@ export default function GlobalSearchPalette() {
       });
 
       setResults({
-        clients: Array.from(clientMap.values()).slice(0, 8),
+        clients: clients.slice(0, 8),
         packages: Array.from(pkgMap.values()).slice(0, 10),
         shippingMarks: shippingMarks.slice(0, 5),
       });
