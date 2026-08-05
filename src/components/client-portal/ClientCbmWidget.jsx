@@ -13,29 +13,40 @@ export default function ClientCbmWidget({ userEmail }) {
   const [paidInvoiceIds, setPaidInvoiceIds] = useState(new Set());
   const [dispatchedInvoices, setDispatchedInvoices] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!userEmail) return;
     (async () => {
-      try {
-        const [data, paidInvoices, dispatchedList] = await Promise.all([
-          base44.entities.CbmIngreso.filter({ client_email: userEmail }, '-fecha', 50),
-          base44.entities.Invoice.filter({ client_email: userEmail, status: 'pagada' }, '-invoice_date', 100),
-          base44.entities.Invoice.filter({ client_email: userEmail, dispatched: true }, '-invoice_date', 100)
-        ]);
-        setIngresos(data || []);
-        setPaidInvoiceIds(new Set((paidInvoices || []).map((inv) => inv.id)));
+      setLoading(true);
+      setLoadError(false);
+      // Consultas independientes: si las facturas fallan, los CBM igual se muestran
+      const [dataRes, paidRes, dispatchedRes] = await Promise.allSettled([
+        base44.entities.CbmIngreso.filter({ client_email: userEmail }, '-fecha', 50),
+        base44.entities.Invoice.filter({ client_email: userEmail, status: 'pagada' }, '-invoice_date', 100),
+        base44.entities.Invoice.filter({ client_email: userEmail, dispatched: true }, '-invoice_date', 100)
+      ]);
+      if (dataRes.status === 'fulfilled') {
+        setIngresos(dataRes.value || []);
+      } else {
+        // Antes un fallo de red dejaba la sección vacía en silencio;
+        // ahora se muestra un aviso con opción de reintentar
+        setLoadError(true);
+      }
+      if (paidRes.status === 'fulfilled') {
+        setPaidInvoiceIds(new Set((paidRes.value || []).map((inv) => inv.id)));
+      }
+      if (dispatchedRes.status === 'fulfilled') {
         const dispatched = {};
-        (dispatchedList || []).forEach((inv) => {
+        (dispatchedRes.value || []).forEach((inv) => {
           dispatched[inv.id] = inv.dispatched_date || true;
         });
         setDispatchedInvoices(dispatched);
-      } catch {
-        setIngresos([]);
       }
       setLoading(false);
     })();
-  }, [userEmail]);
+  }, [userEmail, reloadKey]);
 
   const totalCbm = useMemo(
     () => ingresos.reduce((s, i) => s + Number(i.cbm || 0), 0),
@@ -65,6 +76,23 @@ export default function ClientCbmWidget({ userEmail }) {
 
   return (
     <div className="space-y-4">
+    {loadError && (
+      <Card className="border-amber-200 bg-amber-50">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-amber-800 text-sm">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            No se pudieron cargar tus CBM registrados. Verifica tu conexión e intenta de nuevo.
+          </div>
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+          >
+            Reintentar
+          </button>
+        </CardContent>
+      </Card>
+    )}
     <CbmTrackingSearch userEmail={userEmail} ingresos={ingresos} />
     {ingresos.length > 0 && (
     <Card className="border-border/70 bg-card/95 shadow-card">
