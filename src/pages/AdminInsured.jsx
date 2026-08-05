@@ -85,6 +85,10 @@ export default function AdminInsured({ user }) {
     return !!manualInvoice;
   };
 
+  const isFacturadoDespachado = (pkg) => {
+    return isInsuranceCollected(pkg) && (pkg.status === 'despachado' || pkg.status === 'entregado');
+  };
+
   const filteredPackages = packages.filter(pkg => {
     const searchLower = search.toLowerCase();
     return (
@@ -217,7 +221,7 @@ export default function AdminInsured({ user }) {
               {filteredPackages.map((pkg) => {
                 const consolidation = getConsolidation(pkg.id);
                 return (
-                  <div key={pkg.id} className="p-4 space-y-3">
+                  <div key={pkg.id} className={`p-4 space-y-3 rounded-lg ${isFacturadoDespachado(pkg) ? 'bg-red-50 border border-red-200' : ''}`}>
                     <div>
                       <p className="text-xs text-slate-500">Tracking</p>
                       <div className="mt-1 flex items-start gap-2">
@@ -313,7 +317,7 @@ export default function AdminInsured({ user }) {
                   {filteredPackages.map((pkg) => {
                     const consolidation = getConsolidation(pkg.id);
                     return (
-                      <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
+                      <tr key={pkg.id} className={`transition-colors ${isFacturadoDespachado(pkg) ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-slate-50'}`}>
                         <td className="p-4">
                           <div className="flex items-center gap-2">
                             <Package className="h-4 w-4 text-slate-400" />
