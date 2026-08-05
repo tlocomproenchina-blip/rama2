@@ -131,8 +131,6 @@ export default function NotificationBell({ user }) {
       setOpen(isOpen);
       if (isOpen) {
         loadNotifications(); // Refresh when opening
-        // Auto-mark all as read when opening the dropdown to align with sidebar behavior
-        setTimeout(() => markAllAsRead(), 0);
       }
     }}>
       <DropdownMenuTrigger asChild>
