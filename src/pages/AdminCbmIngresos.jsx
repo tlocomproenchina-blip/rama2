@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
-import { cacheManager } from '@/components/CacheManager';
 import { format, subMonths, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
@@ -48,35 +47,22 @@ export default function AdminCbmIngresos({ user }) {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  const CBM_CACHE_KEY = 'cbmIngresos:all';
-
   const loadData = async () => {
-    // Mostrar datos en caché al instante y refrescar en segundo plano
-    const cached = cacheManager.get(CBM_CACHE_KEY);
-    if (cached) {
-      setAllIngresos(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
+    setLoading(true);
     const all = await fetchAllPaginated('CbmIngreso', { sort: '-fecha' });
-    cacheManager.set(CBM_CACHE_KEY, all || [], 120000);
     setAllIngresos(all || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { loadData(); }, []);
-
-  // Filtrado por período en memoria (sin volver a descargar la base de datos)
-  useEffect(() => {
     const fromDate = new Date(dateFrom + 'T00:00:00');
     const toDate = new Date(dateTo + 'T23:59:59');
-    setIngresos((allIngresos || []).filter(item => {
+    const filtered = (all || []).filter(item => {
       if (!item.fecha) return false;
       const d = new Date(item.fecha);
       return d >= fromDate && d <= toDate;
-    }));
-  }, [allIngresos, dateFrom, dateTo]);
+    });
+    setIngresos(filtered);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadData(); }, [dateFrom, dateTo]);
 
   // Load clients for search (con debounce para evitar ráfagas de llamadas por cada tecla)
   const searchTimeout = useRef(null);
@@ -269,30 +255,20 @@ export default function AdminCbmIngresos({ user }) {
       fecha_estimada_llegada: form.fecha_estimada_llegada || '',
       disponible_entrega: !!form.disponible_entrega
     };
-    try {
-      if (editingId) {
-        await base44.entities.CbmIngreso.update(editingId, payload);
-        toast.success('Registro actualizado');
-      } else {
-        const created = await base44.entities.CbmIngreso.create(payload);
-        // Verificación: confirmar que el registro realmente quedó guardado
-        if (!created?.id) throw new Error('El servidor no confirmó el guardado');
-        toast.success(`${cbmVal} CBM registrados para ${form.client_name || form.client_email}`);
-      }
-      resetForm();
-      setShowForm(false);
-      loadData();
-    } catch (e) {
-      // NO cerrar el diálogo: el admin debe saber que NO se guardó
-      toast.error(`⚠️ NO SE GUARDÓ el registro de CBM. ${e?.message || 'Error de conexión'}. Intenta de nuevo.`, { duration: 10000 });
+    if (editingId) {
+      await base44.entities.CbmIngreso.update(editingId, payload);
+      toast.success('Registro actualizado');
+    } else {
+      await base44.entities.CbmIngreso.create(payload);
+      toast.success(`${cbmVal} CBM registrados`);
     }
+    resetForm();
+    setShowForm(false);
     setSaving(false);
+    loadData();
   };
 
   const handleDelete = async (id) => {
-    const item = (allIngresos || []).find(i => i.id === id);
-    const desc = item ? `${item.client_name || item.client_email || ''} — ${Number(item.cbm || 0).toFixed(5)} CBM${item.invoice_number ? ` (Orden ${item.invoice_number})` : ''}` : 'este registro';
-    if (!window.confirm(`¿Eliminar definitivamente ${desc}? Esta acción no se puede deshacer.`)) return;
     try {
       await base44.entities.CbmIngreso.delete(id);
       toast.success('Registro eliminado');

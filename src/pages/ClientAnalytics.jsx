@@ -70,27 +70,20 @@ export default function ClientAnalytics() {
       return;
     }
 
-    setLoading(true);
-    // Cargar cada bloque de forma independiente: si una consulta falla,
-    // las demás igual se muestran (antes un solo fallo dejaba todo vacío).
-    const results = await Promise.allSettled([
-      base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500),
-      base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500),
-      base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 1000),
-      base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500)
-    ]);
-    const [consolidationList, invoiceList, packageList, cbmList] = results;
-    if (consolidationList.status === 'fulfilled') setConsolidations(consolidationList.value || []);
-    if (invoiceList.status === 'fulfilled') setInvoices(invoiceList.value || []);
-    if (packageList.status === 'fulfilled') setPackages(packageList.value || []);
-    if (cbmList.status === 'fulfilled') setCbmIngresos(cbmList.value || []);
-    const failed = [];
-    if (consolidationList.status === 'rejected') failed.push('consolidaciones');
-    if (invoiceList.status === 'rejected') failed.push('facturas');
-    if (packageList.status === 'rejected') failed.push('paquetes');
-    if (cbmList.status === 'rejected') failed.push('CBM');
-    if (failed.length) {
-      toast.error(`No se pudieron cargar: ${failed.join(', ')}. Pulsa "Actualizar" para reintentar.`);
+    try {
+      setLoading(true);
+      const [consolidationList, invoiceList, packageList, cbmList] = await Promise.all([
+        base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500),
+        base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500),
+        base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 1000),
+        base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500)
+      ]);
+      setConsolidations(consolidationList || []);
+      setInvoices(invoiceList || []);
+      setPackages(packageList || []);
+      setCbmIngresos(cbmList || []);
+    } catch {
+      toast.error('No se pudo cargar la analítica del cliente');
     }
     setLoading(false);
   };
