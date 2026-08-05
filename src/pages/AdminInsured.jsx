@@ -53,14 +53,36 @@ export default function AdminInsured({ user }) {
     return fob * ((config?.insurance_percentage || 5) / 100);
   };
 
-  // Determina si el seguro de un paquete fue cobrado (la factura de su consolidación está pagada)
+  // Normaliza un tracking: quita prefijo de transportista y pasa a mayúsculas
+  const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
+
+  // Determina si el seguro de un paquete fue cobrado:
+  // 1) La factura de su consolidación está pagada, o
+  // 2) Existe una factura manual pagada del mismo cliente cuyo campo
+  //    consolidation_tracking incluye el tracking del paquete.
   const isInsuranceCollected = (pkg) => {
     const consolidation = getConsolidation(pkg.id);
-    if (!consolidation) return false;
-    const invoice = invoices.find(
-      (inv) => inv.consolidation_id === consolidation.id && inv.status === 'pagada'
+    if (consolidation) {
+      const invoice = invoices.find(
+        (inv) => inv.consolidation_id === consolidation.id && inv.status === 'pagada'
+      );
+      if (invoice) return true;
+    }
+    const pkgTrackings = String(pkg.tracking_number || '')
+      .split(/[，,;|]+/)
+      .map(normTracking)
+      .filter(Boolean);
+    if (pkgTrackings.length === 0) return false;
+    const manualInvoice = invoices.find(
+      (inv) =>
+        inv.status === 'pagada' &&
+        inv.client_email === pkg.client_email &&
+        String(inv.consolidation_tracking || '')
+          .split(/[，,;]+/)
+          .map(normTracking)
+          .some((t) => pkgTrackings.includes(t))
     );
-    return !!invoice;
+    return !!manualInvoice;
   };
 
   const filteredPackages = packages.filter(pkg => {
