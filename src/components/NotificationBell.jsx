@@ -153,16 +153,15 @@ export default function NotificationBell({ user }) {
       <DropdownMenuContent align="end" className="w-96 lg:w-[450px] p-0">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold text-slate-800">Notificaciones</h3>
-          {unreadCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={markAllAsRead}
-              className="text-xs h-7"
-            >
-              Marcar todas como leídas
-            </Button>
-          )}
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={markAllAsRead}
+            disabled={unreadCount === 0}
+            className="text-xs h-7"
+          >
+            Marcar todas como leídas
+          </Button>
         </div>
 
         <ScrollArea className="h-[500px]">
