@@ -5,6 +5,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { cacheManager } from '@/components/CacheManager';
 import OptimizedImage from '@/components/OptimizedImage';
 import useAttentionFlags from '@/components/notifications/useAttentionFlags';
+import useNotificationFlags from '@/components/notifications/useNotificationFlags';
 import SidebarNavGroup from '@/components/sidebar/SidebarNavGroup';
 import {
   adminGroups,
@@ -74,20 +75,26 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
 
   const isAdmin = user?.role === 'admin';
-  const [flags, markSeen] = useAttentionFlags({ user });
+  const [attFlags, attMarkSeen] = useAttentionFlags({ user });
+  const { flags: notifFlags, markSeen: notifMarkSeen } = useNotificationFlags({ user });
+  const flags = useMemo(() => ({ ...attFlags, ...notifFlags }), [attFlags, notifFlags]);
 
   const handleMenuClick = useCallback((page) => {
-    if (page) { try { markSeen(page); } catch {} }
+    if (page) {
+      try { attMarkSeen(page); } catch {}
+      try { notifMarkSeen(page); } catch {}
+    }
     onClose && onClose();
-  }, [markSeen, onClose]);
+  }, [attMarkSeen, notifMarkSeen, onClose]);
   // Auto-limpiar el punto si el usuario llegó a la página por otra vía (no solo desde el sidebar)
   useEffect(() => {
     try {
       if (currentPage && flags[currentPage]) {
-        markSeen(currentPage);
+        attMarkSeen(currentPage);
+        notifMarkSeen(currentPage);
       }
     } catch {}
-  }, [currentPage, flags, markSeen]);
+  }, [currentPage, flags, attMarkSeen, notifMarkSeen]);
   // Notifications UI disabled
   const showWarning = false;
   const badgeCount = 0;

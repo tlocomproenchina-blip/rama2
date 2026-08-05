@@ -21,7 +21,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
             {label}
           </div>
           {hasGroupNotification && (
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-sm" />
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-sm" />
           )}
         </div>
         <ChevronDown className={['h-4 w-4 text-slate-300 transition-transform duration-200', isOpen ? 'rotate-180' : 'rotate-0'].join(' ')} />
@@ -58,17 +58,17 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
                     isActive ? 'bg-white/85 opacity-100' : 'bg-primary/20 opacity-0 group-hover:opacity-100'
                   ].join(' ')} />
                   <div className={[
-                    'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-all duration-200',
+                    'relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-all duration-200',
                     isActive ? 'bg-white/18 text-white shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:bg-accent group-hover:text-foreground'
                   ].join(' ')}>
                     <Icon className="h-5 w-5" />
+                    {flags?.[item.page] && (
+                      <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 ring-2 ring-white shadow-sm animate-pulse" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-semibold tracking-[-0.01em]">{item.name}</span>
                   </div>
-                  {flags?.[item.page] && (
-                    <span className={['h-2.5 w-2.5 rounded-full shadow-sm', isActive ? 'bg-white' : 'bg-amber-400'].join(' ')} />
-                  )}
                   <ChevronRight className={[
                     'h-4 w-4 flex-shrink-0 transition-all duration-200',
                     isActive ? 'translate-x-0 text-white/90' : 'text-slate-300 group-hover:translate-x-0.5 group-hover:text-slate-500'

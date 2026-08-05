@@ -10,10 +10,10 @@ export default function useAttentionFlags({ user }) {
 
   const watches = React.useMemo(() => {
     if (isAdmin) {
+      // AdminPayments se maneja via useNotificationFlags (basado en entidad Notification)
       return [
         { key: 'AdminSupportTickets', entity: 'SupportTicket' },
         { key: 'AdminPackages', entity: 'Package' },
-        { key: 'AdminPayments', entity: 'Consolidation' },
       ];
     }
     // Básico para clientes (opcional): paquetes, facturas y soporte propios
