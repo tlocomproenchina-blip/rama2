@@ -86,6 +86,29 @@ export default function AdminInsured({ user }) {
     return !!manualInvoice;
   };
 
+  // Determina si el paquete tiene factura asociada (pagada o pendiente)
+  const isInvoiced = (pkg) => {
+    const consolidation = getConsolidation(pkg.id);
+    if (consolidation) {
+      const invoice = invoices.find((inv) => inv.consolidation_id === consolidation.id);
+      if (invoice) return true;
+    }
+    const pkgTrackings = String(pkg.tracking_number || '')
+      .split(/[，,;|]+/)
+      .map(normTracking)
+      .filter(Boolean);
+    if (pkgTrackings.length === 0) return false;
+    const manualInvoice = invoices.find(
+      (inv) =>
+        inv.client_email === pkg.client_email &&
+        String(inv.consolidation_tracking || '')
+          .split(/[，,;]+/)
+          .map(normTracking)
+          .some((t) => pkgTrackings.includes(t))
+    );
+    return !!manualInvoice;
+  };
+
   const isFacturadoDespachado = (pkg) => {
     return isInsuranceCollected(pkg) && (pkg.status === 'despachado' || pkg.status === 'entregado');
   };
@@ -99,7 +122,7 @@ export default function AdminInsured({ user }) {
     );
     if (!matchesSearch) return false;
     if (filter === 'despachadas') {
-      return pkg.status === 'despachado' || pkg.status === 'entregado';
+      return isInvoiced(pkg);
     }
     if (filter === 'por_cobrar') {
       return !isInsuranceCollected(pkg);
