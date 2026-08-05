@@ -150,7 +150,7 @@ export default function ClientCard({
             <MessageCircle className="h-4 w-4 mr-1" />
             WhatsApp
           </Button>
-          <div className="min-w-[140px] flex-1 sm:flex-none">
+          <div className="shrink-0 min-w-[140px] sm:flex-1">
             <Select
               value={client.role === 'admin' ? (client.custom_role || 'equipo_y_acceso') : 'user'}
               onValueChange={(value) => onChangeRole(client, value)}
