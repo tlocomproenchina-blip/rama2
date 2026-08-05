@@ -15,7 +15,7 @@ import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle, Truck } from 'lucide-react';
+import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle, Truck, ShieldCheck } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
 
@@ -29,7 +29,8 @@ export default function AdminInvoices({ user }) {
     paid: 0,
     pending: 0,
     revenue: 0,
-    profit: 0
+    profit: 0,
+    insuranceCollected: 0
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -70,13 +71,24 @@ export default function AdminInvoices({ user }) {
   }, [showCreateModal]);
 
   const computeStats = (list) => {
-    let paid = 0, pending = 0, revenue = 0, profit = 0;
+    let paid = 0, pending = 0, revenue = 0, profit = 0, insuranceCollected = 0;
     for (const i of list) {
-      if (i.status === 'pagada') { paid++; revenue += Number(i.total) || 0; }
+      if (i.status === 'pagada') {
+        paid++; revenue += Number(i.total) || 0;
+        // Sumar items de seguro cobrados
+        if (Array.isArray(i.items)) {
+          for (const it of i.items) {
+            const desc = String(it.description || '').toLowerCase();
+            if (desc.includes('seguro') && it.total) {
+              insuranceCollected += Number(it.total) || 0;
+            }
+          }
+        }
+      }
       else if (i.status === 'pendiente') pending++;
       if (i.profit_amount !== undefined && i.profit_amount !== null) profit += Number(i.profit_amount) || 0;
     }
-    setStats({ total: list.length, paid, pending, revenue, profit });
+    setStats({ total: list.length, paid, pending, revenue, profit, insuranceCollected });
   };
 
   const enrichInvoice = (inv, clientsByEmail) => {
@@ -599,7 +611,7 @@ export default function AdminInvoices({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -656,6 +668,18 @@ export default function AdminInvoices({ user }) {
                 <p className="text-2xl font-bold text-purple-600">${Number(stats.profit || 0).toFixed(2)}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Seguro Cobrado</p>
+                <p className="text-2xl font-bold text-cyan-600">${Number(stats.insuranceCollected || 0).toFixed(2)}</p>
+              </div>
+              <ShieldCheck className="h-8 w-8 text-cyan-600" />
             </div>
           </CardContent>
         </Card>
