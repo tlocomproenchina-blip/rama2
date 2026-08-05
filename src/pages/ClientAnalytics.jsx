@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,9 +31,6 @@ function normalizePercent(value) {
 }
 
 export default function ClientAnalytics() {
-  const [searchParams] = useSearchParams();
-  const urlQuery = (searchParams.get('q') || '').trim();
-
   const [loading, setLoading] = useState(false);
   const [loadingClients, setLoadingClients] = useState(true);
   const [clients, setClients] = useState([]);
@@ -48,26 +44,22 @@ export default function ClientAnalytics() {
   const [pricing, setPricing] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
 
-  // Preselección de cliente si viene ?q= en la URL (mismo nodo de búsqueda)
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!urlQuery) {
-        setLoadingClients(false);
-        return;
-      }
-      try {
-        setLoadingClients(true);
-        const res = await base44.functions.invoke('listClientsForSupport', { q: urlQuery, limit: 1, includeCounts: false });
+  // Preselección de cliente si viene ?q= en la URL (búsqueda en backend)
+  const loadClients = async () => {
+    try {
+      setLoadingClients(true);
+      const params = new URLSearchParams(window.location.search);
+      const q = (params.get('q') || '').trim();
+      if (q) {
+        const res = await base44.functions.invoke('listClientsForSupport', { q, limit: 1, includeCounts: false });
         const match = res?.data?.data?.[0];
-        if (!cancelled && match) setSelectedClient(match);
-      } catch {
-        if (!cancelled) toast.error('No se pudo cargar el cliente');
+        if (match) setSelectedClient(match);
       }
-      if (!cancelled) setLoadingClients(false);
-    })();
-    return () => { cancelled = true; };
-  }, [urlQuery]);
+    } catch {
+      toast.error('No se pudo cargar el cliente');
+    }
+    setLoadingClients(false);
+  };
 
   const loadData = async (clientEmail) => {
     if (!clientEmail) {
@@ -97,6 +89,7 @@ export default function ClientAnalytics() {
   };
 
   useEffect(() => {
+    loadClients();
     (async () => {
       const [cfgs, prc, states] = await Promise.all([
         base44.entities.AppConfig.filter({ config_key: 'main' }).catch(() => []),
