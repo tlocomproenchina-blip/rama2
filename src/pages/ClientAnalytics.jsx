@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,22 +45,7 @@ export default function ClientAnalytics() {
   const [pricing, setPricing] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
 
-  // Preselección de cliente si viene ?q= en la URL (búsqueda en backend)
-  const loadClients = async () => {
-    try {
-      setLoadingClients(true);
-      const params = new URLSearchParams(window.location.search);
-      const q = (params.get('q') || '').trim();
-      if (q) {
-        const res = await base44.functions.invoke('listClientsForSupport', { q, limit: 1, includeCounts: false });
-        const match = res?.data?.data?.[0];
-        if (match) setSelectedClient(match);
-      }
-    } catch {
-      toast.error('No se pudo cargar el cliente');
-    }
-    setLoadingClients(false);
-  };
+  const [searchParams] = useSearchParams();
 
   const loadData = async (clientEmail) => {
     if (!clientEmail) {
@@ -88,8 +74,32 @@ export default function ClientAnalytics() {
     setLoading(false);
   };
 
+  // Preselección de cliente si viene ?q= en la URL (búsqueda en backend).
+  // Reacciona a cambios del parámetro para que el buscador global funcione
+  // incluso cuando ya se está en esta página (navegación same-route).
   useEffect(() => {
-    loadClients();
+    const q = (searchParams.get('q') || '').trim();
+    if (!q) {
+      setLoadingClients(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoadingClients(true);
+        const res = await base44.functions.invoke('listClientsForSupport', { q, limit: 1, includeCounts: false });
+        const match = res?.data?.data?.[0];
+        if (!cancelled && match) setSelectedClient(match);
+      } catch {
+        if (!cancelled) toast.error('No se pudo cargar el cliente');
+      } finally {
+        if (!cancelled) setLoadingClients(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [searchParams]);
+
+  useEffect(() => {
     (async () => {
       const [cfgs, prc, states] = await Promise.all([
         base44.entities.AppConfig.filter({ config_key: 'main' }).catch(() => []),
