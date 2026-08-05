@@ -4,8 +4,18 @@ import { base44 } from '@/components/api/ApiQueueManager';
 // Mapea páginas del sidebar a tipos de notificación que les corresponden.
 // Cuando hay notificaciones no leídas de ese tipo, se muestra el punto rojo.
 export const PAGE_NOTIFICATION_TYPES = {
+  // Admin
   AdminPayments: ['payment_validation', 'payment'],
   AdminAssistedPayments: ['assisted_payment'],
+  AdminPackages: ['package'],
+  AdminConsolidate: ['consolidation', 'request'],
+  // Client
+  MyPackages: ['package'],
+  MyConsolidations: ['consolidation', 'payment_validation'],
+  RequestConsolidation: ['request'],
+  MyInvoices: ['payment'],
+  AssistedPayment: ['assisted_payment'],
+  Dashboard: ['system', 'general'],
 };
 
 // Hook de indicadores de notificaciones basados en la entidad Notification.
