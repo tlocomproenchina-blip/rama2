@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 export default function AdminInsured({ user }) {
   const [packages, setPackages] = useState([]);
   const [consolidations, setConsolidations] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -30,14 +31,16 @@ export default function AdminInsured({ user }) {
   }, []);
 
   const loadData = async () => {
-    const [pkgs, cons, configs] = await Promise.all([
+    const [pkgs, cons, configs, invs] = await Promise.all([
       base44.entities.Package.filter({ has_insurance: true }, '-created_date'),
       base44.entities.Consolidation.list(),
-      base44.entities.AppConfig.filter({ config_key: 'main' })
+      base44.entities.AppConfig.filter({ config_key: 'main' }),
+      base44.entities.Invoice.list()
     ]);
 
     setPackages(pkgs);
     setConsolidations(cons);
+    setInvoices(invs);
     if (configs.length > 0) setConfig(configs[0]);
     setLoading(false);
   };
@@ -48,6 +51,16 @@ export default function AdminInsured({ user }) {
 
   const calculateInsurance = (fob) => {
     return fob * ((config?.insurance_percentage || 5) / 100);
+  };
+
+  // Determina si el seguro de un paquete fue cobrado (la factura de su consolidación está pagada)
+  const isInsuranceCollected = (pkg) => {
+    const consolidation = getConsolidation(pkg.id);
+    if (!consolidation) return false;
+    const invoice = invoices.find(
+      (inv) => inv.consolidation_id === consolidation.id && inv.status === 'pagada'
+    );
+    return !!invoice;
   };
 
   const filteredPackages = packages.filter(pkg => {
@@ -61,6 +74,8 @@ export default function AdminInsured({ user }) {
 
   const totalFOB = packages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
   const totalInsurance = packages.reduce((sum, p) => sum + calculateInsurance(p.fob_value || 0), 0);
+  const collectedPackages = packages.filter(isInsuranceCollected);
+  const totalCollected = collectedPackages.reduce((sum, p) => sum + calculateInsurance(p.fob_value || 0), 0);
 
   if (loading) {
     return (
@@ -79,7 +94,7 @@ export default function AdminInsured({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-0 shadow-md bg-gradient-to-br from-emerald-50 to-white">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -131,6 +146,21 @@ export default function AdminInsured({ user }) {
               </div>
               <div className="p-3 bg-amber-100 rounded-xl">
                 <FileText className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-md bg-gradient-to-br from-teal-50 to-white">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Seguros Cobrados</p>
+                <p className="text-3xl font-bold text-slate-800">${totalCollected.toFixed(2)}</p>
+                <p className="text-xs text-slate-400 mt-1">{collectedPackages.length} de {packages.length} paquetes</p>
+              </div>
+              <div className="p-3 bg-teal-100 rounded-xl">
+                <DollarSign className="h-6 w-6 text-teal-600" />
               </div>
             </div>
           </CardContent>
@@ -200,6 +230,20 @@ export default function AdminInsured({ user }) {
                         </p>
                       </div>
                       <div>
+                        <p className="text-xs text-slate-500">Cobrado</p>
+                        <div className="mt-1">
+                          {isInsuranceCollected(pkg) ? (
+                            <Badge className="bg-teal-100 text-teal-700 border-teal-200">
+                              Cobrado
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-slate-400 border-slate-200">
+                              No cobrado
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div>
                         <p className="text-xs text-slate-500">Estado</p>
                         <div className="mt-1">
                           <StatusBadge status={pkg.status} size="sm" />
@@ -238,6 +282,7 @@ export default function AdminInsured({ user }) {
                     <th className="text-left p-4 font-medium text-slate-600">FOB</th>
                     <th className="text-left p-4 font-medium text-slate-600">Seguro</th>
                     <th className="text-left p-4 font-medium text-slate-600">Consolidación</th>
+                    <th className="text-left p-4 font-medium text-slate-600">Cobrado</th>
                     <th className="text-left p-4 font-medium text-slate-600">Estado</th>
                     <th className="text-left p-4 font-medium text-slate-600">Factura</th>
                   </tr>
@@ -274,6 +319,17 @@ export default function AdminInsured({ user }) {
                             </span>
                           ) : (
                             <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          {isInsuranceCollected(pkg) ? (
+                            <Badge className="bg-teal-100 text-teal-700 border-teal-200">
+                              Cobrado
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-slate-400 border-slate-200">
+                              No cobrado
+                            </Badge>
                           )}
                         </td>
                         <td className="p-4">
