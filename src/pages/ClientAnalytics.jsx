@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,16 +45,26 @@ export default function ClientAnalytics() {
   const [pricing, setPricing] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
 
-  // Preselección de cliente si viene ?q= en la URL (búsqueda en backend)
-  const loadClients = async () => {
+  // Preselección de cliente si viene ?q= o ?email= en la URL.
+  // Usamos getClientsByEmails (sin filtro de rol) para que siempre encuentre
+  // al cliente sin importar su custom_role, y reactivo al parámetro para que
+  // funcione incluso si ya estabas en esta página.
+  const [searchParams] = useSearchParams();
+  const urlEmail = (searchParams.get('q') || searchParams.get('email') || '').trim();
+
+  const loadClientFromUrl = async (email) => {
+    if (!email) {
+      setLoadingClients(false);
+      return;
+    }
     try {
       setLoadingClients(true);
-      const params = new URLSearchParams(window.location.search);
-      const q = (params.get('q') || '').trim();
-      if (q) {
-        const res = await base44.functions.invoke('listClientsForSupport', { q, limit: 1, includeCounts: false });
-        const match = res?.data?.data?.[0];
-        if (match) setSelectedClient(match);
+      const res = await base44.functions.invoke('getClientsByEmails', { emails: [email] });
+      const match = res?.data?.clients?.[email];
+      if (match) {
+        setSelectedClient(match);
+      } else {
+        toast.error('No se encontró el cliente');
       }
     } catch {
       toast.error('No se pudo cargar el cliente');
@@ -89,7 +100,10 @@ export default function ClientAnalytics() {
   };
 
   useEffect(() => {
-    loadClients();
+    loadClientFromUrl(urlEmail);
+  }, [urlEmail]);
+
+  useEffect(() => {
     (async () => {
       const [cfgs, prc, states] = await Promise.all([
         base44.entities.AppConfig.filter({ config_key: 'main' }).catch(() => []),
