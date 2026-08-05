@@ -50,10 +50,10 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
     <Card className="border-0 shadow-lg">
       <CardHeader>
         <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            {selectionControl && <div className="pt-1 shrink-0">{selectionControl}</div>}
-            <div>
-              <CardTitle className="text-lg text-slate-800">{invoice.invoice_number || 'Factura'}</CardTitle>
+          <div className="flex items-start gap-3 min-w-0">
+          {selectionControl && <div className="pt-1 shrink-0">{selectionControl}</div>}
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-lg text-slate-800 break-words">{invoice.invoice_number || 'Factura'}</CardTitle>
               {isAssistedPayment ? (
                 <div className="mt-1 space-y-2 text-sm text-slate-500">
                   <p>Pago asistido · {providerLabel}</p>
@@ -69,7 +69,7 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
                 </div>
               ) : (
                 <>
-                  <p className="text-sm text-slate-500 mt-1">
+                  <p className="text-sm text-slate-500 mt-1 break-words">
                     Consolidación: {invoice.consolidation_tracking}
                   </p>
                   {(invoice.shipping_mark || invoice.client_first_name || invoice.client_last_name || invoice.client_whatsapp) && (

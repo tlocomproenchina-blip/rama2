@@ -757,8 +757,8 @@ export default function AdminInvoices({ user }) {
       ) : (
         <div className="grid gap-4">
           {filteredInvoices.map(invoice => (
-            <div key={invoice.id} className="flex flex-col lg:flex-row gap-3 items-stretch">
-              <div className="flex-1 min-w-0">
+            <div key={invoice.id} className="flex flex-col lg:flex-row gap-3 items-stretch overflow-hidden lg:overflow-visible">
+              <div className="flex-1 min-w-0 overflow-hidden">
                 <InvoiceCard
                   invoice={invoice}
                   onDownload={handleDownloadPDF}
@@ -797,7 +797,7 @@ export default function AdminInvoices({ user }) {
                 />
               </div>
               {/* Columna lateral derecha: badges + acciones apiladas */}
-              <div className="flex flex-row flex-wrap lg:flex-col gap-2 lg:w-44 shrink-0 items-stretch content-start">
+              <div className="flex flex-row flex-wrap lg:flex-col gap-2 w-full lg:w-44 shrink-0 items-stretch content-start">
                 {invoice.profit_amount != null && (
                   <span className={`text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap ${Number(invoice.profit_amount) >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
                     Ganancia: ${Number(invoice.profit_amount).toFixed(2)}

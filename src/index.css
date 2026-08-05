@@ -133,7 +133,12 @@
   @media (max-width: 640px) {
     /* Evitar desbordamiento horizontal por textos largos (trackings, emails, marks) */
     p, span, div, td, th, li, label {
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
+    }
+    /* Mantener el texto de botones intacto (se ajusta con flex-wrap del contenedor) */
+    button, button * {
+      overflow-wrap: normal;
+      word-break: normal;
     }
     .font-mono {
       word-break: break-all;
