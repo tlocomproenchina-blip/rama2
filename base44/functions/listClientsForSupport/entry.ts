@@ -57,7 +57,7 @@ function hasMark(c) {
   return !!(c.shipping_mark && String(c.shipping_mark).trim().length > 0);
 }
 
-function matchesSearch(c, q) {
+function matchesSearch(c, q, exact = false) {
   if (!q) return true;
   const qText = normalizeText(q);
   const qAlnum = normalizeAlnum(q);
@@ -72,6 +72,14 @@ function matchesSearch(c, q) {
   const ph = getDigits(c.phone || '');
   const sm = normalizeAlnum(c.shipping_mark || '');
   const fullAlnum = normalizeAlnum((c.first_name || '') + (c.last_name || ''));
+
+  if (exact) {
+    // Coincidencias exactas (tras normalizar) en cualquiera de los campos
+    if (qText && (email === qText || first === qText || last === qText || full === qText || cityNorm === qText)) return true;
+    if (qDigits && (wa === qDigits || ph === qDigits)) return true;
+    if (qAlnum && (sm === qAlnum || fullAlnum === qAlnum)) return true;
+    return false;
+  }
 
   if (qText && (email.includes(qText) || first.includes(qText) || last.includes(qText) || full.includes(qText) || cityNorm.includes(qText))) return true;
   if (qDigits && (wa.includes(qDigits) || ph.includes(qDigits))) return true;
@@ -148,6 +156,7 @@ Deno.serve(async (req) => {
     const quickDate = body.quickDate || 'all';
     const includeCounts = body.includeCounts !== false; // por defecto sí
     const forceRefresh = body.forceRefresh === true;
+    const exact = body.exact === true;
 
     // Carga todos los clientes y los conteos de paquetes (con caché TTL).
     // Esto resuelve el problema "N+1 / recalcular siempre": cuando el admin
@@ -196,7 +205,7 @@ Deno.serve(async (req) => {
     // Aplicar filtros
     const filtered = all.filter((c) => {
       const pkgCount = packageCounts[c.email] || 0;
-      if (!matchesSearch(c, q)) return false;
+      if (!matchesSearch(c, q, exact)) return false;
       if (!matchesCategory(c, exclusiveKey, pkgCount)) return false;
       if (!matchesState(c, stateFilter)) return false;
       if (!matchesDate(c, fromDate, toDate, quickDate)) return false;

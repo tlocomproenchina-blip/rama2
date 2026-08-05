@@ -7,7 +7,7 @@ import { toast } from 'sonner';
  * Evita listar todos los usuarios desde el navegador, así funciona igual
  * para cualquier administrador o rol con acceso.
  */
-export default function useClientSearch({ limit = 8, minLength = 2 } = {}) {
+export default function useClientSearch({ limit = 8, minLength = 2, exact = false } = {}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -27,6 +27,7 @@ export default function useClientSearch({ limit = 8, minLength = 2 } = {}) {
           q,
           limit,
           includeCounts: false,
+          exact,
         });
         setResults(res?.data?.data || []);
       } catch {
@@ -36,7 +37,7 @@ export default function useClientSearch({ limit = 8, minLength = 2 } = {}) {
       setSearching(false);
     }, 400);
     return () => clearTimeout(timeoutRef.current);
-  }, [query, limit, minLength]);
+  }, [query, limit, minLength, exact]);
 
   return { query, setQuery, results, setResults, searching };
 }
