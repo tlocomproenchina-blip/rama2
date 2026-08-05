@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,7 +43,6 @@ export default function ClientAnalytics() {
   const [appConfig, setAppConfig] = useState(null);
   const [pricing, setPricing] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
-  const location = useLocation();
 
   // Preselección de cliente si viene ?q= en la URL (búsqueda en backend)
   const loadClients = async () => {
@@ -90,12 +88,8 @@ export default function ClientAnalytics() {
     setLoading(false);
   };
 
-  // Se re-ejecuta también cuando cambia ?q= (ej. desde el buscador global estando ya en esta página)
   useEffect(() => {
     loadClients();
-  }, [location.search]);
-
-  useEffect(() => {
     (async () => {
       const [cfgs, prc, states] = await Promise.all([
         base44.entities.AppConfig.filter({ config_key: 'main' }).catch(() => []),
