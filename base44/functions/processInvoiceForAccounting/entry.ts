@@ -129,10 +129,11 @@ Deno.serve(async (req) => {
       consolidation_fee_amount: Math.round(consolidationFee * 100) / 100
     });
 
-    // Guardar costo y ganancia en la factura
+    // Guardar costo y ganancia en la factura (y la imagen del proveedor si se subió)
     await base44.asServiceRole.entities.Invoice.update(invoice.id, {
       provider_cost_total: providerCost,
-      profit_amount: profit
+      profit_amount: profit,
+      ...(providerInvoiceUrl ? { provider_invoice_image_url: providerInvoiceUrl } : {})
     });
 
     return Response.json({
