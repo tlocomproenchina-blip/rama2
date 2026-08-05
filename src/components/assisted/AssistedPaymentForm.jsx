@@ -89,6 +89,22 @@ export default function AssistedPaymentForm({ user }) {
         details: `Plataforma: ${provider || autoDetectProvider(link)} · Enlace: ${link || 'sin enlace'} · QR: ${imageUrl || 'sin QR'}`,
         changed_fields: ['provider', 'amount', 'fee_amount', 'total_amount'],
       });
+
+      // Notificar a todos los administradores para que revisen la solicitud
+      base44.entities.User.filter({ role: 'admin' }).then(admins => {
+        const providerLabel = provider || autoDetectProvider(link);
+        admins.forEach(admin => {
+          base44.entities.Notification.create({
+            user_email: admin.email,
+            title: '🛒 Nueva Solicitud de Pago Asistido',
+            message: `${user.email} solicitó pago asistido por $${total.toFixed(2)} (${providerLabel})`,
+            type: 'assisted_payment',
+            icon: 'dollar',
+            reference_id: request?.id
+          }).catch(err => console.error('Notification error:', err));
+        });
+      }).catch(err => console.error('Admin fetch error:', err));
+
       toast.success('Solicitud enviada');
       setLink(''); setAmount(''); setImageUrl(''); setNotes('');
     } catch (e) {

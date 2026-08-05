@@ -29,6 +29,16 @@ export function getNotificationUrl(notif, user) {
     return createPageUrl(isAdmin ? 'ShipmentTracking' : 'MyConsolidations');
   }
 
+  // Pago reportado por cliente → admin valida en AdminPayments
+  if (notif?.type === 'payment_validation') {
+    return createPageUrl(isAdmin ? 'AdminPayments' : 'MyConsolidations');
+  }
+
+  // Solicitud de pago asistido → admin revisa en AdminAssistedPayments
+  if (notif?.type === 'assisted_payment') {
+    return createPageUrl(isAdmin ? 'AdminAssistedPayments' : 'AssistedPayment');
+  }
+
   if (notif?.type === 'payment') {
     return createPageUrl(isAdmin ? 'AdminInvoices' : 'MyInvoices');
   }

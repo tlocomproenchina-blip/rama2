@@ -203,7 +203,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
             user_email: admin.email,
             title: '💳 Nuevo Pago Reportado',
             message: `Pago de $${amount} (${ref}) pendiente de validación`,
-            type: 'payment',
+            type: 'payment_validation',
             icon: 'dollar',
             reference_id: consolidation.id
           }).catch(err => console.error('Notification error:', err));

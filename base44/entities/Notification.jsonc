@@ -20,7 +20,10 @@
         "package",
         "consolidation",
         "request",
-        "system"
+        "system",
+        "payment",
+        "payment_validation",
+        "assisted_payment"
       ],
       "description": "Tipo de notificaci\u00f3n"
     },
@@ -45,6 +48,8 @@
         "Package",
         "Consolidation",
         "ConsolidationRequest",
+        "Invoice",
+        "AssistedPaymentRequest",
         "System"
       ],
       "description": "Tipo de entidad relacionada"
