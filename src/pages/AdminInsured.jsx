@@ -24,6 +24,7 @@ export default function AdminInsured({ user }) {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('todas');
   const [viewInvoice, setViewInvoice] = useState(null);
 
   useEffect(() => {
@@ -91,11 +92,19 @@ export default function AdminInsured({ user }) {
 
   const filteredPackages = packages.filter(pkg => {
     const searchLower = search.toLowerCase();
-    return (
+    const matchesSearch = (
       pkg.tracking_number.toLowerCase().includes(searchLower) ||
       (pkg.client_email || '').toLowerCase().includes(searchLower) ||
       (pkg.shipping_mark || '').toLowerCase().includes(searchLower)
     );
+    if (!matchesSearch) return false;
+    if (filter === 'despachadas') {
+      return pkg.status === 'despachado' || pkg.status === 'entregado';
+    }
+    if (filter === 'por_cobrar') {
+      return !isInsuranceCollected(pkg);
+    }
+    return true;
   });
 
   const totalFOB = packages.reduce((sum, p) => sum + (p.fob_value || 0), 0);
@@ -193,9 +202,32 @@ export default function AdminInsured({ user }) {
         </Card>
       </div>
 
-      {/* Search */}
+      {/* Filters + Search */}
       <Card className="border-0 shadow-md">
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={filter === 'todas' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('todas')}
+            >
+              Todas
+            </Button>
+            <Button
+              variant={filter === 'despachadas' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('despachadas')}
+            >
+              Despachadas
+            </Button>
+            <Button
+              variant={filter === 'por_cobrar' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter('por_cobrar')}
+            >
+              Por cobrar
+            </Button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
