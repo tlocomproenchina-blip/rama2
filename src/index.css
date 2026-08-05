@@ -193,8 +193,10 @@
 }
 
 /* Toasts visible + prevent horizontal scroll */
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
 body { overflow-x: hidden; overscroll-behavior-y: contain; }
+/* Toda columna principal debe acotarse al viewport en móvil */
+#main-content, main, [id^="root"] > div { max-width: 100vw; }
 
 button, a, [role="button"], [role="tab"] { -webkit-tap-highlight-color: transparent; }
 button, a, [role="button"], [role="tab"], nav { -webkit-user-select: none; user-select: none; }
@@ -247,6 +249,24 @@ input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-sele
   .inline-flex > *:not(.shrink-0) {
     min-width: 0;
     max-width: 100%;
+  }
+
+  /* Grid children también deben poder encogerse (mismo principio que flex) */
+  .grid > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Cuarquier ancho fijo arbitrario (w-[700px], w-[900px], etc.) se acota al viewport */
+  [class*=" w-["]:not([class*="max-w-"]),
+  [class^="w-["]:not([class*="max-w-"]) {
+    max-width: 100% !important;
+  }
+
+  /* Diálogos, sheets y drawers nunca deben generar scroll horizontal */
+  [role="dialog"], [data-radix-dialog-content] {
+    max-width: calc(100vw - 2rem) !important;
+    margin-inline: auto;
   }
 
   /* Mobile header tap targets */
