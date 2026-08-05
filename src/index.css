@@ -192,9 +192,12 @@
   --sab: env(safe-area-inset-bottom);
 }
 
-/* Toasts visible + prevent horizontal scroll */
-html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
-body { overflow-x: hidden; overscroll-behavior-y: contain; }
+/* Toasts visible + prevent horizontal scroll.
+   Usamos `clip` en vez de `hidden`: clip recorta el desbordamiento horizontal
+   sin crear un contenedor de scroll, así el scroll vertical y la rueda del
+   mouse siguen funcionando en el viewport. */
+html { -webkit-text-size-adjust: 100%; overflow-x: clip; }
+body { overflow-x: clip; overscroll-behavior-y: contain; }
 /* Toda columna principal debe acotarse al viewport en móvil */
 #main-content, main, [id^="root"] > div { max-width: 100vw; }
 
