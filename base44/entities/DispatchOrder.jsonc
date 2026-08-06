@@ -60,6 +60,10 @@
           },
           "description": {
             "type": "string"
+          },
+          "consolidation_tracking": {
+            "type": "string",
+            "description": "Recibo / tracking de la consolidaci\u00f3n a la que pertenece el paquete"
           }
         }
       }

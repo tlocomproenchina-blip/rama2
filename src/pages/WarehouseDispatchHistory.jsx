@@ -18,7 +18,35 @@ export default function WarehouseDispatchHistory({ user }) {
     setLoading(true);
     try {
       const rows = await base44.entities.DispatchOrder.list('-created_date', 100);
-      setOrders(rows || []);
+      const ordersList = rows || [];
+
+      // Enriquecer items con consolidation_tracking (recibo) si no lo tienen
+      const trackingsToLookup = [];
+      ordersList.forEach((o) => {
+        (o.items || []).forEach((item) => {
+          if (item.tracking_number && !item.consolidation_tracking) {
+            trackingsToLookup.push(item.tracking_number);
+          }
+        });
+      });
+
+      if (trackingsToLookup.length > 0) {
+        try {
+          const res = await base44.functions.invoke('getDispatchReceiptsMap', { tracking_numbers: trackingsToLookup });
+          const receiptMap = res?.data?.map || res?.map || {};
+          // Inyectar consolidation_tracking en los items que no lo tienen
+          ordersList.forEach((o) => {
+            if (!Array.isArray(o.items)) return;
+            o.items = o.items.map((item) => {
+              if (item.consolidation_tracking) return item;
+              const receipt = receiptMap[item.tracking_number] || '';
+              return { ...item, consolidation_tracking: receipt };
+            });
+          });
+        } catch (_) {}
+      }
+
+      setOrders(ordersList);
     } catch (e) {
       toast.error('No se pudo cargar el historial');
     }
@@ -29,7 +57,23 @@ export default function WarehouseDispatchHistory({ user }) {
 
   const handleDownload = async (order) => {
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1).catch(() => []);
-    await generateDispatchOrderPdf(order, configs?.[0]?.app_name || 'TLEC CARGO');
+    let enrichedOrder = order;
+    const needsLookup = (order.items || []).some((i) => i.tracking_number && !i.consolidation_tracking);
+    if (needsLookup) {
+      try {
+        const trackings = (order.items || []).map((i) => i.tracking_number).filter(Boolean);
+        const res = await base44.functions.invoke('getDispatchReceiptsMap', { tracking_numbers: trackings });
+        const receiptMap = res?.data?.map || res?.map || {};
+        enrichedOrder = {
+          ...order,
+          items: (order.items || []).map((item) => ({
+            ...item,
+            consolidation_tracking: item.consolidation_tracking || receiptMap[item.tracking_number] || '',
+          })),
+        };
+      } catch (_) {}
+    }
+    await generateDispatchOrderPdf(enrichedOrder, configs?.[0]?.app_name || 'TLEC CARGO');
   };
 
   const handleSave = async (patch) => {

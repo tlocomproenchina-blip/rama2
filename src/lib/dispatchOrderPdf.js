@@ -1,10 +1,13 @@
 // Genera el PDF de una orden de despacho a partir de un registro DispatchOrder
+import { groupItemsByReceipt } from './dispatchOrderGroups';
+
 export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO') {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   const client = order.client_snapshot || {};
   const items = Array.isArray(order.items) ? order.items : [];
   const date = order.dispatched_date ? new Date(order.dispatched_date) : new Date();
+  const receiptGroups = groupItemsByReceipt(items);
 
   doc.setFillColor(37, 99, 235);
   doc.rect(0, 0, 210, 28, 'F');
@@ -53,23 +56,36 @@ export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO') {
   doc.text(`PAQUETES DESPACHADOS (${items.length})`, 14, y);
   doc.line(14, y + 2, 196, y + 2);
   y += 9;
-  doc.setFontSize(10);
-  doc.text('#', 14, y);
-  doc.text('Tracking', 24, y);
-  doc.text('Descripción', 110, y);
-  y += 6;
-  doc.setFont('helvetica', 'normal');
 
-  items.forEach((item, idx) => {
-    if (y > 270) {
-      doc.addPage();
-      y = 20;
-    }
-    doc.text(String(idx + 1), 14, y);
-    doc.text(String(item.tracking_number || ''), 24, y);
-    const desc = doc.splitTextToSize(String(item.description || ''), 84);
-    doc.text(desc, 110, y);
-    y += Math.max(desc.length * 5, 6);
+  let globalIdx = 0;
+  receiptGroups.forEach((group) => {
+    if (y > 265) { doc.addPage(); y = 20; }
+    // Encabezado del recibo con conteo de paquetes
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(37, 99, 235);
+    doc.text(`Recibo: ${group.receipt}  (${group.count} paquete${group.count !== 1 ? 's' : ''})`, 14, y);
+    doc.setTextColor(30, 41, 59);
+    y += 6;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('#', 14, y);
+    doc.text('Tracking', 24, y);
+    doc.text('Descripción', 110, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    group.items.forEach((item) => {
+      if (y > 275) { doc.addPage(); y = 20; }
+      globalIdx += 1;
+      doc.text(String(globalIdx), 14, y);
+      doc.text(String(item.tracking_number || ''), 24, y);
+      const desc = doc.splitTextToSize(String(item.description || ''), 84);
+      doc.text(desc, 110, y);
+      y += Math.max(desc.length * 5, 6);
+    });
+    y += 3;
   });
 
   if (order.notes) {

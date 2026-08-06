@@ -37,9 +37,19 @@ Deno.serve(async (req) => {
       } catch (_) { return null; }
     };
 
+    // Carga el recibo (consolidation_tracking) si el paquete pertenece a una consolidación
+    const loadConsolidationTracking = async () => {
+      if (!pkg.consolidation_id) return '';
+      try {
+        const cons = await base44.asServiceRole.entities.Consolidation.get(pkg.consolidation_id);
+        return cons?.consolidation_tracking || '';
+      } catch (_) { return ''; }
+    };
+
     // Solo consultar: no modifica nada, permite decidir manualmente
     if (mode === 'lookup') {
       const c = await loadClient();
+      const consolidation_tracking = await loadConsolidationTracking();
       return Response.json({
         success: true,
         mode: 'lookup',
@@ -54,7 +64,9 @@ Deno.serve(async (req) => {
           shipping_type: pkg.shipping_type,
           client_email: pkg.client_email,
           shipping_mark: pkg.shipping_mark || c?.shipping_mark,
-          dispatched_date: pkg.dispatched_date
+          dispatched_date: pkg.dispatched_date,
+          consolidation_id: pkg.consolidation_id || '',
+          consolidation_tracking
         },
         client: c
       });
@@ -71,6 +83,7 @@ Deno.serve(async (req) => {
         });
       }
       const c = await loadClient();
+      const consolidation_tracking = await loadConsolidationTracking();
       return Response.json({
         success: true,
         mode: 'receive',
@@ -84,7 +97,9 @@ Deno.serve(async (req) => {
           description: pkg.description,
           shipping_type: pkg.shipping_type,
           client_email: pkg.client_email,
-          shipping_mark: pkg.shipping_mark || c?.shipping_mark
+          shipping_mark: pkg.shipping_mark || c?.shipping_mark,
+          consolidation_id: pkg.consolidation_id || '',
+          consolidation_tracking
         },
         client: c
       });
@@ -97,6 +112,7 @@ Deno.serve(async (req) => {
         const usersDup = await base44.asServiceRole.entities.User.filter({ email: pkg.client_email });
         clientDup = usersDup?.[0] || null;
       } catch (_) {}
+      const consolidation_tracking = await loadConsolidationTracking();
       return Response.json({
         success: true,
         already_dispatched: true,
@@ -109,7 +125,9 @@ Deno.serve(async (req) => {
           shipping_type: pkg.shipping_type,
           client_email: pkg.client_email,
           shipping_mark: pkg.shipping_mark,
-          dispatched_date: pkg.dispatched_date
+          dispatched_date: pkg.dispatched_date,
+          consolidation_id: pkg.consolidation_id || '',
+          consolidation_tracking
         },
         client: clientDup ? {
           full_name: clientDup.full_name,
@@ -144,6 +162,7 @@ Deno.serve(async (req) => {
       client = users?.[0] || null;
     } catch (_) {}
 
+    const consolidation_tracking = await loadConsolidationTracking();
     return Response.json({
       success: true,
       mode: 'dispatch',
@@ -158,7 +177,9 @@ Deno.serve(async (req) => {
         shipping_type: pkg.shipping_type,
         client_email: pkg.client_email,
         shipping_mark: pkg.shipping_mark || client?.shipping_mark,
-        dispatched_date: now
+        dispatched_date: now,
+        consolidation_id: pkg.consolidation_id || '',
+        consolidation_tracking
       },
       client: client ? {
         full_name: client.full_name,

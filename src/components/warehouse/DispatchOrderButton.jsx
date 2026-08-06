@@ -33,6 +33,7 @@ export default function DispatchOrderButton({ group, email, onCreated }) {
         items: group.items.map((i) => ({
           tracking_number: i.package?.tracking_number || '',
           description: i.package?.description || '',
+          consolidation_tracking: i.package?.consolidation_tracking || '',
         })),
       };
 
