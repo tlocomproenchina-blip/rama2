@@ -319,6 +319,10 @@ export default function PreAlert({ user }) {
               Una vez recibido tu primer paquete, contarás con <span className="font-bold">{config?.consolidation_periods?.[0] || 30} días</span> para solicitar la consolidación. 
               De lo contrario, realizaremos una consolidación automática con los paquetes disponibles en depósito. El envío mínimo es de 0.130 CBM o el equivalente a una caja de 50cm × 50cm × 50cm.
             </p>
+            <p className="mt-2 text-sm font-semibold text-red-600 leading-relaxed flex items-start gap-1.5">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>La carga cubre hasta 499 kg. Desde 500 kg en adelante, se factura x2 el costo del envío.</span>
+            </p>
           </div>
         </CardContent>
       </Card>
