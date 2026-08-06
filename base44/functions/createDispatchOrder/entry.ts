@@ -18,35 +18,33 @@ export default async function (req) {
 
     const newItems = Array.isArray(items) ? items : [];
 
-    // Determinar si todos los nuevos items comparten el mismo recibo
-    const receipts = [...new Set(newItems.map((i) => (i.consolidation_tracking || '').trim()).filter(Boolean))];
+    // Agrupación automática: buscar una orden "emitida" existente para el mismo
+    // cliente creada el mismo día. Si existe, agregar los nuevos paquetes a esa orden.
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-    if (receipts.length === 1) {
-      // Todos los items comparten el mismo recibo: buscar una orden "emitida" existente
-      // para el mismo cliente que ya tenga items con ese recibo
-      const existingOrders = await base44.asServiceRole.entities.DispatchOrder.filter(
-        { client_email, status: 'emitida' },
-        '-created_date',
-        50
-      );
+    const existingOrders = await base44.asServiceRole.entities.DispatchOrder.filter(
+      { client_email, status: 'emitida' },
+      '-created_date',
+      50
+    );
 
-      const matchingOrder = existingOrders?.find(
-        (o) => Array.isArray(o.items) && o.items.some((i) => (i.consolidation_tracking || '').trim() === receipts[0])
-      );
+    const matchingOrder = existingOrders?.find((o) => {
+      const orderDate = o.dispatched_date ? new Date(o.dispatched_date) : (o.created_date ? new Date(o.created_date) : null);
+      if (!orderDate) return false;
+      const orderStr = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}-${String(orderDate.getDate()).padStart(2, '0')}`;
+      return orderStr === todayStr;
+    });
 
-      if (matchingOrder) {
-        // Agregar nuevos items, evitando duplicados por tracking_number
-        const existingTrackings = new Set((matchingOrder.items || []).map((i) => i.tracking_number));
-        const itemsToAdd = newItems.filter((i) => !existingTrackings.has(i.tracking_number));
-
-        if (itemsToAdd.length > 0) {
-          const updatedItems = [...(matchingOrder.items || []), ...itemsToAdd];
-          await base44.asServiceRole.entities.DispatchOrder.update(matchingOrder.id, { items: updatedItems });
-          return Response.json({ order: { ...matchingOrder, items: updatedItems }, updated: true, added: itemsToAdd.length });
-        }
-        // Todos los items ya estaban en la orden
-        return Response.json({ order: matchingOrder, updated: true, no_change: true });
+    if (matchingOrder) {
+      const existingTrackings = new Set((matchingOrder.items || []).map((i) => i.tracking_number));
+      const itemsToAdd = newItems.filter((i) => !existingTrackings.has(i.tracking_number));
+      if (itemsToAdd.length > 0) {
+        const updatedItems = [...(matchingOrder.items || []), ...itemsToAdd];
+        await base44.asServiceRole.entities.DispatchOrder.update(matchingOrder.id, { items: updatedItems });
+        return Response.json({ order: { ...matchingOrder, items: updatedItems }, updated: true, added: itemsToAdd.length });
       }
+      return Response.json({ order: matchingOrder, updated: true, no_change: true });
     }
 
     // No hay orden existente con ese recibo: crear una nueva

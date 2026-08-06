@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { FileDown, Pencil, Trash2, Ban, Package as PackageIcon, Receipt, CheckCircle2 } from 'lucide-react';
 import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
 
-export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, onDownload, onToggleDespachado, togglingDespachado }) {
+export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, onDownload, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const cancelled = order.status === 'cancelada';
   const despachado = order.status === 'despachado';
@@ -23,6 +23,15 @@ export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, o
   return (
     <Card className={cancelled ? 'border-rose-200 bg-rose-50/50' : despachado ? 'border-blue-200 bg-blue-50/40' : ''}>
       <CardContent className="p-4 space-y-3">
+        {selectable && (
+          <label className="flex items-center gap-2 cursor-pointer select-none pb-2 border-b border-slate-100">
+            <Checkbox
+              checked={!!selected}
+              onCheckedChange={() => onSelectToggle?.(order.id)}
+            />
+            <span className="text-xs font-medium text-slate-600">Seleccionar para fusionar</span>
+          </label>
+        )}
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="min-w-0">
             <p className="font-mono text-sm font-semibold text-slate-800 break-all">{order.order_number || '—'}</p>

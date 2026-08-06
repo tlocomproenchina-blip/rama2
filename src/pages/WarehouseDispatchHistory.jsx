@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from '@/components/ui/input';
-import { Loader2, History, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, History, Search, GitMerge, X } from 'lucide-react';
 import { toast } from 'sonner';
 import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
 import DispatchOrderEditModal from '@/components/warehouse/DispatchOrderEditModal';
@@ -14,6 +15,9 @@ export default function WarehouseDispatchHistory({ user }) {
   const [editOrder, setEditOrder] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [merging, setMerging] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -149,6 +153,39 @@ export default function WarehouseDispatchHistory({ user }) {
     (o.items || []).some((i) => (i.tracking_number || '').toLowerCase().includes(q))
   );
 
+  // Solo se pueden fusionar órdenes "emitida" del mismo cliente
+  const selectedOrders = useMemo(
+    () => orders.filter((o) => selectedIds.includes(o.id)),
+    [orders, selectedIds]
+  );
+  const canMerge = useMemo(() => {
+    if (selectedOrders.length < 2) return false;
+    const email = selectedOrders[0].client_email;
+    return selectedOrders.every((o) => o.client_email === email && o.status === 'emitida');
+  }, [selectedOrders]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleMerge = async () => {
+    if (!canMerge) return;
+    setMerging(true);
+    try {
+      const res = await base44.functions.invoke('mergeDispatchOrders', { order_ids: selectedIds });
+      const merged = res?.data?.merged || 0;
+      const added = res?.data?.added || 0;
+      toast.success(`${merged + 1} órdenes fusionadas en una sola (+${added} paquetes)`);
+      setSelectedIds([]);
+      setSelectMode(false);
+      await load();
+    } catch (e) {
+      const msg = e?.response?.data?.error || e?.message || 'No se pudo fusionar';
+      toast.error(msg);
+    }
+    setMerging(false);
+  };
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
@@ -160,15 +197,53 @@ export default function WarehouseDispatchHistory({ user }) {
         </p>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por orden, cliente, mark o tracking"
-          className="pl-10"
-        />
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por orden, cliente, mark o tracking"
+            className="pl-10"
+          />
+        </div>
+        <Button
+          variant={selectMode ? "default" : "outline"}
+          onClick={() => { setSelectMode(!selectMode); setSelectedIds([]); }}
+          className="shrink-0"
+        >
+          <GitMerge className="h-4 w-4" />
+          {selectMode ? 'Cancelar selección' : 'Seleccionar'}
+        </Button>
       </div>
+
+      {selectMode && (
+        <div className="flex items-center justify-between gap-2 flex-wrap rounded-xl border border-blue-200 bg-blue-50/60 p-3">
+          <p className="text-sm text-slate-600">
+            {selectedIds.length === 0
+              ? 'Selecciona 2 o más órdenes del mismo cliente (solo "emitida") para fusionarlas.'
+              : `${selectedIds.length} seleccionada${selectedIds.length !== 1 ? 's' : ''}`}
+            {selectedIds.length >= 2 && !canMerge && (
+              <span className="text-amber-600 font-medium ml-1">— Deben ser del mismo cliente y estar "emitida"</span>
+            )}
+          </p>
+          <div className="flex gap-2">
+            {selectedIds.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
+                <X className="h-4 w-4" /> Limpiar
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={handleMerge}
+              disabled={!canMerge || merging}
+            >
+              {merging ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitMerge className="h-4 w-4" />}
+              Fusionar ({selectedIds.length})
+            </Button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-blue-600" /></div>
@@ -186,6 +261,9 @@ export default function WarehouseDispatchHistory({ user }) {
               onDownload={handleDownload}
               onToggleDespachado={handleToggleDespachado}
               togglingDespachado={togglingId === order.id}
+              selectable={selectMode && order.status === 'emitida'}
+              selected={selectedIds.includes(order.id)}
+              onSelectToggle={toggleSelect}
             />
           ))}
         </div>
