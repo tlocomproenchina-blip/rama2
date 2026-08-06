@@ -152,6 +152,56 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
             )}
           </div>
 
+          {/* Datos de Facturación */}
+          <div className="bg-indigo-50/60 border border-indigo-100 p-4 rounded-lg mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="h-4 w-4 text-indigo-600" />
+              <p className="text-sm font-semibold text-indigo-900">Datos de Facturación</p>
+              {client.billing_use_registration === false ? (
+                <Badge className="bg-indigo-100 text-indigo-700 text-xs">Personalizada</Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs text-slate-500">Usa datos de registro</Badge>
+              )}
+            </div>
+            {client.billing_use_registration === false ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-600 font-medium mb-1">Nombre / Razón Social</p>
+                  <p className="text-sm text-slate-800">{client.billing_name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-600 font-medium mb-1">Cédula / RIF</p>
+                  <p className="text-sm text-slate-800">{client.billing_cedula_rif || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-600 font-medium mb-1">Teléfono</p>
+                  <p className="text-sm text-slate-800">{client.billing_phone || '—'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-slate-600 font-medium mb-1">Dirección de Facturación</p>
+                  <p className="text-sm text-slate-800">{client.billing_address || '—'}</p>
+                </div>
+                {client.billing_rif_image_url && (
+                  <div className="col-span-2">
+                    <p className="text-xs text-slate-600 font-medium mb-1">Imagen del RIF</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedImage(client.billing_rif_image_url)}
+                      className="gap-2"
+                    >
+                      <Eye className="h-4 w-4" /> Ver RIF
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">
+                El cliente usa los mismos datos de su perfil para facturación.
+              </p>
+            )}
+          </div>
+
           {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-4 my-4">
             <Card className="border-0 shadow-sm bg-blue-50">
