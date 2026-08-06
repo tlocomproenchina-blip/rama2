@@ -74,28 +74,19 @@ export default function AdminCbmIngresos({ user }) {
   };
 
   const doSearchClients = async (query) => {
-    // Traer todos los usuarios para búsqueda completa
-    let allUsers = [];
-    let skip = 0;
-    const batchSize = 200;
-    while (true) {
-      const batch = await base44.entities.User.list('-created_date', batchSize, skip);
-      if (!batch || batch.length === 0) break;
-      allUsers = allUsers.concat(batch);
-      if (batch.length < batchSize) break;
-      skip += batchSize;
+    // Usar la función backend (asServiceRole) para evitar permisos de User.list
+    try {
+      const res = await base44.functions.invoke('listClientsForSupport', {
+        q: query,
+        limit: 50,
+        includeCounts: false,
+      });
+      const list = res?.data?.data || [];
+      setClients(list);
+    } catch {
+      setClients([]);
+      toast.error('No se pudo buscar clientes. Intenta de nuevo.');
     }
-    const q = query.toLowerCase();
-    const filtered = allUsers.filter(u =>
-      u.role === 'user' && (
-        (u.full_name || '').toLowerCase().includes(q) ||
-        (u.email || '').toLowerCase().includes(q) ||
-        (u.shipping_mark || '').toLowerCase().includes(q) ||
-        (u.first_name || '').toLowerCase().includes(q) ||
-        (u.last_name || '').toLowerCase().includes(q)
-      )
-    );
-    setClients(filtered);
     setLoadingClients(false);
   };
 
