@@ -37,8 +37,17 @@ Deno.serve(async (req) => {
       } catch (_) { return null; }
     };
 
-    // Carga el recibo (consolidation_tracking) si el paquete pertenece a una consolidación
+    // Carga el recibo: busca el número de orden (invoice_number) asignado en CbmIngreso
+    // (AdminCbmIngresos) usando el tracking del paquete. Si no se encuentra ahí,
+    // usa consolidation_tracking de la consolidación como fallback.
     const loadConsolidationTracking = async () => {
+      try {
+        if (pkg.client_email) {
+          const ingresos = await base44.asServiceRole.entities.CbmIngreso.filter({ client_email: pkg.client_email }, '-fecha', 200);
+          const match = ingresos?.find((ing) => Array.isArray(ing.tracking_numbers) && ing.tracking_numbers.some(t => String(t).trim() === tracking));
+          if (match?.invoice_number) return String(match.invoice_number).trim();
+        }
+      } catch (_) {}
       if (!pkg.consolidation_id) return '';
       try {
         const cons = await base44.asServiceRole.entities.Consolidation.get(pkg.consolidation_id);
