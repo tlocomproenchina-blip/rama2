@@ -16,6 +16,31 @@
         "marketing"
       ],
       "description": "Rol por \u00e1rea operativa"
+    },
+    "billing_use_registration": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la direcci\u00f3n de facturaci\u00f3n es la misma de registro"
+    },
+    "billing_name": {
+      "type": "string",
+      "description": "Nombre o raz\u00f3n social para facturaci\u00f3n"
+    },
+    "billing_cedula_rif": {
+      "type": "string",
+      "description": "C\u00e9dula o RIF de facturaci\u00f3n"
+    },
+    "billing_phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de facturaci\u00f3n"
+    },
+    "billing_address": {
+      "type": "string",
+      "description": "Direcci\u00f3n exacta de facturaci\u00f3n"
+    },
+    "billing_rif_image_url": {
+      "type": "string",
+      "description": "URL de la imagen del RIF subida para facturaci\u00f3n"
     }
   },
   "required": [

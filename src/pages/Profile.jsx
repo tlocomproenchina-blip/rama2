@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, MapPin, Phone, Save, Loader2, DollarSign, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
+import BillingAddressCard from '@/components/profile/BillingAddressCard';
 import WhatsAppInput from '@/components/common/WhatsAppInput';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
@@ -418,6 +419,9 @@ export default function Profile({ user, refreshUser }) {
           </form>
         </CardContent>
       </Card>
+
+      {/* Dirección de Facturación */}
+      <BillingAddressCard user={user} onSaved={refreshUser} />
 
       {/* Account Info - Read Only */}
       <Card className="border-border/70 bg-card/95 shadow-card">
