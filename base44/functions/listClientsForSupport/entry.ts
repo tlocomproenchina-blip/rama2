@@ -47,6 +47,12 @@ function sanitize(u) {
     created_date: u.created_date,
     role: u.role || 'user',
     custom_role: u.custom_role || null,
+    billing_use_registration: u.billing_use_registration !== false ? true : false,
+    billing_name: u.billing_name || null,
+    billing_cedula_rif: u.billing_cedula_rif || null,
+    billing_phone: u.billing_phone || null,
+    billing_address: u.billing_address || null,
+    billing_rif_image_url: u.billing_rif_image_url || null,
   };
 }
 
