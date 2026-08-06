@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Pencil, Search, User as UserIcon, X } from 'lucide-react';
+import { Loader2, Save, Pencil, Search, User as UserIcon, X, Trash2, AlertTriangle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import PackageBillingInfo from '@/components/admin/packages/PackageBillingInfo';
 
-export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
+export default function EditPackageModal({ pkg, processing, deleting, onClose, onSave, onDelete }) {
   const [form, setForm] = useState({
     tracking_number: '',
     shipping_mark: '',
@@ -247,14 +248,48 @@ export default function EditPackageModal({ pkg, processing, onClose, onSave }) {
             />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={processing}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={processing} className="bg-blue-600 hover:bg-blue-700">
-            {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-            Guardar cambios
-          </Button>
+        <DialogFooter className="flex-col gap-3 sm:flex-col sm:items-stretch">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between sm:items-center">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 hover:text-red-700" disabled={deleting || processing}>
+                  {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                  Borrar registro
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                    <AlertTriangle className="h-5 w-5" /> ¿Borrar este paquete?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Se eliminará permanentemente el paquete
+                    <span className="font-mono font-semibold text-slate-700"> {pkg?.tracking_number}</span>
+                    {' '}y todos sus datos asociados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={onDelete}
+                    className="bg-red-600 text-white hover:bg-red-700 border-red-600"
+                  >
+                    Sí, borrar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <div className="flex gap-2 sm:ml-auto">
+              <Button variant="outline" onClick={onClose} disabled={processing || deleting}>
+                Cerrar
+              </Button>
+              <Button onClick={handleSubmit} disabled={processing || deleting} className="bg-blue-600 hover:bg-blue-700">
+                {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar cambios
+              </Button>
+            </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

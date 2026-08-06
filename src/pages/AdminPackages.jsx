@@ -102,6 +102,24 @@ export default function AdminPackages({ user }) {
     })();
   }, []);
 
+  const [deletePackageProcessing, setDeletePackageProcessing] = useState(false);
+
+  const handleDeletePackage = async () => {
+    if (!editPackageModal) return;
+    setDeletePackageProcessing(true);
+    try {
+      await base44.entities.Package.delete(editPackageModal.id);
+      removePackageFromList?.(editPackageModal.id);
+      loadPackages(false);
+      toast.success('Paquete eliminado');
+      setEditPackageModal(null);
+    } catch (error) {
+      console.error('Error deleting package:', error);
+      toast.error(error?.message || 'No se pudo eliminar el paquete');
+    }
+    setDeletePackageProcessing(false);
+  };
+
   const handleSavePackageEdit = async (patch) => {
     if (!editPackageModal) return;
     if (!patch.tracking_number) {
@@ -579,8 +597,10 @@ export default function AdminPackages({ user }) {
       <EditPackageModal
         pkg={editPackageModal}
         processing={editPackageProcessing}
+        deleting={deletePackageProcessing}
         onClose={() => setEditPackageModal(null)}
         onSave={handleSavePackageEdit}
+        onDelete={handleDeletePackage}
       />
     </div>
   );
