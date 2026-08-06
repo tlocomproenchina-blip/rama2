@@ -51,7 +51,7 @@ export default function AdminClients({ user }) {
   const reqSeqRef = useRef(0);
 
   // Hooks especializados (extraídos para mantener este archivo enfocado)
-  const { bulkProgress, handleExportRemarketing, handleExportFiltered } = useClientExports({
+  const { bulkProgress, handleExportRemarketing, handleExportFiltered, handleCopyFiltered } = useClientExports({
     debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate,
   });
   const {
@@ -440,6 +440,7 @@ Shipping Mark: ${client.shipping_mark || 'N/A'}`;
         backfilling={backfilling}
         onOpenImport={() => setImportModalOpen(true)}
         onExportFiltered={handleExportFiltered}
+        onCopyFiltered={handleCopyFiltered}
         onExportRemarketing={handleExportRemarketing}
         onBackfillStripe={handleBackfillStripeCustomers}
       />

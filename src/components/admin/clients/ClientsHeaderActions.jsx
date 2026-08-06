@@ -1,12 +1,13 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Upload, Download, CreditCard, Loader2 } from 'lucide-react';
+import { Upload, Download, CreditCard, Loader2, ClipboardCopy } from 'lucide-react';
 
 export default function ClientsHeaderActions({
   canExport,
   backfilling,
   onOpenImport,
   onExportFiltered,
+  onCopyFiltered,
   onExportRemarketing,
   onBackfillStripe,
 }) {
@@ -29,6 +30,15 @@ export default function ClientsHeaderActions({
           >
             <Download className="h-4 w-4 mr-2" />
             Exportar Selección (TXT)
+          </Button>
+          <Button
+            onClick={onCopyFiltered}
+            variant="outline"
+            className="w-full sm:w-auto border-blue-300 text-blue-700 hover:bg-blue-50"
+            title="Copia los clientes filtrados al portapapeles (mismo formato TXT)"
+          >
+            <ClipboardCopy className="h-4 w-4 mr-2" />
+            Copiar Selección
           </Button>
           <Button
             onClick={onExportRemarketing}

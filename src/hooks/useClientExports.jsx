@@ -2,6 +2,24 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { exportPaginated } from '@/lib/exportPaginated';
 
+// Genera el contenido TXT con el mismo formato usado para exportar y copiar
+function buildClientsTxt(all) {
+  const lines = [];
+  all.forEach((client, index) => {
+    const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim();
+    lines.push(`Nombre: ${fullName}`);
+    lines.push(`Cedula: ${client.cedula || ''}`);
+    lines.push(`Estado: ${client.state || ''}`);
+    lines.push(`Ciudad: ${client.city || ''}`);
+    lines.push(`Direccion: ${client.address || ''}`);
+    lines.push(`WhatsApp: ${client.whatsapp || ''}`);
+    lines.push(`Email: ${client.email}`);
+    lines.push(`Codigo asignado: ${client.shipping_mark || ''}`);
+    if (index < all.length - 1) lines.push('');
+  });
+  return lines.join('\n');
+}
+
 /**
  * Hook que encapsula la descarga paginada y los dos exports (CSV remarketing y TXT detallado)
  * para AdminClients. Expone el estado de progreso para mostrar BulkProgressIndicator.
@@ -50,20 +68,7 @@ export default function useClientExports(filters) {
         return;
       }
       setBulkProgress({ total: all.length, remaining: 0, label: 'Generando archivo...' });
-      const lines = [];
-      all.forEach((client, index) => {
-        const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim();
-        lines.push(`Nombre: ${fullName}`);
-        lines.push(`Cedula: ${client.cedula || ''}`);
-        lines.push(`Estado: ${client.state || ''}`);
-        lines.push(`Ciudad: ${client.city || ''}`);
-        lines.push(`Direccion: ${client.address || ''}`);
-        lines.push(`WhatsApp: ${client.whatsapp || ''}`);
-        lines.push(`Email: ${client.email}`);
-        lines.push(`Codigo asignado: ${client.shipping_mark || ''}`);
-        if (index < all.length - 1) lines.push('');
-      });
-      const txtContent = lines.join('\n');
+      const txtContent = buildClientsTxt(all);
       const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -97,12 +102,30 @@ export default function useClientExports(filters) {
       link.download = fileName;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success(`${lines.filter((l) => l.startsWith('Email:')).length} clientes exportados a TXT`);
+      toast.success(`${all.length} clientes exportados a TXT`);
     } catch (error) {
       toast.error('Error al exportar datos');
     }
     setBulkProgress(null);
   }, [fetchAllFilteredClients, exclusiveKey, fromDate, toDate, quickDate]);
 
-  return { bulkProgress, handleExportRemarketing, handleExportFiltered };
+  const handleCopyFiltered = useCallback(async () => {
+    try {
+      const all = await fetchAllFilteredClients((p) => setBulkProgress(p));
+      if (all.length === 0) {
+        toast.error('No hay clientes para copiar');
+        setBulkProgress(null);
+        return;
+      }
+      setBulkProgress({ total: all.length, remaining: 0, label: 'Copiando al portapapeles...' });
+      const txtContent = buildClientsTxt(all);
+      await navigator.clipboard.writeText(txtContent);
+      toast.success(`${all.length} clientes copiados al portapapeles`);
+    } catch (error) {
+      toast.error('Error al copiar los datos');
+    }
+    setBulkProgress(null);
+  }, [fetchAllFilteredClients]);
+
+  return { bulkProgress, handleExportRemarketing, handleExportFiltered, handleCopyFiltered };
 }
