@@ -1,5 +1,21 @@
 // Genera el PDF de una orden de despacho a partir de un registro DispatchOrder
+import { base44 } from '@/components/api/ApiQueueManager';
 import { groupItemsByReceipt } from './dispatchOrderGroups';
+
+// Consulta los totales esperados por recibo según CbmIngreso (AdminCbmIngresos).
+// Devuelve { receipt: total_expected }.
+async function fetchReceiptTotals(receipts, clientEmail) {
+  if (!receipts.length) return {};
+  try {
+    const res = await base44.functions.invoke('getDispatchReceiptTotals', {
+      receipts,
+      client_email: clientEmail || ''
+    });
+    return res?.data?.totals || res?.totals || {};
+  } catch (_) {
+    return {};
+  }
+}
 
 export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO') {
   const { jsPDF } = await import('jspdf');
@@ -8,6 +24,12 @@ export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO') {
   const items = Array.isArray(order.items) ? order.items : [];
   const date = order.dispatched_date ? new Date(order.dispatched_date) : new Date();
   const receiptGroups = groupItemsByReceipt(items);
+
+  // Consultar totales esperados por recibo desde CbmIngreso
+  const receiptNumbers = receiptGroups
+    .map((g) => g.receipt)
+    .filter((r) => r && r !== 'Sin recibo');
+  const receiptTotals = await fetchReceiptTotals(receiptNumbers, order.client_email);
 
   doc.setFillColor(37, 99, 235);
   doc.rect(0, 0, 210, 28, 'F');
@@ -60,11 +82,24 @@ export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO') {
   let globalIdx = 0;
   receiptGroups.forEach((group) => {
     if (y > 265) { doc.addPage(); y = 20; }
-    // Encabezado del recibo con conteo de paquetes
+    // Encabezado del recibo con conteo de paquetes y faltantes según CbmIngreso
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(37, 99, 235);
-    doc.text(`Recibo: ${group.receipt}  (${group.count} paquete${group.count !== 1 ? 's' : ''})`, 14, y);
+    const receiptLabel = `Recibo: ${group.receipt}  (${group.count} paquete${group.count !== 1 ? 's' : ''})`;
+    doc.text(receiptLabel, 14, y);
+
+    // Calcular faltantes según CbmIngreso
+    const totalExpected = receiptTotals[group.receipt] || 0;
+    if (totalExpected > 0) {
+      const missing = Math.max(0, totalExpected - group.count);
+      const missingText = missing === 0
+        ? `Completo: ${group.count}/${totalExpected}`
+        : `Faltan: ${missing} de ${totalExpected}`;
+      doc.setFontSize(9);
+      doc.setTextColor(missing === 0 ? 22 : 185, missing === 0 ? 163 : 28, missing === 0 ? 74 : 28);
+      doc.text(missingText, 196, y, { align: 'right' });
+    }
     doc.setTextColor(30, 41, 59);
     y += 6;
     doc.setFontSize(9);
