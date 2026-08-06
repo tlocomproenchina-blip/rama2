@@ -2,17 +2,26 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileDown, Pencil, Trash2, Ban, Package as PackageIcon, Receipt } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { FileDown, Pencil, Trash2, Ban, Package as PackageIcon, Receipt, CheckCircle2 } from 'lucide-react';
 import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
 
-export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, onDownload }) {
+export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, onDownload, onToggleDespachado, togglingDespachado }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const cancelled = order.status === 'cancelada';
+  const despachado = order.status === 'despachado';
   const receiptGroups = groupItemsByReceipt(items);
   const hasReceipts = receiptGroups.some((g) => g.receipt !== 'Sin recibo');
+  const receiptTotals = order.receipt_totals || {};
+
+  const statusBadge = cancelled
+    ? <Badge className="bg-rose-600 text-white">Cancelada</Badge>
+    : despachado
+      ? <Badge className="bg-blue-600 text-white flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Despachada</Badge>
+      : <Badge className="bg-emerald-600 text-white">Emitida</Badge>;
 
   return (
-    <Card className={cancelled ? 'border-rose-200 bg-rose-50/50' : ''}>
+    <Card className={cancelled ? 'border-rose-200 bg-rose-50/50' : despachado ? 'border-blue-200 bg-blue-50/40' : ''}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="min-w-0">
@@ -22,11 +31,28 @@ export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, o
               {order.shipping_mark ? `${order.shipping_mark} · ` : ''}
               {order.dispatched_date ? new Date(order.dispatched_date).toLocaleString('es-VE') : ''}
             </p>
+            {despachado && order.dispatched_confirmed_date && (
+              <p className="text-xs text-blue-600 mt-0.5">
+                Despachado: {new Date(order.dispatched_confirmed_date).toLocaleString('es-VE')}
+              </p>
+            )}
           </div>
-          <Badge className={cancelled ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}>
-            {cancelled ? 'Cancelada' : 'Emitida'}
-          </Badge>
+          {statusBadge}
         </div>
+
+        {/* Casilla de despachado */}
+        {!cancelled && (
+          <label className="flex items-center gap-2 cursor-pointer select-none py-1">
+            <Checkbox
+              checked={despachado}
+              disabled={togglingDespachado}
+              onCheckedChange={() => onToggleDespachado?.(order)}
+            />
+            <span className={`text-sm font-medium ${despachado ? 'text-blue-700' : 'text-slate-600'}`}>
+              {despachado ? 'Despachado confirmado' : 'Marcar como despachado'}
+            </span>
+          </label>
+        )}
 
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <PackageIcon className="h-4 w-4 shrink-0" />
@@ -35,35 +61,42 @@ export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, o
 
         {/* Agrupación por recibo */}
         <div className="space-y-2">
-          {receiptGroups.map((group) => (
-            <div key={group.receipt} className="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
-              <div className="flex items-center gap-2 mb-1.5">
-                <Receipt className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-                <span className="text-xs font-semibold text-slate-700">
-                  {hasReceipts && group.receipt !== 'Sin recibo' ? `Recibo ${group.receipt}` : group.receipt}
-                </span>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  {group.count} paquete{group.count !== 1 ? 's' : ''}
-                </Badge>
+          {receiptGroups.map((group) => {
+            const receiptKey = group.receipt !== 'Sin recibo' ? group.receipt : '';
+            const totalForReceipt = receiptKey && receiptTotals[receiptKey] ? receiptTotals[receiptKey] : null;
+            const showTotal = despachado && totalForReceipt != null && totalForReceipt > group.count;
+            return (
+              <div key={group.receipt} className="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <Receipt className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                  <span className="text-xs font-semibold text-slate-700">
+                    {hasReceipts && group.receipt !== 'Sin recibo' ? `Recibo ${group.receipt}` : group.receipt}
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    {showTotal ? `${group.count} de ${totalForReceipt}` : `${group.count} paquete${group.count !== 1 ? 's' : ''}`}
+                  </Badge>
+                </div>
+                <ul className="space-y-0.5 pl-5">
+                  {group.items.map((item, idx) => (
+                    <li key={idx} className="text-xs font-mono text-slate-600 break-all">
+                      {item.tracking_number}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-0.5 pl-5">
-                {group.items.map((item, idx) => (
-                  <li key={idx} className="text-xs font-mono text-slate-600 break-all">
-                    {item.tracking_number}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => onDownload(order)}>
             <FileDown className="h-4 w-4" /> PDF
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onEdit(order)}>
-            <Pencil className="h-4 w-4" /> Modificar
-          </Button>
+          {!despachado && (
+            <Button variant="outline" size="sm" onClick={() => onEdit(order)}>
+              <Pencil className="h-4 w-4" /> Modificar
+            </Button>
+          )}
           {!cancelled && (
             <Button variant="outline" size="sm" className="text-amber-700 border-amber-300" onClick={() => onCancel(order)}>
               <Ban className="h-4 w-4" /> Cancelar

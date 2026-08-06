@@ -72,6 +72,7 @@
       "type": "string",
       "enum": [
         "emitida",
+        "despachado",
         "cancelada"
       ],
       "default": "emitida",
@@ -81,6 +82,20 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha de emisi\u00f3n de la orden"
+    },
+    "dispatched_confirmed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se confirm\u00f3 el despacho (casilla marcada)"
+    },
+    "dispatched_confirmed_by": {
+      "type": "string",
+      "description": "Usuario que confirm\u00f3 el despacho"
+    },
+    "receipt_totals": {
+      "type": "object",
+      "description": "Total de paquetes por recibo al momento de confirmar el despacho (snapshot)",
+      "default": {}
     },
     "cancelled_date": {
       "type": "string",

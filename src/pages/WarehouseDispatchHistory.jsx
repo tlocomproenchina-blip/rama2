@@ -13,6 +13,7 @@ export default function WarehouseDispatchHistory({ user }) {
   const [search, setSearch] = useState('');
   const [editOrder, setEditOrder] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [togglingId, setTogglingId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,6 +111,24 @@ export default function WarehouseDispatchHistory({ user }) {
     }
   };
 
+  const handleToggleDespachado = async (order) => {
+    setTogglingId(order.id);
+    try {
+      const res = await base44.functions.invoke('markDispatchOrderDespachado', { order_id: order.id });
+      const updated = res?.data?.order;
+      if (!updated) throw new Error('No se pudo actualizar');
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, ...updated } : o)));
+      if (res?.data?.reverted) {
+        toast.info(`Orden ${order.order_number} revertida a emitida`);
+      } else {
+        toast.success(`Orden ${order.order_number} marcada como despachada`);
+      }
+    } catch (e) {
+      toast.error('No se pudo actualizar el estado de despacho');
+    }
+    setTogglingId(null);
+  };
+
   const handleDelete = async (order) => {
     if (!window.confirm(`¿Borrar definitivamente la orden ${order.order_number}?`)) return;
     try {
@@ -165,6 +184,8 @@ export default function WarehouseDispatchHistory({ user }) {
               onDelete={handleDelete}
               onCancel={handleCancel}
               onDownload={handleDownload}
+              onToggleDespachado={handleToggleDespachado}
+              togglingDespachado={togglingId === order.id}
             />
           ))}
         </div>
