@@ -40,10 +40,20 @@ export default function DispatchOrderButton({ group, email, onCreated }) {
       // El número de orden se genera en el backend para garantizar unicidad
       const res = await base44.functions.invoke('createDispatchOrder', payload);
       const orderData = res?.data?.order;
+      const wasUpdated = res?.data?.updated;
+      const noChange = res?.data?.no_change;
       if (!orderData) throw new Error('No se pudo crear la orden');
 
-      await generateDispatchOrderPdf(orderData, appName);
-      toast.success(`Orden ${orderData.order_number} generada y guardada en el historial`);
+      if (noChange) {
+        toast.info(`Todos los paquetes ya estaban en la orden ${orderData.order_number}`);
+      } else if (wasUpdated) {
+        const added = res?.data?.added || 0;
+        await generateDispatchOrderPdf(orderData, appName);
+        toast.success(`Orden ${orderData.order_number} actualizada (+${added} paquete${added !== 1 ? 's' : ''})`);
+      } else {
+        await generateDispatchOrderPdf(orderData, appName);
+        toast.success(`Orden ${orderData.order_number} generada y guardada en el historial`);
+      }
       onCreated?.();
     } catch (error) {
       console.error('Error generando orden:', error);

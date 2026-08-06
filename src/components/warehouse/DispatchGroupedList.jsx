@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users } from 'lucide-react';
+import { Users, Receipt } from 'lucide-react';
 import DispatchOrderButton from '@/components/warehouse/DispatchOrderButton';
 
 export default function DispatchGroupedList({ scans, onOrderCreated }) {
@@ -43,17 +43,25 @@ export default function DispatchGroupedList({ scans, onOrderCreated }) {
               </div>
             </div>
             <ul className="space-y-1">
-              {group.items.map((item, idx) => (
-                <li key={idx} className="text-sm text-slate-600 flex items-center gap-2 flex-wrap">
-                  <span className="font-mono break-all">{item.package?.tracking_number}</span>
-                  {item.auto_received && (
-                    <Badge variant="outline" className="border-blue-300 text-blue-700 text-[10px] px-1.5 py-0">auto-recibido</Badge>
-                  )}
-                  {item.already_dispatched && (
-                    <Badge variant="outline" className="border-amber-300 text-amber-700 text-[10px] px-1.5 py-0">ya despachado</Badge>
-                  )}
-                </li>
-              ))}
+              {group.items.map((item, idx) => {
+                const receipt = (item.package?.consolidation_tracking || '').trim();
+                return (
+                  <li key={idx} className="text-sm text-slate-600 flex items-center gap-2 flex-wrap">
+                    <span className="font-mono break-all">{item.package?.tracking_number}</span>
+                    {receipt && (
+                      <Badge variant="outline" className="border-blue-300 text-blue-700 text-[10px] px-1.5 py-0 flex items-center gap-1">
+                        <Receipt className="h-3 w-3" /> Recibo {receipt}
+                      </Badge>
+                    )}
+                    {item.auto_received && (
+                      <Badge variant="outline" className="border-blue-300 text-blue-700 text-[10px] px-1.5 py-0">auto-recibido</Badge>
+                    )}
+                    {item.already_dispatched && (
+                      <Badge variant="outline" className="border-amber-300 text-amber-700 text-[10px] px-1.5 py-0">ya despachado</Badge>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ))}
