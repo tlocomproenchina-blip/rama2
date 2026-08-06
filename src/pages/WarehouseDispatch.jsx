@@ -63,6 +63,7 @@ export default function WarehouseDispatch() {
         value={code}
         onValueChange={setCode}
         onDetected={handleScan}
+        continuous={true}
       />
       {processing && (
         <Card>
