@@ -86,7 +86,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       const pkg = existing?.[0];
       if (pkg) {
         setExistingPackagesByTracking((prev) => ({ ...prev, [t]: pkg }));
-        const info = `Cliente: ${pkg.client_email} · Estado: ${pkg.status}`;
+        const info = `Cliente: ${pkg.shipping_mark || pkg.client_email} · Estado: ${pkg.status}`;
         const alreadyReceived = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'].includes(pkg.status);
         if (alreadyReceived) {
           const regDate = pkg.received_date || pkg.created_date;
