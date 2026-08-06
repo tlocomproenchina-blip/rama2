@@ -67,7 +67,11 @@ function matchesSearch(c, q, exact = false) {
   if (!q) return true;
   const qText = normalizeText(q);
   const qAlnum = normalizeAlnum(q);
-  const qDigits = getDigits(q);
+  // Solo extraer dígitos cuando la consulta es completamente numérica.
+  // Si la consulta tiene letras (ej: "1483s"), no se hace matching por
+  // dígitos sueltos contra teléfonos, lo que producía resultados falsos.
+  const isAllDigits = /^\d+$/.test(q.trim());
+  const qDigits = isAllDigits ? getDigits(q) : '';
 
   const email = normalizeText(c.email || '');
   const first = normalizeText(c.first_name || '');
