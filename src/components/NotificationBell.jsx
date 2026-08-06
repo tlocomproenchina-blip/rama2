@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { useNavigate } from 'react-router-dom';
@@ -45,6 +45,9 @@ export default function NotificationBell({ user }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  // IDs eliminados localmente que aún pueden reaparecer por race condition
+  // (el servidor no propagó el borrado antes de un refetch). Se filtran al cargar.
+  const deletedIdsRef = useRef(new Set());
 
   const loadNotifications = useCallback(async () => {
     if (!user?.email) return;
@@ -57,6 +60,8 @@ export default function NotificationBell({ user }) {
 
       const dedupedMap = new Map();
       for (const notif of notifs) {
+        // Filtrar notificaciones eliminadas localmente que aún no se propagaron
+        if (deletedIdsRef.current.has(notif.id)) continue;
         const key = `${notif.user_email}|${notif.reference_id || ''}|${notif.title || ''}|${notif.type || ''}`;
         const existing = dedupedMap.get(key);
         if (!existing) {
@@ -89,6 +94,7 @@ export default function NotificationBell({ user }) {
     {
       enabled: !!user?.email,
       filter: (event) => event?.data?.user_email === user?.email,
+      debounceMs: 400,
     },
     [user?.email]
   );
@@ -97,7 +103,7 @@ export default function NotificationBell({ user }) {
     // Mark as read (optimistic)
     if (!notif.read) {
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
-      await base44.entities.Notification.update(notif.id, { read: true });
+      await base44.entities.Notification.update(notif.id, { read: true }).catch(() => {});
     }
 
     // Navigate directly to the related record
@@ -115,13 +121,22 @@ export default function NotificationBell({ user }) {
    // Optimistic UI update
    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
-   await Promise.all(unreadIds.map(id => base44.entities.Notification.update(id, { read: true })));
+   await Promise.all(unreadIds.map(id => base44.entities.Notification.update(id, { read: true }).catch(() => {})));
   };
 
   const deleteNotification = async (notifId, e) => {
-   e.stopPropagation();
-   await base44.entities.Notification.delete(notifId);
-   setNotifications(notifications.filter(n => n.id !== notifId));
+    e.stopPropagation();
+    // Registrar como eliminada para que no reaparezca en refetch por race condition
+    deletedIdsRef.current.add(notifId);
+    // Optimistic UI (forma funcional para no usar state stale del closure)
+    setNotifications(prev => prev.filter(n => n.id !== notifId));
+    try {
+      await base44.entities.Notification.delete(notifId);
+    } catch (error) {
+      // Si falla el borrado, revertir el tracking para que un próximo intento lo reintente
+      deletedIdsRef.current.delete(notifId);
+      console.error('Error deleting notification:', error);
+    }
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
