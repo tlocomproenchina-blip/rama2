@@ -60,6 +60,33 @@ export default function WarehouseDispatchHistory({ user }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Suscripción en tiempo real: actualiza la lista cuando cambian órdenes de despacho
+  useEffect(() => {
+    let timer = null;
+    const scheduleReload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { load(); }, 400);
+    };
+    const unsubscribe = base44.entities.DispatchOrder.subscribe((event) => {
+      if (!event || !event.type) return;
+      if (event.type === 'create' && event.data) {
+        setOrders((prev) => {
+          if (prev.some((o) => o.id === event.data.id)) return prev;
+          return [event.data, ...prev];
+        });
+        scheduleReload(); // enriquecer consolidation_tracking en segundo plano
+      } else if (event.type === 'update' && event.data) {
+        setOrders((prev) => prev.map((o) => (o.id === event.data.id ? { ...o, ...event.data } : o)));
+      } else if (event.type === 'delete' && event.id) {
+        setOrders((prev) => prev.filter((o) => o.id !== event.id));
+      }
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [load]);
+
   const handleDownload = async (order) => {
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1).catch(() => []);
     let enrichedOrder = order;
