@@ -214,9 +214,9 @@ export default function AdminConsolidate({ user }) {
 
     setProcessing(clientEmail);
     try {
-      // Buscar solo este cliente por email (antes: User.list() traía miles de usuarios)
-      const matched = await base44.entities.User.filter({ email: clientEmail });
-      const client = matched?.[0];
+      // Buscar solo este cliente por email vía backend (asServiceRole)
+      const lookupRes = await base44.functions.invoke('listAllUsers', { emails: [clientEmail] });
+      const client = lookupRes?.data?.users?.[0];
 
       if (!client || !client.shipping_mark) {
         toast.error('El cliente no tiene shipping mark asignado');

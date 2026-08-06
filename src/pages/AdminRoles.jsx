@@ -35,7 +35,7 @@ export default function AdminRoles({ user }) {
     setLoading(true);
     try {
       const [adminUsers, configRows] = await Promise.all([
-        base44.entities.User.filter({ role: 'admin' }, '-created_date', 300),
+        base44.functions.invoke('listAdmins', { limit: 300 }).then(r => r?.data?.admins || []),
         base44.entities.RoleConfig.list('-updated_date', 50)
       ]);
 

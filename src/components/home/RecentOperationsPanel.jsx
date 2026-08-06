@@ -31,7 +31,7 @@ export default function RecentOperationsPanel({ user }) {
           base44.entities.Package.list('-updated_date', 8),
           base44.entities.ConsolidationRequest.list('-updated_date', 8),
           base44.entities.Consolidation.list('-updated_date', 8),
-          base44.entities.User.filter({ role: 'admin' }, '-updated_date', 8),
+          base44.functions.invoke('listAdmins', { limit: 8 }).then(r => r?.data?.admins || []),
         ]);
 
         const packageItems = (packages || []).map((pkg) => ({

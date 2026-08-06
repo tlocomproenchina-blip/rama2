@@ -31,16 +31,9 @@ export default function InvoicePDFGenerator({ invoice, user }) {
       let clientUser = user || null;
       if (!clientUser && invoice.client_email) {
         try {
-          const rows = await base44.entities.User.filter({ email: invoice.client_email });
-          clientUser = rows?.[0] || null;
+          const res = await base44.functions.invoke('listAllUsers', { emails: [invoice.client_email] });
+          clientUser = res?.data?.users?.[0] || null;
         } catch { clientUser = null; }
-      }
-      if ((!clientUser || (!clientUser.first_name && !clientUser.full_name)) && invoice.client_email) {
-        try {
-          const allUsers = await base44.entities.User.list('-created_date', 1000);
-          const target = (invoice.client_email || '').toLowerCase().trim();
-          clientUser = (allUsers || []).find(u => (u.email || '').toLowerCase().trim() === target) || clientUser;
-        } catch { /* ignore */ }
       }
 
       const { buildInvoicePdf } = await import('@/components/invoice/InvoicePdfBuilder');

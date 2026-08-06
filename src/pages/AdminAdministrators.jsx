@@ -24,8 +24,8 @@ export default function AdminAdministrators({ user }) {
   const loadAdmins = async () => {
     setLoading(true);
     try {
-      const rows = await base44.entities.User.filter({ role: 'admin' }, '-created_date', 200);
-      setAdmins(rows || []);
+      const res = await base44.functions.invoke('listAdmins', { limit: 200 });
+      setAdmins(res?.data?.admins || []);
     } catch {
       toast.error('No se pudieron cargar los administradores');
     }

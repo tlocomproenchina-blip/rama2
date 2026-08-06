@@ -160,7 +160,7 @@ export default function AdminShipmentApprovals({ user }) {
         client_email: request.client_email,
         status: 'aprobada'
       }),
-      base44.entities.User.list(),
+      base44.functions.invoke('listAllUsers', { limit: 5000 }).then(r => r?.data?.users || []),
       base44.entities.StateConfig.list()
     ]);
 

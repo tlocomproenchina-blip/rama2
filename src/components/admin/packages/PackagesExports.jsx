@@ -22,18 +22,10 @@ export async function exportPreAlerta({ onProgress } = {}) {
 
     onProgress?.({ total: preAlertaPkgs.length, remaining: 0, label: 'Generando archivo...' });
 
-    // Cargar usuarios paginados para resolver shipping marks
+    // Cargar usuarios vía backend (asServiceRole) para resolver shipping marks
+    const userRes = await base44.functions.invoke('listAllUsers', { role: 'user', limit: 5000 });
     const userMap = {};
-    let userSkip = 0;
-    const USER_BATCH = 500;
-    while (true) {
-      const usersBatch = await base44.entities.User.list('-updated_date', USER_BATCH, userSkip);
-      if (!usersBatch || usersBatch.length === 0) break;
-      usersBatch.forEach(u => { userMap[u.email] = u; });
-      if (usersBatch.length < USER_BATCH) break;
-      userSkip += USER_BATCH;
-      if (userSkip > 50000) break;
-    }
+    (userRes?.data?.users || []).forEach(u => { userMap[u.email] = u; });
 
     // Agrupar por cliente
     const clientMap = {};

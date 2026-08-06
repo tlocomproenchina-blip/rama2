@@ -35,8 +35,8 @@ export default function AdminEmployees({ user }) {
   const loadEmployees = async () => {
     setLoading(true);
     try {
-      const rows = await base44.entities.User.filter({ role: 'admin' }, '-created_date', 300);
-      setEmployees(rows || []);
+      const res = await base44.functions.invoke('listAdmins', { limit: 300 });
+      setEmployees(res?.data?.admins || []);
     } catch {
       toast.error('No se pudieron cargar los empleados');
     }
@@ -136,8 +136,8 @@ export default function AdminEmployees({ user }) {
     const normalizedEmail = inviteEmail.trim().toLowerCase();
     setInviting(true);
     try {
-      const existingRows = await base44.entities.User.filter({ email: normalizedEmail }, '-created_date', 1);
-      const existingUser = existingRows?.[0];
+      const lookupRes = await base44.functions.invoke('listAllUsers', { emails: [normalizedEmail] });
+      const existingUser = lookupRes?.data?.users?.[0];
 
       if (existingUser?.id) {
         await base44.entities.User.update(existingUser.id, {
@@ -165,8 +165,8 @@ export default function AdminEmployees({ user }) {
 
         if (inviteArea !== 'sin_area') {
           try {
-            const rows = await base44.entities.User.filter({ email: normalizedEmail }, '-created_date', 1);
-            const invitedUser = rows?.[0];
+            const lookupRes = await base44.functions.invoke('listAllUsers', { emails: [normalizedEmail] });
+            const invitedUser = lookupRes?.data?.users?.[0];
             if (invitedUser?.id) {
               await base44.entities.User.update(invitedUser.id, { custom_role: inviteArea });
             }

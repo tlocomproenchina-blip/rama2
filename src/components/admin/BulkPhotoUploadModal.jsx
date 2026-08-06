@@ -97,24 +97,8 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     searchTimeout.current = setTimeout(async () => {
       setSearchingClients(true);
       try {
-        let allUsers = [];
-        let skip = 0;
-        while (true) {
-          const batch = await base44.entities.User.list('-created_date', 200, skip);
-          if (!batch || batch.length === 0) break;
-          allUsers = allUsers.concat(batch);
-          if (batch.length < 200) break;
-          skip += 200;
-        }
-        const q = clientSearch.toLowerCase();
-        const matches = allUsers.filter(u => u.role === 'user' && (
-          (u.full_name || '').toLowerCase().includes(q) ||
-          (u.email || '').toLowerCase().includes(q) ||
-          (u.shipping_mark || '').toLowerCase().includes(q) ||
-          (u.first_name || '').toLowerCase().includes(q) ||
-          (u.last_name || '').toLowerCase().includes(q)
-        )).slice(0, 10);
-        setClientResults(matches);
+        const res = await base44.functions.invoke('listAllUsers', { role: 'user', q: clientSearch, limit: 10 });
+        setClientResults(res?.data?.users || []);
       } catch (_) {
         setClientResults([]);
       }

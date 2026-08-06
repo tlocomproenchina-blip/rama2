@@ -46,7 +46,7 @@ export default function AdminReferrals() {
       setLoading(true);
       try {
         const [u, r, c, s] = await Promise.all([
-          base44.entities.User.filter({ role: 'user' }),
+          base44.functions.invoke('listAllUsers', { role: 'user', limit: 5000 }).then(r => r?.data?.users || []),
           base44.entities.ReferralCbmReward.filter({}, '-created_date', 1000),
           base44.entities.CreditsLedger.filter({}, '-created_date', 2000),
           base44.entities.ReferralSettings.filter({ config_key: 'main' })
@@ -193,8 +193,9 @@ export default function AdminReferrals() {
       const email = adjustData.email.trim();
       const amt = Number(adjustData.amount);
       if (!email || !amt) { toast.error('Email y monto requeridos'); return; }
-      const u = await base44.entities.User.filter({ email });
-      if (!u || u.length === 0) { toast.error('Usuario no encontrado'); return; }
+      const res = await base44.functions.invoke('listAllUsers', { emails: [email] });
+      const u = res?.data?.users || [];
+      if (u.length === 0) { toast.error('Usuario no encontrado'); return; }
       await base44.entities.CreditsLedger.create({
         user_id: u[0].id,
         source: 'manual_adjustment',

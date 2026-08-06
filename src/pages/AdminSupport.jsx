@@ -51,7 +51,7 @@ export default function AdminSupport({ user }) {
     try {
       const results = await Promise.allSettled([
         base44.entities.SupportTicket.list('-created_date'),
-        isAdmin ? base44.entities.User.filter({ role: 'user' }) : Promise.resolve([])
+        isAdmin ? base44.functions.invoke('listAllUsers', { role: 'user', limit: 5000 }).then(r => r?.data?.users || []) : Promise.resolve([])
       ]);
 
       const allT = results[0].status === 'fulfilled' ? results[0].value : [];

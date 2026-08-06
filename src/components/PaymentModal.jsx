@@ -191,7 +191,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
       }).catch(() => {});
 
       // Notify admin (async, don't wait)
-      base44.entities.User.filter({ role: 'admin' }).then(admins => {
+      base44.functions.invoke('listAdmins', {}).then(r => (r?.data?.admins) || []).then(admins => {
         admins.forEach(admin => {
           base44.integrations.Core.SendEmail({
             to: admin.email,

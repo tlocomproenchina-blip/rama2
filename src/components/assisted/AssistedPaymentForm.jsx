@@ -91,7 +91,7 @@ export default function AssistedPaymentForm({ user }) {
       });
 
       // Notificar a todos los administradores para que revisen la solicitud
-      base44.entities.User.filter({ role: 'admin' }).then(admins => {
+      base44.functions.invoke('listAdmins', {}).then(r => (r?.data?.admins) || []).then(admins => {
         const providerLabel = provider || autoDetectProvider(link);
         admins.forEach(admin => {
           base44.entities.Notification.create({

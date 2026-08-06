@@ -21,11 +21,11 @@ export default function CbmStateCostPanel({ ingresos }) {
     const [states, pricing, allUsers] = await Promise.all([
       base44.entities.StateConfig.filter({ is_active: true }, '-state_name', 50),
       base44.entities.PricingConfig.filter({ config_key: 'main' }, '-updated_date', 1),
-      base44.entities.User.list('-created_date', 500),
+      base44.functions.invoke('listAllUsers', { role: 'user', limit: 500 }).then(r => r?.data?.users || []),
     ]);
     setStateConfigs(states || []);
     setPricingConfig(pricing?.[0] || null);
-    setUsers((allUsers || []).filter(u => u.role === 'user'));
+    setUsers(allUsers || []);
     setLoading(false);
   };
 

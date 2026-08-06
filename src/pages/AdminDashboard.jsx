@@ -40,7 +40,7 @@ export default function AdminDashboard({ user }) {
       const [packages, consolidations, users, invoices, supportTickets, notifications] = await Promise.all([
         base44.entities.Package.list('-created_date', 120),
         base44.entities.Consolidation.list('-created_date', 120),
-        base44.entities.User.filter({ role: 'user' }, '-updated_date', 200),
+        base44.functions.invoke('listAllUsers', { role: 'user', limit: 200 }).then(r => r?.data?.users || []),
         base44.entities.Invoice.list('-created_date', 120),
         base44.entities.SupportTicket.list('-updated_date', 80),
         user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([]),

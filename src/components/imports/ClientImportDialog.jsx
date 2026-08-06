@@ -121,8 +121,8 @@ export default function ClientImportDialog({ open, onOpenChange, onImported }) {
     let invitedOnly = 0;
 
     for (const row of result.valid) {
-      const existingRows = await base44.entities.User.filter({ email: row.email }, '-created_date', 1);
-      const existing = existingRows?.[0] || null;
+      const lookupRes = await base44.functions.invoke('listAllUsers', { emails: [row.email] });
+      const existing = lookupRes?.data?.users?.[0] || null;
 
       if (existing?.id) {
         await base44.entities.User.update(existing.id, buildUpdatePayload(row));
@@ -133,8 +133,8 @@ export default function ClientImportDialog({ open, onOpenChange, onImported }) {
       await base44.users.inviteUser(row.email, 'user');
       invited += 1;
 
-      const invitedRows = await base44.entities.User.filter({ email: row.email }, '-created_date', 1);
-      const invitedUser = invitedRows?.[0] || null;
+      const lookupRes2 = await base44.functions.invoke('listAllUsers', { emails: [row.email] });
+      const invitedUser = lookupRes2?.data?.users?.[0] || null;
       if (invitedUser?.id) {
         await base44.entities.User.update(invitedUser.id, buildUpdatePayload(row));
       } else {

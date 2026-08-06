@@ -90,10 +90,8 @@ export default function GlobalSearchPalette() {
     const regex = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     try {
-      const [byEmail, byName, byMark, byTracking, byShippingMark] = await Promise.all([
-        base44.entities.User.filter({ email: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-        base44.entities.User.filter({ full_name: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
-        base44.entities.User.filter({ shipping_mark: { $regex: regex, $options: 'i' } }, '-updated_date', 5).catch(() => []),
+      const [userRes, byTracking, byShippingMark] = await Promise.all([
+        base44.functions.invoke('listAllUsers', { q: trimmed, limit: 8 }).catch(() => ({ data: { users: [] } })),
         base44.entities.Package.filter({ tracking_number: { $regex: regex, $options: 'i' } }, '-updated_date', 8).catch(() => []),
         base44.entities.Package.filter({ shipping_mark: { $regex: regex, $options: 'i' } }, '-updated_date', 8).catch(() => []),
       ]);
@@ -102,7 +100,7 @@ export default function GlobalSearchPalette() {
 
       // Dedupe clients by id
       const clientMap = new Map();
-      [...byEmail, ...byName, ...byMark].forEach((u) => { if (u?.id) clientMap.set(u.id, u); });
+      (userRes?.data?.users || []).forEach((u) => { if (u?.id) clientMap.set(u.id, u); });
 
       // Dedupe packages by id
       const pkgMap = new Map();

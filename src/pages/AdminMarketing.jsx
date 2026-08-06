@@ -107,7 +107,8 @@ export default function AdminMarketing({ user }) {
   };
 
   const getSegmentClients = async (segment) => {
-    const allUsers = await base44.entities.User.filter({ role: 'user' });
+    const res = await base44.functions.invoke('listAllUsers', { role: 'user', limit: 5000 });
+    const allUsers = res?.data?.users || [];
     
     if (segment === 'all') return allUsers;
     
