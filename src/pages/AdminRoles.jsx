@@ -9,7 +9,7 @@ import { Loader2, Search, ShieldCheck, Briefcase, Save, Users, KeyRound, LayoutP
 import { toast } from 'sonner';
 import RolePermissionsCard from '@/components/admin/RolePermissionsCard';
 import RoleAreaSidebar from '@/components/admin/RoleAreaSidebar';
-import { ROLE_OPTIONS, ROLE_PRESETS, PAGE_LABELS, ensureRoleConfig } from '@/lib/rolePermissions';
+import { ROLE_OPTIONS, ROLE_PRESETS, PAGE_LABELS } from '@/lib/rolePermissions';
 import { adminMenuItems } from '@/components/sidebar/sidebarConfig';
 import PageHero from '@/components/common/PageHero';
 
@@ -34,9 +34,9 @@ export default function AdminRoles({ user }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [adminUsers, configRows] = await Promise.all([
+      const [adminUsers, configsRes] = await Promise.all([
         base44.functions.invoke('listAdmins', { limit: 300 }).then(r => r?.data?.admins || []),
-        base44.entities.RoleConfig.list('-updated_date', 50)
+        base44.functions.invoke('listRoleConfigs', {}).then(r => r?.data?.configs || null)
       ]);
 
       setAdmins(adminUsers || []);
@@ -45,15 +45,18 @@ export default function AdminRoles({ user }) {
       ROLE_OPTIONS.forEach((code) => {
         mappedConfigs[code] = { ...ROLE_PRESETS[code], visible_pages: defaultPagesFor(code) };
       });
-      (configRows || []).forEach((row) => {
-        if (row?.role_code && mappedConfigs[row.role_code]) {
-          mappedConfigs[row.role_code] = {
-            ...mappedConfigs[row.role_code],
-            ...row,
-            visible_pages: row.visible_pages?.length ? row.visible_pages : defaultPagesFor(row.role_code)
-          };
-        }
-      });
+      if (configsRes) {
+        Object.keys(configsRes).forEach((code) => {
+          if (mappedConfigs[code]) {
+            const row = configsRes[code];
+            mappedConfigs[code] = {
+              ...mappedConfigs[code],
+              ...row,
+              visible_pages: row.visible_pages?.length ? row.visible_pages : defaultPagesFor(code)
+            };
+          }
+        });
+      }
       setRoleConfigs(mappedConfigs);
     } catch {
       toast.error('No se pudieron cargar los roles por área');
@@ -62,14 +65,6 @@ export default function AdminRoles({ user }) {
   };
 
   useEffect(() => { loadData(); }, []);
-
-  const createAuditLog = async (payload) => {
-    await base44.entities.EmployeeAuditLog.create({
-      actor_email: user?.email || 'system',
-      actor_name: user?.full_name || '',
-      ...payload,
-    });
-  };
 
   const filteredAdmins = useMemo(() => admins.filter((item) => {
     const q = String(search || '').toLowerCase();
@@ -94,38 +89,32 @@ export default function AdminRoles({ user }) {
 
     setProcessingUserId(targetUser.id);
     try {
-      await base44.entities.User.update(targetUser.id, { custom_role: nextRole === 'sin_area' ? null : nextRole });
-      // Aplicar automáticamente los permisos predeterminados del área
-      if (nextRole !== 'sin_area') {
-        const savedConfig = await ensureRoleConfig(base44, nextRole);
-        if (savedConfig?.id) {
-          setRoleConfigs((prev) => ({
-            ...prev,
-            [nextRole]: {
-              ...prev[nextRole],
-              ...savedConfig,
-              visible_pages: savedConfig.visible_pages?.length
-                ? savedConfig.visible_pages
-                : defaultPagesFor(nextRole)
-            }
-          }));
-        }
+      const res = await base44.functions.invoke('manageRoleAssignment', {
+        target_user_id: targetUser.id,
+        next_role: nextRole,
+      });
+      const updatedUser = res?.data?.user;
+      const savedConfig = res?.data?.role_config;
+
+      if (nextRole !== 'sin_area' && savedConfig?.id) {
+        setRoleConfigs((prev) => ({
+          ...prev,
+          [nextRole]: {
+            ...prev[nextRole],
+            ...savedConfig,
+            visible_pages: savedConfig.visible_pages?.length
+              ? savedConfig.visible_pages
+              : defaultPagesFor(nextRole)
+          }
+        }));
         setSelectedRoleCode(nextRole);
       }
-      await createAuditLog({
-        target_email: targetUser.email,
-        target_name: targetUser.full_name || targetUser.email,
-        action_type: 'assign_area',
-        area_code: nextRole === 'sin_area' ? '' : nextRole,
-        area_name: nextRole === 'sin_area' ? 'Sin área' : ROLE_PRESETS[nextRole]?.role_name || nextRole,
-        summary: `Asignó área a ${targetUser.full_name || targetUser.email}`,
-        details: `Área anterior: ${targetUser.custom_role || 'sin área'} · Nueva área: ${nextRole === 'sin_area' ? 'sin área' : ROLE_PRESETS[nextRole]?.role_name || nextRole}`,
-        changed_fields: ['custom_role'],
-      });
-      setAdmins((prev) => prev.map((item) => item.id === targetUser.id ? { ...item, custom_role: nextRole === 'sin_area' ? null : nextRole } : item));
+      if (updatedUser) {
+        setAdmins((prev) => prev.map((item) => item.id === targetUser.id ? { ...item, custom_role: updatedUser.custom_role } : item));
+      }
       toast.success('Área asignada correctamente');
-    } catch {
-      toast.error('No se pudo actualizar el área');
+    } catch (err) {
+      toast.error(err?.data?.error || 'No se pudo actualizar el área');
     }
     setProcessingUserId(null);
   };
@@ -154,33 +143,29 @@ export default function AdminRoles({ user }) {
 
     setProcessingRoleCode(roleCode);
     try {
-      const payload = {
+      const res = await base44.functions.invoke('saveRolePermissions', {
         role_code: roleCode,
         role_name: current.role_name,
         description: current.description,
         visible_pages: current.visible_pages || [],
         is_active: current.is_active !== false,
-      };
-
-      if (current.id) {
-        await base44.entities.RoleConfig.update(current.id, payload);
-      } else {
-        const created = await base44.entities.RoleConfig.create(payload);
-        setRoleConfigs((prev) => ({ ...prev, [roleCode]: { ...current, ...created } }));
-      }
-      await createAuditLog({
-        target_email: '',
-        target_name: current.role_name,
-        action_type: 'save_permissions',
-        area_code: roleCode,
-        area_name: current.role_name,
-        summary: `Actualizó permisos del área ${current.role_name}`,
-        details: `Módulos visibles configurados: ${(current.visible_pages || []).join(', ') || 'ninguno'}`,
-        changed_fields: ['visible_pages'],
       });
+      const savedConfig = res?.data?.role_config;
+      if (savedConfig) {
+        setRoleConfigs((prev) => ({
+          ...prev,
+          [roleCode]: {
+            ...prev[roleCode],
+            ...savedConfig,
+            visible_pages: savedConfig.visible_pages?.length
+              ? savedConfig.visible_pages
+              : defaultPagesFor(roleCode)
+          }
+        }));
+      }
       toast.success('Permisos guardados');
-    } catch {
-      toast.error('No se pudieron guardar los permisos');
+    } catch (err) {
+      toast.error(err?.data?.error || 'No se pudieron guardar los permisos');
     }
     setProcessingRoleCode(null);
   };

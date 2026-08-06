@@ -5,11 +5,16 @@
     "role_code": {
       "type": "string",
       "enum": [
+        "administrador",
         "operaciones",
         "almacen",
         "contabilidad",
         "soporte",
-        "marketing"
+        "marketing",
+        "logistica",
+        "comunicaciones",
+        "seguimiento",
+        "equipo_y_acceso"
       ],
       "description": "C\u00f3digo interno del rol por \u00e1rea"
     },
