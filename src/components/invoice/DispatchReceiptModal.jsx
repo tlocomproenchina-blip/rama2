@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, Truck } from 'lucide-react';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
 
 /**
  * Genera un recibo de despacho en texto plano para copiar, a partir de una
@@ -65,6 +66,34 @@ function extractShippingOrderNumbers(invoice) {
 
 export default function DispatchReceiptModal({ open, onClose, invoice }) {
   const [copied, setCopied] = useState(false);
+  const [billingData, setBillingData] = useState(null);
+
+  // Busca los datos de facturación del cliente cuando se abre el modal
+  useEffect(() => {
+    setBillingData(null);
+    if (!open || !invoice?.client_email) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const users = await base44.entities.User.filter({ email: invoice.client_email }, '-updated_date', 1);
+        if (!cancelled && users?.[0]) {
+          const u = users[0];
+          // Solo considerar datos de facturación personalizados (no usa datos de registro)
+          if (u.billing_use_registration === false && u.billing_name) {
+            setBillingData({
+              billing_name: u.billing_name,
+              billing_cedula_rif: u.billing_cedula_rif,
+              billing_phone: u.billing_phone,
+              billing_address: u.billing_address,
+            });
+          }
+        }
+      } catch (e) {
+        // Silencioso: si falla, simplemente no se muestra la sección de facturación
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, invoice?.client_email]);
 
   const text = useMemo(() => {
     if (!invoice) return '';
@@ -84,8 +113,18 @@ export default function DispatchReceiptModal({ open, onClose, invoice }) {
     lines.push('*Facturas pagadas* (Numero de orden)');
     lines.push(orders.join(' - '));
 
+    // Sección de datos de facturación (solo si el cliente tiene datos personalizados)
+    if (billingData) {
+      lines.push('');
+      lines.push('*Datos de Facturación*');
+      if (billingData.billing_name) lines.push(`Razón Social: ${billingData.billing_name}`);
+      if (billingData.billing_cedula_rif) lines.push(`Cédula o RIF: ${billingData.billing_cedula_rif}`);
+      if (billingData.billing_phone) lines.push(`Número de contacto: ${billingData.billing_phone}`);
+      if (billingData.billing_address) lines.push(`Dirección de facturación: ${billingData.billing_address}`);
+    }
+
     return lines.join('\n');
-  }, [invoice]);
+  }, [invoice, billingData]);
 
   const handleCopy = async () => {
     try {
