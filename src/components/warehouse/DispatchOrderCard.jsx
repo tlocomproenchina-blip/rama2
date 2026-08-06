@@ -6,13 +6,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { FileDown, Pencil, Trash2, Ban, Package as PackageIcon, Receipt, CheckCircle2 } from 'lucide-react';
 import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
 
-export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, onDownload, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
+export default function DispatchOrderCard({ order, liveReceiptTotals, onEdit, onDelete, onCancel, onDownload, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const cancelled = order.status === 'cancelada';
   const despachado = order.status === 'despachado';
   const receiptGroups = groupItemsByReceipt(items);
   const hasReceipts = receiptGroups.some((g) => g.receipt !== 'Sin recibo');
-  const receiptTotals = order.receipt_totals || {};
+  // Totales en vivo desde CbmIngreso (prioridad); fallback al snapshot guardado
+  const receiptTotals = { ...(order.receipt_totals || {}), ...(liveReceiptTotals || {}) };
 
   const statusBadge = cancelled
     ? <Badge className="bg-rose-600 text-white">Cancelada</Badge>
@@ -73,7 +74,9 @@ export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, o
           {receiptGroups.map((group) => {
             const receiptKey = group.receipt !== 'Sin recibo' ? group.receipt : '';
             const totalForReceipt = receiptKey && receiptTotals[receiptKey] ? receiptTotals[receiptKey] : null;
-            const showTotal = despachado && totalForReceipt != null && totalForReceipt > group.count;
+            const hasTotal = totalForReceipt != null && totalForReceipt > 0;
+            const missing = hasTotal ? Math.max(0, totalForReceipt - group.count) : 0;
+            const complete = hasTotal && missing === 0;
             return (
               <div key={group.receipt} className="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -82,8 +85,16 @@ export default function DispatchOrderCard({ order, onEdit, onDelete, onCancel, o
                     {hasReceipts && group.receipt !== 'Sin recibo' ? `Recibo ${group.receipt}` : group.receipt}
                   </span>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                    {showTotal ? `${group.count} de ${totalForReceipt}` : `${group.count} paquete${group.count !== 1 ? 's' : ''}`}
+                    {group.count} paquete{group.count !== 1 ? 's' : ''}
                   </Badge>
+                  {hasTotal && (
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-1.5 py-0 ${complete ? 'text-emerald-700 border-emerald-300 bg-emerald-50' : 'text-rose-600 border-rose-300 bg-rose-50'}`}
+                    >
+                      {complete ? `Completo: ${group.count}/${totalForReceipt}` : `Faltan: ${missing} de ${totalForReceipt}`}
+                    </Badge>
+                  )}
                 </div>
                 <ul className="space-y-0.5 pl-5">
                   {group.items.map((item, idx) => (

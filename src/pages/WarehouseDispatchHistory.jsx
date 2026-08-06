@@ -18,6 +18,51 @@ export default function WarehouseDispatchHistory({ user }) {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [merging, setMerging] = useState(false);
+  const [orderTotalsMap, setOrderTotalsMap] = useState({});
+
+  // Consulta los totales esperados por recibo desde CbmIngreso (AdminCbmIngresos)
+  // y construye un mapa { orderId: { receipt: total_expected } }.
+  const enrichReceiptTotals = useCallback(async (ordersList) => {
+    if (!ordersList.length) { setOrderTotalsMap({}); return; }
+    // Agrupar recibos por client_email para minimizar llamadas
+    const byClient = {};
+    ordersList.forEach((o) => {
+      const email = (o.client_email || '').trim();
+      if (!email) return;
+      const receipts = (o.items || [])
+        .map((i) => String(i.consolidation_tracking || '').trim())
+        .filter((r) => r && r !== 'Sin recibo');
+      if (!receipts.length) return;
+      if (!byClient[email]) byClient[email] = new Set();
+      receipts.forEach((r) => byClient[email].add(r));
+    });
+
+    const clientTotals = {}; // { email: { receipt: total } }
+    const entries = Object.entries(byClient);
+    await Promise.all(entries.map(async ([email, receiptSet]) => {
+      try {
+        const res = await base44.functions.invoke('getDispatchReceiptTotals', {
+          receipts: Array.from(receiptSet),
+          client_email: email
+        });
+        clientTotals[email] = res?.data?.totals || res?.totals || {};
+      } catch (_) { clientTotals[email] = {}; }
+    }));
+
+    const map = {};
+    ordersList.forEach((o) => {
+      const email = (o.client_email || '').trim();
+      const t = clientTotals[email] || {};
+      // Solo incluir recibos presentes en esta orden
+      const orderMap = {};
+      (o.items || []).forEach((i) => {
+        const r = String(i.consolidation_tracking || '').trim();
+        if (r && r !== 'Sin recibo' && t[r] != null) orderMap[r] = t[r];
+      });
+      map[o.id] = orderMap;
+    });
+    setOrderTotalsMap(map);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,6 +97,8 @@ export default function WarehouseDispatchHistory({ user }) {
       }
 
       setOrders(ordersList);
+      // Cargar totales esperados por recibo en segundo plano (no bloquea el render)
+      enrichReceiptTotals(ordersList);
     } catch (e) {
       toast.error('No se pudo cargar el historial');
     }
@@ -282,6 +329,7 @@ export default function WarehouseDispatchHistory({ user }) {
             <DispatchOrderCard
               key={order.id}
               order={order}
+              liveReceiptTotals={orderTotalsMap[order.id] || {}}
               onEdit={setEditOrder}
               onDelete={handleDelete}
               onCancel={handleCancel}
