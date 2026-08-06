@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, ScanLine, Truck } from 'lucide-react';
+import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import DispatchResultCard from '@/components/warehouse/DispatchResultCard';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
@@ -14,6 +15,59 @@ export default function WarehouseDispatch() {
   const [lastResult, setLastResult] = useState(null);
   const [scans, setScans] = useState([]);
   const [ordersKey, setOrdersKey] = useState(0);
+  const pendingOrderRef = useRef(new Map());
+
+  const autoGenerateOrder = useCallback(async (scanData) => {
+    try {
+      const pkg = scanData?.package;
+      const client = scanData?.client;
+      if (!pkg?.tracking_number || !pkg?.client_email) return;
+
+      // Evita llamadas duplicadas para el mismo tracking si ya hay una en vuelo
+      if (pendingOrderRef.current.has(pkg.tracking_number)) return;
+      pendingOrderRef.current.set(pkg.tracking_number, true);
+
+      const payload = {
+        client_email: pkg.client_email,
+        client_name: client?.full_name || pkg.client_email,
+        shipping_mark: pkg.shipping_mark || client?.shipping_mark || '',
+        client_snapshot: {
+          full_name: client?.full_name || '',
+          email: client?.email || pkg.client_email,
+          cedula: client?.cedula || '',
+          whatsapp: client?.whatsapp || '',
+          address: client?.address || '',
+          city: client?.city || '',
+          state: client?.state || '',
+          shipping_mark: client?.shipping_mark || '',
+        },
+        items: [{
+          tracking_number: pkg.tracking_number,
+          description: pkg.description || '',
+          consolidation_tracking: pkg.consolidation_tracking || '',
+        }],
+      };
+
+      const res = await base44.functions.invoke('createDispatchOrder', payload);
+      const orderData = res?.data?.order;
+      const wasUpdated = res?.data?.updated;
+      const noChange = res?.data?.no_change;
+      if (!orderData) return;
+
+      if (noChange) {
+        // Ya estaba en la orden, no notificar
+      } else if (wasUpdated) {
+        toast.success(`Orden ${orderData.order_number} actualizada (+1 paquete)`);
+      } else {
+        toast.success(`Orden ${orderData.order_number} creada automáticamente`);
+      }
+      setOrdersKey((k) => k + 1);
+    } catch (error) {
+      console.error('Error auto-generando orden:', error);
+    } finally {
+      pendingOrderRef.current.delete(scanData?.package?.tracking_number);
+    }
+  }, []);
 
   const runScan = useCallback(async (tracking, action) => {
     const cleaned = (tracking || '').trim();
@@ -29,6 +83,10 @@ export default function WarehouseDispatch() {
           data,
           ...prev.filter((s) => s?.package?.tracking_number !== data.package.tracking_number)
         ]);
+        // Auto-generar/actualizar la orden de despacho tras cada escaneo exitoso
+        if (action === 'lookup' && !data.already_dispatched) {
+          autoGenerateOrder(data);
+        }
       }
     } catch (error) {
       const message = error?.response?.data?.error || error?.message || 'Error al procesar el escaneo';
@@ -37,7 +95,7 @@ export default function WarehouseDispatch() {
     } finally {
       setProcessing(false);
     }
-  }, [processing]);
+  }, [processing, autoGenerateOrder]);
 
   const handleScan = useCallback((tracking) => runScan(tracking, 'lookup'), [runScan]);
   const handleMarkReceived = useCallback((tracking) => runScan(tracking, 'receive'), [runScan]);
