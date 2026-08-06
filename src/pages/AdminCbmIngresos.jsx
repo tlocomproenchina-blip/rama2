@@ -82,7 +82,19 @@ export default function AdminCbmIngresos({ user }) {
         includeCounts: false,
       });
       const list = res?.data?.data || [];
-      setClients(list);
+      // Filtrar en el cliente para coincidir SOLO por shipping mark, email o nombre.
+      // Evita falsos positivos donde el query coincide con whatsapp/teléfono/cédula.
+      const qNorm = (query || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      const qAlnum = qNorm.replace(/[^a-z0-9]/g, '');
+      const filtered = list.filter((c) => {
+        const email = (c.email || '').toLowerCase();
+        const full = `${c.first_name || ''} ${c.last_name || ''}`.trim().toLowerCase();
+        const sm = (c.shipping_mark || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (qNorm && (email.includes(qNorm) || full.includes(qNorm))) return true;
+        if (qAlnum && sm.includes(qAlnum)) return true;
+        return false;
+      });
+      setClients(filtered);
     } catch {
       setClients([]);
       toast.error('No se pudo buscar clientes. Intenta de nuevo.');
