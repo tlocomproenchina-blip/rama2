@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { logActionAudit } from '@/lib/actionAudit';
-import { Plus, Trash2 } from 'lucide-react';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 
 const emptyItem = () => ({
   link: '',
@@ -21,6 +22,7 @@ export default function AssistedPaymentForm({ user }) {
   const [items, setItems] = React.useState([emptyItem()]);
   const [notes, setNotes] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
+  const [uploadingIdx, setUploadingIdx] = React.useState(null);
 
   const percent = Number(config?.payments_assisted_fee_percentage ?? 5);
 
@@ -51,12 +53,17 @@ export default function AssistedPaymentForm({ user }) {
   const handleFile = async (idx, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadingIdx(idx);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      updateItem(idx, { imageUrl: file_url, ...(file_url ? { link: '' } : {}) });
+      const url = await uploadImageNoCredits(file);
+      updateItem(idx, { imageUrl: url, link: '' });
       toast.success('QR cargado');
     } catch (err) {
+      console.error('QR upload error:', err);
       toast.error('No se pudo cargar el QR');
+      e.target.value = '';
+    } finally {
+      setUploadingIdx(null);
     }
   };
 
@@ -235,10 +242,23 @@ export default function AssistedPaymentForm({ user }) {
 
                   <div className="space-y-2">
                     <Label>QR WeChat o Alipay (si no colocas enlace)</Label>
-                    <Input type="file" accept="image/*" onChange={(e) => handleFile(idx, e)} disabled={!enabled || !!it.link} />
-                    {it.imageUrl && (
-                      <img src={it.imageUrl} alt="QR" className="mt-2 h-28 w-auto rounded-md border object-cover" />
-                    )}
+                    <div className="rounded-xl border-2 border-dashed border-slate-200 p-3 hover:border-blue-400 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFile(idx, e)}
+                        disabled={!enabled || !!it.link || uploadingIdx === idx}
+                        className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-blue-700 disabled:opacity-50"
+                      />
+                      {uploadingIdx === idx && (
+                        <div className="flex items-center gap-2 mt-2 text-blue-600 text-sm">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Subiendo...
+                        </div>
+                      )}
+                      {it.imageUrl && uploadingIdx !== idx && (
+                        <img src={it.imageUrl} alt="QR" className="mt-2 h-28 w-auto rounded-md border object-cover" />
+                      )}
+                    </div>
                   </div>
 
                   <div className="rounded-lg border p-3 bg-slate-50 text-sm text-slate-700">
