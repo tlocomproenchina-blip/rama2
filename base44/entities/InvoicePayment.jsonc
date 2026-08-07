@@ -1,0 +1,117 @@
+{
+  "name": "InvoicePayment",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string",
+      "description": "ID de la factura a la que pertenece el abono"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "N\u00famero de factura (cache para mostrar)"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto del abono (USD)"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "binance",
+        "usdt_trc20",
+        "paypal",
+        "wally",
+        "zinli",
+        "wise",
+        "skrill",
+        "pago_movil_usdt",
+        "stripe",
+        "otro"
+      ],
+      "default": "transferencia",
+      "description": "M\u00e9todo de pago del abono"
+    },
+    "proof_url": {
+      "type": "string",
+      "description": "URL del comprobante de pago (imagen)"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Referencia o n\u00famero de transacci\u00f3n"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobado",
+        "rechazado"
+      ],
+      "default": "pendiente",
+      "description": "Estado de validaci\u00f3n del abono"
+    },
+    "approved_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el admin aprob\u00f3 el abono"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Email del admin que aprob\u00f3 el abono"
+    },
+    "reject_reason": {
+      "type": "string",
+      "description": "Motivo del rechazo (si aplica)"
+    },
+    "rejected_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el admin rechaz\u00f3 el abono"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "client_email",
+    "amount"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

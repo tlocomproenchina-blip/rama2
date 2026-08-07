@@ -65,6 +65,11 @@
       "type": "number",
       "description": "Total a pagar"
     },
+    "paid_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Suma de abonos aprobados (cache para mostrar saldo)"
+    },
     "total_cbm": {
       "type": "number",
       "description": "CBM total sumado de los recibos incluidos en la factura"

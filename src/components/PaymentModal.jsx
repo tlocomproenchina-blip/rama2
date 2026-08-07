@@ -247,7 +247,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
               <DialogDescription className="text-slate-500">
                 Total a pagar: <span className="font-bold text-emerald-600">${effectiveTotal.toFixed(2)}</span>
               </DialogDescription>
-              <p className="text-xs text-slate-500 mt-1">El pago debe coincidir exactamente con el total; no aceptamos multipagos.</p>
+              <p className="text-xs text-slate-500 mt-1">Este pago cubre el saldo pendiente. Para abonos parciales, usa "Registrar Abono".</p>
             </div>
           </div>
         </DialogHeader>
@@ -316,7 +316,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
                 readOnly
                 className="bg-slate-100 cursor-not-allowed"
               />
-              <p className="text-xs text-slate-500">El monto debe ser exactamente el total. No aceptamos pagos parciales.</p>
+              <p className="text-xs text-slate-500">El monto corresponde al saldo pendiente. Para pagar en partes, usa "Registrar Abono".</p>
             </div>
           )}
 

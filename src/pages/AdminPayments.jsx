@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PaymentValidation from '@/components/admin/PaymentValidation';
 import InvoicePaymentValidation from '@/components/admin/InvoicePaymentValidation';
+import AdminAbonosValidation from '@/components/admin/AdminAbonosValidation';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 
 export default function AdminPayments({ user }) {
@@ -53,6 +54,11 @@ export default function AdminPayments({ user }) {
       }
       return prev.filter((i) => i.id !== event.data.id);
     });
+  });
+
+  // Tiempo real: nuevos abonos aparecen automáticamente (refresca la lista de validación)
+  useEntitySubscription('InvoicePayment', () => {
+    loadData();
   });
 
   const loadData = async () => {
@@ -267,6 +273,7 @@ export default function AdminPayments({ user }) {
       {/* Consolidations List */}
       {statusFilter === 'pending' ? (
         <div className="space-y-6">
+          <AdminAbonosValidation onRefresh={loadData} />
           {filteredReviewInvoices.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-slate-600 mb-3">Pagos reportados en facturas</h2>

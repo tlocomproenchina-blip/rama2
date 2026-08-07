@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
+import AbonoModal from '@/components/invoice/AbonoModal';
+import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { createPageUrl } from '@/utils';
 import PayPalInline from '@/components/payments/PayPalInline';
 import PaymentModal from '@/components/PaymentModal';
@@ -28,6 +30,8 @@ export default function MyInvoices({ user }) {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [config, setConfig] = useState(null);
   const [paypalOpen, setPaypalOpen] = useState(false);
+  const [abonoOpen, setAbonoOpen] = useState(false);
+  const [abonoInvoice, setAbonoInvoice] = useState(null);
   const [highlightId, setHighlightId] = useState(null);
   const PAGE_SIZE = 100;
   const [hasMore, setHasMore] = useState(false);
@@ -64,6 +68,14 @@ export default function MyInvoices({ user }) {
     window.addEventListener('openStripeForInvoice', handler);
     return () => window.removeEventListener('openStripeForInvoice', handler);
   }, []);
+
+  // Tiempo real: refrescar facturas cuando cambian (abono aprobado, estado, etc.)
+  useEntitySubscription('Invoice', () => {
+    loadInvoices();
+  });
+  useEntitySubscription('InvoicePayment', () => {
+    loadInvoices();
+  });
 
   const loadInvoices = async (append = false) => {
     const skip = append ? invoices.length : 0;
@@ -299,9 +311,17 @@ export default function MyInvoices({ user }) {
                 showPayButton={config?.payments_enable_stripe === true}
                 onPayPal={handlePayPal}
                 showPayPalButton={config?.payments_enable_paypal === true}
+                onAbono={(inv) => {
+                  if (inv.status === 'pagada' || inv.status === 'revision') return;
+                  setAbonoInvoice(inv);
+                  setAbonoOpen(true);
+                }}
+                showAbonoButton={hasOtherMethodsConfigured}
+                onRefresh={loadInvoices}
                 onOtherPay={(inv) => {
                   if (inv.status === 'pagada' || inv.status === 'revision') return;
-                  setSelectedConsolidation({ id: inv.consolidation_id, invoice_id: inv.id, total_cost: inv.total, consolidation_tracking: inv.consolidation_tracking });
+                  const balance = Math.max(0, Number(inv.total || 0) - Number(inv.paid_amount || 0));
+                  setSelectedConsolidation({ id: inv.consolidation_id, invoice_id: inv.id, total_cost: balance, consolidation_tracking: inv.consolidation_tracking });
                   setPaymentOpen(true);
                 }}
                 showOtherMethodsButton={hasOtherMethodsConfigured}
@@ -378,8 +398,19 @@ export default function MyInvoices({ user }) {
         </div>
       )}
 
-       {/* Modal antiguo de pago sigue disponible para otros métodos */}
-      <PaymentModal
+       {/* Modal de Abono (pago parcial) */}
+       <AbonoModal
+         open={abonoOpen}
+         onClose={() => setAbonoOpen(false)}
+         invoice={abonoInvoice}
+         onSubmitted={async () => {
+           setAbonoOpen(false);
+           await loadInvoices();
+         }}
+       />
+
+        {/* Modal antiguo de pago sigue disponible para otros métodos */}
+        <PaymentModal
         open={paymentOpen}
         onClose={() => setPaymentOpen(false)}
         consolidation={selectedConsolidation}
