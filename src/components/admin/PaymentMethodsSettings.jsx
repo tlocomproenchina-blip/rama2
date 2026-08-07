@@ -166,6 +166,14 @@ const methodGroups = [
         instructionsKey: 'pago_movil_usdt_instructions',
         instructionsPlaceholder: 'Instrucciones para el cliente',
       },
+      {
+        key: 'transferencia',
+        title: 'Transferencia',
+        description: 'Opción genérica de transferencia bancaria para abonos manuales.',
+        enabledKey: 'payments_enable_transferencia',
+        tone: 'slate',
+        icon: Landmark,
+      },
     ],
   },
 ];

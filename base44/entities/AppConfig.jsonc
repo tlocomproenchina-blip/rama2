@@ -426,6 +426,11 @@
       "type": "boolean",
       "default": true
     },
+    "payments_enable_transferencia": {
+      "type": "boolean",
+      "default": true,
+      "description": "Habilitar Transferencia bancaria como m\u00e9todo de pago"
+    },
     "payments_stripe_sync_mode": {
       "type": "string",
       "enum": [

@@ -38,7 +38,7 @@ export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
         if (c.payments_enable_wise === true && c.wallet_wise) methods.push({ id: 'wise', name: 'Wise', color: 'teal' });
         if (c.payments_enable_skrill === true && c.wallet_skrill) methods.push({ id: 'skrill', name: 'Skrill', color: 'violet' });
         if (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt) methods.push({ id: 'pago_movil_usdt', name: 'Pago Móvil → USDT', color: 'orange' });
-        methods.push({ id: 'transferencia', name: 'Transferencia', color: 'slate' });
+        if (c.payments_enable_transferencia === true) methods.push({ id: 'transferencia', name: 'Transferencia', color: 'slate' });
         setAvailableMethods(methods);
         if (methods.length > 0) setPaymentMethod(methods[0].id);
       }
