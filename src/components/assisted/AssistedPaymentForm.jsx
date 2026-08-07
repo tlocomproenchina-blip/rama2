@@ -7,13 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { logActionAudit } from '@/lib/actionAudit';
+import { Plus, Trash2 } from 'lucide-react';
+
+const emptyItem = () => ({
+  link: '',
+  amount: '',
+  provider: 'otro',
+  imageUrl: '',
+});
 
 export default function AssistedPaymentForm({ user }) {
   const [config, setConfig] = React.useState(null);
-  const [link, setLink] = React.useState('');
-  const [provider, setProvider] = React.useState('otro');
-  const [amount, setAmount] = React.useState('');
-  const [imageUrl, setImageUrl] = React.useState('');
+  const [items, setItems] = React.useState([emptyItem()]);
   const [notes, setNotes] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -35,85 +40,108 @@ export default function AssistedPaymentForm({ user }) {
     return 'otro';
   };
 
-  const handleFile = async (e) => {
+  const updateItem = (idx, patch) => {
+    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  };
+
+  const handleLinkChange = (idx, v) => {
+    updateItem(idx, { link: v, provider: autoDetectProvider(v), ...(v ? { imageUrl: '' } : {}) });
+  };
+
+  const handleFile = async (idx, e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setImageUrl(file_url);
-      if (link) setLink('');
+      updateItem(idx, { imageUrl: file_url, ...(file_url ? { link: '' } : {}) });
       toast.success('QR cargado');
-    } catch (e) {
+    } catch (err) {
       toast.error('No se pudo cargar el QR');
     }
   };
 
-  const calc = () => {
-    const amt = Number(amount || 0);
+  const addItem = () => setItems((prev) => [...prev, emptyItem()]);
+  const removeItem = (idx) => setItems((prev) => prev.filter((_, i) => i !== idx));
+
+  const calcItem = (it) => {
+    const amt = Number(it.amount || 0);
     const p = Number(percent || 0);
-    const feeAmt = Math.round(amt * (p / 100) * 100) / 100; // comisión = monto * (porcentaje/100), redondeado a 2 decimales
+    const feeAmt = Math.round(amt * (p / 100) * 100) / 100;
     const total = Math.round((amt + feeAmt) * 100) / 100;
     return { feeAmt, total };
   };
 
+  const totals = items.reduce(
+    (acc, it) => {
+      const { feeAmt, total } = calcItem(it);
+      acc.feeAmt += feeAmt;
+      acc.total += total;
+      return acc;
+    },
+    { feeAmt: 0, total: 0 }
+  );
+  totals.feeAmt = Math.round(totals.feeAmt * 100) / 100;
+  totals.total = Math.round(totals.total * 100) / 100;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if ((!link && !imageUrl) || !amount) {
-      toast.error('Ingresa enlace o sube un QR, y el monto');
+    const valid = items.filter((it) => (it.link || it.imageUrl) && it.amount);
+    if (valid.length === 0) {
+      toast.error('Agrega al menos un enlace o QR con su monto');
       return;
     }
-    const { feeAmt, total } = calc();
     setSubmitting(true);
     try {
-      const request = await base44.entities.AssistedPaymentRequest.create({
-        client_email: user.email,
-        link_url: link,
-        provider: provider || autoDetectProvider(link),
-        amount: Number(amount),
-        currency: 'USD',
-        fee_percentage: percent,
-        fee_amount: feeAmt,
-        total_amount: total,
-        image_url: imageUrl || undefined,
-        notes: notes || undefined,
-        status: 'pendiente'
-      });
-      await logActionAudit(base44, user, {
-        target_email: user?.email,
-        target_name: user?.full_name || user?.email,
-        action_type: 'create_assisted_payment_request',
-        module_name: 'AssistedPayment',
-        reference_id: request?.id,
-        area_name: 'Operaciones',
-        summary: `Generó solicitud de pago asistido por $${total.toFixed(2)}`,
-        details: `Plataforma: ${provider || autoDetectProvider(link)} · Enlace: ${link || 'sin enlace'} · QR: ${imageUrl || 'sin QR'}`,
-        changed_fields: ['provider', 'amount', 'fee_amount', 'total_amount'],
-      });
-
-      // Notificar a todos los administradores para que revisen la solicitud
-      base44.functions.invoke('listAdmins', {}).then(r => (r?.data?.admins) || []).then(admins => {
-        const providerLabel = provider || autoDetectProvider(link);
-        admins.forEach(admin => {
-          base44.entities.Notification.create({
-            user_email: admin.email,
-            title: '🛒 Nueva Solicitud de Pago Asistido',
-            message: `${user.email} solicitó pago asistido por $${total.toFixed(2)} (${providerLabel})`,
-            type: 'assisted_payment',
-            icon: 'dollar',
-            reference_id: request?.id
-          }).catch(err => console.error('Notification error:', err));
+      for (const it of valid) {
+        const { feeAmt, total } = calcItem(it);
+        const request = await base44.entities.AssistedPaymentRequest.create({
+          client_email: user.email,
+          link_url: it.link,
+          provider: it.provider || autoDetectProvider(it.link),
+          amount: Number(it.amount),
+          currency: 'USD',
+          fee_percentage: percent,
+          fee_amount: feeAmt,
+          total_amount: total,
+          image_url: it.imageUrl || undefined,
+          notes: notes || undefined,
+          status: 'pendiente'
         });
-      }).catch(err => console.error('Admin fetch error:', err));
+        await logActionAudit(base44, user, {
+          target_email: user?.email,
+          target_name: user?.full_name || user?.email,
+          action_type: 'create_assisted_payment_request',
+          module_name: 'AssistedPayment',
+          reference_id: request?.id,
+          area_name: 'Operaciones',
+          summary: `Generó solicitud de pago asistido por $${total.toFixed(2)}`,
+          details: `Plataforma: ${it.provider || autoDetectProvider(it.link)} · Enlace: ${it.link || 'sin enlace'} · QR: ${it.imageUrl || 'sin QR'}`,
+          changed_fields: ['provider', 'amount', 'fee_amount', 'total_amount'],
+        });
 
-      toast.success('Solicitud enviada');
-      setLink(''); setAmount(''); setImageUrl(''); setNotes('');
-    } catch (e) {
+        base44.functions.invoke('listAdmins', {}).then(r => (r?.data?.admins) || []).then(admins => {
+          const providerLabel = it.provider || autoDetectProvider(it.link);
+          admins.forEach(admin => {
+            base44.entities.Notification.create({
+              user_email: admin.email,
+              title: '🛒 Nueva Solicitud de Pago Asistido',
+              message: `${user.email} solicitó pago asistido por $${total.toFixed(2)} (${providerLabel})`,
+              type: 'assisted_payment',
+              icon: 'dollar',
+              reference_id: request?.id
+            }).catch(err => console.error('Notification error:', err));
+          });
+        }).catch(err => console.error('Admin fetch error:', err));
+      }
+
+      toast.success(`${valid.length} solicitud(es) enviada(s) · Total $${totals.total.toFixed(2)}`);
+      setItems([emptyItem()]);
+      setNotes('');
+    } catch (err) {
       toast.error('No se pudo enviar la solicitud');
     }
     setSubmitting(false);
   };
-
-  const { feeAmt, total } = calc();
 
   const enabled = config?.payments_assisted_enabled !== false;
 
@@ -139,59 +167,97 @@ export default function AssistedPaymentForm({ user }) {
               <li>Pega el enlace del producto o sube el QR de WeChat o Alipay.</li>
               <li>Indica el monto exacto a pagar en USD.</li>
               <li>Selecciona la plataforma correspondiente.</li>
+              <li>Usa el botón <span className="font-medium">+</span> para agregar varios enlaces en una sola solicitud.</li>
               <li>Agrega notas si necesitas especificar color, talla o detalles de compra.</li>
-              <li>Revisa el cálculo estimado y luego pulsa <span className="font-medium">Enviar solicitud</span>.</li>
+              <li>Revisa el total estimado y luego pulsa <span className="font-medium">Enviar solicitud</span>.</li>
             </ol>
           </div>
 
-          <div className="space-y-2">
-            <Label>Enlace (si no subes QR)</Label>
-            <Input
-              value={link}
-              onChange={(e) => { const v = e.target.value; setLink(v); setProvider(autoDetectProvider(v)); if (v) setImageUrl(''); }}
-              placeholder="Pega aquí el enlace del producto (si no subes QR)"
-              type="url"
-              required={!imageUrl}
-              disabled={!enabled || !!imageUrl}
-            />
+          <div className="space-y-4">
+            {items.map((it, idx) => {
+              const { feeAmt, total } = calcItem(it);
+              return (
+                <div key={idx} className="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Enlace #{idx + 1}</span>
+                    {items.length > 1 && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeItem(idx)} className="text-rose-600 hover:text-rose-700 h-8 px-2">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Enlace (si no subes QR)</Label>
+                    <Input
+                      value={it.link}
+                      onChange={(e) => handleLinkChange(idx, e.target.value)}
+                      placeholder="Pega aquí el enlace del producto (si no subes QR)"
+                      type="url"
+                      required={!it.imageUrl}
+                      disabled={!enabled || !!it.imageUrl}
+                    />
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Monto a pagar (USD)</Label>
+                      <Input
+                        value={it.amount}
+                        onChange={(e) => updateItem(idx, { amount: e.target.value })}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        required
+                        disabled={!enabled}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Plataforma</Label>
+                      <Select value={it.provider} onValueChange={(v) => updateItem(idx, { provider: v })} disabled={!enabled}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="alibaba">Alibaba</SelectItem>
+                          <SelectItem value="wechat">WeChat</SelectItem>
+                          <SelectItem value="alipay">Alipay</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>QR WeChat o Alipay (si no colocas enlace)</Label>
+                    <Input type="file" accept="image/*" onChange={(e) => handleFile(idx, e)} disabled={!enabled || !!it.link} />
+                    {it.imageUrl && (
+                      <img src={it.imageUrl} alt="QR" className="mt-2 h-28 w-auto rounded-md border object-cover" />
+                    )}
+                  </div>
+
+                  <div className="rounded-lg border p-3 bg-slate-50 text-sm text-slate-700">
+                    Comisión ({percent}%): <span className="font-semibold">${feeAmt.toFixed(2)}</span>
+                    <span className="mx-2">•</span>
+                    Subtotal: <span className="font-semibold text-slate-900">${total.toFixed(2)}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Monto a pagar (USD)</Label>
-              <Input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" min="0" step="0.01" placeholder="0.00" required disabled={!enabled} />
-            </div>
-            <div className="space-y-2">
-              <Label>Plataforma</Label>
-              <Select value={provider} onValueChange={setProvider} disabled={!enabled}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="alibaba">Alibaba</SelectItem>
-                  <SelectItem value="wechat">WeChat</SelectItem>
-                  <SelectItem value="alipay">Alipay</SelectItem>
-                  <SelectItem value="otro">Otro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <Button type="button" variant="outline" onClick={addItem} disabled={!enabled} className="gap-2">
+            <Plus className="h-4 w-4" /> Agregar otro enlace
+          </Button>
 
-          <div className="space-y-2">
-            <Label>QR WeChat o Alipay (si no colocas enlace)</Label>
-            <Input type="file" accept="image/*" onChange={handleFile} disabled={!enabled || !!link} />
-            {imageUrl && (
-              <img src={imageUrl} alt="QR" className="mt-2 h-28 w-auto rounded-md border object-cover" />
-            )}
-          </div>
-
-          <div className="rounded-lg border p-4 bg-slate-50">
+          <div className="rounded-lg border-2 border-blue-200 p-4 bg-blue-50/50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <p className="text-sm text-slate-600">Cálculo estimado</p>
+              <p className="text-sm font-semibold text-blue-900">Total estimado ({items.length} enlace{items.length !== 1 ? 's' : ''})</p>
               <div className="text-sm text-slate-700">
-                Comisión ({percent}%): <span className="font-semibold">${feeAmt.toFixed(2)}</span>
+                Comisión total: <span className="font-semibold">${totals.feeAmt.toFixed(2)}</span>
                 <span className="mx-2">•</span>
-                Total a pagar: <span className="font-semibold text-slate-900">${total.toFixed(2)}</span>
+                Total a pagar: <span className="font-bold text-blue-900 text-base">${totals.total.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -203,7 +269,7 @@ export default function AssistedPaymentForm({ user }) {
 
           <div className="pt-2">
             <Button type="submit" disabled={!enabled || submitting} className="bg-blue-600 hover:bg-blue-700">
-              {submitting ? 'Enviando...' : 'Enviar solicitud'}
+              {submitting ? 'Enviando...' : `Enviar ${items.length} solicitud${items.length !== 1 ? 'es' : ''}`}
             </Button>
           </div>
         </CardContent>
