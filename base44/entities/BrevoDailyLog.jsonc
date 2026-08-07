@@ -1,0 +1,56 @@
+{
+  "name": "BrevoDailyLog",
+  "type": "object",
+  "properties": {
+    "log_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del registro (YYYY-MM-DD)"
+    },
+    "brevo_sent": {
+      "type": "number",
+      "default": 0,
+      "description": "Emails enviados v\u00eda Brevo ese d\u00eda"
+    },
+    "native_sent": {
+      "type": "number",
+      "default": 0,
+      "description": "Emails enviados v\u00eda funci\u00f3n nativa (Core.SendEmail) ese d\u00eda"
+    },
+    "quota_exceeded": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si ese d\u00eda se agot\u00f3 la cuota de Brevo y se cambi\u00f3 a nativo"
+    },
+    "brevo_limit": {
+      "type": "number",
+      "default": 295,
+      "description": "L\u00edmite diario de Brevo vigente ese d\u00eda"
+    }
+  },
+  "required": [
+    "log_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

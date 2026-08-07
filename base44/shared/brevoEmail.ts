@@ -7,12 +7,40 @@
 // Cuando se alcanza el límite, el sistema cambia automáticamente a Core.SendEmail.
 // Al reiniciarse la cuota (cambio de fecha), vuelve a usar Brevo automáticamente.
 // El contador se persiste en AppConfig (brevo_emails_sent_today + brevo_counter_date).
+//
+// REGISTRO HISTÓRICO — BrevoDailyLog:
+// Cada envío se registra en la entidad BrevoDailyLog con la fecha, si fue vía Brevo
+// o nativo, y si ese día se agotó la cuota. Esto permite evaluar cuándo conviene
+// mejorar el plan de Brevo.
 
 export interface SendEmailParams {
   to: string;
   subject: string;
   body: string;
   from_name?: string;
+}
+
+// Registra o actualiza el log diario de envíos
+async function logDailyStat(base44: any, via: 'brevo' | 'fallback', quotaExceeded: boolean, limit: number) {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const existing = await base44.asServiceRole.entities.BrevoDailyLog.filter({ log_date: today }, '-updated_date', 1);
+    if (existing?.[0]) {
+      const update: any = { brevo_limit: limit };
+      if (via === 'brevo') update.brevo_sent = (existing[0].brevo_sent || 0) + 1;
+      else update.native_sent = (existing[0].native_sent || 0) + 1;
+      if (quotaExceeded) update.quota_exceeded = true;
+      await base44.asServiceRole.entities.BrevoDailyLog.update(existing[0].id, update);
+    } else {
+      await base44.asServiceRole.entities.BrevoDailyLog.create({
+        log_date: today,
+        brevo_sent: via === 'brevo' ? 1 : 0,
+        native_sent: via === 'fallback' ? 1 : 0,
+        quota_exceeded: quotaExceeded,
+        brevo_limit: limit,
+      });
+    }
+  } catch (_) {}
 }
 
 export async function sendBrevoEmail(base44: any, params: SendEmailParams): Promise<{ sent: boolean; error?: string; via: 'brevo' | 'fallback' }> {
@@ -29,6 +57,8 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
   let useBrevo = !!(brevoApiKey && brevoSender);
   let configId: string | null = null;
   let currentCount = 0;
+  let dailyLimit = 295;
+  let quotaExceeded = false;
 
   if (useBrevo) {
     try {
@@ -36,14 +66,15 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
       const cfg = configs?.[0];
       if (cfg) {
         configId = cfg.id;
-        const limit = cfg.brevo_daily_limit ?? 295;
+        dailyLimit = cfg.brevo_daily_limit ?? 295;
         const counterDate = cfg.brevo_counter_date;
         // Si cambió el día, el contador se reinicia a 0
         currentCount = counterDate === today ? (cfg.brevo_emails_sent_today ?? 0) : 0;
 
-        if (currentCount >= limit) {
+        if (currentCount >= dailyLimit) {
           // Cuota diaria agotada: usar función nativa
           useBrevo = false;
+          quotaExceeded = true;
         }
       }
     } catch (_) {
@@ -80,6 +111,8 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
           });
         } catch (_) {}
       }
+      // Registrar en historial diario
+      await logDailyStat(base44, 'brevo', false, dailyLimit);
       return { sent: true, via: 'brevo' };
     } catch (err) {
       // Fallback al servicio integrado si Brevo falla
@@ -90,6 +123,7 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
           body: rawBody,
           from_name: from_name || 'TLEC CARGO',
         });
+        await logDailyStat(base44, 'fallback', false, dailyLimit);
         return { sent: true, via: 'fallback' };
       } catch (err2) {
         return { sent: false, error: err2?.message || String(err2), via: 'fallback' };
@@ -105,6 +139,7 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
       body: rawBody,
       from_name: from_name || 'TLEC CARGO',
     });
+    await logDailyStat(base44, 'fallback', quotaExceeded, dailyLimit);
     return { sent: true, via: 'fallback' };
   } catch (err) {
     return { sent: false, error: err?.message || String(err), via: 'fallback' };

@@ -11,6 +11,7 @@ import EmailLogCard from '@/components/communications/EmailLogCard';
 import EmailQueuePendingPanel from '@/components/communications/EmailQueuePendingPanel';
 import DailyEmailQuotaCard from '@/components/communications/DailyEmailQuotaCard';
 import BrevoQuotaCard from '@/components/communications/BrevoQuotaCard';
+import BrevoDailyLogTable from '@/components/communications/BrevoDailyLogTable';
 
 export default function AdminEmailHistory() {
   const [logs, setLogs] = useState([]);
@@ -75,6 +76,8 @@ export default function AdminEmailHistory() {
       <DailyEmailQuotaCard />
 
       <BrevoQuotaCard />
+
+      <BrevoDailyLogTable />
 
       <EmailQueuePendingPanel />
 
