@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,15 +32,19 @@ export default function AdminAbonosValidation({ onRefresh }) {
   const [rejectModal, setRejectModal] = useState({ open: false, payment: null });
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(null);
+  // IDs ya aprobados/rechazados localmente: se filtran para evitar que reaparezcan
+  // por consistencia eventual del servidor tras el cambio de estado.
+  const processedIds = useRef(new Set());
 
   const loadPendingAbonos = useCallback(async () => {
     setLoading(true);
     try {
       const data = await base44.entities.InvoicePayment.filter({ status: 'pendiente' }, '-created_date', 200);
-      setPayments(data || []);
+      const filtered = (data || []).filter((p) => !processedIds.current.has(p.id));
+      setPayments(filtered);
 
       // Cargar facturas relacionadas para mostrar total y saldo
-      const invIds = Array.from(new Set((data || []).map((p) => p.invoice_id).filter(Boolean)));
+      const invIds = Array.from(new Set(filtered.map((p) => p.invoice_id).filter(Boolean)));
       if (invIds.length) {
         const invs = await base44.entities.Invoice.filter({ id: { $in: invIds } }, '-invoice_date', invIds.length);
         const map = {};
@@ -51,7 +55,7 @@ export default function AdminAbonosValidation({ onRefresh }) {
       }
 
       // Cargar datos de cliente (nombre + shipping mark) para evitar mostrar el email largo
-      const emails = Array.from(new Set((data || []).map((p) => p.client_email).filter(Boolean)));
+      const emails = Array.from(new Set(filtered.map((p) => p.client_email).filter(Boolean)));
       if (emails.length) {
         const res = await base44.functions.invoke('getClientsByEmails', { emails }).catch(() => null);
         const cmap = {};
@@ -77,11 +81,10 @@ export default function AdminAbonosValidation({ onRefresh }) {
       const res = await base44.functions.invoke('approveInvoicePayment', { payment_id: payment.id });
       if (res.status === 200 && res.data?.success) {
         toast.success(res.data?.fully_paid ? 'Abono aprobado. Factura pagada completamente.' : 'Abono aprobado');
-        // Optimistic: remover inmediatamente del estado local
+        // Marcar como procesado y remover optimistamente (evita reaparición por consistencia eventual)
+        processedIds.current.add(payment.id);
         setPayments((prev) => prev.filter((p) => p.id !== payment.id));
         onRefresh?.();
-        // Re-sincronizar en segundo plano (no bloquea la UI)
-        loadPendingAbonos();
       } else {
         toast.error(res.data?.error || 'Error al aprobar abono');
       }
@@ -105,11 +108,10 @@ export default function AdminAbonosValidation({ onRefresh }) {
         toast.success('Abono rechazado');
         setRejectModal({ open: false, payment: null });
         setRejectReason('');
-        // Optimistic: remover inmediatamente del estado local
+        // Marcar como procesado y remover optimistamente (evita reaparición por consistencia eventual)
+        processedIds.current.add(paymentId);
         setPayments((prev) => prev.filter((p) => p.id !== paymentId));
         onRefresh?.();
-        // Re-sincronizar en segundo plano
-        loadPendingAbonos();
       } else {
         toast.error(res.data?.error || 'Error al rechazar abono');
       }
