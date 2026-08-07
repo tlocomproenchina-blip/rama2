@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
-import { Search, Hash } from 'lucide-react';
+import { Search, Hash, CreditCard } from 'lucide-react';
 
 const providerLabels = {
   alibaba: 'Alibaba',
@@ -19,6 +21,7 @@ const statusLabels = {
 };
 
 export default function AssistedPaymentHistory({ user }) {
+  const navigate = useNavigate();
   const [items, setItems] = React.useState([]);
   const [query, setQuery] = React.useState('');
 
@@ -86,7 +89,18 @@ export default function AssistedPaymentHistory({ user }) {
                     <td className="py-2 pr-4">${(r.amount||0).toFixed(2)}</td>
                     <td className="py-2 pr-4">${(r.fee_amount||0).toFixed(2)}</td>
                     <td className="py-2 pr-4">{r.status === 'en_proceso' && r.invoice_id ? 'Pago pendiente' : (statusLabels[r.status] || r.status)}</td>
-                    <td className="py-2">{r.invoice_id ? 'Generada' : '—'}</td>
+                    <td className="py-2">
+                      {r.invoice_id && r.status === 'en_proceso' ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5"
+                          onClick={() => navigate(`/MyInvoices?invoice=${r.invoice_id}`)}
+                        >
+                          <CreditCard className="h-3.5 w-3.5" /> Ir a pagar
+                        </Button>
+                      ) : r.invoice_id ? 'Generada' : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

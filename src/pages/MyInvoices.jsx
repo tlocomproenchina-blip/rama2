@@ -28,11 +28,17 @@ export default function MyInvoices({ user }) {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [config, setConfig] = useState(null);
   const [paypalOpen, setPaypalOpen] = useState(false);
+  const [highlightId, setHighlightId] = useState(null);
   const PAGE_SIZE = 100;
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
+    // Factura a resaltar desde la URL (?invoice=<id>) — viene de "Ir a pagar"
+    const urlParams = new URLSearchParams(window.location.search);
+    const invId = urlParams.get('invoice');
+    if (invId) setHighlightId(invId);
+
     // Cargar facturas y config en paralelo
     Promise.all([
       base44.entities.Invoice.filter({ client_email: user.email }, '-invoice_date', PAGE_SIZE, 0),
@@ -205,6 +211,17 @@ export default function MyInvoices({ user }) {
     return !!inv.stripe_hosted_invoice_url || hasOtherMethodsConfigured;
   }), [filteredInvoices, hasOtherMethodsConfigured]);
 
+  // Scroll automático a la factura resaltada (viene de "Ir a pagar")
+  useEffect(() => {
+    if (!highlightId || loading) return;
+    const el = document.getElementById(`invoice-${highlightId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const timer = setTimeout(() => setHighlightId(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightId, loading, visibleInvoices]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -269,8 +286,12 @@ export default function MyInvoices({ user }) {
           />
           <div className="grid gap-4">
             {visibleInvoices.map((invoice) => (
-              <InvoiceCard
+              <div
+                id={`invoice-${invoice.id}`}
                 key={invoice.id}
+                className={`transition-all duration-700 rounded-2xl ${highlightId === invoice.id ? 'ring-4 ring-blue-400 ring-offset-2 ring-offset-background scale-[1.01]' : ''}`}
+              >
+              <InvoiceCard
                 invoice={invoice}
                 user={user}
                 onPay={handlePayOnline}
@@ -285,6 +306,7 @@ export default function MyInvoices({ user }) {
                 }}
                 showOtherMethodsButton={hasOtherMethodsConfigured}
               />
+              </div>
             ))}
           </div>
         </>

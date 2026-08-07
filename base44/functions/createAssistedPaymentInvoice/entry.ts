@@ -45,11 +45,15 @@ Deno.serve(async (req) => {
     const dueMs = 7 * 24 * 60 * 60 * 1000; // 7 days
     const dueIso = new Date(Date.now() + dueMs).toISOString();
 
+    // Nomenclatura de factura ajustada al servicio de Pago Asistido
+    const invoiceNumber = `INV-PA-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
     // Create local Invoice with 2 items
     const invoice = await base44.asServiceRole.entities.Invoice.create({
       client_email: apReq.client_email,
       consolidation_id: apReq.id,
       consolidation_tracking: `AP-${String(apReq.id).slice(0, 8).toUpperCase()}`,
+      invoice_number: invoiceNumber,
       invoice_date: nowIso,
       due_date: dueIso,
       items: [
