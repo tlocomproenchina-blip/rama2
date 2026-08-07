@@ -37,15 +37,17 @@ export default function AssistedPaymentsList() {
     setClientsMap(map);
   };
 
-  const buildAssistedPaymentMessage = (requestNumber) => {
+  const buildAssistedPaymentMessage = (requestNumber, clientName) => {
     const id = requestNumber || '';
-    return `Hola, le escribimos de TLEC CARGO en relación a su solicitud de pago asistido${id ? ` número ${id}` : ''}.`;
+    const greeting = clientName ? `Hola ${clientName},` : 'Hola,';
+    return `${greeting} le escribimos de TLEC CARGO en relación a su solicitud de pago asistido${id ? ` número ${id}` : ''}.`;
   };
 
   const getWhatsAppUrl = (email, requestNumber) => {
     const client = clientsMap[(email || '').toLowerCase()];
     const wa = client?.whatsapp || client?.phone || '';
-    return buildWhatsAppUrl(wa, buildAssistedPaymentMessage(requestNumber));
+    const fullName = [client?.first_name, client?.last_name].filter(Boolean).join(' ');
+    return buildWhatsAppUrl(wa, buildAssistedPaymentMessage(requestNumber, fullName));
   };
 
   React.useEffect(() => { load(); }, []);
