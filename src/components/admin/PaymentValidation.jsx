@@ -69,7 +69,6 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
 
       setHiddenIds((prev) => [...prev, consolidation.id]);
       toast.success('Pago validado correctamente');
-      onRefresh?.();
     } catch (error) {
       toast.error('Error al validar el pago');
     } finally {
@@ -120,7 +119,6 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
       toast.success('Pago rechazado');
       setRejectModal({ open: false, consolidation: null });
       setRejectComment('');
-      onRefresh?.();
     } catch (error) {
       toast.error('Error al rechazar el pago');
     } finally {

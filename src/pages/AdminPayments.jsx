@@ -56,9 +56,10 @@ export default function AdminPayments({ user }) {
     });
   });
 
-  // Tiempo real: nuevos abonos aparecen automáticamente (refresca la lista de validación)
-  useEntitySubscription('InvoicePayment', () => {
-    loadData();
+  // Tiempo real: solo recargar cuando llega un abono NUEVO (create).
+  // Las aprobaciones/actualizaciones se manejan localmente sin recargar.
+  useEntitySubscription('InvoicePayment', (event) => {
+    if (event.type === 'create') loadData();
   });
 
   const loadData = async () => {
@@ -151,7 +152,6 @@ export default function AdminPayments({ user }) {
     }
 
     toast.success('Estado actualizado y cliente notificado');
-    loadData();
   };
 
   const filteredCons = consolidations.filter(con => {

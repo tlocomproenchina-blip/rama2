@@ -63,7 +63,6 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
       }).catch(err => console.error('Email error:', err));
 
       toast.success('Pago validado correctamente');
-      onRefresh?.();
     } catch (error) {
       console.error(error);
       toast.error('Error al validar el pago');
@@ -103,7 +102,6 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
       toast.success('Pago rechazado');
       setRejectModal({ open: false, invoice: null });
       setRejectComment('');
-      onRefresh?.();
     } catch (error) {
       console.error(error);
       toast.error('Error al rechazar el pago');
