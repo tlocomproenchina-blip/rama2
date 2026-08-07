@@ -199,11 +199,11 @@ export default function AssistedPaymentForm({ user }) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Enlace (si no subes QR)</Label>
+                    <Label>Enlace de producto o de pago / caso contrario sube QR de Alipay o WeChat</Label>
                     <Input
                       value={it.link}
                       onChange={(e) => handleLinkChange(idx, e.target.value)}
-                      placeholder="Pega aquí el enlace del producto (si no subes QR)"
+                      placeholder="Pega aquí el enlace del producto o de pago"
                       type="url"
                       required={!it.imageUrl}
                       disabled={!enabled || !!it.imageUrl}
