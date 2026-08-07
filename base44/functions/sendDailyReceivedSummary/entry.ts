@@ -1,7 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 // Envía 1 email diario a cada cliente que recibió paquetes en las últimas 24 horas,
 // con el resumen de lo recibido. Nada más.
+// Los envíos se realizan vía Brevo API (no consumen créditos de integración de Base44).
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -54,14 +56,14 @@ Deno.serve(async (req) => {
       let emailSent = false;
       let errMsg = null;
       try {
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: email,
-          subject,
-          body,
-          from_name: appName
-        });
-        emailSent = true;
-        sent++;
+        const result = await sendBrevoEmail(base44, { to: email, subject, body, from_name: appName });
+        if (result.sent) {
+          emailSent = true;
+          sent++;
+        } else {
+          errMsg = result.error || 'Error desconocido';
+          errors.push({ email, error: errMsg });
+        }
       } catch (e) {
         errMsg = e.message;
         errors.push({ email, error: e.message });

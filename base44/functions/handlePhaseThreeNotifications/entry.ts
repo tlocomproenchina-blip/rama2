@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 function normalize(value) {
   if (value === null || value === undefined) return '';
@@ -117,16 +118,11 @@ async function sendEmail(base44, {
   const body = replaceTemplateVariables(template?.body || fallbackBody, variables);
 
   try {
-    await base44.integrations.Core.SendEmail({
-      to,
-      subject,
-      body,
-      from_name: fromName,
-    });
+    const result = await sendBrevoEmail(base44, { to, subject, body, from_name: fromName });
 
-    await createEmailLog(base44, { to, subject, body, fromName, status: 'sent' });
+    await createEmailLog(base44, { to, subject, body, fromName, status: result.sent ? 'sent' : 'failed' });
 
-    if (template?.id) {
+    if (result.sent && template?.id) {
       await base44.asServiceRole.entities.EmailTemplate.update(template.id, {
         usage_count: Number(template.usage_count || 0) + 1,
       });
