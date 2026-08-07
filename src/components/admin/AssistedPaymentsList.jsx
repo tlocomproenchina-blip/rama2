@@ -82,7 +82,7 @@ export default function AssistedPaymentsList() {
         const invId = res?.data?.invoice_id;
         await base44.entities.AssistedPaymentRequest.update(req.id, { status, invoice_id: invId });
         setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status, invoice_id: invId } : r));
-        toast.success('Factura generada y enviada al cliente');
+        toast.success('Factura generada · el cliente puede pagar con los métodos habilitados');
         return;
       }
 

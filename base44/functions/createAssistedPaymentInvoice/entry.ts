@@ -96,15 +96,39 @@ Deno.serve(async (req) => {
       invoice_id: invoice.id
     });
 
-    // Trigger Stripe invoice creation & email via existing function (automation mode)
-    const stripeRes = await base44.asServiceRole.functions.invoke('createStripeInvoice', {
-      event: { entity_name: 'Invoice', entity_id: invoice.id, type: 'create' }
-    });
+    // Notificar al cliente que su factura está lista (Stripe descontinuado:
+    // el cliente paga con los métodos habilitados desde su portal).
+    try {
+      await base44.asServiceRole.entities.Notification.create({
+        user_email: apReq.client_email,
+        title: '🧾 Factura de pago asistido lista',
+        message: `Tu factura #${invoice.id.slice(0, 8).toUpperCase()} por $${total.toFixed(2)} está disponible. Ingresa a tus facturas para ver los métodos de pago habilitados.`,
+        type: 'payment',
+        icon: 'dollar',
+        reference_id: invoice.id,
+        entity_type: 'Invoice'
+      });
+    } catch (_) {}
+
+    // Enviar email al cliente (no bloqueante)
+    try {
+      await base44.asServiceRole.functions.invoke('sendNotificationEmail', {
+        to: apReq.client_email,
+        subject: `Factura de pago asistido #${invoice.id.slice(0, 8).toUpperCase()}`,
+        body: `Hola,\n\nTu solicitud de pago asistido fue aprobada. Se generó la factura #${invoice.id.slice(0, 8).toUpperCase()} por un total de $${total.toFixed(2)}.\n\nIngresa a tu portal de TLEC CARGO para revisar los métodos de pago disponibles y completar el pago.\n\nGracias.`,
+        in_app: {
+          title: 'Factura de pago asistido lista',
+          message: `Factura #${invoice.id.slice(0, 8).toUpperCase()} por $${total.toFixed(2)}`,
+          type: 'payment',
+          icon: 'dollar',
+          reference_id: invoice.id
+        }
+      });
+    } catch (_) {}
 
     return Response.json({
       success: true,
-      invoice_id: invoice.id,
-      stripe: stripeRes?.data || null
+      invoice_id: invoice.id
     });
   } catch (error) {
     const message = (error && typeof error === 'object' && 'message' in error) ? error.message : 'Internal Server Error';
