@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { slugify, estimateReadingTime, BLOG_JSON_SCHEMA, buildArticlePrompt, buildImagePrompt, pickRandomTopics } from '../../shared/blogSeo.ts';
-import { callGeminiJSON, toGeminiSchema } from '../../shared/geminiClient.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -20,7 +19,10 @@ export default async function(req: Request): Promise<Response> {
 
     const articles = await Promise.all(topics.map(async (topic) => {
       const prompt = buildArticlePrompt(topic, true);
-      const result = await callGeminiJSON(prompt, toGeminiSchema(BLOG_JSON_SCHEMA));
+      const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: BLOG_JSON_SCHEMA
+      });
       const imageResult = await base44.asServiceRole.integrations.Core.GenerateImage({
         prompt: buildImagePrompt(result.title, result.image_prompt)
       });
