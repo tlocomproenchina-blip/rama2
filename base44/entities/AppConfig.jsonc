@@ -542,6 +542,20 @@
       "default": false,
       "description": "Permite que los cambios de Ruta, Veh\u00edculo, Chofer y Seguimiento env\u00eden emails. Apagado por defecto para reducir consumo."
     },
+    "brevo_daily_limit": {
+      "type": "number",
+      "default": 295,
+      "description": "L\u00edmite diario de env\u00edos v\u00eda Brevo (plan free: 300/d\u00eda). Al superar este n\u00famero, el sistema cambia autom\u00e1ticamente a la funci\u00f3n nativa (Core.SendEmail) hasta que se reinicia la cuota."
+    },
+    "brevo_emails_sent_today": {
+      "type": "number",
+      "default": 0,
+      "description": "Contador de emails enviados por Brevo hoy. Se reinicia autom\u00e1ticamente al cambiar la fecha (brevo_counter_date)."
+    },
+    "brevo_counter_date": {
+      "type": "string",
+      "description": "Fecha (YYYY-MM-DD) del \u00faltimo d\u00eda contado. Si no coincide con hoy, el contador se reinicia a 0."
+    },
     "sidebar_hidden_pages": {
       "type": "array",
       "items": {

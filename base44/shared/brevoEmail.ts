@@ -1,7 +1,12 @@
 // Helper compartido para envío de emails vía Brevo API.
 // Usa las credenciales BREVO_API_KEY y BREVO_SENDER_EMAIL configuradas en el app.
 // De esta forma ningún envío consume créditos de integración de Base44 (Core.SendEmail).
-// Si Brevo no está configurado, hace fallback a Core.SendEmail para no romper el flujo.
+//
+// PLAN B — Contador diario con cambio automático:
+// Brevo free permite 300 emails/día. Usamos un límite configurable (default 295).
+// Cuando se alcanza el límite, el sistema cambia automáticamente a Core.SendEmail.
+// Al reiniciarse la cuota (cambio de fecha), vuelve a usar Brevo automáticamente.
+// El contador se persiste en AppConfig (brevo_emails_sent_today + brevo_counter_date).
 
 export interface SendEmailParams {
   to: string;
@@ -19,7 +24,34 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
   const rawBody = body || '';
   const isHtml = /<[a-z][\s\S]*>/i.test(rawBody);
 
-  if (brevoApiKey && brevoSender) {
+  // === PLAN B: verificar cuota diaria de Brevo ===
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  let useBrevo = !!(brevoApiKey && brevoSender);
+  let configId: string | null = null;
+  let currentCount = 0;
+
+  if (useBrevo) {
+    try {
+      const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+      const cfg = configs?.[0];
+      if (cfg) {
+        configId = cfg.id;
+        const limit = cfg.brevo_daily_limit ?? 295;
+        const counterDate = cfg.brevo_counter_date;
+        // Si cambió el día, el contador se reinicia a 0
+        currentCount = counterDate === today ? (cfg.brevo_emails_sent_today ?? 0) : 0;
+
+        if (currentCount >= limit) {
+          // Cuota diaria agotada: usar función nativa
+          useBrevo = false;
+        }
+      }
+    } catch (_) {
+      // Si no puedo leer la config, intento Brevo de todas formas
+    }
+  }
+
+  if (useBrevo && brevoApiKey && brevoSender) {
     try {
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -39,6 +71,15 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
         const errText = await res.text();
         throw new Error(`Brevo ${res.status}: ${errText.slice(0, 300)}`);
       }
+      // Éxito: incrementar contador diario en AppConfig
+      if (configId) {
+        try {
+          await base44.asServiceRole.entities.AppConfig.update(configId, {
+            brevo_emails_sent_today: currentCount + 1,
+            brevo_counter_date: today,
+          });
+        } catch (_) {}
+      }
       return { sent: true, via: 'brevo' };
     } catch (err) {
       // Fallback al servicio integrado si Brevo falla
@@ -56,7 +97,7 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
     }
   }
 
-  // Sin Brevo configurado: fallback a Core.SendEmail
+  // Sin Brevo configurado o cuota agotada: fallback a Core.SendEmail
   try {
     await base44.asServiceRole.integrations.Core.SendEmail({
       to,
