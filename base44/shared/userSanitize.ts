@@ -21,6 +21,7 @@ export function sanitizeUser(u: any) {
     stripe_customer_id: u.stripe_customer_id || null,
     referral_code: u.referral_code || null,
     referred_by_code: u.referred_by_code || null,
+    referred_by_user_id: u.referred_by_user_id || null,
     created_date: u.created_date,
     updated_date: u.updated_date,
     role: u.role || 'user',
