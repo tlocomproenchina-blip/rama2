@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
-import { Link2, ExternalLink, Search, Hash } from 'lucide-react';
+import { Link2, ExternalLink, Search, Hash, MessageCircle } from 'lucide-react';
+import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 
 const providerLabels = {
   alibaba: 'Alibaba',
@@ -21,14 +22,30 @@ export default function AssistedPaymentsList() {
   const [config, setConfig] = React.useState(null);
   const [savingCfg, setSavingCfg] = React.useState(false);
   const [query, setQuery] = React.useState('');
+  const [clientsMap, setClientsMap] = React.useState({});
 
   const load = async () => {
-    const [reqs, cfg] = await Promise.all([
+    const [reqs, cfg, users] = await Promise.all([
       base44.entities.AssistedPaymentRequest.list('-created_date', 100),
-      base44.entities.AppConfig.filter({ config_key: 'main' })
+      base44.entities.AppConfig.filter({ config_key: 'main' }),
+      base44.entities.User.list('-created_date', 500)
     ]);
     setRequests(reqs || []);
     setConfig(cfg?.[0] || null);
+    const map = {};
+    (users || []).forEach((u) => { if (u?.email) map[u.email.toLowerCase()] = u; });
+    setClientsMap(map);
+  };
+
+  const buildAssistedPaymentMessage = (requestNumber) => {
+    const id = requestNumber || '';
+    return `Hola, le escribimos de TLEC CARGO en relación a su solicitud de pago asistido${id ? ` número ${id}` : ''}.`;
+  };
+
+  const getWhatsAppUrl = (email, requestNumber) => {
+    const client = clientsMap[(email || '').toLowerCase()];
+    const wa = client?.whatsapp || client?.phone || '';
+    return buildWhatsAppUrl(wa, buildAssistedPaymentMessage(requestNumber));
   };
 
   React.useEffect(() => { load(); }, []);
@@ -256,6 +273,21 @@ export default function AssistedPaymentsList() {
                             </span>
                           )}
                           <span className="text-sm font-semibold text-slate-800">{first.client_email}</span>
+                          {(() => {
+                            const href = getWhatsAppUrl(first.client_email, first.request_number);
+                            if (!href) return null;
+                            return (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="Escribir por WhatsApp al cliente"
+                                className="inline-flex items-center gap-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-2.5 py-1"
+                              >
+                                <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                              </a>
+                            );
+                          })()}
                         </div>
                         <p className="text-xs text-slate-500">{new Date(g.created_date).toLocaleString()}</p>
                       </div>
