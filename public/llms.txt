@@ -1,9 +1,36 @@
-# Nombre de tu Proyecto o Web
-> Breve descripción de qué trata tu sitio (máximo 2 frases).
+# TLEC CARGO
+> TLEC CARGO es una plataforma de logística y envíos internacionales que ayuda a clientes a gestionar paquetes, consolidaciones, facturas, pagos y soporte. El sitio permite rastrear envíos, prealertar paquetes y consultar información clave sobre procesos de importación y entrega.
 
 ## Secciones Clave
-- [Título del contenido 1](https://tuweb.com/pagina-1): Descripción corta de qué encontrará la IA aquí.
-- [Guía de Importación](https://tuweb.com/guia): Todo sobre logística desde China.
+- [Inicio](/): Presentación general de TLEC CARGO, servicios disponibles, beneficios, preguntas frecuentes y orientación para nuevos clientes.
+- [Calculadora de Envíos](/ShippingCalculator): Herramienta para estimar costos de envío según tipo de carga, destino y condiciones del servicio.
+- [Tarifas](/Rates): Información sobre tarifas de envíos y condiciones aplicables para distintos tipos de carga.
+- [Preguntas Frecuentes](/FAQ): Respuestas sobre envíos, pagos, tracking, consolidación, tiempos de entrega y uso de la plataforma.
+- [Términos de Servicio](/TermsOfService): Información legal, condiciones de uso y lineamientos del servicio.
+- [Blog](/Blog): Contenido informativo y educativo sobre logística, importaciones, envíos internacionales y recomendaciones para clientes.
 
 ## Recursos adicionales
-- [FAQ](https://tuweb.com/faq): Preguntas frecuentes para entrenamiento.
+- [Portal del Cliente](/Dashboard): Área privada para clientes donde pueden ver sus paquetes, facturas, consolidaciones, referencias y estado de cuenta.
+- [Mis Paquetes](/MyPackages): Seguimiento y consulta del estado de paquetes registrados por el cliente.
+- [Mis Facturas](/MyInvoices): Consulta de facturas, pagos pendientes y estado de cobro.
+- [Mis Consolidaciones](/MyConsolidations): Vista de consolidaciones generadas, costos y estado del proceso.
+- [Soporte](/Support): Canal de atención para resolver incidencias, dudas y solicitudes relacionadas con envíos o pagos.
+- [Prealerta](/PreAlert): Formulario para registrar compras o paquetes antes de su recepción en almacén.
+
+## Temas que cubre este sitio
+- Envíos internacionales
+- Logística de carga
+- Consolidación de paquetes
+- Tracking de paquetes
+- Facturación y pagos
+- Atención al cliente para envíos
+- Importaciones desde origen a destino
+
+## Audiencia
+Este sitio está dirigido a clientes que necesitan gestionar envíos internacionales, consultar estados de paquetes, coordinar consolidaciones, revisar facturas y recibir soporte durante el proceso logístico.
+
+## Nombre de la empresa
+TLEC CARGO
+
+## Idioma principal
+Español
