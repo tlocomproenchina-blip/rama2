@@ -15,6 +15,9 @@ const emptyItem = () => ({
   amount: '',
   provider: 'otro',
   imageUrl: '',
+  quantity: 1,
+  modelType: '',
+  productImageUrl: '',
 });
 
 export default function AssistedPaymentForm({ user }) {
@@ -61,6 +64,23 @@ export default function AssistedPaymentForm({ user }) {
     } catch (err) {
       console.error('QR upload error:', err);
       toast.error('No se pudo cargar el QR');
+      e.target.value = '';
+    } finally {
+      setUploadingIdx(null);
+    }
+  };
+
+  const handleProductFile = async (idx, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingIdx(`p-${idx}`);
+    try {
+      const url = await uploadImageNoCredits(file);
+      updateItem(idx, { productImageUrl: url });
+      toast.success('Foto del producto cargada');
+    } catch (err) {
+      console.error('Product photo upload error:', err);
+      toast.error('No se pudo cargar la foto');
       e.target.value = '';
     } finally {
       setUploadingIdx(null);
@@ -115,6 +135,9 @@ export default function AssistedPaymentForm({ user }) {
           fee_amount: feeAmt,
           total_amount: total,
           image_url: it.imageUrl || undefined,
+          quantity: Number(it.quantity) || 1,
+          model_type: it.modelType || undefined,
+          product_image_url: it.productImageUrl || undefined,
           notes: notes || undefined,
           status: 'pendiente'
         });
@@ -237,6 +260,51 @@ export default function AssistedPaymentForm({ user }) {
                           <SelectItem value="otro">Otro</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Cantidad</Label>
+                      <Input
+                        value={it.quantity}
+                        onChange={(e) => updateItem(idx, { quantity: e.target.value })}
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="1"
+                        disabled={!enabled}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Modelo o tipo</Label>
+                      <Input
+                        value={it.modelType}
+                        onChange={(e) => updateItem(idx, { modelType: e.target.value })}
+                        placeholder="Ej: Rojo, talla M, modelo X12..."
+                        disabled={!enabled}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Foto del producto (opcional)</Label>
+                    <div className="rounded-xl border-2 border-dashed border-slate-200 p-3 hover:border-blue-400 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleProductFile(idx, e)}
+                        disabled={!enabled || uploadingIdx === `p-${idx}`}
+                        className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white file:font-medium file:cursor-pointer hover:file:bg-blue-700 disabled:opacity-50"
+                      />
+                      {uploadingIdx === `p-${idx}` && (
+                        <div className="flex items-center gap-2 mt-2 text-blue-600 text-sm">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Subiendo...
+                        </div>
+                      )}
+                      {it.productImageUrl && uploadingIdx !== `p-${idx}` && (
+                        <img src={it.productImageUrl} alt="Producto" className="mt-2 h-28 w-auto rounded-md border object-cover" />
+                      )}
                     </div>
                   </div>
 

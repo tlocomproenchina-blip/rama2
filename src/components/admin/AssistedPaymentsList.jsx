@@ -154,7 +154,24 @@ export default function AssistedPaymentsList() {
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Monto</p>
           <p className="mt-1 text-sm text-slate-800">${(r.amount || 0).toFixed(2)}</p>
         </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Cantidad</p>
+          <p className="mt-1 text-sm text-slate-800">{r.quantity || 1}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Modelo / Tipo</p>
+          <p className="mt-1 text-sm text-slate-800">{r.model_type || '—'}</p>
+        </div>
       </div>
+
+      {r.product_image_url && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Foto del producto</p>
+          <a href={r.product_image_url} target="_blank" rel="noreferrer" title="Ver foto del producto">
+            <img src={r.product_image_url} alt="Producto" className="h-24 w-24 object-cover rounded border bg-white" />
+          </a>
+        </div>
+      )}
 
       <div className="space-y-1">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Enlace</p>

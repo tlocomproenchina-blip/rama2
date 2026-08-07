@@ -29,6 +29,19 @@
       "default": "otro",
       "description": "Plataforma del enlace"
     },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "Cantidad de unidades del producto"
+    },
+    "model_type": {
+      "type": "string",
+      "description": "Modelo o tipo del producto"
+    },
+    "product_image_url": {
+      "type": "string",
+      "description": "Foto del producto"
+    },
     "amount": {
       "type": "number",
       "description": "Monto base a pagar (USD)"
