@@ -81,10 +81,9 @@ export default function AdminAbonosValidation({ onRefresh }) {
       const res = await base44.functions.invoke('approveInvoicePayment', { payment_id: payment.id });
       if (res.status === 200 && res.data?.success) {
         toast.success(res.data?.fully_paid ? 'Abono aprobado. Factura pagada completamente.' : 'Abono aprobado');
-        // Marcar como procesado y remover optimistamente (evita reaparición por consistencia eventual)
+        // Marcar como procesado y remover optimistamente (sin recargar)
         processedIds.current.add(payment.id);
         setPayments((prev) => prev.filter((p) => p.id !== payment.id));
-        onRefresh?.();
       } else {
         toast.error(res.data?.error || 'Error al aprobar abono');
       }
@@ -108,10 +107,9 @@ export default function AdminAbonosValidation({ onRefresh }) {
         toast.success('Abono rechazado');
         setRejectModal({ open: false, payment: null });
         setRejectReason('');
-        // Marcar como procesado y remover optimistamente (evita reaparición por consistencia eventual)
+        // Marcar como procesado y remover optimistamente (sin recargar)
         processedIds.current.add(paymentId);
         setPayments((prev) => prev.filter((p) => p.id !== paymentId));
-        onRefresh?.();
       } else {
         toast.error(res.data?.error || 'Error al rechazar abono');
       }
