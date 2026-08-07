@@ -1,5 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import useImageViewer from '@/hooks/useImageViewer';
 
 const Row = ({ label, value }) => (
   value !== null && value !== undefined && value !== '' ? (
@@ -13,6 +14,7 @@ const Row = ({ label, value }) => (
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('es-VE') : null;
 
 export default function Client360PackageDetail({ pkg }) {
+  const imageViewer = useImageViewer();
   const images = [
     ...(pkg.package_image_urls || []),
     ...(pkg.package_image_url && !(pkg.package_image_urls || []).includes(pkg.package_image_url) ? [pkg.package_image_url] : [])
@@ -46,16 +48,16 @@ export default function Client360PackageDetail({ pkg }) {
           <p className="text-xs font-semibold text-slate-600 mb-1.5">Fotos</p>
           <div className="flex flex-wrap gap-2">
             {pkg.product_image_url && (
-              <a href={pkg.product_image_url} target="_blank" rel="noopener noreferrer" className="block">
+              <button type="button" onClick={() => imageViewer.open(pkg.product_image_url)} className="block cursor-pointer">
                 <img src={pkg.product_image_url} alt="Producto (pre-alerta)" className="h-20 w-20 rounded-lg object-cover border border-slate-200" />
                 <p className="text-[10px] text-slate-400 text-center mt-0.5">Producto</p>
-              </a>
+              </button>
             )}
             {images.map((url, i) => (
-              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+              <button key={i} type="button" onClick={() => imageViewer.open(url)} className="block cursor-pointer">
                 <img src={url} alt={`Paquete ${i + 1}`} className="h-20 w-20 rounded-lg object-cover border border-slate-200" />
                 <p className="text-[10px] text-slate-400 text-center mt-0.5">Recepción</p>
-              </a>
+              </button>
             ))}
           </div>
         </div>
@@ -66,6 +68,7 @@ export default function Client360PackageDetail({ pkg }) {
           <Badge variant="outline" className="cursor-pointer bg-blue-50 text-blue-700 border-blue-200">📄 Ver factura / documento adjunto</Badge>
         </a>
       )}
+      {imageViewer.modal}
     </div>
   );
 }

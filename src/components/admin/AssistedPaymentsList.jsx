@@ -9,6 +9,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
 import { Link2, ExternalLink, Search, Hash, MessageCircle } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
+import useImageViewer from '@/hooks/useImageViewer';
 
 const providerLabels = {
   alibaba: 'Alibaba',
@@ -24,6 +25,7 @@ export default function AssistedPaymentsList() {
   const [query, setQuery] = React.useState('');
   const [clientsMap, setClientsMap] = React.useState({});
   const [invoiceNumbers, setInvoiceNumbers] = React.useState({});
+  const imageViewer = useImageViewer();
 
   const load = async () => {
     const [reqs, cfg] = await Promise.all([
@@ -183,9 +185,9 @@ export default function AssistedPaymentsList() {
       {r.product_image_url && (
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Foto del producto</p>
-          <a href={r.product_image_url} target="_blank" rel="noreferrer" title="Ver foto del producto">
+          <button type="button" onClick={() => imageViewer.open(r.product_image_url)} title="Ver foto del producto" className="cursor-pointer">
             <img src={r.product_image_url} alt="Producto" className="h-24 w-24 object-cover rounded border bg-white" />
-          </a>
+          </button>
         </div>
       )}
 
@@ -201,9 +203,9 @@ export default function AssistedPaymentsList() {
       {r.image_url && (
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">QR</p>
-          <a href={r.image_url} target="_blank" rel="noreferrer" title="Ver QR">
+          <button type="button" onClick={() => imageViewer.open(r.image_url)} title="Ver QR" className="cursor-pointer">
             <img src={r.image_url} alt="QR" className="h-24 w-24 object-cover rounded border bg-white" />
-          </a>
+          </button>
         </div>
       )}
 
@@ -368,6 +370,7 @@ export default function AssistedPaymentsList() {
           )}
         </CardContent>
       </Card>
+      {imageViewer.modal}
     </div>
   );
 }

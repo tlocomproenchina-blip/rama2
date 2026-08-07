@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Upload, X, ImageIcon, Clipboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
+import useImageViewer from '@/hooks/useImageViewer';
 
 // Cargador de la imagen (JPG/PNG) de la factura del proveedor. Sube a ImgBB (0 créditos).
 export default function ProviderInvoiceUploader({ value, onChange }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const imageViewer = useImageViewer();
 
   const uploadFile = async (file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -67,10 +69,10 @@ export default function ProviderInvoiceUploader({ value, onChange }) {
       />
       {value ? (
         <div className="flex items-center gap-2">
-          <a href={value} target="_blank" rel="noreferrer" className="flex items-center gap-2 min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-blue-700 hover:bg-slate-100">
+          <button type="button" onClick={() => imageViewer.open(value)} className="flex items-center gap-2 min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-blue-700 hover:bg-slate-100 cursor-pointer">
             <ImageIcon className="h-4 w-4 shrink-0" />
             <span className="truncate">Ver imagen cargada</span>
-          </a>
+          </button>
           <Button type="button" variant="outline" size="icon" onClick={() => onChange('')}>
             <X className="h-4 w-4" />
           </Button>
@@ -100,6 +102,7 @@ export default function ProviderInvoiceUploader({ value, onChange }) {
         </div>
       )}
       <p className="text-xs text-slate-500">Opcional. Solo imágenes. Uso interno: se guarda en la cuenta por pagar, el cliente no la ve.</p>
+      {imageViewer.modal}
     </div>
   );
 }
