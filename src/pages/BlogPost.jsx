@@ -25,15 +25,52 @@ export default function BlogPost() {
         setStatus('ready');
 
         document.title = (data.seo_title || data.title) + ' | TLEC CARGO';
-        const meta = document.querySelector('meta[name="description"]') || document.createElement('meta');
-        meta.name = 'description';
-        meta.content = data.seo_description || data.excerpt || '';
-        document.head.appendChild(meta);
-        if (data.canonical_url) {
-          let link = document.querySelector('link[rel="canonical"]');
-          if (!link) { link = document.createElement('link'); link.rel = 'canonical'; document.head.appendChild(link); }
-          link.href = data.canonical_url;
-        }
+        const pageUrl = window.location.href;
+        const desc = data.seo_description || data.excerpt || '';
+        const img = data.cover_image_url || '';
+        const titleSEO = data.seo_title || data.title;
+
+        const setMeta = (attr, key, content) => {
+          if (!content) return;
+          let el = document.querySelector(`meta[${attr}="${key}"]`);
+          if (!el) { el = document.createElement('meta'); el.setAttribute(attr, key); document.head.appendChild(el); }
+          el.content = content;
+        };
+
+        setMeta('name', 'description', desc);
+        setMeta('property', 'og:title', titleSEO);
+        setMeta('property', 'og:description', desc);
+        setMeta('property', 'og:type', 'article');
+        setMeta('property', 'og:url', pageUrl);
+        setMeta('property', 'og:image', img);
+        setMeta('property', 'og:site_name', 'TLEC CARGO');
+        setMeta('name', 'twitter:card', 'summary_large_image');
+        setMeta('name', 'twitter:title', titleSEO);
+        setMeta('name', 'twitter:description', desc);
+        setMeta('name', 'twitter:image', img);
+
+        let canonical = document.querySelector('link[rel="canonical"]');
+        if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.appendChild(canonical); }
+        canonical.href = data.canonical_url || pageUrl;
+
+        const oldJsonLd = document.getElementById('blogpost-jsonld');
+        if (oldJsonLd) oldJsonLd.remove();
+        const script = document.createElement('script');
+        script.type = 'application/ld+json';
+        script.id = 'blogpost-jsonld';
+        script.textContent = JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: titleSEO,
+          description: desc,
+          image: img ? [img] : undefined,
+          datePublished: data.published_at,
+          dateModified: data.published_at,
+          author: { '@type': 'Organization', name: data.author_name || 'TLEC CARGO' },
+          publisher: { '@type': 'Organization', name: 'TLEC CARGO' },
+          mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl }
+        });
+        document.head.appendChild(script);
       } catch (e) {
         setStatus('error');
       }
