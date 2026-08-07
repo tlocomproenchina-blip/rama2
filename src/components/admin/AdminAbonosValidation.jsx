@@ -65,8 +65,11 @@ export default function AdminAbonosValidation({ onRefresh }) {
       const res = await base44.functions.invoke('approveInvoicePayment', { payment_id: payment.id });
       if (res.status === 200 && res.data?.success) {
         toast.success(res.data?.fully_paid ? 'Abono aprobado. Factura pagada completamente.' : 'Abono aprobado');
-        await loadPendingAbonos();
+        // Optimistic: remover inmediatamente del estado local
+        setPayments((prev) => prev.filter((p) => p.id !== payment.id));
         onRefresh?.();
+        // Re-sincronizar en segundo plano (no bloquea la UI)
+        loadPendingAbonos();
       } else {
         toast.error(res.data?.error || 'Error al aprobar abono');
       }
@@ -79,18 +82,22 @@ export default function AdminAbonosValidation({ onRefresh }) {
 
   const handleReject = async () => {
     if (!rejectModal.payment) return;
-    setProcessing(rejectModal.payment.id);
+    const paymentId = rejectModal.payment.id;
+    setProcessing(paymentId);
     try {
       const res = await base44.functions.invoke('rejectInvoicePayment', {
-        payment_id: rejectModal.payment.id,
+        payment_id: paymentId,
         reason: rejectReason
       });
       if (res.status === 200 && res.data?.success) {
         toast.success('Abono rechazado');
         setRejectModal({ open: false, payment: null });
         setRejectReason('');
-        await loadPendingAbonos();
+        // Optimistic: remover inmediatamente del estado local
+        setPayments((prev) => prev.filter((p) => p.id !== paymentId));
         onRefresh?.();
+        // Re-sincronizar en segundo plano
+        loadPendingAbonos();
       } else {
         toast.error(res.data?.error || 'Error al rechazar abono');
       }
