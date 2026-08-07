@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Email del cliente solicitante"
     },
+    "submission_id": {
+      "type": "string",
+      "description": "Identificador que agrupa m\u00faltiples enlaces enviados en una misma solicitud"
+    },
     "link_url": {
       "type": "string",
       "description": "Enlace de Alibaba, WeChat o Alipay"

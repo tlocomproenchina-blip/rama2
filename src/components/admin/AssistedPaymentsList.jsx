@@ -7,6 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
+import { Link2, ExternalLink } from 'lucide-react';
+
+const providerLabels = {
+  alibaba: 'Alibaba',
+  wechat: 'WeChat',
+  alipay: 'Alipay',
+  otro: 'Otro'
+};
 
 export default function AssistedPaymentsList() {
   const [requests, setRequests] = React.useState([]);
@@ -62,6 +70,107 @@ export default function AssistedPaymentsList() {
     } catch (e) { toast.error('No se pudo actualizar'); }
   };
 
+  // Agrupar solicitudes: por submission_id si existe, sino individuales
+  const groups = React.useMemo(() => {
+    const map = new Map();
+    const standalone = [];
+    for (const r of requests) {
+      if (r.submission_id) {
+        if (!map.has(r.submission_id)) map.set(r.submission_id, []);
+        map.get(r.submission_id).push(r);
+      } else {
+        standalone.push(r);
+      }
+    }
+    const grouped = Array.from(map.entries()).map(([sid, items]) => {
+      const sorted = items.sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+      return { type: 'group', id: sid, items: sorted, created_date: sorted[0].created_date };
+    });
+    const singles = standalone.map(r => ({ type: 'single', id: r.id, items: [r], created_date: r.created_date }));
+    return [...grouped, ...singles].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+  }, [requests]);
+
+  const renderRequestDetail = (r, index, total) => (
+    <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+      {total > 1 && (
+        <div className="flex items-center gap-2 text-xs font-semibold text-blue-700">
+          <Link2 className="h-3.5 w-3.5" />
+          Enlace #{index + 1} de {total}
+        </div>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Plataforma</p>
+          <p className="mt-1 text-sm text-slate-800">{providerLabels[r.provider] || r.provider || '—'}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Monto</p>
+          <p className="mt-1 text-sm text-slate-800">${(r.amount || 0).toFixed(2)}</p>
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Enlace</p>
+        {r.link_url ? (
+          <a href={r.link_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline break-all inline-flex items-center gap-1">
+            <ExternalLink className="h-3 w-3 shrink-0" /> {r.link_url}
+          </a>
+        ) : <p className="text-sm text-slate-400">—</p>}
+      </div>
+
+      {r.image_url && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">QR</p>
+          <a href={r.image_url} target="_blank" rel="noreferrer" title="Ver QR">
+            <img src={r.image_url} alt="QR" className="h-24 w-24 object-cover rounded border bg-white" />
+          </a>
+        </div>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-3 pt-1 border-t border-slate-100">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Comisión</p>
+          <p className="mt-1 text-sm text-slate-800">${(r.fee_amount || 0).toFixed(2)} ({r.fee_percentage || 0}%)</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Total ítem</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">${(r.total_amount || 0).toFixed(2)}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Factura</p>
+          <p className="mt-1 text-sm text-slate-800 break-all">{r.invoice_id || '—'}</p>
+        </div>
+      </div>
+
+      {r.notes && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Notas</p>
+          <p className="text-sm text-slate-700 bg-amber-50 rounded p-2">{r.notes}</p>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 sm:flex-row pt-1">
+        <Button
+          size="sm"
+          className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
+          onClick={() => updateStatus(r, 'en_proceso')}
+          disabled={r.status === 'en_proceso' || r.status === 'pagado' || r.status === 'rechazado'}
+        >
+          Aprobar
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="w-full sm:w-auto"
+          onClick={() => updateStatus(r, 'rechazado')}
+          disabled={r.status === 'rechazado' || r.status === 'pagado'}
+        >
+          Rechazar
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <Card>
@@ -98,94 +207,42 @@ export default function AssistedPaymentsList() {
             <p className="text-sm text-slate-500">Sin solicitudes</p>
           ) : (
             <div className="space-y-4">
-              {requests.map(r => (
-                <div key={r.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Fecha</p>
-                      <p className="mt-1 text-sm text-slate-800 break-words">{new Date(r.created_date).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Cliente</p>
-                      <p className="mt-1 text-sm text-slate-800 break-all">{r.client_email}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Plataforma</p>
-                      <p className="mt-1 text-sm text-slate-800 uppercase">{r.provider}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Enlace</p>
-                      <div className="mt-1 text-sm">
-                        {r.link_url ? (
-                          <a href={r.link_url} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">Abrir enlace</a>
-                        ) : '—'}
+              {groups.map((g) => {
+                const first = g.items[0];
+                const groupTotal = g.items.reduce((acc, r) => acc + (r.total_amount || 0), 0);
+                const groupAmount = g.items.reduce((acc, r) => acc + (r.amount || 0), 0);
+                const groupFee = g.items.reduce((acc, r) => acc + (r.fee_amount || 0), 0);
+                const isMulti = g.items.length > 1;
+
+                return (
+                  <div key={g.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-4">
+                    {/* Encabezado del grupo */}
+                    <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-slate-200">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {isMulti && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-0.5">
+                              <Link2 className="h-3 w-3" /> {g.items.length} enlaces
+                            </span>
+                          )}
+                          <span className="text-sm font-semibold text-slate-800">{first.client_email}</span>
+                        </div>
+                        <p className="text-xs text-slate-500">{new Date(g.created_date).toLocaleString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Total del envío</p>
+                        <p className="text-lg font-bold text-slate-900">${groupTotal.toFixed(2)}</p>
+                        <p className="text-xs text-slate-500">Base ${groupAmount.toFixed(2)} + Comisión ${groupFee.toFixed(2)}</p>
                       </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">QR</p>
-                      <div className="mt-1">
-                        {r.image_url ? (
-                          <a href={r.image_url} target="_blank" rel="noreferrer" title="Ver QR">
-                            <img src={r.image_url} alt="QR" className="h-14 w-14 object-cover rounded border bg-white" />
-                          </a>
-                        ) : '—'}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Factura</p>
-                      <p className="mt-1 text-sm text-slate-800 break-all">{r.invoice_id || '—'}</p>
-                    </div>
-                  </div>
 
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Monto</p>
-                      <p className="mt-1 text-sm text-slate-800">${(r.amount||0).toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Comisión</p>
-                      <p className="mt-1 text-sm text-slate-800">${(r.fee_amount||0).toFixed(2)} ({r.fee_percentage || 0}%)</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Total</p>
-                      <p className="mt-1 text-base font-semibold text-slate-900">${(r.total_amount||0).toFixed(2)}</p>
+                    {/* Detalle de cada enlace */}
+                    <div className={isMulti ? "space-y-3" : ""}>
+                      {g.items.map((r, idx) => renderRequestDetail(r, idx, g.items.length))}
                     </div>
                   </div>
-
-                  <div className="rounded-lg bg-white border border-slate-200 p-3 space-y-3">
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Estado</p>
-                      <p className="mt-1 text-sm text-slate-800">
-                        {r.status === 'en_proceso' && r.invoice_id ? 'Pago pendiente' : ({
-                          pendiente: 'Pendiente',
-                          en_proceso: 'En proceso',
-                          pagado: 'Pagado',
-                          rechazado: 'Rechazado',
-                        }[r.status] || r.status)}
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <Button
-                        size="sm"
-                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
-                        onClick={() => updateStatus(r, 'en_proceso')}
-                        disabled={r.status === 'en_proceso' || r.status === 'pagado' || r.status === 'rechazado'}
-                      >
-                        Aprobar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="w-full sm:w-auto"
-                        onClick={() => updateStatus(r, 'rechazado')}
-                        disabled={r.status === 'rechazado' || r.status === 'pagado'}
-                      >
-                        Rechazar
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

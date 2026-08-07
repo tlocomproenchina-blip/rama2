@@ -91,11 +91,13 @@ export default function AssistedPaymentForm({ user }) {
       return;
     }
     setSubmitting(true);
+    const submissionId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     try {
       for (const it of valid) {
         const { feeAmt, total } = calcItem(it);
         const request = await base44.entities.AssistedPaymentRequest.create({
           client_email: user.email,
+          submission_id: submissionId,
           link_url: it.link,
           provider: it.provider || autoDetectProvider(it.link),
           amount: Number(it.amount),
