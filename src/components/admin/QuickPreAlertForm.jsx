@@ -40,7 +40,7 @@ export default function QuickPreAlertForm({ trackingNumber, onCreated, onCancel 
         client_email: selectedClient.email,
         shipping_mark: selectedClient.shipping_mark || '',
         shipping_type: shippingType,
-        description: 'Pre-alerta rápida (admin)',
+        description: 'Pre-alerta rápida',
         status: 'pre_alerta',
         reported: true,
       });
