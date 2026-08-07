@@ -196,8 +196,6 @@ Responde natural y directo:`;
       });
 
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-      // Aprendizaje global: guardar Q/A en base de conocimientos (no bloquea la UI)
-      base44.functions.invoke('learnFromChat', { question: userMessage, answer: response }).catch(() => {});
       const unhelpful = isUnhelpful(response);
       if (!unhelpful) { setFailCount(0); }
       else {
