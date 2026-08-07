@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Notification.create({
         user_email: apReq.client_email,
         title: '🧾 Factura de pago asistido lista',
-        message: `Tu factura #${invoice.id.slice(0, 8).toUpperCase()} por $${total.toFixed(2)} está disponible. Ingresa a tus facturas para ver los métodos de pago habilitados.`,
+        message: `Tu factura ${invoiceNumber} por $${total.toFixed(2)} está disponible. Ingresa a tus facturas para ver los métodos de pago habilitados.`,
         type: 'payment',
         icon: 'dollar',
         reference_id: invoice.id,
@@ -118,11 +118,11 @@ Deno.serve(async (req) => {
     try {
       await base44.asServiceRole.functions.invoke('sendNotificationEmail', {
         to: apReq.client_email,
-        subject: `Factura de pago asistido #${invoice.id.slice(0, 8).toUpperCase()}`,
-        body: `Hola,\n\nTu solicitud de pago asistido fue aprobada. Se generó la factura #${invoice.id.slice(0, 8).toUpperCase()} por un total de $${total.toFixed(2)}.\n\nIngresa a tu portal de TLEC CARGO para revisar los métodos de pago disponibles y completar el pago.\n\nGracias.`,
+        subject: `Factura de pago asistido ${invoiceNumber}`,
+        body: `Hola,\n\nTu solicitud de pago asistido fue aprobada. Se generó la factura ${invoiceNumber} por un total de $${total.toFixed(2)}.\n\nIngresa a tu portal de TLEC CARGO para revisar los métodos de pago disponibles y completar el pago.\n\nGracias.`,
         in_app: {
           title: 'Factura de pago asistido lista',
-          message: `Factura #${invoice.id.slice(0, 8).toUpperCase()} por $${total.toFixed(2)}`,
+          message: `Factura ${invoiceNumber} por $${total.toFixed(2)}`,
           type: 'payment',
           icon: 'dollar',
           reference_id: invoice.id
@@ -132,7 +132,8 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      invoice_id: invoice.id
+      invoice_id: invoice.id,
+      invoice_number: invoiceNumber
     });
   } catch (error) {
     const message = (error && typeof error === 'object' && 'message' in error) ? error.message : 'Internal Server Error';

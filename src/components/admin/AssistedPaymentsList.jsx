@@ -23,6 +23,7 @@ export default function AssistedPaymentsList() {
   const [savingCfg, setSavingCfg] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const [clientsMap, setClientsMap] = React.useState({});
+  const [invoiceNumbers, setInvoiceNumbers] = React.useState({});
 
   const load = async () => {
     const [reqs, cfg] = await Promise.all([
@@ -44,6 +45,17 @@ export default function AssistedPaymentsList() {
       } catch (_) {}
     }
     setClientsMap(map);
+
+    // Obtener los números de factura reales (no el _id de Mongo)
+    const invIds = Array.from(new Set((reqs || []).map(r => r.invoice_id).filter(Boolean)));
+    if (invIds.length) {
+      try {
+        const invs = await base44.entities.Invoice.filter({ id: { $in: invIds } }, '-created_date', invIds.length);
+        const numMap = {};
+        (invs || []).forEach((inv) => { if (inv.id && inv.invoice_number) numMap[inv.id] = inv.invoice_number; });
+        setInvoiceNumbers(numMap);
+      } catch (_) {}
+    }
   };
 
   const buildAssistedPaymentMessage = (requestNumber, clientName) => {
@@ -80,8 +92,12 @@ export default function AssistedPaymentsList() {
       if (status === 'en_proceso' && !req.invoice_id) {
         const res = await base44.functions.invoke('createAssistedPaymentInvoice', { request_id: req.id });
         const invId = res?.data?.invoice_id;
+        const invNumber = res?.data?.invoice_number;
         await base44.entities.AssistedPaymentRequest.update(req.id, { status, invoice_id: invId });
         setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status, invoice_id: invId } : r));
+        if (invId && invNumber) {
+          setInvoiceNumbers(prev => ({ ...prev, [invId]: invNumber }));
+        }
         toast.success('Factura generada · el cliente puede pagar con los métodos habilitados');
         return;
       }
@@ -202,7 +218,7 @@ export default function AssistedPaymentsList() {
         </div>
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Factura</p>
-          <p className="mt-1 text-sm text-slate-800 break-all">{r.invoice_id || '—'}</p>
+          <p className="mt-1 text-sm text-slate-800 break-all">{(r.invoice_id && invoiceNumbers[r.invoice_id]) || '—'}</p>
         </div>
       </div>
 
