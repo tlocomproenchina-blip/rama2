@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
-import { Link2, ExternalLink } from 'lucide-react';
+import { Link2, ExternalLink, Search, Hash } from 'lucide-react';
 
 const providerLabels = {
   alibaba: 'Alibaba',
@@ -20,6 +20,7 @@ export default function AssistedPaymentsList() {
   const [requests, setRequests] = React.useState([]);
   const [config, setConfig] = React.useState(null);
   const [savingCfg, setSavingCfg] = React.useState(false);
+  const [query, setQuery] = React.useState('');
 
   const load = async () => {
     const [reqs, cfg] = await Promise.all([
@@ -70,11 +71,24 @@ export default function AssistedPaymentsList() {
     } catch (e) { toast.error('No se pudo actualizar'); }
   };
 
+  // Filtrar por búsqueda (ID, cliente, plataforma, enlace, estado)
+  const filteredRequests = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return requests;
+    return requests.filter((r) =>
+      (r.request_number || '').toLowerCase().includes(q) ||
+      (r.client_email || '').toLowerCase().includes(q) ||
+      (r.provider || '').toLowerCase().includes(q) ||
+      (r.link_url || '').toLowerCase().includes(q) ||
+      (r.status || '').toLowerCase().includes(q)
+    );
+  }, [requests, query]);
+
   // Agrupar solicitudes: por submission_id si existe, sino individuales
   const groups = React.useMemo(() => {
     const map = new Map();
     const standalone = [];
-    for (const r of requests) {
+    for (const r of filteredRequests) {
       if (r.submission_id) {
         if (!map.has(r.submission_id)) map.set(r.submission_id, []);
         map.get(r.submission_id).push(r);
@@ -88,7 +102,7 @@ export default function AssistedPaymentsList() {
     });
     const singles = standalone.map(r => ({ type: 'single', id: r.id, items: [r], created_date: r.created_date }));
     return [...grouped, ...singles].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
-  }, [requests]);
+  }, [filteredRequests]);
 
   const renderRequestDetail = (r, index, total) => (
     <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
@@ -98,6 +112,11 @@ export default function AssistedPaymentsList() {
           Enlace #{index + 1} de {total}
         </div>
       )}
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-blue-700 bg-blue-50 rounded px-2 py-1">
+          <Hash className="h-3 w-3" />{r.request_number || r.id.slice(0, 8).toUpperCase()}
+        </span>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Plataforma</p>
@@ -202,9 +221,20 @@ export default function AssistedPaymentsList() {
         <CardHeader>
           <CardTitle>Solicitudes</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por ID, cliente, plataforma, enlace o estado..."
+              className="pl-9"
+            />
+          </div>
           {requests.length === 0 ? (
             <p className="text-sm text-slate-500">Sin solicitudes</p>
+          ) : filteredRequests.length === 0 ? (
+            <p className="text-sm text-slate-500">Sin resultados para tu búsqueda</p>
           ) : (
             <div className="space-y-4">
               {groups.map((g) => {

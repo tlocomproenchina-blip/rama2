@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Email del cliente solicitante"
     },
+    "request_number": {
+      "type": "string",
+      "description": "N\u00famero \u00fanico de solicitud visible para cliente y admin (ej: AP-...)"
+    },
     "submission_id": {
       "type": "string",
       "description": "Identificador que agrupa m\u00faltiples enlaces enviados en una misma solicitud"

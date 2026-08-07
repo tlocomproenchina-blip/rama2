@@ -95,9 +95,11 @@ export default function AssistedPaymentForm({ user }) {
     try {
       for (const it of valid) {
         const { feeAmt, total } = calcItem(it);
+        const requestNumber = `AP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         const request = await base44.entities.AssistedPaymentRequest.create({
           client_email: user.email,
           submission_id: submissionId,
+          request_number: requestNumber,
           link_url: it.link,
           provider: it.provider || autoDetectProvider(it.link),
           amount: Number(it.amount),
