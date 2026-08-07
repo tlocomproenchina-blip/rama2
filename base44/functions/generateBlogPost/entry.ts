@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { slugify, estimateReadingTime, BLOG_JSON_SCHEMA, buildArticlePrompt } from '../../shared/blogSeo.ts';
+import { callGeminiJSON, toGeminiSchema } from '../../shared/geminiClient.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -15,10 +16,7 @@ export default async function(req: Request): Promise<Response> {
 
     const prompt = buildArticlePrompt(topic, false);
 
-    const result = await base44.integrations.Core.InvokeLLM({
-      prompt,
-      response_json_schema: BLOG_JSON_SCHEMA
-    });
+    const result = await callGeminiJSON(prompt, toGeminiSchema(BLOG_JSON_SCHEMA));
 
     let slug = result.slug || slugify(result.title);
     const existing = await base44.entities.BlogPost.filter({ slug }, undefined, 1);
