@@ -26,6 +26,7 @@ const METHOD_LABELS = {
 export default function AdminAbonosValidation({ onRefresh }) {
   const [payments, setPayments] = useState([]);
   const [invoices, setInvoices] = useState({});
+  const [clients, setClients] = useState({});
   const [loading, setLoading] = useState(true);
   const [proofModal, setProofModal] = useState({ open: false, url: '' });
   const [rejectModal, setRejectModal] = useState({ open: false, payment: null });
@@ -47,6 +48,17 @@ export default function AdminAbonosValidation({ onRefresh }) {
         setInvoices(map);
       } else {
         setInvoices({});
+      }
+
+      // Cargar datos de cliente (nombre + shipping mark) para evitar mostrar el email largo
+      const emails = Array.from(new Set((data || []).map((p) => p.client_email).filter(Boolean)));
+      if (emails.length) {
+        const res = await base44.functions.invoke('getClientsByEmails', { emails }).catch(() => null);
+        const cmap = {};
+        Object.values(res?.data?.clients || {}).forEach((c) => { cmap[c.email] = c; });
+        setClients(cmap);
+      } else {
+        setClients({});
       }
     } catch (e) {
       console.error('Error loading abonos:', e);
@@ -127,19 +139,24 @@ export default function AdminAbonosValidation({ onRefresh }) {
         </h2>
         {payments.map((p) => {
           const inv = invoices[p.invoice_id] || {};
+          const client = clients[p.client_email] || {};
           const total = Number(inv.total || 0);
           const paidAmount = Number(inv.paid_amount || 0);
           const balance = Math.max(0, total - paidAmount);
+          const clientName = `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.full_name || p.client_email;
 
           return (
             <Card key={p.id} className="border-l-4 border-l-emerald-500 shadow-md hover:shadow-lg transition-shadow">
               <CardContent className="p-5">
                 <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
                       <User className="w-4 h-4" /> Cliente
                     </div>
-                    <div className="font-medium text-slate-800 text-sm">{p.client_email}</div>
+                    <div className="font-medium text-slate-800 text-sm leading-tight truncate">{clientName}</div>
+                    {client.shipping_mark && (
+                      <div className="text-xs text-slate-500 truncate">Mark: {client.shipping_mark}</div>
+                    )}
                   </div>
 
                   <div>
