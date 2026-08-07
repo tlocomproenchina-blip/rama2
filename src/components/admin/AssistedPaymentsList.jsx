@@ -25,15 +25,24 @@ export default function AssistedPaymentsList() {
   const [clientsMap, setClientsMap] = React.useState({});
 
   const load = async () => {
-    const [reqs, cfg, users] = await Promise.all([
+    const [reqs, cfg] = await Promise.all([
       base44.entities.AssistedPaymentRequest.list('-created_date', 100),
-      base44.entities.AppConfig.filter({ config_key: 'main' }),
-      base44.entities.User.list('-created_date', 500)
+      base44.entities.AppConfig.filter({ config_key: 'main' })
     ]);
     setRequests(reqs || []);
     setConfig(cfg?.[0] || null);
-    const map = {};
-    (users || []).forEach((u) => { if (u?.email) map[u.email.toLowerCase()] = u; });
+
+    // Obtener solo los clientes relacionados (evita listar todos los usuarios)
+    const emails = Array.from(new Set((reqs || []).map(r => r.client_email).filter(Boolean)));
+    let map = {};
+    if (emails.length) {
+      try {
+        const res = await base44.functions.invoke('getClientsByEmails', { emails });
+        const clientsObj = res?.data?.clients || res?.clients || {};
+        const clientsArr = Array.isArray(clientsObj) ? clientsObj : Object.values(clientsObj);
+        clientsArr.forEach((c) => { if (c?.email) map[c.email.toLowerCase()] = c; });
+      } catch (_) {}
+    }
     setClientsMap(map);
   };
 
