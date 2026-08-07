@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -17,20 +18,20 @@ Deno.serve(async (req) => {
     let directSendResult = null;
     let directSendError = null;
     try {
-      const result = await base44.integrations.Core.SendEmail({
+      const result = await sendBrevoEmail(base44, {
         to: user.email,
         subject: 'TEST - Diagnóstico de envío',
         body: 'Este es un email de prueba para diagnosticar fallos.',
         from_name: 'TLEC CARGO Diagnóstico'
       });
       directSendResult = result;
+      if (!result.sent) {
+        throw new Error(result.error || 'Envío fallido');
+      }
     } catch (err) {
       directSendError = {
         message: err?.message,
         name: err?.name,
-        status: err?.response?.status,
-        statusText: err?.response?.statusText,
-        responseData: err?.response?.data,
         stack: err?.stack?.split('\n').slice(0, 5).join('\n')
       };
     }

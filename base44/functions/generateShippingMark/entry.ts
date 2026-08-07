@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 const DEFAULT_PREFIX = 'TLEC-';
 const DEFAULT_LENGTH = 6;
@@ -43,7 +44,7 @@ const notifyShippingMarkAssigned = async (base44, targetUser, shippingMark) => {
   const body = replaceTemplateVariables(template?.body || 'Hola {cliente_nombre}, tu Shipping Mark es {shipping_mark}.', variables);
 
   try {
-    await base44.integrations.Core.SendEmail({
+    const result = await sendBrevoEmail(base44, {
       to: targetUser.email,
       subject,
       body,
@@ -58,7 +59,7 @@ const notifyShippingMarkAssigned = async (base44, targetUser, shippingMark) => {
       subject,
       body_preview: body.slice(0, 200),
       source: 'manual',
-      status: 'sent',
+      status: result.sent ? 'sent' : 'failed',
       sent_date: new Date().toISOString(),
     });
   } catch (error) {

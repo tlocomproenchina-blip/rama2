@@ -1,7 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 // Procesa la cola EmailQueue en lotes. Se ejecuta por automatización programada.
-// Único punto del sistema que llama a Core.SendEmail.
+// Usa el helper compartido sendBrevoEmail (Brevo con fallback a Core.SendEmail).
 const BATCH_SIZE = 25;
 const MAX_ATTEMPTS = 3;
 
@@ -37,43 +38,18 @@ Deno.serve(async (req) => {
     let sent = 0;
     let failed = 0;
 
-    const brevoApiKey = Deno.env.get('BREVO_API_KEY');
-    const brevoSender = Deno.env.get('BREVO_SENDER_EMAIL');
-
     for (const item of due) {
       let ok = false;
       let errorMessage = null;
       try {
-        const rawBody = item.body || '';
-        const isHtml = /<[a-z][\s\S]*>/i.test(rawBody);
-        if (brevoApiKey && brevoSender) {
-          // Envío vía Brevo (no consume créditos de integración)
-          const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-            method: 'POST',
-            headers: {
-              'api-key': brevoApiKey,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-              sender: { name: item.from_name || fromNameDefault, email: brevoSender },
-              to: [{ email: item.recipient_email }],
-              subject: item.subject,
-              htmlContent: isHtml ? rawBody : rawBody.replace(/\n/g, '<br>')
-            })
-          });
-          if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Brevo ${res.status}: ${errText.slice(0, 300)}`);
-          }
-        } else {
-          // Fallback al servicio integrado si Brevo no está configurado
-          await base44.asServiceRole.integrations.Core.SendEmail({
-            to: item.recipient_email,
-            subject: item.subject,
-            body: rawBody,
-            from_name: item.from_name || fromNameDefault
-          });
+        const result = await sendBrevoEmail(base44, {
+          to: item.recipient_email,
+          subject: item.subject,
+          body: item.body || '',
+          from_name: item.from_name || fromNameDefault
+        });
+        if (!result.sent) {
+          throw new Error(result.error || 'Envío fallido');
         }
         ok = true;
         sent++;

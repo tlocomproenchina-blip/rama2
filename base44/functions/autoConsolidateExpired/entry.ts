@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -69,7 +70,7 @@ Deno.serve(async (req) => {
         });
 
         try {
-          await base44.asServiceRole.integrations.Core.SendEmail({
+          await sendBrevoEmail(base44, {
             to: request.client_email,
             subject: '📦 Tu solicitud pasó a aprobaciones',
             body: `

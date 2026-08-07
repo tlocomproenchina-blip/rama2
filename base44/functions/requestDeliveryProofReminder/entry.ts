@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 const EXAMPLE_IMAGE_ONE = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/2484aa300_WhatsAppImage2026-04-03at12951PM.jpg';
 const EXAMPLE_IMAGE_TWO = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/d11b83368_WhatsAppImage2026-04-03at12833PM.jpg';
@@ -123,7 +124,7 @@ Deno.serve(async (req) => {
         supportUrl,
       });
 
-      await base44.asServiceRole.integrations.Core.SendEmail({
+      await sendBrevoEmail(base44, {
         from_name: appName,
         to: client.email,
         subject: `URGENTE: solicitud de comprobante - ${pkg.tracking_number || 'Tracking'}`,
