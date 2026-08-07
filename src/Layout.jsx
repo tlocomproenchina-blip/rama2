@@ -64,7 +64,7 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
   const hasDesktopSidebar = !!user;
-  const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ'].includes(currentPageName);
+  const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ', 'Sitemap'].includes(currentPageName);
 
   // Tuning sensato: se aplica una sola vez al montar
   useEffect(() => {

@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /
+Allow: /Blog
+Allow: /BlogPost
+Allow: /ShippingCalculator
+Allow: /About
+Allow: /Contact
+Allow: /FAQ
+
+# Bloquear areas privadas del portal
+Disallow: /Dashboard
+Disallow: /Admin
+Disallow: /Warehouse
+Disallow: /Profile
+Disallow: /MyPackages
+Disallow: /MyInvoices
+Disallow: /MyConsolidations
+Disallow: /MyCbm
+Disallow: /MyReferrals
+Disallow: /Support
+Disallow: /PreAlert
+Disallow: /AssistedPayment
+Disallow: /RequestConsolidation
+
+# Sitemap
+Sitemap: /sitemap.xml
