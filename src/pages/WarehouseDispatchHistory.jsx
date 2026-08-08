@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, History, Search, GitMerge, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, History, Search, GitMerge, X, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
 import DispatchOrderEditModal from '@/components/warehouse/DispatchOrderEditModal';
@@ -19,6 +20,19 @@ export default function WarehouseDispatchHistory({ user }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [merging, setMerging] = useState(false);
   const [orderTotalsMap, setOrderTotalsMap] = useState({});
+  const [creatorFilter, setCreatorFilter] = useState('all');
+  const [employees, setEmployees] = useState([]);
+
+  // Cargar empleados del área de almacén para el filtro de creador
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await base44.functions.invoke('listAdmins', { limit: 1000 });
+        const admins = res?.data?.admins || res?.admins || [];
+        setEmployees(admins.filter((a) => a.custom_role === 'almacen'));
+      } catch (_) {}
+    })();
+  }, []);
 
   // Consulta los totales esperados por recibo desde CbmIngreso (AdminCbmIngresos)
   // y construye un mapa { orderId: { receipt: total_expected } }.
@@ -221,8 +235,22 @@ export default function WarehouseDispatchHistory({ user }) {
     }
   };
 
+  // Opciones del filtro: empleados de almacén + otros creadores presentes en las órdenes
+  const creatorOptions = useMemo(() => {
+    const map = new Map();
+    employees.forEach((e) => map.set((e.email || '').toLowerCase(), e.full_name || e.email));
+    orders.forEach((o) => {
+      const email = (o.created_by_email || '').trim().toLowerCase();
+      if (email && !map.has(email)) map.set(email, email);
+    });
+    return Array.from(map.entries()).map(([email, name]) => ({ email, name }));
+  }, [employees, orders]);
+
   const q = search.trim().toLowerCase();
-  const filtered = !q ? orders : orders.filter((o) =>
+  const byCreator = creatorFilter === 'all'
+    ? orders
+    : orders.filter((o) => (o.created_by_email || '').trim().toLowerCase() === creatorFilter);
+  const filtered = !q ? byCreator : byCreator.filter((o) =>
     (o.order_number || '').toLowerCase().includes(q) ||
     (o.client_email || '').toLowerCase().includes(q) ||
     (o.client_name || '').toLowerCase().includes(q) ||
@@ -284,6 +312,20 @@ export default function WarehouseDispatchHistory({ user }) {
             className="pl-10"
           />
         </div>
+        <Select value={creatorFilter} onValueChange={setCreatorFilter}>
+          <SelectTrigger className="w-full sm:w-56 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <UserRound className="h-4 w-4 text-slate-400 shrink-0" />
+              <SelectValue placeholder="Creado por" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los empleados</SelectItem>
+            {creatorOptions.map((opt) => (
+              <SelectItem key={opt.email} value={opt.email}>{opt.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button
           variant={selectMode ? "default" : "outline"}
           onClick={() => { setSelectMode(!selectMode); setSelectedIds([]); }}
