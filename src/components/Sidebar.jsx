@@ -102,11 +102,14 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
   const visibleAdminPages = useMemo(() => {
     if (user?.role !== 'admin') return [];
-    const base = (!user?.custom_role)
-      ? adminMenuItems.map((item) => item.page)
-      : (roleConfig?.visible_pages?.length ? roleConfig.visible_pages : adminMenuItems.map((item) => item.page));
+    // Si el admin tiene un área asignada con páginas permitidas, esas páginas
+    // mandan: la lista global de ocultos NO se le aplica (si no, un área como
+    // Almacén podría quedarse sin ningún ítem visible).
+    if (user?.custom_role && roleConfig?.visible_pages?.length) {
+      return roleConfig.visible_pages;
+    }
     const hidden = new Set(config?.sidebar_hidden_pages || []);
-    return base.filter((page) => !hidden.has(page));
+    return adminMenuItems.map((item) => item.page).filter((page) => !hidden.has(page));
   }, [user?.role, user?.custom_role, roleConfig, config?.sidebar_hidden_pages]);
 
   const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
