@@ -116,7 +116,7 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
                   <DollarSign className="h-3 w-3" />
                   ${invoice.total.toFixed(2)}
                 </span>
-                {daysSinceInvoice !== null && (
+                {daysSinceInvoice !== null && invoice.status === 'pendiente' && (
                   <Badge className={`text-xs ${daysBadgeClass}`}>
                     {daysSinceInvoice} día{daysSinceInvoice === 1 ? '' : 's'}
                   </Badge>
