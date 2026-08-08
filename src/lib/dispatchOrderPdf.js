@@ -44,6 +44,14 @@ export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO', mo
   doc.text(`N° ${order.order_number || '—'}`, 196, 12, { align: 'right' });
   doc.text(date.toLocaleString('es-VE'), 196, 21, { align: 'right' });
 
+  // Shipping mark en grande, centrado en el encabezado
+  const headerMark = order.shipping_mark || client.shipping_mark || '';
+  if (headerMark) {
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(headerMark), 105, 18, { align: 'center' });
+  }
+
   doc.setTextColor(30, 41, 59);
   let y = 40;
   doc.setFontSize(11);
