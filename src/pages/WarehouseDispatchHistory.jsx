@@ -21,6 +21,8 @@ export default function WarehouseDispatchHistory({ user }) {
   const [merging, setMerging] = useState(false);
   const [orderTotalsMap, setOrderTotalsMap] = useState({});
   const [creatorFilter, setCreatorFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [employees, setEmployees] = useState([]);
 
   // El filtro por creador es exclusivo del administrador general
@@ -254,7 +256,17 @@ export default function WarehouseDispatchHistory({ user }) {
   const byCreator = (!canFilterByCreator || creatorFilter === 'all')
     ? orders
     : orders.filter((o) => (o.created_by_email || '').trim().toLowerCase() === creatorFilter);
-  const filtered = !q ? byCreator : byCreator.filter((o) =>
+  const byDate = byCreator.filter((o) => {
+    if (!dateFrom && !dateTo) return true;
+    const raw = o.dispatched_date || o.created_date;
+    if (!raw) return false;
+    const day = new Date(raw).toISOString().slice(0, 10);
+    if (dateFrom && day < dateFrom) return false;
+    if (dateTo && day > dateTo) return false;
+    return true;
+  });
+
+  const filtered = !q ? byDate : byDate.filter((o) =>
     (o.order_number || '').toLowerCase().includes(q) ||
     (o.client_email || '').toLowerCase().includes(q) ||
     (o.client_name || '').toLowerCase().includes(q) ||
@@ -340,6 +352,22 @@ export default function WarehouseDispatchHistory({ user }) {
           <GitMerge className="h-4 w-4" />
           {selectMode ? 'Cancelar selección' : 'Seleccionar'}
         </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 w-full">
+          <span className="text-sm text-slate-500 shrink-0">Desde</span>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+        </div>
+        <div className="flex items-center gap-2 flex-1 w-full">
+          <span className="text-sm text-slate-500 shrink-0">Hasta</span>
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+        </div>
+        {(dateFrom || dateTo) && (
+          <Button variant="ghost" size="sm" onClick={() => { setDateFrom(''); setDateTo(''); }} className="shrink-0">
+            <X className="h-4 w-4" /> Limpiar fechas
+          </Button>
+        )}
       </div>
 
       {selectMode && (
