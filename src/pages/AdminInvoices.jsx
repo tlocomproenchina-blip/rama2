@@ -24,6 +24,8 @@ export default function AdminInvoices({ user }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [stats, setStats] = useState({
     total: 0,
     paid: 0,
@@ -564,6 +566,8 @@ export default function AdminInvoices({ user }) {
 
   const filteredInvoices = useMemo(() => {
     const q = search.toLowerCase();
+    const fromMs = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : null;
+    const toMs = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : null;
     return invoices.filter(inv => {
       const matchesSearch = !q || (
         (inv.invoice_number || '').toLowerCase().includes(q) ||
@@ -576,9 +580,14 @@ export default function AdminInvoices({ user }) {
         statusFilter === 'all' ? true :
         statusFilter === 'provider_unpaid' ? (inv.status === 'pagada' && !inv.provider_paid) :
         inv.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const invDate = inv.invoice_date ? new Date(inv.invoice_date).getTime() : null;
+      const matchesDate = !invDate || (
+        (fromMs === null || invDate >= fromMs) &&
+        (toMs === null || invDate <= toMs)
+      );
+      return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [invoices, search, statusFilter]);
+  }, [invoices, search, statusFilter, dateFrom, dateTo]);
 
   if (loading) {
     return (
@@ -685,9 +694,9 @@ export default function AdminInvoices({ user }) {
         </Card>
       </div>
 
-      {/* Search */}
+      {/* Search & Date Filter */}
       <Card className="border-0 shadow-lg">
-        <CardContent className="p-6">
+        <CardContent className="p-6 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <Input
@@ -696,6 +705,32 @@ export default function AdminInvoices({ user }) {
               placeholder="Buscar por número, cliente, shipping mark o tracking..."
               className="pl-10"
             />
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs text-slate-500">Desde</Label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs text-slate-500">Hasta</Label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+            {(dateFrom || dateTo) && (
+              <Button
+                variant="outline"
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+              >
+                Limpiar fechas
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
