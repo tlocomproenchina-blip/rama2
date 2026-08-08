@@ -26,7 +26,7 @@ export default function WarehouseDispatchHistory({ user }) {
   const [employees, setEmployees] = useState([]);
 
   // El filtro por creador es exclusivo del administrador general
-  const canFilterByCreator = user?.role === 'admin' && (!user?.custom_role || user.custom_role === 'administrador');
+  const canFilterByCreator = user?.role === 'admin';
 
   // Cargar empleados del área de almacén para el filtro de creador
   useEffect(() => {
