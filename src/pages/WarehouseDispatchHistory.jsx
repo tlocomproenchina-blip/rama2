@@ -23,8 +23,12 @@ export default function WarehouseDispatchHistory({ user }) {
   const [creatorFilter, setCreatorFilter] = useState('all');
   const [employees, setEmployees] = useState([]);
 
+  // El filtro por creador es exclusivo del administrador general
+  const canFilterByCreator = user?.role === 'admin' && (!user?.custom_role || user.custom_role === 'administrador');
+
   // Cargar empleados del área de almacén para el filtro de creador
   useEffect(() => {
+    if (!canFilterByCreator) return;
     (async () => {
       try {
         const res = await base44.functions.invoke('listAdmins', { limit: 1000 });
@@ -32,7 +36,7 @@ export default function WarehouseDispatchHistory({ user }) {
         setEmployees(admins.filter((a) => a.custom_role === 'almacen'));
       } catch (_) {}
     })();
-  }, []);
+  }, [canFilterByCreator]);
 
   // Consulta los totales esperados por recibo desde CbmIngreso (AdminCbmIngresos)
   // y construye un mapa { orderId: { receipt: total_expected } }.
@@ -247,7 +251,7 @@ export default function WarehouseDispatchHistory({ user }) {
   }, [employees, orders]);
 
   const q = search.trim().toLowerCase();
-  const byCreator = creatorFilter === 'all'
+  const byCreator = (!canFilterByCreator || creatorFilter === 'all')
     ? orders
     : orders.filter((o) => (o.created_by_email || '').trim().toLowerCase() === creatorFilter);
   const filtered = !q ? byCreator : byCreator.filter((o) =>
@@ -312,6 +316,7 @@ export default function WarehouseDispatchHistory({ user }) {
             className="pl-10"
           />
         </div>
+        {canFilterByCreator && (
         <Select value={creatorFilter} onValueChange={setCreatorFilter}>
           <SelectTrigger className="w-full sm:w-56 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
@@ -326,6 +331,7 @@ export default function WarehouseDispatchHistory({ user }) {
             ))}
           </SelectContent>
         </Select>
+        )}
         <Button
           variant={selectMode ? "default" : "outline"}
           onClick={() => { setSelectMode(!selectMode); setSelectedIds([]); }}
