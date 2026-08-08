@@ -53,6 +53,15 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
   const consolidationTotal = invoiceItems.filter(isConsolidationFeeItem).reduce((sum, item) => sum + getItemTotal(item), 0);
   const shippingTotal = Math.max(0, Number(invoice.total || 0) - insuranceTotal - consolidationTotal);
 
+  const daysSinceInvoice = invoice.invoice_date
+    ? Math.floor((Date.now() - new Date(invoice.invoice_date).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const daysBadgeClass = daysSinceInvoice === null ? ''
+    : daysSinceInvoice >= 45 ? 'bg-red-100 text-red-700'
+    : daysSinceInvoice >= 30 ? 'bg-orange-100 text-orange-700'
+    : daysSinceInvoice >= 20 ? 'bg-amber-100 text-amber-700'
+    : 'bg-slate-100 text-slate-600';
+
   return (
     <Card className="border-0 shadow-lg">
       <CardHeader>
@@ -107,7 +116,11 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
                   <DollarSign className="h-3 w-3" />
                   ${invoice.total.toFixed(2)}
                 </span>
-
+                {daysSinceInvoice !== null && (
+                  <Badge className={`text-xs ${daysBadgeClass}`}>
+                    {daysSinceInvoice} día{daysSinceInvoice === 1 ? '' : 's'}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
