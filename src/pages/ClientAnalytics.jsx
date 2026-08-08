@@ -15,6 +15,7 @@ import ClientStateRatesCard from '@/components/manual-billing/ClientStateRatesCa
 import ClientPackagesTable from '@/components/client-analytics/ClientPackagesTable';
 import ClientCbmHistory from '@/components/client-analytics/ClientCbmHistory';
 import ClientInvoicesList from '@/components/client-analytics/ClientInvoicesList';
+import ClientDispatchOrders from '@/components/client-analytics/ClientDispatchOrders';
 
 function getLastMonths(count) {
   const now = new Date();
@@ -41,6 +42,7 @@ export default function ClientAnalytics() {
   const [invoices, setInvoices] = useState([]);
   const [packages, setPackages] = useState([]);
   const [cbmIngresos, setCbmIngresos] = useState([]);
+  const [dispatchOrders, setDispatchOrders] = useState([]);
   const [appConfig, setAppConfig] = useState(null);
   const [pricing, setPricing] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
@@ -78,21 +80,24 @@ export default function ClientAnalytics() {
       setInvoices([]);
       setPackages([]);
       setCbmIngresos([]);
+      setDispatchOrders([]);
       return;
     }
 
     try {
       setLoading(true);
-      const [consolidationList, invoiceList, packageList, cbmList] = await Promise.all([
+      const [consolidationList, invoiceList, packageList, cbmList, dispatchList] = await Promise.all([
         base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500),
         base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500),
         base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 1000),
-        base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500)
+        base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500),
+        base44.entities.DispatchOrder.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => [])
       ]);
       setConsolidations(consolidationList || []);
       setInvoices(invoiceList || []);
       setPackages(packageList || []);
       setCbmIngresos(cbmList || []);
+      setDispatchOrders(dispatchList || []);
     } catch {
       toast.error('No se pudo cargar la analítica del cliente');
     }
@@ -257,6 +262,8 @@ export default function ClientAnalytics() {
       )}
 
       {selectedClient && <ClientInvoicesList invoices={invoices} client={selectedClient} />}
+
+      {selectedClient && <ClientDispatchOrders orders={dispatchOrders} client={selectedClient} />}
 
       {selectedClient && <ClientPackagesTable packages={packages} client={selectedClient} cbmIngresos={cbmIngresos} />}
 
