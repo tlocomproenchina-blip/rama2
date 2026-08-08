@@ -1,3 +1,4 @@
+// Historial de órdenes de despacho: consulta, edición, cancelación, fusión y PDF
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from '@/components/ui/input';
