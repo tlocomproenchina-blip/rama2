@@ -31,11 +31,8 @@ export default function useNotificationFlags({ user }) {
       return;
     }
     try {
-      const notifs = await base44.entities.Notification.filter(
-        { user_email: user.email },
-        '-created_date',
-        50
-      );
+      const res = await base44.functions.invoke('getMyNotifications', {});
+      const notifs = (res?.data?.notifications) || [];
       const unreadTypes = new Set(
         (notifs || []).filter((n) => !n.read).map((n) => n.type).filter(Boolean)
       );

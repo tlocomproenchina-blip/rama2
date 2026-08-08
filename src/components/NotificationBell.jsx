@@ -52,11 +52,8 @@ export default function NotificationBell({ user }) {
   const loadNotifications = useCallback(async () => {
     if (!user?.email) return;
     try {
-      const notifs = await base44.entities.Notification.filter(
-        { user_email: user.email },
-        '-created_date',
-        50
-      );
+      const res = await base44.functions.invoke('getMyNotifications', {});
+      const notifs = (res?.data?.notifications) || [];
 
       const dedupedMap = new Map();
       for (const notif of notifs) {
