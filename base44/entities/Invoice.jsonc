@@ -186,6 +186,21 @@
           }
         }
       }
+    },
+    "storage_notif_20_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si ya se envi\u00f3 la notificaci\u00f3n de almacenamiento de los 20 d\u00edas"
+    },
+    "storage_notif_30_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si ya se envi\u00f3 la notificaci\u00f3n de almacenamiento de los 30 d\u00edas vencidos"
+    },
+    "storage_notif_45_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si ya se envi\u00f3 la notificaci\u00f3n de remate de los 45 d\u00edas"
     }
   },
   "required": [
