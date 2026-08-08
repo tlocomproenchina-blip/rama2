@@ -153,19 +153,14 @@ export default function AssistedPaymentForm({ user }) {
           changed_fields: ['provider', 'amount', 'fee_amount', 'total_amount'],
         });
 
-        base44.functions.invoke('listAdmins', {}).then(r => (r?.data?.admins) || []).then(admins => {
-          const providerLabel = it.provider || autoDetectProvider(it.link);
-          admins.forEach(admin => {
-            base44.entities.Notification.create({
-              user_email: admin.email,
-              title: '🛒 Nueva Solicitud de Pago Asistido',
-              message: `${user.email} solicitó pago asistido por $${total.toFixed(2)} (${providerLabel})`,
-              type: 'assisted_payment',
-              icon: 'dollar',
-              reference_id: request?.id
-            }).catch(err => console.error('Notification error:', err));
-          });
-        }).catch(err => console.error('Admin fetch error:', err));
+        const providerLabel = it.provider || autoDetectProvider(it.link);
+        base44.functions.invoke('notifyAdminsNewCase', {
+          title: '🛒 Nueva Solicitud de Pago Asistido',
+          message: `${user.email} solicitó pago asistido por $${total.toFixed(2)} (${providerLabel})`,
+          type: 'assisted_payment',
+          reference_id: request?.id,
+          entity_type: 'AssistedPaymentRequest'
+        }).catch(err => console.error('Admin notification error:', err));
       }
 
       toast.success(`${valid.length} solicitud(es) enviada(s) · Total $${totals.total.toFixed(2)}`);

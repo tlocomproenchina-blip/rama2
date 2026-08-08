@@ -190,25 +190,14 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
         }
       }).catch(() => {});
 
-      // Notify admin (async, don't wait)
-      base44.functions.invoke('listAdmins', {}).then(r => (r?.data?.admins) || []).then(admins => {
-        admins.forEach(admin => {
-          base44.integrations.Core.SendEmail({
-            to: admin.email,
-            subject: '💳 Nuevo pago reportado',
-            body: `Un cliente ha reportado un pago.\n\nReferencia: ${ref}\nMonto: $${amount}\nMétodo: ${paymentMethod}\n\nRevísalo en Validación de Pagos.`
-          }).catch(err => console.error('Email error:', err));
-
-          base44.entities.Notification.create({
-            user_email: admin.email,
-            title: '💳 Nuevo Pago Reportado',
-            message: `Pago de $${amount} (${ref}) pendiente de validación`,
-            type: 'payment_validation',
-            icon: 'dollar',
-            reference_id: consolidation.id
-          }).catch(err => console.error('Notification error:', err));
-        });
-      }).catch(err => console.error('Admin fetch error:', err));
+      // Notify admins (backend, service role)
+      base44.functions.invoke('notifyAdminsNewCase', {
+        title: '💳 Nuevo Pago Reportado',
+        message: `Pago de $${amount} (${ref}) pendiente de validación`,
+        type: 'payment_validation',
+        reference_id: consolidation.id,
+        entity_type: 'Invoice'
+      }).catch(err => console.error('Admin notification error:', err));
 
       onPaymentSubmitted();
       onClose();

@@ -138,22 +138,14 @@ export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
         });
       } catch (_) {}
 
-      // Notificar admins
-      try {
-        const r = await base44.functions.invoke('listAdmins', {});
-        const admins = (r?.data?.admins) || [];
-        for (const admin of admins) {
-          await base44.entities.Notification.create({
-            user_email: admin.email,
-            title: '💳 Nuevo abono pendiente',
-            message: `Abono de $${amt.toFixed(2)} para factura ${invoice.invoice_number || ''} pendiente de validación.`,
-            type: 'payment_validation',
-            icon: 'dollar',
-            reference_id: invoice.id,
-            entity_type: 'Invoice'
-          }).catch(() => {});
-        }
-      } catch (_) {}
+      // Notificar admins (backend, service role)
+      base44.functions.invoke('notifyAdminsNewCase', {
+        title: '💳 Nuevo abono pendiente',
+        message: `Abono de $${amt.toFixed(2)} para factura ${invoice.invoice_number || ''} pendiente de validación.`,
+        type: 'payment_validation',
+        reference_id: invoice.id,
+        entity_type: 'Invoice'
+      }).catch(() => {});
 
       onSubmitted?.();
       onClose();
