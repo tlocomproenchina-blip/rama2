@@ -613,9 +613,6 @@ export default function AdminInvoices({ user }) {
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
           </Button>
-          <Button variant="outline" onClick={() => setShowPaymentsSettings(true)}>
-            Métodos de Pago
-          </Button>
         </div>
       </div>
 
