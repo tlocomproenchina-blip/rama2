@@ -28,6 +28,18 @@ export default async function (req) {
         dispatched_confirmed_by: null,
         receipt_totals: {}
       });
+      // Revertir recibos a no disponibles para entrega
+      const itemsRev = Array.isArray(order.items) ? order.items : [];
+      const receiptsRev = [...new Set(itemsRev.map((i) => (i.consolidation_tracking || '').trim()).filter(Boolean))];
+      const clientEmailRev = (order.client_email || '').trim();
+      if (receiptsRev.length && clientEmailRev) {
+        try {
+          await base44.asServiceRole.entities.CbmIngreso.updateMany(
+            { client_email: clientEmailRev, invoice_number: { $in: receiptsRev } },
+            { $set: { disponible_entrega: false } }
+          );
+        } catch (_) {}
+      }
       return Response.json({ order: { ...order, status: 'emitida', dispatched_confirmed_date: null, dispatched_confirmed_by: null, receipt_totals: {} }, reverted: true });
     }
 
@@ -56,6 +68,17 @@ export default async function (req) {
       dispatched_confirmed_by: user.email,
       receipt_totals
     });
+
+    // Marcar los recibos (CbmIngreso) incluidos en la orden como disponibles para entrega
+    const clientEmail = (order.client_email || '').trim();
+    if (receipts.length && clientEmail) {
+      try {
+        await base44.asServiceRole.entities.CbmIngreso.updateMany(
+          { client_email: clientEmail, invoice_number: { $in: receipts } },
+          { $set: { disponible_entrega: true } }
+        );
+      } catch (_) {}
+    }
 
     return Response.json({
       order: { ...order, status: 'despachado', dispatched_confirmed_date: now, dispatched_confirmed_by: user.email, receipt_totals },
