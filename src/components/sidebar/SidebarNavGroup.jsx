@@ -5,7 +5,7 @@ import { createPageUrl } from '@/utils';
 import { prefetchPageData } from '@/lib/adminPagePrefetch';
 
 export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage, flags, onItemClick }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const hasGroupNotification = pages.some((page) => flags?.[page]);
 
   return (
