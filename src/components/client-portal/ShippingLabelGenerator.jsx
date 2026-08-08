@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Tag, Download } from 'lucide-react';
+import { Tag, Download, Printer } from 'lucide-react';
 
 export default function ShippingLabelGenerator({ user, config }) {
   const [open, setOpen] = useState(false);
@@ -25,22 +25,60 @@ export default function ShippingLabelGenerator({ user, config }) {
   const logoUrl = config?.app_logo_url || config?.invoice_logo_url || '';
   const companyName = config?.app_name || 'TLEC CARGO';
 
+  const renderCanvas = async () => {
+    const { default: html2canvas } = await import('html2canvas');
+    return await html2canvas(labelRef.current, {
+      scale: 3,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+    });
+  };
+
   const handleDownloadImage = async () => {
     if (!labelRef.current) return;
     setGenerating(true);
     try {
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(labelRef.current, {
-        scale: 3,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-      });
+      const canvas = await renderCanvas();
       const link = document.createElement('a');
       link.download = `etiqueta-${shippingMark || 'envio'}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (e) {
       console.error('Error generating image:', e);
+    }
+    setGenerating(false);
+  };
+
+  const handlePrint = async () => {
+    if (!labelRef.current) return;
+    setGenerating(true);
+    try {
+      const canvas = await renderCanvas();
+      const dataUrl = canvas.toDataURL('image/png');
+      const win = window.open('', '_blank', 'width=420,height=600');
+      if (!win) {
+        alert('Permite las ventanas emergentes para imprimir la etiqueta.');
+        setGenerating(false);
+        return;
+      }
+      win.document.write(`
+        <html>
+          <head>
+            <title>Etiqueta ${shippingMark || ''}</title>
+            <style>
+              @page { margin: 0; size: auto; }
+              body { margin: 0; padding: 0; display: flex; justify-content: center; }
+              img { width: 380px; max-width: 100%; }
+            </style>
+          </head>
+          <body>
+            <img src="${dataUrl}" onload="window.focus(); window.print(); window.onafterprint=function(){window.close();}" />
+          </body>
+        </html>
+      `);
+      win.document.close();
+    } catch (e) {
+      console.error('Error printing image:', e);
     }
     setGenerating(false);
   };
@@ -102,10 +140,16 @@ export default function ShippingLabelGenerator({ user, config }) {
               </div>
             </div>
 
-            <Button onClick={handleDownloadImage} disabled={generating} className="w-full gap-2 text-xs sm:text-sm">
-              <Download className="h-4 w-4" />
-              {generating ? 'Generando...' : 'Descargar etiqueta (PNG)'}
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={handleDownloadImage} disabled={generating} variant="outline" className="gap-2 text-xs sm:text-sm">
+                <Download className="h-4 w-4" />
+                {generating ? 'Generando...' : 'Descargar PNG'}
+              </Button>
+              <Button onClick={handlePrint} disabled={generating} className="gap-2 text-xs sm:text-sm">
+                <Printer className="h-4 w-4" />
+                {generating ? 'Generando...' : 'Imprimir'}
+              </Button>
+            </div>
           </div>
 
           {/* Label preview: visible on desktop, offscreen on mobile (always in DOM for html2canvas) */}
