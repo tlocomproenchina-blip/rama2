@@ -17,7 +17,7 @@ async function fetchReceiptTotals(receipts, clientEmail) {
   }
 }
 
-export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO') {
+export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO', mode = 'save') {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   const client = order.client_snapshot || {};
@@ -146,5 +146,13 @@ export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO') {
   doc.text('Recibido por (Cliente / Transporte)', 157.5, y + 5, { align: 'center' });
 
   const safe = String(order.order_number || order.shipping_mark || order.client_email || 'orden').replace(/[^a-zA-Z0-9-]/g, '_');
+
+  if (mode === 'print') {
+    doc.autoPrint();
+    const url = doc.output('bloburl');
+    window.open(url, '_blank');
+    return;
+  }
+
   doc.save(`orden-despacho-${safe}.pdf`);
 }

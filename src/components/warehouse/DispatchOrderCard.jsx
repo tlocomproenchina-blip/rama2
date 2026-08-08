@@ -3,10 +3,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileDown, Pencil, Trash2, Ban, Package as PackageIcon, Receipt, CheckCircle2 } from 'lucide-react';
+import { FileDown, Printer, Pencil, Trash2, Ban, Package as PackageIcon, Receipt, CheckCircle2 } from 'lucide-react';
 import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
 
-export default function DispatchOrderCard({ order, liveReceiptTotals, onEdit, onDelete, onCancel, onDownload, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
+export default function DispatchOrderCard({ order, liveReceiptTotals, onEdit, onDelete, onCancel, onDownload, onPrint, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const cancelled = order.status === 'cancelada';
   const despachado = order.status === 'despachado';
@@ -111,6 +111,9 @@ export default function DispatchOrderCard({ order, liveReceiptTotals, onEdit, on
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => onDownload(order)}>
             <FileDown className="h-4 w-4" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" className="text-blue-700 border-blue-300" onClick={() => onPrint(order)}>
+            <Printer className="h-4 w-4" /> Imprimir
           </Button>
           {!despachado && (
             <Button variant="outline" size="sm" onClick={() => onEdit(order)}>

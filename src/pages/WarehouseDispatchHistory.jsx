@@ -134,7 +134,7 @@ export default function WarehouseDispatchHistory({ user }) {
     };
   }, [load]);
 
-  const handleDownload = async (order) => {
+  const buildPdf = async (order, mode) => {
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1).catch(() => []);
     let enrichedOrder = order;
     const needsLookup = (order.items || []).some((i) => i.tracking_number && !i.consolidation_tracking);
@@ -152,8 +152,11 @@ export default function WarehouseDispatchHistory({ user }) {
         };
       } catch (_) {}
     }
-    await generateDispatchOrderPdf(enrichedOrder, configs?.[0]?.app_name || 'TLEC CARGO');
+    await generateDispatchOrderPdf(enrichedOrder, configs?.[0]?.app_name || 'TLEC CARGO', mode);
   };
+
+  const handleDownload = (order) => buildPdf(order, 'save');
+  const handlePrint = (order) => buildPdf(order, 'print');
 
   const handleSave = async (patch) => {
     setProcessing(true);
@@ -334,6 +337,7 @@ export default function WarehouseDispatchHistory({ user }) {
               onDelete={handleDelete}
               onCancel={handleCancel}
               onDownload={handleDownload}
+              onPrint={handlePrint}
               onToggleDespachado={handleToggleDespachado}
               togglingDespachado={togglingId === order.id}
               selectable={selectMode && order.status === 'emitida'}
