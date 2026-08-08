@@ -1,7 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 // Backend function que envía emails y registra el log usando asServiceRole.
 // Esto evita que el envío dependa de la cola/circuit breaker del navegador del cliente.
+// Envía INMEDIATAMENTE vía Brevo. Solo encola en EmailQueue si el envío falla
+// (la automatización processEmailQueue reintenta cada 15 min).
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -45,30 +48,59 @@ Deno.serve(async (req) => {
       if (cfg2.emails_enabled === false) emailsEnabled = false;
     } catch (_) {}
 
-    // Encolar el email en EmailQueue (no envía de inmediato).
-    // La función programada processEmailQueue procesa la cola en lotes.
+    // ENVÍO INMEDIATO vía Brevo (sin esperar a la cola programada).
+    // Si falla, se encola en EmailQueue para que processEmailQueue reintente.
+    let sentImmediately = false;
     let queued = false;
     let errorMessage = null;
     if (!emailsEnabled) {
       errorMessage = 'emails_enabled=false (kill switch global)';
-      console.warn('Email no encolado:', errorMessage);
+      console.warn('Email no enviado:', errorMessage);
     } else {
       try {
-        await base44.asServiceRole.entities.EmailQueue.create({
-          recipient_email: to,
+        const result = await sendBrevoEmail(base44, {
+          to,
           subject,
           body: emailBody || '',
-          from_name: resolvedFromName,
-          status: 'pending',
-          attempts: 0,
-          scheduled_at: new Date().toISOString(),
-          source: 'notification',
-          priority: 1
+          from_name: resolvedFromName
         });
-        queued = true;
+        if (result.sent) {
+          sentImmediately = true;
+          // Registrar en EmailLog
+          try {
+            await base44.asServiceRole.entities.EmailLog.create({
+              recipient_email: to,
+              from_name: resolvedFromName,
+              subject,
+              body_preview: String(emailBody || '').slice(0, 200),
+              source: 'notification',
+              status: 'sent',
+              sent_date: new Date().toISOString()
+            });
+          } catch (_) {}
+        } else {
+          throw new Error(result.error || 'Envío fallido');
+        }
       } catch (err) {
         errorMessage = err?.message || String(err);
-        console.error('Encolado de email falló:', errorMessage);
+        console.warn('Envío inmediato falló, encolando para reintento:', errorMessage);
+        // Fallback: encolar para que la automatización reintente
+        try {
+          await base44.asServiceRole.entities.EmailQueue.create({
+            recipient_email: to,
+            subject,
+            body: emailBody || '',
+            from_name: resolvedFromName,
+            status: 'pending',
+            attempts: 0,
+            scheduled_at: new Date().toISOString(),
+            source: 'notification',
+            priority: 1
+          });
+          queued = true;
+        } catch (queueErr) {
+          console.error('Encolado de email falló:', queueErr?.message || queueErr);
+        }
       }
     }
 
@@ -110,7 +142,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ success: true, email_sent: queued, queued, error: errorMessage });
+    return Response.json({ success: true, email_sent: sentImmediately || queued, sent_immediately: sentImmediately, queued, error: errorMessage });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
