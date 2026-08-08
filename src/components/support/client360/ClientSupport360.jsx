@@ -6,10 +6,11 @@ import Client360Packages from './Client360Packages';
 import Client360Invoices from './Client360Invoices';
 import Client360Recibos from './Client360Recibos';
 import Client360Tickets from './Client360Tickets';
+import Client360DispatchOrders from './Client360DispatchOrders';
 
 export default function ClientSupport360({ clientEmail, currentTicketId }) {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({ packages: [], invoices: [], recibos: [], tickets: [] });
+  const [data, setData] = useState({ packages: [], invoices: [], recibos: [], tickets: [], dispatchOrders: [] });
   const [q, setQ] = useState('');
 
   useEffect(() => {
@@ -20,14 +21,16 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
     base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 200),
     base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 100),
     base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-created_date', 100),
-    base44.entities.SupportTicket.filter({ client_email: clientEmail }, '-created_date', 30)]
-    ).then(([p, i, r, t]) => {
+    base44.entities.SupportTicket.filter({ client_email: clientEmail }, '-created_date', 30),
+    base44.entities.DispatchOrder.filter({ client_email: clientEmail }, '-dispatched_date', 50)]
+    ).then(([p, i, r, t, d]) => {
       if (!active) return;
       setData({
         packages: p.status === 'fulfilled' ? p.value : [],
         invoices: i.status === 'fulfilled' ? i.value : [],
         recibos: r.status === 'fulfilled' ? r.value : [],
-        tickets: (t.status === 'fulfilled' ? t.value : []).filter((tk) => tk.id !== currentTicketId)
+        tickets: (t.status === 'fulfilled' ? t.value : []).filter((tk) => tk.id !== currentTicketId),
+        dispatchOrders: d.status === 'fulfilled' ? d.value : []
       });
       setLoading(false);
     });
@@ -46,7 +49,8 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
       packages: data.packages.filter((p) => match(p.tracking_number, p.description, p.status, p.shipping_mark)),
       invoices: data.invoices.filter((i) => match(i.invoice_number, i.status, i.notes, i.total)),
       recibos: data.recibos.filter((r) => match(r.invoice_number, r.descripcion, r.proveedor, (r.tracking_numbers || []).join(' '))),
-      tickets: data.tickets.filter((t) => match(t.ticket_number, t.subject, t.status, t.related_tracking))
+      tickets: data.tickets.filter((t) => match(t.ticket_number, t.subject, t.status, t.related_tracking)),
+      dispatchOrders: (data.dispatchOrders || []).filter((o) => match(o.order_number, o.status, o.shipping_mark, o.client_name))
     };
   }, [data, q]);
 
@@ -71,6 +75,7 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
       <Client360Packages packages={filtered.packages} />
       <Client360Recibos recibos={filtered.recibos} />
       <Client360Invoices invoices={filtered.invoices} />
+      <Client360DispatchOrders orders={filtered.dispatchOrders} />
       <Client360Tickets tickets={filtered.tickets} />
     </div>);
 
