@@ -20,6 +20,23 @@ export interface SendEmailParams {
   from_name?: string;
 }
 
+// Registra cada envío en EmailLog (visible en /AdminEmailHistory)
+async function logEmailRecord(base44: any, params: { to: string; subject: string; body: string; from_name?: string; status: 'sent' | 'failed'; via: string; error?: string; source?: string; campaign_name?: string }) {
+  try {
+    await base44.asServiceRole.entities.EmailLog.create({
+      recipient_email: params.to,
+      from_name: params.from_name || 'TLEC CARGO',
+      subject: params.subject,
+      body_preview: String(params.body || '').slice(0, 500),
+      source: params.source || 'brevo',
+      campaign_name: params.campaign_name || null,
+      status: params.status,
+      bounce_reason: params.error || null,
+      sent_date: new Date().toISOString()
+    });
+  } catch (_) {}
+}
+
 // Registra o actualiza el log diario de envíos
 async function logDailyStat(base44: any, via: 'brevo' | 'fallback', quotaExceeded: boolean, limit: number) {
   const today = new Date().toISOString().slice(0, 10);
@@ -43,8 +60,8 @@ async function logDailyStat(base44: any, via: 'brevo' | 'fallback', quotaExceede
   } catch (_) {}
 }
 
-export async function sendBrevoEmail(base44: any, params: SendEmailParams): Promise<{ sent: boolean; error?: string; via: 'brevo' | 'fallback' }> {
-  const { to, subject, body, from_name } = params;
+export async function sendBrevoEmail(base44: any, params: SendEmailParams & { source?: string; campaign_name?: string }): Promise<{ sent: boolean; error?: string; via: 'brevo' | 'fallback' }> {
+  const { to, subject, body, from_name, source, campaign_name } = params;
   if (!to || !subject) return { sent: false, error: 'Falta to/subject', via: 'fallback' };
 
   const brevoApiKey = Deno.env.get('BREVO_API_KEY');
@@ -113,6 +130,7 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
       }
       // Registrar en historial diario
       await logDailyStat(base44, 'brevo', false, dailyLimit);
+      await logEmailRecord(base44, { to, subject, body: rawBody, from_name, status: 'sent', via: 'brevo', source, campaign_name });
       return { sent: true, via: 'brevo' };
     } catch (err) {
       // Fallback al servicio integrado si Brevo falla
@@ -124,8 +142,10 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
           from_name: from_name || 'TLEC CARGO',
         });
         await logDailyStat(base44, 'fallback', false, dailyLimit);
+        await logEmailRecord(base44, { to, subject, body: rawBody, from_name, status: 'sent', via: 'fallback', source, campaign_name });
         return { sent: true, via: 'fallback' };
       } catch (err2) {
+        await logEmailRecord(base44, { to, subject, body: rawBody, from_name, status: 'failed', via: 'fallback', error: err2?.message || String(err2), source, campaign_name });
         return { sent: false, error: err2?.message || String(err2), via: 'fallback' };
       }
     }
@@ -140,8 +160,10 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams): Prom
       from_name: from_name || 'TLEC CARGO',
     });
     await logDailyStat(base44, 'fallback', quotaExceeded, dailyLimit);
+    await logEmailRecord(base44, { to, subject, body: rawBody, from_name, status: 'sent', via: 'fallback', source, campaign_name });
     return { sent: true, via: 'fallback' };
   } catch (err) {
+    await logEmailRecord(base44, { to, subject, body: rawBody, from_name, status: 'failed', via: 'fallback', error: err?.message || String(err), source, campaign_name });
     return { sent: false, error: err?.message || String(err), via: 'fallback' };
   }
 }

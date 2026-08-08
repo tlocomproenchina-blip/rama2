@@ -62,22 +62,11 @@ Deno.serve(async (req) => {
           to,
           subject,
           body: emailBody || '',
-          from_name: resolvedFromName
+          from_name: resolvedFromName,
+          source: 'notification'
         });
         if (result.sent) {
           sentImmediately = true;
-          // Registrar en EmailLog
-          try {
-            await base44.asServiceRole.entities.EmailLog.create({
-              recipient_email: to,
-              from_name: resolvedFromName,
-              subject,
-              body_preview: String(emailBody || '').slice(0, 200),
-              source: 'notification',
-              status: 'sent',
-              sent_date: new Date().toISOString()
-            });
-          } catch (_) {}
         } else {
           throw new Error(result.error || 'Envío fallido');
         }
