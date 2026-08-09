@@ -74,7 +74,7 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
       </div>
       <Client360Packages packages={filtered.packages} />
       <Client360Recibos recibos={filtered.recibos} />
-      <Client360Invoices invoices={filtered.invoices} />
+      <Client360Invoices invoices={filtered.invoices} recibos={data.recibos} />
       <Client360DispatchOrders orders={filtered.dispatchOrders} />
       <Client360Tickets tickets={filtered.tickets} />
     </div>);
