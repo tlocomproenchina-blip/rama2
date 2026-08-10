@@ -445,8 +445,8 @@ export default function WarehouseDispatchHistory({ user }) {
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             value={search}
@@ -456,7 +456,7 @@ export default function WarehouseDispatchHistory({ user }) {
           />
         </div>
         <Select value={dispatchFilter} onValueChange={setDispatchFilter}>
-          <SelectTrigger className="w-full sm:w-48 shrink-0">
+          <SelectTrigger className="w-full sm:w-44 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <Filter className="h-4 w-4 text-slate-400 shrink-0" />
               <SelectValue placeholder="Estado despacho" />
@@ -469,7 +469,7 @@ export default function WarehouseDispatchHistory({ user }) {
           </SelectContent>
         </Select>
         <Select value={invoiceFilter} onValueChange={setInvoiceFilter}>
-          <SelectTrigger className="w-full sm:w-48 shrink-0">
+          <SelectTrigger className="w-full sm:w-44 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <FileText className="h-4 w-4 text-slate-400 shrink-0" />
               <SelectValue placeholder="Factura" />
@@ -482,7 +482,7 @@ export default function WarehouseDispatchHistory({ user }) {
           </SelectContent>
         </Select>
         <Select value={paidFilter} onValueChange={setPaidFilter}>
-          <SelectTrigger className="w-full sm:w-48 shrink-0">
+          <SelectTrigger className="w-full sm:w-44 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <DollarSign className="h-4 w-4 text-slate-400 shrink-0" />
               <SelectValue placeholder="Pago" />
@@ -496,7 +496,7 @@ export default function WarehouseDispatchHistory({ user }) {
         </Select>
         {canFilterByCreator && (
         <Select value={creatorFilter} onValueChange={setCreatorFilter}>
-          <SelectTrigger className="w-full sm:w-56 shrink-0">
+          <SelectTrigger className="w-full sm:w-48 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <UserRound className="h-4 w-4 text-slate-400 shrink-0" />
               <SelectValue placeholder="Creado por" />
@@ -516,7 +516,7 @@ export default function WarehouseDispatchHistory({ user }) {
           className="shrink-0"
         >
           <GitMerge className="h-4 w-4" />
-          {selectMode ? 'Cancelar selección' : 'Seleccionar'}
+          {selectMode ? 'Cancelar' : 'Seleccionar'}
         </Button>
         <Button
           variant="outline"
