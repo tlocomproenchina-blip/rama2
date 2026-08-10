@@ -72,38 +72,38 @@ export default function DispatchOrderCard({ order, liveReceiptTotals, invoiceInf
               </p>
             )}
           </div>
-          {statusBadge}
-        </div>
-
-        {/* Badges de factura / pago (apilados verticalmente) */}
-        {invoiceInfo && (
-          <div className="flex flex-col items-start gap-1.5">
-            {invoiceInfo.hasInvoice ? (
-              <Badge variant="outline" className="text-xs gap-1 border-violet-300 bg-violet-50 text-violet-700">
-                <FileText className="h-3 w-3" />
-                Factura: {invoiceInfo.invoices.map((inv) => inv.number || '—').join(', ')}
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="text-xs gap-1 border-slate-300 bg-slate-50 text-slate-500">
-                <AlertCircle className="h-3 w-3" />
-                Sin factura
-              </Badge>
-            )}
-            {invoiceInfo.hasInvoice && (
-              invoiceInfo.isPaid ? (
-                <Badge variant="outline" className="text-xs gap-1 border-emerald-300 bg-emerald-50 text-emerald-700">
-                  <DollarSign className="h-3 w-3" />
-                  Pagada
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-xs gap-1 border-amber-300 bg-amber-50 text-amber-700">
-                  <DollarSign className="h-3 w-3" />
-                  Pendiente de pago
-                </Badge>
-              )
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            {statusBadge}
+            {invoiceInfo && (
+              <>
+                {invoiceInfo.hasInvoice ? (
+                  <Badge variant="outline" className="text-xs gap-1 border-violet-300 bg-violet-50 text-violet-700">
+                    <FileText className="h-3 w-3" />
+                    Factura: {invoiceInfo.invoices.map((inv) => inv.number || '—').join(', ')}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs gap-1 border-slate-300 bg-slate-50 text-slate-500">
+                    <AlertCircle className="h-3 w-3" />
+                    Sin factura
+                  </Badge>
+                )}
+                {invoiceInfo.hasInvoice && (
+                  invoiceInfo.isPaid ? (
+                    <Badge variant="outline" className="text-xs gap-1 border-emerald-300 bg-emerald-50 text-emerald-700">
+                      <DollarSign className="h-3 w-3" />
+                      Pagada
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs gap-1 border-amber-300 bg-amber-50 text-amber-700">
+                      <DollarSign className="h-3 w-3" />
+                      Pendiente de pago
+                    </Badge>
+                  )
+                )}
+              </>
             )}
           </div>
-        )}
+        </div>
 
         {/* Bloque de info del cliente copiable */}
         <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
