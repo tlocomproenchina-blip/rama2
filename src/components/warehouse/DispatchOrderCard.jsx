@@ -3,8 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileDown, Printer, Pencil, Trash2, Ban, Package as PackageIcon, Receipt, CheckCircle2, FileText, DollarSign, AlertCircle } from 'lucide-react';
+import { FileDown, Printer, Pencil, Trash2, Ban, Package as PackageIcon, Receipt, CheckCircle2, FileText, DollarSign, AlertCircle, Copy } from 'lucide-react';
 import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
+import { toast } from 'sonner';
 
 export default function DispatchOrderCard({ order, liveReceiptTotals, invoiceInfo, onEdit, onDelete, onCancel, onDownload, onPrint, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
   const items = Array.isArray(order.items) ? order.items : [];
@@ -14,6 +15,30 @@ export default function DispatchOrderCard({ order, liveReceiptTotals, invoiceInf
   const hasReceipts = receiptGroups.some((g) => g.receipt !== 'Sin recibo');
   // Totales en vivo desde CbmIngreso (prioridad); fallback al snapshot guardado
   const receiptTotals = { ...(order.receipt_totals || {}), ...(liveReceiptTotals || {}) };
+
+  // Texto de estado de factura/pago para el encabezado de la info copiable
+  const snap = order.client_snapshot || {};
+  const statusHeader = !invoiceInfo?.hasInvoice
+    ? 'Sin Factura'
+    : invoiceInfo.isPaid
+      ? 'Factura Pagada'
+      : 'Factura No Pagada';
+
+  const clientInfoText = [
+    statusHeader,
+    `Shipping Mark: ${order.shipping_mark || snap.shipping_mark || ''}`,
+    `Nombre: ${snap.full_name || order.client_name || ''}`,
+    `Ciudad: ${snap.city || ''}`,
+    `Dirección: ${snap.address || ''}`,
+    `Contacto: ${snap.whatsapp || ''}`,
+  ].join('\n');
+
+  const handleCopyInfo = () => {
+    navigator.clipboard?.writeText(clientInfoText).then(
+      () => toast.success('Información del cliente copiada'),
+      () => toast.error('No se pudo copiar')
+    );
+  };
 
   const statusBadge = cancelled
     ? <Badge className="bg-rose-600 text-white">Cancelada</Badge>
@@ -79,6 +104,17 @@ export default function DispatchOrderCard({ order, liveReceiptTotals, invoiceInf
             )}
           </div>
         )}
+
+        {/* Bloque de info del cliente copiable */}
+        <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Info del cliente</span>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1" onClick={handleCopyInfo}>
+              <Copy className="h-3 w-3" /> Copiar
+            </Button>
+          </div>
+          <pre className="select-text whitespace-pre-wrap break-words text-xs text-slate-700 font-sans leading-relaxed">{clientInfoText}</pre>
+        </div>
 
         {/* Casilla de despachado */}
         {!cancelled && (
