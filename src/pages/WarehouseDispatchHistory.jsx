@@ -4,7 +4,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, History, Search, GitMerge, X, UserRound, Filter, FileText, DollarSign } from 'lucide-react';
+import { Loader2, History, Search, GitMerge, X, UserRound, Filter, FileText, DollarSign, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
 import DispatchOrderEditModal from '@/components/warehouse/DispatchOrderEditModal';
@@ -389,6 +389,33 @@ export default function WarehouseDispatchHistory({ user }) {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const handleCopyAll = () => {
+    if (!filtered.length) { toast.error('No hay órdenes para copiar'); return; }
+    const blocks = filtered.map((o) => {
+      const snap = o.client_snapshot || {};
+      const info = invoiceInfoMap[o.id];
+      const statusHeader = !info?.hasInvoice
+        ? 'Sin Factura'
+        : info.isPaid
+          ? 'Factura Pagada'
+          : 'Factura No Pagada';
+      return [
+        statusHeader,
+        `Orden: ${o.order_number || ''}`,
+        `Shipping Mark: ${o.shipping_mark || snap.shipping_mark || ''}`,
+        `Nombre: ${snap.full_name || o.client_name || ''}`,
+        `Ciudad: ${snap.city || ''}`,
+        `Dirección: ${snap.address || ''}`,
+        `Contacto: ${snap.whatsapp || ''}`,
+      ].join('\n');
+    });
+    const text = blocks.join('\n---\n\n');
+    navigator.clipboard?.writeText(text).then(
+      () => toast.success(`Información de ${filtered.length} orden(es) copiada`),
+      () => toast.error('No se pudo copiar')
+    );
+  };
+
   const handleMerge = async () => {
     if (!canMerge) return;
     setMerging(true);
@@ -490,6 +517,15 @@ export default function WarehouseDispatchHistory({ user }) {
         >
           <GitMerge className="h-4 w-4" />
           {selectMode ? 'Cancelar selección' : 'Seleccionar'}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleCopyAll}
+          disabled={!filtered?.length}
+          className="shrink-0"
+        >
+          <Copy className="h-4 w-4" />
+          Copiar todos
         </Button>
       </div>
 
