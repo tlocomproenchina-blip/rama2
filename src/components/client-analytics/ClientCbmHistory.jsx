@@ -174,6 +174,9 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, onRefresh
                     <td className="py-2 pr-3">{i.invoice_number || '—'}</td>
                     <td className="py-2 pr-3">
                       {(() => {
+                        if (!i.fecha_salida) {
+                          return <span className="inline-block text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">⏳ En tránsito</span>;
+                        }
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
                         const arrival = i.fecha_estimada_llegada ? new Date(i.fecha_estimada_llegada) : null;
