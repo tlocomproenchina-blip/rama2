@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { getClientNameByEmail } from '../../shared/clientName.ts';
 
 function normalize(value) {
   if (value === null || value === undefined) return '';
@@ -163,10 +164,12 @@ async function notifyClientsForRoute(base44, routeId, payload) {
       entityType: 'Package',
     });
 
+    const clientName = await getClientNameByEmail(base44, email);
+    const greeting = clientName ? `Hola ${clientName},\n\n` : '';
     await sendEmail(base44, {
       to: email,
       fallbackSubject: payload.title,
-      fallbackBody: payload.message,
+      fallbackBody: `${greeting}${payload.message}`,
     });
   }));
 }
@@ -372,10 +375,12 @@ async function handleTrackingNotifications(base44, eventType, currentData) {
       entityType: 'Package',
     });
 
+    const clientName = await getClientNameByEmail(base44, email);
+    const greeting = clientName ? `Hola ${clientName},\n\n` : '';
     await sendEmail(base44, {
       to: email,
       fallbackSubject: title,
-      fallbackBody: message,
+      fallbackBody: `${greeting}${message}`,
     });
   }));
 

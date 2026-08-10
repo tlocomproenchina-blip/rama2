@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { getClientNameByEmail } from '../../shared/clientName.ts';
 
 // Envía 1 email diario a cada cliente que recibió paquetes en las últimas 24 horas,
 // con el resumen de lo recibido. Nada más.
@@ -50,7 +51,9 @@ Deno.serve(async (req) => {
         return parts.join('\n');
       }).join('\n\n');
 
-      const body = `Hola,\n\nHoy recibimos en nuestro almacén ${pkgs.length} paquete(s) tuyo(s):\n\n${lines}\n\nPuedes ver los detalles en tu portal de cliente.\n\nSaludos,\nEquipo ${appName}`;
+      const clientName = await getClientNameByEmail(base44, email);
+      const greeting = clientName ? `Hola ${clientName},` : 'Hola,';
+      const body = `${greeting}\n\nHoy recibimos en nuestro almacén ${pkgs.length} paquete(s) tuyo(s):\n\n${lines}\n\nPuedes ver los detalles en tu portal de cliente.\n\nSaludos,\nEquipo ${appName}`;
 
       const subject = `📦 Resumen diario: ${pkgs.length} paquete(s) recibido(s) - ${appName}`;
       let emailSent = false;
