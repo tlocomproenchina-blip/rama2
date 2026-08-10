@@ -455,19 +455,6 @@ export default function WarehouseDispatchHistory({ user }) {
             className="pl-10"
           />
         </div>
-        <Select value={dispatchFilter} onValueChange={setDispatchFilter}>
-          <SelectTrigger className="w-full sm:w-44 shrink-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <Filter className="h-4 w-4 text-slate-400 shrink-0" />
-              <SelectValue placeholder="Estado despacho" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las órdenes</SelectItem>
-            <SelectItem value="despachado">Despachadas</SelectItem>
-            <SelectItem value="no_despachado">No despachadas</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={invoiceFilter} onValueChange={setInvoiceFilter}>
           <SelectTrigger className="w-full sm:w-44 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
@@ -479,6 +466,19 @@ export default function WarehouseDispatchHistory({ user }) {
             <SelectItem value="all">Todas (factura)</SelectItem>
             <SelectItem value="issued">Con factura emitida</SelectItem>
             <SelectItem value="not_issued">Sin factura</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={dispatchFilter} onValueChange={setDispatchFilter}>
+          <SelectTrigger className="w-full sm:w-44 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Filter className="h-4 w-4 text-slate-400 shrink-0" />
+              <SelectValue placeholder="Estado despacho" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las órdenes</SelectItem>
+            <SelectItem value="despachado">Despachadas</SelectItem>
+            <SelectItem value="no_despachado">No despachadas</SelectItem>
           </SelectContent>
         </Select>
         <Select value={paidFilter} onValueChange={setPaidFilter}>
