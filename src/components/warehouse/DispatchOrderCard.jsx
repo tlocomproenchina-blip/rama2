@@ -75,9 +75,9 @@ export default function DispatchOrderCard({ order, liveReceiptTotals, invoiceInf
           {statusBadge}
         </div>
 
-        {/* Badges de factura / pago */}
+        {/* Badges de factura / pago (apilados verticalmente) */}
         {invoiceInfo && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col items-start gap-1.5">
             {invoiceInfo.hasInvoice ? (
               <Badge variant="outline" className="text-xs gap-1 border-violet-300 bg-violet-50 text-violet-700">
                 <FileText className="h-3 w-3" />
