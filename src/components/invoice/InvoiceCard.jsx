@@ -7,6 +7,7 @@ import { FileText, CreditCard, Calendar, DollarSign, ChevronDown, Wallet, Eye } 
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 import InvoiceAbonosList from './InvoiceAbonosList';
+import InvoiceCreditApply from './InvoiceCreditApply';
 import useFileViewer from '@/hooks/useFileViewer';
 import { getFileKind } from '@/components/common/FileViewerModal';
 
@@ -201,6 +202,8 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
             </CollapsibleContent>
           </Collapsible>
         )}
+
+        <InvoiceCreditApply invoice={invoice} onApplied={onRefresh} />
 
         {invoice.status === 'revision' && (
           <div className="mb-3 p-3 bg-amber-50 border border-amber-100 rounded-lg text-amber-800 text-sm">

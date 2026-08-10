@@ -48,11 +48,27 @@ export default function MyInvoices({ user }) {
     Promise.all([
       base44.entities.Invoice.filter({ client_email: user.email }, '-invoice_date', PAGE_SIZE, 0),
       base44.entities.AppConfig.filter({ config_key: 'main' })
-    ]).then(([data, cfgs]) => {
+    ]).then(async ([data, cfgs]) => {
       setInvoices(data);
       setHasMore(data.length === PAGE_SIZE);
       setConfig(cfgs[0] || null);
       setLoading(false);
+
+      // Auto-aplicar saldo a favor si hay facturas pendientes
+      const hasPending = data.some((inv) => inv.status === 'pendiente' || inv.status === 'revision');
+      if (hasPending) {
+        try {
+          const creditRes = await base44.functions.invoke('applyClientCreditToInvoice', { client_email: user.email });
+          const applied = creditRes?.data?.applied || [];
+          if (applied.length > 0) {
+            const msg = applied.map(a => `Factura ${a.invoice_number}: -$${Number(a.applied).toFixed(2)}${a.fully_paid ? ' (pagada)' : ''}`).join(', ');
+            toast.success(`Saldo a favor aplicado automáticamente: ${msg}`, { duration: 8000 });
+            // Recargar facturas para reflejar los nuevos paid_amount/status
+            const refreshed = await base44.entities.Invoice.filter({ client_email: user.email }, '-invoice_date', PAGE_SIZE, 0);
+            setInvoices(refreshed);
+          }
+        } catch { /* silencioso */ }
+      }
     });
 
     // Permite abrir Stripe desde otros componentes (ej: modal de consolidación)
