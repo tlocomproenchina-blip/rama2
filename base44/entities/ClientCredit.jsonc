@@ -1,0 +1,78 @@
+{
+  "name": "ClientCredit",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente propietario del saldo"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto del movimiento: positivo = cr\u00e9dito a\u00f1adido, negativo = cr\u00e9dito usado"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "credito",
+        "uso",
+        "ajuste"
+      ],
+      "default": "credito",
+      "description": "Tipo de movimiento"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n del movimiento"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Referencia opcional (n\u00famero de pago, nota, etc.)"
+    },
+    "related_invoice_id": {
+      "type": "string",
+      "description": "ID de la factura donde se us\u00f3 el cr\u00e9dito (solo tipo uso)"
+    },
+    "related_invoice_number": {
+      "type": "string",
+      "description": "N\u00famero de la factura donde se us\u00f3 el cr\u00e9dito"
+    },
+    "created_by_email": {
+      "type": "string",
+      "description": "Email del administrador que cre\u00f3 el movimiento"
+    }
+  },
+  "required": [
+    "client_email",
+    "amount",
+    "type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
