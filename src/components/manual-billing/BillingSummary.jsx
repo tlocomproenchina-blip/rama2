@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, Wallet } from 'lucide-react';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 
 export default function BillingSummary({
@@ -19,6 +19,7 @@ export default function BillingSummary({
   extraAmount, setExtraAmount,
   extraConcept, setExtraConcept,
   doorToDoorFee, setDoorToDoorFee,
+  creditBalance = 0,
 }) {
   const selected = rows.filter(r => r.selected);
   const selectedCount = selected.length;
@@ -151,6 +152,35 @@ export default function BillingSummary({
           <div className="flex justify-between text-lg font-bold text-slate-800 border-t pt-2 mt-1">
             <span>Total</span><span>${Number(total).toFixed(2)}</span>
           </div>
+          {Number(creditBalance) > 0 && (() => {
+            const netTotal = Math.max(0, Number(total) - Number(creditBalance));
+            const applied = Math.min(Number(creditBalance), Number(total));
+            return (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 space-y-1">
+                <div className="flex items-center gap-2 text-emerald-800 text-sm font-semibold">
+                  <Wallet className="h-4 w-4" />
+                  Saldo a favor del cliente
+                </div>
+                <div className="flex justify-between text-emerald-700 text-sm">
+                  <span>Saldo disponible</span>
+                  <span className="font-medium">−${Number(creditBalance).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-emerald-700 text-sm">
+                  <span>Se aplicará a esta factura</span>
+                  <span className="font-medium">−${applied.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-base font-bold text-slate-800 border-t border-emerald-200 pt-1 mt-1">
+                  <span>Total a pagar</span>
+                  <span>${netTotal.toFixed(2)}</span>
+                </div>
+                {netTotal === 0 && (
+                  <p className="text-xs text-emerald-700 font-medium">
+                    ✓ El saldo cubre la factura. Se marcará como pagada automáticamente.
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         <Button

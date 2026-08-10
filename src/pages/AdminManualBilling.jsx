@@ -31,6 +31,7 @@ export default function AdminManualBilling() {
   const [doorToDoorFee, setDoorToDoorFee] = useState('');
   const [creating, setCreating] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  const [creditBalance, setCreditBalance] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -90,12 +91,16 @@ export default function AdminManualBilling() {
   const loadClientInvoices = async (selectedClient) => {
     setClient(selectedClient);
     setRows([]);
+    setCreditBalance(0);
     setLoadingRows(true);
     try {
-      const [ingresos, pkgs] = await Promise.all([
+      const [ingresos, pkgs, credits] = await Promise.all([
         base44.entities.CbmIngreso.filter({ client_email: selectedClient.email }, '-fecha', 200),
         base44.entities.Package.filter({ client_email: selectedClient.email }, '-created_date', 500).catch(() => []),
+        base44.entities.ClientCredit.filter({ client_email: selectedClient.email }).catch(() => []),
       ]);
+      const balance = (credits || []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
+      setCreditBalance(Math.max(0, balance));
 
       // Normaliza un tracking: quita prefijo de transportista (texto antes de ":" o "：") y mayúsculas
       const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
@@ -331,6 +336,9 @@ export default function AdminManualBilling() {
           const msg = applied.map(a => `Factura ${a.invoice_number}: -$${num(a.applied).toFixed(2)}${a.fully_paid ? ' (pagada)' : ''}`).join(', ');
           toast.success(`Saldo a favor aplicado: ${msg}`, { duration: 8000 });
         }
+        // Actualizar el saldo mostrado (quedarán 0 o el remanente)
+        const remaining = creditRes?.data?.remaining_balance;
+        setCreditBalance(Number(remaining) || 0);
       } catch {
         // Silencioso: el saldo se aplicará en otra oportunidad
       }
@@ -463,6 +471,7 @@ export default function AdminManualBilling() {
               setExtraConcept={setExtraConcept}
               doorToDoorFee={doorToDoorFee}
               setDoorToDoorFee={setDoorToDoorFee}
+              creditBalance={creditBalance}
             />
           </div>
         </div>
