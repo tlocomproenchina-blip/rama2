@@ -92,7 +92,10 @@ function matchesSearch(c, q, exact = false) {
   }
 
   if (qText && (email.includes(qText) || first.includes(qText) || last.includes(qText) || full.includes(qText) || cityNorm.includes(qText))) return true;
-  if (qDigits && (wa.includes(qDigits) || ph.includes(qDigits))) return true;
+  // Solo buscar en teléfono/WhatsApp si la consulta tiene 5+ dígitos:
+  // cadenas cortas como "1483" deben coincidir con shipping marks, no con
+  // números de teléfono que contengan esos dígitos por casualidad.
+  if (qDigits && qDigits.length >= 5 && (wa.includes(qDigits) || ph.includes(qDigits))) return true;
   if (qAlnum && (sm.includes(qAlnum) || fullAlnum.includes(qAlnum))) return true;
   return false;
 }
