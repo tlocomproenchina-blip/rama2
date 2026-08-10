@@ -406,6 +406,11 @@ export default function WarehouseDispatchHistory({ user }) {
         : o.status === 'cancelada'
           ? 'Cancelada'
           : 'No Despachada';
+      const receipts = [...new Set(
+        (o.items || [])
+          .map((i) => String(i.consolidation_tracking || '').trim())
+          .filter((r) => r && r !== 'Sin recibo')
+      )];
       return [
         `${invoiceStatus} / ${dispatchStatus}`,
         `Orden: ${o.order_number || ''}`,
@@ -414,7 +419,8 @@ export default function WarehouseDispatchHistory({ user }) {
         `Ciudad: ${snap.city || ''}`,
         `Dirección: ${snap.address || ''}`,
         `Contacto: ${snap.whatsapp || ''}`,
-      ].join('\n');
+        receipts.length ? `Recibos: ${receipts.join(', ')}` : '',
+      ].filter(Boolean).join('\n');
     });
     const text = blocks.join('\n---\n\n');
     navigator.clipboard?.writeText(text).then(
