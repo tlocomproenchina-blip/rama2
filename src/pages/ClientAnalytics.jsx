@@ -257,6 +257,7 @@ export default function ClientAnalytics() {
           ingresos={cbmIngresos}
           totalCbm={cbmIngresos.reduce((s, i) => s + Number(i.cbm || 0), 0)}
           client={selectedClient}
+          dispatchOrders={dispatchOrders}
           onRefresh={() => loadData(selectedClient?.email)}
         />
       )}

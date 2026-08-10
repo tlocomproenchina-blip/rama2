@@ -12,10 +12,21 @@ import TrackingListDialog from '@/components/client-analytics/TrackingListDialog
 
 const fmtDate = (d) => (d ? format(new Date(d), 'dd/MM/yyyy') : '—');
 
-export default function ClientCbmHistory({ ingresos, totalCbm, client, onRefresh }) {
+export default function ClientCbmHistory({ ingresos, totalCbm, client, dispatchOrders, onRefresh }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [markingAvailable, setMarkingAvailable] = useState(false);
   const [trackingDialogIngreso, setTrackingDialogIngreso] = useState(null);
+
+  // Conjunto de recibos (consolidation_tracking) que ya tienen orden de despacho emitida
+  const dispatchedReceipts = useMemo(() => {
+    const set = new Set();
+    (dispatchOrders || []).forEach((order) => {
+      (order.items || []).forEach((it) => {
+        if (it.consolidation_tracking) set.add(String(it.consolidation_tracking));
+      });
+    });
+    return set;
+  }, [dispatchOrders]);
 
   const toggleOne = (id) => {
     setSelectedIds((prev) => {
@@ -174,7 +185,9 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, onRefresh
                     <td className="py-2 pr-3">{i.invoice_number || '—'}</td>
                     <td className="py-2 pr-3">
                       {(() => {
-                        if (!i.fecha_salida) {
+                        const receipt = i.invoice_number ? String(i.invoice_number) : '';
+                        const hasDispatchOrder = receipt && dispatchedReceipts.has(receipt);
+                        if (!hasDispatchOrder) {
                           return <span className="inline-block text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">⏳ En tránsito</span>;
                         }
                         const today = new Date();
@@ -184,10 +197,7 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, onRefresh
                         if (i.disponible_entrega && arrived) {
                           return <span className="inline-block text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">✓ Disponible para entrega</span>;
                         }
-                        if (i.disponible_entrega && !arrived) {
-                          return <span className="inline-block text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">⏳ En tránsito</span>;
-                        }
-                        return <span className="text-xs text-slate-400">—</span>;
+                        return <span className="inline-block text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">⏳ En tránsito</span>;
                       })()}
                     </td>
                     <td className="py-2 pr-3">{i.proveedor || '—'}</td>
