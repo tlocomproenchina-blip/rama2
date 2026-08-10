@@ -34,6 +34,26 @@ export default function AdminSupportNewTicketDialog({
           <div className="space-y-4 overflow-y-auto py-4 pr-1">
           <div className="space-y-2">
             <Label>Cliente *</Label>
+            {newTicket.client_email ? (
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-emerald-600 font-semibold text-sm shrink-0">✓ Seleccionado:</span>
+                  <span className="text-sm text-slate-800 truncate">
+                    {(() => {
+                      const c = clients.find((cl) => cl.email === newTicket.client_email);
+                      return c ? `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.email : newTicket.client_email;
+                    })()}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNewTicket({ ...newTicket, client_email: '' })}
+                  className="text-xs text-rose-600 hover:text-rose-700 font-medium shrink-0"
+                >
+                  Cambiar
+                </button>
+              </div>
+            ) : (
             <div className="space-y-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -99,6 +119,7 @@ export default function AdminSupportNewTicketDialog({
                 )}
               </div>
             </div>
+            )}
           </div>
 
           <div className="space-y-2">
