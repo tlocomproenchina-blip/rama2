@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import {
   Mail, MapPin, Phone, Tag, Clock, Package, CalendarDays,
-  Crown, Copy, Plus, Eye, Edit2, Trash2, MessageCircle,
+  Crown, Copy, Plus, Eye, Edit2, Trash2, MessageCircle, Wallet,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -97,6 +97,12 @@ export default function ClientCard({
             <Package className="h-3 w-3 mr-1 shrink-0" />
             {packagesCount[client.email] || 0} paquetes
           </Badge>
+          {Number(client.credit_balance) > 0 && (
+            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 whitespace-nowrap" title="Saldo a favor disponible">
+              <Wallet className="h-3 w-3 mr-1 shrink-0" />
+              ${Number(client.credit_balance).toFixed(2)}
+            </Badge>
+          )}
           {client.is_active === false && (
             <Badge className="bg-red-100 text-red-700 border-red-200 whitespace-nowrap">Inactivo</Badge>
           )}

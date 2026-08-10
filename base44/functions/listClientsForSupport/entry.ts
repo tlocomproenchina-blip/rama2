@@ -27,6 +27,26 @@ async function loadAllClients(base44) {
   return all;
 }
 
+// Carga todos los movimientos de ClientCredit y suma el balance por email
+async function loadAllCreditBalances(base44) {
+  const balances = {};
+  let skip = 0;
+  const PAGE = 1000;
+  while (true) {
+    const batch = await base44.asServiceRole.entities.ClientCredit.list('-created_date', PAGE, skip).catch(() => []);
+    if (!batch || batch.length === 0) break;
+    for (const c of batch) {
+      if (!c.client_email) continue;
+      const amt = Number(c.amount) || 0;
+      balances[c.client_email] = (balances[c.client_email] || 0) + amt;
+    }
+    if (batch.length < PAGE) break;
+    skip += PAGE;
+    if (skip >= 50000) break;
+  }
+  return balances;
+}
+
 function sanitize(u) {
   return {
     id: u.id,
@@ -202,14 +222,15 @@ Deno.serve(async (req) => {
         return counts;
       };
 
-      const [allRaw, pkgCounts] = await Promise.all([
+      const [allRaw, pkgCounts, creditBalances] = await Promise.all([
         loadAllClients(base44),
         loadAllPackageCounts(),
+        loadAllCreditBalances(base44),
       ]);
 
       all = allRaw
         .filter((u) => u && u.id && u.email && u.custom_role !== 'super_admin_oculto')
-        .map(sanitize);
+        .map((u) => ({ ...sanitize(u), credit_balance: creditBalances[u.email] || 0 }));
       packageCounts = pkgCounts;
 
       _cache = { at: now, allClients: all, packageCounts };
