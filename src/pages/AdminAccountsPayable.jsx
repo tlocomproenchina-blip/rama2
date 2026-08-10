@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import useFileViewer from '@/hooks/useFileViewer';
 
 export default function AdminAccountsPayable({ user }) {
   const [loading, setLoading] = useState(true);
@@ -117,7 +118,7 @@ export default function AdminAccountsPayable({ user }) {
   const [payMethod, setPayMethod] = useState('transferencia');
   const [payReference, setPayReference] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [viewImageUrl, setViewImageUrl] = useState(null);
+  const fileViewer = useFileViewer();
 
   const selectedBalanceTotal = useMemo(() => {
     const sel = aps.filter(a => selectedIds.includes(a.id));
@@ -365,7 +366,7 @@ export default function AdminAccountsPayable({ user }) {
                           <TableCell className="font-mono text-sm">{shortDescription(ap.description)}</TableCell>
                           <TableCell>
                             {ap.invoice_from_vendor_url ? (
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => setViewImageUrl(ap.invoice_from_vendor_url)} title="Ver factura del proveedor">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => fileViewer.open(ap.invoice_from_vendor_url, 'Factura del proveedor')} title="Ver factura del proveedor">
                                 <ImageIcon className="h-4 w-4" />
                               </Button>
                             ) : '—'}
@@ -398,18 +399,7 @@ export default function AdminAccountsPayable({ user }) {
       </Card>
 
       {/* Modal ver factura del proveedor */}
-      <Dialog open={!!viewImageUrl} onOpenChange={(open) => !open && setViewImageUrl(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Factura del proveedor</DialogTitle>
-          </DialogHeader>
-          {viewImageUrl && (
-            <a href={viewImageUrl} target="_blank" rel="noreferrer">
-              <img src={viewImageUrl} alt="Factura del proveedor" className="w-full max-h-[70vh] object-contain rounded-lg border" />
-            </a>
-          )}
-        </DialogContent>
-      </Dialog>
+      {fileViewer.modal}
 
       {/* Modal de Pago/Abono */}
       <Dialog open={showPayModal} onOpenChange={setShowPayModal}>

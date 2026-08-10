@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Upload, X, ImageIcon, Clipboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
-import useImageViewer from '@/hooks/useImageViewer';
+import useFileViewer from '@/hooks/useFileViewer';
 
 // Cargador de la imagen (JPG/PNG) de la factura del proveedor. Sube a ImgBB (0 créditos).
 export default function ProviderInvoiceUploader({ value, onChange }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
-  const imageViewer = useImageViewer();
+  const imageViewer = useFileViewer();
 
   const uploadFile = async (file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -69,7 +69,7 @@ export default function ProviderInvoiceUploader({ value, onChange }) {
       />
       {value ? (
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => imageViewer.open(value)} className="flex items-center gap-2 min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-blue-700 hover:bg-slate-100 cursor-pointer">
+          <button type="button" onClick={() => imageViewer.open(value, 'Factura del proveedor')} className="flex items-center gap-2 min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-blue-700 hover:bg-slate-100 cursor-pointer">
             <ImageIcon className="h-4 w-4 shrink-0" />
             <span className="truncate">Ver imagen cargada</span>
           </button>

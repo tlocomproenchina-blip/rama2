@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileText, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Loader2, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import useFileViewer from '@/hooks/useFileViewer';
 
 const METHOD_LABELS = {
   transferencia: 'Transferencia',
@@ -28,7 +29,7 @@ export default function AdminAbonosValidation({ onRefresh }) {
   const [invoices, setInvoices] = useState({});
   const [clients, setClients] = useState({});
   const [loading, setLoading] = useState(true);
-  const [proofModal, setProofModal] = useState({ open: false, url: '' });
+  const fileViewer = useFileViewer();
   const [rejectModal, setRejectModal] = useState({ open: false, payment: null });
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(null);
@@ -203,7 +204,7 @@ export default function AdminAbonosValidation({ onRefresh }) {
 
                 <div className="flex flex-wrap items-center gap-3">
                   {p.proof_url && (
-                    <Button variant="outline" size="sm" onClick={() => setProofModal({ open: true, url: p.proof_url })}>
+                    <Button variant="outline" size="sm" onClick={() => fileViewer.open(p.proof_url, 'Comprobante de Abono')}>
                       <Eye className="w-4 h-4 mr-1" /> Ver Comprobante
                     </Button>
                   )}
@@ -234,14 +235,7 @@ export default function AdminAbonosValidation({ onRefresh }) {
         })}
       </div>
 
-      <Dialog open={proofModal.open} onOpenChange={() => setProofModal({ open: false, url: '' })}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Comprobante de Abono</DialogTitle>
-          </DialogHeader>
-          <img src={proofModal.url} alt="Comprobante" className="w-full rounded-lg" />
-        </DialogContent>
-      </Dialog>
+      {fileViewer.modal}
 
       <Dialog open={rejectModal.open} onOpenChange={() => setRejectModal({ open: false, payment: null })}>
         <DialogContent>

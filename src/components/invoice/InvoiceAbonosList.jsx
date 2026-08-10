@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import useFileViewer from '@/hooks/useFileViewer';
 
 const METHOD_LABELS = {
   transferencia: 'Transferencia',
@@ -30,7 +31,7 @@ const STATUS_CONFIG = {
 export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh }) {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [proofModal, setProofModal] = useState({ open: false, url: '' });
+  const fileViewer = useFileViewer();
   const [rejectModal, setRejectModal] = useState({ open: false, payment: null });
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(null);
@@ -144,7 +145,7 @@ export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh 
                       variant="ghost"
                       size="sm"
                       className="h-8 px-2 text-xs"
-                      onClick={() => setProofModal({ open: true, url: p.proof_url })}
+                      onClick={() => fileViewer.open(p.proof_url, 'Comprobante de Abono')}
                     >
                       Ver comprobante
                     </Button>
@@ -180,14 +181,7 @@ export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh 
       </div>
 
       {/* Modal comprobante */}
-      <Dialog open={proofModal.open} onOpenChange={() => setProofModal({ open: false, url: '' })}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Comprobante de Abono</DialogTitle>
-          </DialogHeader>
-          <img src={proofModal.url} alt="Comprobante" className="w-full rounded-lg" />
-        </DialogContent>
-      </Dialog>
+      {fileViewer.modal}
 
       {/* Modal rechazo */}
       <Dialog open={rejectModal.open} onOpenChange={() => setRejectModal({ open: false, payment: null })}>

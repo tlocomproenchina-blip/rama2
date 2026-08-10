@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { FileText, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import useFileViewer from '@/hooks/useFileViewer';
 
 const METHOD_LABELS = {
   usdt_trc20: 'USDT TRC20',
@@ -23,7 +24,7 @@ const METHOD_LABELS = {
 // Valida pagos reportados sobre FACTURAS (incluyendo facturas manuales sin consolidación).
 // Estas facturas quedan en estado 'revision' con el comprobante en payment_reference.
 export default function InvoicePaymentValidation({ invoices, clients, onRefresh, currentUser }) {
-  const [proofModal, setProofModal] = useState({ open: false, url: '' });
+  const fileViewer = useFileViewer();
   const [rejectModal, setRejectModal] = useState({ open: false, invoice: null });
   const [rejectComment, setRejectComment] = useState('');
   const [processing, setProcessing] = useState(null);
@@ -168,7 +169,7 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
 
                 <div className="flex flex-wrap items-center gap-3">
                   {proofUrl ? (
-                    <Button variant="outline" size="sm" onClick={() => setProofModal({ open: true, url: proofUrl })}>
+                    <Button variant="outline" size="sm" onClick={() => fileViewer.open(proofUrl, 'Comprobante de Pago')}>
                       <Eye className="w-4 h-4 mr-1" /> Ver Comprobante
                     </Button>
                   ) : (
@@ -203,14 +204,7 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
         })}
       </div>
 
-      <Dialog open={proofModal.open} onOpenChange={() => setProofModal({ open: false, url: '' })}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Comprobante de Pago</DialogTitle>
-          </DialogHeader>
-          <img src={proofModal.url} alt="Comprobante" className="w-full rounded-lg" />
-        </DialogContent>
-      </Dialog>
+      {fileViewer.modal}
 
       <Dialog open={rejectModal.open} onOpenChange={() => setRejectModal({ open: false, invoice: null })}>
         <DialogContent>

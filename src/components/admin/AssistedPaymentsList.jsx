@@ -9,7 +9,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
 import { Link2, ExternalLink, Search, Hash, MessageCircle } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
-import useImageViewer from '@/hooks/useImageViewer';
+import useFileViewer from '@/hooks/useFileViewer';
 
 const providerLabels = {
   alibaba: 'Alibaba',
@@ -25,7 +25,7 @@ export default function AssistedPaymentsList() {
   const [query, setQuery] = React.useState('');
   const [clientsMap, setClientsMap] = React.useState({});
   const [invoiceNumbers, setInvoiceNumbers] = React.useState({});
-  const imageViewer = useImageViewer();
+  const imageViewer = useFileViewer();
 
   const load = async () => {
     const [reqs, cfg] = await Promise.all([
@@ -185,7 +185,7 @@ export default function AssistedPaymentsList() {
       {r.product_image_url && (
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Foto del producto</p>
-          <button type="button" onClick={() => imageViewer.open(r.product_image_url)} title="Ver foto del producto" className="cursor-pointer">
+          <button type="button" onClick={() => imageViewer.open(r.product_image_url, 'Foto del producto')} title="Ver foto del producto" className="cursor-pointer">
             <img src={r.product_image_url} alt="Producto" className="h-24 w-24 object-cover rounded border bg-white" />
           </button>
         </div>
@@ -203,7 +203,7 @@ export default function AssistedPaymentsList() {
       {r.image_url && (
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">QR</p>
-          <button type="button" onClick={() => imageViewer.open(r.image_url)} title="Ver QR" className="cursor-pointer">
+          <button type="button" onClick={() => imageViewer.open(r.image_url, 'QR')} title="Ver QR" className="cursor-pointer">
             <img src={r.image_url} alt="QR" className="h-24 w-24 object-cover rounded border bg-white" />
           </button>
         </div>

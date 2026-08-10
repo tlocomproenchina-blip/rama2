@@ -8,9 +8,10 @@ import { base44 } from '@/api/base44Client';
 import { CreditCard, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import useFileViewer from '@/hooks/useFileViewer';
 
 export default function PaymentValidation({ consolidations, clients, onRefresh, currentUser }) {
-  const [proofModal, setProofModal] = useState({ open: false, url: '' });
+  const fileViewer = useFileViewer();
   const [rejectModal, setRejectModal] = useState({ open: false, consolidation: null });
   const [rejectComment, setRejectComment] = useState('');
   const [processing, setProcessing] = useState(null);
@@ -192,7 +193,7 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setProofModal({ open: true, url: cons.payment_proof_url })}
+                    onClick={() => fileViewer.open(cons.payment_proof_url, 'Comprobante de Pago')}
                   >
                     <Eye className="w-4 h-4 mr-1" />
                     Ver Comprobante
@@ -227,14 +228,7 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
         })}
       </div>
 
-      <Dialog open={proofModal.open} onOpenChange={() => setProofModal({ open: false, url: '' })}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Comprobante de Pago</DialogTitle>
-          </DialogHeader>
-          <img src={proofModal.url} alt="Comprobante" className="w-full rounded-lg" />
-        </DialogContent>
-      </Dialog>
+      {fileViewer.modal}
 
       <Dialog open={rejectModal.open} onOpenChange={() => setRejectModal({ open: false, consolidation: null })}>
         <DialogContent>
