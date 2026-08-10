@@ -323,6 +323,17 @@ export default function AdminManualBilling() {
       } catch {
         toast.warning('Factura creada, pero no se pudo generar la cuenta por pagar automáticamente');
       }
+      // Aplicar saldo a favor del cliente si existe (automático)
+      try {
+        const creditRes = await base44.functions.invoke('applyClientCreditToInvoice', { invoice_id: invoice.id });
+        const applied = creditRes?.data?.applied || [];
+        if (applied.length > 0) {
+          const msg = applied.map(a => `Factura ${a.invoice_number}: -$${num(a.applied).toFixed(2)}${a.fully_paid ? ' (pagada)' : ''}`).join(', ');
+          toast.success(`Saldo a favor aplicado: ${msg}`, { duration: 8000 });
+        }
+      } catch {
+        // Silencioso: el saldo se aplicará en otra oportunidad
+      }
       // Quitar de la lista los registros ya facturados
       const billedIds = new Set(selectedRows.map((r) => r.id));
       setRows((prev) => prev.filter((r) => !billedIds.has(r.id)));

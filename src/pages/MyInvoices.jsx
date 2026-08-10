@@ -16,6 +16,7 @@ import jsPDF from 'jspdf';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
+import CreditBalanceWidget from '@/components/client-portal/CreditBalanceWidget';
 
 export default function MyInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
@@ -260,6 +261,8 @@ export default function MyInvoices({ user }) {
           </div>
         }
       />
+
+      <CreditBalanceWidget user={user} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <PortalMetricCard title="Total" value={invoiceStats.total} subtitle="Facturas registradas" icon={FileText} tone="blue" />

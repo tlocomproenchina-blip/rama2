@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { applyCreditsToUnpaidInvoices } from '../../shared/clientCredit.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -128,6 +129,11 @@ Deno.serve(async (req) => {
           reference_id: invoice.id
         }
       });
+    } catch (_) {}
+
+    // Aplicar saldo a favor del cliente si existe (automático, no bloqueante)
+    try {
+      await applyCreditsToUnpaidInvoices(base44, apReq.client_email);
     } catch (_) {}
 
     return Response.json({

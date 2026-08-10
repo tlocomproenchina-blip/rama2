@@ -21,7 +21,8 @@ import {
   Clock,
   FileText,
   Plus,
-  Trash2
+  Trash2,
+  Wallet
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { format } from 'date-fns';
@@ -33,6 +34,7 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
   const [packages, setPackages] = useState([]);
   const [consolidations, setConsolidations] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [credits, setCredits] = useState([]);
   const fileViewer = useFileViewer();
   const [newNote, setNewNote] = useState({ text: '', type: 'general' });
   const [savingNote, setSavingNote] = useState(false);
@@ -45,14 +47,16 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
 
   const loadClientData = async () => {
     setLoading(true);
-    const [pkgs, cons, clientNotes] = await Promise.all([
+    const [pkgs, cons, clientNotes, clientCredits] = await Promise.all([
       base44.entities.Package.filter({ client_email: client.email }),
       base44.entities.Consolidation.filter({ client_email: client.email }),
-      base44.entities.ClientNote.filter({ client_email: client.email })
+      base44.entities.ClientNote.filter({ client_email: client.email }),
+      base44.entities.ClientCredit.filter({ client_email: client.email }, '-created_date').catch(() => [])
     ]);
     setPackages(pkgs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
     setConsolidations(cons.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
     setNotes(clientNotes.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)));
+    setCredits(clientCredits || []);
     setLoading(false);
   };
 
@@ -104,6 +108,8 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
   const pendingPayments = consolidations
     .filter(c => c.status === 'pendiente_pago' || c.status === 'pago_pendiente_validacion')
     .reduce((sum, c) => sum + (c.total_cost || 0), 0);
+
+  const creditBalance = credits.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
 
   return (
     <>
@@ -201,6 +207,20 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
               </p>
             )}
           </div>
+
+          {/* Saldo a favor */}
+          {creditBalance > 0 && (
+            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-4 rounded-lg mb-4">
+              <div className="flex items-center gap-3">
+                <Wallet className="h-8 w-8 text-emerald-600" />
+                <div>
+                  <p className="text-xs text-emerald-700 font-medium">Saldo a favor disponible</p>
+                  <p className="text-2xl font-bold text-emerald-700">${creditBalance.toFixed(2)}</p>
+                </div>
+              </div>
+              <Badge className="bg-emerald-100 text-emerald-700">Se aplica a próximas facturas</Badge>
+            </div>
+          )}
 
           {/* Summary Cards */}
           <div className="grid grid-cols-3 gap-4 my-4">
