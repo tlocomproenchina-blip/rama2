@@ -28,6 +28,18 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, dispatchO
     return set;
   }, [dispatchOrders]);
 
+  // Un recibo es "carga atrasada" si tiene >90 días de tránsito y sin orden de despacho
+  const isAtrasada = (i) => {
+    if (!i.fecha_salida) return false;
+    const receipt = i.invoice_number ? String(i.invoice_number) : '';
+    if (receipt && dispatchedReceipts.has(receipt)) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const salida = new Date(i.fecha_salida);
+    const daysInTransit = Math.floor((today - salida) / 86400000);
+    return daysInTransit > 90;
+  };
+
   const toggleOne = (id) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -37,10 +49,11 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, dispatchO
   };
 
   const toggleAll = () => {
-    if (selectedIds.size === (ingresos?.length || 0)) {
+    const selectable = (ingresos || []).filter((i) => !isAtrasada(i));
+    if (selectedIds.size === selectable.length && selectable.every((i) => selectedIds.has(i.id))) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set((ingresos || []).map((i) => i.id)));
+      setSelectedIds(new Set(selectable.map((i) => i.id)));
     }
   };
 
@@ -94,6 +107,11 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, dispatchO
       toast.error('Selecciona al menos un recibo');
       return;
     }
+    const atrasadas = selectedItems.filter(isAtrasada);
+    if (atrasadas.length > 0) {
+      toast.error(`No se puede marcar carga atrasada (${atrasadas.length} recibo(s) con >90 días de tránsito)`);
+      return;
+    }
     setMarkingAvailable(true);
     try {
       await Promise.all(
@@ -109,7 +127,8 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, dispatchO
     }
   };
 
-  const allSelected = (ingresos?.length || 0) > 0 && selectedIds.size === ingresos.length;
+  const selectableIngresos = useMemo(() => (ingresos || []).filter((i) => !isAtrasada(i)), [ingresos, dispatchedReceipts]);
+  const allSelected = selectableIngresos.length > 0 && selectableIngresos.every((i) => selectedIds.has(i.id));
 
   return (
     <Card className="border-0 shadow-md">
@@ -175,6 +194,7 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, dispatchO
                       <Checkbox
                         checked={selectedIds.has(i.id)}
                         onCheckedChange={() => toggleOne(i.id)}
+                        disabled={isAtrasada(i)}
                         aria-label={`Seleccionar ${i.invoice_number || i.id}`}
                       />
                     </td>
@@ -187,11 +207,21 @@ export default function ClientCbmHistory({ ingresos, totalCbm, client, dispatchO
                       {(() => {
                         const receipt = i.invoice_number ? String(i.invoice_number) : '';
                         const hasDispatchOrder = receipt && dispatchedReceipts.has(receipt);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        // Calcular días de tránsito desde la fecha de salida
+                        let daysInTransit = -1;
+                        if (i.fecha_salida) {
+                          const salida = new Date(i.fecha_salida);
+                          daysInTransit = Math.floor((today - salida) / 86400000);
+                        }
+                        const atrasada = daysInTransit > 90 && !hasDispatchOrder;
+                        if (atrasada) {
+                          return <span className="inline-block text-[11px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">⚠ Carga atrasada</span>;
+                        }
                         if (!hasDispatchOrder) {
                           return <span className="inline-block text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">⏳ En tránsito</span>;
                         }
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
                         const arrival = i.fecha_estimada_llegada ? new Date(i.fecha_estimada_llegada) : null;
                         const arrived = !arrival || arrival <= today;
                         if (i.disponible_entrega && arrived) {

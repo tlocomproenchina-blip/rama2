@@ -18,6 +18,34 @@ export default async function (req) {
 
     const newItems = Array.isArray(items) ? items : [];
 
+    // Validación: no permitir generar orden de despacho para recibos con
+    // más de 90 días de tránsito (carga atrasada).
+    const receiptNumbers = Array.from(new Set(
+      newItems.map((i) => i.consolidation_tracking).filter(Boolean).map(String)
+    ));
+    if (receiptNumbers.length > 0) {
+      const clientIngresos = await base44.asServiceRole.entities.CbmIngreso.filter(
+        { client_email },
+        '-fecha',
+        500
+      ).catch(() => []);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const atrasadas = (clientIngresos || []).filter((ing) => {
+        if (!ing.fecha_salida) return false;
+        if (!receiptNumbers.includes(String(ing.invoice_number))) return false;
+        const salida = new Date(ing.fecha_salida);
+        const daysInTransit = Math.floor((today - salida) / 86400000);
+        return daysInTransit > 90;
+      });
+      if (atrasadas.length > 0) {
+        return Response.json(
+          { error: `No se puede generar orden de despacho: carga atrasada (${atrasadas.map((a) => a.invoice_number).join(', ')}) con más de 90 días de tránsito` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Agrupación automática: buscar una orden "emitida" existente para el mismo
     // cliente creada el mismo día. Si existe, agregar los nuevos paquetes a esa orden.
     const today = new Date();
