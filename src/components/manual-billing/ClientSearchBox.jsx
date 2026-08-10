@@ -5,7 +5,7 @@ import { Search, Loader2, User } from 'lucide-react';
 import useClientSearch from '@/hooks/useClientSearch';
 
 export default function ClientSearchBox({ onSelect }) {
-  const { query, setQuery, results, setResults, searching } = useClientSearch({ limit: 15, exact: true });
+  const { query, setQuery, results, setResults, searching } = useClientSearch({ limit: 15 });
 
   return (
     <div className="space-y-2">
