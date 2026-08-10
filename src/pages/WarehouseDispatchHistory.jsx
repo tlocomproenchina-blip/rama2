@@ -396,13 +396,18 @@ export default function WarehouseDispatchHistory({ user }) {
     const blocks = filtered.map((o) => {
       const snap = o.client_snapshot || {};
       const info = invoiceInfoMap[o.id];
-      const statusHeader = !info?.hasInvoice
+      const invoiceStatus = !info?.hasInvoice
         ? 'Sin Factura'
         : info.isPaid
           ? 'Factura Pagada'
           : 'Factura No Pagada';
+      const dispatchStatus = o.status === 'despachado'
+        ? 'Despachada'
+        : o.status === 'cancelada'
+          ? 'Cancelada'
+          : 'No Despachada';
       return [
-        statusHeader,
+        `${invoiceStatus} / ${dispatchStatus}`,
         `Orden: ${o.order_number || ''}`,
         `Shipping Mark: ${o.shipping_mark || snap.shipping_mark || ''}`,
         `Nombre: ${snap.full_name || o.client_name || ''}`,
