@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, ExternalLink, FileText } from 'lucide-react';
+import { Download, ExternalLink, FileText, ZoomIn, ZoomOut, Maximize, RotateCcw } from 'lucide-react';
 
 // Detecta el tipo de archivo desde la URL o el nombre
 export function getFileKind(url) {
@@ -49,6 +49,64 @@ export default function FileViewerModal({ open, fileUrl, onClose, title = 'Archi
   const kind = getFileKind(fileUrl);
   const filename = fileUrl ? guessFilename(fileUrl, title) : title;
 
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+
+  const MIN_SCALE = 1;
+  const MAX_SCALE = 5;
+  const STEP = 0.25;
+
+  const resetZoom = useCallback(() => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  }, []);
+
+  const zoomIn = useCallback(() => {
+    setScale((s) => Math.min(MAX_SCALE, +(s + STEP).toFixed(2)));
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setScale((s) => {
+      const next = Math.max(MIN_SCALE, +(s - STEP).toFixed(2));
+      if (next === MIN_SCALE) setPosition({ x: 0, y: 0 });
+      return next;
+    });
+  }, []);
+
+  // Reset al abrir o cambiar de archivo
+  useEffect(() => {
+    if (open) resetZoom();
+  }, [open, fileUrl, resetZoom]);
+
+  const handleWheel = useCallback((e) => {
+    if (kind !== 'image') return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? STEP : -STEP;
+    setScale((s) => {
+      const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, +(s + delta).toFixed(2)));
+      if (next === MIN_SCALE) setPosition({ x: 0, y: 0 });
+      return next;
+    });
+  }, [kind]);
+
+  const handleMouseDown = useCallback((e) => {
+    if (scale <= MIN_SCALE) return;
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, posX: position.x, posY: position.y };
+  }, [scale, position]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return;
+    setPosition({
+      x: dragStart.current.posX + (e.clientX - dragStart.current.x),
+      y: dragStart.current.posY + (e.clientY - dragStart.current.y),
+    });
+  }, [isDragging]);
+
+  const stopDragging = useCallback(() => setIsDragging(false), []);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
@@ -86,11 +144,43 @@ export default function FileViewerModal({ open, fileUrl, onClose, title = 'Archi
           )}
 
           {fileUrl && kind === 'image' && (
-            <img
-              src={fileUrl}
-              alt={title}
-              className="w-full h-auto rounded-lg object-contain max-h-[72vh] mx-auto"
-            />
+            <div
+              className="relative flex items-center justify-center overflow-hidden rounded-lg bg-slate-100 select-none"
+              style={{ height: '72vh', cursor: scale > MIN_SCALE ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={stopDragging}
+              onMouseLeave={stopDragging}
+            >
+              <img
+                src={fileUrl}
+                alt={title}
+                draggable={false}
+                className="max-w-full max-h-full object-contain transition-transform duration-150 ease-out"
+                style={{
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                  transformOrigin: 'center center',
+                }}
+              />
+              {/* Controles de zoom */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-slate-200 bg-white/95 px-1.5 py-1 shadow-card backdrop-blur">
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={zoomOut} disabled={scale <= MIN_SCALE} title="Alejar">
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="min-w-[3rem] text-center text-xs font-medium text-slate-600">{Math.round(scale * 100)}%</span>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={zoomIn} disabled={scale >= MAX_SCALE} title="Acercar">
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <div className="mx-0.5 h-5 w-px bg-slate-200" />
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={resetZoom} disabled={scale === MIN_SCALE && position.x === 0 && position.y === 0} title="Restablecer">
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setScale(MAX_SCALE)} disabled={scale >= MAX_SCALE} title="Ajustar al máximo">
+                  <Maximize className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
 
           {fileUrl && kind === 'pdf' && (
