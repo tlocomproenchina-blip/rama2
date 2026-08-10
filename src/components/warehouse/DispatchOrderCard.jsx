@@ -3,10 +3,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileDown, Printer, Pencil, Trash2, Ban, Package as PackageIcon, Receipt, CheckCircle2 } from 'lucide-react';
+import { FileDown, Printer, Pencil, Trash2, Ban, Package as PackageIcon, Receipt, CheckCircle2, FileText, DollarSign, AlertCircle } from 'lucide-react';
 import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
 
-export default function DispatchOrderCard({ order, liveReceiptTotals, onEdit, onDelete, onCancel, onDownload, onPrint, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
+export default function DispatchOrderCard({ order, liveReceiptTotals, invoiceInfo, onEdit, onDelete, onCancel, onDownload, onPrint, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const cancelled = order.status === 'cancelada';
   const despachado = order.status === 'despachado';
@@ -49,6 +49,36 @@ export default function DispatchOrderCard({ order, liveReceiptTotals, onEdit, on
           </div>
           {statusBadge}
         </div>
+
+        {/* Badges de factura / pago */}
+        {invoiceInfo && (
+          <div className="flex flex-wrap items-center gap-2">
+            {invoiceInfo.hasInvoice ? (
+              <Badge variant="outline" className="text-xs gap-1 border-violet-300 bg-violet-50 text-violet-700">
+                <FileText className="h-3 w-3" />
+                Factura: {invoiceInfo.invoices.map((inv) => inv.number || '—').join(', ')}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs gap-1 border-slate-300 bg-slate-50 text-slate-500">
+                <AlertCircle className="h-3 w-3" />
+                Sin factura
+              </Badge>
+            )}
+            {invoiceInfo.hasInvoice && (
+              invoiceInfo.isPaid ? (
+                <Badge variant="outline" className="text-xs gap-1 border-emerald-300 bg-emerald-50 text-emerald-700">
+                  <DollarSign className="h-3 w-3" />
+                  Pagada
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs gap-1 border-amber-300 bg-amber-50 text-amber-700">
+                  <DollarSign className="h-3 w-3" />
+                  Pendiente de pago
+                </Badge>
+              )
+            )}
+          </div>
+        )}
 
         {/* Casilla de despachado */}
         {!cancelled && (

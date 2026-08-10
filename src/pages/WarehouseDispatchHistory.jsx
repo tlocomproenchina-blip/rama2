@@ -4,7 +4,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, History, Search, GitMerge, X, UserRound, Filter } from 'lucide-react';
+import { Loader2, History, Search, GitMerge, X, UserRound, Filter, FileText, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
 import DispatchOrderEditModal from '@/components/warehouse/DispatchOrderEditModal';
@@ -21,8 +21,11 @@ export default function WarehouseDispatchHistory({ user }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [merging, setMerging] = useState(false);
   const [orderTotalsMap, setOrderTotalsMap] = useState({});
+  const [invoiceInfoMap, setInvoiceInfoMap] = useState({});
   const [creatorFilter, setCreatorFilter] = useState('all');
   const [dispatchFilter, setDispatchFilter] = useState('all');
+  const [invoiceFilter, setInvoiceFilter] = useState('all');
+  const [paidFilter, setPaidFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [employees, setEmployees] = useState([]);
@@ -86,6 +89,43 @@ export default function WarehouseDispatchHistory({ user }) {
     setOrderTotalsMap(map);
   }, []);
 
+  // Consulta las facturas asociadas a los recibos de cada orden de despacho
+  // y construye un mapa { orderId: { hasInvoice, isPaid, invoices: [{number, status, total}] } }
+  const enrichInvoiceInfo = useCallback(async (ordersList) => {
+    if (!ordersList.length) { setInvoiceInfoMap({}); return; }
+    const emails = [...new Set(ordersList.map((o) => (o.client_email || '').trim()).filter(Boolean))];
+    const invoicesByClient = {};
+    await Promise.all(emails.map(async (email) => {
+      try {
+        const invoices = await base44.entities.Invoice.filter({ client_email: email }, '-created_date', 200);
+        invoicesByClient[email] = invoices || [];
+      } catch (_) { invoicesByClient[email] = []; }
+    }));
+
+    const map = {};
+    ordersList.forEach((o) => {
+      const email = (o.client_email || '').trim();
+      const receipts = (o.items || [])
+        .map((i) => String(i.consolidation_tracking || '').trim())
+        .filter((r) => r && r !== 'Sin recibo');
+      const receiptSet = new Set(receipts);
+      const clientInvoices = invoicesByClient[email] || [];
+      const matching = clientInvoices.filter((inv) =>
+        inv.consolidation_tracking && receiptSet.has(String(inv.consolidation_tracking).trim())
+      );
+      map[o.id] = {
+        hasInvoice: matching.length > 0,
+        isPaid: matching.some((inv) => inv.status === 'pagada'),
+        invoices: matching.map((inv) => ({
+          number: inv.invoice_number,
+          status: inv.status,
+          total: inv.total,
+        })),
+      };
+    });
+    setInvoiceInfoMap(map);
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -121,6 +161,8 @@ export default function WarehouseDispatchHistory({ user }) {
       setOrders(ordersList);
       // Cargar totales esperados por recibo en segundo plano (no bloquea el render)
       enrichReceiptTotals(ordersList);
+      // Cargar info de facturación/pago en segundo plano
+      enrichInvoiceInfo(ordersList);
     } catch (e) {
       toast.error('No se pudo cargar el historial');
     }
@@ -264,7 +306,19 @@ export default function WarehouseDispatchHistory({ user }) {
       ? byCreator.filter((o) => o.status === 'despachado')
       : byCreator.filter((o) => o.status !== 'despachado');
 
-  const byDate = byDispatch.filter((o) => {
+  const byInvoice = invoiceFilter === 'all'
+    ? byDispatch
+    : invoiceFilter === 'issued'
+      ? byDispatch.filter((o) => invoiceInfoMap[o.id]?.hasInvoice)
+      : byDispatch.filter((o) => !invoiceInfoMap[o.id]?.hasInvoice);
+
+  const byPaid = paidFilter === 'all'
+    ? byInvoice
+    : paidFilter === 'paid'
+      ? byInvoice.filter((o) => invoiceInfoMap[o.id]?.isPaid)
+      : byInvoice.filter((o) => invoiceInfoMap[o.id] && !invoiceInfoMap[o.id].isPaid);
+
+  const byDate = byPaid.filter((o) => {
     if (!dateFrom && !dateTo) return true;
     const raw = o.dispatched_date || o.created_date;
     if (!raw) return false;
@@ -349,6 +403,32 @@ export default function WarehouseDispatchHistory({ user }) {
             <SelectItem value="no_despachado">No despachadas</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={invoiceFilter} onValueChange={setInvoiceFilter}>
+          <SelectTrigger className="w-full sm:w-48 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <FileText className="h-4 w-4 text-slate-400 shrink-0" />
+              <SelectValue placeholder="Factura" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas (factura)</SelectItem>
+            <SelectItem value="issued">Con factura emitida</SelectItem>
+            <SelectItem value="not_issued">Sin factura</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={paidFilter} onValueChange={setPaidFilter}>
+          <SelectTrigger className="w-full sm:w-48 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <DollarSign className="h-4 w-4 text-slate-400 shrink-0" />
+              <SelectValue placeholder="Pago" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas (pago)</SelectItem>
+            <SelectItem value="paid">Pagadas</SelectItem>
+            <SelectItem value="unpaid">No pagadas</SelectItem>
+          </SelectContent>
+        </Select>
         {canFilterByCreator && (
         <Select value={creatorFilter} onValueChange={setCreatorFilter}>
           <SelectTrigger className="w-full sm:w-56 shrink-0">
@@ -430,6 +510,7 @@ export default function WarehouseDispatchHistory({ user }) {
               key={order.id}
               order={order}
               liveReceiptTotals={orderTotalsMap[order.id] || {}}
+              invoiceInfo={invoiceInfoMap[order.id]}
               onEdit={setEditOrder}
               onDelete={handleDelete}
               onCancel={handleCancel}
