@@ -3,13 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { FileText, CreditCard, Calendar, DollarSign, ChevronDown, Wallet } from 'lucide-react';
+import { FileText, CreditCard, Calendar, DollarSign, ChevronDown, Wallet, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 import InvoiceAbonosList from './InvoiceAbonosList';
+import useFileViewer from '@/hooks/useFileViewer';
+import { getFileKind } from '@/components/common/FileViewerModal';
 
 export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, onAbono, showAbonoButton = false, extraActions = null, selectionControl = null, showInsuranceBreakdown = false, isAdmin = false, onRefresh }) {
   const [abonosOpen, setAbonosOpen] = useState(false);
+  const fileViewer = useFileViewer();
   const total = Number(invoice.total || 0);
   const paidAmount = Number(invoice.paid_amount || 0);
   const balance = Math.max(0, total - paidAmount);
@@ -257,17 +260,51 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
         </div>
 
         {invoice.status === 'pagada' && invoice.payment_date && (
-          <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-100">
+          <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-100 space-y-2">
             <p className="text-sm text-green-800">
               <strong>Pagada:</strong> {format(new Date(invoice.payment_date), 'dd/MM/yyyy HH:mm')}
             </p>
-            {invoice.payment_reference && (
-              <p className="text-xs text-green-700 mt-1">
-                Ref: {invoice.payment_reference}
-              </p>
-            )}
+            {invoice.payment_reference && (() => {
+              const refKind = getFileKind(invoice.payment_reference);
+              const isMediaUrl = typeof invoice.payment_reference === 'string' && /^https?:\/\//i.test(invoice.payment_reference) && (refKind === 'image' || refKind === 'pdf');
+              if (isMediaUrl && refKind === 'image') {
+                return (
+                  <button
+                    type="button"
+                    onClick={() => fileViewer.open(invoice.payment_reference, 'Comprobante de pago')}
+                    className="block group"
+                    title="Ver comprobante"
+                  >
+                    <img
+                      src={invoice.payment_reference}
+                      alt="Comprobante de pago"
+                      className="h-24 w-auto rounded-lg border border-green-200 bg-white object-cover group-hover:border-green-400 transition-colors"
+                    />
+                  </button>
+                );
+              }
+              if (isMediaUrl && refKind === 'pdf') {
+                return (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-green-800 border-green-200 hover:bg-green-100"
+                    onClick={() => fileViewer.open(invoice.payment_reference, 'Comprobante de pago')}
+                  >
+                    <Eye className="h-3.5 w-3.5 mr-1" /> Ver comprobante (PDF)
+                  </Button>
+                );
+              }
+              return (
+                <p className="text-xs text-green-700 mt-1 break-words">
+                  Ref: {invoice.payment_reference}
+                </p>
+              );
+            })()}
           </div>
         )}
+        {fileViewer.modal}
       </CardContent>
     </Card>
   );

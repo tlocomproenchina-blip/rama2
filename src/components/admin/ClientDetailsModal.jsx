@@ -24,16 +24,16 @@ import {
   Trash2
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
-import OptimizedImage from '@/components/OptimizedImage';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import useFileViewer from '@/hooks/useFileViewer';
 
 export default function ClientDetailsModal({ client, open, onClose, onClientUpdated }) {
   const [loading, setLoading] = useState(true);
   const [packages, setPackages] = useState([]);
   const [consolidations, setConsolidations] = useState([]);
   const [notes, setNotes] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const fileViewer = useFileViewer();
   const [newNote, setNewNote] = useState({ text: '', type: 'general' });
   const [savingNote, setSavingNote] = useState(false);
 
@@ -187,7 +187,7 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setSelectedImage(client.billing_rif_image_url)}
+                      onClick={() => fileViewer.open(client.billing_rif_image_url, 'Imagen del RIF')}
                       className="gap-2"
                     >
                       <Eye className="h-4 w-4" /> Ver RIF
@@ -278,10 +278,10 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
                             )}
                           </div>
                           {pkg.package_image_url && (
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
-                              onClick={() => setSelectedImage(pkg.package_image_url)}
+                              onClick={() => fileViewer.open(pkg.package_image_url, 'Foto del paquete')}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -584,10 +584,10 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
                                 </div>
                               </div>
                               {con.payment_proof_url && (
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
-                                  onClick={() => setSelectedImage(con.payment_proof_url)}
+                                  onClick={() => fileViewer.open(con.payment_proof_url, 'Comprobante de pago')}
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
@@ -604,19 +604,8 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
         </DialogContent>
       </Dialog>
 
-      {/* Image Modal */}
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-3xl">
-          {selectedImage && (
-            <OptimizedImage
-              src={selectedImage}
-              alt="Imagen"
-              priority
-              className="w-full rounded-lg aspect-[4/3]"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Visor de archivos (imágenes / PDFs) */}
+      {fileViewer.modal}
     </>
   );
 }
