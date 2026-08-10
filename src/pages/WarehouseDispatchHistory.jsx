@@ -89,17 +89,27 @@ export default function WarehouseDispatchHistory({ user }) {
     setOrderTotalsMap(map);
   }, []);
 
-  // Consulta las facturas asociadas a los recibos de cada orden de despacho
-  // y construye un mapa { orderId: { hasInvoice, isPaid, invoices: [{number, status, total}] } }
+  // Consulta las facturas asociadas a los recibos de cada orden de despacho.
+  // Cruza el número de recibo (consolidation_tracking del item) con:
+  //  1. CbmIngreso.invoice_number → billed_invoice_id → Invoice (facturas manuales)
+  //  2. Invoice.consolidation_tracking directo (facturas de consolidación regular)
   const enrichInvoiceInfo = useCallback(async (ordersList) => {
     if (!ordersList.length) { setInvoiceInfoMap({}); return; }
     const emails = [...new Set(ordersList.map((o) => (o.client_email || '').trim()).filter(Boolean))];
+    const ingresosByClient = {};
     const invoicesByClient = {};
     await Promise.all(emails.map(async (email) => {
       try {
-        const invoices = await base44.entities.Invoice.filter({ client_email: email }, '-created_date', 200);
+        const [ingresos, invoices] = await Promise.all([
+          base44.entities.CbmIngreso.filter({ client_email: email }, '-fecha', 200),
+          base44.entities.Invoice.filter({ client_email: email }, '-created_date', 200),
+        ]);
+        ingresosByClient[email] = ingresos || [];
         invoicesByClient[email] = invoices || [];
-      } catch (_) { invoicesByClient[email] = []; }
+      } catch (_) {
+        ingresosByClient[email] = [];
+        invoicesByClient[email] = [];
+      }
     }));
 
     const map = {};
@@ -109,14 +119,42 @@ export default function WarehouseDispatchHistory({ user }) {
         .map((i) => String(i.consolidation_tracking || '').trim())
         .filter((r) => r && r !== 'Sin recibo');
       const receiptSet = new Set(receipts);
+      const clientIngresos = ingresosByClient[email] || [];
       const clientInvoices = invoicesByClient[email] || [];
-      const matching = clientInvoices.filter((inv) =>
+
+      // 1) Puente via CbmIngreso: recibo → invoice_number → billed_invoice_id
+      const matchedInvoiceIds = new Set();
+      clientIngresos.forEach((ing) => {
+        if (ing.invoice_number && receiptSet.has(String(ing.invoice_number).trim()) && ing.billed_invoice_id) {
+          matchedInvoiceIds.add(ing.billed_invoice_id);
+        }
+      });
+
+      // 2) Match directo: recibo → Invoice.consolidation_tracking
+      const directMatches = clientInvoices.filter((inv) =>
         inv.consolidation_tracking && receiptSet.has(String(inv.consolidation_tracking).trim())
       );
+
+      // Combinar resultados sin duplicar
+      const seen = new Set();
+      const matchedInvoices = [];
+      clientInvoices.forEach((inv) => {
+        if (matchedInvoiceIds.has(inv.id) && !seen.has(inv.id)) {
+          seen.add(inv.id);
+          matchedInvoices.push(inv);
+        }
+      });
+      directMatches.forEach((inv) => {
+        if (!seen.has(inv.id)) {
+          seen.add(inv.id);
+          matchedInvoices.push(inv);
+        }
+      });
+
       map[o.id] = {
-        hasInvoice: matching.length > 0,
-        isPaid: matching.some((inv) => inv.status === 'pagada'),
-        invoices: matching.map((inv) => ({
+        hasInvoice: matchedInvoices.length > 0,
+        isPaid: matchedInvoices.some((inv) => inv.status === 'pagada'),
+        invoices: matchedInvoices.map((inv) => ({
           number: inv.invoice_number,
           status: inv.status,
           total: inv.total,
