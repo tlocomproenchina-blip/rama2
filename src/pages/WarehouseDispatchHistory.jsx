@@ -348,7 +348,9 @@ export default function WarehouseDispatchHistory({ user }) {
     ? byDispatch
     : invoiceFilter === 'issued'
       ? byDispatch.filter((o) => invoiceInfoMap[o.id]?.hasInvoice)
-      : byDispatch.filter((o) => !invoiceInfoMap[o.id]?.hasInvoice);
+      : invoiceFilter === 'paid'
+        ? byDispatch.filter((o) => invoiceInfoMap[o.id]?.hasInvoice && invoiceInfoMap[o.id]?.isPaid)
+        : byDispatch.filter((o) => !invoiceInfoMap[o.id]?.hasInvoice);
 
   const byPaid = paidFilter === 'all'
     ? byInvoice
@@ -465,6 +467,7 @@ export default function WarehouseDispatchHistory({ user }) {
           <SelectContent>
             <SelectItem value="all">Todas (factura)</SelectItem>
             <SelectItem value="issued">Con factura emitida</SelectItem>
+            <SelectItem value="paid">Factura pagada</SelectItem>
             <SelectItem value="not_issued">Sin factura</SelectItem>
           </SelectContent>
         </Select>
