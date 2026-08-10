@@ -4,7 +4,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, History, Search, GitMerge, X, UserRound } from 'lucide-react';
+import { Loader2, History, Search, GitMerge, X, UserRound, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
 import DispatchOrderEditModal from '@/components/warehouse/DispatchOrderEditModal';
@@ -22,6 +22,7 @@ export default function WarehouseDispatchHistory({ user }) {
   const [merging, setMerging] = useState(false);
   const [orderTotalsMap, setOrderTotalsMap] = useState({});
   const [creatorFilter, setCreatorFilter] = useState('all');
+  const [dispatchFilter, setDispatchFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [employees, setEmployees] = useState([]);
@@ -257,7 +258,13 @@ export default function WarehouseDispatchHistory({ user }) {
   const byCreator = (!canFilterByCreator || creatorFilter === 'all')
     ? orders
     : orders.filter((o) => (o.created_by_email || '').trim().toLowerCase() === creatorFilter);
-  const byDate = byCreator.filter((o) => {
+  const byDispatch = dispatchFilter === 'all'
+    ? byCreator
+    : dispatchFilter === 'despachado'
+      ? byCreator.filter((o) => o.status === 'despachado')
+      : byCreator.filter((o) => o.status !== 'despachado');
+
+  const byDate = byDispatch.filter((o) => {
     if (!dateFrom && !dateTo) return true;
     const raw = o.dispatched_date || o.created_date;
     if (!raw) return false;
@@ -329,6 +336,19 @@ export default function WarehouseDispatchHistory({ user }) {
             className="pl-10"
           />
         </div>
+        <Select value={dispatchFilter} onValueChange={setDispatchFilter}>
+          <SelectTrigger className="w-full sm:w-48 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Filter className="h-4 w-4 text-slate-400 shrink-0" />
+              <SelectValue placeholder="Estado despacho" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las órdenes</SelectItem>
+            <SelectItem value="despachado">Despachadas</SelectItem>
+            <SelectItem value="no_despachado">No despachadas</SelectItem>
+          </SelectContent>
+        </Select>
         {canFilterByCreator && (
         <Select value={creatorFilter} onValueChange={setCreatorFilter}>
           <SelectTrigger className="w-full sm:w-56 shrink-0">
