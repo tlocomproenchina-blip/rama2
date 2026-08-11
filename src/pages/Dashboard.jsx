@@ -52,6 +52,7 @@ import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import ShippingLabelGenerator from '@/components/client-portal/ShippingLabelGenerator';
 import ClientCbmWidget from '@/components/client-portal/ClientCbmWidget';
+import CreditBalanceWidget from '@/components/client-portal/CreditBalanceWidget';
 import { format } from 'date-fns';
 
 export default function Dashboard({ user, refreshUser }) {
@@ -355,6 +356,9 @@ export default function Dashboard({ user, refreshUser }) {
         <PortalMetricCard title="En tránsito" value={stats.enTransito} subtitle="Consolidaciones activas" icon={Truck} tone="violet" />
         <PortalMetricCard title="Disponibles" value={stats.disponibles} subtitle="Listos para entrega" icon={MapPin} tone="blue" />
       </div>
+
+      {/* Saldo a favor del cliente */}
+      {hasShippingMark && <CreditBalanceWidget user={user} />}
 
       {/* Approval Alert */}
       {pendingApprovalCount > 0 && (
