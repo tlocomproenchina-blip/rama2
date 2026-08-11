@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Plus, Loader2, ArrowUpCircle, ArrowDownCircle, TrendingUp } from 'lucide-react';
+import { Wallet, Plus, Loader2, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import PageHero from '@/components/common/PageHero';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
+import ClientCreditRow from '@/components/client-credits/ClientCreditRow';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -199,40 +200,13 @@ export default function AdminClientCredits() {
                 <p className="text-center text-slate-500 py-8">No hay movimientos registrados para este cliente.</p>
               ) : (
                 <div className="space-y-2">
-                  {credits.map((c) => {
-                    const isCredit = num(c.amount) > 0;
-                    return (
-                      <div
-                        key={c.id}
-                        className="flex items-start gap-3 p-3 rounded-lg border border-border/60 bg-white hover:bg-slate-50 transition-colors"
-                      >
-                        <div className={`mt-0.5 p-2 rounded-lg ${isCredit ? 'bg-emerald-100' : 'bg-amber-100'}`}>
-                          {isCredit ? <ArrowUpCircle className="h-4 w-4 text-emerald-600" /> : <ArrowDownCircle className="h-4 w-4 text-amber-600" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`font-semibold text-sm ${isCredit ? 'text-emerald-700' : 'text-amber-700'}`}>
-                              {isCredit ? '+' : ''}${num(c.amount).toFixed(2)}
-                            </span>
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {c.type === 'credito' ? 'Crédito' : c.type === 'uso' ? 'Uso automático' : 'Ajuste'}
-                            </Badge>
-                            {c.related_invoice_number && (
-                              <Badge variant="outline" className="text-xs">Factura: {c.related_invoice_number}</Badge>
-                            )}
-                          </div>
-                          {c.description && (
-                            <p className="text-sm text-slate-600 mt-0.5 break-words">{c.description}</p>
-                          )}
-                          <p className="text-xs text-slate-400 mt-1">
-                            {format(new Date(c.created_date), 'dd/MM/yyyy HH:mm')}
-                            {c.created_by_email && c.created_by_email !== 'system' && ` · por ${c.created_by_email}`}
-                            {c.reference && ` · Ref: ${c.reference}`}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {credits.map((c) => (
+                    <ClientCreditRow
+                      key={c.id}
+                      credit={c}
+                      onUpdated={() => loadData(selectedClient.email)}
+                    />
+                  ))}
                 </div>
               )}
             </CardContent>
