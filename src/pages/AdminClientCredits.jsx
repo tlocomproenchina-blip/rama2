@@ -64,10 +64,13 @@ export default function AdminClientCredits() {
           const msg = applied.map(a => `Factura ${a.invoice_number}: -$${num(a.applied).toFixed(2)}${a.fully_paid ? ' (pagada)' : ''}`).join(', ');
           toast.success(`Crédito añadido y aplicado automáticamente. ${msg}`, { duration: 8000 });
         } else {
-          toast.success(`Crédido de $${amount.toFixed(2)} añadido. Saldo disponible: $${num(res.data.remaining_balance).toFixed(2)}`);
+          toast.success(`Crédito de $${amount.toFixed(2)} añadido. Saldo disponible: $${num(res.data.remaining_balance).toFixed(2)}`);
         }
         setNewCredit({ amount: '', description: '', type: 'credito', reference: '' });
         setShowAddForm(false);
+        // Invalidar caché de ClientCredit e Invoice (los cambios se hacen vía backend function)
+        base44.invalidateEntityCache('ClientCredit');
+        base44.invalidateEntityCache('Invoice');
         loadData(selectedClient.email);
       } else {
         toast.error(res?.data?.error || 'Error al añadir crédito');
