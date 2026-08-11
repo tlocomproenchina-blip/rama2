@@ -6,16 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, Search, Plus, Loader2, ArrowUpCircle, ArrowDownCircle, TrendingUp } from 'lucide-react';
+import { Wallet, Plus, Loader2, ArrowUpCircle, ArrowDownCircle, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import PageHero from '@/components/common/PageHero';
+import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
 export default function AdminClientCredits() {
-  const [searchEmail, setSearchEmail] = useState('');
-  const [selectedEmail, setSelectedEmail] = useState('');
+  const [selectedClient, setSelectedClient] = useState(null);
   const [credits, setCredits] = useState([]);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -38,26 +38,21 @@ export default function AdminClientCredits() {
     setLoading(false);
   }, []);
 
-  const handleSearch = () => {
-    const email = searchEmail.trim().toLowerCase();
-    if (!email) {
-      toast.error('Ingresa un email de cliente');
-      return;
-    }
-    setSelectedEmail(email);
-    loadData(email);
+  const handleSelectClient = (client) => {
+    setSelectedClient(client);
+    loadData(client.email);
   };
 
   const handleAddCredit = async () => {
     const amount = num(newCredit.amount);
-    if (!selectedEmail || amount <= 0) {
+    if (!selectedClient || amount <= 0) {
       toast.error('Ingresa un monto válido mayor a 0');
       return;
     }
     setSaving(true);
     try {
       const res = await base44.functions.invoke('addClientCredit', {
-        client_email: selectedEmail,
+        client_email: selectedClient.email,
         amount,
         description: newCredit.description || 'Crédito manual',
         type: newCredit.type || 'credito',
@@ -73,7 +68,7 @@ export default function AdminClientCredits() {
         }
         setNewCredit({ amount: '', description: '', type: 'credito', reference: '' });
         setShowAddForm(false);
-        loadData(selectedEmail);
+        loadData(selectedClient.email);
       } else {
         toast.error(res?.data?.error || 'Error al añadir crédito');
       }
@@ -95,28 +90,12 @@ export default function AdminClientCredits() {
       {/* Buscador */}
       <Card className="border-border/70 bg-card/95 shadow-card">
         <CardContent className="p-6">
-          <Label className="text-sm font-medium text-slate-700">Buscar cliente por email</Label>
-          <div className="flex gap-2 mt-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                type="email"
-                value={searchEmail}
-                onChange={(e) => setSearchEmail(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="cliente@email.com"
-                className="pl-10"
-              />
-            </div>
-            <Button onClick={handleSearch} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 mr-1" />}
-              Buscar
-            </Button>
-          </div>
+          <Label className="text-sm font-medium text-slate-700 mb-2 block">Buscar cliente</Label>
+          <ClientSearchBox onSelect={handleSelectClient} />
         </CardContent>
       </Card>
 
-      {selectedEmail && (
+      {selectedClient && (
         <>
           {/* Tarjeta de saldo + acción */}
           <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-card">
@@ -124,7 +103,13 @@ export default function AdminClientCredits() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <p className="text-sm text-emerald-700 font-medium">Saldo a favor de</p>
-                  <p className="text-lg font-semibold text-slate-800 truncate">{selectedEmail}</p>
+                  <p className="text-lg font-semibold text-slate-800 truncate">
+                    {selectedClient.full_name || selectedClient.email}
+                  </p>
+                  <p className="text-xs text-slate-500 truncate">
+                    {selectedClient.email}
+                    {selectedClient.shipping_mark ? ` · ${selectedClient.shipping_mark}` : ''}
+                  </p>
                   <div className="flex items-baseline gap-2 mt-2">
                     <Wallet className="h-7 w-7 text-emerald-600" />
                     <span className="text-4xl font-bold text-emerald-700">${balance.toFixed(2)}</span>
@@ -252,11 +237,11 @@ export default function AdminClientCredits() {
         </>
       )}
 
-      {!selectedEmail && (
+      {!selectedClient && (
         <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Wallet className="h-14 w-14 text-slate-300 mb-3" />
-            <p className="text-slate-500">Busca un cliente por email para ver y gestionar su saldo a favor.</p>
+            <p className="text-slate-500">Busca un cliente por nombre, email o shipping mark para ver y gestionar su saldo a favor.</p>
             <p className="text-sm text-slate-400 mt-1">El saldo se aplica automáticamente a las facturas impagas del cliente.</p>
           </CardContent>
         </Card>
