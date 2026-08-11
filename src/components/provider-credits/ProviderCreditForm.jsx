@@ -254,17 +254,38 @@ export default function ProviderCreditForm({ onSave, onCancel, saving }) {
 
 function ImageUploader({ label, imageUrl, uploading, onUpload, onClear, onPaste }) {
   const inputRef = useRef(null);
+  const [pasting, setPasting] = useState(false);
+  const [pasteError, setPasteError] = useState('');
 
-  const handlePaste = (e) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (const item of items) {
-      if (item.type.startsWith('image/')) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (file) onPaste(file);
-        break;
+  const handlePasteButton = async (e) => {
+    e.stopPropagation();
+    setPasteError('');
+    setPasting(true);
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const items = await navigator.clipboard.read();
+        let found = false;
+        for (const item of items) {
+          const imageType = item.types.find((t) => t.startsWith('image/'));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            const ext = imageType.split('/')[1] || 'png';
+            const file = new File([blob], `pasted-${Date.now()}.${ext}`, { type: imageType });
+            onPaste(file);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          setPasteError('No hay imagen en el portapapeles');
+        }
+      } else {
+        setPasteError('Tu navegador no soporta pegar imagen');
       }
+    } catch (err) {
+      setPasteError('No se pudo leer el portapapeles. Copia una imagen primero.');
+    } finally {
+      setPasting(false);
     }
   };
 
@@ -284,17 +305,25 @@ function ImageUploader({ label, imageUrl, uploading, onUpload, onClear, onPaste 
         </div>
       ) : (
         <div
-          tabIndex={0}
-          onPaste={handlePaste}
-          onClick={() => !uploading && inputRef.current?.click()}
-          className="mt-1 flex flex-col items-center justify-center h-32 rounded-lg border-2 border-dashed border-border bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors focus:outline-none focus:border-emerald-400 focus:bg-emerald-50/30"
+          onClick={() => !uploading && !pasting && inputRef.current?.click()}
+          className="mt-1 flex flex-col items-center justify-center gap-1 h-32 rounded-lg border-2 border-dashed border-border bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors"
         >
-          {uploading ? (
+          {uploading || pasting ? (
             <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
           ) : (
             <>
-              <ImageIcon className="h-6 w-6 text-slate-400 mb-1" />
-              <span className="text-xs text-slate-500">Click para subir · Ctrl+V para pegar</span>
+              <ImageIcon className="h-6 w-6 text-slate-400" />
+              <span className="text-xs text-slate-500">Click para subir</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePasteButton}
+                className="h-7 px-2 text-xs gap-1 mt-0.5"
+              >
+                <FileText className="h-3 w-3" /> Pegar imagen
+              </Button>
+              {pasteError && <span className="text-xs text-rose-500">{pasteError}</span>}
             </>
           )}
           <input
