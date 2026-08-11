@@ -4,13 +4,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { FileText, ImageIcon, CheckCircle2, Eye } from 'lucide-react';
+import { FileText, ImageIcon, CheckCircle2, Eye, Pencil, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import ProviderCreditForm from '@/components/provider-credits/ProviderCreditForm';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-export default function ProviderCreditCard({ credit, onMarkUsed, onViewFile }) {
+export default function ProviderCreditCard({ credit, onMarkUsed, onViewFile, onEdit, savingEdit }) {
   const [showUseDialog, setShowUseDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [useAmount, setUseAmount] = useState('');
   const [useDescription, setUseDescription] = useState('');
 
@@ -110,19 +112,45 @@ export default function ProviderCreditCard({ credit, onMarkUsed, onViewFile }) {
         )}
 
         {/* Acción */}
-        {!isUsed && (
-          <div className="mt-3 pt-3 border-t border-border/50">
+        <div className="mt-3 pt-3 border-t border-border/50 flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowEditDialog(true)}
+            className="text-slate-600 border-slate-200 hover:bg-slate-50"
+          >
+            <Pencil className="h-4 w-4 mr-1" /> Editar
+          </Button>
+          {!isUsed && (
             <Button
               size="sm"
               variant="outline"
               onClick={() => setShowUseDialog(true)}
-              className="w-full text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+              className="flex-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
             >
               <CheckCircle2 className="h-4 w-4 mr-1" /> Marcar como usado
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Dialog para editar */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar saldo a favor</DialogTitle>
+          </DialogHeader>
+          <ProviderCreditForm
+            initialData={credit}
+            saving={savingEdit}
+            onCancel={() => setShowEditDialog(false)}
+            onSave={(data) => {
+              onEdit(credit, data);
+              setShowEditDialog(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog para marcar como usado */}
       <Dialog open={showUseDialog} onOpenChange={setShowUseDialog}>

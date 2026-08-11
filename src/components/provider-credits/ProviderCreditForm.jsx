@@ -9,24 +9,27 @@ import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-export default function ProviderCreditForm({ onSave, onCancel, saving }) {
+export default function ProviderCreditForm({ onSave, onCancel, saving, initialData }) {
+  const isEditing = !!initialData;
   const [form, setForm] = useState({
-    provider_name: '',
-    provider_id: '',
-    invoice_number: '',
-    invoice_amount: '',
-    paid_amount: '',
-    payment_date: new Date().toISOString().slice(0, 10),
-    notes: '',
+    provider_name: initialData?.provider_name || '',
+    provider_id: initialData?.provider_id || '',
+    invoice_number: initialData?.invoice_number || '',
+    invoice_amount: initialData?.invoice_amount != null ? String(initialData.invoice_amount) : '',
+    paid_amount: initialData?.paid_amount != null ? String(initialData.paid_amount) : '',
+    payment_date: initialData?.payment_date
+      ? new Date(initialData.payment_date).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10),
+    notes: initialData?.notes || '',
   });
-  const [invoiceImage, setInvoiceImage] = useState(null);
-  const [receiptImage, setReceiptImage] = useState(null);
+  const [invoiceImage, setInvoiceImage] = useState(initialData?.invoice_image_url || null);
+  const [receiptImage, setReceiptImage] = useState(initialData?.receipt_image_url || null);
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   // Proveedores registrados (ShippingProvider)
   const [providers, setProviders] = useState([]);
-  const [providerSearch, setProviderSearch] = useState('');
+  const [providerSearch, setProviderSearch] = useState(initialData?.provider_name || '');
   const [showProviderDropdown, setShowProviderDropdown] = useState(false);
   const providerDropdownRef = useRef(null);
 
@@ -245,7 +248,7 @@ export default function ProviderCreditForm({ onSave, onCancel, saving }) {
         <Button variant="outline" onClick={onCancel} disabled={saving}>Cancelar</Button>
         <Button onClick={handleSubmit} disabled={saving || uploadingInvoice || uploadingReceipt} className="bg-emerald-600 hover:bg-emerald-700">
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-          Guardar saldo a favor
+          {isEditing ? 'Guardar cambios' : 'Guardar saldo a favor'}
         </Button>
       </div>
     </div>

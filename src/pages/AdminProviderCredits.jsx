@@ -84,6 +84,29 @@ export default function AdminProviderCredits() {
     setSaving(false);
   };
 
+  const handleEdit = async (credit, data) => {
+    setSaving(true);
+    try {
+      await base44.entities.ProviderCredit.update(credit.id, {
+        provider_name: data.provider_name,
+        provider_id: data.provider_id,
+        invoice_number: data.invoice_number,
+        invoice_amount: data.invoice_amount,
+        paid_amount: data.paid_amount,
+        credit_amount: data.credit_amount,
+        payment_date: data.payment_date,
+        invoice_image_url: data.invoice_image_url,
+        receipt_image_url: data.receipt_image_url,
+        notes: data.notes,
+      });
+      toast.success('Saldo a favor actualizado correctamente');
+      loadData();
+    } catch (err) {
+      toast.error(err.message || 'Error al actualizar el saldo a favor');
+    }
+    setSaving(false);
+  };
+
   const handleMarkUsed = async (credit, amount, description) => {
     try {
       const isFullUse = amount >= num(credit.credit_amount);
@@ -198,6 +221,8 @@ export default function AdminProviderCredits() {
                   credit={credit}
                   onMarkUsed={handleMarkUsed}
                   onViewFile={fileViewer.open}
+                  onEdit={handleEdit}
+                  savingEdit={saving}
                 />
               ))}
             </div>
