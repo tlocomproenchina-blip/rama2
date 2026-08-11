@@ -10,6 +10,7 @@ export default function ClientDispatchOrders({ orders = [], client }) {
   const [expanded, setExpanded] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
   const [localOrders, setLocalOrders] = useState(orders);
+  const [receiptTotals, setReceiptTotals] = useState({});
 
   // Sincronizar cuando cambian las órdenes entrantes
   React.useEffect(() => { setLocalOrders(orders); }, [orders]);
@@ -18,6 +19,36 @@ export default function ClientDispatchOrders({ orders = [], client }) {
     () => [...localOrders].sort((a, b) => new Date(b.dispatched_date || b.created_date) - new Date(a.dispatched_date || a.created_date)),
     [localOrders]
   );
+
+  // Fetch expected totals per receipt to calculate missing packages
+  React.useEffect(() => {
+    const allReceipts = new Set();
+    sorted.forEach((order) => {
+      const items = Array.isArray(order.items) ? order.items : [];
+      items.forEach((item) => {
+        const r = (item?.consolidation_tracking || '').trim();
+        if (r) allReceipts.add(r);
+      });
+    });
+    const receipts = Array.from(allReceipts);
+    if (receipts.length === 0 || !client?.email) {
+      setReceiptTotals({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await base44.functions.invoke('getDispatchReceiptTotals', {
+          receipts,
+          client_email: client.email
+        });
+        if (!cancelled) setReceiptTotals(res?.data?.totals || {});
+      } catch {
+        if (!cancelled) setReceiptTotals({});
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sorted, client?.email]);
 
   const handleToggleDespachado = async (order) => {
     setTogglingId(order.id);
@@ -56,6 +87,13 @@ export default function ClientDispatchOrders({ orders = [], client }) {
             const despachado = order.status === 'despachado';
             const receiptGroups = groupItemsByReceipt(items);
 
+            // Calcular total de paquetes faltantes en la orden
+            const missingTotal = receiptGroups.reduce((sum, g) => {
+              if (g.receipt === 'Sin recibo') return sum;
+              const expected = receiptTotals[g.receipt] || 0;
+              return sum + Math.max(0, expected - g.count);
+            }, 0);
+
             const statusBadge = cancelled
               ? <Badge className="bg-rose-600 text-white">Cancelada</Badge>
               : despachado
@@ -84,6 +122,11 @@ export default function ClientDispatchOrders({ orders = [], client }) {
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       <PackageIcon className="h-3.5 w-3.5" /> {items.length}
                     </span>
+                    {missingTotal > 0 && !despachado && (
+                      <Badge className="bg-amber-100 text-amber-700 border border-amber-200 text-[10px]">
+                        {missingTotal} faltante{missingTotal !== 1 ? 's' : ''}
+                      </Badge>
+                    )}
                   </div>
                 </button>
 
@@ -107,7 +150,10 @@ export default function ClientDispatchOrders({ orders = [], client }) {
 
                     {/* Agrupación por recibo */}
                     <div className="space-y-2">
-                      {receiptGroups.map((group) => (
+                      {receiptGroups.map((group) => {
+                        const expected = group.receipt !== 'Sin recibo' ? (receiptTotals[group.receipt] || 0) : 0;
+                        const missing = expected > 0 ? Math.max(0, expected - group.count) : 0;
+                        return (
                         <div key={group.receipt} className="rounded-lg border border-slate-200 bg-white p-2">
                           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                             <span className="text-xs font-semibold text-slate-700">
@@ -116,6 +162,11 @@ export default function ClientDispatchOrders({ orders = [], client }) {
                             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                               {group.count} paquete{group.count !== 1 ? 's' : ''}
                             </Badge>
+                            {missing > 0 && (
+                              <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 border border-amber-200">
+                                {missing} faltante{missing !== 1 ? 's' : ''} de {expected}
+                              </Badge>
+                            )}
                           </div>
                           <ul className="space-y-0.5 pl-5">
                             {group.items.map((item, idx) => (
@@ -125,7 +176,8 @@ export default function ClientDispatchOrders({ orders = [], client }) {
                             ))}
                           </ul>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {order.notes && (
