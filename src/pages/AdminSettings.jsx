@@ -1279,12 +1279,12 @@ export default function AdminSettings({ user }) {
 
               <div className="space-y-2">
                 <Label>Imagen de ejemplo del Shipping Mark</Label>
-                <div className="flex items-start gap-4">
-                  <div className="flex-1">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="flex-1 min-w-0">
                     <label className="block">
-                      <div className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                        <Upload className="h-4 w-4 text-slate-600" />
-                        <span className="text-sm text-slate-700">
+                      <div className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors whitespace-nowrap">
+                        <Upload className="h-4 w-4 text-slate-600 shrink-0" />
+                        <span className="text-sm text-slate-700 truncate">
                           {uploadingShippingMarkExample ? 'Subiendo...' : 'Seleccionar archivo'}
                         </span>
                       </div>
@@ -1296,7 +1296,7 @@ export default function AdminSettings({ user }) {
                         disabled={uploadingShippingMarkExample}
                       />
                     </label>
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-slate-500 mt-2 whitespace-nowrap">
                       {appConfig.shipping_mark_example_image_url ? 'Archivo cargado' : 'Sin archivos seleccionados'}
                     </p>
                   </div>
@@ -1638,12 +1638,12 @@ export default function AdminSettings({ user }) {
 
               <div className="space-y-2">
                 <Label>Logo para Facturas (Relación 1:1)</Label>
-                <div className="flex items-start gap-4">
-                  <div className="flex-1">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="flex-1 min-w-0">
                     <label className="block">
-                      <div className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                        <Upload className="h-4 w-4 text-slate-600" />
-                        <span className="text-sm text-slate-700">
+                      <div className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors whitespace-nowrap">
+                        <Upload className="h-4 w-4 text-slate-600 shrink-0" />
+                        <span className="text-sm text-slate-700 truncate">
                           {uploadingInvoiceLogo ? 'Subiendo...' : 'Seleccionar archivo'}
                         </span>
                       </div>
@@ -1655,7 +1655,7 @@ export default function AdminSettings({ user }) {
                         disabled={uploadingInvoiceLogo}
                       />
                     </label>
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-slate-500 mt-2 whitespace-nowrap">
                       {appConfig.invoice_logo_url ? 'Archivo cargado' : 'Sin archivos seleccionados'}
                     </p>
                   </div>
