@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
-import { Headphones, Newspaper } from 'lucide-react';
+import { Headphones } from 'lucide-react';
 
 export default function Inicio2Header() {
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -24,12 +24,8 @@ export default function Inicio2Header() {
           <button onClick={() => scrollTo('calculadora2')} className="hover:text-white">Calculadora</button>
           <button onClick={() => scrollTo('servicios2')} className="hover:text-white">Servicios</button>
           <button onClick={() => scrollTo('preguntas2')} className="hover:text-white">Preguntas</button>
-          <Link to={createPageUrl('Blog')} className="hover:text-white">Noticias</Link>
         </nav>
         <div className="flex items-center gap-2">
-          <Link to={createPageUrl('Blog')} className="flex items-center gap-1.5 text-sm text-zinc-300 hover:text-white sm:flex">
-            <Newspaper className="h-4 w-4" /> Noticias
-          </Link>
           <a href="https://wa.me/" className="hidden items-center gap-1.5 text-sm text-zinc-300 hover:text-white lg:flex">
             <Headphones className="h-4 w-4" /> Soporte
           </a>
