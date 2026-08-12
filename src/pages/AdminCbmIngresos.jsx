@@ -39,6 +39,8 @@ export default function AdminCbmIngresos({ user }) {
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [orderSearch, setOrderSearch] = useState('');
+  const [orderFrom, setOrderFrom] = useState('');
+  const [orderTo, setOrderTo] = useState('');
   const [sinSalidaFilter, setSinSalidaFilter] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
@@ -114,9 +116,21 @@ export default function AdminCbmIngresos({ user }) {
 
   const filteredIngresos = useMemo(() => {
     const q = orderSearch.trim().toLowerCase();
-    // Cuando hay búsqueda por orden, buscar en TODO el histórico, ignorando el período y el filtro de disponibilidad
-    if (q) {
-      return sortByOrderDesc((allIngresos || []).filter((item) => String(item.invoice_number || '').toLowerCase().includes(q)));
+    const fromNum = orderFrom !== '' ? parseFloat(orderFrom) : null;
+    const toNum = orderTo !== '' ? parseFloat(orderTo) : null;
+    const hasRange = fromNum !== null || toNum !== null;
+    // Cuando hay búsqueda por orden o rango, buscar en TODO el histórico, ignorando el período y el filtro de disponibilidad
+    if (q || hasRange) {
+      return sortByOrderDesc((allIngresos || []).filter((item) => {
+        const num = parseFloat(item.invoice_number);
+        if (q && !String(item.invoice_number || '').toLowerCase().includes(q)) return false;
+        if (hasRange) {
+          if (!Number.isFinite(num)) return false;
+          if (fromNum !== null && num < fromNum) return false;
+          if (toNum !== null && num > toNum) return false;
+        }
+        return true;
+      }));
     }
     // Filtro "Sin fecha de salida": busca en TODO el histórico
     if (sinSalidaFilter) {
@@ -129,7 +143,7 @@ export default function AdminCbmIngresos({ user }) {
       result = result.filter((item) => !item.disponible_entrega);
     }
     return sortByOrderDesc(result);
-  }, [ingresos, allIngresos, availabilityFilter, orderSearch, sinSalidaFilter]);
+  }, [ingresos, allIngresos, availabilityFilter, orderSearch, orderFrom, orderTo, sinSalidaFilter]);
 
   const totalCbm = useMemo(() =>
     ingresos.reduce((sum, i) => sum + Number(i.cbm || 0), 0),
@@ -382,22 +396,48 @@ export default function AdminCbmIngresos({ user }) {
 
         <TabsContent value="registros" className="mt-4 space-y-3">
           {!loading && allIngresos.length > 0 && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Buscar por número de orden en todo el histórico (ej: 238)..."
-                value={orderSearch}
-                onChange={(e) => setOrderSearch(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar por número de orden (ej: 238)..."
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="Desde"
+                  value={orderFrom}
+                  onChange={(e) => setOrderFrom(e.target.value)}
+                  className="w-24"
+                />
+                <span className="text-xs text-slate-400">al</span>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="Hasta"
+                  value={orderTo}
+                  onChange={(e) => setOrderTo(e.target.value)}
+                  className="w-24"
+                />
+                {(orderFrom !== '' || orderTo !== '') && (
+                  <Button variant="ghost" size="sm" onClick={() => { setOrderFrom(''); setOrderTo(''); }} className="text-slate-500 hover:text-slate-700 px-2">
+                    ✕
+                  </Button>
+                )}
+              </div>
             </div>
           )}
-          {orderSearch.trim() && (
+          {(orderSearch.trim() || orderFrom !== '' || orderTo !== '') && (
             <p className="text-xs text-slate-500">
               Buscando en todo el histórico · {filteredIngresos.length} resultado(s)
             </p>
           )}
-          {!loading && !orderSearch.trim() && (
+          {!loading && !orderSearch.trim() && orderFrom === '' && orderTo === '' && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-500">Despacho:</span>
               <Button variant={availabilityFilter === 'all' ? 'secondary' : 'outline'} size="sm" onClick={() => setAvailabilityFilter('all')}>Todos</Button>
@@ -413,7 +453,7 @@ export default function AdminCbmIngresos({ user }) {
               </Button>
             </div>
           )}
-          {sinSalidaFilter && !orderSearch.trim() && (
+          {sinSalidaFilter && !orderSearch.trim() && orderFrom === '' && orderTo === '' && (
             <p className="text-xs text-amber-700 font-medium">
               Mostrando todas las órdenes sin fecha de salida (histórico completo) · {filteredIngresos.length} registro(s)
             </p>
@@ -422,7 +462,7 @@ export default function AdminCbmIngresos({ user }) {
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>
-          ) : ingresos.length === 0 && !orderSearch.trim() && !sinSalidaFilter ? (
+          ) : ingresos.length === 0 && !orderSearch.trim() && orderFrom === '' && orderTo === '' && !sinSalidaFilter ? (
             <Card className="border-0 shadow-lg">
               <CardContent className="p-12 text-center">
                 <Package className="h-16 w-16 mx-auto mb-4 text-slate-300" />
