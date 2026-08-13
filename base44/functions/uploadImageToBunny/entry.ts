@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const rand = Math.random().toString(36).slice(2, 10);
     const path = `tlec/${ts}-${rand}.jpg`;
 
-    const uploadUrl = `https://storage.bunny.net/${storageZone}/${path}`;
+    const uploadUrl = `https://storage.bunnycdn.com/${storageZone}/${path}`;
     const res = await fetch(uploadUrl, {
       method: 'PUT',
       headers: {
