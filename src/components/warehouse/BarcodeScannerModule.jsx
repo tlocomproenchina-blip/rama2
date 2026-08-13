@@ -38,6 +38,12 @@ export default function BarcodeScannerModule({
   const lastCodeRef = useRef('');
   const lastDetectedAtRef = useRef(0);
   const audioCtxRef = useRef(null);
+  // Historial de códigos escaneados recientemente (anti-duplicado robusto).
+  // No basta con comparar contra el último código: si escaneas A, luego B, y
+  // al mover A pasa otra vez frente a la cámara, A se volvería a agregar.
+  // Aquí guardamos todos los códigos vistos en los últimos N segundos.
+  const recentCodesRef = useRef(new Map());
+  const RECENT_CODE_COOLDOWN_MS = 8000; // 8s: si el mismo código se repite dentro de esta ventana, se ignora
 
   const playBeep = useCallback(() => {
     try {
@@ -154,8 +160,16 @@ export default function BarcodeScannerModule({
 
         if (continuous) {
           const now = Date.now();
-          const isDuplicate = code === lastCodeRef.current && now - lastDetectedAtRef.current < 4000;
+          // Limpia códigos antiguos del historial (vencidos)
+          const recent = recentCodesRef.current;
+          for (const [k, ts] of recent) {
+            if (now - ts > RECENT_CODE_COOLDOWN_MS) recent.delete(k);
+          }
+          // Anti-duplicado robusto: revisa TODO el historial reciente, no solo el último.
+          // Si el código ya fue escaneado en los últimos 8s, se ignora silenciosamente.
+          const isDuplicate = recent.has(code);
           if (!isDuplicate) {
+            recent.set(code, now);
             lastCodeRef.current = code;
             lastDetectedAtRef.current = now;
             capturePhoto();
@@ -214,6 +228,7 @@ export default function BarcodeScannerModule({
     scanAttemptsRef.current = 0;
     lastCodeRef.current = '';
     lastDetectedAtRef.current = 0;
+    recentCodesRef.current = new Map();
 
     // Aplica capacidades avanzadas si el dispositivo las soporta (S25 Ultra sí):
     // enfoque continuo, exposición automática y modo macro/zoom suave para códigos pequeños.
