@@ -34,9 +34,22 @@ export default function QuickBulkPreAlertForm({ trackingNumbers = [], onCreated,
     if (!selectedClient || trackingNumbers.length === 0) return;
     setCreating(true);
     try {
+      const uniqueTrackings = [...new Set(trackingNumbers.map((t) => t.trim()).filter(Boolean))];
+      const existingRows = await base44.entities.Package.filter(
+        { tracking_number: { $in: uniqueTrackings } },
+        '-created_date',
+        uniqueTrackings.length
+      );
+      const existingSet = new Set((existingRows || []).map((p) => p.tracking_number));
+      const toCreate = uniqueTrackings.filter((t) => !existingSet.has(t));
+      if (toCreate.length === 0) {
+        toast.error('Todos los trackings ya están registrados en el sistema');
+        setCreating(false);
+        return;
+      }
       await base44.entities.Package.bulkCreate(
-        trackingNumbers.map((t) => ({
-          tracking_number: t.trim(),
+        toCreate.map((t) => ({
+          tracking_number: t,
           client_email: selectedClient.email,
           shipping_mark: selectedClient.shipping_mark || '',
           shipping_type: shippingType,
@@ -45,8 +58,9 @@ export default function QuickBulkPreAlertForm({ trackingNumbers = [], onCreated,
           reported: true,
         }))
       );
-      toast.success(`${trackingNumbers.length} pre-alerta(s) creada(s) para ${selectedClient.full_name || selectedClient.email}`);
-      if (typeof onCreated === 'function') onCreated(selectedClient, trackingNumbers);
+      const skipped = uniqueTrackings.length - toCreate.length;
+      toast.success(`${toCreate.length} pre-alerta(s) creada(s) para ${selectedClient.full_name || selectedClient.email}${skipped > 0 ? ` · ${skipped} duplicado(s) omitido(s)` : ''}`);
+      if (typeof onCreated === 'function') onCreated(selectedClient, toCreate);
     } catch (e) {
       toast.error('No se pudieron crear las pre-alertas');
     }

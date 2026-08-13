@@ -128,6 +128,16 @@ export default function AdminPackages({ user }) {
     }
     setEditPackageProcessing(true);
     try {
+      const newTracking = patch.tracking_number.trim();
+      const oldTracking = (editPackageModal.tracking_number || '').trim();
+      if (newTracking !== oldTracking) {
+        const existing = await base44.entities.Package.filter({ tracking_number: newTracking }, '-created_date', 1);
+        if (existing?.length > 0) {
+          toast.error('Ese tracking ya está registrado en otro paquete');
+          setEditPackageProcessing(false);
+          return;
+        }
+      }
       await base44.entities.Package.update(editPackageModal.id, patch);
       patchPackageInList(editPackageModal.id, patch);
       toast.success('Paquete actualizado');

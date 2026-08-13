@@ -35,6 +35,12 @@ export default function QuickPreAlertForm({ trackingNumber, onCreated, onCancel 
     if (!selectedClient || !trackingNumber) return;
     setCreating(true);
     try {
+      const existing = await base44.entities.Package.filter({ tracking_number: trackingNumber.trim() }, '-created_date', 1);
+      if (existing?.length > 0) {
+        toast.error('Este tracking ya está registrado en el sistema');
+        setCreating(false);
+        return;
+      }
       await base44.entities.Package.create({
         tracking_number: trackingNumber.trim(),
         client_email: selectedClient.email,

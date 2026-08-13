@@ -461,6 +461,10 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
               if (!code) return;
               setTrackingNumbers((prev) => {
                 const filled = prev.filter((item) => item.trim() !== '');
+                if (filled.some((item) => item === code)) {
+                  toast.warning(`El tracking ${code} ya está en la lista`, { duration: 2000 });
+                  return prev;
+                }
                 if (filled[filled.length - 1] === code) return [...filled, ''];
                 return [...filled, code, ''];
               });
