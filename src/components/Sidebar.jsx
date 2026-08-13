@@ -113,10 +113,28 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
   }, [user?.role, user?.custom_role, roleConfig, config?.sidebar_hidden_pages]);
 
   const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
-  const filteredAdminGroups = useMemo(() => adminGroups.map((group) => ({
-    ...group,
-    items: group.items.filter((page) => visibleAdminPages.includes(page))
-  })).filter((group) => group.items.length > 0), [visibleAdminPages]);
+  const filteredAdminGroups = useMemo(() => {
+    const groups = adminGroups.map((group) => ({
+      ...group,
+      items: group.items.filter((page) => visibleAdminPages.includes(page))
+    })).filter((group) => group.items.length > 0);
+
+    // Si el admin tiene un rol personalizado, su página de aterrizaje
+    // (visible_pages[0]) debe ser siempre el primer ítem del sidebar.
+    // Si ya está primera en el primer grupo, no hacer nada; si no,
+    // moverla a un grupo PRINCIPAL al inicio.
+    if (user?.custom_role && roleConfig?.visible_pages?.length && visibleAdminPages.length > 0) {
+      const landingPage = visibleAdminPages[0];
+      const isFirst = groups[0]?.items?.[0] === landingPage;
+      if (!isFirst) {
+        const cleaned = groups
+          .map((g) => ({ ...g, items: g.items.filter((p) => p !== landingPage) }))
+          .filter((g) => g.items.length > 0);
+        return [{ label: 'PRINCIPAL', items: [landingPage] }, ...cleaned];
+      }
+    }
+    return groups;
+  }, [visibleAdminPages, user?.custom_role, roleConfig]);
 
   const adminItemsByPage = useMemo(() => Object.fromEntries(filteredAdminMenuItems.map((item) => [item.page, item])), [filteredAdminMenuItems]);
   const clientItemsByPage = useMemo(() => Object.fromEntries(clientMenuItems.map((item) => [item.page, item])), []);
