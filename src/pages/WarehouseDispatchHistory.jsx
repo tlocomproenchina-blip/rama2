@@ -462,12 +462,27 @@ export default function WarehouseDispatchHistory({ user }) {
     setMerging(true);
     try {
       const res = await base44.functions.invoke('mergeDispatchOrders', { order_ids: selectedIds });
+      const mergedOrder = res?.data?.order;
       const merged = res?.data?.merged || 0;
       const added = res?.data?.added || 0;
+
+      // Actualización optimista inmediata: la orden destino queda con todos
+      // los items y las órdenes fuente desaparecen de la lista al instante.
+      if (mergedOrder) {
+        const sourceIds = new Set(selectedIds.filter((id) => id !== mergedOrder.id));
+        setOrders((prev) =>
+          prev
+            .filter((o) => !sourceIds.has(o.id))
+            .map((o) => (o.id === mergedOrder.id ? { ...o, ...mergedOrder } : o))
+        );
+      }
+
       toast.success(`${merged + 1} órdenes fusionadas en una sola (+${added} paquetes)`);
       setSelectedIds([]);
       setSelectMode(false);
-      await load();
+
+      // Recargar tras un breve delay para confirmar con datos frescos del servidor
+      setTimeout(() => load(), 600);
     } catch (e) {
       const msg = e?.response?.data?.error || e?.message || 'No se pudo fusionar';
       toast.error(msg);
