@@ -29,6 +29,7 @@ export default function WarehouseDispatchHistory({ user }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [employees, setEmployees] = useState([]);
+  const [showDuplicateReceipts, setShowDuplicateReceipts] = useState(false);
 
   // El filtro por creador es exclusivo del administrador general
   const canFilterByCreator = user?.role === 'admin';
@@ -334,6 +335,29 @@ export default function WarehouseDispatchHistory({ user }) {
     return Array.from(map.entries()).map(([email, name]) => ({ email, name }));
   }, [employees, orders]);
 
+  // IDs de órdenes "emitida" que comparten al menos un recibo con otra orden
+  // "emitida" del mismo cliente → candidatas a fusión
+  const duplicateReceiptOrderIds = useMemo(() => {
+    const candidates = orders.filter((o) => o.status === 'emitida');
+    const map = {};
+    candidates.forEach((o) => {
+      const email = (o.client_email || '').trim().toLowerCase();
+      const receipts = (o.items || [])
+        .map((i) => String(i.consolidation_tracking || '').trim())
+        .filter((r) => r && r !== 'Sin recibo');
+      receipts.forEach((r) => {
+        const key = `${email}|||${r}`;
+        if (!map[key]) map[key] = new Set();
+        map[key].add(o.id);
+      });
+    });
+    const dupIds = new Set();
+    Object.values(map).forEach((idSet) => {
+      if (idSet.size >= 2) idSet.forEach((id) => dupIds.add(id));
+    });
+    return dupIds;
+  }, [orders]);
+
   const q = search.trim().toLowerCase();
   const byCreator = (!canFilterByCreator || creatorFilter === 'all')
     ? orders
@@ -368,7 +392,11 @@ export default function WarehouseDispatchHistory({ user }) {
     return true;
   });
 
-  const filtered = !q ? byDate : byDate.filter((o) =>
+  const byDup = showDuplicateReceipts
+    ? byDate.filter((o) => duplicateReceiptOrderIds.has(o.id))
+    : byDate;
+
+  const filtered = !q ? byDup : byDup.filter((o) =>
     (o.order_number || '').toLowerCase().includes(q) ||
     (o.client_email || '').toLowerCase().includes(q) ||
     (o.client_name || '').toLowerCase().includes(q) ||
@@ -525,6 +553,15 @@ export default function WarehouseDispatchHistory({ user }) {
         </Select>
         )}
         <Button
+          variant={showDuplicateReceipts ? "default" : "outline"}
+          onClick={() => setShowDuplicateReceipts((v) => !v)}
+          className="shrink-0"
+          title="Mostrar solo órdenes no despachadas que comparten recibo con otra orden del mismo cliente"
+        >
+          <GitMerge className="h-4 w-4" />
+          {showDuplicateReceipts ? 'Recibos dup. ON' : 'Recibos duplicados'}
+        </Button>
+        <Button
           variant={selectMode ? "default" : "outline"}
           onClick={() => { setSelectMode(!selectMode); setSelectedIds([]); }}
           className="shrink-0"
@@ -558,6 +595,16 @@ export default function WarehouseDispatchHistory({ user }) {
           </Button>
         )}
       </div>
+
+      {showDuplicateReceipts && (
+        <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-sm text-amber-700">
+          <GitMerge className="h-4 w-4 shrink-0" />
+          <span>
+            Mostrando {filtered.length} orden(es) no despachadas que comparten número de recibo con otra orden del mismo cliente.
+            Usa <strong>Seleccionar</strong> y elige las órdenes del mismo cliente para fusionarlas.
+          </span>
+        </div>
+      )}
 
       {selectMode && (
         <div className="flex items-center justify-between gap-2 flex-wrap rounded-xl border border-blue-200 bg-blue-50/60 p-3">
