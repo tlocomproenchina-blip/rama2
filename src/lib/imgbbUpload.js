@@ -55,7 +55,7 @@ export async function uploadImageNoCredits(file) {
   if (!base64) throw new Error('No se pudo procesar la imagen');
 
   // Timeout de red: si el backend no responde en 30s, cortar para no quedar colgado
-  const invokePromise = base44.functions.invoke('uploadImageToImgbb', { image_base64: base64 });
+  const invokePromise = base44.functions.invoke('uploadImageToBunny', { image_base64: base64 });
   const timeoutPromise = new Promise((_, reject) =>
     setTimeout(() => reject(new Error('La subida tardó demasiado. Revisa tu conexión e intenta de nuevo.')), 30000)
   );
