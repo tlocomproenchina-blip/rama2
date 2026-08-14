@@ -66,6 +66,19 @@
       "type": "string",
       "description": "Soporte/imagen opcional"
     },
+    "purchase_receipt_url": {
+      "type": "string",
+      "description": "Foto del comprobante de compra subida por el administrador"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "N\u00famero de tracking cargado por el administrador cuando est\u00e1 disponible"
+    },
+    "tracking_prealerted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si ya se cre\u00f3 la pre-alerta autom\u00e1tica al cargar el tracking"
+    },
     "notes": {
       "type": "string",
       "description": "Notas del cliente"

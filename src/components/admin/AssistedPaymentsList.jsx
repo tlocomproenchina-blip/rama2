@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
-import { Link2, ExternalLink, Search, Hash, MessageCircle } from 'lucide-react';
+import { Link2, ExternalLink, Search, Hash, MessageCircle, Upload, PackageCheck, Loader2 } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import useFileViewer from '@/hooks/useFileViewer';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
 const providerLabels = {
   alibaba: 'Alibaba',
@@ -26,6 +27,9 @@ export default function AssistedPaymentsList() {
   const [clientsMap, setClientsMap] = React.useState({});
   const [invoiceNumbers, setInvoiceNumbers] = React.useState({});
   const imageViewer = useFileViewer();
+  const [uploadingReceipt, setUploadingReceipt] = React.useState({});
+  const [savingTracking, setSavingTracking] = React.useState({});
+  const [trackingInputs, setTrackingInputs] = React.useState({});
 
   const load = async () => {
     const [reqs, cfg] = await Promise.all([
@@ -87,6 +91,35 @@ export default function AssistedPaymentsList() {
       toast.success('Configuración guardada');
     } catch (e) { toast.error('No se pudo guardar'); }
     setSavingCfg(false);
+  };
+
+  const handleUploadReceipt = async (req, file) => {
+    setUploadingReceipt(prev => ({ ...prev, [req.id]: true }));
+    try {
+      const url = await uploadImageNoCredits(file);
+      await base44.entities.AssistedPaymentRequest.update(req.id, { purchase_receipt_url: url });
+      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, purchase_receipt_url: url } : r));
+      toast.success('Comprobante cargado');
+    } catch (e) {
+      toast.error(e.message || 'No se pudo subir el comprobante');
+    }
+    setUploadingReceipt(prev => ({ ...prev, [req.id]: false }));
+  };
+
+  const handleSaveTracking = async (req) => {
+    const tracking = (trackingInputs[req.id] || '').trim();
+    if (!tracking) return;
+    setSavingTracking(prev => ({ ...prev, [req.id]: true }));
+    try {
+      const res = await base44.functions.invoke('createAssistedPaymentPrealert', { request_id: req.id, tracking_number: tracking });
+      if (res?.data?.error) throw new Error(res.data.error);
+      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, tracking_number: tracking, tracking_prealerted: true } : r));
+      setTrackingInputs(prev => { const n = { ...prev }; delete n[req.id]; return n; });
+      toast.success('Pre-alerta creada automáticamente');
+    } catch (e) {
+      toast.error(e.message || 'No se pudo crear la pre-alerta');
+    }
+    setSavingTracking(prev => ({ ...prev, [req.id]: false }));
   };
 
   const updateStatus = async (req, status) => {
@@ -230,6 +263,72 @@ export default function AssistedPaymentsList() {
           <p className="text-sm text-slate-700 bg-amber-50 rounded p-2">{r.notes}</p>
         </div>
       )}
+
+      {/* Comprobante de compra (admin) */}
+      <div className="space-y-2 pt-2 border-t border-slate-100">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Comprobante de compra</p>
+        {r.purchase_receipt_url ? (
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => imageViewer.open(r.purchase_receipt_url, 'Comprobante de compra')} className="cursor-pointer">
+              <img src={r.purchase_receipt_url} alt="Comprobante" className="h-24 w-24 object-cover rounded border bg-white" />
+            </button>
+            <label className="cursor-pointer">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700">
+                <Upload className="h-3.5 w-3.5" /> Reemplazar
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUploadReceipt(r, file);
+                e.target.value = '';
+              }} />
+            </label>
+          </div>
+        ) : (
+          <label className="cursor-pointer inline-flex">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
+              {uploadingReceipt[r.id] ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {uploadingReceipt[r.id] ? 'Subiendo...' : 'Cargar comprobante'}
+            </span>
+            <input type="file" accept="image/*" className="hidden" disabled={!!uploadingReceipt[r.id]} onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleUploadReceipt(r, file);
+              e.target.value = '';
+            }} />
+          </label>
+        )}
+      </div>
+
+      {/* Tracking number (admin) → pre-alerta automática */}
+      <div className="space-y-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Número de tracking</p>
+        {r.tracking_prealerted && r.tracking_number ? (
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 rounded px-2 py-1 break-all">
+              <PackageCheck className="h-3.5 w-3.5 shrink-0" /> {r.tracking_number}
+            </span>
+            <span className="text-xs text-emerald-600 whitespace-nowrap">Pre-alerta creada</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Input
+              value={trackingInputs[r.id] || ''}
+              onChange={(e) => setTrackingInputs(prev => ({ ...prev, [r.id]: e.target.value }))}
+              placeholder="Ingresa el tracking..."
+              className="flex-1"
+              disabled={!!savingTracking[r.id]}
+            />
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 whitespace-nowrap"
+              disabled={!!savingTracking[r.id] || !(trackingInputs[r.id] || '').trim()}
+              onClick={() => handleSaveTracking(r)}
+            >
+              {savingTracking[r.id] ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PackageCheck className="h-3.5 w-3.5" />}
+              Pre-alertar
+            </Button>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-col gap-2 sm:flex-row pt-1">
         <Button

@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
-import { Search, Hash, CreditCard } from 'lucide-react';
+import { Search, Hash, CreditCard, PackageCheck, ImageIcon } from 'lucide-react';
+import useFileViewer from '@/hooks/useFileViewer';
 
 const providerLabels = {
   alibaba: 'Alibaba',
@@ -24,6 +25,7 @@ export default function AssistedPaymentHistory({ user }) {
   const navigate = useNavigate();
   const [items, setItems] = React.useState([]);
   const [query, setQuery] = React.useState('');
+  const imageViewer = useFileViewer();
 
   const load = async () => {
     const reqs = await base44.entities.AssistedPaymentRequest.filter({ client_email: user.email }, '-created_date', 50).catch(() => []);
@@ -72,6 +74,8 @@ export default function AssistedPaymentHistory({ user }) {
                   <th className="py-2 pr-4">Monto</th>
                   <th className="py-2 pr-4">Comisión</th>
                   <th className="py-2 pr-4">Estado</th>
+                  <th className="py-2 pr-4">Comprobante</th>
+                  <th className="py-2 pr-4">Tracking</th>
                   <th className="py-2">Factura</th>
                 </tr>
               </thead>
@@ -89,6 +93,20 @@ export default function AssistedPaymentHistory({ user }) {
                     <td className="py-2 pr-4">${(r.amount||0).toFixed(2)}</td>
                     <td className="py-2 pr-4">${(r.fee_amount||0).toFixed(2)}</td>
                     <td className="py-2 pr-4">{r.status === 'en_proceso' && r.invoice_id ? 'Pago pendiente' : (statusLabels[r.status] || r.status)}</td>
+                    <td className="py-2 pr-4">
+                      {r.purchase_receipt_url ? (
+                        <button type="button" onClick={() => imageViewer.open(r.purchase_receipt_url, 'Comprobante de compra')} title="Ver comprobante" className="cursor-pointer">
+                          <img src={r.purchase_receipt_url} alt="Comprobante" className="h-12 w-12 object-cover rounded border bg-white" />
+                        </button>
+                      ) : <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {r.tracking_number ? (
+                        <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 rounded px-1.5 py-0.5 whitespace-nowrap">
+                          <PackageCheck className="h-3 w-3" />{r.tracking_number}
+                        </span>
+                      ) : <span className="text-slate-400">—</span>}
+                    </td>
                     <td className="py-2">
                       {r.invoice_id && r.status === 'en_proceso' ? (
                         <Button
