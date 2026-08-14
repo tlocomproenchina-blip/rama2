@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
-import { Link2, ExternalLink, Search, Hash, MessageCircle, Upload, PackageCheck, Loader2 } from 'lucide-react';
+import { Link2, ExternalLink, Search, Hash, MessageCircle, Upload, PackageCheck, Loader2, Clipboard } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import useFileViewer from '@/hooks/useFileViewer';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
@@ -104,6 +104,32 @@ export default function AssistedPaymentsList() {
       toast.error(e.message || 'No se pudo subir el comprobante');
     }
     setUploadingReceipt(prev => ({ ...prev, [req.id]: false }));
+  };
+
+  const handlePasteReceipt = async (req) => {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imgType = item.types.find((t) => t.startsWith('image/'));
+        if (imgType) {
+          const blob = await item.getType(imgType);
+          await handleUploadReceipt(req, new File([blob], 'comprobante-pegado.png', { type: imgType }));
+          return;
+        }
+      }
+      toast.error('No hay ninguna imagen en el portapapeles');
+    } catch (_) {
+      toast.error('No se pudo leer el portapapeles. Usa Ctrl+V sobre esta sección.');
+    }
+  };
+
+  const handlePasteReceiptEvent = (e, req) => {
+    const file = Array.from(e.clipboardData?.items || [])
+      .find((i) => i.type.startsWith('image/'))?.getAsFile();
+    if (file) {
+      e.preventDefault();
+      handleUploadReceipt(req, file);
+    }
   };
 
   const handleSaveTracking = async (req) => {
@@ -265,7 +291,7 @@ export default function AssistedPaymentsList() {
       )}
 
       {/* Comprobante de compra (admin) */}
-      <div className="space-y-2 pt-2 border-t border-slate-100">
+      <div className="space-y-2 pt-2 border-t border-slate-100" onPaste={(e) => handlePasteReceiptEvent(e, r)} tabIndex={-1}>
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Comprobante de compra</p>
         {r.purchase_receipt_url ? (
           <div className="flex items-center gap-3">
@@ -284,17 +310,28 @@ export default function AssistedPaymentsList() {
             </label>
           </div>
         ) : (
-          <label className="cursor-pointer inline-flex">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
-              {uploadingReceipt[r.id] ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-              {uploadingReceipt[r.id] ? 'Subiendo...' : 'Cargar comprobante'}
-            </span>
-            <input type="file" accept="image/*" className="hidden" disabled={!!uploadingReceipt[r.id]} onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleUploadReceipt(r, file);
-              e.target.value = '';
-            }} />
-          </label>
+          <div className="flex items-center gap-2">
+            <label className="cursor-pointer inline-flex">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 whitespace-nowrap">
+                {uploadingReceipt[r.id] ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                {uploadingReceipt[r.id] ? 'Subiendo...' : 'Cargar comprobante'}
+              </span>
+              <input type="file" accept="image/*" className="hidden" disabled={!!uploadingReceipt[r.id]} onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUploadReceipt(r, file);
+                e.target.value = '';
+              }} />
+            </label>
+            <button
+              type="button"
+              disabled={!!uploadingReceipt[r.id]}
+              onClick={() => handlePasteReceipt(r)}
+              className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 whitespace-nowrap"
+            >
+              <Clipboard className="h-3.5 w-3.5" />
+              Pegar imagen
+            </button>
+          </div>
         )}
       </div>
 
