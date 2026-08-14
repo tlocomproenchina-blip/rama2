@@ -24,6 +24,7 @@ export default function Inicio2Header() {
           <button onClick={() => scrollTo('calculadora2')} className="hover:text-white">Calculadora</button>
           <button onClick={() => scrollTo('servicios2')} className="hover:text-white">Servicios</button>
           <button onClick={() => scrollTo('preguntas2')} className="hover:text-white">Preguntas</button>
+          <Link to={createPageUrl('Blog')} className="hover:text-white">Blog</Link>
         </nav>
         <div className="flex items-center gap-2">
           <a href="https://wa.me/" className="hidden items-center gap-1.5 text-sm text-zinc-300 hover:text-white lg:flex">
