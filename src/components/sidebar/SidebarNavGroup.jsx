@@ -59,7 +59,7 @@ export default function SidebarNavGroup({ label, pages, itemsByPage, currentPage
                   ].join(' ')} />
                   <div className={[
                     'relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl transition-all duration-200',
-                    isActive ? 'bg-white/18 text-white shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:bg-accent group-hover:text-foreground'
+                    isActive ? 'bg-[rgba(255,255,255,0.18)] text-white shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:bg-accent group-hover:text-foreground'
                   ].join(' ')}>
                     <Icon className="h-5 w-5" />
                     {flags?.[item.page] && (
