@@ -192,21 +192,16 @@ export default function Layout({ children, currentPageName }) {
       }
 
       // Redirect admin when landing on Home/Dashboard or no page specified.
-      // Si el admin tiene un área asignada con páginas visibles, enviar a la
-      // primera página de su área en vez de AccountingDashboard (que puede no
-      // tener permiso). Sin área → AccountingDashboard como antes.
+      // Siempre mostrar el Resumen Diario al iniciar sesión o abrir la app.
       if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Home' || currentPageName === 'Inicio2')) {
-        const firstPage = (resolvedRoleConfig?.visible_pages?.length)
-          ? resolvedRoleConfig.visible_pages[0]
-          : 'AccountingDashboard';
-        navigate(createPageUrl(firstPage));
+        navigate(createPageUrl('AdminDailySummary'));
         setLoading(false);
         return;
       }
 
       // Redirect role-limited admins away from any page they can't access
-      // (incluye AccountingDashboard — ya no se excluye ninguna página)
-      if (currentUser.role === 'admin' && resolvedRoleConfig?.visible_pages?.length && currentPageName && !resolvedRoleConfig.visible_pages.includes(currentPageName)) {
+      // (AdminDailySummary siempre permitido para admins)
+      if (currentUser.role === 'admin' && resolvedRoleConfig?.visible_pages?.length && currentPageName && currentPageName !== 'AdminDailySummary' && !resolvedRoleConfig.visible_pages.includes(currentPageName)) {
         navigate(createPageUrl(resolvedRoleConfig.visible_pages[0] || 'AccountingDashboard'));
         setLoading(false);
         return;
