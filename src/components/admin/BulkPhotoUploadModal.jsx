@@ -143,7 +143,10 @@ export default function BulkPhotoUploadModal({ open, onOpenChange, onCompleted }
     const t = String(code || '').trim();
     if (!t) return;
     setScannerTrackingList((prev) => {
-      if (prev.includes(t)) { toast.info('Tracking ya agregado'); return prev; }
+      if (prev.includes(t)) {
+        // Re-escaneo: mover al final (más reciente) sin toast
+        return [...prev.filter((x) => x !== t), t];
+      }
       return [...prev, t];
     });
     checkScannerTracking(t);
