@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw, Package, Users, CreditCard, FileText, ShieldCheck, MessageCircle, Clock, AlertTriangle, ShoppingBag } from 'lucide-react';
+import { Loader2, RefreshCw, Package, Users, CreditCard, FileText, ShieldCheck, MessageCircle, Clock, AlertTriangle, ShoppingBag, UserX } from 'lucide-react';
 import PageHero from '@/components/common/PageHero';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const REFRESH_INTERVAL = 60 * 1000; // 60 segundos
 
 const fmt = (n) => Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const fmtUsd = (n) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -15,10 +16,14 @@ export default function AdminDailySummary({ user }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const timerRef = useRef(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+
       const now = new Date();
       const since = new Date(now.getTime() - DAY_MS).toISOString();
 
@@ -28,22 +33,24 @@ export default function AdminDailySummary({ user }) {
         recentPayments,
         recentTickets,
         recentInvoices,
-        pendingPayments,
-        pendingAssisted,
-        openTickets,
+        allPayments,
+        allAssisted,
+        allTickets,
       ] = await Promise.all([
         base44.entities.Package.list('-created_date', 500),
         base44.entities.User.list('-created_date', 500),
         base44.entities.InvoicePayment.list('-approved_date', 500),
         base44.entities.SupportTicket.list('-created_date', 500),
         base44.entities.Invoice.list('-created_date', 500),
-        base44.entities.InvoicePayment.filter({ status: 'pendiente' }, '-created_date', 500),
-        base44.entities.AssistedPaymentRequest.filter({ status: 'pendiente' }, '-created_date', 500),
-        base44.entities.SupportTicket.filter({ status: 'abierto' }, '-created_date', 500),
+        base44.entities.InvoicePayment.list('-created_date', 500),
+        base44.entities.AssistedPaymentRequest.list('-created_date', 500),
+        base44.entities.SupportTicket.list('-created_date', 500),
       ]);
 
+      // === Filtrado client-side (más confiable que filter por status) ===
       const newPackages = (recentPackages || []).filter((p) => p.created_date && p.created_date >= since);
       const newClients = (recentUsers || []).filter((u) => u.role === 'user' && u.created_date && u.created_date >= since);
+      const clientsWithoutMark = newClients.filter((u) => !u.shipping_mark);
       const newPayments = (recentPayments || []).filter((p) => p.status === 'aprobado' && p.approved_date && p.approved_date >= since);
       const newTickets = (recentTickets || []).filter((t) => t.created_date && t.created_date >= since);
       const newInvoices = (recentInvoices || []).filter((i) => i.created_date && i.created_date >= since);
@@ -51,8 +58,12 @@ export default function AdminDailySummary({ user }) {
       const insuredRecent = newPackages.filter((p) => p.has_insurance);
       const paymentsTotal = newPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
       const invoicesTotal = newInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-      const invoicesPaidTotal = newInvoices.filter((i) => i.status === 'pagada').reduce((s, i) => s + Number(i.total || 0), 0);
       const insuredTotalFob = insuredRecent.reduce((s, p) => s + Number(p.fob_value || 0), 0);
+
+      // Pendientes actuales (filtrado client-side)
+      const pendingPaymentsCount = (allPayments || []).filter((p) => p.status === 'pendiente').length;
+      const pendingAssistedCount = (allAssisted || []).filter((p) => p.status === 'pendiente').length;
+      const openTicketsCount = (allTickets || []).filter((t) => t.status === 'abierto').length;
 
       setData({
         periodStart: fmtDate(new Date(now.getTime() - DAY_MS)),
@@ -60,17 +71,19 @@ export default function AdminDailySummary({ user }) {
         activity: [
           { icon: Package, label: 'Paquetes registrados', value: fmt(newPackages.length), highlight: newPackages.length > 0, color: 'text-blue-600' },
           { icon: Users, label: 'Nuevos clientes', value: fmt(newClients.length), highlight: newClients.length > 0, color: 'text-emerald-600' },
+          { icon: UserX, label: 'Sin shipping mark', value: fmt(clientsWithoutMark.length), highlight: clientsWithoutMark.length > 0, color: 'text-amber-600' },
           { icon: CreditCard, label: 'Pagos aprobados', value: `${fmt(newPayments.length)} (${fmtUsd(paymentsTotal)})`, highlight: newPayments.length > 0, color: 'text-emerald-600' },
           { icon: FileText, label: 'Facturas emitidas', value: `${fmt(newInvoices.length)} (${fmtUsd(invoicesTotal)})`, highlight: newInvoices.length > 0, color: 'text-slate-800' },
           { icon: ShieldCheck, label: 'Paquetes asegurados', value: `${fmt(insuredRecent.length)} (${fmtUsd(insuredTotalFob)} FOB)`, highlight: insuredRecent.length > 0, color: 'text-amber-600' },
           { icon: MessageCircle, label: 'Tickets nuevos', value: fmt(newTickets.length), highlight: newTickets.length > 0, color: 'text-rose-600' },
         ],
         pending: [
-          { icon: Clock, label: 'Pagos por validar', value: fmt((pendingPayments || []).length), alert: (pendingPayments || []).length > 0, color: 'text-amber-600' },
-          { icon: ShoppingBag, label: 'Pagos asistidos pendientes', value: fmt((pendingAssisted || []).length), alert: (pendingAssisted || []).length > 0, color: 'text-amber-600' },
-          { icon: AlertTriangle, label: 'Tickets abiertos', value: fmt((openTickets || []).length), alert: (openTickets || []).length > 0, color: 'text-rose-600' },
+          { icon: Clock, label: 'Pagos por validar', value: fmt(pendingPaymentsCount), alert: pendingPaymentsCount > 0, color: 'text-amber-600' },
+          { icon: ShoppingBag, label: 'Pagos asistidos pendientes', value: fmt(pendingAssistedCount), alert: pendingAssistedCount > 0, color: 'text-amber-600' },
+          { icon: AlertTriangle, label: 'Tickets abiertos', value: fmt(openTicketsCount), alert: openTicketsCount > 0, color: 'text-rose-600' },
         ],
       });
+      setLastUpdate(new Date());
     } catch (error) {
       console.error('Error loading daily summary:', error);
     } finally {
@@ -81,12 +94,28 @@ export default function AdminDailySummary({ user }) {
 
   useEffect(() => {
     load();
+
+    // Auto-refresh cada 60 segundos
+    timerRef.current = setInterval(() => load(true), REFRESH_INTERVAL);
+
+    // Suscripción en tiempo real a cambios de entidades clave
+    const unsubPackage = base44.entities.Package.subscribe?.(() => load(true));
+    const unsubPayment = base44.entities.InvoicePayment.subscribe?.(() => load(true));
+    const unsubTicket = base44.entities.SupportTicket.subscribe?.(() => load(true));
+    const unsubAssisted = base44.entities.AssistedPaymentRequest.subscribe?.(() => load(true));
+    const unsubInvoice = base44.entities.Invoice.subscribe?.(() => load(true));
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      unsubPackage?.();
+      unsubPayment?.();
+      unsubTicket?.();
+      unsubAssisted?.();
+      unsubInvoice?.();
+    };
   }, [load]);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    load();
-  };
+  const handleRefresh = () => load(true);
 
   if (loading && !data) {
     return (
@@ -113,10 +142,15 @@ export default function AdminDailySummary({ user }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Período</p>
               <p className="text-sm font-medium text-slate-700">{data.periodStart} → {data.periodEnd}</p>
             </div>
-            <Button variant="outline" onClick={handleRefresh} disabled={refreshing} className="gap-2">
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              Actualizar
-            </Button>
+            <div className="flex items-center gap-3">
+              {lastUpdate && (
+                <span className="text-xs text-slate-400">Actualizado: {lastUpdate.toLocaleTimeString('es-VE')}</span>
+              )}
+              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="gap-2">
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Actualizar
+              </Button>
+            </div>
           </div>
 
           <Card className="border-0 shadow-lg">
