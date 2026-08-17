@@ -61,6 +61,7 @@ export default function Layout({ children, currentPageName }) {
   const [showProfile, setShowProfile] = useState(false);
   const [isInstalledApp, setIsInstalledApp] = useState(false);
   const [isNative, setIsNative] = useState(false);
+  const [isApkApp, setIsApkApp] = useState(false);
   const [slideDirection, setSlideDirection] = useState(1);
   const [showTour, setShowTour] = useState(false);
   const navigate = useNavigate();
@@ -94,8 +95,10 @@ export default function Layout({ children, currentPageName }) {
       const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (window.navigator && window.navigator.standalone === true);
       const ua = (navigator.userAgent || '').toLowerCase();
       const isAndroidWebView = /wv|webview/.test(ua) || (ua.includes('android') && /version\/\d/.test(ua));
+      const isIosNative = /iphone|ipad|ipod/.test(ua) && !/safari|crios|fxios/.test(ua);
       setIsInstalledApp(!!isStandalone);
       setIsNative(!!isStandalone || isAndroidWebView);
+      setIsApkApp(!!isAndroidWebView || !!isIosNative);
     } catch (_) {
       setIsInstalledApp(false);
       setIsNative(false);
@@ -439,7 +442,7 @@ export default function Layout({ children, currentPageName }) {
         <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
       )}
 
-      {user?.role === 'user' && isNative && <MobileBottomNav />}
+      {user?.role === 'user' && isApkApp && <MobileBottomNav />}
 
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
 
@@ -517,7 +520,7 @@ export default function Layout({ children, currentPageName }) {
          {/* Main Content */}
         <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
           <PullToRefresh enabled={!!user} onRefresh={async () => { await queryClientInstance.invalidateQueries(); }}>
-            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: isNative ? 'calc(env(safe-area-inset-bottom) + 72px)' : 'env(safe-area-inset-bottom)' }}>
+            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: isApkApp ? 'calc(env(safe-area-inset-bottom) + 72px)' : 'env(safe-area-inset-bottom)' }}>
               {showBackButton && (
                 <div className="mb-3">
                   <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
