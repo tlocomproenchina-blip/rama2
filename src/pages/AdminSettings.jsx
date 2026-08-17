@@ -23,6 +23,7 @@ import {
   Building2,
   FileText,
   Clock,
+  Calendar,
   Trash2,
   HardDrive,
   FlaskConical,
@@ -82,6 +83,9 @@ export default function AdminSettings({ user }) {
     door_to_door_cost: 20,
     is_door_to_door_optional: true
   });
+
+  // Fecha de vigencia para cambios de tarifa (default: hoy)
+  const [rateEffectiveDate, setRateEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
 
   // States Config
   const [statesConfig, setStatesConfig] = useState([]);
@@ -189,16 +193,20 @@ export default function AdminSettings({ user }) {
     setLoading(false);
   };
 
+  // Guarda tarifas (base + especiales) archivando el historial automáticamente
   const handleSavePricing = async () => {
     setSaving(true);
     try {
-      const existing = await base44.entities.PricingConfig.filter({ config_key: 'main' });
-      if (existing.length > 0) {
-        await base44.entities.PricingConfig.update(existing[0].id, { ...pricingConfig, config_key: 'main' });
+      const res = await base44.functions.invoke('saveRatesWithHistory', {
+        pricing: pricingConfig,
+        special_cbm_rates: appConfig.special_cbm_rates || [],
+        effective_date: rateEffectiveDate
+      });
+      if (res?.data?.status === 'ok') {
+        toast.success(`Tarifas guardadas. Vigentes desde ${res.data.effective_date}. Las anteriores se archivaron automáticamente.`);
       } else {
-        await base44.entities.PricingConfig.create({ ...pricingConfig, config_key: 'main' });
+        throw new Error(res?.data?.error || 'Respuesta inesperada');
       }
-      toast.success('Configuración de precios guardada');
     } catch (error) {
       toast.error('Error al guardar precios');
     }
@@ -698,6 +706,23 @@ export default function AdminSettings({ user }) {
                 />
               </div>
 
+              {/* Fecha de vigencia para el corte de tarifa */}
+              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-amber-600" />
+                  <Label className="font-medium text-slate-800">Fecha de vigencia del cambio</Label>
+                </div>
+                <Input
+                  type="date"
+                  value={rateEffectiveDate}
+                  onChange={(e) => setRateEffectiveDate(e.target.value)}
+                  className="max-w-xs"
+                />
+                <p className="text-xs text-amber-800">
+                  Los recibos con fecha de llegada anterior a este día se facturarán automáticamente con la tarifa anterior. Las tarifas vigentes antes de este cambio se archivan en el historial.
+                </p>
+              </div>
+
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button onClick={handleSavePricing} disabled={saving} className="w-full">
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -744,7 +769,7 @@ export default function AdminSettings({ user }) {
           <SpecialCbmRatesEditor
             rates={appConfig.special_cbm_rates}
             onChange={(updated) => setAppConfig({ ...appConfig, special_cbm_rates: updated })}
-            onSave={handleSaveGeneral}
+            onSave={handleSavePricing}
             saving={saving}
           />
 

@@ -36,6 +36,12 @@ export default function BillingInvoiceRow({ row, onChange }) {
               {row.disponible_entrega && (
                 <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">✓ Disponible para entrega</span>
               )}
+              {row.rate_label === 'anterior' && (
+                <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Tarifa anterior</span>
+              )}
+              {row.rate_label === 'actual' && row.fecha && (
+                <span className="text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">Tarifa actual</span>
+              )}
             </div>
             <p className="text-xs text-slate-500 break-all line-clamp-2">
               {row.consolidation_tracking || 'Sin tracking'}

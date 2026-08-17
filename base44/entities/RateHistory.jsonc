@@ -1,0 +1,83 @@
+{
+  "name": "RateHistory",
+  "type": "object",
+  "properties": {
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha desde la cual estas tarifas entraron en vigor"
+    },
+    "base_rate_regular": {
+      "type": "number",
+      "description": "Tarifa base regular al momento del snapshot"
+    },
+    "base_rate_high_risk": {
+      "type": "number",
+      "description": "Tarifa base alto riesgo al momento del snapshot"
+    },
+    "profit_percentage": {
+      "type": "number",
+      "description": "Porcentaje de beneficio al momento del snapshot"
+    },
+    "door_to_door_cost": {
+      "type": "number",
+      "description": "Costo puerta a puerta al momento del snapshot"
+    },
+    "special_cbm_rates": {
+      "type": "array",
+      "default": [],
+      "description": "Snapshot del arreglo de tarifas especiales por CBM (AppConfig.special_cbm_rates)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min_cbm": {
+            "type": "number"
+          },
+          "max_cbm": {
+            "type": "number"
+          },
+          "rate_regular": {
+            "type": "number"
+          },
+          "rate_high_risk": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "is_backfill": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si es un registro centinela de backfill (tarifas previas al primer cambio registrado)"
+    },
+    "created_by_email": {
+      "type": "string",
+      "description": "Email del administrador que registr\u00f3 el cambio"
+    }
+  },
+  "required": [
+    "effective_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

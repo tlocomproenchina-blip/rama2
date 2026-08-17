@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,17 +32,20 @@ export default function AdminManualBilling() {
   const [creating, setCreating] = useState(false);
   const [recovering, setRecovering] = useState(false);
   const [creditBalance, setCreditBalance] = useState(0);
+  const [rateHistory, setRateHistory] = useState([]);
 
   useEffect(() => {
     (async () => {
-      const [cfgs, prc, states] = await Promise.all([
+      const [cfgs, prc, states, history] = await Promise.all([
         base44.entities.AppConfig.filter({ config_key: 'main' }).catch(() => []),
         base44.entities.PricingConfig.filter({ config_key: 'main' }).catch(() => []),
         base44.entities.StateConfig.list('-updated_date', 100).catch(() => []),
+        base44.entities.RateHistory.list('-effective_date', 200).catch(() => []),
       ]);
       setAppConfig(cfgs?.[0] || null);
       setPricing(prc?.[0] || null);
       setStateConfigs(states || []);
+      setRateHistory(history || []);
     })();
   }, []);
 
@@ -65,28 +68,116 @@ export default function AdminManualBilling() {
   // Usado como base por CBM para cargas >= 0.130 CBM
   const ratePerCbm = finalRatePerCbm;
 
-  // Tarifas especiales (mínimos) para cargas < 0.130 CBM
+  // Tarifas especiales (mínimos) para cargas < 0.130 CBM (vigentes actualmente)
   const specialRates = useMemo(() => {
     const list = Array.isArray(appConfig?.special_cbm_rates) ? appConfig.special_cbm_rates : [];
     return [...list].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
   }, [appConfig]);
 
-  // Calcula el monto de envío aplicando tarifa de mínimos cuando corresponde
-  const calcShipping = (cbm) => {
+  // Snapshot de tarifas actuales (live config) — usado como fallback y para recibos sin fecha
+  const currentRateSet = useMemo(() => ({
+    base_rate_regular: num(pricing?.base_rate_regular),
+    base_rate_high_risk: num(pricing?.base_rate_high_risk),
+    profit_percentage: num(pricing?.profit_percentage),
+    door_to_door_cost: num(pricing?.door_to_door_cost),
+    special_cbm_rates: specialRates,
+    effective_date: null
+  }), [pricing, specialRates]);
+
+  // Resuelve el set de tarifas vigente para una fecha dada, usando RateHistory
+  const getRateSetForDate = useCallback((fecha) => {
+    if (!fecha || !rateHistory.length) return currentRateSet;
+    const d = new Date(String(fecha).includes('T') ? fecha : `${fecha}T12:00:00`);
+    if (isNaN(d)) return currentRateSet;
+    const sorted = [...rateHistory].sort((a, b) => new Date(a.effective_date) - new Date(b.effective_date));
+    let chosen = null;
+    for (const r of sorted) {
+      const ed = new Date(String(r.effective_date).includes('T') ? r.effective_date : `${r.effective_date}T00:00:00`);
+      if (ed <= d) chosen = r;
+      else break;
+    }
+    if (!chosen) return currentRateSet;
+    return {
+      base_rate_regular: num(chosen.base_rate_regular),
+      base_rate_high_risk: num(chosen.base_rate_high_risk),
+      profit_percentage: num(chosen.profit_percentage),
+      door_to_door_cost: num(chosen.door_to_door_cost),
+      special_cbm_rates: Array.isArray(chosen.special_cbm_rates) ? chosen.special_cbm_rates : [],
+      effective_date: chosen.effective_date
+    };
+  }, [rateHistory, currentRateSet]);
+
+  // Tarifa por CBM (>= 0.130) para un set de tarifas dado
+  const computeRatePerCbm = useCallback((rateSet) => {
+    const factor = 1 + num(rateSet.profit_percentage) / 100;
+    return num(rateSet.base_rate_regular) * factor + stateShippingRate + num(rateSet.door_to_door_cost);
+  }, [stateShippingRate]);
+
+  // Calcula el monto de envío de un recibo individual según su fecha de llegada
+  const calcShippingForRow = useCallback((cbm, fecha) => {
     const c = num(cbm);
     if (c <= 0) return 0;
+    const rateSet = getRateSetForDate(fecha);
     if (c >= DOOR_TO_DOOR_THRESHOLD) {
-      return c * ratePerCbm;
+      return c * computeRatePerCbm(rateSet);
     }
-    const found = specialRates.find((r) => c <= num(r.max_cbm));
-    return found ? num(found.rate_regular) : c * ratePerCbm;
-  };
+    const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
+    const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
+    const found = sorted.find((r) => c <= num(r.max_cbm));
+    return found ? num(found.rate_regular) : c * computeRatePerCbm(rateSet);
+  }, [getRateSetForDate, computeRatePerCbm]);
 
-  // Recalcular envío de las filas cuando cambia la tarifa final por CBM del estado
+  // Determina si un recibo usa tarifa anterior o actual (para el badge)
+  const getRateLabel = useCallback((fecha) => {
+    if (!fecha || !rateHistory.length) return 'actual';
+    const latest = [...rateHistory].sort((a, b) => new Date(b.effective_date) - new Date(a.effective_date))[0];
+    const resolved = getRateSetForDate(fecha);
+    if (resolved.effective_date && latest && new Date(resolved.effective_date) < new Date(latest.effective_date)) {
+      return 'anterior';
+    }
+    return 'actual';
+  }, [rateHistory, getRateSetForDate]);
+
+  // Cálculo consolidado de envío para la factura:
+  // - CBM total >= 0.130 (lineal): divide el CBM por período de tarifa y suma
+  // - CBM total < 0.130 (tarifa especial fija): usa la tarifa del recibo más reciente
+  const calcConsolidatedShipping = useCallback((billedCbm, selected) => {
+    const c = num(billedCbm);
+    if (c <= 0) return 0;
+    if (c >= DOOR_TO_DOOR_THRESHOLD) {
+      const totalReceiptCbm = selected.reduce((s, r) => s + num(r.cbm), 0);
+      if (totalReceiptCbm <= 0) {
+        return c * computeRatePerCbm(currentRateSet);
+      }
+      // Agrupar CBM por set de tarifa (resuelto por fecha del recibo)
+      const groups = {};
+      selected.forEach((r) => {
+        if (num(r.cbm) <= 0) return;
+        const rs = getRateSetForDate(r.fecha);
+        const key = rs.effective_date || 'current';
+        if (!groups[key]) groups[key] = { rateSet: rs, cbm: 0 };
+        groups[key].cbm += num(r.cbm);
+      });
+      // Escalar al CBM facturado si difiere del total de recibos
+      const scale = totalReceiptCbm > 0 ? c / totalReceiptCbm : 1;
+      return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet), 0);
+    }
+    // Tarifa especial fija: usar la tarifa del recibo más reciente con fecha
+    const withDates = selected.filter((r) => r.fecha);
+    const rateSet = withDates.length > 0
+      ? getRateSetForDate(withDates.reduce((max, r) => new Date(r.fecha) > new Date(max.fecha) ? r : max).fecha)
+      : currentRateSet;
+    const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
+    const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
+    const found = sorted.find((r) => c <= num(r.max_cbm));
+    return found ? num(found.rate_regular) : 0;
+  }, [getRateSetForDate, computeRatePerCbm, currentRateSet]);
+
+  // Recalcular envío de las filas cuando cambian las tarifas o el historial
   useEffect(() => {
-    setRows((prev) => prev.map((r) => ({ ...r, shipping_amount: calcShipping(r.cbm).toFixed(2) })));
+    setRows((prev) => prev.map((r) => ({ ...r, shipping_amount: calcShippingForRow(r.cbm, r.fecha).toFixed(2), rate_label: getRateLabel(r.fecha) })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalRatePerCbm, specialRates]);
+  }, [finalRatePerCbm, specialRates, rateHistory, stateShippingRate]);
 
   const loadClientInvoices = async (selectedClient) => {
     setClient(selectedClient);
@@ -143,7 +234,8 @@ export default function AdminManualBilling() {
           selected: false,
           cbm_original: cbm,
           cbm: cbm ? cbm.toFixed(4) : '',
-          shipping_amount: calcShipping(cbm).toFixed(2),
+          shipping_amount: calcShippingForRow(cbm, ing.fecha).toFixed(2),
+          rate_label: getRateLabel(ing.fecha),
           insurance_amount: (totalFob * 0.05).toFixed(2),
         };
       });
@@ -159,7 +251,7 @@ export default function AdminManualBilling() {
       if (r.id !== updated.id) return r;
       // Recalculate shipping when CBM changes
       if (updated.cbm !== r.cbm) {
-        updated.shipping_amount = calcShipping(updated.cbm).toFixed(2);
+        updated.shipping_amount = calcShippingForRow(updated.cbm, updated.fecha).toFixed(2);
       }
       return updated;
     }));
@@ -169,7 +261,7 @@ export default function AdminManualBilling() {
   // El envío SIEMPRE se cobra consolidado: un solo cálculo sobre el CBM total
   // (manual si se indicó "CBM facturado", o la suma de las cargas seleccionadas)
   const selectedCbmSum = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
-  const shippingTotal = calcShipping(billedCbm !== '' ? num(billedCbm) : selectedCbmSum);
+  const shippingTotal = calcConsolidatedShipping(billedCbm !== '' ? num(billedCbm) : selectedCbmSum, selectedRows);
   const autoInsuranceTotal = selectedRows.reduce((s, r) => s + num(r.insurance_amount), 0);
   const insuranceTotal = manualInsurance !== '' ? num(manualInsurance) : autoInsuranceTotal;
   const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0);
@@ -200,7 +292,7 @@ export default function AdminManualBilling() {
       const useManualInsurance = manualInsurance !== '';
       const items = [];
       // Envío SIEMPRE consolidado: un solo item con el CBM total de todas las cargas
-      const consolidatedShipping = calcShipping(billedCbmValue);
+      const consolidatedShipping = calcConsolidatedShipping(billedCbmValue, selectedRows);
       const sourceOrders = [
         ...selectedRows.map((r) => r.invoice_number).filter((n) => n && n !== '—'),
         ...(manualReceipt ? [manualReceipt] : []),
