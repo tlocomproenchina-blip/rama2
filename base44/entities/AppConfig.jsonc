@@ -27,6 +27,14 @@
     "warehouse_address": {
       "type": "string"
     },
+    "warehouse_phone": {
+      "type": "string",
+      "description": "Número telefónico del almacén mostrado en el portal del cliente"
+    },
+    "warehouse_zipcode": {
+      "type": "string",
+      "description": "Código postal del almacén mostrado en el portal del cliente"
+    },
     "shipping_mark_example_image_url": {
       "type": "string",
       "description": "URL de imagen de ejemplo de c\u00f3mo debe quedar el shipping mark"
