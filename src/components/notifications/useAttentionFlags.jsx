@@ -12,7 +12,8 @@ export default function useAttentionFlags({ user }) {
     if (isAdmin) {
       // AdminPayments se maneja via useNotificationFlags (basado en entidad Notification)
       return [
-        { key: 'AdminSupportTickets', entity: 'SupportTicket' },
+        // Solo marcar atención cuando hay tickets abiertos/en_proceso (no al cerrar)
+        { key: 'AdminSupportTickets', entity: 'SupportTicket', openOnly: true },
         { key: 'AdminPackages', entity: 'Package' },
       ];
     }
@@ -58,6 +59,21 @@ export default function useAttentionFlags({ user }) {
             return changedFields.some((field) => field?.field_name && field.field_name !== 'delivery_proof_request_sent_date');
           });
           latestMs = relevantAudit?.created_date ? new Date(relevantAudit.created_date).getTime() : 0;
+        } else if (w.openOnly) {
+          // Para SupportTicket: solo considerar tickets abiertos/en_proceso
+          // (cerrar un ticket no debe disparar el punto rojo)
+          let rows = [];
+          if (w.query) {
+            rows = await base44.entities[w.entity].filter(w.query, '-updated_date', 1);
+          } else {
+            rows = await base44.entities[w.entity].list('-updated_date', 200);
+          }
+          const openTicket = (rows || []).find(
+            (r) => r.status === 'abierto' || r.status === 'en_proceso'
+          );
+          latestMs = openTicket
+            ? new Date(openTicket.updated_date || openTicket.created_date || 0).getTime()
+            : 0;
         } else {
           let rows = [];
           if (w.query) {
