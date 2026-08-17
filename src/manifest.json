@@ -3,7 +3,7 @@
   "short_name": "TLEC",
   "description": "Gestión de envíos internacionales desde China a Venezuela.",
   "id": "/",
-  "start_url": "/",
+  "start_url": "/Dashboard",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#1d4ed8",
