@@ -422,7 +422,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className={`min-h-screen bg-background flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
+    <div className={`min-h-[100dvh] bg-background flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
       {config?.demo_mode && <DemoModeBanner message={config?.demo_mode_message || 'Modo demo activo: integraciones externas desactivadas.'} />}
       <SkipToContent />
       
@@ -474,7 +474,7 @@ export default function Layout({ children, currentPageName }) {
         </div>
       )}
 
-      <main className={`flex-1 min-h-screen flex flex-col ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}`}>
+      <main className={`flex-1 min-h-[100dvh] flex flex-col ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}`}>
         {user && (
           <div className="sticky top-0 z-20 hidden lg:flex justify-end items-center gap-2 px-6 pt-4">
             <Suspense fallback={null}>
@@ -520,7 +520,7 @@ export default function Layout({ children, currentPageName }) {
          {/* Main Content */}
         <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
           <PullToRefresh enabled={!!user} onRefresh={async () => { await queryClientInstance.invalidateQueries(); }}>
-            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: isApkApp ? 'calc(env(safe-area-inset-bottom) + 72px)' : 'env(safe-area-inset-bottom)' }}>
+            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: isApkApp ? 'calc(env(safe-area-inset-bottom) + 72px)' : 'calc(env(safe-area-inset-bottom) + 24px)' }}>
               {showBackButton && (
                 <div className="mb-3">
                   <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
