@@ -44,6 +44,21 @@ function parseWarehouseAddress(raw, shippingMark) {
   return { addressLines, nombre, zipcode, telefono, instruction };
 }
 
+/**
+ * Resuelve los campos del warehouse priorizando los campos dedicados del config
+ * (warehouse_phone, warehouse_zipcode) y usando el parsing como fallback.
+ */
+function resolveWarehouseFields(rawAddress, config, shippingMark) {
+  const parsed = parseWarehouseAddress(rawAddress, shippingMark);
+  return {
+    addressLines: parsed.addressLines,
+    nombre: parsed.nombre,
+    zipcode: config?.warehouse_zipcode || parsed.zipcode || '',
+    telefono: config?.warehouse_phone || parsed.telefono || '',
+    instruction: parsed.instruction,
+  };
+}
+
 function CopyButton({ text, label }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
@@ -74,8 +89,8 @@ export default function WarehouseAddressCard({ user, config }) {
   const rawAddress = config?.warehouse_address || '';
 
   const { addressLines, nombre, zipcode, telefono, instruction } = useMemo(
-    () => parseWarehouseAddress(rawAddress, shippingMark),
-    [rawAddress, shippingMark]
+    () => resolveWarehouseFields(rawAddress, config, shippingMark),
+    [rawAddress, config, shippingMark]
   );
 
   const fullAddress = useMemo(() => addressLines.join('\n'), [addressLines]);

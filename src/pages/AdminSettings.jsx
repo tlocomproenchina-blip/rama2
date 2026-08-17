@@ -99,6 +99,8 @@ export default function AdminSettings({ user }) {
       app_logo_url: '',
       favicon_url: '',
       warehouse_address: '',
+      warehouse_phone: '',
+      warehouse_zipcode: '',
       contract_text: '',
       insurance_percentage: 5,
       invoice_company_name: 'TLEC CARGO LTD',
@@ -1300,6 +1302,25 @@ export default function AdminSettings({ user }) {
                   placeholder="Dirección completa del almacén..."
                   rows={3}
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Número telefónico del almacén</Label>
+                  <Input
+                    value={appConfig.warehouse_phone || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, warehouse_phone: e.target.value })}
+                    placeholder="Ej: 13427313128"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Zipcode del almacén</Label>
+                  <Input
+                    value={appConfig.warehouse_zipcode || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, warehouse_zipcode: e.target.value })}
+                    placeholder="Ej: 529200"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
