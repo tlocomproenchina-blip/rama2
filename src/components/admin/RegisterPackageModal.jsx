@@ -73,7 +73,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const checkTrackingDuplicate = async (value) => {
     const t = String(value || '').trim();
     if (!t) {
-      return;
+      return { state: 'empty', pkg: null };
     }
 
     setTrackingStatusByCode((prev) => ({
@@ -103,6 +103,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             [t]: { state: 'exists', message: `Se marcará como recibido. ${info}` }
           }));
         }
+        return { state: alreadyReceived ? 'already_received' : 'exists', pkg };
       } else {
         setExistingPackagesByTracking((prev) => {
           const next = { ...prev };
@@ -113,12 +114,14 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           ...prev,
           [t]: { state: 'not_found', message: 'No existe en el sistema. Debe tener pre-alerta primero.' }
         }));
+        return { state: 'not_found', pkg: null };
       }
     } catch (e) {
       setTrackingStatusByCode((prev) => ({
         ...prev,
         [t]: { state: 'error', message: 'No se pudo validar este tracking ahora.' }
       }));
+      return { state: 'error', pkg: null };
     }
   };
 
@@ -126,20 +129,21 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     const cleanedTrackingNumbers = trackingNumbers.map((item) => item.trim()).filter(Boolean);
     if (cleanedTrackingNumbers.length === 0) { toast.error('Ingresa al menos un número de tracking'); return; }
 
-    // Check all trackings first
+    // Check all trackings first and collect results locally to avoid stale state
+    const resultsByTracking = {};
     for (const tracking of cleanedTrackingNumbers) {
-      await checkTrackingDuplicate(tracking);
+      resultsByTracking[tracking] = await checkTrackingDuplicate(tracking);
     }
 
     // Only process trackings that exist AND are not already received
     const alreadyReceivedStatuses = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'];
     const validTrackings = cleanedTrackingNumbers.filter((t) => {
-      const pkg = existingPackagesByTracking[t];
+      const pkg = resultsByTracking[t]?.pkg;
       return pkg && !alreadyReceivedStatuses.includes(pkg.status);
     });
-    const invalidTrackings = cleanedTrackingNumbers.filter((t) => !existingPackagesByTracking[t]);
+    const invalidTrackings = cleanedTrackingNumbers.filter((t) => !resultsByTracking[t]?.pkg);
     const skippedTrackings = cleanedTrackingNumbers.filter((t) => {
-      const pkg = existingPackagesByTracking[t];
+      const pkg = resultsByTracking[t]?.pkg;
       return pkg && alreadyReceivedStatuses.includes(pkg.status);
     });
 
@@ -426,6 +430,36 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           })()}
         </div>
 
+        {(() => {
+          const filled = trackingNumbers.map((t) => t.trim()).filter(Boolean);
+          const total = filled.length;
+          if (total === 0) return null;
+          const counts = { exists: 0, already_received: 0, not_found: 0, checking: 0, error: 0 };
+          filled.forEach((t) => {
+            const s = trackingStatusByCode[t]?.state;
+            if (s && counts[s] !== undefined) counts[s]++;
+          });
+          const ready = counts.exists;
+          const remaining = total - ready - counts.already_received;
+          return (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+              <span className="font-semibold text-slate-700">{total} tracking(s)</span>
+              <span className="text-slate-300">·</span>
+              <span className="text-emerald-600 font-medium">{ready} listos</span>
+              <span className="text-slate-300">·</span>
+              <span className="text-amber-600 font-medium">{counts.already_received} ya recibidos</span>
+              <span className="text-slate-300">·</span>
+              <span className="text-red-500 font-medium">{counts.not_found} sin pre-alerta</span>
+              {counts.checking > 0 && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-slate-500 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> {counts.checking} revisando</span>
+                </>
+              )}
+              <span className="ml-auto font-semibold text-blue-700">Restan: {remaining}</span>
+            </div>
+          );
+        })()}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange?.(false)} disabled={submitting}>
             Cancelar
