@@ -143,6 +143,7 @@ export default function WarehouseAddressCard({ user, config }) {
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">ZIPCODE</span>
+              <CopyButton text={zipcode} label="ZIPCODE" />
             </div>
             <p className="text-slate-700 text-xs md:text-sm font-mono break-words">{zipcode}</p>
           </div>
