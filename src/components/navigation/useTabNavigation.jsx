@@ -74,7 +74,7 @@ export default function useTabNavigation() {
     const cached = scrollCacheRef.current[path];
     try {
       requestAnimationFrame(() => {
-        window.scrollTo({ top: cached != null ? cached : 0, behavior: 'instant' });
+        window.scrollTo(0, cached != null ? cached : 0);
       });
     } catch (_) {}
 
