@@ -90,7 +90,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
       <div
         ref={ref}
         className={cn(
-          "relative flex min-h-[48px] w-full touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-white/90 px-4 py-3 text-base shadow-sm",
+          "relative flex min-h-[48px] w-full touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-card/90 px-4 py-3 text-base shadow-sm",
           className
         )}
         {...props}
@@ -118,7 +118,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
     <SelectPrimitive.Trigger
       ref={ref}
       className={cn(
-        "flex h-10 min-h-10 w-full touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-white/90 px-3 py-2 text-sm shadow-sm ring-offset-background data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+        "flex h-10 min-h-10 w-full touch-manipulation items-center justify-between whitespace-nowrap rounded-xl border border-border/80 bg-card/90 px-3 py-2 text-sm shadow-sm ring-offset-background data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
         className
       )}
       {...props}

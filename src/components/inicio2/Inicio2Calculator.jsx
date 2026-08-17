@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Ship, ChevronRight, Info, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const MIN_CBM = 0.13;
 const RECEPTION_FEE = 1;
@@ -90,15 +91,16 @@ export default function Inicio2Calculator() {
             </div>
             <div className="rounded-2xl border border-slate-200 p-4">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Estado de destino</p>
-              <select
-                value={selectedState}
-                onChange={(e) => setSelectedState(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-900 focus:border-orange-400 focus:outline-none"
-              >
-                {states.map((s) => (
-                  <option key={s.state_code} value={s.state_code}>{s.state_name}</option>
-                ))}
-              </select>
+              <Select value={selectedState} onValueChange={setSelectedState}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Selecciona estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((s) => (
+                    <SelectItem key={s.state_code} value={s.state_code}>{s.state_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="rounded-2xl border border-slate-200 p-4">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Categoría de carga</p>

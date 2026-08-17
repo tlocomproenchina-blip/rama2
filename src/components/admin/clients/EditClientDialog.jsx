@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Phone, Tag, X, Save, Loader2, IdCard } from 'lucide-react';
 
 export default function EditClientDialog({
@@ -58,18 +59,21 @@ export default function EditClientDialog({
             <Label className="flex items-center gap-2">
               <MapPin className="h-4 w-4" /> Estado
             </Label>
-            <select
+            <Select
               value={editData.state}
-              onChange={(e) => setEditData({ ...editData, state: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onValueChange={(val) => setEditData({ ...editData, state: val })}
             >
-              <option value="">Selecciona un estado</option>
-              {stateConfigs.map((state) => (
-                <option key={state.state_code} value={state.state_code}>
-                  {state.state_name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un estado" />
+              </SelectTrigger>
+              <SelectContent>
+                {stateConfigs.map((state) => (
+                  <SelectItem key={state.state_code} value={state.state_code}>
+                    {state.state_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

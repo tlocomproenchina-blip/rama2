@@ -27,6 +27,7 @@ import SkipToContent from '@/components/common/SkipToContent';
 import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
 import DemoModeBanner from '@/components/common/DemoModeBanner';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
+import MobilePageTransition from '@/components/navigation/MobilePageTransition';
 import PushNotificationPrompt from '@/components/push/PushNotificationPrompt';
 
 // Lazy loaded onboarding tour
@@ -59,6 +60,8 @@ export default function Layout({ children, currentPageName }) {
   const [showContract, setShowContract] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [isInstalledApp, setIsInstalledApp] = useState(false);
+  const [isNative, setIsNative] = useState(false);
+  const [slideDirection, setSlideDirection] = useState(1);
   const [showTour, setShowTour] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,15 +88,43 @@ export default function Layout({ children, currentPageName }) {
     }
   }, [user?.role]);
 
-  // Detect if running as installed PWA (standalone)
+  // Detect if running as installed PWA (standalone) or Android WebView
   useEffect(() => {
     try {
       const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (window.navigator && window.navigator.standalone === true);
+      const ua = (navigator.userAgent || '').toLowerCase();
+      const isAndroidWebView = /wv|webview/.test(ua) || (ua.includes('android') && /version\/\d/.test(ua));
       setIsInstalledApp(!!isStandalone);
+      setIsNative(!!isStandalone || isAndroidWebView);
     } catch (_) {
       setIsInstalledApp(false);
+      setIsNative(false);
     }
   }, []);
+
+  // Sync system dark mode preference with .dark class
+  useEffect(() => {
+    try {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const apply = (e) => document.documentElement.classList.toggle('dark', e.matches);
+      apply(mq);
+      mq.addEventListener('change', apply);
+      return () => mq.removeEventListener('change', apply);
+    } catch (_) {}
+  }, []);
+
+  // Slide direction for native page transitions (depth heuristic)
+  const prevPathRef = useRef(null);
+  useEffect(() => {
+    const prev = prevPathRef.current;
+    const curr = location.pathname;
+    if (prev && prev !== curr) {
+      const prevDepth = prev.split('/').filter(Boolean).length;
+      const currDepth = curr.split('/').filter(Boolean).length;
+      setSlideDirection(currDepth >= prevDepth ? 1 : -1);
+    }
+    prevPathRef.current = curr;
+  }, [location.pathname]);
 
   // Close any open Radix overlays (Select/Popover/Dropdown) on route change
   // Disabled to prevent rare DOM NotFoundError during rapid unmounts
@@ -375,7 +406,7 @@ export default function Layout({ children, currentPageName }) {
   if (user?.role === 'user' && user.is_active === false) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-lg w-full bg-white rounded-xl shadow border p-6 text-center">
+        <div className="max-w-lg w-full bg-card rounded-xl shadow border p-6 text-center">
           <div className="text-rose-600 text-2xl mb-2">⛔</div>
           <h2 className="text-xl font-semibold text-slate-800">Cuenta desactivada</h2>
           <p className="text-slate-600 mt-1">Tu cuenta ha sido desactivada por el equipo de soporte. Si crees que es un error, por favor contáctanos.</p>
@@ -407,6 +438,8 @@ export default function Layout({ children, currentPageName }) {
       {user?.role === 'user' && config?.chatbot_enabled && (
         <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
       )}
+
+      {user?.role === 'user' && <MobileBottomNav />}
 
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
 
@@ -444,7 +477,7 @@ export default function Layout({ children, currentPageName }) {
             <Suspense fallback={null}>
               <TourTriggerButton onClick={() => setShowTour(true)} />
             </Suspense>
-            <div className="rounded-[1.25rem] border border-white/80 bg-white/85 px-2 py-1 shadow-card backdrop-blur">
+            <div className="rounded-[1.25rem] border border-border/80 bg-card/85 px-2 py-1 shadow-card backdrop-blur">
               <NotificationBell user={user} />
             </div>
           </div>
@@ -452,12 +485,12 @@ export default function Layout({ children, currentPageName }) {
         {/* Mobile Header */}
         {user && (
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-          <div className="rounded-[1.35rem] border border-white/80 bg-white/85 px-3 py-2 shadow-card">
+          <div className="rounded-[1.35rem] border border-border/80 bg-card/85 px-3 py-2 shadow-card">
             <div className="flex items-center justify-between gap-2">
               <Button 
                 variant="ghost" 
                 size="icon"
-                className={`h-11 w-11 rounded-2xl border p-0 touch-manipulation select-none ${sidebarOpen ? 'border-primary/20 bg-accent text-foreground shadow-sm' : 'border-border/70 bg-white/80'}`}
+                className={`h-11 w-11 rounded-2xl border p-0 touch-manipulation select-none ${sidebarOpen ? 'border-primary/20 bg-accent text-foreground shadow-sm' : 'border-border/70 bg-card/80'}`}
                 onClick={() => setSidebarOpen(true)}
               >
                 <Menu className="h-5 w-5" />
@@ -494,9 +527,11 @@ export default function Layout({ children, currentPageName }) {
               )}
               <ErrorBoundary>
                 <SoftErrorBoundary name={currentPageName || 'page-content'}>
-                  <div key={location.pathname}>
-                    {React.cloneElement(children, { user, refreshUser: loadUser })}
-                  </div>
+                  <MobilePageTransition isNative={isNative} transitionKey={location.pathname} slideDirection={slideDirection}>
+                    <div key={location.pathname}>
+                      {React.cloneElement(children, { user, refreshUser: loadUser })}
+                    </div>
+                  </MobilePageTransition>
                 </SoftErrorBoundary>
               </ErrorBoundary>
             </div>

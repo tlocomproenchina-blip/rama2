@@ -180,18 +180,18 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
         </div>
         {/* Header */}
         <div className="relative border-b border-border/60 px-5 pb-5 pt-6">
-          <div className="relative rounded-[1.75rem] border border-white/80 bg-white/85 p-4 shadow-card backdrop-blur transition-all duration-300 hover:shadow-premium">
+          <div className="relative rounded-[1.75rem] border border-border/80 bg-card/85 p-4 shadow-card backdrop-blur transition-all duration-300 hover:shadow-premium">
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-3 top-3 h-8 w-8 rounded-xl border border-border/70 bg-white/80 lg:hidden"
+              className="absolute right-3 top-3 h-8 w-8 rounded-xl border border-border/70 bg-card/80 lg:hidden"
               onClick={onClose}
             >
               <X className="h-3.5 w-3.5" />
             </Button>
             <div className="flex items-center gap-3 min-w-0 pr-10 lg:pr-0">
               {config?.app_logo_url ? (
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-border/60">
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border/60">
                   <OptimizedImage
                     src={config.app_logo_url}
                     alt="Logo"
@@ -216,7 +216,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                 </p>
               </div>
             </div>
-            <div className="mt-4 rounded-[1.35rem] border border-white/80 bg-white/78 p-3 shadow-sm backdrop-blur lg:hidden">
+            <div className="mt-4 rounded-[1.35rem] border border-border/80 bg-card/78 p-3 shadow-sm backdrop-blur lg:hidden">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
                 <p className="mt-1 truncate text-[12px] text-muted-foreground">{user?.email}</p>
@@ -232,7 +232,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
         {/* User Info */}
         <div className="relative hidden border-b border-border/60 px-5 py-4 lg:block">
-          <div className="rounded-[1.5rem] border border-white/80 bg-white/78 p-4 shadow-sm backdrop-blur transition-all duration-300 hover:bg-white/88">
+          <div className="rounded-[1.5rem] border border-border/80 bg-card/78 p-4 shadow-sm backdrop-blur transition-all duration-300 hover:bg-card/88">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
@@ -249,7 +249,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
         {/* Navigation */}
         <nav className="relative flex-1 overflow-y-auto px-4 py-4 lg:py-5 [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
-          <div className="rounded-[1.75rem] border border-white/75 bg-white/58 p-3 shadow-sm backdrop-blur transition-all duration-300">
+          <div className="rounded-[1.75rem] border border-border/75 bg-card/58 p-3 shadow-sm backdrop-blur transition-all duration-300">
           {isAdmin ? (
             filteredAdminGroups.map((group) => (
               <SidebarNavGroup
@@ -280,7 +280,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
         {/* Logout */}
         <div className="relative border-t border-border/60 px-4 pb-4 pt-3 lg:py-4">
-          <div className="rounded-[1.5rem] border border-white/80 bg-white/82 p-2 shadow-sm backdrop-blur transition-all duration-300">
+          <div className="rounded-[1.5rem] border border-border/80 bg-card/82 p-2 shadow-sm backdrop-blur transition-all duration-300">
             <Button
               variant="ghost"
               className="w-full justify-start rounded-xl text-muted-foreground hover:bg-accent/80 hover:text-foreground"

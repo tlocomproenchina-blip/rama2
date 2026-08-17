@@ -18,6 +18,7 @@ import PaymentValidation from '@/components/admin/PaymentValidation';
 import InvoicePaymentValidation from '@/components/admin/InvoicePaymentValidation';
 import AdminAbonosValidation from '@/components/admin/AdminAbonosValidation';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminPayments({ user }) {
   const [consolidations, setConsolidations] = useState([]);
@@ -337,15 +338,19 @@ export default function AdminPayments({ user }) {
                     <StatusBadge status={con.status} />
                     
                     {con.payment_validated && (
-                      <select
+                      <Select
                         value={con.status}
-                        onChange={(e) => handleStatusChange(con, e.target.value)}
-                        className="text-sm border rounded-lg px-3 py-2"
+                        onValueChange={(val) => handleStatusChange(con, val)}
                       >
-                        <option value="en_transito">En Tránsito</option>
-                        <option value="disponible">Disponible</option>
-                        <option value="entregado">Entregado</option>
-                      </select>
+                        <SelectTrigger className="text-sm h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en_transito">En Tránsito</SelectItem>
+                          <SelectItem value="disponible">Disponible</SelectItem>
+                          <SelectItem value="entregado">Entregado</SelectItem>
+                        </SelectContent>
+                      </Select>
                     )}
                   </div>
                 </div>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -176,15 +177,19 @@ export default function ClientCreditRow({ credit, onUpdated }) {
             </div>
             <div>
               <Label className="text-xs text-slate-600">Tipo</Label>
-              <select
-                className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              <Select
                 value={editData.type}
-                onChange={(e) => setEditData({ ...editData, type: e.target.value })}
+                onValueChange={(val) => setEditData({ ...editData, type: val })}
               >
-                <option value="credito">Crédito</option>
-                <option value="uso">Uso</option>
-                <option value="ajuste">Ajuste</option>
-              </select>
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credito">Crédito</SelectItem>
+                  <SelectItem value="uso">Uso</SelectItem>
+                  <SelectItem value="ajuste">Ajuste</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-xs text-slate-600">Descripción</Label>

@@ -147,7 +147,7 @@
     button:not([role="switch"]):not([role="checkbox"]),
     [role="button"],
     a[role="button"] {
-      min-height: 40px;
+      min-height: 44px;
     }
 
     button[role="switch"],

@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Upload, Loader2, CheckCircle, AlertCircle, Image as ImageIcon, X, Search, User, AlertTriangle, Copy, FileText, Box, FileImage, ScanLine } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
@@ -36,18 +37,18 @@ function getTrackingOverlapScore(a = '', b = '') {
 
 function SelectClientInline({ tracking, options, value, onChange }) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="flex h-10 min-h-10 w-full rounded-xl border border-border/80 bg-white/90 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/25 focus:border-ring"
-    >
-      <option value="">Selecciona cliente para {tracking}</option>
-      {(options || []).map((user) => (
-        <option key={user.id} value={user.email}>
-          {(user.full_name || user.first_name || user.email)}{user.shipping_mark ? ` · ${user.shipping_mark}` : ''}
-        </option>
-      ))}
-    </select>
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="h-10 min-h-10">
+        <SelectValue placeholder={`Selecciona cliente para ${tracking}`} />
+      </SelectTrigger>
+      <SelectContent>
+        {(options || []).map((user) => (
+          <SelectItem key={user.id} value={user.email}>
+            {(user.full_name || user.first_name || user.email)}{user.shipping_mark ? ` · ${user.shipping_mark}` : ''}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

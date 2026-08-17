@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import PageHero from '@/components/common/PageHero';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 import ClientCreditRow from '@/components/client-credits/ClientCreditRow';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -144,14 +145,18 @@ export default function AdminClientCredits() {
                     </div>
                     <div>
                       <Label className="text-xs text-slate-600">Tipo</Label>
-                      <select
-                        className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                      <Select
                         value={newCredit.type}
-                        onChange={(e) => setNewCredit({ ...newCredit, type: e.target.value })}
+                        onValueChange={(val) => setNewCredit({ ...newCredit, type: val })}
                       >
-                        <option value="credito">Crédito (saldo a favor)</option>
-                        <option value="ajuste">Ajuste (corrección)</option>
-                      </select>
+                        <SelectTrigger className="w-full h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="credito">Crédito (saldo a favor)</SelectItem>
+                          <SelectItem value="ajuste">Ajuste (corrección)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div>
