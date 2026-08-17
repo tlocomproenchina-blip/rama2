@@ -62,18 +62,17 @@ export default function useAttentionFlags({ user }) {
         } else if (w.openOnly) {
           // Para SupportTicket: solo considerar tickets abiertos/en_proceso
           // (cerrar un ticket no debe disparar el punto rojo)
-          let rows = [];
-          if (w.query) {
-            rows = await base44.entities[w.entity].filter(w.query, '-updated_date', 1);
-          } else {
-            rows = await base44.entities[w.entity].list('-updated_date', 200);
-          }
-          const openTicket = (rows || []).find(
-            (r) => r.status === 'abierto' || r.status === 'en_proceso'
-          );
-          latestMs = openTicket
-            ? new Date(openTicket.updated_date || openTicket.created_date || 0).getTime()
-            : 0;
+          // Usar dos filtros ligeros (limit 1) en lugar de cargar 200 tickets
+          const baseQuery = w.query || {};
+          const [openRows, inProcessRows] = await Promise.all([
+            base44.entities[w.entity].filter({ ...baseQuery, status: 'abierto' }, '-updated_date', 1),
+            base44.entities[w.entity].filter({ ...baseQuery, status: 'en_proceso' }, '-updated_date', 1)
+          ]);
+          const openTicket = (openRows || [])[0];
+          const inProcessTicket = (inProcessRows || [])[0];
+          const openMs = openTicket ? new Date(openTicket.updated_date || openTicket.created_date || 0).getTime() : 0;
+          const inProcessMs = inProcessTicket ? new Date(inProcessTicket.updated_date || inProcessTicket.created_date || 0).getTime() : 0;
+          latestMs = Math.max(openMs, inProcessMs);
         } else {
           let rows = [];
           if (w.query) {

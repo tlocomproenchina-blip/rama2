@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -104,6 +104,9 @@ export default function AdminSupportTickets({ user }) {
     }
   });
 
+  const ticketsLenRef = useRef(0);
+  ticketsLenRef.current = tickets.length;
+
   const loadData = useCallback(async (append = false) => {
     try {
       if (append) {
@@ -112,7 +115,7 @@ export default function AdminSupportTickets({ user }) {
         setLoading(true);
       }
 
-      const skip = append ? tickets.length : 0;
+      const skip = append ? ticketsLenRef.current : 0;
       const results = await Promise.allSettled([
         base44.entities.SupportTicket.list('-created_date', pageSize, skip),
         isAdmin ? base44.functions.invoke('listAllUsers', { limit: 500 }).then(r => r?.data?.users || [user]) : Promise.resolve([user])
@@ -140,7 +143,7 @@ export default function AdminSupportTickets({ user }) {
         setLoading(false);
       }
     }
-  }, [isAdmin, pageSize, tickets.length, user]);
+  }, [isAdmin, pageSize, user]);
 
   const handleCreateTicket = async () => {
     if (!newTicket.client_email || !newTicket.subject.trim() || !newTicket.message.trim()) {
