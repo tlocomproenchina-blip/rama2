@@ -186,7 +186,7 @@ export default function WarehouseAddressCard({ user, config }) {
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Warehouse className="h-3.5 w-3.5 text-blue-600" />
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-600">Ejemplo</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-600">Tu dirección de envío se debe ver así</span>
           </div>
           <p className="text-slate-700 text-xs md:text-sm whitespace-pre-line break-words">
             {exampleAddress}
