@@ -31,6 +31,7 @@ const AdminCargaRutas = lazy(() => import('./pages/AdminCargaRutas'));
 const AdminSeguimientoRutas = lazy(() => import('./pages/AdminSeguimientoRutas'));
 const AdminLogistica = lazy(() => import('./pages/AdminLogistica'));
 const AdminOperaciones = lazy(() => import('./pages/AdminOperaciones'));
+const AdminDailySummary = lazy(() => import('./pages/AdminDailySummary'));
 const AdminSeguimiento = lazy(() => import('./pages/AdminSeguimiento'));
 const AdminRutaDetalle = lazy(() => import('./pages/AdminRutaDetalle'));
 const AdminInternalMessages = lazy(() => import('./pages/AdminInternalMessages'));
@@ -151,6 +152,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminSeguimientoRutas" element={lazyRoute(AdminSeguimientoRutas, "AdminSeguimientoRutas")} />
       <Route path="/AdminLogistica" element={lazyRoute(AdminLogistica, "AdminLogistica")} />
       <Route path="/AdminOperaciones" element={lazyRoute(AdminOperaciones, "AdminOperaciones")} />
+      <Route path="/AdminDailySummary" element={lazyRoute(AdminDailySummary, "AdminDailySummary")} />
       <Route path="/AdminSeguimiento" element={lazyRoute(AdminSeguimiento, "AdminSeguimiento")} />
       <Route path="/AdminRutaDetalle" element={lazyRoute(AdminRutaDetalle, "AdminRutaDetalle")} />
       <Route path="/AdminInternalMessages" element={lazyRoute(AdminInternalMessages, "AdminInternalMessages")} />

@@ -53,6 +53,7 @@ export const adminMenuItems = [
   { name: 'Dashboard Admin', page: 'AdminDashboard', icon: LayoutDashboard },
   { name: 'Análisis Cliente', page: 'ClientAnalytics', icon: TrendingUp },
   { name: 'Dashboard Operaciones', page: 'AdminOperaciones', icon: LayoutDashboard },
+  { name: 'Resumen Diario', page: 'AdminDailySummary', icon: FileText },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
   { name: 'Pre-alertas', page: 'AdminPreAlerts', icon: FileText },
   { name: 'Logística', page: 'AdminLogistica', icon: Truck },
@@ -113,7 +114,7 @@ export const adminMenuItems = [
 
 export const adminGroups = [
   { label: 'PRINCIPAL', items: ['AdminDashboard', 'AdminLogistica', 'ClientAnalytics'] },
-  { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminPackages', 'AdminPreAlerts', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
+  { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminDailySummary', 'AdminPackages', 'AdminPreAlerts', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseDispatch', 'WarehouseDispatchHistory'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminClientCredits', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviderCredits', 'AdminProviders', 'AdminCbmIngresos', 'AdminArrivalCalendar'] },
