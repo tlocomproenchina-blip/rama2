@@ -439,7 +439,7 @@ export default function Layout({ children, currentPageName }) {
         <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
       )}
 
-      {user?.role === 'user' && <MobileBottomNav />}
+      {user?.role === 'user' && isNative && <MobileBottomNav />}
 
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
 
@@ -517,7 +517,7 @@ export default function Layout({ children, currentPageName }) {
          {/* Main Content */}
         <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
           <PullToRefresh enabled={!!user} onRefresh={async () => { await queryClientInstance.invalidateQueries(); }}>
-            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
+            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: isNative ? 'calc(env(safe-area-inset-bottom) + 72px)' : 'env(safe-area-inset-bottom)' }}>
               {showBackButton && (
                 <div className="mb-3">
                   <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
