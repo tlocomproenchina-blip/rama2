@@ -82,11 +82,10 @@ export default function WarehouseAddressCard({ user, config }) {
   const exampleAddress = useMemo(() => {
     if (!addressLines.length || !shippingMark) return '';
     const first = addressLines[0];
-    const rest = addressLines.slice(1);
-    const parts = [`${shippingMark} ${first}`, ...rest];
-    if (zipcode) parts.push(`${zipcode} ${shippingMark}`);
-    return parts.join('\n');
-  }, [addressLines, shippingMark, zipcode]);
+    const last = addressLines[addressLines.length - 1];
+    const middle = addressLines.slice(1, -1);
+    return [`${shippingMark} ${first}`, ...middle, `${last} ${shippingMark}`].join('\n');
+  }, [addressLines, shippingMark]);
 
   if (!rawAddress) {
     return (
@@ -144,7 +143,6 @@ export default function WarehouseAddressCard({ user, config }) {
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">ZIPCODE</span>
-              <CopyButton text={zipcode} label="ZIPCODE" />
             </div>
             <p className="text-slate-700 text-xs md:text-sm font-mono break-words">{zipcode}</p>
           </div>
