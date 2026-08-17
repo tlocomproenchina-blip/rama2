@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw, Package, Users, CreditCard, FileText, ShieldCheck, MessageCircle, Clock, AlertTriangle, ShoppingBag, UserX } from 'lucide-react';
+import { Loader2, RefreshCw, Package, Users, CreditCard, FileText, ShieldCheck, MessageCircle, Clock, AlertTriangle, ShoppingBag, UserX, Radio } from 'lucide-react';
 import PageHero from '@/components/common/PageHero';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const REFRESH_INTERVAL = 60 * 1000; // 60 segundos
+const REFRESH_INTERVAL = 30 * 1000; // 30 segundos
+const SUBSCRIPTION_DEBOUNCE = 800; // ms — evita múltiples refresh por ráfaga de eventos
 
 const fmt = (n) => Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const fmtUsd = (n) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -17,7 +18,9 @@ export default function AdminDailySummary({ user }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [livePulse, setLivePulse] = useState(false);
   const timerRef = useRef(null);
+  const debounceRef = useRef(null);
 
   const load = useCallback(async (isRefresh = false) => {
     try {
@@ -92,28 +95,41 @@ export default function AdminDailySummary({ user }) {
     }
   }, []);
 
+  // Debounce para suscripciones: si llegan varios eventos juntos, un solo refresh
+  const scheduleRefresh = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setLivePulse(true);
+    debounceRef.current = setTimeout(() => {
+      load(true);
+      setTimeout(() => setLivePulse(false), 1000);
+    }, SUBSCRIPTION_DEBOUNCE);
+  }, [load]);
+
   useEffect(() => {
     load();
 
-    // Auto-refresh cada 60 segundos
+    // Auto-refresh cada 30 segundos
     timerRef.current = setInterval(() => load(true), REFRESH_INTERVAL);
 
     // Suscripción en tiempo real a cambios de entidades clave
-    const unsubPackage = base44.entities.Package.subscribe?.(() => load(true));
-    const unsubPayment = base44.entities.InvoicePayment.subscribe?.(() => load(true));
-    const unsubTicket = base44.entities.SupportTicket.subscribe?.(() => load(true));
-    const unsubAssisted = base44.entities.AssistedPaymentRequest.subscribe?.(() => load(true));
-    const unsubInvoice = base44.entities.Invoice.subscribe?.(() => load(true));
+    const subs = [
+      base44.entities.Package,
+      base44.entities.InvoicePayment,
+      base44.entities.SupportTicket,
+      base44.entities.AssistedPaymentRequest,
+      base44.entities.Invoice,
+      base44.entities.User,
+    ];
+    const unsubs = subs
+      .map((e) => e.subscribe?.(() => scheduleRefresh()))
+      .filter(Boolean);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      unsubPackage?.();
-      unsubPayment?.();
-      unsubTicket?.();
-      unsubAssisted?.();
-      unsubInvoice?.();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      unsubs.forEach((u) => u?.());
     };
-  }, [load]);
+  }, [load, scheduleRefresh]);
 
   const handleRefresh = () => load(true);
 
@@ -143,6 +159,10 @@ export default function AdminDailySummary({ user }) {
               <p className="text-sm font-medium text-slate-700">{data.periodStart} → {data.periodEnd}</p>
             </div>
             <div className="flex items-center gap-3">
+              <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${livePulse ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                <Radio className={`h-3.5 w-3.5 ${livePulse ? 'animate-pulse' : ''}`} />
+                {livePulse ? 'Actualizando…' : 'En vivo'}
+              </span>
               {lastUpdate && (
                 <span className="text-xs text-slate-400">Actualizado: {lastUpdate.toLocaleTimeString('es-VE')}</span>
               )}
