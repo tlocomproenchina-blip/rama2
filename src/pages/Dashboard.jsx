@@ -51,6 +51,7 @@ import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import ShippingLabelGenerator from '@/components/client-portal/ShippingLabelGenerator';
+import WarehouseAddressCard from '@/components/client-portal/WarehouseAddressCard';
 import ClientCbmWidget from '@/components/client-portal/ClientCbmWidget';
 import CreditBalanceWidget from '@/components/client-portal/CreditBalanceWidget';
 import { format } from 'date-fns';
@@ -272,27 +273,7 @@ export default function Dashboard({ user, refreshUser }) {
                   </div>
 
                   {/* Warehouse Address */}
-                  <div className="flex-1 space-y-2 border-t lg:border-t-0 lg:border-l border-slate-200 pt-4 lg:pt-0 lg:pl-6 min-w-0">
-                    <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
-                      <Building2 className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
-                      Dirección del Warehouse
-                    </div>
-                    <div className="flex items-start gap-2 md:gap-2.5 lg:gap-3 min-w-0">
-                      <p className="text-slate-700 text-xs md:text-sm lg:text-base break-words flex-1 whitespace-pre-line">
-                        {config?.warehouse_address || 'Dirección no configurada'}
-                      </p>
-                      {config?.warehouse_address && (
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-8 w-8 flex-shrink-0"
-                          onClick={copyAddress}
-                        >
-                          <Copy className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                  <WarehouseAddressCard user={user} config={config} />
                 </div>
               </div>
 
