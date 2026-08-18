@@ -94,6 +94,19 @@
     "received_by": {
       "type": "string"
     },
+    "reception_source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "externo"
+      ],
+      "default": "manual",
+      "description": "Origen de la recepci\u00f3n: manual (almac\u00e9n propio) o externo (webhook de empresa partner)"
+    },
+    "reception_partner": {
+      "type": "string",
+      "description": "Nombre de la empresa partner que report\u00f3 la recepci\u00f3n v\u00eda webhook"
+    },
     "dispatched_date": {
       "type": "string",
       "format": "date-time",
