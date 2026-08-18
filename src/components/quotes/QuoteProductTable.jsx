@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, calcItemTotals } from '@/lib/quoteUtils';
+import QuoteImageUploader from './QuoteImageUploader';
 
 export default function QuoteProductTable({ items, servicePercentage, conversionRate, onChange, readOnly, showPricing }) {
   const updateItem = (idx, field, value) => {
@@ -81,11 +82,11 @@ export default function QuoteProductTable({ items, servicePercentage, conversion
                     />
                   </td>
                   <td className="px-2 py-2">
-                    {item.image_url ? (
-                      <img src={item.image_url} alt="producto" className="h-10 w-10 rounded object-cover" />
-                    ) : (
-                      <span className="text-xs text-gray-400">Sin imagen</span>
-                    )}
+                    <QuoteImageUploader
+                      imageUrl={item.image_url}
+                      onChange={(url) => updateItem(idx, 'image_url', url)}
+                      disabled={readOnly}
+                    />
                   </td>
                   <td className="px-2 py-2">
                     <Input

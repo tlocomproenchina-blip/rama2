@@ -1,10 +1,13 @@
-import React from 'react';
-import { Upload, X, Link as LinkIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { Upload, X, Link as LinkIcon, Clipboard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { base44 } from '@/api/base44Client';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
 export default function QuoteProductForm({ items, onChange }) {
+  const [uploadingIdx, setUploadingIdx] = useState(null);
+  const [uploadError, setUploadError] = useState('');
+
   const updateItem = (idx, field, value) => {
     const next = [...items];
     next[idx] = { ...next[idx], [field]: value };
@@ -21,11 +24,34 @@ export default function QuoteProductForm({ items, onChange }) {
 
   const handleImageUpload = async (idx, file) => {
     if (!file) return;
+    setUploadingIdx(idx);
+    setUploadError('');
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      updateItem(idx, 'image_url', file_url);
+      const url = await uploadImageNoCredits(file);
+      updateItem(idx, 'image_url', url);
     } catch (err) {
-      console.error('Error uploading image:', err);
+      setUploadError('No se pudo subir la imagen');
+    } finally {
+      setUploadingIdx(null);
+    }
+  };
+
+  const handlePaste = async (idx) => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith('image/')) {
+            const blob = await item.getType(type);
+            const file = new File([blob], `pasted-${Date.now()}.png`, { type });
+            await handleImageUpload(idx, file);
+            return;
+          }
+        }
+      }
+      setUploadError('No hay imagen en el portapapeles');
+    } catch (err) {
+      setUploadError('No se pudo acceder al portapapeles');
     }
   };
 
@@ -83,7 +109,7 @@ export default function QuoteProductForm({ items, onChange }) {
 
           <div className="mt-3">
             <label className="mb-1 block text-xs font-semibold text-gray-600">Imagen del artículo</label>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <label className="cursor-pointer">
                 <input
                   type="file"
@@ -91,14 +117,28 @@ export default function QuoteProductForm({ items, onChange }) {
                   className="hidden"
                   onChange={(e) => handleImageUpload(idx, e.target.files?.[0])}
                 />
-                <span className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                <span className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap">
                   <Upload className="h-4 w-4" /> Subir imagen
                 </span>
               </label>
-              {item.image_url && (
+              <button
+                type="button"
+                onClick={() => handlePaste(idx)}
+                disabled={uploadingIdx === idx}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap disabled:opacity-50"
+              >
+                <Clipboard className="h-4 w-4" /> Pegar imagen
+              </button>
+              {uploadingIdx === idx && (
+                <span className="inline-flex items-center gap-1 text-xs text-purple-600">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Subiendo...
+                </span>
+              )}
+              {item.image_url && uploadingIdx !== idx && (
                 <img src={item.image_url} alt="producto" className="h-12 w-12 rounded-lg object-cover" />
               )}
             </div>
+            {uploadError && <p className="mt-1 text-xs text-red-500">{uploadError}</p>}
           </div>
         </div>
       ))}
