@@ -29,11 +29,11 @@
     },
     "warehouse_phone": {
       "type": "string",
-      "description": "Número telefónico del almacén mostrado en el portal del cliente"
+      "description": "N\u00famero telef\u00f3nico del almac\u00e9n mostrado en el portal del cliente"
     },
     "warehouse_zipcode": {
       "type": "string",
-      "description": "Código postal del almacén mostrado en el portal del cliente"
+      "description": "C\u00f3digo postal del almac\u00e9n mostrado en el portal del cliente"
     },
     "shipping_mark_example_image_url": {
       "type": "string",
@@ -47,6 +47,11 @@
     "contract_text": {
       "type": "string",
       "description": "Legal contract text"
+    },
+    "quote_conversion_rate": {
+      "type": "number",
+      "default": 0.15,
+      "description": "Tasa de conversi\u00f3n global \u00a5\u2192$ para presupuestos (1\u00a5 = X USD)"
     },
     "rate_air_general": {
       "type": "number",
