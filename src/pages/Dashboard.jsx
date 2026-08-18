@@ -54,6 +54,7 @@ import ShippingLabelGenerator from '@/components/client-portal/ShippingLabelGene
 import WarehouseAddressCard from '@/components/client-portal/WarehouseAddressCard';
 import ClientCbmWidget from '@/components/client-portal/ClientCbmWidget';
 import CreditBalanceWidget from '@/components/client-portal/CreditBalanceWidget';
+import ClientQuotesWidget from '@/components/client-portal/ClientQuotesWidget';
 import { format } from 'date-fns';
 
 export default function Dashboard({ user, refreshUser }) {
@@ -417,8 +418,9 @@ export default function Dashboard({ user, refreshUser }) {
       )}
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 gap-2 rounded-[1.5rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur lg:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 gap-2 rounded-[1.5rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur lg:grid-cols-6">
           <TabsTrigger value="overview" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Resumen</TabsTrigger>
+          <TabsTrigger value="quotes" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Presupuestos</TabsTrigger>
           <TabsTrigger value="packages" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Paquetes</TabsTrigger>
           <TabsTrigger value="invoices" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Facturas</TabsTrigger>
           <TabsTrigger value="profile" className="min-h-[56px] rounded-xl border border-transparent text-center text-sm font-semibold text-slate-600 transition-all data-[state=active]:border-primary/10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-card">Mi Perfil</TabsTrigger>
@@ -461,6 +463,8 @@ export default function Dashboard({ user, refreshUser }) {
               </CardContent>
             </Card>
 
+            <ClientQuotesWidget userEmail={user?.email} limit={3} />
+
             <Card className="border-border/70 bg-card/95 shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -495,6 +499,14 @@ export default function Dashboard({ user, refreshUser }) {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="quotes" className="space-y-4">
+          <ClientSectionHeader
+            title="Mis Presupuestos"
+            description="Revisa los presupuestos que te hemos preparado y completa tus datos cuando estén listos."
+          />
+          <ClientQuotesWidget userEmail={user?.email} limit={50} showHeader={false} />
         </TabsContent>
 
         <TabsContent value="packages" className="space-y-4">
