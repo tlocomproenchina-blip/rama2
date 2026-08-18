@@ -462,11 +462,17 @@ export default function WarehouseDispatchHistory({ user }) {
     if (!withoutInvoice.length) { toast.info('No hay órdenes sin factura'); return; }
     const blocks = withoutInvoice.map((o) => {
       const snap = o.client_snapshot || {};
-      return [
+      const items = o.items || [];
+      const sinRecibo = items.filter((i) => !String(i.consolidation_tracking || '').trim() || String(i.consolidation_tracking).trim() === 'Sin recibo');
+      const lines = [
         `Orden: ${o.order_number || ''}`,
         `Shipping Mark: ${o.shipping_mark || snap.shipping_mark || ''}`,
         `Cliente: ${snap.full_name || o.client_name || ''}`,
-      ].join('\n');
+      ];
+      if (sinRecibo.length) {
+        lines.push(`Sin recibo: ${sinRecibo.length} paquete(s) - solicitar dimensiones a almacen`);
+      }
+      return lines.join('\n');
     });
     const text = blocks.join('\n---\n\n');
     navigator.clipboard?.writeText(text).then(
