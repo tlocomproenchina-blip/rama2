@@ -52,16 +52,16 @@
     --popover-foreground: 210 40% 98%;
     --primary: 210 40% 98%;
     --primary-foreground: 224 30% 10%;
-    --secondary: 224 18% 16%;
+    --secondary: 224 16% 20%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 224 18% 16%;
-    --muted-foreground: 218 12% 72%;
-    --accent: 224 16% 18%;
+    --muted: 224 16% 20%;
+    --muted-foreground: 218 16% 82%;
+    --accent: 224 20% 24%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62% 44%;
+    --destructive: 0 72% 58%;
     --destructive-foreground: 210 40% 98%;
-    --border: 224 16% 18%;
-    --input: 224 16% 18%;
+    --border: 224 14% 30%;
+    --input: 224 14% 26%;
     --ring: 224 62% 68%;
     --chart-1: 220 70% 58%;
     --chart-2: 188 60% 44%;
@@ -72,10 +72,39 @@
     --sidebar-foreground: 210 40% 96%;
     --sidebar-primary: 210 40% 98%;
     --sidebar-primary-foreground: 224 30% 10%;
-    --sidebar-accent: 224 16% 16%;
+    --sidebar-accent: 224 20% 22%;
     --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 224 16% 16%;
+    --sidebar-border: 224 14% 28%;
     --sidebar-ring: 224 62% 68%;
+  }
+}
+
+/* ===== Dark mode contrast overrides for hardcoded slate/gray/zinc text ===== */
+/* Muchos componentes usan text-slate-800/700/600/500 o text-gray-* hardcoded,
+   que en modo oscuro quedan casi ilegibles. Remapeamos a valores claros. */
+.dark {
+  .text-slate-900, .text-slate-800, .text-slate-700,
+  .text-gray-900, .text-gray-800, .text-gray-700 {
+    color: hsl(210 40% 98%) !important;
+  }
+  .text-slate-600, .text-slate-500,
+  .text-gray-600, .text-gray-500, .text-gray-400 {
+    color: hsl(218 16% 82%) !important;
+  }
+  .text-slate-400, .text-slate-300,
+  .text-gray-300, .text-zinc-400, .text-zinc-500 {
+    color: hsl(218 12% 68%) !important;
+  }
+  /* Fondos blancos/slate claros hardcoded en tarjetas internas */
+  .bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100 {
+    background-color: hsl(224 28% 12%) !important;
+  }
+  .bg-white\/80, .bg-white\/90, .bg-white {
+    background-color: hsl(224 28% 12%) !important;
+  }
+  /* Bordes claros hardcoded */
+  .border-slate-200, .border-slate-300, .border-gray-200, .border-gray-300 {
+    border-color: hsl(224 14% 30%) !important;
   }
 }
 
