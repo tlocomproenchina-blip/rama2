@@ -1,4 +1,53 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+
+async function notifyAdminsOfQuoteSubmission(base44: any, quote: any) {
+  try {
+    // Verificar kill-switch global de emails
+    let emailsEnabled = true;
+    try {
+      const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+      if (configs?.[0]?.emails_enabled === false) emailsEnabled = false;
+    } catch {}
+
+    const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+    const adminEmails = (admins || []).map((a: any) => a.email).filter(Boolean);
+    if (adminEmails.length === 0) return;
+
+    const title = '📋 Nuevo presupuesto completado por cliente';
+    const message = `El cliente ${quote.client_first_name} ${quote.client_last_name} completó sus datos para el presupuesto ${quote.quote_number || quote.token.slice(0, 8)}. Revisa y asigna precios.`;
+
+    // Notificación in-app para cada admin
+    await base44.asServiceRole.entities.Notification.bulkCreate(
+      adminEmails.map((email: string) => ({
+        user_email: email,
+        title,
+        message,
+        type: 'system',
+        icon: 'bell',
+        priority: 'medium',
+        reference_id: quote.id,
+        entity_type: 'System',
+        read: false,
+      }))
+    );
+
+    // Email a cada admin
+    if (emailsEnabled) {
+      const appName = 'TLEC CARGO';
+      const body = `<h2>📋 Nuevo presupuesto completado por cliente</h2>
+<p>Hola,</p>
+<p>El cliente <strong>${quote.client_first_name} ${quote.client_last_name}</strong> ha completado sus datos para el presupuesto <strong>${quote.quote_number || quote.token.slice(0, 8)}</strong>.</p>
+<p>Revisa y asigna precios en el panel de administración.</p>
+<p style="margin-top:16px;color:#666;font-size:12px;">${appName}</p>`;
+      await Promise.all(
+        adminEmails.map((email: string) =>
+          sendBrevoEmail(base44, { to: email, subject: title, body, from_name: appName, source: 'quote_submission' }).catch(() => {})
+        )
+      );
+    }
+  } catch (_) {}
+}
 
 export default async function(req) {
   try {
@@ -70,6 +119,9 @@ export default async function(req) {
     if (shipping_mark) updateData.shipping_mark = shipping_mark;
 
     const updated = await base44.asServiceRole.entities.Quote.update(quote.id, updateData);
+
+    // Notificar a administradores que el cliente completó sus datos
+    await notifyAdminsOfQuoteSubmission(base44, updated);
 
     return Response.json({ quote: updated });
   } catch (error) {

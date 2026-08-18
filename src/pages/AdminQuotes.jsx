@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, ArrowLeft, Copy, Check, Send, Plus, Trash2, FileText, Search, Package } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { sendNotification } from '@/components/NotificationUtils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -288,6 +289,28 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
       });
       onUpdate(updated);
       toast({ title: 'Presupuesto guardado', description: 'Los precios y totales se actualizaron' });
+
+      // Notificar al cliente cuando el presupuesto pasa a "completado" (con precios)
+      if (hasPricedItems && clientEmail && quote.status !== 'completado') {
+        const publicUrl = `${window.location.origin}/Quote/${quote.token}`;
+        const clientName = `${clientFirstName} ${clientLastName}`.trim() || 'cliente';
+        sendNotification({
+          to: clientEmail,
+          subject: '📋 Tu presupuesto está listo',
+          body: `<h2>📋 Tu presupuesto está listo</h2>
+<p>Hola <strong>${clientName}</strong>,</p>
+<p>Tu presupuesto ha sido procesado y ya está disponible para revisión.</p>
+<p><strong>Total: $${(totals.total_usd || 0).toFixed(2)} USD</strong></p>
+<p>Puedes verlo y aceptar el contrato en el siguiente enlace:</p>
+<p><a href="${publicUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Ver Presupuesto</a></p>
+<p style="margin-top:16px;color:#666;font-size:12px;">TLEC CARGO</p>`,
+          title: '📋 Tu presupuesto está listo',
+          message: `Tu presupuesto por $${(totals.total_usd || 0).toFixed(2)} USD está disponible. Revisa y acepta el contrato.`,
+          type: 'system',
+          icon: 'bell',
+          referenceId: quote.id
+        }).catch(() => {});
+      }
     } catch (err) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
