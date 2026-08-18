@@ -4,8 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ArrowLeft, Copy, Check, Send, Plus } from 'lucide-react';
+import { Loader2, ArrowLeft, Copy, Check, Send, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import QuoteProductTable from '@/components/quotes/QuoteProductTable';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import { generateQuoteToken, calcQuoteTotals, calcItemTotals, buildWhatsAppMessage, buildWhatsAppLink } from '@/lib/quoteUtils';
@@ -24,7 +34,24 @@ export default function AdminQuotes({ user }) {
   const [config, setConfig] = useState(null);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setDeleting(true);
+      await base44.entities.Quote.delete(deleteTarget.id);
+      setQuotes(quotes.filter((q) => q.id !== deleteTarget.id));
+      toast({ title: 'Presupuesto eliminado', description: deleteTarget.quote_number });
+    } catch (err) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
 
   const loadQuotes = useCallback(async () => {
     try {
@@ -120,27 +147,61 @@ export default function AdminQuotes({ user }) {
           const st = STATUS_LABELS[q.status] || STATUS_LABELS.esperando_cliente;
           const clientName = `${q.client_first_name || ''} ${q.client_last_name || ''}`.trim() || 'Sin datos del cliente';
           return (
-            <button
+            <div
               key={q.id}
-              onClick={() => setSelected(q)}
-              className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-4 text-left hover:border-purple-300 hover:shadow-sm transition-all"
+              className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-4 hover:border-purple-300 hover:shadow-sm transition-all"
             >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-800">{q.quote_number}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.color}`}>{st.label}</span>
+              <button
+                onClick={() => setSelected(q)}
+                className="flex min-w-0 flex-1 items-center justify-between text-left"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-800">{q.quote_number}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.color}`}>{st.label}</span>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-gray-500">{clientName}</p>
+                  {q.client_city && <p className="text-xs text-gray-400">{q.client_city}</p>}
                 </div>
-                <p className="mt-1 truncate text-sm text-gray-500">{clientName}</p>
-                {q.client_city && <p className="text-xs text-gray-400">{q.client_city}</p>}
-              </div>
-              <div className="ml-4 text-right">
-                <p className="text-sm font-bold" style={{ color: '#10b981' }}>${(q.total_usd || 0).toFixed(2)}</p>
-                <p className="text-xs text-gray-400">{(q.items || []).length} productos</p>
-              </div>
-            </button>
+                <div className="ml-4 text-right">
+                  <p className="text-sm font-bold" style={{ color: '#10b981' }}>${(q.total_usd || 0).toFixed(2)}</p>
+                  <p className="text-xs text-gray-400">{(q.items || []).length} productos</p>
+                </div>
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); setDeleteTarget(q); }}
+                className="ml-2 h-9 w-9 text-gray-400 hover:text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           );
         })}
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar presupuesto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará permanentemente el presupuesto <strong>{deleteTarget?.quote_number}</strong>.
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -150,6 +211,10 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
   const [servicePercentage, setServicePercentage] = useState(quote.service_percentage || 15);
   const [conversionRate, setConversionRate] = useState(quote.conversion_rate || config?.quote_conversion_rate || 0.15);
   const [notes, setNotes] = useState(quote.notes || '');
+  const [clientFirstName, setClientFirstName] = useState(quote.client_first_name || '');
+  const [clientLastName, setClientLastName] = useState(quote.client_last_name || '');
+  const [clientCity, setClientCity] = useState(quote.client_city || '');
+  const [clientPhone, setClientPhone] = useState(quote.client_phone || '');
 
   // Recalcular totales cuando cambian items, servicePercentage o conversionRate
   const totals = calcQuoteTotals(items, servicePercentage, conversionRate);
@@ -168,16 +233,22 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
   const handleSave = async () => {
     try {
       setSaving(true);
+      // Solo avanzar a 'completado' si el cliente ya envió sus datos; si no, mantener estado
+      const nextStatus = hasClientData ? 'completado' : quote.status;
       const updated = await base44.entities.Quote.update(quote.id, {
         items: withTotals,
         service_percentage: Number(servicePercentage),
         conversion_rate: Number(conversionRate),
         notes,
+        client_first_name: clientFirstName,
+        client_last_name: clientLastName,
+        client_city: clientCity,
+        client_phone: clientPhone,
         subtotal_cny: totals.subtotal_cny,
         service_total_cny: totals.service_total_cny,
         total_cny: totals.total_cny,
         total_usd: totals.total_usd,
-        status: 'completado'
+        status: nextStatus
       });
       onUpdate(updated);
       toast({ title: 'Presupuesto guardado', description: 'Los precios y totales se actualizaron' });
@@ -206,13 +277,17 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
     await handleSave();
     const quoteForMsg = {
       ...quote,
+      client_first_name: clientFirstName,
+      client_last_name: clientLastName,
+      client_city: clientCity,
+      client_phone: clientPhone,
       items: withTotals,
       service_percentage: Number(servicePercentage),
       conversion_rate: Number(conversionRate),
       ...totals
     };
     const msg = buildWhatsAppMessage(quoteForMsg, publicUrl);
-    const link = buildWhatsAppLink(quote.client_phone, msg);
+    const link = buildWhatsAppLink(clientPhone, msg);
     window.open(link, '_blank');
 
     // Marcar como enviado
@@ -247,28 +322,31 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
       {/* Datos del Cliente */}
       <div className="rounded-xl border border-gray-200 bg-white p-5">
         <h3 className="mb-4 text-sm font-bold" style={{ color: '#c52899' }}>Datos del Cliente</h3>
-        {!hasClientData ? (
-          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-700">
-            El cliente aún no ha completado sus datos. Comparte el enlace para que lo haga.
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label className="text-xs text-gray-500">Nombre</Label>
-              <p className="font-medium text-gray-800">{clientName}</p>
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500">Ciudad de Despacho</Label>
-              <p className="font-medium text-gray-800">{quote.client_city || '-'}</p>
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500">Número de Contacto</Label>
-              <p className="font-medium text-gray-800">{quote.client_phone || '-'}</p>
-            </div>
+        {!hasClientData && (
+          <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-700">
+            El cliente aún no ha completado sus datos. Puedes pre-cargarlos manualmente o compartir el enlace.
           </div>
         )}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label className="text-xs text-gray-500">Nombre</Label>
+            <Input value={clientFirstName} onChange={(e) => setClientFirstName(e.target.value)} placeholder="Nombre" className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs text-gray-500">Apellido</Label>
+            <Input value={clientLastName} onChange={(e) => setClientLastName(e.target.value)} placeholder="Apellido" className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs text-gray-500">Ciudad de Despacho</Label>
+            <Input value={clientCity} onChange={(e) => setClientCity(e.target.value)} placeholder="Ciudad" className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs text-gray-500">Número de Contacto (WhatsApp)</Label>
+            <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="Ej: 4121234567" className="mt-1" />
+          </div>
+        </div>
         <div className="mt-4">
-          <Label className="text-xs text-gray-500">Notas del Cliente</Label>
+          <Label className="text-xs text-gray-500">Notas</Label>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Sin notas" className="mt-1" />
         </div>
       </div>
@@ -344,14 +422,12 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
         </div>
       )}
 
-      {hasClientData && (
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Guardar Presupuesto
-          </Button>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Guardar Presupuesto
+        </Button>
+      </div>
     </div>
   );
 }
