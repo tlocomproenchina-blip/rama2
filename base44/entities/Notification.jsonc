@@ -73,6 +73,16 @@
       "default": "bell",
       "description": "\u00cdcono a mostrar"
     },
+    "push_broadcast_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si el broadcast push se envi\u00f3 a al menos un dispositivo"
+    },
+    "push_recipient_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de dispositivos que recibieron el push broadcast"
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,
