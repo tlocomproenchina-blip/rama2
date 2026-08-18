@@ -45,9 +45,9 @@ export default function AdminDailySummary({ user }) {
         base44.entities.InvoicePayment.list('-approved_date', 500),
         base44.entities.SupportTicket.list('-created_date', 500),
         base44.entities.Invoice.list('-created_date', 500),
-        base44.entities.InvoicePayment.list('-created_date', 500),
-        base44.entities.AssistedPaymentRequest.list('-created_date', 500),
-        base44.entities.SupportTicket.list('-created_date', 500),
+        base44.entities.InvoicePayment.filter({ status: 'pendiente' }, '-created_date', 1000),
+        base44.entities.AssistedPaymentRequest.filter({ status: 'pendiente' }, '-created_date', 1000),
+        base44.entities.SupportTicket.filter({ status: 'abierto' }, '-created_date', 1000),
       ]);
 
       // === Filtrado client-side (más confiable que filter por status) ===
@@ -63,10 +63,10 @@ export default function AdminDailySummary({ user }) {
       const invoicesTotal = newInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
       const insuredTotalFob = insuredRecent.reduce((s, p) => s + Number(p.fob_value || 0), 0);
 
-      // Pendientes actuales (filtrado client-side)
-      const pendingPaymentsCount = (allPayments || []).filter((p) => p.status === 'pendiente').length;
-      const pendingAssistedCount = (allAssisted || []).filter((p) => p.status === 'pendiente').length;
-      const openTicketsCount = (allTickets || []).filter((t) => t.status === 'abierto').length;
+      // Pendientes actuales (consulta filtrada por estado — conteo real sin tope de 500)
+      const pendingPaymentsCount = (allPayments || []).length;
+      const pendingAssistedCount = (allAssisted || []).length;
+      const openTicketsCount = (allTickets || []).length;
 
       setData({
         periodStart: fmtDate(new Date(now.getTime() - DAY_MS)),
