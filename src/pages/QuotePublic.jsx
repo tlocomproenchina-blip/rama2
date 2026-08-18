@@ -65,8 +65,9 @@ export default function QuotePublic() {
     load();
   }, [token]);
 
-  const isClientStage = quote?.status === 'esperando_cliente';
+  const isClientStage = quote?.status === 'esperando_cliente' || quote?.status === 'cliente_completo';
   const isCompleted = quote?.status === 'completado' || quote?.status === 'enviado';
+  const isResubmit = quote?.status === 'cliente_completo';
 
   const handleSubmit = async () => {
     if (!firstName || !lastName || !city || !phone) {
@@ -143,9 +144,11 @@ export default function QuotePublic() {
         <div className="rounded-xl border border-gray-200 bg-white p-5 text-center">
           <h1 className="text-xl font-bold text-gray-800">Presupuesto {quote.quote_number}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            {isClientStage
-              ? 'Completa tus datos y los productos que deseas cotizar'
-              : 'Tu presupuesto está listo'}
+            {isCompleted
+              ? 'Tu presupuesto está listo'
+              : isResubmit
+                ? 'Tu solicitud fue enviada. Aún puedes modificarla mientras el administrador no la apruebe.'
+                : 'Completa tus datos y los productos que deseas cotizar'}
           </p>
         </div>
 
@@ -283,7 +286,7 @@ export default function QuotePublic() {
               className="w-full text-white hover:opacity-90"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Enviar Solicitud de Presupuesto
+              {isResubmit ? 'Actualizar Solicitud' : 'Enviar Solicitud de Presupuesto'}
             </Button>
             {contractAcceptedForSubmit && (
               <p className="flex items-center justify-center gap-1 text-xs font-medium text-green-600">
