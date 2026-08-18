@@ -40,6 +40,8 @@ export default function AdminDailySummary({ user }) {
         allAssisted,
         allTickets,
         pendingQuotes,
+        reviewInvoices,
+        pendingConsolidations,
       ] = await Promise.all([
         base44.entities.Package.list('-created_date', 500),
         base44.entities.User.list('-created_date', 500),
@@ -50,6 +52,8 @@ export default function AdminDailySummary({ user }) {
         base44.entities.AssistedPaymentRequest.filter({ status: 'pendiente' }, '-created_date', 1000),
         base44.entities.SupportTicket.filter({ status: 'abierto' }, '-created_date', 1000),
         base44.entities.Quote.filter({ status: 'cliente_completo' }, '-updated_date', 1000),
+        base44.entities.Invoice.filter({ status: 'revision' }, '-invoice_date', 1000),
+        base44.entities.Consolidation.filter({ status: 'pago_pendiente_validacion' }, '-created_date', 1000),
       ]);
 
       // === Filtrado client-side (más confiable que filter por status) ===
@@ -66,7 +70,7 @@ export default function AdminDailySummary({ user }) {
       const insuredTotalFob = insuredRecent.reduce((s, p) => s + Number(p.fob_value || 0), 0);
 
       // Pendientes actuales (consulta filtrada por estado — conteo real sin tope de 500)
-      const pendingPaymentsCount = (allPayments || []).length;
+      const pendingPaymentsCount = (allPayments || []).length + (reviewInvoices || []).length + (pendingConsolidations || []).length;
       const pendingAssistedCount = (allAssisted || []).length;
       const openTicketsCount = (allTickets || []).length;
       const pendingQuotesCount = (pendingQuotes || []).length;
@@ -124,6 +128,7 @@ export default function AdminDailySummary({ user }) {
       base44.entities.Invoice,
       base44.entities.User,
       base44.entities.Quote,
+      base44.entities.Consolidation,
     ];
     const unsubs = subs
       .map((e) => e.subscribe?.(() => scheduleRefresh()))
