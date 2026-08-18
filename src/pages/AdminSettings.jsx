@@ -43,6 +43,7 @@ import { cacheManager } from '@/components/CacheManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { generateClientPriceListPdf } from '@/lib/clientPriceListPdf';
 import PushTestCard from '@/components/admin/PushTestCard';
+import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
