@@ -5,10 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Check, FileText, Package } from 'lucide-react';
+import { Loader2, Check, FileText, Package, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import QuoteProductForm from '@/components/quotes/QuoteProductForm';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function QuotePublic() {
   const { token } = useParams();
@@ -19,6 +26,8 @@ export default function QuotePublic() {
   const [submitting, setSubmitting] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [showContract, setShowContract] = useState(false);
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractAcceptedForSubmit, setContractAcceptedForSubmit] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -67,6 +76,11 @@ export default function QuotePublic() {
     const validItems = items.filter(it => it.link || it.image_url);
     if (validItems.length === 0) {
       toast({ title: 'Agrega al menos un producto', variant: 'destructive' });
+      return;
+    }
+    // Si hay contrato, exigir aceptación previa
+    if ((contractText || contractFileUrl) && !contractAcceptedForSubmit) {
+      setShowContractModal(true);
       return;
     }
     try {
@@ -261,17 +275,69 @@ export default function QuotePublic() {
 
         {/* Submit button (solo si está en etapa cliente) */}
         {isClientStage && (
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting}
-            style={{ backgroundColor: '#8b5cf6' }}
-            className="w-full text-white hover:opacity-90"
-          >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Enviar Datos al Administrador
-          </Button>
+          <>
+            <Button
+              onClick={handleSubmit}
+              disabled={submitting}
+              style={{ backgroundColor: '#8b5cf6' }}
+              className="w-full text-white hover:opacity-90"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Enviar Solicitud de Presupuesto
+            </Button>
+            {contractAcceptedForSubmit && (
+              <p className="flex items-center justify-center gap-1 text-xs font-medium text-green-600">
+                <Check className="h-3 w-3" /> Contrato aceptado
+              </p>
+            )}
+          </>
         )}
       </div>
+
+      {/* Modal de aceptación de contrato previo al envío */}
+      <Dialog open={showContractModal} onOpenChange={setShowContractModal}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2" style={{ color: '#c52899' }}>
+              <FileText className="h-5 w-5" /> Contrato del Presupuesto
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            Debes leer y aceptar el contrato para poder enviar tu solicitud de presupuesto.
+          </p>
+          <div className="max-h-[50vh] space-y-3 overflow-y-auto rounded-lg bg-gray-50 p-4">
+            {contractFileUrl && (
+              <a
+                href={contractFileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50"
+              >
+                <FileText className="h-4 w-4" /> Descargar contrato
+              </a>
+            )}
+            {contractText && (
+              <div className="text-sm text-gray-700 whitespace-pre-wrap">{contractText}</div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowContractModal(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                setContractAcceptedForSubmit(true);
+                setShowContractModal(false);
+                toast({ title: 'Contrato aceptado', description: 'Ya puedes enviar tu solicitud' });
+              }}
+              style={{ backgroundColor: '#8b5cf6' }}
+              className="text-white hover:opacity-90"
+            >
+              <Check className="h-4 w-4" /> Aceptar y continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
