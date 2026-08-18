@@ -112,19 +112,12 @@ export default function Layout({ children, currentPageName }) {
       const stored = localStorage.getItem('tlec-dark-mode');
       if (stored === 'enabled') {
         document.documentElement.classList.add('dark');
-        return;
-      }
-      if (stored === 'disabled') {
+      } else {
         document.documentElement.classList.remove('dark');
-        return;
       }
-    } catch (_) {}
-
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    apply = (e) => document.documentElement.classList.toggle('dark', e.matches);
-    apply(mq);
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
+    } catch (_) {
+      document.documentElement.classList.remove('dark');
+    }
   }, []);
 
   // React to dark mode preference changes from other tabs/components
