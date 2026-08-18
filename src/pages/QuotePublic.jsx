@@ -14,6 +14,7 @@ export default function QuotePublic() {
   const { token } = useParams();
   const [quote, setQuote] = useState(null);
   const [contractText, setContractText] = useState('');
+  const [contractFileUrl, setContractFileUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [accepted, setAccepted] = useState(false);
@@ -36,6 +37,7 @@ export default function QuotePublic() {
         const data = res.data || res;
         setQuote(data.quote);
         setContractText(data.contract_text || '');
+        setContractFileUrl(data.contract_file_url || data.quote?.contract_file_url || '');
         if (data.quote) {
           setFirstName(data.quote.client_first_name || '');
           setLastName(data.quote.client_last_name || '');
@@ -213,7 +215,7 @@ export default function QuotePublic() {
         )}
 
         {/* Contrato (solo si está completado) */}
-        {isCompleted && (contractText || quote.contract_file_url) && (
+        {isCompleted && (contractText || contractFileUrl) && (
           <div className="rounded-xl border border-gray-200 bg-white p-5">
             <button
               onClick={() => setShowContract(!showContract)}
@@ -226,9 +228,9 @@ export default function QuotePublic() {
             </button>
             {showContract && (
               <div className="mt-3 space-y-3">
-                {quote.contract_file_url && (
+                {contractFileUrl && (
                   <a
-                    href={quote.contract_file_url}
+                    href={contractFileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-100"

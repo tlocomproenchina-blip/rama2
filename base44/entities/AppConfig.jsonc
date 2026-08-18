@@ -48,6 +48,10 @@
       "type": "string",
       "description": "Legal contract text"
     },
+    "contract_file_url": {
+      "type": "string",
+      "description": "URL de archivo de contrato global (PDF o imagen) para presupuestos"
+    },
     "quote_conversion_rate": {
       "type": "number",
       "default": 0.15,
