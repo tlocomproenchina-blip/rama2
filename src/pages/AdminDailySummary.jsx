@@ -39,6 +39,7 @@ export default function AdminDailySummary({ user }) {
         allPayments,
         allAssisted,
         allTickets,
+        pendingQuotes,
       ] = await Promise.all([
         base44.entities.Package.list('-created_date', 500),
         base44.entities.User.list('-created_date', 500),
@@ -48,6 +49,7 @@ export default function AdminDailySummary({ user }) {
         base44.entities.InvoicePayment.filter({ status: 'pendiente' }, '-created_date', 1000),
         base44.entities.AssistedPaymentRequest.filter({ status: 'pendiente' }, '-created_date', 1000),
         base44.entities.SupportTicket.filter({ status: 'abierto' }, '-created_date', 1000),
+        base44.entities.Quote.filter({ status: 'cliente_completo' }, '-updated_date', 1000),
       ]);
 
       // === Filtrado client-side (más confiable que filter por status) ===
@@ -67,6 +69,7 @@ export default function AdminDailySummary({ user }) {
       const pendingPaymentsCount = (allPayments || []).length;
       const pendingAssistedCount = (allAssisted || []).length;
       const openTicketsCount = (allTickets || []).length;
+      const pendingQuotesCount = (pendingQuotes || []).length;
 
       setData({
         periodStart: fmtDate(new Date(now.getTime() - DAY_MS)),
@@ -83,6 +86,7 @@ export default function AdminDailySummary({ user }) {
         pending: [
           { icon: Clock, label: 'Pagos por validar', value: fmt(pendingPaymentsCount), alert: pendingPaymentsCount > 0, color: 'text-amber-600' },
           { icon: ShoppingBag, label: 'Pagos asistidos pendientes', value: fmt(pendingAssistedCount), alert: pendingAssistedCount > 0, color: 'text-amber-600' },
+          { icon: FileText, label: 'Presupuestos por revisar', value: fmt(pendingQuotesCount), alert: pendingQuotesCount > 0, color: 'text-amber-600' },
           { icon: AlertTriangle, label: 'Tickets abiertos', value: fmt(openTicketsCount), alert: openTicketsCount > 0, color: 'text-rose-600' },
         ],
       });
@@ -119,6 +123,7 @@ export default function AdminDailySummary({ user }) {
       base44.entities.AssistedPaymentRequest,
       base44.entities.Invoice,
       base44.entities.User,
+      base44.entities.Quote,
     ];
     const unsubs = subs
       .map((e) => e.subscribe?.(() => scheduleRefresh()))
@@ -209,7 +214,7 @@ export default function AdminDailySummary({ user }) {
               </CardTitle>
               <CardDescription>Estado actual de tareas que requieren atención.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-3">
+            <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {data.pending.map((row) => {
                 const Icon = row.icon;
                 return (
