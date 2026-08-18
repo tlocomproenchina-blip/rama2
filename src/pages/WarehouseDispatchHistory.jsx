@@ -474,7 +474,7 @@ export default function WarehouseDispatchHistory({ user }) {
       }
       return lines.join('\n');
     });
-    const text = blocks.join('\n---\n\n');
+    const text = 'CARGA EN ALMACEN SIN FACTURA\n\n' + blocks.join('\n---\n\n');
     navigator.clipboard?.writeText(text).then(
       () => toast.success(`${withoutInvoice.length} orden(es) sin factura copiada(s)`),
       () => toast.error('No se pudo copiar')
