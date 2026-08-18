@@ -457,6 +457,24 @@ export default function WarehouseDispatchHistory({ user }) {
     );
   };
 
+  const handleCopyWithoutInvoice = () => {
+    const withoutInvoice = filtered.filter((o) => !invoiceInfoMap[o.id]?.hasInvoice);
+    if (!withoutInvoice.length) { toast.info('No hay órdenes sin factura'); return; }
+    const blocks = withoutInvoice.map((o) => {
+      const snap = o.client_snapshot || {};
+      return [
+        `Orden: ${o.order_number || ''}`,
+        `Shipping Mark: ${o.shipping_mark || snap.shipping_mark || ''}`,
+        `Cliente: ${snap.full_name || o.client_name || ''}`,
+      ].join('\n');
+    });
+    const text = blocks.join('\n---\n\n');
+    navigator.clipboard?.writeText(text).then(
+      () => toast.success(`${withoutInvoice.length} orden(es) sin factura copiada(s)`),
+      () => toast.error('No se pudo copiar')
+    );
+  };
+
   const handleMerge = async () => {
     if (!canMerge) return;
     setMerging(true);
@@ -592,6 +610,16 @@ export default function WarehouseDispatchHistory({ user }) {
         >
           <Copy className="h-4 w-4" />
           Copiar todos
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleCopyWithoutInvoice}
+          disabled={!filtered?.length}
+          className="shrink-0"
+          title="Copiar al portapapeles las órdenes visibles que no tienen factura"
+        >
+          <Copy className="h-4 w-4" />
+          Copiar sin factura
         </Button>
       </div>
 
