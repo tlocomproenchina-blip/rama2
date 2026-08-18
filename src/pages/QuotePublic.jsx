@@ -23,6 +23,7 @@ export default function QuotePublic() {
   // Form state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [city, setCity] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
@@ -38,6 +39,7 @@ export default function QuotePublic() {
         if (data.quote) {
           setFirstName(data.quote.client_first_name || '');
           setLastName(data.quote.client_last_name || '');
+          setEmail(data.quote.client_email || '');
           setCity(data.quote.client_city || '');
           setPhone(data.quote.client_phone || '');
           setNotes(data.quote.notes || '');
@@ -71,6 +73,7 @@ export default function QuotePublic() {
         token,
         client_first_name: firstName,
         client_last_name: lastName,
+        client_email: email,
         client_city: city,
         client_phone: phone,
         notes,
@@ -141,6 +144,15 @@ export default function QuotePublic() {
             <div>
               <Label className="text-xs text-gray-600">Apellido *</Label>
               <Input value={lastName} onChange={(e) => setLastName(e.target.value)} readOnly={isCompleted} placeholder="Tu apellido" className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-600">Email</Label>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} readOnly={isCompleted} placeholder="tu@email.com" className="mt-1" />
+              {isCompleted && quote.shipping_mark && (
+                <p className="mt-1 text-xs font-medium text-green-600">
+                  ✓ Shipping Mark: {quote.shipping_mark}
+                </p>
+              )}
             </div>
             <div>
               <Label className="text-xs text-gray-600">Ciudad de Despacho *</Label>

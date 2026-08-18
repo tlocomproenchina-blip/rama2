@@ -18,6 +18,10 @@
       "type": "string",
       "description": "Apellido del cliente"
     },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente (para lookup de shipping mark)"
+    },
     "client_city": {
       "type": "string",
       "description": "Ciudad de despacho"
@@ -25,6 +29,10 @@
     "client_phone": {
       "type": "string",
       "description": "N\u00famero de contacto (WhatsApp)"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark del cliente si est\u00e1 registrado (cache de lookup)"
     },
     "items": {
       "type": "array",
@@ -116,6 +124,10 @@
       ],
       "default": "esperando_cliente",
       "description": "Estado del presupuesto"
+    },
+    "contract_text": {
+      "type": "string",
+      "description": "Contrato espec\u00edfico de este presupuesto (independiente del global)"
     },
     "contract_accepted": {
       "type": "boolean",

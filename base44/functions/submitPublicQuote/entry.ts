@@ -18,6 +18,7 @@ export default async function(req) {
 
     const client_first_name = String(body.client_first_name || '').trim();
     const client_last_name = String(body.client_last_name || '').trim();
+    const client_email = String(body.client_email || '').trim();
     const client_city = String(body.client_city || '').trim();
     const client_phone = String(body.client_phone || '').trim();
     const notes = String(body.notes || '').trim();
@@ -25,6 +26,17 @@ export default async function(req) {
 
     if (!client_first_name || !client_last_name || !client_city || !client_phone) {
       return Response.json({ error: 'Todos los datos del cliente son obligatorios' }, { status: 400 });
+    }
+
+    // Buscar shipping mark si se proporcionó email
+    let shipping_mark = '';
+    if (client_email && client_email.includes('@')) {
+      try {
+        const users = await base44.asServiceRole.entities.User.filter({ email: client_email }, '-created_date', 1);
+        if (users.length && users[0].shipping_mark) {
+          shipping_mark = users[0].shipping_mark;
+        }
+      } catch {}
     }
 
     const validItems = items.filter(it => it && (it.link || it.image_url));
@@ -45,7 +57,7 @@ export default async function(req) {
       total_usd: 0
     }));
 
-    const updated = await base44.asServiceRole.entities.Quote.update(quote.id, {
+    const updateData = {
       client_first_name,
       client_last_name,
       client_city,
@@ -53,7 +65,11 @@ export default async function(req) {
       notes,
       items: cleanItems,
       status: 'cliente_completo'
-    });
+    };
+    if (client_email) updateData.client_email = client_email;
+    if (shipping_mark) updateData.shipping_mark = shipping_mark;
+
+    const updated = await base44.asServiceRole.entities.Quote.update(quote.id, updateData);
 
     return Response.json({ quote: updated });
   } catch (error) {

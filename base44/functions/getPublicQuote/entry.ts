@@ -11,16 +11,18 @@ export default async function(req) {
     if (!quotes.length) return Response.json({ error: 'Presupuesto no encontrado' }, { status: 404 });
 
     const quote = quotes[0];
-    // Obtener contrato y tasa global para mostrar al cliente
-    let contractText = '';
-    let globalRate = 0.15;
-    try {
-      const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
-      if (configs.length) {
-        contractText = configs[0].contract_text || '';
-        globalRate = configs[0].quote_conversion_rate || 0.15;
-      }
-    } catch {}
+    // Contrato: usar el contrato específico del presupuesto si existe, si no el global
+    let contractText = quote.contract_text || '';
+    let globalRate = quote.conversion_rate || 0.15;
+    if (!contractText) {
+      try {
+        const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+        if (configs.length) {
+          contractText = configs[0].contract_text || '';
+          if (!quote.conversion_rate) globalRate = configs[0].quote_conversion_rate || 0.15;
+        }
+      } catch {}
+    }
 
     return Response.json({ quote, contract_text: contractText, global_conversion_rate: globalRate });
   } catch (error) {

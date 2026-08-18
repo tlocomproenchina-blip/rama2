@@ -86,6 +86,8 @@ export function buildWhatsAppMessage(quote, publicUrl) {
 
   lines.push(`*Presupuesto ${quote.quote_number || ''}*`);
   lines.push(`Cliente: ${clientName}`);
+  if (quote.client_email) lines.push(`Email: ${quote.client_email}`);
+  if (quote.shipping_mark) lines.push(`Shipping Mark: ${quote.shipping_mark}`);
   if (quote.client_city) lines.push(`Ciudad de despacho: ${quote.client_city}`);
   lines.push('');
   lines.push('*Productos:*');

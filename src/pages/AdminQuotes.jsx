@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ArrowLeft, Copy, Check, Send, Plus, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Copy, Check, Send, Plus, Trash2, FileText, Search, Package } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import {
   AlertDialog,
@@ -215,11 +215,43 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
   const [clientLastName, setClientLastName] = useState(quote.client_last_name || '');
   const [clientCity, setClientCity] = useState(quote.client_city || '');
   const [clientPhone, setClientPhone] = useState(quote.client_phone || '');
+  const [clientEmail, setClientEmail] = useState(quote.client_email || '');
+  const [shippingMark, setShippingMark] = useState(quote.shipping_mark || '');
+  const [contractText, setContractText] = useState(quote.contract_text || '');
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupResult, setLookupResult] = useState(null);
 
   // Recalcular totales cuando cambian items, servicePercentage o conversionRate
   const totals = calcQuoteTotals(items, servicePercentage, conversionRate);
 
   const publicUrl = `${window.location.origin}/Quote/${quote.token}`;
+
+  // Debounced email lookup para buscar shipping mark
+  useEffect(() => {
+    if (!clientEmail || !clientEmail.includes('@')) {
+      setLookupResult(null);
+      setShippingMark('');
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        setLookupLoading(true);
+        const res = await base44.functions.invoke('lookupQuoteClient', { email: clientEmail });
+        const data = res.data || res;
+        setLookupResult(data);
+        if (data.found && data.shipping_mark) {
+          setShippingMark(data.shipping_mark);
+        } else {
+          setShippingMark('');
+        }
+      } catch (err) {
+        console.error('Lookup error:', err);
+      } finally {
+        setLookupLoading(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [clientEmail]);
 
   const handleItemsChange = (nextItems) => {
     // Recalcular totales por item
@@ -233,8 +265,9 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
   const handleSave = async () => {
     try {
       setSaving(true);
-      // Solo avanzar a 'completado' si el cliente ya envió sus datos; si no, mantener estado
-      const nextStatus = hasClientData ? 'completado' : quote.status;
+      // Avanzar a 'completado' si hay items con precios definidos
+      const hasPricedItems = withTotals.some(it => Number(it.unit_price) > 0);
+      const nextStatus = hasPricedItems ? 'completado' : (quote.status === 'enviado' ? 'enviado' : quote.status);
       const updated = await base44.entities.Quote.update(quote.id, {
         items: withTotals,
         service_percentage: Number(servicePercentage),
@@ -242,8 +275,11 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
         notes,
         client_first_name: clientFirstName,
         client_last_name: clientLastName,
+        client_email: clientEmail,
         client_city: clientCity,
         client_phone: clientPhone,
+        shipping_mark: shippingMark,
+        contract_text: contractText,
         subtotal_cny: totals.subtotal_cny,
         service_total_cny: totals.service_total_cny,
         total_cny: totals.total_cny,
@@ -279,8 +315,10 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
       ...quote,
       client_first_name: clientFirstName,
       client_last_name: clientLastName,
+      client_email: clientEmail,
       client_city: clientCity,
       client_phone: clientPhone,
+      shipping_mark: shippingMark,
       items: withTotals,
       service_percentage: Number(servicePercentage),
       conversion_rate: Number(conversionRate),
@@ -311,11 +349,9 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
             {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
             Copiar Enlace
           </Button>
-          {hasClientData && (
-            <Button onClick={handleWhatsApp} disabled={saving} style={{ backgroundColor: '#25D366' }} className="text-white hover:opacity-90 gap-2">
-              <Send className="h-4 w-4" /> Enviar WhatsApp
-            </Button>
-          )}
+          <Button onClick={handleWhatsApp} disabled={saving} style={{ backgroundColor: '#25D366' }} className="text-white hover:opacity-90 gap-2">
+            <Send className="h-4 w-4" /> Enviar WhatsApp
+          </Button>
         </div>
       </div>
 
@@ -344,6 +380,39 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
             <Label className="text-xs text-gray-500">Número de Contacto (WhatsApp)</Label>
             <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="Ej: 4121234567" className="mt-1" />
           </div>
+          <div>
+            <Label className="text-xs text-gray-500">Email</Label>
+            <div className="relative mt-1">
+              <Input
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                placeholder="cliente@email.com"
+                className="pr-10"
+              />
+              {lookupLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />}
+            </div>
+            {lookupResult && lookupResult.found && (
+              <p className="mt-1 text-xs font-medium text-green-600">
+                ✓ Cliente registrado: {lookupResult.full_name || ''}
+              </p>
+            )}
+            {lookupResult && !lookupResult.found && clientEmail && clientEmail.includes('@') && (
+              <p className="mt-1 text-xs text-gray-400">No registrado en la base de datos</p>
+            )}
+          </div>
+          <div>
+            <Label className="text-xs text-gray-500">Shipping Mark</Label>
+            {shippingMark ? (
+              <div className="mt-1 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                <Package className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-bold text-green-700">{shippingMark}</span>
+              </div>
+            ) : (
+              <div className="mt-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <span className="text-xs text-gray-400">Sin shipping mark asignado</span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="mt-4">
           <Label className="text-xs text-gray-500">Notas</Label>
@@ -358,69 +427,71 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
           servicePercentage={servicePercentage}
           conversionRate={conversionRate}
           onChange={handleItemsChange}
-          readOnly={!hasClientData}
+          readOnly={false}
           showPricing={true}
         />
       </div>
 
       {/* Configuración de precios */}
-      {hasClientData && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <h3 className="mb-4 text-sm font-bold" style={{ color: '#c52899' }}>Configuración</h3>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label className="text-xs text-gray-600">% de Servicio</Label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0"
-                value={servicePercentage}
-                onChange={(e) => setServicePercentage(Number(e.target.value))}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-600">Tasa de Conversión (1¥ = $)</Label>
-              <Input
-                type="number"
-                step="0.001"
-                min="0"
-                value={conversionRate}
-                onChange={(e) => setConversionRate(Number(e.target.value))}
-                className="mt-1"
-              />
-              <p className="mt-1 text-xs text-gray-400">Global: ${(config?.quote_conversion_rate || 0.15).toFixed(2)}</p>
-            </div>
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <h3 className="mb-4 text-sm font-bold" style={{ color: '#c52899' }}>Configuración</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label className="text-xs text-gray-600">% de Servicio</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0"
+              value={servicePercentage}
+              onChange={(e) => setServicePercentage(Number(e.target.value))}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-gray-600">Tasa de Conversión (1¥ = $)</Label>
+            <Input
+              type="number"
+              step="0.001"
+              min="0"
+              value={conversionRate}
+              onChange={(e) => setConversionRate(Number(e.target.value))}
+              className="mt-1"
+            />
+            <p className="mt-1 text-xs text-gray-400">Global: ${(config?.quote_conversion_rate || 0.15).toFixed(2)}</p>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Resumen */}
-      {hasClientData && (
-        <QuoteSummary
-          subtotalCny={totals.subtotal_cny}
-          serviceTotalCny={totals.service_total_cny}
-          totalCny={totals.total_cny}
-          totalUsd={totals.total_usd}
-          servicePercentage={servicePercentage}
-          conversionRate={conversionRate}
-        />
-      )}
+      <QuoteSummary
+        subtotalCny={totals.subtotal_cny}
+        serviceTotalCny={totals.service_total_cny}
+        totalCny={totals.total_cny}
+        totalUsd={totals.total_usd}
+        servicePercentage={servicePercentage}
+        conversionRate={conversionRate}
+      />
 
-      {/* Contrato */}
-      {hasClientData && config?.contract_text && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <h3 className="mb-3 text-sm font-bold" style={{ color: '#c52899' }}>Contrato</h3>
-          <div className="max-h-48 overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm text-gray-700 whitespace-pre-wrap">
-            {config.contract_text}
-          </div>
-          {quote.contract_accepted && (
-            <p className="mt-2 text-xs font-medium text-green-600">
-              ✓ Contrato aceptado el {quote.contract_accepted_date ? new Date(quote.contract_accepted_date).toLocaleString() : ''}
-            </p>
-          )}
-        </div>
-      )}
+      {/* Contrato (independiente por presupuesto) */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-bold" style={{ color: '#c52899' }}>
+          <FileText className="h-4 w-4" /> Contrato del Presupuesto
+        </h3>
+        <p className="mb-3 text-xs text-gray-400">
+          Escribe el contrato específico para este presupuesto. Si lo dejas vacío, se usará el contrato global de Configuración.
+        </p>
+        <Textarea
+          value={contractText}
+          onChange={(e) => setContractText(e.target.value)}
+          placeholder="Escribe el contrato para este presupuesto... (vacío = usar contrato global)"
+          className="min-h-[200px] font-mono text-sm"
+        />
+        {quote.contract_accepted && (
+          <p className="mt-2 text-xs font-medium text-green-600">
+            ✓ Contrato aceptado el {quote.contract_accepted_date ? new Date(quote.contract_accepted_date).toLocaleString() : ''}
+          </p>
+        )}
+      </div>
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
