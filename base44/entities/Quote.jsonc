@@ -129,6 +129,10 @@
       "type": "string",
       "description": "Contrato espec\u00edfico de este presupuesto (independiente del global)"
     },
+    "contract_file_url": {
+      "type": "string",
+      "description": "URL de archivo de contrato (PDF o imagen) subido por el admin"
+    },
     "contract_accepted": {
       "type": "boolean",
       "default": false,

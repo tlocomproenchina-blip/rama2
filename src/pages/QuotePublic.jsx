@@ -213,7 +213,7 @@ export default function QuotePublic() {
         )}
 
         {/* Contrato (solo si está completado) */}
-        {isCompleted && contractText && (
+        {isCompleted && (contractText || quote.contract_file_url) && (
           <div className="rounded-xl border border-gray-200 bg-white p-5">
             <button
               onClick={() => setShowContract(!showContract)}
@@ -225,8 +225,22 @@ export default function QuotePublic() {
               <span className="text-xs text-gray-500">{showContract ? 'Ocultar' : 'Ver contrato'}</span>
             </button>
             {showContract && (
-              <div className="mt-3 max-h-64 overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm text-gray-700 whitespace-pre-wrap">
-                {contractText}
+              <div className="mt-3 space-y-3">
+                {quote.contract_file_url && (
+                  <a
+                    href={quote.contract_file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 hover:bg-purple-100"
+                  >
+                    <FileText className="h-4 w-4" /> Descargar contrato
+                  </a>
+                )}
+                {contractText && (
+                  <div className="max-h-64 overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm text-gray-700 whitespace-pre-wrap">
+                    {contractText}
+                  </div>
+                )}
               </div>
             )}
             <div className="mt-4">
