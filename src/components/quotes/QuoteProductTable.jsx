@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -72,14 +72,27 @@ export default function QuoteProductTable({ items, servicePercentage, conversion
                     />
                   </td>
                   <td className="px-2 py-2">
-                    <Input
-                      type="url"
-                      placeholder="https://..."
-                      value={item.link || ''}
-                      readOnly={readOnly}
-                      onChange={(e) => updateItem(idx, 'link', e.target.value)}
-                      className="min-w-[180px] h-9"
-                    />
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="url"
+                        placeholder="https://..."
+                        value={item.link || ''}
+                        readOnly={readOnly}
+                        onChange={(e) => updateItem(idx, 'link', e.target.value)}
+                        className="min-w-[180px] h-9"
+                      />
+                      {item.link && (
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 text-blue-600 hover:text-blue-800"
+                          title="Ir al enlace"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
                   </td>
                   <td className="px-2 py-2">
                     <QuoteImageUploader

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, X, Link as LinkIcon, Clipboard, Loader2 } from 'lucide-react';
+import { Upload, X, Link as LinkIcon, Clipboard, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
@@ -80,8 +80,19 @@ export default function QuoteProductForm({ items, onChange }) {
                   placeholder="https://..."
                   value={item.link || ''}
                   onChange={(e) => updateItem(idx, 'link', e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-10"
                 />
+                {item.link && (
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-800"
+                    title="Ir al enlace"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                )}
               </div>
             </div>
 
