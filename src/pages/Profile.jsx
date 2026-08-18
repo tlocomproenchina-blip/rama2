@@ -13,6 +13,7 @@ import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
 import BillingAddressCard from '@/components/profile/BillingAddressCard';
 import WhatsAppInput from '@/components/common/WhatsAppInput';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
 import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
 
 export default function Profile({ user, refreshUser }) {
@@ -444,6 +445,9 @@ export default function Profile({ user, refreshUser }) {
           </p>
         </CardContent>
       </Card>
+
+      {/* Modo Noche */}
+      <DarkModeToggleCard />
 
       {user?.role === 'user' && <DeleteAccountSection user={user} />}
     </div>
