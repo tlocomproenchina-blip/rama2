@@ -78,6 +78,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
   const [attFlags, attMarkSeen] = useAttentionFlags({ user });
   const { flags: notifFlags, markSeen: notifMarkSeen } = useNotificationFlags({ user });
   const flags = useMemo(() => ({ ...attFlags, ...notifFlags }), [attFlags, notifFlags]);
+  // No mostrar el punto rojo en la página en la que el usuario ya se encuentra
+  const displayFlags = useMemo(() => {
+    if (!currentPage) return flags;
+    return { ...flags, [currentPage]: false };
+  }, [flags, currentPage]);
 
   const handleMenuClick = useCallback((page) => {
     if (page) {
@@ -86,7 +91,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
     }
     onClose && onClose();
   }, [attMarkSeen, notifMarkSeen, onClose]);
-  // Auto-limpiar el punto si el usuario llegó a la página por otra vía (no solo desde el sidebar)
+  // Auto-marcar como visto si el usuario llegó a la página por otra vía (no solo desde el sidebar)
   useEffect(() => {
     try {
       if (currentPage && flags[currentPage]) {
@@ -262,7 +267,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                 pages={group.items}
                 itemsByPage={adminItemsByPage}
                 currentPage={currentPage}
-                flags={flags}
+                flags={displayFlags}
                 onItemClick={handleMenuClick}
               />
             ))
@@ -274,7 +279,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                 pages={group.items}
                 itemsByPage={clientItemsByPage}
                 currentPage={currentPage}
-                flags={flags}
+                flags={displayFlags}
                 onItemClick={handleMenuClick}
               />
             ))
