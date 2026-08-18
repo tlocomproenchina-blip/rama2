@@ -1,0 +1,357 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, ArrowLeft, Copy, Check, Send, Plus } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import QuoteProductTable from '@/components/quotes/QuoteProductTable';
+import QuoteSummary from '@/components/quotes/QuoteSummary';
+import { generateQuoteToken, calcQuoteTotals, calcItemTotals, buildWhatsAppMessage, buildWhatsAppLink } from '@/lib/quoteUtils';
+
+const STATUS_LABELS = {
+  esperando_cliente: { label: 'Esperando Cliente', color: 'bg-amber-100 text-amber-700' },
+  cliente_completo: { label: 'Cliente Completó', color: 'bg-blue-100 text-blue-700' },
+  completado: { label: 'Completado', color: 'bg-green-100 text-green-700' },
+  enviado: { label: 'Enviado', color: 'bg-purple-100 text-purple-700' }
+};
+
+export default function AdminQuotes({ user }) {
+  const [quotes, setQuotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [config, setConfig] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  const loadQuotes = useCallback(async () => {
+    try {
+      const list = await base44.entities.Quote.list('-created_date', 100);
+      setQuotes(list);
+    } catch (err) {
+      console.error('Error loading quotes:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadConfig = useCallback(async () => {
+    try {
+      const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+      if (configs.length) setConfig(configs[0]);
+    } catch (err) {
+      console.error('Error loading config:', err);
+    }
+  }, []);
+
+  useEffect(() => { loadQuotes(); loadConfig(); }, [loadQuotes, loadConfig]);
+
+  const createQuote = async () => {
+    try {
+      setSaving(true);
+      const token = generateQuoteToken();
+      const count = quotes.length + 1;
+      const quoteNumber = `PR-${String(count).padStart(4, '0')}`;
+      const globalRate = config?.quote_conversion_rate || 0.15;
+      const created = await base44.entities.Quote.create({
+        token,
+        quote_number: quoteNumber,
+        items: [],
+        service_percentage: 15,
+        conversion_rate: globalRate,
+        status: 'esperando_cliente',
+        created_by_email: user?.email
+      });
+      setQuotes([created, ...quotes]);
+      setSelected(created);
+      toast({ title: 'Presupuesto creado', description: 'Comparte el enlace con el cliente' });
+    } catch (err) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (selected) {
+    return (
+      <QuoteEditor
+        quote={selected}
+        config={config}
+        onBack={() => { setSelected(null); loadQuotes(); }}
+        onUpdate={(updated) => setSelected(updated)}
+        saving={saving}
+        setSaving={setSaving}
+        copied={copied}
+        setCopied={setCopied}
+        toast={toast}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Presupuestos</h1>
+          <p className="text-sm text-gray-500">Crea cotizaciones y compártelas con clientes sin registro</p>
+        </div>
+        <Button onClick={createQuote} disabled={saving} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
+          <Plus className="h-4 w-4" /> Nuevo Presupuesto
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {quotes.length === 0 && (
+          <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-gray-400">
+            No hay presupuestos creados. Crea el primero con "Nuevo Presupuesto".
+          </div>
+        )}
+        {quotes.map((q) => {
+          const st = STATUS_LABELS[q.status] || STATUS_LABELS.esperando_cliente;
+          const clientName = `${q.client_first_name || ''} ${q.client_last_name || ''}`.trim() || 'Sin datos del cliente';
+          return (
+            <button
+              key={q.id}
+              onClick={() => setSelected(q)}
+              className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-4 text-left hover:border-purple-300 hover:shadow-sm transition-all"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-800">{q.quote_number}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.color}`}>{st.label}</span>
+                </div>
+                <p className="mt-1 truncate text-sm text-gray-500">{clientName}</p>
+                {q.client_city && <p className="text-xs text-gray-400">{q.client_city}</p>}
+              </div>
+              <div className="ml-4 text-right">
+                <p className="text-sm font-bold" style={{ color: '#10b981' }}>${(q.total_usd || 0).toFixed(2)}</p>
+                <p className="text-xs text-gray-400">{(q.items || []).length} productos</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copied, setCopied, toast }) {
+  const [items, setItems] = useState(quote.items || []);
+  const [servicePercentage, setServicePercentage] = useState(quote.service_percentage || 15);
+  const [conversionRate, setConversionRate] = useState(quote.conversion_rate || config?.quote_conversion_rate || 0.15);
+  const [notes, setNotes] = useState(quote.notes || '');
+
+  // Recalcular totales cuando cambian items, servicePercentage o conversionRate
+  const totals = calcQuoteTotals(items, servicePercentage, conversionRate);
+
+  const publicUrl = `${window.location.origin}/Quote/${quote.token}`;
+
+  const handleItemsChange = (nextItems) => {
+    // Recalcular totales por item
+    const withTotals = nextItems.map(it => ({
+      ...it,
+      ...calcItemTotals(it, servicePercentage, conversionRate)
+    }));
+    setItems(withTotals);
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const updated = await base44.entities.Quote.update(quote.id, {
+        items: withTotals,
+        service_percentage: Number(servicePercentage),
+        conversion_rate: Number(conversionRate),
+        notes,
+        subtotal_cny: totals.subtotal_cny,
+        service_total_cny: totals.service_total_cny,
+        total_cny: totals.total_cny,
+        total_usd: totals.total_usd,
+        status: 'completado'
+      });
+      onUpdate(updated);
+      toast({ title: 'Presupuesto guardado', description: 'Los precios y totales se actualizaron' });
+    } catch (err) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Recalcular items cuando cambia servicePercentage o conversionRate
+  const withTotals = items.map(it => ({
+    ...it,
+    ...calcItemTotals(it, servicePercentage, conversionRate)
+  }));
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: 'Enlace copiado' });
+  };
+
+  const handleWhatsApp = async () => {
+    // Guardar antes de enviar
+    await handleSave();
+    const quoteForMsg = {
+      ...quote,
+      items: withTotals,
+      service_percentage: Number(servicePercentage),
+      conversion_rate: Number(conversionRate),
+      ...totals
+    };
+    const msg = buildWhatsAppMessage(quoteForMsg, publicUrl);
+    const link = buildWhatsAppLink(quote.client_phone, msg);
+    window.open(link, '_blank');
+
+    // Marcar como enviado
+    try {
+      const updated = await base44.entities.Quote.update(quote.id, { status: 'enviado' });
+      onUpdate(updated);
+    } catch {}
+  };
+
+  const clientName = `${quote.client_first_name || ''} ${quote.client_last_name || ''}`.trim() || 'Pendiente';
+  const hasClientData = quote.status !== 'esperando_cliente';
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack} className="gap-2">
+          <ArrowLeft className="h-4 w-4" /> Volver
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleCopyLink} className="gap-2">
+            {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+            Copiar Enlace
+          </Button>
+          {hasClientData && (
+            <Button onClick={handleWhatsApp} disabled={saving} style={{ backgroundColor: '#25D366' }} className="text-white hover:opacity-90 gap-2">
+              <Send className="h-4 w-4" /> Enviar WhatsApp
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Datos del Cliente */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <h3 className="mb-4 text-sm font-bold" style={{ color: '#c52899' }}>Datos del Cliente</h3>
+        {!hasClientData ? (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-700">
+            El cliente aún no ha completado sus datos. Comparte el enlace para que lo haga.
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs text-gray-500">Nombre</Label>
+              <p className="font-medium text-gray-800">{clientName}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Ciudad de Despacho</Label>
+              <p className="font-medium text-gray-800">{quote.client_city || '-'}</p>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Número de Contacto</Label>
+              <p className="font-medium text-gray-800">{quote.client_phone || '-'}</p>
+            </div>
+          </div>
+        )}
+        <div className="mt-4">
+          <Label className="text-xs text-gray-500">Notas del Cliente</Label>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Sin notas" className="mt-1" />
+        </div>
+      </div>
+
+      {/* Productos */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <QuoteProductTable
+          items={withTotals}
+          servicePercentage={servicePercentage}
+          conversionRate={conversionRate}
+          onChange={handleItemsChange}
+          readOnly={!hasClientData}
+          showPricing={true}
+        />
+      </div>
+
+      {/* Configuración de precios */}
+      {hasClientData && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <h3 className="mb-4 text-sm font-bold" style={{ color: '#c52899' }}>Configuración</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs text-gray-600">% de Servicio</Label>
+              <Input
+                type="number"
+                step="0.1"
+                min="0"
+                value={servicePercentage}
+                onChange={(e) => setServicePercentage(Number(e.target.value))}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-600">Tasa de Conversión (1¥ = $)</Label>
+              <Input
+                type="number"
+                step="0.001"
+                min="0"
+                value={conversionRate}
+                onChange={(e) => setConversionRate(Number(e.target.value))}
+                className="mt-1"
+              />
+              <p className="mt-1 text-xs text-gray-400">Global: ${(config?.quote_conversion_rate || 0.15).toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resumen */}
+      {hasClientData && (
+        <QuoteSummary
+          subtotalCny={totals.subtotal_cny}
+          serviceTotalCny={totals.service_total_cny}
+          totalCny={totals.total_cny}
+          totalUsd={totals.total_usd}
+          servicePercentage={servicePercentage}
+          conversionRate={conversionRate}
+        />
+      )}
+
+      {/* Contrato */}
+      {hasClientData && config?.contract_text && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <h3 className="mb-3 text-sm font-bold" style={{ color: '#c52899' }}>Contrato</h3>
+          <div className="max-h-48 overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm text-gray-700 whitespace-pre-wrap">
+            {config.contract_text}
+          </div>
+          {quote.contract_accepted && (
+            <p className="mt-2 text-xs font-medium text-green-600">
+              ✓ Contrato aceptado el {quote.contract_accepted_date ? new Date(quote.contract_accepted_date).toLocaleString() : ''}
+            </p>
+          )}
+        </div>
+      )}
+
+      {hasClientData && (
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Guardar Presupuesto
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -28,6 +28,7 @@ import {
   DollarSign,
   ReceiptText,
   CalendarRange,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -73,6 +74,7 @@ export const adminMenuItems = [
   { name: 'Dashboard Contabilidad', page: 'AccountingDashboard', icon: LayoutDashboard },
   { name: 'Facturas', page: 'AdminInvoices', icon: FileText },
   { name: 'Facturación Manual', page: 'AdminManualBilling', icon: ReceiptText },
+  { name: 'Presupuestos', page: 'AdminQuotes', icon: FileSpreadsheet },
   { name: 'Validar Pagos', page: 'AdminPayments', icon: CreditCard },
   { name: 'Pagos Asistidos', page: 'AdminAssistedPayments', icon: CreditCard },
   { name: 'Saldo Cliente', page: 'AdminClientCredits', icon: Wallet },
@@ -117,7 +119,7 @@ export const adminGroups = [
   { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminDailySummary', 'AdminPackages', 'AdminPreAlerts', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseDispatch', 'WarehouseDispatchHistory'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
-  { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminClientCredits', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviderCredits', 'AdminProviders', 'AdminCbmIngresos', 'AdminArrivalCalendar'] },
+  { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminQuotes', 'AdminPayments', 'AdminClientCredits', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviderCredits', 'AdminProviders', 'AdminCbmIngresos', 'AdminArrivalCalendar'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailHistory', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },

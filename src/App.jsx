@@ -53,6 +53,8 @@ const Contract = lazy(() => import('./pages/Contract'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Inicio2 = lazy(() => import('./pages/Inicio2'));
+const AdminQuotes = lazy(() => import('./pages/AdminQuotes'));
+const QuotePublic = lazy(() => import('./pages/QuotePublic'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -174,6 +176,8 @@ const AuthenticatedApp = () => {
       <Route path="/About" element={lazyRoute(About, "About")} />
       <Route path="/Contact" element={lazyRoute(Contact, "Contact")} />
       <Route path="/Inicio2" element={lazyRoute(Inicio2, "Inicio2")} />
+      <Route path="/AdminQuotes" element={lazyRoute(AdminQuotes, "AdminQuotes")} />
+      <Route path="/Quote/:token" element={<QuotePublic />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
