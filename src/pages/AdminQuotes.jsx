@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import QuoteProductTable from '@/components/quotes/QuoteProductTable';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
-import GlobalContractCard from '@/components/quotes/GlobalContractCard';
+import GlobalContractModal from '@/components/quotes/GlobalContractModal';
 import { generateQuoteToken, calcQuoteTotals, calcItemTotals, buildWhatsAppMessage, buildWhatsAppLink } from '@/lib/quoteUtils';
 
 const STATUS_LABELS = {
@@ -38,6 +38,7 @@ export default function AdminQuotes({ user }) {
   const [copied, setCopied] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [contractModalOpen, setContractModalOpen] = useState(false);
   const { toast } = useToast();
 
   const handleDelete = async () => {
@@ -134,12 +135,22 @@ export default function AdminQuotes({ user }) {
           <h1 className="text-2xl font-bold text-gray-800">Presupuestos</h1>
           <p className="text-sm text-gray-500">Crea cotizaciones y compártelas con clientes sin registro</p>
         </div>
-        <Button onClick={createQuote} disabled={saving} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
-          <Plus className="h-4 w-4" /> Nuevo Presupuesto
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={createQuote} disabled={saving} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
+            <Plus className="h-4 w-4" /> Nuevo Presupuesto
+          </Button>
+          <Button variant="outline" onClick={() => setContractModalOpen(true)} className="gap-2">
+            <FileText className="h-4 w-4" /> Contrato
+          </Button>
+        </div>
       </div>
 
-      <GlobalContractCard config={config} onSaved={(updated) => setConfig(updated)} />
+      <GlobalContractModal
+        open={contractModalOpen}
+        onOpenChange={setContractModalOpen}
+        config={config}
+        onSaved={(updated) => setConfig(updated)}
+      />
 
       <div className="space-y-3">
         {quotes.length === 0 && (
