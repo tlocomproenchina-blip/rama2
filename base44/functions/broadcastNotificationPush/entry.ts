@@ -30,9 +30,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Obtener todos los usuarios con push_subscription activa
-    const allUsers = await base44.asServiceRole.entities.User.filter({});
-    const subscribedUsers = allUsers.filter(u => u.push_subscription);
+    // La notificación SOLO debe llegar al dueño (user_email del registro Notification).
+    // Antes se enviaba a todos los usuarios suscritos → bug de privacidad.
+    if (!data.user_email) {
+      await base44.asServiceRole.entities.Notification.update(data.id, {
+        push_broadcast_sent: false,
+        push_recipient_count: 0
+      });
+      return Response.json({ success: true, skipped: true, reason: 'Notification has no user_email', recipient_count: 0 });
+    }
+
+    const targetUsers = await base44.asServiceRole.entities.User.filter({ email: data.user_email });
+    const subscribedUsers = targetUsers.filter(u => u.push_subscription);
 
     if (subscribedUsers.length === 0) {
       // Marcar el registro para que el admin vea que nadie recibió el push
@@ -40,7 +49,7 @@ Deno.serve(async (req) => {
         push_broadcast_sent: false,
         push_recipient_count: 0
       });
-      return Response.json({ success: true, skipped: true, reason: 'No users with push subscription', recipient_count: 0 });
+      return Response.json({ success: true, skipped: true, reason: 'Owner has no push subscription', recipient_count: 0 });
     }
 
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
