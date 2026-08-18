@@ -31,6 +31,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'VAPID keys not configured' }, { status: 500 });
     }
 
+    // Obtener el logo de la app desde AppConfig para usarlo como badge
+    let badgeUrl = '';
+    try {
+      const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+      badgeUrl = configs?.[0]?.app_logo_url || '';
+    } catch (_) {}
+
     // Importar web-push
     const webpush = await import('npm:web-push@3.6.7');
     
@@ -44,7 +51,7 @@ Deno.serve(async (req) => {
       title,
       body,
       url: url || '/',
-      badge: 'https://base44.app/api/apps/695da428c9924ef9b68e8866/files/mp/public/695da428c9924ef9b68e8866/f98391e7a_badge-ship.png',
+      ...(badgeUrl ? { badge: badgeUrl } : {}),
       tag: `notification-${Date.now()}`
     });
 

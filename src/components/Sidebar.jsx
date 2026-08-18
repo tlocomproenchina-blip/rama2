@@ -149,7 +149,11 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
 
   const handleLogout = useCallback(() => {
-    base44.auth.logout();
+    // Limpiar la suscripción push del usuario antes de cerrar sesión
+    // para que el dispositivo no siga recibiendo notificaciones de este usuario
+    base44.functions.invoke('removePushSubscription', {}).catch(() => {}).finally(() => {
+      base44.auth.logout();
+    });
   }, []);
 
   return (
