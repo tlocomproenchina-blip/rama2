@@ -105,15 +105,43 @@ export default function Layout({ children, currentPageName }) {
     }
   }, []);
 
-  // Sync system dark mode preference with .dark class
+  // Apply dark mode: user preference (localStorage) overrides system preference
   useEffect(() => {
+    let apply;
     try {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      const apply = (e) => document.documentElement.classList.toggle('dark', e.matches);
-      apply(mq);
-      mq.addEventListener('change', apply);
-      return () => mq.removeEventListener('change', apply);
+      const stored = localStorage.getItem('tlec-dark-mode');
+      if (stored === 'enabled') {
+        document.documentElement.classList.add('dark');
+        return;
+      }
+      if (stored === 'disabled') {
+        document.documentElement.classList.remove('dark');
+        return;
+      }
     } catch (_) {}
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    apply = (e) => document.documentElement.classList.toggle('dark', e.matches);
+    apply(mq);
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  // React to dark mode preference changes from other tabs/components
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const stored = localStorage.getItem('tlec-dark-mode');
+        if (stored === 'enabled') document.documentElement.classList.add('dark');
+        else if (stored === 'disabled') document.documentElement.classList.remove('dark');
+      } catch (_) {}
+    };
+    window.addEventListener('tlec-dark-mode-change', handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener('tlec-dark-mode-change', handler);
+      window.removeEventListener('storage', handler);
+    };
   }, []);
 
   // Slide direction for native page transitions (depth heuristic)

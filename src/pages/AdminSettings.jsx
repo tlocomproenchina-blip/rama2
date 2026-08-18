@@ -1096,6 +1096,9 @@ export default function AdminSettings({ user }) {
               {/* Prueba de Notificaciones Push */}
               <PushTestCard user={user} />
 
+              {/* Modo Noche */}
+              <DarkModeToggleCard />
+
               {/* Modo Mantenimiento */}
               <div className="p-4 md:p-6 bg-rose-50 rounded-xl border border-rose-200 space-y-4">
                 <div className="flex items-center justify-between">
