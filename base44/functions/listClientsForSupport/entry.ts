@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // Cache en memoria (vive lo que viva el isolate). Evita recalcular conteos
 // pesados en requests sucesivos del mismo admin filtrando.
-const CACHE_TTL_MS = 60 * 1000; // 60 segundos
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutos — reduce recargas costosas
 let _cache = { at: 0, allClients: null, packageCounts: null };
 
 // Helpers de normalización (mismos del frontend)

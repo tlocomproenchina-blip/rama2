@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 // Cache en memoria para conteos globales (no dependen de los filtros del usuario).
 // Evita recalcular ~350k registros cada vez que el admin cambia un filtro.
-const COUNTS_TTL_MS = 60 * 1000; // 60s
+const COUNTS_TTL_MS = 3 * 60 * 1000; // 3 min — los conteos globales no necesitan ser en tiempo real
 let _countsCache = { at: 0, counts: null };
 
 // Lista paquetes para AdminPackages con paginación, filtros y conteos server-side
@@ -114,21 +114,10 @@ Deno.serve(async (req) => {
       ? { $and: [query, ...andClauses] }
       : query;
 
-    // === Página, total y conteos globales EN PARALELO (antes era secuencial) ===
-    const fetchTotal = async () => {
-      let t = 0;
-      let countSkip = 0;
-      const COUNT_BATCH = 1000;
-      while (true) {
-        const batch = await base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', COUNT_BATCH, countSkip);
-        t += batch.length;
-        if (batch.length < COUNT_BATCH) break;
-        countSkip += COUNT_BATCH;
-        if (countSkip > 50000) break; // safety cap
-      }
-      return t;
-    };
-
+    // === Página + conteos globales en paralelo ===
+    // OPTIMIZACIÓN: Ya no se descargan todos los registros para contarlos.
+    // Se pide pageLimit+1: si llegan más, hay siguiente página (hasMore).
+    // El total exacto solo se devuelve cuando no hay filtros (usa counts.total).
     const fetchGlobalCounts = async () => {
       const now = Date.now();
       if (_countsCache.counts && (now - _countsCache.at) < COUNTS_TTL_MS) return _countsCache.counts;
@@ -157,13 +146,22 @@ Deno.serve(async (req) => {
       }
       _countsCache = { at: now, counts: acc };
       return acc;
-    };
+    }
 
-    const [data, total, counts] = await Promise.all([
-      base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', pageLimit, pageSkip),
-      fetchTotal(),
+    // Pedir 1 extra para detectar si hay más páginas sin contar todo
+    const fetchPlusOne = pageLimit + 1;
+    const [rawData, counts] = await Promise.all([
+      base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', fetchPlusOne, pageSkip),
       includeCounts ? fetchGlobalCounts() : Promise.resolve(null),
     ]);
+
+    const hasMore = rawData.length > pageLimit;
+    const data = hasMore ? rawData.slice(0, pageLimit) : rawData;
+
+    // Total exacto solo cuando no hay filtros (usa counts.total del cache global).
+    // Con filtros, devolvemos null — la UI muestra el conteo cargado en su lugar.
+    const hasActiveFilter = !!(q && String(q).trim()) || statusFilter !== 'all' || reportedFilter !== 'all' || (advancedFilters && Object.keys(advancedFilters).length > 0);
+    const total = (!hasActiveFilter && counts) ? counts.total : null;
 
     // === Enriquecer con datos del cliente (whatsapp, nombre) ===
     // Lookup batched por email para mostrar botón de contacto WhatsApp
@@ -184,8 +182,6 @@ Deno.serve(async (req) => {
         }
       }
     } catch (_) { /* no bloquear listado por error de lookup */ }
-
-    const hasMore = pageSkip + data.length < total;
 
     return Response.json({ data, total, skip: pageSkip, limit: pageLimit, hasMore, counts });
   } catch (error) {
