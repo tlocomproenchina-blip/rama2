@@ -13,25 +13,37 @@ export default function ScrollToTopButton() {
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || document.documentElement.scrollTop;
-      // También considera scroll dentro del contenedor principal del Layout
-      const main = document.getElementById('main-content');
-      const mainY = main ? main.scrollTop : 0;
+      // En desktop el scroll vive dentro de <main> (lg:overflow-y-auto)
+      const mainEl = document.querySelector('main');
+      const mainY = mainEl ? mainEl.scrollTop : 0;
       setVisible(y > 400 || mainY > 400);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    const main = document.getElementById('main-content');
-    if (main) main.addEventListener('scroll', onScroll, { passive: true });
+    // Reintentar hasta que <main> exista en el DOM
+    let attached = false;
+    const tryAttach = setInterval(() => {
+      const mainEl = document.querySelector('main');
+      if (mainEl) {
+        mainEl.addEventListener('scroll', onScroll, { passive: true });
+        attached = true;
+        clearInterval(tryAttach);
+      }
+    }, 300);
     onScroll();
     return () => {
+      clearInterval(tryAttach);
       window.removeEventListener('scroll', onScroll);
-      if (main) main.removeEventListener('scroll', onScroll);
+      if (attached) {
+        const mainEl = document.querySelector('main');
+        if (mainEl) mainEl.removeEventListener('scroll', onScroll);
+      }
     };
   }, []);
 
   const handleClick = () => {
-    const main = document.getElementById('main-content');
-    if (main && main.scrollTop > 0) {
-      main.scrollTo({ top: 0, behavior: 'smooth' });
+    const mainEl = document.querySelector('main');
+    if (mainEl && mainEl.scrollTop > 0) {
+      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
