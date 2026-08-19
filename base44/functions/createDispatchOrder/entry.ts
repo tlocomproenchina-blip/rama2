@@ -57,6 +57,27 @@ export default async function (req) {
       50
     );
 
+    // Prioridad 1: buscar si algún tracking de los nuevos items ya existe en
+    // una orden "emitida" del cliente (sin importar el día). Si existe, se
+    // fusionan ahí los items que no estén duplicados, evitando generar una
+    // segunda orden con el mismo número de tracking.
+    const newTrackings = new Set(newItems.map((i) => i.tracking_number).filter(Boolean));
+    const orderWithDuplicateTracking = existingOrders?.find((o) =>
+      (o.items || []).some((i) => i.tracking_number && newTrackings.has(i.tracking_number))
+    );
+
+    if (orderWithDuplicateTracking) {
+      const existingTrackings = new Set((orderWithDuplicateTracking.items || []).map((i) => i.tracking_number));
+      const itemsToAdd = newItems.filter((i) => !existingTrackings.has(i.tracking_number));
+      if (itemsToAdd.length > 0) {
+        const updatedItems = [...(orderWithDuplicateTracking.items || []), ...itemsToAdd];
+        await base44.asServiceRole.entities.DispatchOrder.update(orderWithDuplicateTracking.id, { items: updatedItems });
+        return Response.json({ order: { ...orderWithDuplicateTracking, items: updatedItems }, updated: true, added: itemsToAdd.length, merged_duplicate: true });
+      }
+      return Response.json({ order: orderWithDuplicateTracking, updated: true, no_change: true, merged_duplicate: true });
+    }
+
+    // Prioridad 2: agrupar por mismo día (comportamiento existente)
     const matchingOrder = existingOrders?.find((o) => {
       const orderDate = o.dispatched_date ? new Date(o.dispatched_date) : (o.created_date ? new Date(o.created_date) : null);
       if (!orderDate) return false;
