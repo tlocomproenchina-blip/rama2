@@ -2,34 +2,34 @@ import React, { useEffect, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 
 /**
- * Botón "subir" con estilo pill (mismo lenguaje visual que la barra de búsqueda).
- * - Móvil: fijo abajo a la derecha.
- * - Desktop / tablet: fijo abajo a la izquierda.
- * Aparece solo cuando el usuario ha scrolleado hacia abajo.
+ * Botón "subir" permanente en desktop; en móvil aparece solo al scrollear.
  */
 export default function ScrollToTopButton() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const check = () => {
+      const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+      if (isDesktop) {
+        setVisible(true);
+        return;
+      }
       const y = window.scrollY || document.documentElement.scrollTop;
       const mainEl = document.querySelector('main');
       const mainY = mainEl ? mainEl.scrollTop : 0;
-      // También revisa el contenedor #main-content por si acaso
-      const contentEl = document.getElementById('main-content');
-      const contentY = contentEl ? contentEl.scrollTop : 0;
-      setVisible(y > 300 || mainY > 300 || contentY > 300);
+      setVisible(y > 300 || mainY > 300);
     };
 
-    // capture: true atrapa scroll de CUALQUIER contenedor (no solo window)
     document.addEventListener('scroll', check, { capture: true, passive: true });
     window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check, { passive: true });
     check();
     const interval = setInterval(check, 1000);
 
     return () => {
       document.removeEventListener('scroll', check, { capture: true });
       window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
       clearInterval(interval);
     };
   }, []);
@@ -38,10 +38,6 @@ export default function ScrollToTopButton() {
     const mainEl = document.querySelector('main');
     if (mainEl && mainEl.scrollTop > 0) {
       mainEl.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    const contentEl = document.getElementById('main-content');
-    if (contentEl && contentEl.scrollTop > 0) {
-      contentEl.scrollTo({ top: 0, behavior: 'smooth' });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
