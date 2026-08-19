@@ -23,7 +23,6 @@ import ErrorBoundary from '@/components/common/ErrorBoundary';
 import SoftErrorBoundary from '@/components/common/SoftErrorBoundary';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import PullToRefresh from '@/components/common/PullToRefresh';
-import useScrollAwareHeader from '@/hooks/useScrollAwareHeader';
 import SkipToContent from '@/components/common/SkipToContent';
 import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
 import DemoModeBanner from '@/components/common/DemoModeBanner';
@@ -65,7 +64,6 @@ export default function Layout({ children, currentPageName }) {
   const [isApkApp, setIsApkApp] = useState(false);
   const [slideDirection, setSlideDirection] = useState(1);
   const [showTour, setShowTour] = useState(false);
-  const mobileHeaderVisible = useScrollAwareHeader();
   const navigate = useNavigate();
   const location = useLocation();
   const isAdminPanel = user?.role === 'admin';
@@ -510,7 +508,7 @@ export default function Layout({ children, currentPageName }) {
         )}
         {/* Mobile Header */}
         {user && (
-        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)', transform: mobileHeaderVisible ? 'translateY(0)' : 'translateY(-110%)', transition: 'transform 0.3s ease-out' }}>
+        <header className="sticky top-0 z-30 border-b border-border/60 bg-background/90 px-4 py-3 backdrop-blur lg:hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="rounded-[1.35rem] border border-border/80 bg-card/85 px-3 py-2 shadow-card">
             <div className="flex items-center justify-between gap-2">
               <Button 
