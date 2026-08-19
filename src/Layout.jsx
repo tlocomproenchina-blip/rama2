@@ -472,7 +472,9 @@ export default function Layout({ children, currentPageName }) {
         <Suspense fallback={null}><GlobalSearchPalette /></Suspense>
       )}
 
-      {user && <ScrollToTopButton />}
+      {user && (
+        <Suspense fallback={null}><ScrollToTopButton /></Suspense>
+      )}
 
       {/* Guided Tour */}
       {user && (
