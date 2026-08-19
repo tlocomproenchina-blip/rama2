@@ -48,7 +48,7 @@ export default function ScrollToTopButton() {
     <button
       onClick={handleClick}
       aria-label="Subir arriba"
-      className="fixed z-50 bottom-5 right-4 lg:left-5 lg:right-auto lg:bottom-6 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-card transition-all hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation select-none"
+      className="fixed z-50 bottom-5 right-4 lg:bottom-5 lg:right-44 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 backdrop-blur px-4 py-2.5 text-sm font-medium text-slate-700 shadow-premium transition-all hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] touch-manipulation select-none"
     >
       <ArrowUp className="h-4 w-4 text-slate-700" />
       <span className="hidden sm:inline">Subir</span>
