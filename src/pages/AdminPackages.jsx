@@ -407,14 +407,6 @@ export default function AdminPackages({ user }) {
     return { first, end, remaining };
   }, [advancedFilters, packages]);
 
-  if (loading && packages.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-2 md:px-4">
       <div>
@@ -490,6 +482,12 @@ export default function AdminPackages({ user }) {
       )}
 
       <PackagesWindowSummary summary={simpleWindowSummary} />
+
+      {loading && packages.length === 0 && (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      )}
 
       <PackagesMobileList
         packages={filteredPackages}
