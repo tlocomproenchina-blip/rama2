@@ -273,9 +273,20 @@ class ApiQueueManager {
   getEntityTTL(entity) {
     // Datos casi inmutables: 10 minutos
     const STATIC = ['AppConfig', 'StateConfig', 'PricingConfig', 'PrivacyConfig', 'RoleConfig', 'EmailTemplate', 'FAQ', 'KnowledgeBase', 'BlogPost', 'Warehouse', 'WarehouseLocation'];
-    // Datos transaccionales: 15 segundos (consistencia más alta)
-    const TRANSACTIONAL = ['Package', 'Consolidation', 'ConsolidationRequest', 'Invoice', 'SupportTicket', 'Notification', 'AssistedPaymentRequest'];
+    // Datos transaccionales críticos (cambian segundo a segundo): 15 segundos
+    const TRANSACTIONAL = ['Package', 'Consolidation', 'ConsolidationRequest', 'Invoice', 'SupportTicket', 'Notification', 'AssistedPaymentRequest', 'InvoicePayment'];
+    // Semi-estáticos: cambian con baja frecuencia (minutos/horas), cache más largo reduce re-descargas
+    const SEMI_STATIC = [
+      'User', 'Quote', 'DispatchOrder', 'CbmIngreso', 'WarehouseDispatchHistory',
+      'ProviderCredit', 'ClientCredit', 'CreditUsageLog', 'RateHistory',
+      'ShippingMarkCode', 'ShippingProvider', 'MarketingCampaign', 'Promotion',
+      'EmployeeAuditLog', 'ActivityAuditLog', 'EmployeePerformanceMetric',
+      'Ruta', 'Vehiculo', 'Chofer', 'CargaRuta', 'SeguimientoRuta',
+      'InternalConversation', 'InternalMessage', 'ClientNote', 'ClientExportHistory',
+      'BrevoDailyLog', 'EmailLog', 'EmailQueue', 'ReferralSettings', 'ReferralCbmReward',
+    ];
     if (STATIC.includes(entity)) return 600000;
+    if (SEMI_STATIC.includes(entity)) return 120000; // 2 minutos
     if (TRANSACTIONAL.includes(entity)) return 15000;
     return 60000; // default 1 min
   }

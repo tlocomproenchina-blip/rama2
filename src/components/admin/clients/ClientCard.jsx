@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 const hasIncompleteData = (c) => !c.first_name || !c.last_name || !c.whatsapp || !c.state || !c.city || !c.address;
 const hasValidShippingMark = (c) => !!(c.shipping_mark && c.shipping_mark.trim().length > 0);
 
-export default function ClientCard({
+function ClientCard({
   client,
   packagesCount,
   roleUpdatingId,
@@ -205,3 +205,5 @@ export default function ClientCard({
     </Card>
   );
 }
+
+export default React.memo(ClientCard);

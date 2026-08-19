@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw, Package, Users, CreditCard, FileText, ShieldCheck, MessageCircle, Clock, AlertTriangle, ShoppingBag, UserX, Radio } from 'lucide-react';
 import PageHero from '@/components/common/PageHero';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const REFRESH_INTERVAL = 30 * 1000; // 30 segundos
-const SUBSCRIPTION_DEBOUNCE = 800; // ms — evita múltiples refresh por ráfaga de eventos
+const REFRESH_INTERVAL = 30 * 1000; // 30 segundos — solo polling, sin suscripciones
 
 const fmt = (n) => Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const fmtUsd = (n) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -20,81 +18,45 @@ export default function AdminDailySummary({ user }) {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [livePulse, setLivePulse] = useState(false);
   const timerRef = useRef(null);
-  const debounceRef = useRef(null);
 
   const load = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
 
-      const now = new Date();
-      const since = new Date(now.getTime() - DAY_MS).toISOString();
+      // Una sola llamada a la función backend que devuelve todo pre-agregado
+      const res = await base44.functions.invoke('getDailySummary', {});
+      const m = res?.data;
 
-      const [
-        recentPackages,
-        recentUsers,
-        recentPayments,
-        recentTickets,
-        recentInvoices,
-        allPayments,
-        allAssisted,
-        allTickets,
-        pendingQuotes,
-        reviewInvoices,
-        pendingConsolidations,
-      ] = await Promise.all([
-        base44.entities.Package.list('-created_date', 500),
-        base44.entities.User.list('-created_date', 500),
-        base44.entities.InvoicePayment.list('-approved_date', 500),
-        base44.entities.SupportTicket.list('-created_date', 500),
-        base44.entities.Invoice.list('-created_date', 500),
-        base44.entities.InvoicePayment.filter({ status: 'pendiente' }, '-created_date', 1000),
-        base44.entities.AssistedPaymentRequest.filter({ status: 'pendiente' }, '-created_date', 1000),
-        base44.entities.SupportTicket.filter({ status: 'abierto' }, '-created_date', 1000),
-        base44.entities.Quote.filter({ status: 'cliente_completo' }, '-updated_date', 1000),
-        base44.entities.Invoice.filter({ status: 'revision' }, '-invoice_date', 1000),
-        base44.entities.Consolidation.filter({ status: 'pago_pendiente_validacion' }, '-created_date', 1000),
-      ]);
+      if (!m || m.error) throw new Error(m?.error || 'Sin datos');
 
-      // === Filtrado client-side (más confiable que filter por status) ===
-      const newPackages = (recentPackages || []).filter((p) => p.created_date && p.created_date >= since);
-      const newClients = (recentUsers || []).filter((u) => u.role === 'user' && u.created_date && u.created_date >= since);
-      const clientsWithoutMark = newClients.filter((u) => !u.shipping_mark);
-      const newPayments = (recentPayments || []).filter((p) => p.status === 'aprobado' && p.approved_date && p.approved_date >= since);
-      const newTickets = (recentTickets || []).filter((t) => t.created_date && t.created_date >= since);
-      const newInvoices = (recentInvoices || []).filter((i) => i.created_date && i.created_date >= since);
-
-      const insuredRecent = newPackages.filter((p) => p.has_insurance);
-      const paymentsTotal = newPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
-      const invoicesTotal = newInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-      const insuredTotalFob = insuredRecent.reduce((s, p) => s + Number(p.fob_value || 0), 0);
-
-      // Pendientes actuales (consulta filtrada por estado — conteo real sin tope de 500)
-      const pendingPaymentsCount = (allPayments || []).length + (reviewInvoices || []).length + (pendingConsolidations || []).length;
-      const pendingAssistedCount = (allAssisted || []).length;
-      const openTicketsCount = (allTickets || []).length;
-      const pendingQuotesCount = (pendingQuotes || []).length;
+      const periodStart = fmtDate(new Date(m.period_start));
+      const periodEnd = fmtDate(new Date(m.period_end));
 
       setData({
-        periodStart: fmtDate(new Date(now.getTime() - DAY_MS)),
-        periodEnd: fmtDate(now),
+        periodStart,
+        periodEnd,
         activity: [
-          { icon: Package, label: 'Paquetes registrados', value: fmt(newPackages.length), highlight: newPackages.length > 0, color: 'text-blue-600' },
-          { icon: Users, label: 'Nuevos clientes', value: fmt(newClients.length), highlight: newClients.length > 0, color: 'text-emerald-600' },
-          { icon: UserX, label: 'Sin shipping mark', value: fmt(clientsWithoutMark.length), highlight: clientsWithoutMark.length > 0, color: 'text-amber-600' },
-          { icon: CreditCard, label: 'Pagos aprobados', value: `${fmt(newPayments.length)} (${fmtUsd(paymentsTotal)})`, highlight: newPayments.length > 0, color: 'text-emerald-600' },
-          { icon: FileText, label: 'Facturas emitidas', value: `${fmt(newInvoices.length)} (${fmtUsd(invoicesTotal)})`, highlight: newInvoices.length > 0, color: 'text-slate-800' },
-          { icon: ShieldCheck, label: 'Paquetes asegurados', value: `${fmt(insuredRecent.length)} (${fmtUsd(insuredTotalFob)} FOB)`, highlight: insuredRecent.length > 0, color: 'text-amber-600' },
-          { icon: MessageCircle, label: 'Tickets nuevos', value: fmt(newTickets.length), highlight: newTickets.length > 0, color: 'text-rose-600' },
+          { icon: Package, label: 'Paquetes registrados', value: fmt(m.activity.new_packages), highlight: m.activity.new_packages > 0, color: 'text-blue-600' },
+          { icon: Users, label: 'Nuevos clientes', value: fmt(m.activity.new_clients), highlight: m.activity.new_clients > 0, color: 'text-emerald-600' },
+          { icon: UserX, label: 'Sin shipping mark', value: fmt(m.activity.clients_without_mark), highlight: m.activity.clients_without_mark > 0, color: 'text-amber-600' },
+          { icon: CreditCard, label: 'Pagos aprobados', value: `${fmt(m.activity.new_payments_count)} (${fmtUsd(m.activity.new_payments_total)})`, highlight: m.activity.new_payments_count > 0, color: 'text-emerald-600' },
+          { icon: FileText, label: 'Facturas emitidas', value: `${fmt(m.activity.new_invoices_count)} (${fmtUsd(m.activity.new_invoices_total)})`, highlight: m.activity.new_invoices_count > 0, color: 'text-slate-800' },
+          { icon: ShieldCheck, label: 'Paquetes asegurados', value: `${fmt(m.activity.insured_count)} (${fmtUsd(m.activity.insured_total_fob)} FOB)`, highlight: m.activity.insured_count > 0, color: 'text-amber-600' },
+          { icon: MessageCircle, label: 'Tickets nuevos', value: fmt(m.activity.new_tickets), highlight: m.activity.new_tickets > 0, color: 'text-rose-600' },
         ],
         pending: [
-          { icon: Clock, label: 'Pagos por validar', value: fmt(pendingPaymentsCount), alert: pendingPaymentsCount > 0, color: 'text-amber-600' },
-          { icon: ShoppingBag, label: 'Pagos asistidos pendientes', value: fmt(pendingAssistedCount), alert: pendingAssistedCount > 0, color: 'text-amber-600' },
-          { icon: FileText, label: 'Presupuestos por revisar', value: fmt(pendingQuotesCount), alert: pendingQuotesCount > 0, color: 'text-amber-600' },
-          { icon: AlertTriangle, label: 'Tickets abiertos', value: fmt(openTicketsCount), alert: openTicketsCount > 0, color: 'text-rose-600' },
+          { icon: Clock, label: 'Pagos por validar', value: fmt(m.pending.pending_payments), alert: m.pending.pending_payments > 0, color: 'text-amber-600' },
+          { icon: ShoppingBag, label: 'Pagos asistidos pendientes', value: fmt(m.pending.pending_assisted), alert: m.pending.pending_assisted > 0, color: 'text-amber-600' },
+          { icon: FileText, label: 'Presupuestos por revisar', value: fmt(m.pending.pending_quotes), alert: m.pending.pending_quotes > 0, color: 'text-amber-600' },
+          { icon: AlertTriangle, label: 'Tickets abiertos', value: fmt(m.pending.open_tickets), alert: m.pending.open_tickets > 0, color: 'text-rose-600' },
         ],
       });
       setLastUpdate(new Date());
+      if (isRefresh) {
+        setLivePulse(true);
+        setTimeout(() => setLivePulse(false), 1000);
+      }
     } catch (error) {
       console.error('Error loading daily summary:', error);
     } finally {
@@ -103,43 +65,14 @@ export default function AdminDailySummary({ user }) {
     }
   }, []);
 
-  // Debounce para suscripciones: si llegan varios eventos juntos, un solo refresh
-  const scheduleRefresh = useCallback(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setLivePulse(true);
-    debounceRef.current = setTimeout(() => {
-      load(true);
-      setTimeout(() => setLivePulse(false), 1000);
-    }, SUBSCRIPTION_DEBOUNCE);
-  }, [load]);
-
   useEffect(() => {
     load();
-
-    // Auto-refresh cada 30 segundos
+    // Solo polling cada 30s — sin suscripciones en tiempo real
     timerRef.current = setInterval(() => load(true), REFRESH_INTERVAL);
-
-    // Suscripción en tiempo real a cambios de entidades clave
-    const subs = [
-      base44.entities.Package,
-      base44.entities.InvoicePayment,
-      base44.entities.SupportTicket,
-      base44.entities.AssistedPaymentRequest,
-      base44.entities.Invoice,
-      base44.entities.User,
-      base44.entities.Quote,
-      base44.entities.Consolidation,
-    ];
-    const unsubs = subs
-      .map((e) => e.subscribe?.(() => scheduleRefresh()))
-      .filter(Boolean);
-
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      unsubs.forEach((u) => u?.());
     };
-  }, [load, scheduleRefresh]);
+  }, [load]);
 
   const handleRefresh = () => load(true);
 

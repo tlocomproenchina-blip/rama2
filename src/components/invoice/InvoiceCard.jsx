@@ -11,7 +11,7 @@ import InvoiceCreditApply from './InvoiceCreditApply';
 import useFileViewer from '@/hooks/useFileViewer';
 import { getFileKind } from '@/components/common/FileViewerModal';
 
-export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, onAbono, showAbonoButton = false, extraActions = null, selectionControl = null, showInsuranceBreakdown = false, isAdmin = false, onRefresh }) {
+function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, onAbono, showAbonoButton = false, extraActions = null, selectionControl = null, showInsuranceBreakdown = false, isAdmin = false, onRefresh }) {
   const [abonosOpen, setAbonosOpen] = useState(false);
   const fileViewer = useFileViewer();
   const total = Number(invoice.total || 0);
@@ -312,3 +312,5 @@ export default function InvoiceCard({ invoice, user, onPay, onDownload, showPayB
     </Card>
   );
 }
+
+export default React.memo(InvoiceCard);

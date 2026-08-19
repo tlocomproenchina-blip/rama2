@@ -4,6 +4,7 @@
 // paquetes asegurados + monto, facturas emitidas + monto, y métricas pendientes clave.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.42';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { fetchDailySummaryMetrics } from '../../shared/dailySummary.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -40,53 +41,24 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date();
-    const since = new Date(now.getTime() - DAY_MS).toISOString();
     const appName = cfg.app_name || 'TLEC CARGO';
 
-    // === Consultas en paralelo ===
-    const [
-      recentPackages,
-      recentUsers,
-      recentPayments,
-      recentTickets,
-      recentInvoices,
-      pendingPayments,
-      pendingAssisted,
-      openTickets,
-      admins
-    ] = await Promise.all([
-      base44.asServiceRole.entities.Package.list('-created_date', 500),
-      base44.asServiceRole.entities.User.list('-created_date', 500),
-      base44.asServiceRole.entities.InvoicePayment.list('-approved_date', 500),
-      base44.asServiceRole.entities.SupportTicket.list('-created_date', 500),
-      base44.asServiceRole.entities.Invoice.list('-created_date', 500),
-      base44.asServiceRole.entities.InvoicePayment.filter({ status: 'pendiente' }, '-created_date', 500),
-      base44.asServiceRole.entities.AssistedPaymentRequest.filter({ status: 'pendiente' }, '-created_date', 500),
-      base44.asServiceRole.entities.SupportTicket.filter({ status: 'abierto' }, '-created_date', 500),
-      base44.asServiceRole.entities.User.list('-created_date', 500),
-    ]);
+    // === Métricas agregadas (lógica compartida con getDailySummary) ===
+    const metrics = await fetchDailySummaryMetrics(base44);
+    const admins = await base44.asServiceRole.entities.User.list('-created_date', 500);
 
-    // === Filtrar por últimas 24h ===
-    const newPackages = (recentPackages || []).filter(p => p.created_date && p.created_date >= since);
-    const newClients = (recentUsers || []).filter(u => u.role === 'user' && u.created_date && u.created_date >= since);
-    const newPayments = (recentPayments || []).filter(p => p.status === 'aprobado' && p.approved_date && p.approved_date >= since);
-    const newTickets = (recentTickets || []).filter(t => t.created_date && t.created_date >= since);
-    const newInvoices = (recentInvoices || []).filter(i => i.created_date && i.created_date >= since);
-
-    // Paquetes asegurados (recientes)
-    const insuredRecent = newPackages.filter(p => p.has_insurance);
-    const insuredCount = insuredRecent.length;
-    const insuredTotalFob = insuredRecent.reduce((s, p) => s + Number(p.fob_value || 0), 0);
-
-    // Totales
-    const paymentsTotal = newPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
-    const invoicesTotal = newInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
-    const invoicesPaidTotal = newInvoices.filter(i => i.status === 'pagada').reduce((s, i) => s + Number(i.total || 0), 0);
-
-    // Métricas pendientes (estado actual, no solo 24h)
-    const pendingPaymentsCount = (pendingPayments || []).length;
-    const pendingAssistedCount = (pendingAssisted || []).length;
-    const openTicketsCount = (openTickets || []).length;
+    const newPackages = { length: metrics.activity.new_packages };
+    const newClients = { length: metrics.activity.new_clients };
+    const newPayments = { length: metrics.activity.new_payments_count };
+    const newTickets = { length: metrics.activity.new_tickets };
+    const newInvoices = { length: metrics.activity.new_invoices_count };
+    const paymentsTotal = metrics.activity.new_payments_total;
+    const invoicesTotal = metrics.activity.new_invoices_total;
+    const insuredCount = metrics.activity.insured_count;
+    const insuredTotalFob = metrics.activity.insured_total_fob;
+    const pendingPaymentsCount = metrics.pending.pending_payments;
+    const pendingAssistedCount = metrics.pending.pending_assisted;
+    const openTicketsCount = metrics.pending.open_tickets;
 
     // === Construir email HTML ===
     const periodStart = fmtDate(new Date(now.getTime() - DAY_MS));
