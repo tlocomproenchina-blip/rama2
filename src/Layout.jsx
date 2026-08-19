@@ -24,6 +24,7 @@ import SoftErrorBoundary from '@/components/common/SoftErrorBoundary';
 import GlobalErrorListener from '@/components/common/GlobalErrorListener';
 import PullToRefresh from '@/components/common/PullToRefresh';
 import SkipToContent from '@/components/common/SkipToContent';
+import ScrollToTopButton from '@/components/common/ScrollToTopButton';
 import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
 import DemoModeBanner from '@/components/common/DemoModeBanner';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
@@ -470,6 +471,8 @@ export default function Layout({ children, currentPageName }) {
       {user?.role === 'admin' && (
         <Suspense fallback={null}><GlobalSearchPalette /></Suspense>
       )}
+
+      {user && <ScrollToTopButton />}
 
       {/* Guided Tour */}
       {user && (
