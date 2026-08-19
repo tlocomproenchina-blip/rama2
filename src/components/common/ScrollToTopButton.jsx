@@ -35,10 +35,18 @@ export default function ScrollToTopButton() {
   }, []);
 
   const handleClick = () => {
-    const mainEl = document.querySelector('main');
-    if (mainEl && mainEl.scrollTop > 0) {
-      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    // Busca todos los contenedores que puedan tener scroll y súbelos
+    const candidates = [
+      document.querySelector('main'),
+      document.getElementById('main-content'),
+      document.documentElement,
+      document.body,
+    ];
+    candidates.forEach((el) => {
+      if (el && el.scrollTop > 0) {
+        el.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
