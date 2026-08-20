@@ -28,6 +28,7 @@ export default function QuotePublic() {
   const [showContract, setShowContract] = useState(false);
   const [showContractModal, setShowContractModal] = useState(false);
   const [contractAcceptedForSubmit, setContractAcceptedForSubmit] = useState(false);
+  const [clientRegistered, setClientRegistered] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -47,6 +48,7 @@ export default function QuotePublic() {
         setQuote(data.quote);
         setContractText(data.contract_text || '');
         setContractFileUrl(data.contract_file_url || data.quote?.contract_file_url || '');
+        setClientRegistered(!!data.client_registered);
         if (data.quote) {
           setFirstName(data.quote.client_first_name || '');
           setLastName(data.quote.client_last_name || '');
@@ -268,9 +270,25 @@ export default function QuotePublic() {
                   <Check className="h-4 w-4" /> Contrato aceptado
                 </p>
               ) : (
-                <Button onClick={handleAcceptContract} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
-                  Aceptar Contrato
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={handleAcceptContract} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
+                    Aceptar Contrato
+                  </Button>
+                  {!clientRegistered && (
+                    <Button
+                      onClick={() => base44.auth.redirectToLogin(window.location.pathname)}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      <Package className="h-4 w-4" /> Crear Cuenta
+                    </Button>
+                  )}
+                </div>
+              )}
+              {!clientRegistered && !quote.contract_accepted && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Crea tu cuenta para que te asignemos tu Shipping Mark y poder recibir tus envíos.
+                </p>
               )}
             </div>
           </div>

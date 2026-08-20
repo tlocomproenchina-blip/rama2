@@ -26,7 +26,20 @@ export default async function(req) {
       } catch {}
     }
 
-    return Response.json({ quote, contract_text: contractText, contract_file_url: contractFileUrl, global_conversion_rate: globalRate });
+    // Verificar si el cliente ya está registrado (para mostrar/ocultar botón "Crear Cuenta")
+    let clientRegistered = false;
+    let clientShippingMark = null;
+    if (quote.client_email && quote.client_email.includes('@')) {
+      try {
+        const users = await base44.asServiceRole.entities.User.filter({ email: quote.client_email.toLowerCase() }, '-created_date', 1);
+        if (users.length) {
+          clientRegistered = true;
+          clientShippingMark = users[0].shipping_mark || null;
+        }
+      } catch {}
+    }
+
+    return Response.json({ quote, contract_text: contractText, contract_file_url: contractFileUrl, global_conversion_rate: globalRate, client_registered: clientRegistered, client_shipping_mark: clientShippingMark });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
