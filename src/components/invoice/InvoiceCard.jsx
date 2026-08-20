@@ -144,7 +144,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
         <div className="space-y-2 mb-4">
           {invoiceItems.map((item, idx) => (
             <div key={idx} className="flex justify-between gap-4 text-sm">
-              <span className="text-slate-600 min-w-0">{item.description}</span>
+              <span className="text-slate-600 min-w-0 break-all">{item.description}</span>
               <span className="font-medium text-slate-800 shrink-0">${getItemTotal(item).toFixed(2)}</span>
             </div>
           ))}
