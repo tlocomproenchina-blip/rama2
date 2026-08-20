@@ -265,29 +265,31 @@ export default function QuotePublic() {
               </div>
             )}
             <div className="mt-4">
-              {quote.contract_accepted ? (
-                <p className="flex items-center gap-2 text-sm font-medium text-green-600">
-                  <Check className="h-4 w-4" /> Contrato aceptado
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {quote.contract_accepted ? (
+                  <p className="flex items-center gap-2 text-sm font-medium text-green-600">
+                    <Check className="h-4 w-4" /> Contrato aceptado
+                  </p>
+                ) : (
                   <Button onClick={handleAcceptContract} style={{ backgroundColor: '#8b5cf6' }} className="text-white hover:opacity-90">
                     Aceptar Contrato
                   </Button>
-                  {!clientRegistered && (
-                    <Button
-                      onClick={() => base44.auth.redirectToLogin(window.location.pathname)}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <Package className="h-4 w-4" /> Crear Cuenta
-                    </Button>
-                  )}
-                </div>
-              )}
-              {!clientRegistered && !quote.contract_accepted && (
+                )}
+                {!clientRegistered && (
+                  <Button
+                    onClick={() => base44.auth.redirectToLogin(window.location.pathname)}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Package className="h-4 w-4" /> Crear Cuenta
+                  </Button>
+                )}
+              </div>
+              {!clientRegistered && (
                 <p className="mt-2 text-xs text-gray-500">
-                  Crea tu cuenta para que te asignemos tu Shipping Mark y poder recibir tus envíos.
+                  {quote.contract_accepted
+                    ? 'Aún no tienes cuenta. Créala para que te asignemos tu Shipping Mark y poder recibir tus envíos.'
+                    : 'Crea tu cuenta para que te asignemos tu Shipping Mark y poder recibir tus envíos.'}
                 </p>
               )}
             </div>
