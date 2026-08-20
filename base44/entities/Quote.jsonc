@@ -57,6 +57,10 @@
             "type": "string",
             "description": "Talla o variante"
           },
+          "description": {
+            "type": "string",
+            "description": "Descripci\u00f3n del producto"
+          },
           "unit_price": {
             "type": "number",
             "default": 0

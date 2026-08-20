@@ -19,7 +19,7 @@ export default function QuoteProductTable({ items, servicePercentage, conversion
   };
 
   const addItem = () => {
-    onChange([...items, { link: '', quantity: 1, image_url: '', size: '', unit_price: 0, currency: 'CNY', subtotal: 0, service_amount: 0, total: 0, total_usd: 0 }]);
+    onChange([...items, { link: '', quantity: 1, image_url: '', size: '', description: '', unit_price: 0, currency: 'CNY', subtotal: 0, service_amount: 0, total: 0, total_usd: 0 }]);
   };
 
   const removeItem = (idx) => {
@@ -45,6 +45,7 @@ export default function QuoteProductTable({ items, servicePercentage, conversion
               <th className="px-2 py-2 text-left">Enlace del Producto</th>
               <th className="px-2 py-2 text-left">Imagen</th>
               <th className="px-2 py-2 text-left">Talla</th>
+              <th className="px-2 py-2 text-left">Descripción</th>
               {showPricing && <th className="px-2 py-2 text-left">Precio Unit.</th>}
               {showPricing && <th className="px-2 py-2 text-left">Moneda</th>}
               {showPricing && <th className="px-2 py-2 text-right">Subtotal</th>}
@@ -80,7 +81,7 @@ export default function QuoteProductTable({ items, servicePercentage, conversion
                         value={item.link || ''}
                         readOnly={readOnly}
                         onChange={(e) => updateItem(idx, 'link', e.target.value)}
-                        className="min-w-[180px] h-9"
+                        className="w-32 h-9"
                       />
                       {item.link && (
                         <a
@@ -110,6 +111,16 @@ export default function QuoteProductTable({ items, servicePercentage, conversion
                       readOnly={readOnly}
                       onChange={(e) => updateItem(idx, 'size', e.target.value)}
                       className="w-20 h-9"
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <Input
+                      type="text"
+                      placeholder="Descripción del producto"
+                      value={item.description || ''}
+                      readOnly={readOnly}
+                      onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                      className="min-w-[220px] h-9"
                     />
                   </td>
                   {showPricing && (
