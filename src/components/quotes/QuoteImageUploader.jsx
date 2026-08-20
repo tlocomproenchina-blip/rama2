@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Upload, Clipboard, X } from 'lucide-react';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
+import ImageViewerModal from '@/components/common/ImageViewerModal';
 
 export default function QuoteImageUploader({ imageUrl, onChange, disabled }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [viewerOpen, setViewerOpen] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFile = async (file) => {
@@ -56,7 +58,13 @@ export default function QuoteImageUploader({ imageUrl, onChange, disabled }) {
   if (imageUrl) {
     return (
       <div className="flex flex-col items-center gap-1">
-        <img src={imageUrl} alt="producto" className="h-12 w-12 rounded-lg object-cover border border-gray-200" />
+        <img
+          src={imageUrl}
+          alt="producto"
+          onClick={() => setViewerOpen(true)}
+          className="h-12 w-12 rounded-lg object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+          title="Click para ampliar"
+        />
         {!disabled && (
           <div className="flex gap-1">
             <button type="button" onClick={() => fileInputRef.current?.click()} className="text-[10px] text-blue-600 hover:underline">
@@ -73,6 +81,12 @@ export default function QuoteImageUploader({ imageUrl, onChange, disabled }) {
           accept="image/*"
           className="hidden"
           onChange={(e) => { handleFile(e.target.files?.[0]); e.target.value = ''; }}
+        />
+        <ImageViewerModal
+          open={viewerOpen}
+          imageUrl={imageUrl}
+          onClose={() => setViewerOpen(false)}
+          title="Imagen del producto"
         />
       </div>
     );
