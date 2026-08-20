@@ -55,12 +55,33 @@ Deno.serve(async (req) => {
       } catch (_) { return ''; }
     };
 
+    // Busca si el recibo (consolidación) ya tiene una factura pagada,
+    // buscando por consolidation_tracking o por consolidation_id.
+    const loadPaidInvoice = async (consolidationTracking, consolidationId) => {
+      try {
+        const ct = (consolidationTracking || '').trim();
+        if (ct) {
+          const invs = await base44.asServiceRole.entities.Invoice.filter({ consolidation_tracking: ct });
+          const paid = invs?.find((i) => i.status === 'pagada');
+          if (paid) return { recibo_pagado: true, invoice_number: paid.invoice_number || '', invoice_id: paid.id };
+        }
+        if (consolidationId) {
+          const invs = await base44.asServiceRole.entities.Invoice.filter({ consolidation_id: consolidationId });
+          const paid = invs?.find((i) => i.status === 'pagada');
+          if (paid) return { recibo_pagado: true, invoice_number: paid.invoice_number || '', invoice_id: paid.id };
+        }
+      } catch (_) {}
+      return { recibo_pagado: false, invoice_number: '', invoice_id: '' };
+    };
+
     // Solo consultar: no modifica nada, permite decidir manualmente
     if (mode === 'lookup') {
       const c = await loadClient();
       const consolidation_tracking = await loadConsolidationTracking();
+      const paidInvoice = await loadPaidInvoice(consolidation_tracking, pkg.consolidation_id);
       return Response.json({
         success: true,
+        ...paidInvoice,
         mode: 'lookup',
         already_dispatched: previousStatus === 'despachado',
         is_received: previousStatus !== 'pre_alerta',
@@ -93,8 +114,10 @@ Deno.serve(async (req) => {
       }
       const c = await loadClient();
       const consolidation_tracking = await loadConsolidationTracking();
+      const paidInvoice = await loadPaidInvoice(consolidation_tracking, pkg.consolidation_id);
       return Response.json({
         success: true,
+        ...paidInvoice,
         mode: 'receive',
         already_dispatched: false,
         is_received: true,
@@ -122,8 +145,10 @@ Deno.serve(async (req) => {
         clientDup = usersDup?.[0] || null;
       } catch (_) {}
       const consolidation_tracking = await loadConsolidationTracking();
+      const paidInvoice = await loadPaidInvoice(consolidation_tracking, pkg.consolidation_id);
       return Response.json({
         success: true,
+        ...paidInvoice,
         already_dispatched: true,
         auto_received: false,
         previous_status: previousStatus,
@@ -172,6 +197,7 @@ Deno.serve(async (req) => {
     } catch (_) {}
 
     const consolidation_tracking = await loadConsolidationTracking();
+      const paidInvoice = await loadPaidInvoice(consolidation_tracking, pkg.consolidation_id);
     return Response.json({
       success: true,
       mode: 'dispatch',

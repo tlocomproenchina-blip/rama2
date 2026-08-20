@@ -59,6 +59,20 @@ export default function DispatchResultCard({ result, onMarkReceived, onMarkDispa
           <span className="truncate">{result.package?.description}</span>
         </div>
 
+        {result.recibo_pagado && (
+          <div className="flex items-center gap-2 rounded-lg bg-emerald-100 border border-emerald-300 px-3 py-2">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+            <div className="text-sm leading-tight">
+              <span className="font-semibold text-emerald-800">
+                Recibo {result.package?.consolidation_tracking || ''} ya pagado — listo para despacho
+              </span>
+              {result.invoice_number && (
+                <span className="text-emerald-700"> · Factura {result.invoice_number}</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {(onMarkReceived || onMarkDispatched) && (
           <div className="flex flex-wrap gap-2 pt-1">
             {!result.is_received && onMarkReceived && (
