@@ -65,10 +65,70 @@ export default async function(req) {
       contract_accepted_date: new Date().toISOString()
     });
 
+    // Crear factura automática por el monto del presupuesto (si no existe ya)
+    let invoiceCreated = null;
+    try {
+      const totalUsd = Number(quote.total_usd || 0);
+      if (totalUsd > 0 && quote.client_email) {
+        // Verificar si ya existe una factura vinculada a este presupuesto
+        const existing = await base44.asServiceRole.entities.Invoice.filter(
+          { consolidation_id: quote.id },
+          '-created_date',
+          1
+        );
+        if (!existing.length) {
+          const now = new Date();
+          // Due date según configuración (default 7 días)
+          let overdueDays = 7;
+          try {
+            const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+            if (configs?.[0]?.invoice_overdue_days) overdueDays = Number(configs[0].invoice_overdue_days) || 7;
+          } catch {}
+          const dueDate = new Date(now.getTime() + overdueDays * 24 * 60 * 60 * 1000);
+
+          const items = (quote.items || []).map((item: any) => {
+            const qty = Number(item.quantity || 1) || 1;
+            const lineTotal = Number(item.total_usd || 0);
+            const unitPrice = qty > 0 ? lineTotal / qty : 0;
+            const descParts = [];
+            if (item.description) descParts.push(item.description);
+            if (item.size) descParts.push(`Talla: ${item.size}`);
+            if (item.link) descParts.push(item.link);
+            return {
+              description: descParts.join(' · ') || 'Producto',
+              quantity: qty,
+              unit_price: Number(unitPrice.toFixed(2)),
+              total: Number(lineTotal.toFixed(2)),
+              details: { quote_item: item }
+            };
+          });
+
+          const invoiceNumber = `PRES-${quote.quote_number || quote.token.slice(0, 8).toUpperCase()}`;
+          invoiceCreated = await base44.asServiceRole.entities.Invoice.create({
+            invoice_number: invoiceNumber,
+            client_email: quote.client_email,
+            consolidation_id: quote.id,
+            consolidation_tracking: quote.quote_number || quote.token,
+            invoice_date: now.toISOString(),
+            due_date: dueDate.toISOString(),
+            items,
+            subtotal: Number(totalUsd.toFixed(2)),
+            tax: 0,
+            total: Number(totalUsd.toFixed(2)),
+            paid_amount: 0,
+            status: 'pendiente',
+            notes: `Factura generada automáticamente desde el presupuesto ${quote.quote_number || quote.token}.`
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error creando factura de presupuesto:', err);
+    }
+
     // Notificar a administradores que el cliente aceptó el contrato
     await notifyAdminsOfContractAcceptance(base44, updated);
 
-    return Response.json({ quote: updated });
+    return Response.json({ quote: updated, invoice: invoiceCreated });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
