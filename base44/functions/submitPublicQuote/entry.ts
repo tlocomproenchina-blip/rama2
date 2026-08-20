@@ -65,6 +65,11 @@ export default async function(req) {
       return Response.json({ error: 'Este presupuesto ya fue completado y no puede modificarse' }, { status: 403 });
     }
 
+    // Solo notificar a admins la PRIMERA vez que el cliente completa sus datos
+    // (transición esperando_cliente → cliente_completo). Re-guardados en cliente_completo
+    // no generan notificaciones ni emails duplicados.
+    const wasWaiting = quote.status === 'esperando_cliente';
+
     const client_first_name = String(body.client_first_name || '').trim();
     const client_last_name = String(body.client_last_name || '').trim();
     const client_email = String(body.client_email || '').trim();
@@ -120,8 +125,10 @@ export default async function(req) {
 
     const updated = await base44.asServiceRole.entities.Quote.update(quote.id, updateData);
 
-    // Notificar a administradores que el cliente completó sus datos
-    await notifyAdminsOfQuoteSubmission(base44, updated);
+    // Notificar a administradores que el cliente completó sus datos (solo la primera vez)
+    if (wasWaiting) {
+      await notifyAdminsOfQuoteSubmission(base44, updated);
+    }
 
     return Response.json({ quote: updated });
   } catch (error) {

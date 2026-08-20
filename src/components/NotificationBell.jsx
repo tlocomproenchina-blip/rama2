@@ -66,10 +66,13 @@ export default function NotificationBell({ user }) {
           continue;
         }
 
-        const keepUnread = !notif.read && existing.read;
-        const keepNewest = new Date(notif.created_date || 0).getTime() > new Date(existing.created_date || 0).getTime();
-        if (keepUnread || keepNewest) {
+        // Preferir la copia LEÍDA sobre la no leída, para que al marcar una
+        // notificación duplicada como leída no reaparezca otra idéntica como no leída.
+        if (notif.read && !existing.read) {
           dedupedMap.set(key, notif);
+        } else if (existing.read === notif.read) {
+          const keepNewest = new Date(notif.created_date || 0).getTime() > new Date(existing.created_date || 0).getTime();
+          if (keepNewest) dedupedMap.set(key, notif);
         }
       }
 
