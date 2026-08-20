@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, calcItemTotals } from '@/lib/quoteUtils';
 import QuoteImageUploader from './QuoteImageUploader';
+import PriceInput from './PriceInput';
 
 export default function QuoteProductTable({ items, servicePercentage, conversionRate, onChange, readOnly, showPricing }) {
   const updateItem = (idx, field, value) => {
@@ -113,13 +114,10 @@ export default function QuoteProductTable({ items, servicePercentage, conversion
                   </td>
                   {showPricing && (
                     <td className="px-2 py-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={item.unit_price || 0}
+                      <PriceInput
+                        value={item.unit_price}
                         readOnly={readOnly}
-                        onChange={(e) => updateItem(idx, 'unit_price', Number(e.target.value))}
+                        onChange={(v) => updateItem(idx, 'unit_price', v)}
                         className="w-24 h-9"
                       />
                     </td>
