@@ -160,6 +160,9 @@ export default function AdminSettings({ user }) {
       const pricingConfigs = await base44.entities.PricingConfig.filter({ config_key: 'main' });
       if (pricingConfigs.length > 0) {
         setPricingConfig(pricingConfigs[0]);
+        if (pricingConfigs[0].rate_effective_date) {
+          setRateEffectiveDate(pricingConfigs[0].rate_effective_date);
+        }
       }
 
       // Load states config

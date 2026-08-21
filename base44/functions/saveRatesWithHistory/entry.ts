@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
       profit_percentage: Number(pricing.profit_percentage ?? 0),
       door_to_door_cost: Number(pricing.door_to_door_cost ?? 0),
       is_door_to_door_optional: pricing.is_door_to_door_optional !== false,
+      rate_effective_date: effDate,
       config_key: 'main'
     };
     if (pricingList.length > 0) {

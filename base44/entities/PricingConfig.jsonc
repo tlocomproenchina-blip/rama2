@@ -32,6 +32,11 @@
       "description": "Si el servicio puerta a puerta es opcional",
       "default": true
     },
+    "rate_effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de vigencia del \u00faltimo cambio de tarifas guardado"
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,
