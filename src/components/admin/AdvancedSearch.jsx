@@ -118,6 +118,7 @@ export default function AdvancedSearch({
           </div>
         )}
 
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         {/* === Header del colapsable === */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -125,13 +126,12 @@ export default function AdvancedSearch({
             <h3 className="font-semibold text-slate-800">Búsqueda Avanzada</h3>
           </div>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)}>
+            <Button variant="ghost" size="sm">
               {isOpen ? 'Ocultar' : 'Mostrar'} filtros
             </Button>
           </CollapsibleTrigger>
         </div>
 
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleContent className="space-y-4">
             {/* Quick search */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
