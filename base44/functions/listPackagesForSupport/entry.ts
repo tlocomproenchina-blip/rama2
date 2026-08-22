@@ -144,30 +144,55 @@ Deno.serve(async (req) => {
       return acc;
     }
 
-    // Pedir 1 extra para detectar si hay más páginas sin contar todo.
-    // Si hay filtro de fechas (que se aplica en JS), fetch un lote más grande
-    // para compensar los registros que se filtrarán client-side.
+    // created_date es un campo built-in que NO soporta $gte/$lte en el SDK.
+    // Cuando hay filtro de fechas, hay que fetch en lotes iterativos y filtrar en JS.
     const hasDateFilter = advancedFilters && (advancedFilters.dateFrom || advancedFilters.dateTo);
-    const fetchSize = hasDateFilter ? Math.min(pageLimit * 10, 500) + 1 : pageLimit + 1;
-    const [rawData, counts] = await Promise.all([
-      base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', fetchSize, pageSkip),
-      includeCounts ? fetchGlobalCounts() : Promise.resolve(null),
-    ]);
+    const countsPromise = includeCounts ? fetchGlobalCounts() : Promise.resolve(null);
 
-    // Filtrar por fechas en JavaScript (created_date no soporta $gte/$lte en el SDK)
-    let filtered = rawData;
+    let data;
+    let hasMore;
+
     if (hasDateFilter) {
       const fromTime = advancedFilters.dateFrom ? new Date(advancedFilters.dateFrom + 'T00:00:00').getTime() : 0;
       const toTime = advancedFilters.dateTo ? new Date(advancedFilters.dateTo + 'T23:59:59').getTime() : Infinity;
-      filtered = rawData.filter(p => {
-        if (!p?.created_date) return false;
-        const t = new Date(p.created_date).getTime();
-        return t >= fromTime && t <= toTime;
-      });
+
+      // Fetch iterativo: los resultados vienen ordenados por -created_date (más nuevos primero).
+      // Acumulamos los que caen dentro del rango hasta tener suficientes para la página solicitada.
+      let allFiltered = [];
+      let batchSkip = 0;
+      const batchSize = 500;
+      const targetCount = pageSkip + pageLimit + 1; // +1 para detectar hasMore
+
+      while (allFiltered.length < targetCount && batchSkip < 10000) {
+        const batch = await base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', batchSize, batchSkip);
+        if (!batch || batch.length === 0) break;
+
+        for (const p of batch) {
+          if (!p?.created_date) continue;
+          const t = new Date(p.created_date).getTime();
+          if (t >= fromTime && t <= toTime) allFiltered.push(p);
+        }
+
+        if (batch.length < batchSize) break; // no hay más datos
+
+        // Optimización: si el paquete más viejo del lote ya es anterior a dateFrom, detener
+        const oldest = batch[batch.length - 1];
+        if (oldest?.created_date && new Date(oldest.created_date).getTime() < fromTime) break;
+
+        batchSkip += batchSize;
+      }
+
+      hasMore = allFiltered.length > pageSkip + pageLimit;
+      data = allFiltered.slice(pageSkip, pageSkip + pageLimit);
+    } else {
+      // Sin filtro de fechas: paginación normal (pageLimit + 1 para detectar hasMore)
+      const fetchPlusOne = pageLimit + 1;
+      const rawData = await base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', fetchPlusOne, pageSkip);
+      hasMore = rawData.length > pageLimit;
+      data = hasMore ? rawData.slice(0, pageLimit) : rawData;
     }
 
-    const hasMore = filtered.length > pageLimit;
-    const data = hasMore ? filtered.slice(0, pageLimit) : filtered;
+    const counts = await countsPromise;
 
     // Total exacto solo cuando no hay filtros (usa counts.total del cache global).
     // Con filtros, devolvemos null — la UI muestra el conteo cargado en su lugar.
