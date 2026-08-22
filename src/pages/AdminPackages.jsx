@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { Image as ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import AdvancedSearch from '@/components/admin/AdvancedSearch';
+import PackagesSearchBar from '@/components/admin/packages/PackagesSearchBar';
 import BulkProgressIndicator from '@/components/admin/packages/BulkProgressIndicator';
 import PackagesWindowSummary from '@/components/admin/packages/PackagesWindowSummary';
 import ViewImageModal from '@/components/admin/packages/ViewImageModal';
@@ -413,15 +413,15 @@ export default function AdminPackages({ user }) {
         <p className="text-slate-500">Administra todos los paquetes del sistema</p>
       </div>
 
-      <AdvancedSearch
-        type="packages"
-        onSearch={setAdvancedFilters}
-        onReset={resetFilters}
+      <PackagesSearchBar
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
         reportedFilter={reportedFilter}
         setReportedFilter={setReportedFilter}
+        advancedFilters={advancedFilters}
+        setAdvancedFilters={setAdvancedFilters}
         globalCounts={globalCounts}
+        onReset={resetFilters}
         onOpenCreate={() => setCreateModalOpen(true)}
         onOpenImport={() => setImportModalOpen(true)}
         onExportPreAlerta={() => exportPreAlerta({ onProgress: setBulkProgress })}
