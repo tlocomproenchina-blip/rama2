@@ -74,12 +74,8 @@ Deno.serve(async (req) => {
       }
       if (hasInsurance === 'true' || hasInsurance === true) query.has_insurance = true;
       if (hasInsurance === 'false' || hasInsurance === false && hasInsurance !== 'all') query.has_insurance = { $ne: true };
-      if (dateFrom || dateTo) {
-        const dateQuery = {};
-        if (dateFrom) dateQuery.$gte = new Date(dateFrom + 'T00:00:00');
-        if (dateTo) dateQuery.$lte = new Date(dateTo + 'T23:59:59');
-        query.created_date = { ...(query.created_date || {}), ...dateQuery };
-      }
+      // NOTA: created_date es un campo built-in que NO soporta $gte/$lte en el SDK.
+      // El filtro de fechas se aplica en JavaScript después de fetch (ver más abajo).
     }
 
     // Búsqueda libre: tracking, shipping_mark, client_email, description
@@ -148,15 +144,30 @@ Deno.serve(async (req) => {
       return acc;
     }
 
-    // Pedir 1 extra para detectar si hay más páginas sin contar todo
-    const fetchPlusOne = pageLimit + 1;
+    // Pedir 1 extra para detectar si hay más páginas sin contar todo.
+    // Si hay filtro de fechas (que se aplica en JS), fetch un lote más grande
+    // para compensar los registros que se filtrarán client-side.
+    const hasDateFilter = advancedFilters && (advancedFilters.dateFrom || advancedFilters.dateTo);
+    const fetchSize = hasDateFilter ? Math.min(pageLimit * 10, 500) + 1 : pageLimit + 1;
     const [rawData, counts] = await Promise.all([
-      base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', fetchPlusOne, pageSkip),
+      base44.asServiceRole.entities.Package.filter(finalQuery, '-created_date', fetchSize, pageSkip),
       includeCounts ? fetchGlobalCounts() : Promise.resolve(null),
     ]);
 
-    const hasMore = rawData.length > pageLimit;
-    const data = hasMore ? rawData.slice(0, pageLimit) : rawData;
+    // Filtrar por fechas en JavaScript (created_date no soporta $gte/$lte en el SDK)
+    let filtered = rawData;
+    if (hasDateFilter) {
+      const fromTime = advancedFilters.dateFrom ? new Date(advancedFilters.dateFrom + 'T00:00:00').getTime() : 0;
+      const toTime = advancedFilters.dateTo ? new Date(advancedFilters.dateTo + 'T23:59:59').getTime() : Infinity;
+      filtered = rawData.filter(p => {
+        if (!p?.created_date) return false;
+        const t = new Date(p.created_date).getTime();
+        return t >= fromTime && t <= toTime;
+      });
+    }
+
+    const hasMore = filtered.length > pageLimit;
+    const data = hasMore ? filtered.slice(0, pageLimit) : filtered;
 
     // Total exacto solo cuando no hay filtros (usa counts.total del cache global).
     // Con filtros, devolvemos null — la UI muestra el conteo cargado en su lugar.
