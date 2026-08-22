@@ -76,8 +76,8 @@ Deno.serve(async (req) => {
       if (hasInsurance === 'false' || hasInsurance === false && hasInsurance !== 'all') query.has_insurance = { $ne: true };
       if (dateFrom || dateTo) {
         const dateQuery = {};
-        if (dateFrom) dateQuery.$gte = new Date(dateFrom).toISOString();
-        if (dateTo) dateQuery.$lte = new Date(dateTo + 'T23:59:59').toISOString();
+        if (dateFrom) dateQuery.$gte = new Date(dateFrom + 'T00:00:00');
+        if (dateTo) dateQuery.$lte = new Date(dateTo + 'T23:59:59');
         query.created_date = { ...(query.created_date || {}), ...dateQuery };
       }
     }
