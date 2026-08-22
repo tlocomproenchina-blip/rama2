@@ -392,6 +392,12 @@ aside nav::-webkit-scrollbar-thumb {
   }
 }
 
+/* Barra de carga animada para buscador de paquetes */
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
 /* UI degradation rules (activated via data-degrade on <html>) */
 [data-degrade="light"] * { transition-duration: 0ms !important; }
 [data-degrade="aggressive"] *, [data-degrade="aggressive"] *::before, [data-degrade="aggressive"] *::after {

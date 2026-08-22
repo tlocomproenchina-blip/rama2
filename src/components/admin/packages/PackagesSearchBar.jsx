@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown, ChevronUp, Search, X, Package, Upload, Download } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, X, Package, Upload, Download, Loader2 } from 'lucide-react';
 
 const EMPTY_FORM = {
   tracking: '',
@@ -32,6 +32,7 @@ export default function PackagesSearchBar({
   advancedFilters,
   setAdvancedFilters,
   globalCounts,
+  loading,
   onReset,
   onOpenCreate,
   onOpenImport,
@@ -87,6 +88,17 @@ export default function PackagesSearchBar({
           );
         })}
       </div>
+
+      {/* === Barra de carga === */}
+      {loading && (
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+          <span>Cargando paquetes…</span>
+          <div className="flex-1 h-1 rounded-full bg-slate-200 overflow-hidden">
+            <div className="h-full w-1/3 bg-blue-600 rounded-full animate-[loading-bar_1.2s_ease-in-out_infinite]" />
+          </div>
+        </div>
+      )}
 
       {/* === Toggle filtros avanzados + acciones === */}
       <div className="flex flex-wrap items-center gap-2">

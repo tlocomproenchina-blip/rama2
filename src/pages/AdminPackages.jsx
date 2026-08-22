@@ -421,6 +421,7 @@ export default function AdminPackages({ user }) {
         advancedFilters={advancedFilters}
         setAdvancedFilters={setAdvancedFilters}
         globalCounts={globalCounts}
+        loading={loading}
         onReset={resetFilters}
         onOpenCreate={() => setCreateModalOpen(true)}
         onOpenImport={() => setImportModalOpen(true)}
