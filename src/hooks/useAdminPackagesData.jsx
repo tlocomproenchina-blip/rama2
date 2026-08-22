@@ -70,6 +70,7 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
     setAdvancedFilters(null);
     setSearch('');
     setStatusFilter('all');
+    setReportedFilter('all');
   };
 
   // Update optimista de UN paquete (sin refetch)

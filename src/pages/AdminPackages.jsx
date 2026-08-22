@@ -22,7 +22,6 @@ import EditPackageModal from '@/components/admin/packages/EditPackageModal';
 import BulkActionsBar from '@/components/admin/packages/BulkActionsBar';
 import BulkActionConfirmDialog from '@/components/admin/packages/BulkActionConfirmDialog';
 import CancelReceptionDialog from '@/components/admin/packages/CancelReceptionDialog';
-import PackagesQuickFilters from '@/components/admin/packages/PackagesQuickFilters';
 import PackagesDesktopTable from '@/components/admin/packages/PackagesDesktopTable';
 import { useAdminPackagesData } from '@/hooks/useAdminPackagesData';
 import { useAdminPackagesBulk } from '@/hooks/useAdminPackagesBulk';
@@ -418,9 +417,6 @@ export default function AdminPackages({ user }) {
         type="packages"
         onSearch={setAdvancedFilters}
         onReset={resetFilters}
-      />
-
-      <PackagesQuickFilters
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
         reportedFilter={reportedFilter}

@@ -4,42 +4,46 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, X, Filter, Calendar } from 'lucide-react';
+import { Search, X, Filter, Calendar, Package, Upload, Download } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-export default function AdvancedSearch({ type, onSearch, onReset }) {
+const DEFAULT_FILTERS = {
+  tracking: '',
+  email: '',
+  shippingMark: '',
+  status: 'all',
+  shippingType: 'all',
+  dateFrom: '',
+  dateTo: '',
+  hasInsurance: 'all',
+  minAmount: '',
+  maxAmount: ''
+};
+
+export default function AdvancedSearch({
+  type,
+  onSearch,
+  onReset,
+  // Props exclusivas para packages (unificación con el antiguo PackagesQuickFilters)
+  statusFilter,
+  setStatusFilter,
+  reportedFilter,
+  setReportedFilter,
+  globalCounts,
+  onOpenCreate,
+  onOpenImport,
+  onExportPreAlerta,
+}) {
+  const isPackages = type === 'packages';
   const [isOpen, setIsOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    tracking: '',
-    email: '',
-    shippingMark: '',
-    status: 'all',
-    shippingType: 'all',
-    dateFrom: '',
-    dateTo: '',
-    hasInsurance: 'all',
-    minAmount: '',
-    maxAmount: ''
-  });
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
 
   const handleSearch = () => {
     onSearch(filters);
   };
 
   const handleReset = () => {
-    const resetFilters = {
-      tracking: '',
-      email: '',
-      shippingMark: '',
-      status: 'all',
-      shippingType: 'all',
-      dateFrom: '',
-      dateTo: '',
-      hasInsurance: 'all',
-      minAmount: '',
-      maxAmount: ''
-    };
-    setFilters(resetFilters);
+    setFilters({ ...DEFAULT_FILTERS });
     onReset();
   };
 
@@ -74,22 +78,60 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
     return [];
   };
 
+  const statusTabs = [
+    { value: 'all', label: 'Todos', count: globalCounts?.total },
+    { value: 'pre_alerta_no_recibido', label: 'Pre-alerta', count: globalCounts?.pre_alerta_no_recibido },
+    { value: 'recibido', label: 'Recibido', count: globalCounts?.recibido },
+    { value: 'consolidado', label: 'Consolidado', count: globalCounts?.consolidado },
+    { value: 'en_transito', label: 'Tránsito', count: globalCounts?.en_transito },
+    { value: 'entregado', label: 'Entregado', count: globalCounts?.entregado },
+  ];
+
+  const hasActiveAdvancedFilter = Object.entries(filters).some(([k, v]) => {
+    if (k === 'status' && isPackages) return false; // status handled by tabs for packages
+    return v && v !== 'all';
+  });
+
   return (
     <Card className="border-0 shadow-md">
-      <CardContent className="p-4">
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-slate-600" />
-              <h3 className="font-semibold text-slate-800">Búsqueda Avanzada</h3>
-            </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm">
-                {isOpen ? 'Ocultar' : 'Mostrar'} filtros
-              </Button>
-            </CollapsibleTrigger>
+      <CardContent className="p-4 space-y-4">
+        {/* === Pestañas de estado con conteos (solo packages, siempre visible) === */}
+        {isPackages && (
+          <div className="flex flex-wrap gap-1.5">
+            {statusTabs.map(tab => {
+              const active = statusFilter === tab.value;
+              const count = tab.count != null ? ` (${tab.count})` : '';
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  {tab.label}{count}
+                </button>
+              );
+            })}
           </div>
+        )}
 
+        {/* === Header del colapsable === */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-slate-600" />
+            <h3 className="font-semibold text-slate-800">Búsqueda Avanzada</h3>
+          </div>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)}>
+              {isOpen ? 'Ocultar' : 'Mostrar'} filtros
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleContent className="space-y-4">
             {/* Quick search */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -124,21 +166,23 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
               </div>
             </div>
 
-            {/* Status and Type */}
+            {/* Status (solo no-packages), Tipo de Envío, Seguro/Reportado */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs text-slate-600">Estado</Label>
-                <Select value={filters.status} onValueChange={(val) => setFilters({ ...filters, status: val })}>
-                  <SelectTrigger className="text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getStatusOptions().map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isPackages && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600">Estado</Label>
+                  <Select value={filters.status} onValueChange={(val) => setFilters({ ...filters, status: val })}>
+                    <SelectTrigger className="text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getStatusOptions().map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {(type === 'packages' || type === 'consolidations') && (
                 <div className="space-y-2">
@@ -172,6 +216,25 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
                 </div>
               )}
             </div>
+
+            {/* Filtro de Reportado (solo packages) — integrado desde PackagesQuickFilters */}
+            {isPackages && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600">Reportado</Label>
+                  <Select value={reportedFilter || 'all'} onValueChange={(val) => setReportedFilter?.(val)}>
+                    <SelectTrigger className="text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="reported">Reportados</SelectItem>
+                      <SelectItem value="unreported">No reportados</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
             {/* Date Range */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -244,7 +307,7 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
             </div>
 
             {/* Active Filters Summary */}
-            {Object.values(filters).some(v => v && v !== 'all') && (
+            {hasActiveAdvancedFilter && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-xs font-medium text-blue-800 mb-2">Filtros activos:</p>
                 <div className="flex flex-wrap gap-2">
@@ -263,14 +326,29 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
                       Mark: {filters.shippingMark}
                     </span>
                   )}
-                  {filters.status !== 'all' && (
+                  {!isPackages && filters.status !== 'all' && (
                     <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200">
                       Estado: {filters.status}
+                    </span>
+                  )}
+                  {isPackages && statusFilter && statusFilter !== 'all' && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200">
+                      Estado: {statusTabs.find(t => t.value === statusFilter)?.label || statusFilter}
+                    </span>
+                  )}
+                  {isPackages && reportedFilter && reportedFilter !== 'all' && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200">
+                      Reportado: {reportedFilter === 'reported' ? 'Sí' : 'No'}
                     </span>
                   )}
                   {filters.shippingType !== 'all' && (
                     <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200">
                       Tipo: {filters.shippingType}
+                    </span>
+                  )}
+                  {filters.hasInsurance !== 'all' && (
+                    <span className="text-xs bg-white px-2 py-1 rounded border border-blue-200">
+                      Seguro: {filters.hasInsurance === 'true' ? 'Con seguro' : 'Sin seguro'}
                     </span>
                   )}
                   {filters.dateFrom && (
@@ -298,6 +376,24 @@ export default function AdvancedSearch({ type, onSearch, onReset }) {
             )}
           </CollapsibleContent>
         </Collapsible>
+
+        {/* === Botones de acción (solo packages, fuera del colapsable) === */}
+        {isPackages && (
+          <div className="flex flex-col sm:flex-row items-stretch gap-2 pt-1">
+            <Button onClick={onOpenCreate} size="sm" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+              <Package className="h-4 w-4 mr-2" />
+              Registrar
+            </Button>
+            <Button onClick={onOpenImport} variant="outline" size="sm" className="w-full sm:w-auto">
+              <Upload className="h-4 w-4 mr-2" />
+              Importar
+            </Button>
+            <Button onClick={onExportPreAlerta} variant="outline" size="sm" className="w-full sm:w-auto border-blue-200 text-blue-600 hover:bg-blue-50">
+              <Download className="h-4 w-4 mr-2" />
+              Exportar Pre-alerta
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
