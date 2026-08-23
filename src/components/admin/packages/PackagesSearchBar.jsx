@@ -142,7 +142,6 @@ export default function PackagesSearchBar({
             <div className="space-y-1">
               <Label className="text-xs text-slate-600">Tracking</Label>
               <Input
-                placeholder="1234567890"
                 value={form.tracking}
                 onChange={(e) => setForm({ ...form, tracking: e.target.value })}
                 className="text-sm h-9"
@@ -151,7 +150,6 @@ export default function PackagesSearchBar({
             <div className="space-y-1">
               <Label className="text-xs text-slate-600">Email</Label>
               <Input
-                placeholder="cliente@email.com"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="text-sm h-9"
@@ -160,7 +158,6 @@ export default function PackagesSearchBar({
             <div className="space-y-1">
               <Label className="text-xs text-slate-600">Shipping Mark</Label>
               <Input
-                placeholder="TLEC-XXXX"
                 value={form.shippingMark}
                 onChange={(e) => setForm({ ...form, shippingMark: e.target.value })}
                 className="text-sm h-9"
