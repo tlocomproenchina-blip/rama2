@@ -339,10 +339,21 @@ export default function AssistedPaymentsList() {
       <div className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Número de tracking</p>
         {r.tracking_prealerted && r.tracking_number ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-emerald-700 bg-emerald-50 rounded px-2 py-1 break-all">
-              <PackageCheck className="h-3.5 w-3.5 shrink-0" /> {r.tracking_number}
+              <PackageCheck className="h-3.5 w-3.5 shrink-0" /> {r.tracking_number}{r.model_type ? ` - ${r.model_type}` : ''}
             </span>
+            <button
+              type="button"
+              onClick={() => {
+                const text = r.model_type ? `${r.tracking_number} - ${r.model_type}` : r.tracking_number;
+                navigator.clipboard?.writeText(text).then(() => toast.success('Copiado')).catch(() => {});
+              }}
+              className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 whitespace-nowrap"
+              title="Copiar tracking y descripción"
+            >
+              <Clipboard className="h-3.5 w-3.5" /> Copiar
+            </button>
             <span className="text-xs text-emerald-600 whitespace-nowrap">Pre-alerta creada</span>
           </div>
         ) : (
