@@ -5,17 +5,18 @@ import { toast } from 'sonner';
  * Exporta todos los paquetes en pre-alerta a un archivo TXT agrupado por shipping mark.
  * Usa exportPaginated para descargar el dataset completo desde el backend.
  */
-export async function exportPreAlerta({ onProgress } = {}) {
+export async function exportPreAlerta({ onProgress, filters = {} } = {}) {
   try {
     const { exportPaginated } = await import('@/lib/exportPaginated');
+    const { q, statusFilter, reportedFilter, advancedFilters } = filters;
     const preAlertaPkgs = await exportPaginated(
       'listPackagesForSupport',
-      { statusFilter: 'pre_alerta' },
-      { onProgress, label: 'Descargando paquetes pre-alerta' }
+      { q, statusFilter, reportedFilter, advancedFilters },
+      { onProgress, label: 'Descargando paquetes' }
     );
 
     if (preAlertaPkgs.length === 0) {
-      toast.error('No hay paquetes en pre-alerta para exportar');
+      toast.error('No hay paquetes para exportar con los filtros actuales');
       onProgress?.(null);
       return;
     }
@@ -40,7 +41,10 @@ export async function exportPreAlerta({ onProgress } = {}) {
       const pkgs = clientMap[email];
       const shippingMark = userMap[email]?.shipping_mark || 'N/A';
       content += `Cliente \n${shippingMark}\ntracking Number\n`;
-      pkgs.forEach(pkg => { content += `${pkg.tracking_number}\n`; });
+      pkgs.forEach(pkg => {
+        const desc = pkg.description ? ` - ${pkg.description}` : '';
+        content += `${pkg.tracking_number}${desc}\n`;
+      });
       if (index < clients.length - 1) content += '\n\n';
     });
 
@@ -54,7 +58,7 @@ export async function exportPreAlerta({ onProgress } = {}) {
     window.URL.revokeObjectURL(url);
     a.remove();
 
-    toast.success(`Exportado ${preAlertaPkgs.length} paquetes`);
+    toast.success(`Exportado ${preAlertaPkgs.length} paquetes (filtros aplicados)`);
   } catch (error) {
     toast.error('Error al exportar');
     console.error(error);

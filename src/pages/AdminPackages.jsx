@@ -425,7 +425,10 @@ export default function AdminPackages({ user }) {
         onReset={resetFilters}
         onOpenCreate={() => setCreateModalOpen(true)}
         onOpenImport={() => setImportModalOpen(true)}
-        onExportPreAlerta={() => exportPreAlerta({ onProgress: setBulkProgress })}
+        onExportPreAlerta={() => exportPreAlerta({
+          onProgress: setBulkProgress,
+          filters: { q: search, statusFilter, reportedFilter, advancedFilters }
+        })}
       />
 
       <BulkProgressIndicator progress={bulkProgress} />
