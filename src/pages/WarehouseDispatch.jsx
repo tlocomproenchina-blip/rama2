@@ -1,8 +1,20 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, ScanLine, Truck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, ScanLine, Truck, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import DispatchResultCard from '@/components/warehouse/DispatchResultCard';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
@@ -15,7 +27,25 @@ export default function WarehouseDispatch() {
   const [lastResult, setLastResult] = useState(null);
   const [scans, setScans] = useState([]);
   const [ordersKey, setOrdersKey] = useState(0);
+  const [generatingToday, setGeneratingToday] = useState(false);
   const pendingOrderRef = useRef(new Map());
+
+  const handleGenerateTodayOrders = useCallback(async () => {
+    if (generatingToday) return;
+    setGeneratingToday(true);
+    try {
+      const res = await base44.functions.invoke('generateTodayDispatchOrders', {});
+      const summary = res?.data?.summary;
+      if (summary?.message) toast.success(summary.message);
+      else toast.success('Guías de hoy generadas');
+      setOrdersKey((k) => k + 1);
+    } catch (error) {
+      const msg = error?.response?.data?.error || error?.message || 'Error al generar las guías';
+      toast.error(msg);
+    } finally {
+      setGeneratingToday(false);
+    }
+  }, [generatingToday]);
 
   const autoGenerateOrder = useCallback(async (scanData) => {
     try {
@@ -112,6 +142,27 @@ export default function WarehouseDispatch() {
           Si no estaba recibido, se registra como recibido automáticamente.
         </p>
       </div>
+
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" className="gap-2" disabled={generatingToday}>
+            {generatingToday ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+            {generatingToday ? 'Generando...' : 'Generar guías de hoy'}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generar guías de despacho de hoy</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esto creará o actualizará una guía 'emitida' por cliente para todos los paquetes modificados hoy (cualquier estado, sin requerir CBMs). Los paquetes ya despachados se omiten. Es una operación de uso único: no se repite automáticamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleGenerateTodayOrders}>Generar ahora</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BarcodeScannerModule
         title="Escaneo de despacho"
