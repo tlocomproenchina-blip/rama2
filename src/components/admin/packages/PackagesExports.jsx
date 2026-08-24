@@ -36,6 +36,16 @@ export async function exportPreAlerta({ onProgress, filters = {} } = {}) {
     });
 
     let content = '';
+    const af = advancedFilters || {};
+    const fmtDate = (d) => {
+      if (!d) return '—';
+      const parts = String(d).split('-');
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return d;
+    };
+    const dateFrom = fmtDate(af.dateFrom);
+    const dateTo = fmtDate(af.dateTo);
+    content += `Período de exportación: ${dateFrom} hasta ${dateTo}\n\n`;
     const clients = Object.keys(clientMap).sort();
     clients.forEach((email, index) => {
       const pkgs = clientMap[email];
