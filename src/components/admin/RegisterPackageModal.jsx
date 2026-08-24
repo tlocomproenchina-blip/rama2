@@ -171,24 +171,21 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       resultsByTracking[tracking] = await checkTrackingDuplicate(tracking);
     }
 
-    // Only process trackings that exist AND are not already received
+    // Procesar todos los trackings que existen (incluye los ya recibidos: solo actualizan imagen)
     const alreadyReceivedStatuses = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'];
-    const validTrackings = cleanedTrackingNumbers.filter((t) => {
-      const pkg = resultsByTracking[t]?.pkg;
-      return pkg && !alreadyReceivedStatuses.includes(pkg.status);
-    });
+    const existingTrackings = cleanedTrackingNumbers.filter((t) => !!resultsByTracking[t]?.pkg);
     const invalidTrackings = cleanedTrackingNumbers.filter((t) => !resultsByTracking[t]?.pkg);
-    const skippedTrackings = cleanedTrackingNumbers.filter((t) => {
+    const newTrackings = existingTrackings.filter((t) => {
       const pkg = resultsByTracking[t]?.pkg;
-      return pkg && alreadyReceivedStatuses.includes(pkg.status);
+      return !alreadyReceivedStatuses.includes(pkg.status);
+    });
+    const alreadyReceivedTrackings = existingTrackings.filter((t) => {
+      const pkg = resultsByTracking[t]?.pkg;
+      return alreadyReceivedStatuses.includes(pkg.status);
     });
 
-    if (validTrackings.length === 0) {
-      if (skippedTrackings.length > 0) {
-        toast.info(`${skippedTrackings.length} tracking(s) ya fueron recibidos. No hay nada nuevo que procesar.`);
-      } else {
-        toast.error('Ninguno de los trackings existe en el sistema. Deben tener pre-alerta primero.');
-      }
+    if (existingTrackings.length === 0) {
+      toast.error('Ninguno de los trackings existe en el sistema. Deben tener pre-alerta primero.');
       return;
     }
 
@@ -196,7 +193,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
     try {
       const processedPackages = [];
-      for (const tracking of validTrackings) {
+      // Trackings nuevos: marcar como recibidos + actualizar imagen
+      for (const tracking of newTrackings) {
         const existingPackage = existingPackagesByTracking[tracking];
         const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
         const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
@@ -214,9 +212,27 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         });
         processedPackages.push(response?.data?.package || existingPackage);
       }
+      // Trackings ya recibidos: solo actualizar imagen e info de la orden
+      for (const tracking of alreadyReceivedTrackings) {
+        const existingPackage = existingPackagesByTracking[tracking];
+        const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
+        const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
+        const uploadedUrls = [];
+        for (const f of files) {
+          uploadedUrls.push(await uploadImageNoCredits(f));
+        }
+        const allUrls = [scannedPhotoUrl, ...uploadedUrls].filter(Boolean).slice(0, 3);
+        if (allUrls.length > 0) {
+          await base44.entities.Package.update(existingPackage.id, {
+            package_image_url: allUrls[0],
+            package_image_urls: allUrls,
+          });
+        }
+        processedPackages.push(existingPackage);
+      }
 
-      // Crear CbmIngreso por orden si los campos están llenos
-      if (hasOrder && hasCbm && validTrackings.length > 0) {
+      // Crear CbmIngreso por orden si los campos están llenos (incluye todos los trackings existentes)
+      if (hasOrder && hasCbm && existingTrackings.length > 0) {
         try {
           const fechaObj = fechaRegistro ? new Date(fechaRegistro) : new Date();
           const pad = (n) => String(n).padStart(2, '0');
@@ -226,20 +242,23 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             cbm: cbmVal,
             mes,
             invoice_number: orderNum,
-            tracking_numbers: validTrackings,
+            tracking_numbers: existingTrackings,
             client_email: '',
             client_name: `Orden ${orderNum}`,
             shipping_mark: '',
             disponible_entrega: false,
           });
-          toast.success(`${validTrackings.length} paquete(s) recibido(s) · CBM ${cbmVal} registrado en orden ${orderNum}`);
+          let msg = `${newTrackings.length} recibido(s)`;
+          if (alreadyReceivedTrackings.length > 0) msg += ` · ${alreadyReceivedTrackings.length} actualizado(s)`;
+          msg += ` · CBM ${cbmVal} registrado en orden ${orderNum}`;
+          toast.success(msg);
         } catch (e) {
-          toast.error(`Paquetes recibidos, pero no se pudo registrar el CBM: ${e?.message || 'error'}`);
+          toast.error(`Paquetes procesados, pero no se pudo registrar el CBM: ${e?.message || 'error'}`);
         }
       } else {
-        let msg = `${validTrackings.length} paquete(s) marcado(s) como recibido(s)`;
-        if (skippedTrackings.length > 0) {
-          msg += `. ${skippedTrackings.length} ignorado(s) (ya recibidos)`;
+        let msg = `${newTrackings.length} paquete(s) marcado(s) como recibido(s)`;
+        if (alreadyReceivedTrackings.length > 0) {
+          msg += `. ${alreadyReceivedTrackings.length} actualizado(s) (ya recibidos, imagen actualizada)`;
         }
         if (invalidTrackings.length > 0) {
           msg += `. ${invalidTrackings.length} ignorado(s) (no existen)`;
