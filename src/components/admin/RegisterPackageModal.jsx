@@ -15,6 +15,12 @@ import TrackingPhotoUploader from '@/components/admin/packages/TrackingPhotoUplo
 
 
 
+const nowLocalInput = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 export default function RegisterPackageModal({ open, onOpenChange, onCreated }) {
   const [trackingNumbers, setTrackingNumbers] = useState(['']);
   const [imageFilesByTracking, setImageFilesByTracking] = useState({});
@@ -25,6 +31,9 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [quickPreAlertOpen, setQuickPreAlertOpen] = useState({});
   const [bulkPreAlertOpen, setBulkPreAlertOpen] = useState(false);
   const [scannedPhotoByTracking, setScannedPhotoByTracking] = useState({});
+  const [orderNumber, setOrderNumber] = useState('');
+  const [cbmTotal, setCbmTotal] = useState('');
+  const [fechaRegistro, setFechaRegistro] = useState(nowLocalInput());
 
   // Foto capturada automáticamente por el escáner en el momento del pitido.
   // Se sube a ImgBB en segundo plano y se vincula al tracking correspondiente.
@@ -68,6 +77,9 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setQuickPreAlertOpen({});
     setBulkPreAlertOpen(false);
     setScannedPhotoByTracking({});
+    setOrderNumber('');
+    setCbmTotal('');
+    setFechaRegistro(nowLocalInput());
   };
 
   const checkTrackingDuplicate = async (value) => {
@@ -129,6 +141,30 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     const cleanedTrackingNumbers = trackingNumbers.map((item) => item.trim()).filter(Boolean);
     if (cleanedTrackingNumbers.length === 0) { toast.error('Ingresa al menos un número de tracking'); return; }
 
+    // Validar campos de orden (ambos deben estar llenos o ambos vacíos)
+    const orderNum = orderNumber.trim();
+    const cbmVal = parseFloat(cbmTotal);
+    const hasOrder = !!orderNum;
+    const hasCbm = Number.isFinite(cbmVal) && cbmVal > 0;
+    if (hasOrder !== hasCbm) {
+      toast.error('Para registrar CBM por orden, completa Número de orden y Cantidad CBM (o deja ambos vacíos)');
+      return;
+    }
+
+    // Validar duplicidad de número de orden contra CbmIngreso
+    if (hasOrder && hasCbm) {
+      try {
+        const dup = await base44.entities.CbmIngreso.filter({ invoice_number: orderNum }, '-fecha', 1);
+        if (dup && dup.length > 0) {
+          toast.error(`El número de orden ${orderNum} ya está registrado en CbmIngresos. Usa un número diferente.`);
+          return;
+        }
+      } catch (e) {
+        toast.error('No se pudo validar el número de orden. Intenta de nuevo.');
+        return;
+      }
+    }
+
     // Check all trackings first and collect results locally to avoid stale state
     const resultsByTracking = {};
     for (const tracking of cleanedTrackingNumbers) {
@@ -179,14 +215,37 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         processedPackages.push(response?.data?.package || existingPackage);
       }
 
-      let msg = `${validTrackings.length} paquete(s) marcado(s) como recibido(s)`;
-      if (skippedTrackings.length > 0) {
-        msg += `. ${skippedTrackings.length} ignorado(s) (ya recibidos)`;
+      // Crear CbmIngreso por orden si los campos están llenos
+      if (hasOrder && hasCbm && validTrackings.length > 0) {
+        try {
+          const fechaObj = fechaRegistro ? new Date(fechaRegistro) : new Date();
+          const pad = (n) => String(n).padStart(2, '0');
+          const mes = `${fechaObj.getFullYear()}-${pad(fechaObj.getMonth() + 1)}`;
+          await base44.entities.CbmIngreso.create({
+            fecha: fechaObj.toISOString(),
+            cbm: cbmVal,
+            mes,
+            invoice_number: orderNum,
+            tracking_numbers: validTrackings,
+            client_email: '',
+            client_name: `Orden ${orderNum}`,
+            shipping_mark: '',
+            disponible_entrega: false,
+          });
+          toast.success(`${validTrackings.length} paquete(s) recibido(s) · CBM ${cbmVal} registrado en orden ${orderNum}`);
+        } catch (e) {
+          toast.error(`Paquetes recibidos, pero no se pudo registrar el CBM: ${e?.message || 'error'}`);
+        }
+      } else {
+        let msg = `${validTrackings.length} paquete(s) marcado(s) como recibido(s)`;
+        if (skippedTrackings.length > 0) {
+          msg += `. ${skippedTrackings.length} ignorado(s) (ya recibidos)`;
+        }
+        if (invalidTrackings.length > 0) {
+          msg += `. ${invalidTrackings.length} ignorado(s) (no existen)`;
+        }
+        toast.success(msg);
       }
-      if (invalidTrackings.length > 0) {
-        msg += `. ${invalidTrackings.length} ignorado(s) (no existen)`;
-      }
-      toast.success(msg);
       resetForm();
       if (typeof onCreated === 'function') onCreated(processedPackages[0]);
     } catch (e) {
@@ -227,6 +286,41 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Bloque de orden / CBM (opcional) */}
+          <div className="space-y-3 pb-3 border-b border-slate-200">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Registrar CBM por orden (opcional)</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Número de orden</Label>
+                <Input
+                  placeholder="Ej: ORD-001234"
+                  value={orderNumber}
+                  onChange={(e) => setOrderNumber(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Cantidad CBM</Label>
+                <Input
+                  type="number"
+                  step="0.00001"
+                  min="0"
+                  placeholder="Ej: 2.50000"
+                  value={cbmTotal}
+                  onChange={(e) => setCbmTotal(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Fecha de registro</Label>
+                <Input
+                  type="datetime-local"
+                  value={fechaRegistro}
+                  onChange={(e) => setFechaRegistro(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-400">Si llenas orden y CBM, se creará un registro de CBM agrupando todos los trackings válidos. Déjalo vacío para solo marcar recibidos.</p>
+          </div>
+
           {/* Tracking */}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
