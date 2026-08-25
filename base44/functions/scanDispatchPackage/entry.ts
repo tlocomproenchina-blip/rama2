@@ -7,10 +7,18 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Solo personal autorizado' }, { status: 403 });
 
-    const { tracking_number, action } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { tracking_number, action } = body;
     const mode = action || 'dispatch'; // 'lookup' | 'receive' | 'dispatch'
     const tracking = (tracking_number || '').trim();
     if (!tracking) return Response.json({ error: 'tracking_number requerido' }, { status: 400 });
+
+    // Foto capturada automáticamente por el escáner al detectar el código
+    const photoUrl = String(body?.package_image_url || '').trim();
+    const photoUrls = Array.isArray(body?.package_image_urls)
+      ? body.package_image_urls.map((u) => String(u || '').trim()).filter(Boolean)
+      : [];
+    const allPhotoUrls = photoUrls.length ? photoUrls : (photoUrl ? [photoUrl] : []);
 
     const matches = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking });
     const pkg = matches?.[0];
@@ -105,12 +113,18 @@ Deno.serve(async (req) => {
     // Marcar como recibido únicamente
     if (mode === 'receive') {
       const nowR = new Date().toISOString();
+      const updateData = {};
       if (previousStatus === 'pre_alerta') {
-        await base44.asServiceRole.entities.Package.update(pkg.id, {
-          status: 'recibido',
-          received_date: nowR,
-          received_by: user.email
-        });
+        updateData.status = 'recibido';
+        updateData.received_date = nowR;
+        updateData.received_by = user.email;
+      }
+      if (allPhotoUrls.length) {
+        updateData.package_image_url = allPhotoUrls[0];
+        updateData.package_image_urls = allPhotoUrls;
+      }
+      if (Object.keys(updateData).length) {
+        await base44.asServiceRole.entities.Package.update(pkg.id, updateData);
       }
       const c = await loadClient();
       const consolidation_tracking = await loadConsolidationTracking();
@@ -187,6 +201,10 @@ Deno.serve(async (req) => {
       // No estaba recibido: se registra la recepción en este momento para que no quede pendiente
       updates.received_date = now;
       updates.received_by = user.email;
+    }
+    if (allPhotoUrls.length) {
+      updates.package_image_url = allPhotoUrls[0];
+      updates.package_image_urls = allPhotoUrls;
     }
     await base44.asServiceRole.entities.Package.update(pkg.id, updates);
 

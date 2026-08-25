@@ -8,6 +8,7 @@ import DispatchResultCard from '@/components/warehouse/DispatchResultCard';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 import DispatchGroupedList from '@/components/warehouse/DispatchGroupedList';
 import RecentDispatchOrders from '@/components/warehouse/RecentDispatchOrders';
+import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 
 export default function WarehouseDispatch() {
   const [code, setCode] = useState('');
@@ -16,6 +17,7 @@ export default function WarehouseDispatch() {
   const [scans, setScans] = useState([]);
   const [ordersKey, setOrdersKey] = useState(0);
   const pendingOrderRef = useRef(new Map());
+  const { handlePhotoCaptured, waitForPhoto } = useScannedPhotoUploader();
 
   const autoGenerateOrder = useCallback(async (scanData) => {
     try {
@@ -75,7 +77,17 @@ export default function WarehouseDispatch() {
     setProcessing(true);
     if (action === 'lookup') setCode('');
     try {
-      const response = await base44.functions.invoke('scanDispatchPackage', { tracking_number: cleaned, action });
+      // Esperar a que la foto del escaneo termine de subirse antes de recibir/despachar
+      let photoUrl = null;
+      if (action !== 'lookup') {
+        photoUrl = await waitForPhoto(cleaned);
+      }
+      const payload = { tracking_number: cleaned, action };
+      if (photoUrl) {
+        payload.package_image_url = photoUrl;
+        payload.package_image_urls = [photoUrl];
+      }
+      const response = await base44.functions.invoke('scanDispatchPackage', payload);
       const data = response?.data || response;
       setLastResult(data);
       if (data?.package?.tracking_number) {
@@ -115,12 +127,13 @@ export default function WarehouseDispatch() {
 
       <BarcodeScannerModule
         title="Escaneo de despacho"
-        description="Usa la cámara, una lectora USB o escribe el tracking para despachar."
+        description="Usa la cámara, una lectora USB o escribe el tracking para despachar. La cámara captura una foto automática del paquete al detectar el código."
         placeholder="Escanea o escribe el tracking"
         actionLabel="Buscar"
         value={code}
         onValueChange={setCode}
         onDetected={handleScan}
+        onPhotoCaptured={handlePhotoCaptured}
         continuous={true}
       />
       {processing && (

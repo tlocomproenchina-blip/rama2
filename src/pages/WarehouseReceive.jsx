@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import ReceivePackagePanel from '@/components/warehouse/ReceivePackagePanel';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
+import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 
 const emptyForm = {
   location_id: '',
@@ -30,6 +31,7 @@ export default function WarehouseReceive({ user }) {
   const [suggestedLocation, setSuggestedLocation] = useState(null);
   const [receiveFailed, setReceiveFailed] = useState(false);
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseReceive');
+  const { handlePhotoCaptured, waitForPhoto } = useScannedPhotoUploader();
 
   useEffect(() => {
     (async () => {
@@ -108,7 +110,9 @@ export default function WarehouseReceive({ user }) {
         warehouse_location_name: selectedLocation?.name || currentPkg.warehouse_location_name,
         reception_notes: form.reception_notes,
       } : currentPkg);
-      await base44.functions.invoke('assignPackageToLocation', {
+      // Esperar a que la foto del escaneo termine de subirse
+      const photoUrl = await waitForPhoto(pkg.tracking_number);
+      const assignPayload = {
         package_id: pkg.id,
         location_id: form.location_id,
         actual_weight_kg: form.actual_weight_kg,
@@ -117,7 +121,12 @@ export default function WarehouseReceive({ user }) {
         actual_height_cm: form.actual_height_cm,
         reception_notes: form.reception_notes,
         mark_received: true,
-      });
+      };
+      if (photoUrl) {
+        assignPayload.package_image_url = photoUrl;
+        assignPayload.package_image_urls = [photoUrl];
+      }
+      await base44.functions.invoke('assignPackageToLocation', assignPayload);
       toast.success('Paquete recibido y ubicado');
       setTracking('');
       setPkg(null);
@@ -160,10 +169,11 @@ export default function WarehouseReceive({ user }) {
 
       <BarcodeScannerModule
         title="Escaneo rápido de recepción"
-        description="Busca un tracking usando la cámara del dispositivo o una lectora de códigos de barras."
+        description="Busca un tracking usando la cámara del dispositivo o una lectora de códigos de barras. La cámara captura una foto automática del paquete al detectar el código."
         placeholder="Escanea el tracking del paquete"
         actionLabel="Buscar tracking"
         onDetected={(code) => handleSearch(code)}
+        onPhotoCaptured={handlePhotoCaptured}
       />
 
       {loadingLocations && <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>}

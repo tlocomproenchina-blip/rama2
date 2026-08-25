@@ -63,7 +63,14 @@ Deno.serve(async (req) => {
     const actual_weight_kg = toNumber(body?.actual_weight_kg) ?? toNumber(pkg.actual_weight_kg);
     const actual_cbm = toNumber(body?.actual_cbm) ?? computeCbm(actual_length_cm, actual_width_cm, actual_height_cm) ?? toNumber(pkg.actual_cbm);
 
-    const updatedPackage = await base44.asServiceRole.entities.Package.update(packageId, {
+    // Foto capturada automáticamente por el escáner al detectar el código
+    const photoUrl = String(body?.package_image_url || '').trim();
+    const photoUrls = Array.isArray(body?.package_image_urls)
+      ? body.package_image_urls.map((u) => String(u || '').trim()).filter(Boolean)
+      : [];
+    const allPhotoUrls = photoUrls.length ? photoUrls : (photoUrl ? [photoUrl] : []);
+
+    const updatePayload = {
       warehouse_id: location.warehouse_id,
       warehouse_name: location.warehouse_name,
       warehouse_city: location.warehouse_city,
@@ -81,7 +88,13 @@ Deno.serve(async (req) => {
       received_by: body?.mark_received === true ? user.email : pkg.received_by,
       received_date: body?.mark_received === true ? new Date().toISOString() : pkg.received_date,
       status: body?.mark_received === true && pkg.status === 'pre_alerta' ? 'recibido' : pkg.status
-    });
+    };
+    if (allPhotoUrls.length) {
+      updatePayload.package_image_url = allPhotoUrls[0];
+      updatePayload.package_image_urls = allPhotoUrls;
+    }
+
+    const updatedPackage = await base44.asServiceRole.entities.Package.update(packageId, updatePayload);
 
     const refreshedLocation = await recalcLocation(base44, location.id);
     if (pkg.warehouse_location_id && pkg.warehouse_location_id !== location.id) {
