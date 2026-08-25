@@ -195,7 +195,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       const processedPackages = [];
       // Trackings nuevos: marcar como recibidos + actualizar imagen
       for (const tracking of newTrackings) {
-        const existingPackage = existingPackagesByTracking[tracking];
+        const existingPackage = resultsByTracking[tracking]?.pkg || existingPackagesByTracking[tracking];
         const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
         const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
         const uploadedUrls = [];
@@ -214,7 +214,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       }
       // Trackings ya recibidos: solo actualizar imagen e info de la orden
       for (const tracking of alreadyReceivedTrackings) {
-        const existingPackage = existingPackagesByTracking[tracking];
+        const existingPackage = resultsByTracking[tracking]?.pkg || existingPackagesByTracking[tracking];
         const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
         const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
         const uploadedUrls = [];
@@ -267,6 +267,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       }
       resetForm();
       if (typeof onCreated === 'function') onCreated(processedPackages[0]);
+      onOpenChange?.(false);
     } catch (e) {
       toast.error('No se pudo procesar la recepción');
     }
