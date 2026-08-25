@@ -591,7 +591,13 @@ class ApiQueueManager {
       },
 
       subscribe: (callback) => {
-        try { return base44Client.entities[entityName].subscribe(callback); } catch { return () => {}; }
+        try {
+          return base44Client.entities[entityName].subscribe((event) => {
+            // Invalidar caché de esta entidad para que la próxima lectura traiga datos frescos
+            this.invalidateEntityCache(entityName);
+            callback(event);
+          });
+        } catch { return () => {}; }
       }
     };
   }
