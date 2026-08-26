@@ -364,6 +364,29 @@ export default function AdminManualBilling() {
         });
       }
 
+      // Detalle por recibo y desglose de costos para pago por órdenes de despacho
+      const manualRecibos = [
+        ...selectedRows
+          .filter((r) => r.invoice_number && r.invoice_number !== '—')
+          .map((r) => ({
+            cbm_ingreso_id: r.id,
+            invoice_number: String(r.invoice_number),
+            cbm: num(r.cbm),
+            tracking_numbers: r.tracking_numbers || [],
+          })),
+        ...(manualReceipt ? [{ cbm_ingreso_id: null, invoice_number: manualReceipt, cbm: manualReceiptCbm, tracking_numbers: [] }] : []),
+      ];
+      const costBreakdown = {
+        total_cbm: totalCbm,
+        shipping_total: consolidatedShipping,
+        insurance_total: insuranceTotal,
+        consolidation_fee: consolidationFee,
+        door_to_door_fee: doorToDoorValue,
+        extra_amount: extraAmountValue,
+        extra_concept: String(extraConcept || '').trim(),
+        rate_per_cbm: totalCbm > 0 ? consolidatedShipping / totalCbm : 0,
+      };
+
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + num(appConfig?.invoice_overdue_days || 7));
 
@@ -382,6 +405,8 @@ export default function AdminManualBilling() {
         payment_method: paymentMethod || undefined,
         billed_cbm: billedCbmValue,
         total_cbm: totalCbm,
+        manual_recibos: manualRecibos,
+        cost_breakdown: costBreakdown,
         notes: `Factura manual combinada generada desde ${sourceOrders.length} recibo(s): ${sourceOrders.join(', ')}. CBM total: ${totalCbm.toFixed(5)} | CBM facturado: ${billedCbmValue.toFixed(5)}`,
       });
 

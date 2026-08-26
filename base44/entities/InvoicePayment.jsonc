@@ -44,6 +44,14 @@
       "type": "string",
       "description": "Referencia o n\u00famero de transacci\u00f3n"
     },
+    "dispatch_order_ids": {
+      "type": "array",
+      "default": [],
+      "description": "IDs de \u00f3rdenes de despacho (DispatchOrder) que cubre este abono. Evita doble pago y permite marcar \u00f3rdenes como pagadas.",
+      "items": {
+        "type": "string"
+      }
+    },
     "status": {
       "type": "string",
       "enum": [

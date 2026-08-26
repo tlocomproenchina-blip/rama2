@@ -25,6 +25,30 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: `El abono ya fue ${payment.status}` }, { status: 400 });
     }
 
+    // Verificar que las órdenes de despacho de este abono no estén ya pagadas
+    // por otro abono aprobado (evita doble pago)
+    const paymentOrderIds = Array.isArray(payment.dispatch_order_ids) ? payment.dispatch_order_ids : [];
+    if (paymentOrderIds.length > 0) {
+      const existingPayments = await base44.asServiceRole.entities.InvoicePayment.filter(
+        { invoice_id: payment.invoice_id },
+        '-created_date',
+        200
+      ).catch(() => []);
+      const alreadyPaidIds = new Set();
+      (existingPayments || []).forEach((p) => {
+        if (p.status === 'aprobado' && p.id !== paymentId && Array.isArray(p.dispatch_order_ids)) {
+          p.dispatch_order_ids.forEach((id) => alreadyPaidIds.add(String(id)));
+        }
+      });
+      const conflicts = paymentOrderIds.filter((id) => alreadyPaidIds.has(String(id)));
+      if (conflicts.length > 0) {
+        return Response.json(
+          { error: `Una o más órdenes de despacho ya fueron pagadas en otro abono aprobado` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Aprobar el abono
     const nowIso = new Date().toISOString();
     await base44.asServiceRole.entities.InvoicePayment.update(paymentId, {

@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Wallet, Copy, Upload, CheckCircle, Loader2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
+import DispatchOrderSelector from './DispatchOrderSelector';
 
 export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
   const [config, setConfig] = useState(null);
@@ -22,6 +23,8 @@ export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
   const total = Number(invoice?.total || 0);
   const paidAmount = Number(invoice?.paid_amount || 0);
   const balance = Math.max(0, total - paidAmount);
+  const isManualDispatch = Array.isArray(invoice?.manual_recibos) && invoice.manual_recibos.length > 0;
+  const [dispatchSelection, setDispatchSelection] = useState({ selectedIds: [], totalAmount: 0 });
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -49,6 +52,7 @@ export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
       setAmount(balance.toFixed(2));
       setProofFile(null);
       setReference('');
+      setDispatchSelection({ selectedIds: [], totalAmount: 0 });
     }
   }, [open]);
 
@@ -94,14 +98,28 @@ export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
   };
 
   const handleSubmit = async () => {
-    const amt = parseFloat(amount || '0');
-    if (!amt || amt <= 0) {
-      toast.error('Ingresa un monto válido');
-      return;
-    }
-    if (amt > balance + 0.01) {
-      toast.error(`El monto no puede superar el saldo pendiente ($${balance.toFixed(2)})`);
-      return;
+    let amt = parseFloat(amount || '0');
+    let dispatchOrderIds = [];
+    if (isManualDispatch) {
+      amt = dispatchSelection.totalAmount;
+      dispatchOrderIds = dispatchSelection.selectedIds;
+      if (dispatchOrderIds.length === 0) {
+        toast.error('Selecciona al menos una orden de despacho para pagar');
+        return;
+      }
+      if (amt <= 0) {
+        toast.error('El monto a abonar debe ser mayor a 0');
+        return;
+      }
+    } else {
+      if (!amt || amt <= 0) {
+        toast.error('Ingresa un monto válido');
+        return;
+      }
+      if (amt > balance + 0.01) {
+        toast.error(`El monto no puede superar el saldo pendiente ($${balance.toFixed(2)})`);
+        return;
+      }
     }
     if (!proofFile) {
       toast.error('Por favor sube el comprobante de pago');
@@ -120,6 +138,7 @@ export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
         method: paymentMethod,
         proof_url: file_url,
         reference: reference || '',
+        dispatch_order_ids: dispatchOrderIds,
         status: 'pendiente'
       });
 
@@ -205,22 +224,41 @@ export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
         </div>
 
         <div className="space-y-5 py-2">
-          {/* Monto del abono */}
-          <div className="space-y-2">
-            <Label className="text-slate-700 font-medium flex items-center gap-2">
-              <DollarSign className="h-4 w-4" /> Monto del Abono
-            </Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0.01"
-              max={balance}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-            />
-            <p className="text-xs text-slate-500">Puedes abonar cualquier monto hasta el saldo pendiente.</p>
-          </div>
+          {/* Monto del abono / Selector de órdenes de despacho */}
+          {isManualDispatch ? (
+            <div className="space-y-3">
+              <DispatchOrderSelector invoice={invoice} onChange={setDispatchSelection} />
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 space-y-1">
+                <div className="flex justify-between text-sm text-slate-700">
+                  <span>Órdenes seleccionadas</span>
+                  <span className="font-medium">{dispatchSelection.selectedIds.length}</span>
+                </div>
+                <div className="flex justify-between text-base font-bold text-slate-800">
+                  <span>Total a abonar</span>
+                  <span>${Number(dispatchSelection.totalAmount || 0).toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  El monto se calcula automáticamente según las órdenes seleccionadas. Solo puedes pagar órdenes con despacho creado en el almacén.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-medium flex items-center gap-2">
+                <DollarSign className="h-4 w-4" /> Monto del Abono
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={balance}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-slate-500">Puedes abonar cualquier monto hasta el saldo pendiente.</p>
+            </div>
+          )}
 
           {/* Método de pago */}
           <div className="space-y-3">

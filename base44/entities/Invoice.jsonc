@@ -78,6 +78,62 @@
       "type": "number",
       "description": "CBM facturado ingresado manualmente (por defecto igual al CBM total)"
     },
+    "manual_recibos": {
+      "type": "array",
+      "default": [],
+      "description": "Detalle de recibos (CbmIngreso) incluidos en una factura manual. Permite vincular \u00f3rdenes de despacho al pago.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "cbm_ingreso_id": {
+            "type": "string"
+          },
+          "invoice_number": {
+            "type": "string"
+          },
+          "cbm": {
+            "type": "number"
+          },
+          "tracking_numbers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      }
+    },
+    "cost_breakdown": {
+      "type": "object",
+      "description": "Desglose de costos para facturas manuales. Permite calcular el monto independiente de cada orden de despacho.",
+      "properties": {
+        "total_cbm": {
+          "type": "number"
+        },
+        "shipping_total": {
+          "type": "number"
+        },
+        "insurance_total": {
+          "type": "number"
+        },
+        "consolidation_fee": {
+          "type": "number"
+        },
+        "door_to_door_fee": {
+          "type": "number"
+        },
+        "extra_amount": {
+          "type": "number"
+        },
+        "extra_concept": {
+          "type": "string"
+        },
+        "rate_per_cbm": {
+          "type": "number"
+        }
+      }
+    },
     "provider_cost_total": {
       "type": "number",
       "description": "Costo total al proveedor asociado a esta factura"
