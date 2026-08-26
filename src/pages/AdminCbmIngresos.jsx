@@ -31,6 +31,7 @@ export default function AdminCbmIngresos({ user }) {
   const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-01'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [form, setForm] = useState({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '', disponible_entrega: false });
+  const [entries, setEntries] = useState([{ invoice_number: '', cbm: '' }]);
   const [editingId, setEditingId] = useState(null);
   const [clients, setClients] = useState([]);
   const [clientSearch, setClientSearch] = useState('');
@@ -221,6 +222,7 @@ export default function AdminCbmIngresos({ user }) {
         fecha_estimada_llegada: fresh.fecha_estimada_llegada || '',
         disponible_entrega: !!fresh.disponible_entrega
       });
+      setEntries([{ invoice_number: fresh.invoice_number || '', cbm: String(fresh.cbm || '') }]);
       setShowForm(true);
       // Cargar paquetes recibidos del cliente para poder ver/seleccionar trackings al editar
       if (fresh.client_email) {
@@ -234,31 +236,22 @@ export default function AdminCbmIngresos({ user }) {
 
   const resetForm = () => {
     setForm({ cbm: '', fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm"), descripcion: '', proveedor: '', notas: '', client_email: '', client_name: '', shipping_mark: '', tracking_numbers: [], invoice_number: '', fecha_salida: '', fecha_estimada_llegada: '', disponible_entrega: false });
+    setEntries([{ invoice_number: '', cbm: '' }]);
     setEditingId(null);
     setClientPackages([]);
   };
 
+  const addEntry = () => setEntries([...entries, { invoice_number: '', cbm: '' }]);
+  const removeEntry = (idx) => setEntries(entries.filter((_, i) => i !== idx));
+  const updateEntry = (idx, field, value) => setEntries(entries.map((e, i) => i === idx ? { ...e, [field]: value } : e));
+
   const handleSubmit = async () => {
-    const cbmVal = parseFloat(form.cbm);
-    if (!cbmVal || cbmVal <= 0) { toast.error('Ingresa un CBM válido'); return; }
     if (!form.client_email) { toast.error('Selecciona un cliente'); return; }
-    // Bloquear números de orden duplicados
-    const orderNum = String(form.invoice_number || '').trim();
-    if (orderNum) {
-      const dup = (allIngresos || []).find((i) =>
-        i.id !== editingId &&
-        String(i.invoice_number || '').trim().toLowerCase() === orderNum.toLowerCase()
-      );
-      if (dup) {
-        toast.error(`El número de orden ${orderNum} ya está registrado (${dup.client_name || dup.client_email || 'otro registro'}). Usa un número diferente.`);
-        return;
-      }
-    }
     setSaving(true);
+
     const fechaObj = form.fecha ? new Date(form.fecha) : new Date();
-    const payload = {
+    const basePayload = {
       fecha: fechaObj.toISOString(),
-      cbm: cbmVal,
       descripcion: form.descripcion || '',
       proveedor: form.proveedor || '',
       notas: form.notas || '',
@@ -266,21 +259,91 @@ export default function AdminCbmIngresos({ user }) {
       client_email: form.client_email || '',
       client_name: form.client_name || '',
       shipping_mark: form.shipping_mark || '',
-      tracking_numbers: form.tracking_numbers || [],
-      invoice_number: form.invoice_number || '',
       fecha_salida: form.fecha_salida || '',
       fecha_estimada_llegada: form.fecha_estimada_llegada || '',
       disponible_entrega: !!form.disponible_entrega
     };
-    if (editingId) {
-      await base44.entities.CbmIngreso.update(editingId, payload);
-      toast.success('Registro actualizado');
-    } else {
-      await base44.entities.CbmIngreso.create(payload);
-      toast.success(`${cbmVal} CBM registrados`);
+
+    try {
+      if (editingId) {
+        // Edit mode: single record
+        const cbmVal = parseFloat(form.cbm);
+        if (!cbmVal || cbmVal <= 0) { toast.error('Ingresa un CBM válido'); setSaving(false); return; }
+        const orderNum = String(form.invoice_number || '').trim();
+        if (orderNum) {
+          const dup = (allIngresos || []).find((i) =>
+            i.id !== editingId &&
+            String(i.invoice_number || '').trim().toLowerCase() === orderNum.toLowerCase()
+          );
+          if (dup) {
+            toast.error(`El número de orden ${orderNum} ya está registrado (${dup.client_name || dup.client_email || 'otro registro'}).`);
+            setSaving(false);
+            return;
+          }
+        }
+        await base44.entities.CbmIngreso.update(editingId, {
+          ...basePayload,
+          cbm: cbmVal,
+          tracking_numbers: form.tracking_numbers || [],
+          invoice_number: form.invoice_number || ''
+        });
+        toast.success('Registro actualizado');
+      } else {
+        // Create mode: multiple entries
+        const validEntries = entries.filter(e => parseFloat(e.cbm) > 0);
+        if (validEntries.length === 0) { toast.error('Agrega al menos una fila con CBM válido'); setSaving(false); return; }
+
+        // Validar duplicados de orden dentro del lote
+        const seenOrders = new Set();
+        for (const e of validEntries) {
+          const orderNum = String(e.invoice_number || '').trim().toLowerCase();
+          if (orderNum) {
+            if (seenOrders.has(orderNum)) {
+              toast.error(`Número de orden duplicado en la lista: ${e.invoice_number}`);
+              setSaving(false);
+              return;
+            }
+            seenOrders.add(orderNum);
+          }
+        }
+
+        // Validar duplicados contra registros existentes
+        for (const e of validEntries) {
+          const orderNum = String(e.invoice_number || '').trim();
+          if (orderNum) {
+            const dup = (allIngresos || []).find((i) =>
+              String(i.invoice_number || '').trim().toLowerCase() === orderNum.toLowerCase()
+            );
+            if (dup) {
+              toast.error(`Orden ${orderNum} ya existe (${dup.client_name || dup.client_email}).`);
+              setSaving(false);
+              return;
+            }
+          }
+        }
+
+        // Cuando hay una sola fila, asignar tracking_numbers; con múltiples, no se asignan
+        const sharedTrackings = validEntries.length === 1 ? (form.tracking_numbers || []) : [];
+        const records = validEntries.map(e => ({
+          ...basePayload,
+          cbm: parseFloat(e.cbm),
+          invoice_number: String(e.invoice_number || '').trim(),
+          tracking_numbers: sharedTrackings
+        }));
+
+        if (records.length === 1) {
+          await base44.entities.CbmIngreso.create(records[0]);
+        } else {
+          await base44.entities.CbmIngreso.bulkCreate(records);
+        }
+        const totalCbm = records.reduce((s, r) => s + r.cbm, 0);
+        toast.success(`${records.length} registro(s) creado(s) · ${totalCbm.toFixed(5)} CBM total`);
+      }
+      resetForm();
+      setShowForm(false);
+    } catch (e) {
+      toast.error('Error al guardar: ' + (e?.message || ''));
     }
-    resetForm();
-    setShowForm(false);
     setSaving(false);
     loadData();
   };
@@ -646,28 +709,72 @@ export default function AdminCbmIngresos({ user }) {
               )}
             </div>
 
-            {/* Invoice number */}
-            <div className="space-y-2">
-              <Label>Número de Orden</Label>
-              <Input
-                placeholder="Ej: ORD-001234"
-                value={form.invoice_number}
-                onChange={(e) => setForm({ ...form, invoice_number: e.target.value })}
-              />
-            </div>
-
-          {/* CBM */}
-          <div className="space-y-2">
-            <Label>CBM *</Label>
-            <Input
-              type="number"
-              step="0.00001"
-              min="0"
-              placeholder="Ej: 2.50000"
-              value={form.cbm}
-              onChange={(e) => setForm({ ...form, cbm: e.target.value })}
-            />
-          </div>
+            {/* Invoice number + CBM: lista múltiple (crear) o campos simples (editar) */}
+            {editingId ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Número de Orden</Label>
+                  <Input
+                    placeholder="Ej: ORD-001234"
+                    value={form.invoice_number}
+                    onChange={(e) => setForm({ ...form, invoice_number: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>CBM *</Label>
+                  <Input
+                    type="number"
+                    step="0.00001"
+                    min="0"
+                    placeholder="Ej: 2.50000"
+                    value={form.cbm}
+                    onChange={(e) => setForm({ ...form, cbm: e.target.value })}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Órdenes y CBM *</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addEntry} className="gap-1 h-7">
+                    <Plus className="h-3.5 w-3.5" /> Agregar fila
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {entries.map((entry, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <div className="flex-1">
+                        <Input
+                          placeholder="N° de Orden (ej: ORD-001234)"
+                          value={entry.invoice_number}
+                          onChange={(e) => updateEntry(idx, 'invoice_number', e.target.value)}
+                        />
+                      </div>
+                      <div className="w-32">
+                        <Input
+                          type="number"
+                          step="0.00001"
+                          min="0"
+                          placeholder="CBM"
+                          value={entry.cbm}
+                          onChange={(e) => updateEntry(idx, 'cbm', e.target.value)}
+                        />
+                      </div>
+                      {entries.length > 1 && (
+                        <Button type="button" variant="ghost" size="icon" className="text-red-500 hover:text-red-700 flex-shrink-0" onClick={() => removeEntry(idx)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {entries.length > 1 && (
+                  <p className="text-[11px] text-blue-600 font-medium">
+                    {entries.filter(e => parseFloat(e.cbm) > 0).length} fila(s) válida(s) · Se creará un registro por cada fila
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Calendar + Packages */}
             {form.client_email && (
@@ -686,7 +793,8 @@ export default function AdminCbmIngresos({ user }) {
                 )}
                 {form.tracking_numbers.length > 0 && (
                   <p className="text-[11px] text-blue-600 font-medium">
-                    {form.tracking_numbers.length} paquete(s) seleccionado(s) en total
+                    {form.tracking_numbers.length} paquete(s) seleccionado(s)
+                    {!editingId && entries.filter(e => parseFloat(e.cbm) > 0).length > 1 && ' (solo se asignan si hay una sola fila)'}
                   </p>
                 )}
               </div>
@@ -763,7 +871,7 @@ export default function AdminCbmIngresos({ user }) {
             <Button variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>Cancelar</Button>
             <Button onClick={handleSubmit} disabled={saving} className="gap-2">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              {editingId ? 'Guardar' : 'Registrar'}
+              {editingId ? 'Guardar' : `Registrar${!editingId && entries.filter(e => parseFloat(e.cbm) > 0).length > 1 ? ` (${entries.filter(e => parseFloat(e.cbm) > 0).length})` : ''}`}
             </Button>
           </DialogFooter>
         </DialogContent>
