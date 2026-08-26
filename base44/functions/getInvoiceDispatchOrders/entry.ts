@@ -81,6 +81,7 @@ export default async function (req: Request): Promise<Response> {
 
     // Construir resultado por orden
     const totalCbm = num(costBreakdown.total_cbm);
+    const billedCbm = num(costBreakdown.billed_cbm || costBreakdown.total_cbm);
     const ratePerCbm = num(costBreakdown.rate_per_cbm);
     const insuranceTotal = num(costBreakdown.insurance_total);
     const consolidationFee = num(costBreakdown.consolidation_fee);
@@ -105,7 +106,7 @@ export default async function (req: Request): Promise<Response> {
         if (orderRecibos.size === 0) return null; // orden no vinculada a recibos de esta factura
 
         const orderCbm = Array.from(orderRecibos).reduce((s, r) => s + num(reciboCbmMap[r]), 0);
-        const ratio = totalCbm > 0 ? orderCbm / totalCbm : 0;
+        const ratio = billedCbm > 0 ? orderCbm / billedCbm : 0;
 
         const shipping = orderCbm * ratePerCbm;
         const insurance = ratio * insuranceTotal;

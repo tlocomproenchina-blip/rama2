@@ -178,8 +178,11 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(...colDark);
+  const ddpWrapWidth = marginR - marginL - 4;
   ddpLines.forEach((line) => {
-    const wrapped = doc.splitTextToSize(String(line), marginR - marginL);
+    // Asegurar espacios después de comas para que splitTextToSize pueda cortar trackings largos
+    const safeLine = String(line).replace(/,(?!\s)/g, ', ');
+    const wrapped = doc.splitTextToSize(safeLine, ddpWrapWidth);
     wrapped.forEach((wLine) => {
       if (y > pageHeight - 25) { doc.addPage(); y = 22; }
       doc.text(wLine, marginL, y);

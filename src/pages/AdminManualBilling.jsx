@@ -299,19 +299,29 @@ export default function AdminManualBilling() {
       ];
       // Detalle por recibo: número + CBM individual
       const manualReceiptCbm = Math.max(billedCbmValue - totalCbm, 0);
-      const orderDetails = [
-        ...selectedRows
-          .filter((r) => r.invoice_number && r.invoice_number !== '—')
-          .map((r) => `${r.invoice_number} (${num(r.cbm).toFixed(4)} CBM)`),
-        ...(manualReceipt ? [`${manualReceipt} (${manualReceiptCbm.toFixed(4)} CBM)`] : []),
-      ];
-      items.push({
-        description: `Envío - ${orderDetails.length > 0 ? `${orderDetails.join(' + ')} = ` : ''}${billedCbmValue.toFixed(4)} CBM facturado`,
-        quantity: 1,
-        unit_price: consolidatedShipping,
-        total: consolidatedShipping,
-        details: { cbm: billedCbmValue, billed_cbm: billedCbmValue, total_cbm: totalCbm, source_invoices: sourceOrders },
-      });
+      const ratePerCbm = billedCbmValue > 0 ? consolidatedShipping / billedCbmValue : 0;
+      // Cada recibo (envío) se muestra como su propia línea con su CBM y precio individual
+      selectedRows
+        .filter((r) => r.invoice_number && r.invoice_number !== '—')
+        .forEach((r) => {
+          const cbm = num(r.cbm);
+          items.push({
+            description: `Envío ${r.invoice_number}`,
+            quantity: cbm,
+            unit_price: ratePerCbm,
+            total: cbm * ratePerCbm,
+            details: { cbm, invoice_number: r.invoice_number, source_invoices: [r.invoice_number] },
+          });
+        });
+      if (manualReceipt) {
+        items.push({
+          description: `Envío ${manualReceipt}`,
+          quantity: manualReceiptCbm,
+          unit_price: ratePerCbm,
+          total: manualReceiptCbm * ratePerCbm,
+          details: { cbm: manualReceiptCbm, invoice_number: manualReceipt, source_invoices: [manualReceipt] },
+        });
+      }
       if (!useManualInsurance) {
         selectedRows.forEach((r) => {
           if (num(r.insurance_amount) > 0) {
@@ -378,13 +388,14 @@ export default function AdminManualBilling() {
       ];
       const costBreakdown = {
         total_cbm: totalCbm,
+        billed_cbm: billedCbmValue,
         shipping_total: consolidatedShipping,
         insurance_total: insuranceTotal,
         consolidation_fee: consolidationFee,
         door_to_door_fee: doorToDoorValue,
         extra_amount: extraAmountValue,
         extra_concept: String(extraConcept || '').trim(),
-        rate_per_cbm: totalCbm > 0 ? consolidatedShipping / totalCbm : 0,
+        rate_per_cbm: ratePerCbm,
       };
 
       const dueDate = new Date();

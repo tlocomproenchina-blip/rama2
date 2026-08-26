@@ -240,7 +240,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
               className="flex-1"
             >
               <DollarSign className="h-4 w-4 mr-2" />
-              Otros métodos de pago
+              Pagar Consolidación
             </Button>
           )}
 
