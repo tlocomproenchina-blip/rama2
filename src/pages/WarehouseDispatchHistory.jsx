@@ -100,22 +100,28 @@ export default function WarehouseDispatchHistory({ user }) {
     const ingresosByClient = {};
     const invoicesByClient = {};
     const paymentsByClient = {};
-    await Promise.all(emails.map(async (email) => {
-      try {
-        const [ingresos, invoices, payments] = await Promise.all([
-          base44.entities.CbmIngreso.filter({ client_email: email }, '-fecha', 200),
-          base44.entities.Invoice.filter({ client_email: email }, '-created_date', 200),
-          base44.entities.InvoicePayment.filter({ client_email: email }, '-created_date', 200),
-        ]);
-        ingresosByClient[email] = ingresos || [];
-        invoicesByClient[email] = invoices || [];
-        paymentsByClient[email] = payments || [];
-      } catch (_) {
-        ingresosByClient[email] = [];
-        invoicesByClient[email] = [];
-        paymentsByClient[email] = [];
-      }
-    }));
+
+    // Una consulta por entidad para TODOS los clientes de la página, en lugar
+    // de 3 consultas por cliente (que con 100 órdenes eran 300 peticiones).
+    const groupByEmail = (rows, target) => {
+      (rows || []).forEach((r) => {
+        const email = (r.client_email || '').trim();
+        if (!email) return;
+        if (!target[email]) target[email] = [];
+        target[email].push(r);
+      });
+    };
+
+    try {
+      const [ingresos, invoices, payments] = await Promise.all([
+        base44.entities.CbmIngreso.filter({ client_email: { $in: emails } }, '-fecha', 2000),
+        base44.entities.Invoice.filter({ client_email: { $in: emails } }, '-created_date', 2000),
+        base44.entities.InvoicePayment.filter({ client_email: { $in: emails } }, '-created_date', 2000),
+      ]);
+      groupByEmail(ingresos, ingresosByClient);
+      groupByEmail(invoices, invoicesByClient);
+      groupByEmail(payments, paymentsByClient);
+    } catch (_) {}
 
     const map = {};
     ordersList.forEach((o) => {
@@ -185,6 +191,10 @@ export default function WarehouseDispatchHistory({ user }) {
       const rows = await base44.entities.DispatchOrder.list('-created_date', 100);
       const ordersList = rows || [];
 
+      // La lista se muestra de inmediato; todo lo demás se completa después.
+      setOrders(ordersList);
+      setLoading(false);
+
       // Enriquecer items con consolidation_tracking (recibo) si no lo tienen
       const trackingsToLookup = [];
       ordersList.forEach((o) => {
@@ -195,32 +205,35 @@ export default function WarehouseDispatchHistory({ user }) {
         });
       });
 
+      let enrichedList = ordersList;
       if (trackingsToLookup.length > 0) {
         try {
           const res = await base44.functions.invoke('getDispatchReceiptsMap', { tracking_numbers: trackingsToLookup });
           const receiptMap = res?.data?.map || res?.map || {};
           // Inyectar consolidation_tracking en los items que no lo tienen
-          ordersList.forEach((o) => {
-            if (!Array.isArray(o.items)) return;
-            o.items = o.items.map((item) => {
-              if (item.consolidation_tracking) return item;
-              const receipt = receiptMap[item.tracking_number] || '';
-              return { ...item, consolidation_tracking: receipt };
-            });
+          enrichedList = ordersList.map((o) => {
+            if (!Array.isArray(o.items)) return o;
+            return {
+              ...o,
+              items: o.items.map((item) => (
+                item.consolidation_tracking
+                  ? item
+                  : { ...item, consolidation_tracking: receiptMap[item.tracking_number] || '' }
+              )),
+            };
           });
+          setOrders(enrichedList);
         } catch (_) {}
       }
 
-      setOrders(ordersList);
-      // Cargar totales esperados por recibo en segundo plano (no bloquea el render)
-      enrichReceiptTotals(ordersList);
-      // Cargar info de facturación/pago en segundo plano
-      enrichInvoiceInfo(ordersList);
+      // Totales esperados por recibo e info de facturación/pago
+      enrichReceiptTotals(enrichedList);
+      enrichInvoiceInfo(enrichedList);
     } catch (e) {
       toast.error('No se pudo cargar el historial');
+      setLoading(false);
     }
-    setLoading(false);
-  }, []);
+  }, [enrichReceiptTotals, enrichInvoiceInfo]);
 
   useEffect(() => { load(); }, [load]);
 
