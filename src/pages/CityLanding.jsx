@@ -7,6 +7,9 @@ import Inicio2Footer from '@/components/inicio2/Inicio2Footer';
 import CityLandingHero from '@/components/city-landing/CityLandingHero';
 import CityLandingContent from '@/components/city-landing/CityLandingContent';
 import CityLandingCta from '@/components/city-landing/CityLandingCta';
+import CityLandingSeoContent from '@/components/city-landing/CityLandingSeoContent';
+import CityLandingFaq from '@/components/city-landing/CityLandingFaq';
+import CityLandingLinks from '@/components/city-landing/CityLandingLinks';
 import Inicio2Calculator from '@/components/inicio2/Inicio2Calculator';
 import { Loader2 } from 'lucide-react';
 
@@ -20,15 +23,47 @@ function setMetaTag(attr, key, content) {
   el.setAttribute('content', content);
 }
 
+function removeMetaTag(attr, key) {
+  const el = document.head.querySelector(`meta[${attr}="${key}"]`);
+  if (el) el.remove();
+}
+
 function applySeo(city) {
   const title = `Envíos Marítimos desde China a ${city.city} | TLEC Cargo`;
-  const description = `Envíos marítimos de China a ${city.city}, ${city.state_name}. Carga consolidada (LCL) y contenedor completo (FCL) con entrega puerta a puerta, seguro opcional y seguimiento en tiempo real.`;
+  const description = `Envíos marítimos de China a ${city.city}, ${city.state_name}. Carga consolidada (LCL) y contenedor completo (FCL) con entrega puerta a puerta, seguro opcional y seguimiento en tiempo real. Tránsito ${city.transit_lcl}.`;
+  const canonical = `${window.location.origin}/envios-maritimos-china-${city.slug}`;
+  const keywords = `envíos marítimos China ${city.city}, flete China ${city.state_name}, importar desde China a ${city.city}, casillero ${city.city}, carga consolidada China Venezuela, contenedor China ${city.city}, LCL FCL China ${city.state_name}`;
+
   document.title = title;
+
+  // Meta tags básicos
   setMetaTag('name', 'description', description);
+  setMetaTag('name', 'keywords', keywords);
+  setMetaTag('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+  setMetaTag('name', 'author', 'TLEC Cargo');
+
+  // Geo tags — ayudan a Google a asociar la página con la ubicación
+  setMetaTag('name', 'geo.region', 'VE');
+  setMetaTag('name', 'geo.placename', `${city.city}, ${city.state_name}`);
+  setMetaTag('name', 'geo.position', `${city.lat || ''};${city.lng || ''}`);
+  setMetaTag('name', 'ICBM', `${city.lat || ''}, ${city.lng || ''}`);
+
+  // Open Graph
   setMetaTag('property', 'og:title', title);
   setMetaTag('property', 'og:description', description);
   setMetaTag('property', 'og:type', 'website');
-  const canonical = `${window.location.origin}/envios-maritimos-china-${city.slug}`;
+  setMetaTag('property', 'og:url', canonical);
+  setMetaTag('property', 'og:site_name', 'TLEC Cargo');
+  setMetaTag('property', 'og:locale', 'es_VE');
+  setMetaTag('property', 'og:image', 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/52211ee9d_f747206d-9aac-45da-b57b-eecb77f854af.jpg');
+
+  // Twitter Cards
+  setMetaTag('name', 'twitter:card', 'summary_large_image');
+  setMetaTag('name', 'twitter:title', title);
+  setMetaTag('name', 'twitter:description', description);
+  setMetaTag('name', 'twitter:image', 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/52211ee9d_f747206d-9aac-45da-b57b-eecb77f854af.jpg');
+
+  // Canonical
   let link = document.head.querySelector('link[rel="canonical"]');
   if (!link) {
     link = document.createElement('link');
@@ -36,6 +71,57 @@ function applySeo(city) {
     document.head.appendChild(link);
   }
   link.setAttribute('href', canonical);
+
+  // JSON-LD: Service + LocalBusiness
+  const jsonLdId = 'city-landing-jsonld';
+  let script = document.getElementById(jsonLdId);
+  if (!script) {
+    script = document.createElement('script');
+    script.id = jsonLdId;
+    script.type = 'application/ld+json';
+    document.head.appendChild(script);
+  }
+  script.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Service',
+        name: `Envío Marítimo de China a ${city.city}`,
+        serviceType: 'Freight forwarding — Maritime shipping',
+        provider: { '@type': 'Organization', name: 'TLEC Cargo', url: window.location.origin },
+        areaServed: { '@type': 'State', name: city.state_name, containedInPlace: { '@type': 'Country', name: 'Venezuela' } },
+        description: `Consolidación y envío marítimo de carga desde China (Yiwu) a ${city.city}, ${city.state_name}. LCL y FCL con entrega puerta a puerta.`,
+        url: canonical,
+      },
+      {
+        '@type': 'LocalBusiness',
+        name: 'TLEC Cargo',
+        description: `Envíos marítimos y aéreos desde China a ${city.city}, ${city.state_name}.`,
+        url: window.location.origin,
+        areaServed: city.state_name,
+        knowsAbout: ['Envíos marítimos', 'Importación desde China', 'Carga consolidada LCL', 'Contenedor completo FCL'],
+      },
+    ],
+  });
+}
+
+function cleanupSeo() {
+  removeMetaTag('name', 'keywords');
+  removeMetaTag('name', 'robots');
+  removeMetaTag('name', 'author');
+  removeMetaTag('name', 'geo.region');
+  removeMetaTag('name', 'geo.placename');
+  removeMetaTag('name', 'geo.position');
+  removeMetaTag('name', 'ICBM');
+  removeMetaTag('property', 'og:site_name');
+  removeMetaTag('property', 'og:locale');
+  removeMetaTag('property', 'og:image');
+  removeMetaTag('name', 'twitter:card');
+  removeMetaTag('name', 'twitter:title');
+  removeMetaTag('name', 'twitter:description');
+  removeMetaTag('name', 'twitter:image');
+  const jsonLd = document.getElementById('city-landing-jsonld');
+  if (jsonLd) jsonLd.remove();
 }
 
 export default function CityLanding({ user }) {
@@ -77,6 +163,8 @@ export default function CityLanding({ user }) {
         .then(() => navigate('/Dashboard', { replace: true }))
         .catch(() => navigate('/Dashboard', { replace: true }));
     }
+
+    return () => cleanupSeo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city?.slug, user?.id]);
 
@@ -109,6 +197,9 @@ export default function CityLanding({ user }) {
         </div>
       </section>
 
+      <CityLandingSeoContent city={city} />
+      <CityLandingFaq city={city} />
+      <CityLandingLinks currentSlug={city.slug} />
       <CityLandingCta city={city} user={user} />
       <Inicio2Footer />
     </div>
