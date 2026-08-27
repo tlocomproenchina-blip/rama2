@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { CITY_LANDINGS, getCityBySlug } from '@/lib/cityLandings';
 import Inicio2Header from '@/components/inicio2/Inicio2Header';
@@ -41,8 +41,14 @@ function applySeo(city) {
 }
 
 export default function CityLanding({ user }) {
-  const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const slug = useMemo(() => {
+    const path = location.pathname.replace(/^\/+/, '');
+    const prefix = 'envios-maritimos-china-';
+    if (path.startsWith(prefix)) return path.slice(prefix.length);
+    return '';
+  }, [location.pathname]);
   const city = useMemo(() => getCityBySlug(slug), [slug]);
 
   // Tracking de visita (fire-and-forget) + guardado de origin_city tras registro

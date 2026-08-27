@@ -6,6 +6,7 @@ import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
+import { CITY_LANDINGS } from './lib/cityLandings';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -167,7 +168,9 @@ const AuthenticatedApp = () => {
       <Route path="/Contact" element={lazyRoute(Contact, "Contact")} />
       <Route path="/Inicio2" element={lazyRoute(Inicio2, "Inicio2")} />
       <Route path="/AdminQuotes" element={lazyRoute(AdminQuotes, "AdminQuotes")} />
-      <Route path="/envios-maritimos-china-:slug" element={lazyRoute(CityLanding, "CityLanding")} />
+      {CITY_LANDINGS.map((c) => (
+        <Route key={c.slug} path={`/envios-maritimos-china-${c.slug}`} element={lazyRoute(CityLanding, "CityLanding")} />
+      ))}
       <Route path="/AdminCityAnalytics" element={lazyRoute(AdminCityAnalytics, "AdminCityAnalytics")} />
       <Route path="/Quote/:token" element={<QuotePublic />} />
       <Route path="*" element={<PageNotFound />} />

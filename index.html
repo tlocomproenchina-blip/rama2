@@ -44,6 +44,16 @@
             if (hadController && location.search.indexOf('swclean=1') === -1) {
               var sep = location.search ? '&' : '?';
               location.replace(location.href + sep + 'swclean=1');
+            } else if (location.search.indexOf('swclean=1') !== -1) {
+              // Ya recargamos limpios: remover el flag de la URL para que no se vea feo.
+              try {
+                var cleanUrl = location.pathname + location.hash;
+                var params = new URLSearchParams(location.search);
+                params.delete('swclean');
+                var qs = params.toString();
+                if (qs) cleanUrl += '?' + qs;
+                history.replaceState(null, '', cleanUrl);
+              } catch (e) {}
             }
           }).catch(function () {});
         } catch (e) {}
