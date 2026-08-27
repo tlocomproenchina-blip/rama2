@@ -9,7 +9,7 @@ export default function Inicio2Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
-        <div className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <img
             src="https://media.base44.com/images/public/695da428c9924ef9b68e8866/52211ee9d_f747206d-9aac-45da-b57b-eecb77f854af.jpg"
             alt="TLEC Cargo"
@@ -19,7 +19,7 @@ export default function Inicio2Header() {
             <p className="font-display text-base font-extrabold text-white">TL<span className="text-orange-500">E</span>C <span className="text-white">CARGO</span></p>
             <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-orange-400">Couriers & Logistics</p>
           </div>
-        </div>
+        </Link>
         <nav className="hidden items-center gap-6 text-sm font-medium text-zinc-300 md:flex">
           <button onClick={() => scrollTo('calculadora2')} className="hover:text-white">Calculadora</button>
           <button onClick={() => scrollTo('servicios2')} className="hover:text-white">Servicios</button>
