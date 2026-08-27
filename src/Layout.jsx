@@ -445,7 +445,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className={`min-h-[100dvh] bg-background flex flex-col lg:flex-row overflow-x-hidden ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
+    <div className={`min-h-[100dvh] bg-background flex flex-col lg:flex-row overflow-x-clip ${hasDesktopSidebar ? 'lg:h-screen lg:overflow-hidden' : ''}`}>
       {config?.demo_mode && <DemoModeBanner message={config?.demo_mode_message || 'Modo demo activo: integraciones externas desactivadas.'} />}
       <SkipToContent />
       
@@ -545,7 +545,7 @@ export default function Layout({ children, currentPageName }) {
 
 
          {/* Main Content */}
-        <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden w-full focus:outline-none">
+        <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-clip w-full focus:outline-none">
           <PullToRefresh enabled={!!user} onRefresh={async () => { await queryClientInstance.invalidateQueries(); }}>
             <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: isApkApp ? 'calc(env(safe-area-inset-bottom) + 72px)' : 'calc(env(safe-area-inset-bottom) + 24px)' }}>
               {showBackButton && (
