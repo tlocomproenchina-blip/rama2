@@ -174,7 +174,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 lg:static lg:inset-y-0 lg:left-0
+          fixed inset-y-0 left-0 z-50 lg:static lg:inset-y-0 lg:left-0 lg:h-full
           w-[min(20rem,calc(100vw-0.75rem))] lg:w-80 rounded-r-[2rem] lg:rounded-none
           border-y-0 border-l-0 border-r border-border/60 bg-sidebar/95
           ${isOpen ? 'translate-x-0' : '-translate-x-[calc(100%+0.5rem)] lg:translate-x-0'}
