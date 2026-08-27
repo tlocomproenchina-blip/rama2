@@ -94,7 +94,7 @@ export default function DispatchOrderSelector({ invoice, onChange }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="font-bold text-slate-800 break-all">
-                  {o.recibos && o.recibos.length > 0 ? o.recibos.join(', ') : `Envío ${o.order_number}`}
+                  {`Envío ${o.recibos && o.recibos.length > 0 ? o.recibos.join(', ') : o.order_number}`}
                 </span>
                 <span className="font-bold text-blue-700 shrink-0">${num(o.amount).toFixed(2)}</span>
               </div>
@@ -148,7 +148,7 @@ export default function DispatchOrderSelector({ invoice, onChange }) {
           {paid.map((o) => (
           <div key={o.order_id} className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
             <div className="min-w-0">
-              <span className="font-semibold text-slate-700 text-sm break-all">{o.recibos && o.recibos.length > 0 ? o.recibos.join(', ') : `Envío ${o.order_number}`}</span>
+              <span className="font-semibold text-slate-700 text-sm break-all">{`Envío ${o.recibos && o.recibos.length > 0 ? o.recibos.join(', ') : o.order_number}`}</span>
               <span className="text-xs text-slate-500 ml-2 inline-flex items-center gap-1"><Lock className="h-3 w-3" /> pagado</span>
             </div>
               <span className="text-sm font-medium text-emerald-700 shrink-0">${num(o.amount).toFixed(2)}</span>
