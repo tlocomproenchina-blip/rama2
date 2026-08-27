@@ -99,17 +99,21 @@ export default function WarehouseDispatchHistory({ user }) {
     const emails = [...new Set(ordersList.map((o) => (o.client_email || '').trim()).filter(Boolean))];
     const ingresosByClient = {};
     const invoicesByClient = {};
+    const paymentsByClient = {};
     await Promise.all(emails.map(async (email) => {
       try {
-        const [ingresos, invoices] = await Promise.all([
+        const [ingresos, invoices, payments] = await Promise.all([
           base44.entities.CbmIngreso.filter({ client_email: email }, '-fecha', 200),
           base44.entities.Invoice.filter({ client_email: email }, '-created_date', 200),
+          base44.entities.InvoicePayment.filter({ client_email: email }, '-created_date', 200),
         ]);
         ingresosByClient[email] = ingresos || [];
         invoicesByClient[email] = invoices || [];
+        paymentsByClient[email] = payments || [];
       } catch (_) {
         ingresosByClient[email] = [];
         invoicesByClient[email] = [];
+        paymentsByClient[email] = [];
       }
     }));
 
@@ -122,6 +126,7 @@ export default function WarehouseDispatchHistory({ user }) {
       const receiptSet = new Set(receipts);
       const clientIngresos = ingresosByClient[email] || [];
       const clientInvoices = invoicesByClient[email] || [];
+      const clientPayments = paymentsByClient[email] || [];
 
       // 1) Puente via CbmIngreso: recibo → invoice_number → billed_invoice_id
       const matchedInvoiceIds = new Set();
@@ -152,9 +157,18 @@ export default function WarehouseDispatchHistory({ user }) {
         }
       });
 
+      // 3) Verificar si existe un abono aprobado que incluya esta orden de
+      //    despacho en su dispatch_order_ids → la orden está pagada aunque la
+      //    factura completa no lo esté (pago parcial por envío)
+      const orderPaidViaAbono = clientPayments.some(
+        (p) => p.status === 'aprobado' &&
+          Array.isArray(p.dispatch_order_ids) &&
+          p.dispatch_order_ids.includes(o.id)
+      );
+
       map[o.id] = {
-        hasInvoice: matchedInvoices.length > 0,
-        isPaid: matchedInvoices.some((inv) => inv.status === 'pagada'),
+        hasInvoice: matchedInvoices.length > 0 || orderPaidViaAbono,
+        isPaid: orderPaidViaAbono || matchedInvoices.some((inv) => inv.status === 'pagada'),
         invoices: matchedInvoices.map((inv) => ({
           number: inv.invoice_number,
           status: inv.status,
