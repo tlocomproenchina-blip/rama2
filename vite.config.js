@@ -5,6 +5,17 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   logLevel: 'error', // Suppress warnings, only show errors
+  server: {
+    // CAUSA RAÍZ del error "Cannot read properties of null (reading 'useState')":
+    // Vite sirve /node_modules/.vite/deps/* con `Cache-Control: max-age=31536000,
+    // immutable`. Cuando el optimizador vuelve a correr y cambia el hash ?v=,
+    // el navegador sigue usando los chunks viejos guardados en disco y los
+    // mezcla con los nuevos → DOS copias de React conviviendo.
+    // `no-store` obliga al navegador a pedir siempre la versión actual.
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate'
+    }
+  },
   resolve: {
     // NO usar alias con rutas absolutas para react/react-dom: eso crea un
     // segundo chunk pre-empaquetado (dos copias de React, dos hashes ?v=)
