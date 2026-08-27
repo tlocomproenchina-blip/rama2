@@ -31,7 +31,7 @@ const STATUS_CONFIG = {
 export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh }) {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dispatchOrders, setDispatchOrders] = useState({});
+  const [orderLabelMap, setOrderLabelMap] = useState({});
   const fileViewer = useFileViewer();
   const [rejectModal, setRejectModal] = useState({ open: false, payment: null });
   const [rejectReason, setRejectReason] = useState('');
@@ -44,15 +44,25 @@ export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh 
       const data = await base44.entities.InvoicePayment.filter({ invoice_id: invoice.id }, '-created_date', 100);
       setPayments(data || []);
 
-      // Fetch dispatch orders linked to these payments to show "Envío #"
-      const orderIds = [...new Set(
-        (data || []).flatMap((p) => Array.isArray(p.dispatch_order_ids) ? p.dispatch_order_ids : [])
-      )].filter(Boolean);
-      if (orderIds.length > 0) {
-        const orders = await base44.entities.DispatchOrder.list('-created_date', 200);
-        const map = {};
-        (orders || []).forEach((o) => { if (orderIds.includes(o.id)) map[o.id] = o; });
-        setDispatchOrders(map);
+      // Fetch dispatch order labels (recibos) via getInvoiceDispatchOrders so
+      // we show "Envío 373" (the recibo number the client recognizes) instead
+      // of the internal order_number "OD-..."
+      const hasOrderIds = (data || []).some((p) => Array.isArray(p.dispatch_order_ids) && p.dispatch_order_ids.length > 0);
+      if (hasOrderIds) {
+        try {
+          const res = await base44.functions.invoke('getInvoiceDispatchOrders', { invoice_id: invoice.id });
+          const orders = Array.isArray(res?.data?.orders) ? res.data.orders : (Array.isArray(res?.orders) ? res.orders : []);
+          const map = {};
+          (orders || []).forEach((o) => {
+            const label = (Array.isArray(o.recibos) && o.recibos.length > 0)
+              ? o.recibos.join(', ')
+              : o.order_number;
+            map[o.order_id] = label;
+          });
+          setOrderLabelMap(map);
+        } catch (e) {
+          console.error('Error loading dispatch order labels:', e);
+        }
       }
     } catch (e) {
       console.error('Error loading abonos:', e);
@@ -132,7 +142,7 @@ export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh 
                   {(() => {
                     const orderIds = Array.isArray(p.dispatch_order_ids) ? p.dispatch_order_ids : [];
                     const labels = orderIds
-                      .map((oid) => dispatchOrders[oid]?.order_number)
+                      .map((oid) => orderLabelMap[oid])
                       .filter(Boolean);
                     if (labels.length === 0) return null;
                     return (
