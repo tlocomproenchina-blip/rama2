@@ -445,6 +445,35 @@ export default function AdminManualBilling() {
 
       toast.success(`Factura ${invoice.invoice_number} generada`);
 
+      // Notificar al cliente que tiene una nueva factura (no bloqueante)
+      try {
+        await base44.entities.Notification.create({
+          user_email: client.email,
+          title: '🧾 Nueva factura generada',
+          message: `Tu factura ${invoice.invoice_number} por $${num(total).toFixed(2)} está disponible. Ingresa a Mis Facturas para revisar y pagar.`,
+          type: 'payment',
+          icon: 'dollar',
+          reference_id: invoice.id,
+          entity_type: 'Invoice'
+        });
+      } catch (_) {}
+
+      // Enviar email al cliente (no bloqueante)
+      try {
+        await base44.functions.invoke('sendNotificationEmail', {
+          to: client.email,
+          subject: `Nueva factura ${invoice.invoice_number} - TLEC CARGO`,
+          body: `Hola,\n\nSe ha generado una nueva factura a tu nombre.\n\nFactura: ${invoice.invoice_number}\nTotal: $${num(total).toFixed(2)}\n\nIngresa a tu portal de TLEC CARGO para revisar los métodos de pago disponibles y completar el pago.\n\nGracias.`,
+          in_app: {
+            title: 'Nueva factura generada',
+            message: `Factura ${invoice.invoice_number} por $${num(total).toFixed(2)}`,
+            type: 'payment',
+            icon: 'dollar',
+            reference_id: invoice.id
+          }
+        });
+      } catch (_) {}
+
       // Generar cuenta por pagar al proveedor y calcular ganancia
       try {
         const res = await base44.functions.invoke('processInvoiceForAccounting', { invoiceId: invoice.id, providerInvoiceUrl: providerInvoiceUrl || '' });
