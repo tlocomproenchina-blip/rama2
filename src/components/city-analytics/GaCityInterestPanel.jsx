@@ -4,12 +4,14 @@ import { CITY_LANDINGS } from '@/lib/cityLandings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, BarChart3, MapPin } from 'lucide-react';
+import GaCityTrendChart from '@/components/city-analytics/GaCityTrendChart';
 
 // Ciudades con mayor interés según Google Analytics (visitas a las landing pages)
 export default function GaCityInterestPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [rows, setRows] = useState([]);
+  const [daily, setDaily] = useState([]);
   const [properties, setProperties] = useState([]);
   const [propertyId, setPropertyId] = useState(null);
   const [days, setDays] = useState('30');
@@ -27,6 +29,7 @@ export default function GaCityInterestPanel() {
         setError(data.error);
       } else {
         setRows(data.rows || []);
+        setDaily(data.daily || []);
         setProperties(data.properties || []);
         setPropertyId(data.propertyId || null);
       }
@@ -47,6 +50,7 @@ export default function GaCityInterestPanel() {
   const stateName = (slug) => CITY_LANDINGS.find((c) => c.slug === slug)?.state_name || '';
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2 text-base">
@@ -106,5 +110,10 @@ export default function GaCityInterestPanel() {
         )}
       </CardContent>
     </Card>
+
+    {!loading && !error && rows.length > 0 && (
+      <GaCityTrendChart daily={daily} topSlugs={rows.map((r) => r.slug)} days={Number(days)} />
+    )}
+    </div>
   );
 }

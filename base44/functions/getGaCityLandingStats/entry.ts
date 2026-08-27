@@ -65,7 +65,37 @@ export default async function(req) {
       };
     }).sort((a, b) => b.pageviews - a.pageviews);
 
-    return Response.json({ propertyId, properties, days, rows });
+    // Serie diaria por ciudad, para graficar tendencias
+    const dailyRes = await fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        dateRanges: [{ startDate: `${days}daysAgo`, endDate: 'today' }],
+        dimensions: [{ name: 'date' }, { name: 'pagePath' }],
+        metrics: [{ name: 'screenPageViews' }],
+        dimensionFilter: {
+          filter: {
+            fieldName: 'pagePath',
+            stringFilter: { matchType: 'CONTAINS', value: 'envios-maritimos-china-' }
+          }
+        },
+        orderBys: [{ dimension: { dimensionName: 'date' } }],
+        limit: 5000
+      })
+    });
+    const dailyReport = await dailyRes.json();
+    const daily = (dailyReport.rows || []).map((r) => {
+      const raw = r.dimensionValues?.[0]?.value || '';
+      const path = r.dimensionValues?.[1]?.value || '';
+      const slug = path.split('envios-maritimos-china-')[1]?.replace(/\/.*$/, '') || path;
+      return {
+        date: `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`,
+        slug,
+        pageviews: Number(r.metricValues?.[0]?.value || 0)
+      };
+    });
+
+    return Response.json({ propertyId, properties, days, rows, daily });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
