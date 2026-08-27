@@ -19,7 +19,7 @@
       // Vite dep chunks with duplicate React) are removed before they can
       // intercept requests for the current page load.
       (function () {
-        var SW_VERSION = 'v10';
+        var SW_VERSION = 'v11';
         try {
           var installed = localStorage.getItem('tlec-sw-version');
           if (installed !== SW_VERSION) {
@@ -48,6 +48,27 @@
             }
           }
         } catch (e) {}
+      })();
+    </script>
+    <script>
+      // Runtime guard: if React's internal dispatcher is null (caused by the
+      // browser loading a mix of stale + fresh Vite dep chunks), force a hard
+      // reload so the browser fetches consistent chunks.
+      (function () {
+        var KEY = 'tlec-react-reload';
+        var count = 0;
+        try { count = parseInt(sessionStorage.getItem(KEY) || '0', 10) || 0; } catch (e) {}
+        window.addEventListener('error', function (event) {
+          var msg = (event && event.message) || '';
+          if (msg.indexOf("Cannot read properties of null (reading 'useState')") !== -1 ||
+              msg.indexOf("reading 'useRef'") !== -1 ||
+              msg.indexOf("reading 'useMemo'") !== -1) {
+            if (count < 2) {
+              try { sessionStorage.setItem(KEY, String(count + 1)); } catch (e) {}
+              window.location.reload();
+            }
+          }
+        });
       })();
     </script>
   </head>
