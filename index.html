@@ -13,6 +13,43 @@
     <meta name="apple-mobile-web-app-title" content="TLEC CARGO" />
     <link rel="manifest" href="/manifest.json" />
     <title>TLEC CARGO by TELOCOMPROENCHINA | Envíos China a Venezuela puerta a puerta</title>
+    <script>
+      // Blocking script — runs BEFORE any module scripts are fetched.
+      // Ensures stale service workers (old cache-first SW that serves broken
+      // Vite dep chunks with duplicate React) are removed before they can
+      // intercept requests for the current page load.
+      (function () {
+        var SW_VERSION = 'v7';
+        try {
+          var installed = localStorage.getItem('tlec-sw-version');
+          if (installed !== SW_VERSION) {
+            // Hide the page immediately so the user never sees the broken JS error flash
+            document.documentElement.style.visibility = 'hidden';
+            var done = function () {
+              try { localStorage.setItem('tlec-sw-version', SW_VERSION); } catch (e) {}
+              window.location.reload();
+            };
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations()
+                .then(function (regs) {
+                  return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
+                })
+                .then(function () {
+                  if (window.caches && caches.keys) {
+                    return caches.keys().then(function (keys) {
+                      return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+                    });
+                  }
+                })
+                .then(done)
+                .catch(done);
+            } else {
+              done();
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
@@ -20,8 +57,8 @@
     <script type="module">
       if ('serviceWorker' in navigator) {
         if (import.meta.env.DEV) {
-          // In the dev/preview environment: unregister any stale service worker
-          // and clear its caches so old JS chunks are never served.
+          // Dev: ensure no service worker is registered (defensive — the
+          // blocking <head> script already handles version-gated cleanup).
           navigator.serviceWorker.getRegistrations()
             .then((regs) => regs.forEach((reg) => reg.unregister()))
             .catch(() => {});
