@@ -10,6 +10,15 @@ const STATIC_PUBLIC_PATHS = [
   { path: '/FAQ', priority: '0.6', changefreq: 'monthly' },
 ];
 
+// 24 landing pages marítimas por ciudad (una por capital de estado)
+const CITY_LANDING_SLUGS = [
+  'caracas', 'maracaibo', 'valencia', 'maracay', 'barquisimeto', 'merida',
+  'san-cristobal', 'barcelona', 'ciudad-bolivar', 'maturin', 'coro', 'barinas',
+  'trujillo', 'guanare', 'san-juan-de-los-morros', 'san-fernando', 'cumana',
+  'la-asuncion', 'puerto-ayacucho', 'tucupita', 'san-carlos', 'san-felipe',
+  'los-teques', 'la-guaira'
+];
+
 function escapeXml(str: string): string {
   return String(str || '')
     .replace(/&/g, '&amp;')
@@ -58,11 +67,18 @@ export default async function(req: Request) {
     const today = new Date().toISOString().split('T')[0];
 
     const staticUrls = STATIC_PUBLIC_PATHS.map((p) => `  <url>
-    <loc>${escapeXml(baseUrl + p.path)}</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>${p.changefreq}</changefreq>
-    <priority>${p.priority}</priority>
-  </url>`).join('\n');
+     <loc>${escapeXml(baseUrl + p.path)}</loc>
+     <lastmod>${today}</lastmod>
+     <changefreq>${p.changefreq}</changefreq>
+     <priority>${p.priority}</priority>
+    </url>`).join('\n');
+
+    const cityUrls = CITY_LANDING_SLUGS.map((slug) => `  <url>
+     <loc>${escapeXml(baseUrl + '/envios-maritimos-china-' + slug)}</loc>
+     <lastmod>${today}</lastmod>
+     <changefreq>weekly</changefreq>
+     <priority>0.8</priority>
+    </url>`).join('\n');
 
     const postUrls = posts
       .filter((p) => p.slug)
@@ -83,6 +99,7 @@ export default async function(req: Request) {
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${staticUrls}
+${cityUrls}
 ${postUrls}
 </urlset>`;
 

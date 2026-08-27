@@ -1,6 +1,8 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
+import { CITY_LANDINGS, cityLandingPath } from '@/lib/cityLandings';
 
 
 export default function Inicio2Footer() {
@@ -17,7 +19,25 @@ export default function Inicio2Footer() {
             Crear Casillero Gratis
           </button>
         </div>
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 sm:flex-row">
+
+        {/* Cobertura Marítima Nacional */}
+        <div className="mt-12 border-t border-white/10 pt-8">
+          <h4 className="font-display text-sm font-bold uppercase tracking-[0.2em] text-white">Cobertura Marítima Nacional</h4>
+          <p className="mt-1 text-xs text-zinc-500">Envíos marítimos desde China a las principales ciudades de Venezuela.</p>
+          <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3 lg:grid-cols-4">
+            {CITY_LANDINGS.map((c) => (
+              <Link
+                key={c.slug}
+                to={cityLandingPath(c.slug)}
+                className="text-zinc-400 transition-colors hover:text-orange-400"
+              >
+                {c.city}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 sm:flex-row">
           <div className="flex items-center gap-2">
             <img
               src="https://media.base44.com/images/public/695da428c9924ef9b68e8866/52211ee9d_f747206d-9aac-45da-b57b-eecb77f854af.jpg"

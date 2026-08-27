@@ -10,7 +10,7 @@ import { normalizeStates, findStateByCodeOrName } from '@/components/utils/state
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 
-export default function ShippingCalculator({ user }) {
+export default function ShippingCalculator({ user, defaultStateCode, defaultShippingType }) {
   const [config, setConfig] = useState(null);
   const [pricingConfig, setPricingConfig] = useState(null);
   const [states, setStates] = useState([]);
@@ -41,7 +41,11 @@ export default function ShippingCalculator({ user }) {
 
     if (configs.length > 0) {
       setConfig(configs[0]);
-      if (configs[0].shipping_type_air_enabled !== false) {
+      if (defaultShippingType === 'maritimo' && configs[0].shipping_type_sea_enabled !== false) {
+        setShippingType('maritimo');
+      } else if (defaultShippingType === 'aereo' && configs[0].shipping_type_air_enabled !== false) {
+        setShippingType('aereo');
+      } else if (configs[0].shipping_type_air_enabled !== false) {
         setShippingType('aereo');
       } else if (configs[0].shipping_type_sea_enabled !== false) {
         setShippingType('maritimo');
@@ -60,6 +64,13 @@ export default function ShippingCalculator({ user }) {
         const match = findStateByCodeOrName(normalized, user.state);
         if (match) {
           setSelectedState(match.state_code);
+          applied = true;
+        }
+      }
+      if (!applied && defaultStateCode) {
+        const defMatch = findStateByCodeOrName(normalized, defaultStateCode);
+        if (defMatch) {
+          setSelectedState(defMatch.state_code);
           applied = true;
         }
       }

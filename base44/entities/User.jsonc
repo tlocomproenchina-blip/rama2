@@ -41,6 +41,14 @@
     "billing_rif_image_url": {
       "type": "string",
       "description": "URL de la imagen del RIF subida para facturaci\u00f3n"
+    },
+    "origin_city": {
+      "type": "string",
+      "description": "Slug de la ciudad de origen (landing page desde donde se registr\u00f3 el cliente)"
+    },
+    "origin_city_name": {
+      "type": "string",
+      "description": "Nombre legible de la ciudad de origen del cliente"
     }
   },
   "required": [

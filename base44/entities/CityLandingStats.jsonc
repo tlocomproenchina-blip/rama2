@@ -1,0 +1,53 @@
+{
+  "name": "CityLandingStats",
+  "type": "object",
+  "properties": {
+    "slug": {
+      "type": "string",
+      "description": "Slug \u00fanico de la ciudad (ej: valencia)"
+    },
+    "city": {
+      "type": "string",
+      "description": "Nombre de la ciudad"
+    },
+    "state_name": {
+      "type": "string",
+      "description": "Nombre del estado"
+    },
+    "visit_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de visitas a la landing page de esta ciudad"
+    },
+    "last_visit_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de la \u00faltima visita registrada"
+    }
+  },
+  "required": [
+    "slug"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
