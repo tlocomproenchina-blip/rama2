@@ -27,6 +27,16 @@ export default defineConfig({
     // Vite espera a terminar de rastrear TODO antes de servir dependencias,
     // así no sirve un chunk con un hash que después cambia.
     holdUntilCrawlEnd: true,
+    // CLAVE: el rastreo por defecto solo sigue imports estáticos desde index.html.
+    // Como casi todas las páginas se cargan con import() diferido, sus dependencias
+    // se descubren recién al navegar → Vite reoptimiza y cambia el hash ?v=,
+    // conviviendo dos copias de React ("Cannot read properties of null (useState)").
+    // Al declarar todos los archivos fuente como entradas, el escáner las ve todas
+    // antes de servir nada y el hash queda fijo para toda la sesión.
+    entries: [
+      'index.html',
+      'src/**/*.{js,jsx,ts,tsx}'
+    ],
     // Incluir aquí todo lo que consume React evita que Vite descubra una
     // dependencia nueva a mitad de sesión y reoptimice (lo que cambia el
     // hash ?v= mientras el navegador ya cargó los chunks viejos).
