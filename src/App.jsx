@@ -116,22 +116,10 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={lazyRoute(Inicio2, "Inicio2")} />
       {Object.entries(Pages).map(([path, Page]) => (
-        <Route
-          key={path}
-          path={`/${path}`}
-          element={
-            <LayoutWrapper currentPageName={path}>
-              <Page />
-            </LayoutWrapper>
-          }
-        />
+        <Route key={path} path={`/${path}`} element={lazyRoute(Page, path)} />
       ))}
       {Pages.Dashboard && (
-        <Route path="/ClientPortal" element={
-          <LayoutWrapper currentPageName="Dashboard">
-            <Pages.Dashboard />
-          </LayoutWrapper>
-        } />
+        <Route path="/ClientPortal" element={lazyRoute(Pages.Dashboard, "Dashboard")} />
       )}
       <Route path="/WarehouseReceive" element={lazyRoute(WarehouseReceive, "WarehouseReceive")} />
       <Route path="/WarehouseLocations" element={lazyRoute(WarehouseLocations, "WarehouseLocations")} />

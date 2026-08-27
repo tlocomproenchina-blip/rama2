@@ -1,190 +1,85 @@
 /**
  * pages.config.js - Page routing configuration
- * 
- * This file is AUTO-GENERATED. Do not add imports or modify PAGES manually.
- * Pages are auto-registered when you create files in the ./pages/ folder.
- * 
+ *
+ * IMPORTANTE: todas las páginas se cargan de forma diferida (lazy) para que el
+ * navegador solo descargue el código de la página que el usuario realmente
+ * visita. Antes se importaban las ~68 páginas de golpe, lo que obligaba a
+ * descargar y ejecutar todo el panel de administración incluso para un cliente
+ * o un visitante anónimo.
+ *
  * THE ONLY EDITABLE VALUE: mainPage
- * This controls which page is the landing page (shown when users visit the app).
- * 
- * Example file structure:
- * 
- *   import HomePage from './pages/HomePage';
- *   import Dashboard from './pages/Dashboard';
- *   import Settings from './pages/Settings';
- *   
- *   export const PAGES = {
- *       "HomePage": HomePage,
- *       "Dashboard": Dashboard,
- *       "Settings": Settings,
- *   }
- *   
- *   export const pagesConfig = {
- *       mainPage: "HomePage",
- *       Pages: PAGES,
- *   };
- * 
- * Example with Layout (wraps all pages):
- *
- *   import Home from './pages/Home';
- *   import Settings from './pages/Settings';
- *   import __Layout from './Layout.jsx';
- *
- *   export const PAGES = {
- *       "Home": Home,
- *       "Settings": Settings,
- *   }
- *
- *   export const pagesConfig = {
- *       mainPage: "Home",
- *       Pages: PAGES,
- *       Layout: __Layout,
- *   };
- *
- * To change the main page from HomePage to Dashboard, use find_replace:
- *   Old: mainPage: "HomePage",
- *   New: mainPage: "Dashboard",
- *
- * The mainPage value must match a key in the PAGES object exactly.
  */
-import AccountDisabled from './pages/AccountDisabled';
-import AccountingDashboard from './pages/AccountingDashboard';
-import AdminAccountsPayable from './pages/AdminAccountsPayable';
-import AdminActivityAudit from './pages/AdminActivityAudit';
-import AdminAdministrators from './pages/AdminAdministrators';
-import AdminAssistedPayments from './pages/AdminAssistedPayments';
-import AdminBlog from './pages/AdminBlog';
-import AdminCargaRutas from './pages/AdminCargaRutas';
-import AdminChoferes from './pages/AdminChoferes';
-import AdminConsolidate from './pages/AdminConsolidate';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminDelete from './pages/AdminDelete';
-import AdminEmailCampaigns from './pages/AdminEmailCampaigns';
-import AdminEmailTemplates from './pages/AdminEmailTemplates';
-import AdminEmployeeAudit from './pages/AdminEmployeeAudit';
-import AdminEmployeePerformance from './pages/AdminEmployeePerformance';
-import AdminEmployees from './pages/AdminEmployees';
-import AdminFAQ from './pages/AdminFAQ';
-import AdminInsured from './pages/AdminInsured';
-import AdminInternalMessages from './pages/AdminInternalMessages';
-import AdminKnowledgeBase from './pages/AdminKnowledgeBase';
-import AdminLogistica from './pages/AdminLogistica';
-import AdminMarketing from './pages/AdminMarketing';
-import AdminOperaciones from './pages/AdminOperaciones';
-import AdminPackages from './pages/AdminPackages';
-import AdminPaymentAlerts from './pages/AdminPaymentAlerts';
-import AdminPreAlerts from './pages/AdminPreAlerts';
-import AdminPayments from './pages/AdminPayments';
-import AdminPromotions from './pages/AdminPromotions';
-import AdminProviderPayments from './pages/AdminProviderPayments';
-import AdminProviders from './pages/AdminProviders';
-import AdminReferrals from './pages/AdminReferrals';
-import AdminRoles from './pages/AdminRoles';
-import AdminRutaDetalle from './pages/AdminRutaDetalle';
-import AdminRutas from './pages/AdminRutas';
-import AdminSeguimiento from './pages/AdminSeguimiento';
-import AdminSeguimientoRutas from './pages/AdminSeguimientoRutas';
-import AdminSettings from './pages/AdminSettings';
-import AdminShipmentApprovals from './pages/AdminShipmentApprovals';
-import AdminSupport from './pages/AdminSupport';
-import AdminSupportTickets from './pages/AdminSupportTickets';
-import AdminVehiculos from './pages/AdminVehiculos';
-import AssistedPayment from './pages/AssistedPayment';
-import Blog from './pages/Blog';
-import BlogPost from './pages/BlogPost';
-import ClientAnalytics from './pages/ClientAnalytics';
-import Dashboard from './pages/Dashboard';
-import FAQ from './pages/FAQ';
-import Home from './pages/Home';
-import MyCbm from './pages/MyCbm';
-import MyConsolidations from './pages/MyConsolidations';
-import MyInvoices from './pages/MyInvoices';
-import MyPackages from './pages/MyPackages';
-import MyReferrals from './pages/MyReferrals';
-import PaypalReturn from './pages/PaypalReturn';
-import PreAlert from './pages/PreAlert';
-import Profile from './pages/Profile';
-import Rates from './pages/Rates';
-import RequestConsolidation from './pages/RequestConsolidation';
-import ShipmentTracking from './pages/ShipmentTracking';
-import ShippingCalculator from './pages/ShippingCalculator';
-import Support from './pages/Support';
-import TermsOfService from './pages/TermsOfService';
-import WarehouseDashboard from './pages/WarehouseDashboard';
-import WarehouseLocations from './pages/WarehouseLocations';
-import WarehousePickPackShip from './pages/WarehousePickPackShip';
-import WarehouseReceive from './pages/WarehouseReceive';
+import { lazy } from 'react';
 import __Layout from './Layout.jsx';
 
-
 export const PAGES = {
-    "AccountDisabled": AccountDisabled,
-    "AccountingDashboard": AccountingDashboard,
-    "AdminAccountsPayable": AdminAccountsPayable,
-    "AdminActivityAudit": AdminActivityAudit,
-    "AdminAdministrators": AdminAdministrators,
-    "AdminAssistedPayments": AdminAssistedPayments,
-    "AdminBlog": AdminBlog,
-    "AdminCargaRutas": AdminCargaRutas,
-    "AdminChoferes": AdminChoferes,
-    "AdminConsolidate": AdminConsolidate,
-    "AdminDashboard": AdminDashboard,
-    "AdminDelete": AdminDelete,
-    "AdminEmailCampaigns": AdminEmailCampaigns,
-    "AdminEmailTemplates": AdminEmailTemplates,
-    "AdminEmployeeAudit": AdminEmployeeAudit,
-    "AdminEmployeePerformance": AdminEmployeePerformance,
-    "AdminEmployees": AdminEmployees,
-    "AdminFAQ": AdminFAQ,
-    "AdminInsured": AdminInsured,
-    "AdminInternalMessages": AdminInternalMessages,
-    "AdminKnowledgeBase": AdminKnowledgeBase,
-    "AdminLogistica": AdminLogistica,
-    "AdminMarketing": AdminMarketing,
-    "AdminOperaciones": AdminOperaciones,
-    "AdminPackages": AdminPackages,
-    "AdminPaymentAlerts": AdminPaymentAlerts,
-    "AdminPreAlerts": AdminPreAlerts,
-    "AdminPayments": AdminPayments,
-    "AdminPromotions": AdminPromotions,
-    "AdminProviderPayments": AdminProviderPayments,
-    "AdminProviders": AdminProviders,
-    "AdminReferrals": AdminReferrals,
-    "AdminRoles": AdminRoles,
-    "AdminRutaDetalle": AdminRutaDetalle,
-    "AdminRutas": AdminRutas,
-    "AdminSeguimiento": AdminSeguimiento,
-    "AdminSeguimientoRutas": AdminSeguimientoRutas,
-    "AdminSettings": AdminSettings,
-    "AdminShipmentApprovals": AdminShipmentApprovals,
-    "AdminSupport": AdminSupport,
-    "AdminSupportTickets": AdminSupportTickets,
-    "AdminVehiculos": AdminVehiculos,
-    "AssistedPayment": AssistedPayment,
-    "Blog": Blog,
-    "BlogPost": BlogPost,
-    "ClientAnalytics": ClientAnalytics,
-    "Dashboard": Dashboard,
-    "FAQ": FAQ,
-    "Home": Home,
-    "MyCbm": MyCbm,
-    "MyConsolidations": MyConsolidations,
-    "MyInvoices": MyInvoices,
-    "MyPackages": MyPackages,
-    "MyReferrals": MyReferrals,
-    "PaypalReturn": PaypalReturn,
-    "PreAlert": PreAlert,
-    "Profile": Profile,
-    "Rates": Rates,
-    "RequestConsolidation": RequestConsolidation,
-    "ShipmentTracking": ShipmentTracking,
-    "ShippingCalculator": ShippingCalculator,
-    "Support": Support,
-    "TermsOfService": TermsOfService,
-    "WarehouseDashboard": WarehouseDashboard,
-    "WarehouseLocations": WarehouseLocations,
-    "WarehousePickPackShip": WarehousePickPackShip,
-    "WarehouseReceive": WarehouseReceive,
+    "AccountDisabled": lazy(() => import('./pages/AccountDisabled')),
+    "AccountingDashboard": lazy(() => import('./pages/AccountingDashboard')),
+    "AdminAccountsPayable": lazy(() => import('./pages/AdminAccountsPayable')),
+    "AdminActivityAudit": lazy(() => import('./pages/AdminActivityAudit')),
+    "AdminAdministrators": lazy(() => import('./pages/AdminAdministrators')),
+    "AdminAssistedPayments": lazy(() => import('./pages/AdminAssistedPayments')),
+    "AdminBlog": lazy(() => import('./pages/AdminBlog')),
+    "AdminCargaRutas": lazy(() => import('./pages/AdminCargaRutas')),
+    "AdminChoferes": lazy(() => import('./pages/AdminChoferes')),
+    "AdminConsolidate": lazy(() => import('./pages/AdminConsolidate')),
+    "AdminDashboard": lazy(() => import('./pages/AdminDashboard')),
+    "AdminDelete": lazy(() => import('./pages/AdminDelete')),
+    "AdminEmailCampaigns": lazy(() => import('./pages/AdminEmailCampaigns')),
+    "AdminEmailTemplates": lazy(() => import('./pages/AdminEmailTemplates')),
+    "AdminEmployeeAudit": lazy(() => import('./pages/AdminEmployeeAudit')),
+    "AdminEmployeePerformance": lazy(() => import('./pages/AdminEmployeePerformance')),
+    "AdminEmployees": lazy(() => import('./pages/AdminEmployees')),
+    "AdminFAQ": lazy(() => import('./pages/AdminFAQ')),
+    "AdminInsured": lazy(() => import('./pages/AdminInsured')),
+    "AdminInternalMessages": lazy(() => import('./pages/AdminInternalMessages')),
+    "AdminKnowledgeBase": lazy(() => import('./pages/AdminKnowledgeBase')),
+    "AdminLogistica": lazy(() => import('./pages/AdminLogistica')),
+    "AdminMarketing": lazy(() => import('./pages/AdminMarketing')),
+    "AdminOperaciones": lazy(() => import('./pages/AdminOperaciones')),
+    "AdminPackages": lazy(() => import('./pages/AdminPackages')),
+    "AdminPaymentAlerts": lazy(() => import('./pages/AdminPaymentAlerts')),
+    "AdminPreAlerts": lazy(() => import('./pages/AdminPreAlerts')),
+    "AdminPayments": lazy(() => import('./pages/AdminPayments')),
+    "AdminPromotions": lazy(() => import('./pages/AdminPromotions')),
+    "AdminProviderPayments": lazy(() => import('./pages/AdminProviderPayments')),
+    "AdminProviders": lazy(() => import('./pages/AdminProviders')),
+    "AdminReferrals": lazy(() => import('./pages/AdminReferrals')),
+    "AdminRoles": lazy(() => import('./pages/AdminRoles')),
+    "AdminRutaDetalle": lazy(() => import('./pages/AdminRutaDetalle')),
+    "AdminRutas": lazy(() => import('./pages/AdminRutas')),
+    "AdminSeguimiento": lazy(() => import('./pages/AdminSeguimiento')),
+    "AdminSeguimientoRutas": lazy(() => import('./pages/AdminSeguimientoRutas')),
+    "AdminSettings": lazy(() => import('./pages/AdminSettings')),
+    "AdminShipmentApprovals": lazy(() => import('./pages/AdminShipmentApprovals')),
+    "AdminSupport": lazy(() => import('./pages/AdminSupport')),
+    "AdminSupportTickets": lazy(() => import('./pages/AdminSupportTickets')),
+    "AdminVehiculos": lazy(() => import('./pages/AdminVehiculos')),
+    "AssistedPayment": lazy(() => import('./pages/AssistedPayment')),
+    "Blog": lazy(() => import('./pages/Blog')),
+    "BlogPost": lazy(() => import('./pages/BlogPost')),
+    "ClientAnalytics": lazy(() => import('./pages/ClientAnalytics')),
+    "Dashboard": lazy(() => import('./pages/Dashboard')),
+    "FAQ": lazy(() => import('./pages/FAQ')),
+    "Home": lazy(() => import('./pages/Home')),
+    "MyCbm": lazy(() => import('./pages/MyCbm')),
+    "MyConsolidations": lazy(() => import('./pages/MyConsolidations')),
+    "MyInvoices": lazy(() => import('./pages/MyInvoices')),
+    "MyPackages": lazy(() => import('./pages/MyPackages')),
+    "MyReferrals": lazy(() => import('./pages/MyReferrals')),
+    "PaypalReturn": lazy(() => import('./pages/PaypalReturn')),
+    "PreAlert": lazy(() => import('./pages/PreAlert')),
+    "Profile": lazy(() => import('./pages/Profile')),
+    "Rates": lazy(() => import('./pages/Rates')),
+    "RequestConsolidation": lazy(() => import('./pages/RequestConsolidation')),
+    "ShipmentTracking": lazy(() => import('./pages/ShipmentTracking')),
+    "ShippingCalculator": lazy(() => import('./pages/ShippingCalculator')),
+    "Support": lazy(() => import('./pages/Support')),
+    "TermsOfService": lazy(() => import('./pages/TermsOfService')),
+    "WarehouseDashboard": lazy(() => import('./pages/WarehouseDashboard')),
+    "WarehouseLocations": lazy(() => import('./pages/WarehouseLocations')),
+    "WarehousePickPackShip": lazy(() => import('./pages/WarehousePickPackShip')),
+    "WarehouseReceive": lazy(() => import('./pages/WarehouseReceive')),
 }
 
 export const pagesConfig = {
