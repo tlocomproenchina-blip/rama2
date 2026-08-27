@@ -1,100 +1,104 @@
-// TLEC CARGO Service Worker
-const CACHE_NAME = 'tlec-cargo-v8';
-const APP_SHELL = ['/'];
+/* TLEC CARGO Service Worker
+ *
+ * REGLA CRÍTICA: este SW NUNCA debe cachear ni interceptar JavaScript, CSS,
+ * ni ningún asset del bundler. Cachear chunks provoca que el navegador mezcle
+ * módulos de dos builds/optimizaciones distintas, lo que crea DOS copias de
+ * React y rompe la app con "Cannot read properties of null (reading 'useState')".
+ *
+ * Solo cachea imágenes/fuentes/manifest y gestiona notificaciones push.
+ */
 
-const SHIP_BADGE = 'https://base44.app/api/apps/695da428c9924ef9b68e8866/files/mp/public/695da428c9924ef9b68e8866/f98391e7a_badge-ship.png';
+const CACHE_NAME = 'tlec-static-v10';
 
-// Dev-only path segments that must NEVER be served from cache.
-// Vite dev server serves these with versioned hashes (?v=...) and caching
-// them causes stale JS chunks (duplicate React → "Cannot read properties of null").
-const DEV_PATH_MARKERS = ['/@vite', '/@react-refresh', '/node_modules/.vite', '/src/'];
-
-function isDevAsset(url) {
-  try {
-    const u = new URL(url, self.location.origin);
-    const pathname = u.pathname;
-    // Also check for ?v= query param which is a Vite dev signature
-    const hasViteHash = u.searchParams.has('v');
-    return DEV_PATH_MARKERS.some((seg) => pathname.includes(seg)) || hasViteHash;
-  } catch (_) {
-    return false;
-  }
-}
+// Extensiones seguras para cachear (nunca código ejecutable)
+const CACHEABLE_EXTENSIONS = [
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico',
+  '.woff', '.woff2', '.ttf', '.otf'
+];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(() => {})
-  );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-
-  // Never intercept Vite dev / HMR requests — always go straight to network.
-  if (isDevAsset(req.url)) {
-    return;
-  }
-
-  // Network-first for navigations (offline fallback to cache)
-  if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
-          return res;
-        })
-        .catch(() => caches.match(req).then((cached) => cached || caches.match('/')))
-    );
-    return;
-  }
-
-  // Cache-first with background revalidation for static assets (prod only)
-  const dest = req.destination;
-  if (['script', 'style', 'font', 'image'].includes(dest)) {
-    event.respondWith(
-      caches.match(req).then((cached) => {
-        const network = fetch(req)
-          .then((res) => {
-            if (res && res.ok) {
-              const copy = res.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
-            }
-            return res;
-          })
-          .catch(() => cached);
-        return cached || network;
-      })
-    );
-  }
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
-// Push notifications
-self.addEventListener('push', (event) => {
-  let data = {};
+function isCacheable(url) {
+  // Nunca tocar nada del bundler ni del código de la app
+  if (url.pathname.startsWith('/src')) return false;
+  if (url.pathname.startsWith('/node_modules')) return false;
+  if (url.pathname.startsWith('/@vite')) return false;
+  if (url.pathname.startsWith('/@react-refresh')) return false;
+  if (url.pathname.startsWith('/@id')) return false;
+  if (url.pathname.startsWith('/@fs')) return false;
+  if (url.pathname.startsWith('/assets')) return false;
+  if (url.pathname.startsWith('/functions')) return false;
+  if (url.pathname.startsWith('/api')) return false;
+  if (url.search.includes('v=')) return false; // chunks versionados de Vite
+
+  return CACHEABLE_EXTENSIONS.some((ext) => url.pathname.endsWith(ext));
+}
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+
+  // Todo lo que no sea una imagen/fuente cacheable pasa directo a la red.
+  // Esto incluye navegaciones (HTML), JS, CSS y llamadas a la API.
+  if (request.method !== 'GET') return;
+
+  let url;
   try {
-    data = event.data ? event.data.json() : {};
-  } catch (_) {
-    data = { title: 'TLEC CARGO', body: event.data ? event.data.text() : '' };
+    url = new URL(request.url);
+  } catch (e) {
+    return;
   }
 
-  const title = data.title || 'TLEC CARGO';
+  if (url.origin !== self.location.origin) return;
+  if (!isCacheable(url)) return; // sin respondWith => el navegador maneja la petición
+
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+        }
+        return response;
+      });
+    }).catch(() => fetch(request))
+  );
+});
+
+/* ===== Notificaciones Push ===== */
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (e) {
+    payload = { title: 'TLEC CARGO', body: event.data ? event.data.text() : '' };
+  }
+
+  const title = payload.title || 'TLEC CARGO';
   const options = {
-    body: data.body || '',
-    badge: data.badge || SHIP_BADGE,
-    tag: data.tag || `tlec-${Date.now()}`,
-    data: { url: data.url || '/' },
-    vibrate: [100, 50, 100],
+    body: payload.body || payload.content || '',
+    icon: payload.icon || '/icon-192.png',
+    badge: payload.badge || '/icon-192.png',
+    data: { url: payload.url || payload.action_url || '/' },
+    tag: payload.tag || undefined,
+    requireInteraction: false
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -102,16 +106,17 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/';
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if ('focus' in client) {
-          client.navigate(url).catch(() => {});
+          client.navigate(targetUrl).catch(() => {});
           return client.focus();
         }
       }
-      return self.clients.openWindow(url);
+      return self.clients.openWindow(targetUrl);
     })
   );
 });
