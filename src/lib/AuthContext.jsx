@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 // Valor por defecto seguro: evita que la app se caiga si un módulo consume el
 // contexto durante una recarga en caliente (HMR) donde la instancia del contexto se duplica.
@@ -53,17 +52,20 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
       
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token,
-        interceptResponses: true
-      });
-      
       try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        const response = await fetch(`/api/apps/public/prod/public-settings/by-id/${appParams.appId}`, {
+          headers: {
+            'X-App-Id': appParams.appId,
+            ...(appParams.token ? { Authorization: `Bearer ${appParams.token}` } : {})
+          }
+        });
+        const publicSettings = await response.json().catch(() => null);
+        if (!response.ok) {
+          const appError = new Error(publicSettings?.message || `Request failed with status ${response.status}`);
+          appError.status = response.status;
+          appError.data = publicSettings;
+          throw appError;
+        }
         setAppPublicSettings(publicSettings);
         
         if (appParams.token) {
