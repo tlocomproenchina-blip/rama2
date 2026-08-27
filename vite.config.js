@@ -16,7 +16,8 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@base44/sdk']
+    include: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@base44/sdk'],
+    force: true
   },
   plugins: [
     base44({
