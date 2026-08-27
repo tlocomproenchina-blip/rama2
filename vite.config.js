@@ -16,9 +16,7 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@base44/sdk'],
-    // Force Vite to re-optimize deps (clears stale chunk-VJA5E53X.js with old React)
-    force: true
+    include: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@base44/sdk']
   },
   plugins: [
     base44({
