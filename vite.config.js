@@ -24,6 +24,11 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
+    // `force` descarta la caché de dependencias de corridas anteriores al
+    // arrancar. Sin esto, el servidor puede seguir sirviendo chunks de una
+    // optimización vieja (?v=5be56ec2) junto a los nuevos (?v=a2131b81),
+    // dejando DOS copias de React → "Cannot read properties of null (useState)".
+    force: true,
     // Vite espera a terminar de rastrear TODO antes de servir dependencias,
     // así no sirve un chunk con un hash que después cambia.
     holdUntilCrawlEnd: true,
