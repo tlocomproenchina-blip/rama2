@@ -33,6 +33,19 @@ export default async function(req: Request) {
       });
     }
 
+    // Acumulado diario para ver tendencias de tráfico
+    const visit_date = now.slice(0, 10);
+    const daily = await base44.asServiceRole.entities.CityLandingDailyVisit.filter({ slug, visit_date }, '-updated_date', 1);
+    if (daily.length > 0) {
+      await base44.asServiceRole.entities.CityLandingDailyVisit.update(daily[0].id, {
+        visit_count: (daily[0].visit_count || 0) + 1
+      });
+    } else {
+      await base44.asServiceRole.entities.CityLandingDailyVisit.create({
+        slug, city, state_name, visit_date, visit_count: 1
+      });
+    }
+
     return Response.json({ ok: true });
   } catch (error) {
     return Response.json({ ok: false, error: error?.message || 'error' }, { status: 500 });

@@ -1,0 +1,54 @@
+{
+  "name": "CityLandingDailyVisit",
+  "type": "object",
+  "properties": {
+    "slug": {
+      "type": "string",
+      "description": "Slug de la ciudad"
+    },
+    "city": {
+      "type": "string",
+      "description": "Nombre de la ciudad"
+    },
+    "state_name": {
+      "type": "string",
+      "description": "Nombre del estado"
+    },
+    "visit_date": {
+      "type": "string",
+      "format": "date",
+      "description": "D\u00eda de la visita (YYYY-MM-DD)"
+    },
+    "visit_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Visitas registradas ese d\u00eda"
+    }
+  },
+  "required": [
+    "slug",
+    "visit_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

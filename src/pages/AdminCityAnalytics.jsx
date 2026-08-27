@@ -3,10 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { CITY_LANDINGS } from '@/lib/cityLandings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, MapPin, Eye, UserCheck, TrendingUp } from 'lucide-react';
+import CityVisitsTrendChart from '@/components/city-analytics/CityVisitsTrendChart';
+import StateInterestChart from '@/components/city-analytics/StateInterestChart';
 
 export default function AdminCityAnalytics() {
   const [stats, setStats] = useState([]);
   const [users, setUsers] = useState([]);
+  const [dailyRows, setDailyRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,12 +18,14 @@ export default function AdminCityAnalytics() {
 
   const loadData = async () => {
     try {
-      const [statsRows, allUsers] = await Promise.all([
+      const [statsRows, allUsers, daily] = await Promise.all([
         base44.entities.CityLandingStats.list('-visit_count', 100),
-        base44.entities.User.list('-created_date', 500)
+        base44.entities.User.list('-created_date', 500),
+        base44.entities.CityLandingDailyVisit.list('-visit_date', 500)
       ]);
       setStats(statsRows);
       setUsers(allUsers);
+      setDailyRows(daily);
     } catch (e) {
       console.error('Error loading city analytics:', e);
     } finally {
@@ -95,6 +100,9 @@ export default function AdminCityAnalytics() {
           </CardContent>
         </Card>
       </div>
+
+      <CityVisitsTrendChart dailyRows={dailyRows} days={30} />
+      <StateInterestChart rows={rows} />
 
       {/* Tabla por ciudad */}
       <Card>
