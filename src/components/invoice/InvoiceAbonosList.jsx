@@ -31,6 +31,7 @@ const STATUS_CONFIG = {
 export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh }) {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dispatchOrders, setDispatchOrders] = useState({});
   const fileViewer = useFileViewer();
   const [rejectModal, setRejectModal] = useState({ open: false, payment: null });
   const [rejectReason, setRejectReason] = useState('');
@@ -42,6 +43,17 @@ export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh 
     try {
       const data = await base44.entities.InvoicePayment.filter({ invoice_id: invoice.id }, '-created_date', 100);
       setPayments(data || []);
+
+      // Fetch dispatch orders linked to these payments to show "Envío #"
+      const orderIds = [...new Set(
+        (data || []).flatMap((p) => Array.isArray(p.dispatch_order_ids) ? p.dispatch_order_ids : [])
+      )].filter(Boolean);
+      if (orderIds.length > 0) {
+        const orders = await base44.entities.DispatchOrder.list('-created_date', 200);
+        const map = {};
+        (orders || []).forEach((o) => { if (orderIds.includes(o.id)) map[o.id] = o; });
+        setDispatchOrders(map);
+      }
     } catch (e) {
       console.error('Error loading abonos:', e);
     } finally {
@@ -125,6 +137,18 @@ export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh 
                       <StatusIcon className="h-3 w-3" /> {cfg.label}
                     </span>
                   </div>
+                  {(() => {
+                    const orderIds = Array.isArray(p.dispatch_order_ids) ? p.dispatch_order_ids : [];
+                    const labels = orderIds
+                      .map((oid) => dispatchOrders[oid]?.order_number)
+                      .filter(Boolean);
+                    if (labels.length === 0) return null;
+                    return (
+                      <p className="text-xs font-medium text-blue-700 mt-1">
+                        {labels.map((n) => `Envío ${n}`).join(' · ')}
+                      </p>
+                    );
+                  })()}
                   <p className="text-xs text-slate-500 mt-1">
                     {format(new Date(p.created_date), 'dd/MM/yyyy HH:mm')}
                     {p.reference && ` · Ref: ${p.reference}`}
