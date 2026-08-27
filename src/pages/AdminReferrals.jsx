@@ -293,6 +293,63 @@ export default function AdminReferrals() {
         <Card className="border-0 shadow-md"><CardContent className="p-5 flex items-center justify-between"><div><p className="text-sm text-slate-500">Créditos aplicados</p><p className="text-3xl font-bold text-slate-800">${totalCreditsApplied.toFixed(2)}</p></div><DollarSign className="h-6 w-6 text-amber-600" /></CardContent></Card>
       </div>
 
+      {/* Detalle de usuarios referidos */}
+      <Card className="border-0 shadow-md">
+        <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-blue-600" />Usuarios Referidos ({referredUsers.length})</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Referido</TableHead>
+                <TableHead>Shipping Mark</TableHead>
+                <TableHead>Referido por</TableHead>
+                <TableHead>Fecha registro</TableHead>
+                <TableHead>Recompensas</TableHead>
+                <TableHead>CBM total</TableHead>
+                <TableHead>Crédito gen.</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {referredUsers.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="text-center text-slate-500">Sin usuarios referidos</TableCell></TableRow>
+              )}
+              {referredUsers.map((ru) => {
+                const referrer = users.find(u => u.id === ru.referred_by_user_id);
+                const ruRewards = rewards.filter(rw => rw.referred_user_id === ru.id && rw.status !== 'reversed');
+                const ruCbm = ruRewards.reduce((s, r) => s + (Number(r.cbm_rewarded)||0), 0);
+                const ruCredit = ruRewards.reduce((s, r) => s + (Number(r.credit_generated)||0), 0);
+                return (
+                  <TableRow key={ru.id}>
+                    <TableCell>
+                      <div className="font-medium text-slate-800">{ru.first_name || ru.full_name || '—'}</div>
+                      <div className="text-xs text-slate-500">{ru.email}</div>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{ru.shipping_mark || '—'}</TableCell>
+                    <TableCell>
+                      {referrer ? (
+                        <>
+                          <div className="font-medium text-slate-800">{referrer.first_name || referrer.full_name || '—'}</div>
+                          <div className="text-xs text-slate-500">{referrer.email}</div>
+                          {referrer.shipping_mark && <div className="text-xs text-slate-400 font-mono">{referrer.shipping_mark}</div>}
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400">Usuario eliminado</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-500">{ru.created_date ? new Date(ru.created_date).toLocaleDateString('es-VE') : '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{ruRewards.length}</Badge>
+                    </TableCell>
+                    <TableCell>{ruCbm.toFixed(2)}</TableCell>
+                    <TableCell className="font-semibold text-emerald-700">${ruCredit.toFixed(2)}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
       {/* Leaderboard */}
       <Card className="border-0 shadow-md">
         <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2"><Crown className="h-5 w-5 text-amber-500" />Top Referidores</CardTitle></CardHeader>
