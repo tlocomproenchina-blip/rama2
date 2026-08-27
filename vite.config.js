@@ -1,23 +1,34 @@
 import base44 from "@base44/vite-plugin"
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
-import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
   logLevel: 'error', // Suppress warnings, only show errors
   resolve: {
-    alias: {
-      'react': path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
-      'react/jsx-runtime': path.resolve(__dirname, 'node_modules/react/jsx-runtime'),
-      'react/jsx-dev-runtime': path.resolve(__dirname, 'node_modules/react/jsx-dev-runtime'),
-    },
+    // NO usar alias con rutas absolutas para react/react-dom: eso crea un
+    // segundo chunk pre-empaquetado (dos copias de React, dos hashes ?v=)
+    // y provoca "Cannot read properties of null (reading 'useState')".
+    // `dedupe` es suficiente para garantizar una única copia.
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@base44/sdk'],
-    force: true
+    // Incluir aquí todo lo que consume React evita que Vite descubra una
+    // dependencia nueva a mitad de sesión y reoptimice (lo que cambia el
+    // hash ?v= mientras el navegador ya cargó los chunks viejos).
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
+      'react-router-dom',
+      '@base44/sdk',
+      '@tanstack/react-query',
+      'framer-motion',
+      'lucide-react',
+      'recharts'
+    ]
   },
   plugins: [
     base44({

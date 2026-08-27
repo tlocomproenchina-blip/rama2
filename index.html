@@ -14,61 +14,22 @@
     <link rel="manifest" href="/manifest.json" />
     <title>TLEC CARGO by TELOCOMPROENCHINA | Envíos China a Venezuela puerta a puerta</title>
     <script>
-      // Blocking script — runs BEFORE any module scripts are fetched.
-      // Ensures stale service workers (old cache-first SW that serves broken
-      // Vite dep chunks with duplicate React) are removed before they can
-      // intercept requests for the current page load.
+      // En el entorno de desarrollo/preview (no es el dominio publicado) nunca
+      // debe haber un service worker: cachea chunks de Vite y provoca que se
+      // mezclen versiones de React. Se desregistra y se limpian los caches.
       (function () {
-        var SW_VERSION = 'v12';
+        var isPreview = location.hostname !== 'tleccargo.base44.app';
+        if (!isPreview || !('serviceWorker' in navigator)) return;
         try {
-          var installed = localStorage.getItem('tlec-sw-version');
-          if (installed !== SW_VERSION) {
-            // Hide the page immediately so the user never sees the broken JS error flash
-            document.documentElement.style.visibility = 'hidden';
-            var done = function () {
-              try { localStorage.setItem('tlec-sw-version', SW_VERSION); } catch (e) {}
-              window.location.reload();
-            };
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations()
-                .then(function (regs) {
-                  return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
-                })
-                .then(function () {
-                  if (window.caches && caches.keys) {
-                    return caches.keys().then(function (keys) {
-                      return Promise.all(keys.map(function (key) { return caches.delete(key); }));
-                    });
-                  }
-                })
-                .then(done)
-                .catch(done);
-            } else {
-              done();
-            }
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (reg) { reg.unregister(); });
+          }).catch(function () {});
+          if (window.caches && caches.keys) {
+            caches.keys().then(function (keys) {
+              keys.forEach(function (key) { caches.delete(key); });
+            }).catch(function () {});
           }
         } catch (e) {}
-      })();
-    </script>
-    <script>
-      // Runtime guard: if React's internal dispatcher is null (caused by the
-      // browser loading a mix of stale + fresh Vite dep chunks), force a hard
-      // reload so the browser fetches consistent chunks.
-      (function () {
-        var KEY = 'tlec-react-reload';
-        var count = 0;
-        try { count = parseInt(sessionStorage.getItem(KEY) || '0', 10) || 0; } catch (e) {}
-        window.addEventListener('error', function (event) {
-          var msg = (event && event.message) || '';
-          if (msg.indexOf("Cannot read properties of null (reading 'useState')") !== -1 ||
-              msg.indexOf("reading 'useRef'") !== -1 ||
-              msg.indexOf("reading 'useMemo'") !== -1) {
-            if (count < 2) {
-              try { sessionStorage.setItem(KEY, String(count + 1)); } catch (e) {}
-              window.location.reload();
-            }
-          }
-        });
       })();
     </script>
   </head>
@@ -76,21 +37,12 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script type="module">
-      if ('serviceWorker' in navigator) {
-        if (import.meta.env.DEV) {
-          // Dev: ensure no service worker is registered (defensive — the
-          // blocking <head> script already handles version-gated cleanup).
-          navigator.serviceWorker.getRegistrations()
-            .then((regs) => regs.forEach((reg) => reg.unregister()))
-            .catch(() => {});
-          if (window.caches?.keys) {
-            caches.keys().then((keys) => keys.forEach((key) => caches.delete(key))).catch(() => {});
-          }
-        } else {
-          window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
-          });
-        }
+      // Solo registrar el service worker en producción (build real).
+      // En desarrollo el script del <head> ya se encargó de desregistrarlo.
+      if ('serviceWorker' in navigator && import.meta.env.PROD) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
       }
     </script>
   </body>
