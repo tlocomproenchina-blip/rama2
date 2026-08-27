@@ -490,7 +490,7 @@ export default function Layout({ children, currentPageName }) {
       )}
       
       {user && (
-        <div className={hasDesktopSidebar ? 'lg:h-screen lg:overflow-y-auto' : ''}>
+        <div className={hasDesktopSidebar ? 'lg:h-screen' : ''}>
           <Sidebar 
             user={user} 
             currentPage={currentPageName}
