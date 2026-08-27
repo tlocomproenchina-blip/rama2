@@ -24,7 +24,7 @@ export default function Inicio2Hero() {
       <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold text-zinc-200">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" /> Casillero en Yiwu, China 100% Gratis
+            <span className="h-2 w-2 rounded-full bg-emerald-400" /> Casillero en Yiwu y Guangdong, China 100% Gratis
           </span>
           <h1 className="mt-6 font-display text-4xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
             Llevamos tus compras de <span className="text-orange-500">China a Venezuela</span>
