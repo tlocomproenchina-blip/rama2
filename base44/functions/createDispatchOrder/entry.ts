@@ -18,6 +18,28 @@ export default async function (req) {
 
     const newItems = Array.isArray(items) ? items : [];
 
+  // Marcar los recibos incluidos en la orden como disponibles para entrega.
+  // Solo cuando se crea/actualiza una orden de despacho real, no al facturar.
+  const markRecibosDisponible = async (clientEmail, orderItems) => {
+    const reciboNums = Array.from(new Set(
+      (orderItems || []).map((i) => i.consolidation_tracking).filter(Boolean).map(String)
+    ));
+    if (reciboNums.length === 0) return;
+    try {
+      const ingresos = await base44.asServiceRole.entities.CbmIngreso.filter(
+        { client_email: clientEmail },
+        '-fecha',
+        500
+      ).catch(() => []);
+      const toUpdate = (ingresos || []).filter((ing) =>
+        ing.invoice_number && reciboNums.includes(String(ing.invoice_number))
+      );
+      await Promise.all(toUpdate.map((ing) =>
+        base44.asServiceRole.entities.CbmIngreso.update(ing.id, { disponible_entrega: true })
+      ));
+    } catch (_) {}
+  };
+
     // Validación: no permitir generar orden de despacho para recibos con
     // más de 90 días de tránsito (carga atrasada).
     const receiptNumbers = Array.from(new Set(
@@ -72,6 +94,7 @@ export default async function (req) {
       if (itemsToAdd.length > 0) {
         const updatedItems = [...(orderWithDuplicateTracking.items || []), ...itemsToAdd];
         await base44.asServiceRole.entities.DispatchOrder.update(orderWithDuplicateTracking.id, { items: updatedItems });
+        await markRecibosDisponible(client_email, itemsToAdd);
         return Response.json({ order: { ...orderWithDuplicateTracking, items: updatedItems }, updated: true, added: itemsToAdd.length, merged_duplicate: true });
       }
       return Response.json({ order: orderWithDuplicateTracking, updated: true, no_change: true, merged_duplicate: true });
@@ -91,6 +114,7 @@ export default async function (req) {
       if (itemsToAdd.length > 0) {
         const updatedItems = [...(matchingOrder.items || []), ...itemsToAdd];
         await base44.asServiceRole.entities.DispatchOrder.update(matchingOrder.id, { items: updatedItems });
+        await markRecibosDisponible(client_email, itemsToAdd);
         return Response.json({ order: { ...matchingOrder, items: updatedItems }, updated: true, added: itemsToAdd.length });
       }
       return Response.json({ order: matchingOrder, updated: true, no_change: true });
@@ -133,6 +157,7 @@ export default async function (req) {
     };
 
     const created = await base44.asServiceRole.entities.DispatchOrder.create(orderData);
+    await markRecibosDisponible(client_email, newItems);
     return Response.json({ order: { ...orderData, id: created?.id }, updated: false });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

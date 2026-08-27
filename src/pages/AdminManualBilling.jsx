@@ -421,9 +421,10 @@ export default function AdminManualBilling() {
         notes: `Factura manual combinada generada desde ${sourceOrders.length} recibo(s): ${sourceOrders.join(', ')}. CBM total: ${totalCbm.toFixed(5)} | CBM facturado: ${billedCbmValue.toFixed(5)}`,
       });
 
-      // Marcar los registros de CBM usados como facturados y disponibles para entrega
+      // Marcar los registros de CBM usados como facturados
+      // (disponible_entrega se activa al crear la orden de despacho, no al facturar)
       await Promise.all(selectedRows.map((r) =>
-        base44.entities.CbmIngreso.update(r.id, { billed: true, billed_invoice_id: invoice.id, disponible_entrega: true })
+        base44.entities.CbmIngreso.update(r.id, { billed: true, billed_invoice_id: invoice.id })
       ));
 
       // Registrar el recibo nuevo como CbmIngreso ya facturado
@@ -439,7 +440,6 @@ export default function AdminManualBilling() {
           invoice_number: manualReceipt,
           billed: true,
           billed_invoice_id: invoice.id,
-          disponible_entrega: true,
         }).catch(() => {});
       }
 
