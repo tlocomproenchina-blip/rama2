@@ -126,6 +126,13 @@ export default async function (req: Request): Promise<Response> {
           recibos: Array.from(orderRecibos),
           amount,
           paid: isPaid,
+          breakdown: {
+            shipping: Math.round(shipping * 100) / 100,
+            insurance: Math.round(insurance * 100) / 100,
+            consolidation: Math.round(consolidation * 100) / 100,
+            door_to_door: Math.round(doorToDoor * 100) / 100,
+            extra: Math.round(extra * 100) / 100,
+          },
         };
       })
       .filter(Boolean);

@@ -101,7 +101,34 @@ export default function DispatchOrderSelector({ invoice, onChange }) {
                 <span className="text-slate-400">·</span>
                 <span>{o.tracking_numbers?.length || 0} tracking(s)</span>
               </div>
-              {o.tracking_numbers?.length > 0 && (
+              {selected[o.order_id] && o.breakdown && (
+                <div className="mt-2 rounded-lg bg-white/70 border border-blue-100 px-2.5 py-1.5 space-y-0.5">
+                  <div className="flex justify-between text-[11px] text-slate-600">
+                    <span>Envío</span><span>${num(o.breakdown.shipping).toFixed(2)}</span>
+                  </div>
+                  {num(o.breakdown.consolidation) > 0 && (
+                    <div className="flex justify-between text-[11px] text-slate-600">
+                      <span>Consolidación</span><span>${num(o.breakdown.consolidation).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {num(o.breakdown.insurance) > 0 && (
+                    <div className="flex justify-between text-[11px] text-slate-600">
+                      <span>Seguro</span><span>${num(o.breakdown.insurance).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {num(o.breakdown.door_to_door) > 0 && (
+                    <div className="flex justify-between text-[11px] text-slate-600">
+                      <span>Puerta a puerta</span><span>${num(o.breakdown.door_to_door).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {num(o.breakdown.extra) > 0 && (
+                    <div className="flex justify-between text-[11px] text-slate-600">
+                      <span>Extra</span><span>${num(o.breakdown.extra).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {o.tracking_numbers?.length > 0 && !selected[o.order_id] && (
                 <p className="text-xs text-slate-500 mt-1 break-all line-clamp-2">
                   {o.tracking_numbers.join(', ')}
                 </p>
