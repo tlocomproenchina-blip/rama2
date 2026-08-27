@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { installStaleChunkGuard } from '@/lib/staleChunkGuard'
+import { installStaleChunkGuard, recoverFromStaleChunks, markBootSuccess } from '@/lib/staleChunkGuard'
 import App from '@/App.jsx'
 import '@/index.css'
 
@@ -8,6 +8,12 @@ import '@/index.css'
 // (dos copias de React), el guardián limpia caches/SW y recarga automáticamente.
 installStaleChunkGuard()
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <App />
-)
+try {
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <App />
+  )
+  // Si el render inicial no lanzó, el arranque fue correcto.
+  markBootSuccess()
+} catch (error) {
+  recoverFromStaleChunks('render inicial: ' + (error?.message || 'desconocido'))
+}
