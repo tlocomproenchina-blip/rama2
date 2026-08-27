@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, MapPin, Eye, UserCheck, TrendingUp } from 'lucide-react';
 import CityVisitsTrendChart from '@/components/city-analytics/CityVisitsTrendChart';
 import StateInterestChart from '@/components/city-analytics/StateInterestChart';
+import GaCityInterestPanel from '@/components/city-analytics/GaCityInterestPanel';
 
 export default function AdminCityAnalytics() {
   const [stats, setStats] = useState([]);
@@ -100,6 +101,8 @@ export default function AdminCityAnalytics() {
           </CardContent>
         </Card>
       </div>
+
+      <GaCityInterestPanel />
 
       <CityVisitsTrendChart dailyRows={dailyRows} days={30} />
       <StateInterestChart rows={rows} />
