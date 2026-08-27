@@ -90,7 +90,7 @@ function applySeo(city) {
         serviceType: 'Freight forwarding — Maritime shipping',
         provider: { '@type': 'Organization', name: 'TLEC Cargo', url: window.location.origin },
         areaServed: { '@type': 'State', name: city.state_name, containedInPlace: { '@type': 'Country', name: 'Venezuela' } },
-        description: `Consolidación y envío marítimo de carga desde China (Yiwu) a ${city.city}, ${city.state_name}. LCL y FCL con entrega puerta a puerta.`,
+        description: `Consolidación y envío marítimo de carga desde China (Guangdong) a ${city.city}, ${city.state_name}. LCL y FCL con entrega puerta a puerta.`,
         url: canonical,
       },
       {

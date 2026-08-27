@@ -69,7 +69,7 @@ function sphericalToCartesian(lat, lon, radius) {
 }
 
 const WAYPOINTS = [
-  { lat: 23.1, lon: 113.3 },  // Guangzhou / Yiwu, China
+  { lat: 23.1, lon: 113.3 },  // Guangzhou / Guangdong, China
   { lat: 10.0, lon: 111.0 },  // Mar de China Meridional
   { lat: 1.3, lon: 103.8 },   // Singapur / Estrecho de Malaca
   { lat: 5.0, lon: 80.0 },    // Océano Índico

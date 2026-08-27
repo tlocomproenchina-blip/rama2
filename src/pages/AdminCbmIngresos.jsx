@@ -852,7 +852,7 @@ export default function AdminCbmIngresos({ user }) {
             <div className="space-y-2">
               <Label>Proveedor / Almacén</Label>
               <Input
-                placeholder="Ej: Almacén Yiwu"
+                placeholder="Ej: Almacén Guangdong"
                 value={form.proveedor}
                 onChange={(e) => setForm({ ...form, proveedor: e.target.value })}
               />

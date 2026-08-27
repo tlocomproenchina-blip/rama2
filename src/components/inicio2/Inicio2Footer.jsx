@@ -11,7 +11,7 @@ export default function Inicio2Footer() {
       <div className="mx-auto max-w-6xl px-4 py-14">
         <div className="rounded-3xl bg-gradient-to-r from-orange-600 to-orange-500 px-6 py-10 text-center text-white sm:px-12">
           <h3 className="font-display text-2xl font-extrabold sm:text-3xl">¿Listo para importar desde China?</h3>
-          <p className="mx-auto mt-2 max-w-md text-sm text-orange-100">Abre tu casillero gratis en Yiwu, China y recibe tus compras en la puerta de tu casa en Venezuela.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-orange-100">Abre tu casillero gratis en Guangdong, China y recibe tus compras en la puerta de tu casa en Venezuela.</p>
           <button
             onClick={() => base44.auth.redirectToLogin(createPageUrl('ClientPortal'))}
             className="mt-6 rounded-xl bg-white px-8 py-3 text-sm font-bold text-orange-600 shadow-lg hover:bg-orange-50"

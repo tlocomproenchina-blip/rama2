@@ -19,8 +19,8 @@ const services = [
   {
     icon: ShieldCheck, color: 'bg-blue-50 text-blue-600', tag: 'TRANQUILIDAD TOTAL',
     title: 'Seguro de Carga y Soporte',
-    desc: 'Protegemos tus compras desde que ingresan a nuestros almacenes en Yiwu y Guangdong, China hasta que las recibes en tus manos en Venezuela.',
-    details: ['Inspección rápida de contenido al recibir en Yiwu o Guangdong.', 'Seguro premium por valor declarado.', 'Fotos y alertas de estado en app.'],
+    desc: 'Protegemos tus compras desde que ingresan a nuestro almacén en Guangdong, China hasta que las recibes en tus manos en Venezuela.',
+    details: ['Inspección rápida de contenido al recibir en Guangdong.', 'Seguro premium por valor declarado.', 'Fotos y alertas de estado en app.'],
     ideal: 'Mercancía delicada o de alto valor declarado.',
   },
 ];

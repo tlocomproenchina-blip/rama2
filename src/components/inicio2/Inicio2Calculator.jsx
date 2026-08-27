@@ -86,7 +86,7 @@ export default function Inicio2Calculator({ defaultStateCode }) {
             <div className="rounded-2xl border border-slate-200 p-4">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Origen del envío</p>
               <div className="mt-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-semibold text-white">
-                🇨🇳 China (Yiwu) — 🚢 Marítimo
+                🇨🇳 China (Guangdong) — 🚢 Marítimo
               </div>
             </div>
             <div className="rounded-2xl border border-slate-200 p-4">
@@ -146,7 +146,7 @@ export default function Inicio2Calculator({ defaultStateCode }) {
             <h3 className="border-b border-slate-200 pb-3 font-display text-lg font-bold text-slate-900">Resumen del Flete</h3>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-slate-500">Volumen:</span><span className="font-bold text-slate-900">{result ? result.cbm.toFixed(4) : '—'} CBM (m³)</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Ruta de Envío:</span><span className="font-bold text-slate-900">🇨🇳 Yiwu → 🇻🇪 {stateCfg?.state_name || 'Venezuela'}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Ruta de Envío:</span><span className="font-bold text-slate-900">🇨🇳 Guangdong → 🇻🇪 {stateCfg?.state_name || 'Venezuela'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Tarifa Unitaria:</span><span className="font-bold text-slate-900">{result ? `$${result.rate.toFixed(2)}${result.specialRate ? ' fija' : ' / CBM'}` : '—'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Tiempo de Tránsito:</span><span className="font-bold text-sky-700">🚢 75 a 90 días</span></div>
             </div>

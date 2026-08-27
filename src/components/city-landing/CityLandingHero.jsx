@@ -16,7 +16,7 @@ export default function CityLandingHero({ city }) {
           Envíos Marítimos desde China a {city.city} <span className="text-orange-500">| TLEC Cargo</span>
         </h1>
         <p className="mt-4 max-w-2xl text-base text-zinc-300 sm:text-lg">
-          Consolidamos tu carga en Yiwu, China y la entregamos puerta a puerta en {city.city}, {city.state_name}.
+          Consolidamos tu carga en Guangdong, China y la entregamos puerta a puerta en {city.city}, {city.state_name}.
           Servicio LCL (consolidado) y FCL (contenedor completo) con seguimiento en tiempo real y seguro opcional.
         </p>
         <div className="mt-7 flex flex-wrap items-center gap-3 text-sm">

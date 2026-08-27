@@ -18,7 +18,7 @@ export default function CityLandingContent({ city }) {
             </p>
             <ul className="mt-4 space-y-2 text-sm text-slate-600">
               <li className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-blue-500" /> Facturación por CBM (volumen real)</li>
-              <li className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-blue-500" /> Salidas semanales desde Yiwu</li>
+              <li className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-blue-500" /> Salidas semanales desde Guangdong</li>
               <li className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-blue-500" /> Entrega puerta a puerta en {city.city}</li>
             </ul>
           </div>
@@ -44,7 +44,7 @@ export default function CityLandingContent({ city }) {
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-slate-200 p-5 text-center">
             <Warehouse className="mx-auto h-6 w-6 text-blue-600" />
-            <p className="mt-2 text-sm font-semibold text-slate-800">Almacén en Yiwu, China</p>
+            <p className="mt-2 text-sm font-semibold text-slate-800">Almacén en Guangdong, China</p>
             <p className="text-xs text-slate-500">Recibimos y consolidamos tu carga</p>
           </div>
           <div className="rounded-xl border border-slate-200 p-5 text-center">

@@ -15,7 +15,7 @@ export default function WarehouseAddressCard({ user, config }) {
     },
     {
       key: 'w2',
-      name: config?.warehouse2_name || 'Yiwu',
+      name: config?.warehouse2_name || 'Guangdong',
       address: config?.warehouse2_address || '',
       phone: config?.warehouse2_phone || '',
       zipcode: config?.warehouse2_zipcode || ''

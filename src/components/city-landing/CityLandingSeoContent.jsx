@@ -19,7 +19,7 @@ export default function CityLandingSeoContent({ city }) {
             <p>
               Si buscas <strong>importar productos desde China a {city.city}, {city.state_name}</strong>, el
               envío marítimo es la opción más económica y segura para volúmenes medianos y grandes. En TLEC Cargo
-              consolidamos tu carga en nuestros almacenes de Yiwu —el mayor mercado mayorista del mundo— y Guangdong, y la
+              consolidamos tu carga en nuestro almacén de Guangdong —uno de los mayores polos industriales del mundo— y la
               transportamos en contenedores hasta Venezuela, con entrega puerta a puerta en {city.city} y toda la
               región de {city.state_name}. El tiempo de tránsito estimado es de{' '}
               <strong>{city.transit_lcl}</strong> para carga consolidada (LCL) y <strong>{city.transit_fcl}</strong>{' '}
@@ -88,8 +88,8 @@ export default function CityLandingSeoContent({ city }) {
           </h3>
           <ol className="mt-4 space-y-4">
             {[
-              { icon: FileText, title: '1. Crea tu casillero gratis', text: `Regístrate en TLEC Cargo y obtén tu Shipping Mark único. Tus proveedores en China deben etiquetar todos tus paquetes con ese código para que lleguen a nuestros almacenes de Yiwu o Guangdong.` },
-              { icon: Warehouse, title: '2. Recibimos tu carga en Yiwu o Guangdong', text: `Tu mercancía llega a nuestro almacén en China. Pesamos, medimos y fotografiamos cada paquete. Puedes ver todo desde tu panel.` },
+              { icon: FileText, title: '1. Crea tu casillero gratis', text: `Regístrate en TLEC Cargo y obtén tu Shipping Mark único. Tus proveedores en China deben etiquetar todos tus paquetes con ese código para que lleguen a nuestro almacén de Guangdong.` },
+              { icon: Warehouse, title: '2. Recibimos tu carga en Guangdong', text: `Tu mercancía llega a nuestro almacén en China. Pesamos, medimos y fotografiamos cada paquete. Puedes ver todo desde tu panel.` },
               { icon: Ship, title: '3. Consolidamos y enviamos', text: `Agrupamos tus paquetes con otros envíos hacia Venezuela en un contenedor marítimo. El buque zarpa rumbo a Venezuela con destino a ${city.state_name}.` },
               { icon: Truck, title: `4. Entrega en ${city.city}`, text: `Tras la llegada y nacionalización, coordinamos la entrega puerta a puerta en ${city.city}. Recibes notificaciones push y por email en cada etapa.` },
             ].map((step, i) => (
@@ -125,7 +125,7 @@ export default function CityLandingSeoContent({ city }) {
               <strong>{city.transit_lcl}</strong> para LCL (consolidado) y <strong>{city.transit_fcl}</strong> para FCL
               (contenedor completo), contado desde la salida del buque. A esto se suma el tiempo de consolidación en
               China (1–2 semanas) y la nacionalización en Venezuela. El total aproximado desde que tu carga llega a
-              nuestro almacén en Yiwu o Guangdong hasta que la recibes en {city.city} es de 90 a 120 días.
+              nuestro almacén en Guangdong hasta que la recibes en {city.city} es de 90 a 120 días.
             </p>
             <p>
               En TLEC Cargo también ofrecemos <strong>envío aéreo de China a {city.city}</strong> para cargas

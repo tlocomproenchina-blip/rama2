@@ -1355,7 +1355,7 @@ export default function AdminSettings({ user }) {
                   <Input
                     value={appConfig.warehouse2_name || ''}
                     onChange={(e) => setAppConfig({ ...appConfig, warehouse2_name: e.target.value })}
-                    placeholder="Yiwu"
+                    placeholder="Guangdong"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1363,7 +1363,7 @@ export default function AdminSettings({ user }) {
                   <Textarea
                     value={appConfig.warehouse2_address || ''}
                     onChange={(e) => setAppConfig({ ...appConfig, warehouse2_address: e.target.value })}
-                    placeholder="Dirección completa del almacén de Yiwu..."
+                    placeholder="Dirección completa del almacén de Guangdong..."
                     rows={3}
                   />
                 </div>

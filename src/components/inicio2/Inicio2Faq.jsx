@@ -5,7 +5,7 @@ import { HelpCircle } from 'lucide-react';
 const faqs = [
   {
     q: '¿Cómo funciona el Casillero Virtual y cuánto cuesta?',
-    a: 'El Casillero Virtual de TLEC Cargo para importar desde China es 100% gratuito. No cobramos mensualidad, afiliación ni registro. Al registrarte obtienes un código exclusivo de cliente (ej: TLEC-5540) y las direcciones de nuestros dos almacenes físicos en China: Yiwu y Guangdong. Al comprar a tus proveedores de Alibaba, 1688, Pinduoduo, Weidian, etc, ingresas esa dirección. Nosotros recibimos tu mercancía, la registramos en sistema, la consolidamos y la llevamos mediante flete marítimo seguro hasta la puerta de tu casa u oficina en Venezuela.',
+    a: 'El Casillero Virtual de TLEC Cargo para importar desde China es 100% gratuito. No cobramos mensualidad, afiliación ni registro. Al registrarte obtienes un código exclusivo de cliente (ej: TLEC-5540) y la dirección de nuestro almacén físico en Guangdong, China. Al comprar a tus proveedores de Alibaba, 1688, Pinduoduo, Weidian, etc, ingresas esa dirección. Nosotros recibimos tu mercancía, la registramos en sistema, la consolidamos y la llevamos mediante flete marítimo seguro hasta la puerta de tu casa u oficina en Venezuela.',
   },
   {
     q: '¿Qué es la consolidacion y cómo me ayuda a ahorrar?',
@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     q: '¿Puedo comprar en tiendas de China como Alibaba, 1688, Pinduoduo, Weidian?',
-    a: 'Sí. Puedes comprar en Alibaba, 1688, Pinduoduo, Weidian, etc y cualquier tienda o proveedor chino que haga entregas dentro de China. Solo colocas la dirección de nuestro almacén en Yiwu o en Guangdong como dirección de entrega, y nosotros nos encargamos del resto hasta tu puerta en Venezuela.',
+    a: 'Sí. Puedes comprar en Alibaba, 1688, Pinduoduo, Weidian, etc y cualquier tienda o proveedor chino que haga entregas dentro de China. Solo colocas la dirección de nuestro almacén en Guangdong como dirección de entrega, y nosotros nos encargamos del resto hasta tu puerta en Venezuela.',
   },
 ];
 

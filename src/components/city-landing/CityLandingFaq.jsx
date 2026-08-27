@@ -11,11 +11,11 @@ export default function CityLandingFaq({ city }) {
     },
     {
       q: `¿Cuánto tarda un envío marítimo de China a ${city.city}?`,
-      a: `El tiempo de tránsito estimado es de ${city.transit_lcl} para carga consolidada (LCL) y ${city.transit_fcl} para contenedor completo (FCL), desde que el buque zarpa de China. El tiempo total desde que tu carga llega a nuestro almacén en Yiwu hasta que la recibes en ${city.city} es de aproximadamente 90 a 120 días, incluyendo consolidación y nacionalización.`,
+      a: `El tiempo de tránsito estimado es de ${city.transit_lcl} para carga consolidada (LCL) y ${city.transit_fcl} para contenedor completo (FCL), desde que el buque zarpa de China. El tiempo total desde que tu carga llega a nuestro almacén en Guangdong hasta que la recibes en ${city.city} es de aproximadamente 90 a 120 días, incluyendo consolidación y nacionalización.`,
     },
     {
       q: `¿Cómo hago para que mi compra en China llegue a ${city.city}?`,
-      a: `Regístrate gratis en TLEC Cargo, obtén tu Shipping Mark (casillero único) y dáselo a tu proveedor en China (Alibaba, 1688, Taobao, etc.). Tu paquete llega a nuestro almacén en Yiwu, lo consolidamos con el resto de tu carga y lo enviamos por vía marítima a Venezuela con entrega puerta a puerta en ${city.city}.`,
+      a: `Regístrate gratis en TLEC Cargo, obtén tu Shipping Mark (casillero único) y dáselo a tu proveedor en China (Alibaba, 1688, Taobao, etc.). Tu paquete llega a nuestro almacén en Guangdong, lo consolidamos con el resto de tu carga y lo enviamos por vía marítima a Venezuela con entrega puerta a puerta en ${city.city}.`,
     },
     {
       q: `¿Puedo asegurar mi carga de China a ${city.state_name}?`,
