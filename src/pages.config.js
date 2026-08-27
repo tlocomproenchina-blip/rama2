@@ -61,7 +61,6 @@ export const PAGES = {
     "ClientAnalytics": lazy(() => import('./pages/ClientAnalytics')),
     "Dashboard": lazy(() => import('./pages/Dashboard')),
     "FAQ": lazy(() => import('./pages/FAQ')),
-    "Home": lazy(() => import('./pages/Home')),
     "MyCbm": lazy(() => import('./pages/MyCbm')),
     "MyConsolidations": lazy(() => import('./pages/MyConsolidations')),
     "MyInvoices": lazy(() => import('./pages/MyInvoices')),
@@ -83,7 +82,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "Home",
+    mainPage: "Inicio2",
     Pages: PAGES,
     Layout: __Layout,
 };

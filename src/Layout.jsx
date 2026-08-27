@@ -249,7 +249,7 @@ export default function Layout({ children, currentPageName }) {
 
       // Redirect admin when landing on Home/Dashboard or no page specified.
       // Siempre mostrar el Resumen Diario al iniciar sesión o abrir la app.
-      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Home' || currentPageName === 'Inicio2')) {
+      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Inicio2')) {
         navigate(createPageUrl('AdminDailySummary'));
         setLoading(false);
         return;
@@ -299,7 +299,7 @@ export default function Layout({ children, currentPageName }) {
         }
       } catch (_) {}
       // Allow specific public pages without login
-      const publicPages = ['Home', 'ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding'];
+      const publicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding'];
       if (publicPages.includes(currentPageName)) {
         setUser(null);
         setLoading(false);
