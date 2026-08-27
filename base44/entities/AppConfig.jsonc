@@ -24,16 +24,38 @@
       "type": "string",
       "description": "URL del favicon/icono de pesta\u00f1a"
     },
+    "warehouse_name": {
+      "type": "string",
+      "default": "Guangdong",
+      "description": "Nombre del almac\u00e9n 1 mostrado al cliente"
+    },
     "warehouse_address": {
       "type": "string"
     },
     "warehouse_phone": {
       "type": "string",
-      "description": "N\u00famero telef\u00f3nico del almac\u00e9n mostrado en el portal del cliente"
+      "description": "N\u00famero telef\u00f3nico del almac\u00e9n 1"
     },
     "warehouse_zipcode": {
       "type": "string",
-      "description": "C\u00f3digo postal del almac\u00e9n mostrado en el portal del cliente"
+      "description": "C\u00f3digo postal del almac\u00e9n 1"
+    },
+    "warehouse2_name": {
+      "type": "string",
+      "default": "Yiwu",
+      "description": "Nombre del almac\u00e9n 2 mostrado al cliente"
+    },
+    "warehouse2_address": {
+      "type": "string",
+      "description": "Direcci\u00f3n del almac\u00e9n 2 (Yiwu). Vac\u00edo = almac\u00e9n inactivo"
+    },
+    "warehouse2_phone": {
+      "type": "string",
+      "description": "N\u00famero telef\u00f3nico del almac\u00e9n 2"
+    },
+    "warehouse2_zipcode": {
+      "type": "string",
+      "description": "C\u00f3digo postal del almac\u00e9n 2"
     },
     "shipping_mark_example_image_url": {
       "type": "string",
@@ -552,26 +574,26 @@
     "emails_enabled": {
       "type": "boolean",
       "default": true,
-      "description": "Kill switch global de emails. Si est\u00e1 apagado, NINGUNA funci\u00f3n de backend enviar\u00e1 emails (solo notificaciones in-app). \u00dasalo para detener consumo de cr\u00e9ditos."
+      "description": "Kill switch global de emails. Si est\u00e1 apagado, NINGUNA funci\u00f3n de backend enviar\u00e1 emails (solo notificaciones in-app)."
     },
     "logistics_emails_enabled": {
       "type": "boolean",
       "default": false,
-      "description": "Permite que los cambios de Ruta, Veh\u00edculo, Chofer y Seguimiento env\u00eden emails. Apagado por defecto para reducir consumo."
+      "description": "Permite que los cambios de Ruta, Veh\u00edculo, Chofer y Seguimiento env\u00eden emails."
     },
     "brevo_daily_limit": {
       "type": "number",
       "default": 295,
-      "description": "L\u00edmite diario de env\u00edos v\u00eda Brevo (plan free: 300/d\u00eda). Al superar este n\u00famero, el sistema cambia autom\u00e1ticamente a la funci\u00f3n nativa (Core.SendEmail) hasta que se reinicia la cuota."
+      "description": "L\u00edmite diario de env\u00edos v\u00eda Brevo (plan free: 300/d\u00eda)."
     },
     "brevo_emails_sent_today": {
       "type": "number",
       "default": 0,
-      "description": "Contador de emails enviados por Brevo hoy. Se reinicia autom\u00e1ticamente al cambiar la fecha (brevo_counter_date)."
+      "description": "Contador de emails enviados por Brevo hoy."
     },
     "brevo_counter_date": {
       "type": "string",
-      "description": "Fecha (YYYY-MM-DD) del \u00faltimo d\u00eda contado. Si no coincide con hoy, el contador se reinicia a 0."
+      "description": "Fecha (YYYY-MM-DD) del \u00faltimo d\u00eda contado."
     },
     "sidebar_hidden_pages": {
       "type": "array",

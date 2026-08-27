@@ -1301,33 +1301,91 @@ export default function AdminSettings({ user }) {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Dirección del almacén</Label>
-                <Textarea
-                  value={appConfig.warehouse_address}
-                  onChange={(e) => setAppConfig({ ...appConfig, warehouse_address: e.target.value })}
-                  placeholder="Dirección completa del almacén..."
-                  rows={3}
-                />
+              {/* Almacén 1 */}
+              <div className="p-4 md:p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-slate-600" />
+                  <h3 className="font-semibold text-slate-800">Almacén 1</h3>
+                </div>
+                <div className="space-y-2">
+                  <Label>Nombre del almacén</Label>
+                  <Input
+                    value={appConfig.warehouse_name || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, warehouse_name: e.target.value })}
+                    placeholder="Guangdong"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Dirección del almacén</Label>
+                  <Textarea
+                    value={appConfig.warehouse_address || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, warehouse_address: e.target.value })}
+                    placeholder="Dirección completa del almacén..."
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Número telefónico</Label>
+                    <Input
+                      value={appConfig.warehouse_phone || ''}
+                      onChange={(e) => setAppConfig({ ...appConfig, warehouse_phone: e.target.value })}
+                      placeholder="Ej: 13427313128"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Zipcode</Label>
+                    <Input
+                      value={appConfig.warehouse_zipcode || ''}
+                      onChange={(e) => setAppConfig({ ...appConfig, warehouse_zipcode: e.target.value })}
+                      placeholder="Ej: 529200"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Almacén 2 */}
+              <div className="p-4 md:p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-slate-600" />
+                  <h3 className="font-semibold text-slate-800">Almacén 2</h3>
+                </div>
                 <div className="space-y-2">
-                  <Label>Número telefónico del almacén</Label>
+                  <Label>Nombre del almacén</Label>
                   <Input
-                    value={appConfig.warehouse_phone || ''}
-                    onChange={(e) => setAppConfig({ ...appConfig, warehouse_phone: e.target.value })}
-                    placeholder="Ej: 13427313128"
+                    value={appConfig.warehouse2_name || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, warehouse2_name: e.target.value })}
+                    placeholder="Yiwu"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Zipcode del almacén</Label>
-                  <Input
-                    value={appConfig.warehouse_zipcode || ''}
-                    onChange={(e) => setAppConfig({ ...appConfig, warehouse_zipcode: e.target.value })}
-                    placeholder="Ej: 529200"
+                  <Label>Dirección del almacén</Label>
+                  <Textarea
+                    value={appConfig.warehouse2_address || ''}
+                    onChange={(e) => setAppConfig({ ...appConfig, warehouse2_address: e.target.value })}
+                    placeholder="Dirección completa del almacén de Yiwu..."
+                    rows={3}
                   />
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Número telefónico</Label>
+                    <Input
+                      value={appConfig.warehouse2_phone || ''}
+                      onChange={(e) => setAppConfig({ ...appConfig, warehouse2_phone: e.target.value })}
+                      placeholder="Ej: 13427313128"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Zipcode</Label>
+                    <Input
+                      value={appConfig.warehouse2_zipcode || ''}
+                      onChange={(e) => setAppConfig({ ...appConfig, warehouse2_zipcode: e.target.value })}
+                      placeholder="Ej: 322000"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500">Deja la dirección vacía si este almacén no está activo: no se mostrará a los clientes.</p>
               </div>
 
               <div className="space-y-2">
