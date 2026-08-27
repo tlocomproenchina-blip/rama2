@@ -21,19 +21,31 @@
     <script>
       // En el entorno de desarrollo/preview (no es el dominio publicado) nunca
       // debe haber un service worker: cachea chunks de Vite y provoca que se
-      // mezclen versiones de React. Se desregistra y se limpian los caches.
+      // mezclen versiones de React. Si hay un SW controlando la página, no
+      // basta con desregistrarlo en segundo plano: ya estaría sirviendo chunks
+      // viejos. En ese caso desregistramos, limpiamos caches y recargamos.
       (function () {
         var isPreview = location.hostname !== 'tleccargo.base44.app';
         if (!isPreview || !('serviceWorker' in navigator)) return;
         try {
+          var hadController = !!navigator.serviceWorker.controller;
           navigator.serviceWorker.getRegistrations().then(function (regs) {
-            regs.forEach(function (reg) { reg.unregister(); });
+            return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
+          }).then(function () {
+            if (window.caches && caches.keys) {
+              return caches.keys().then(function (keys) {
+                return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+              });
+            }
+          }).then(function () {
+            // Si un SW estaba controlando, recargamos para que la página cargue
+            // limpia sin interferencia del cache. Usamos un flag en la URL para
+            // no entrar en bucle de recarga.
+            if (hadController && location.search.indexOf('swclean=1') === -1) {
+              var sep = location.search ? '&' : '?';
+              location.replace(location.href + sep + 'swclean=1');
+            }
           }).catch(function () {});
-          if (window.caches && caches.keys) {
-            caches.keys().then(function (keys) {
-              keys.forEach(function (key) { caches.delete(key); });
-            }).catch(function () {});
-          }
         } catch (e) {}
       })();
     </script>
