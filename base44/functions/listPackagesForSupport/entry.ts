@@ -2,8 +2,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 // Cache en memoria para conteos globales (no dependen de los filtros del usuario).
 // Evita recalcular ~350k registros cada vez que el admin cambia un filtro.
-const COUNTS_TTL_MS = 3 * 60 * 1000; // 3 min — los conteos globales no necesitan ser en tiempo real
+const COUNTS_TTL_MS = 10 * 60 * 1000; // 10 min — los conteos globales son aproximados, no en tiempo real
 let _countsCache = { at: 0, counts: null };
+let _countsInFlight = false; // evita lanzar varios escaneos simultáneos
 
 // Lista paquetes para AdminPackages con paginación, filtros y conteos server-side
 Deno.serve(async (req) => {
@@ -116,7 +117,6 @@ Deno.serve(async (req) => {
     // El total exacto solo se devuelve cuando no hay filtros (usa counts.total).
     const fetchGlobalCounts = async () => {
       const now = Date.now();
-      if (_countsCache.counts && (now - _countsCache.at) < COUNTS_TTL_MS) return _countsCache.counts;
       const staleThreshold = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
       const acc = { total: 0, pre_alerta_no_recibido: 0, recibido: 0, consolidado: 0, en_transito: 0, entregado: 0, stale: 0 };
       const B = 1000;
@@ -147,7 +147,19 @@ Deno.serve(async (req) => {
     // created_date es un campo built-in que NO soporta $gte/$lte en el SDK.
     // Cuando hay filtro de fechas, hay que fetch en lotes iterativos y filtrar en JS.
     const hasDateFilter = advancedFilters && (advancedFilters.dateFrom || advancedFilters.dateTo);
-    const countsPromise = includeCounts ? fetchGlobalCounts() : Promise.resolve(null);
+
+    // Los conteos globales recorren toda la tabla, así que NUNCA bloquean la
+    // respuesta: si hay copia fresca se devuelve, y si no se recalcula en
+    // segundo plano para que la siguiente carga ya la tenga.
+    const cachedCounts = (_countsCache.counts && (Date.now() - _countsCache.at) < COUNTS_TTL_MS)
+      ? _countsCache.counts
+      : null;
+    if (includeCounts && !cachedCounts && !_countsInFlight) {
+      _countsInFlight = true;
+      fetchGlobalCounts()
+        .catch(() => {})
+        .finally(() => { _countsInFlight = false; });
+    }
 
     let data;
     let hasMore;
@@ -192,7 +204,7 @@ Deno.serve(async (req) => {
       data = hasMore ? rawData.slice(0, pageLimit) : rawData;
     }
 
-    const counts = await countsPromise;
+    const counts = includeCounts ? cachedCounts : null;
 
     // Total exacto solo cuando no hay filtros (usa counts.total del cache global).
     // Con filtros, devolvemos null — la UI muestra el conteo cargado en su lugar.

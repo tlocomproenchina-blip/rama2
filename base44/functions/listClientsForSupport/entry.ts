@@ -13,7 +13,7 @@ const getDigits = (s) => (s || '').replace(/\D/g, '');
 
 // Carga TODOS los users con role='user' usando paginación interna
 async function loadAllClients(base44) {
-  const PAGE = 200;
+  const PAGE = 500;
   let skip = 0;
   let all = [];
   while (true) {
@@ -27,24 +27,37 @@ async function loadAllClients(base44) {
   return all;
 }
 
-// Carga todos los movimientos de ClientCredit y suma el balance por email
-async function loadAllCreditBalances(base44) {
+// Suma el balance de crédito SOLO de los clientes de la página devuelta.
+// Antes se escaneaba la tabla completa de ClientCredit en cada petición.
+async function loadCreditBalancesFor(base44, emails) {
   const balances = {};
-  let skip = 0;
-  const PAGE = 1000;
-  while (true) {
-    const batch = await base44.asServiceRole.entities.ClientCredit.list('-created_date', PAGE, skip).catch(() => []);
-    if (!batch || batch.length === 0) break;
-    for (const c of batch) {
-      if (!c.client_email) continue;
-      const amt = Number(c.amount) || 0;
-      balances[c.client_email] = (balances[c.client_email] || 0) + amt;
-    }
-    if (batch.length < PAGE) break;
-    skip += PAGE;
-    if (skip >= 50000) break;
+  const rows = await base44.asServiceRole.entities.ClientCredit
+    .filter({ client_email: { $in: emails } }, '-created_date', 2000)
+    .catch(() => []);
+  for (const c of rows) {
+    if (!c.client_email) continue;
+    balances[c.client_email] = (balances[c.client_email] || 0) + (Number(c.amount) || 0);
   }
   return balances;
+}
+
+// Conteo de paquetes por cliente. Solo se usa para los stat cards y para las
+// categorías "con/sin paquetes", así que solo se carga cuando hace falta.
+async function loadAllPackageCounts(base44) {
+  const counts = {};
+  const PAGE = 1000;
+  let s = 0;
+  while (true) {
+    const batch = await base44.asServiceRole.entities.Package.list('-created_date', PAGE, s);
+    if (!batch || batch.length === 0) break;
+    for (const p of batch) {
+      if (p.client_email) counts[p.client_email] = (counts[p.client_email] || 0) + 1;
+    }
+    if (batch.length < PAGE) break;
+    s += PAGE;
+    if (s >= 50000) break; // safety
+  }
+  return counts;
 }
 
 function sanitize(u) {
@@ -195,46 +208,31 @@ Deno.serve(async (req) => {
     // Esto resuelve el problema "N+1 / recalcular siempre": cuando el admin
     // cambia filtros varias veces, no recargamos miles de paquetes en cada click.
     const now = Date.now();
-    const cacheValid = !forceRefresh && _cache.allClients && _cache.packageCounts && (now - _cache.at) < CACHE_TTL_MS;
+    const clientsValid = !forceRefresh && _cache.allClients && (now - _cache.at) < CACHE_TTL_MS;
 
-    let all;
-    let packageCounts;
+    // Los conteos de paquetes solo hacen falta para los stat cards y para las
+    // categorías "con/sin paquetes". El buscador (includeCounts: false) ya no
+    // paga el escaneo completo de la tabla de paquetes.
+    const needsPackageCounts = includeCounts || exclusiveKey === 'with_packages' || exclusiveKey === 'without_packages';
+    const cachedPkgCounts = clientsValid ? _cache.packageCounts : null;
 
-    if (cacheValid) {
-      all = _cache.allClients;
-      packageCounts = _cache.packageCounts;
-    } else {
-      // Cargar clientes + paquetes EN PARALELO (antes era secuencial)
-      const PKG_PAGE = 1000; // batch grande = menos round trips
-      const loadAllPackageCounts = async () => {
-        const counts = {};
-        let s = 0;
-        while (true) {
-          const batch = await base44.asServiceRole.entities.Package.list('-created_date', PKG_PAGE, s);
-          if (!batch || batch.length === 0) break;
-          for (const p of batch) {
-            if (p.client_email) counts[p.client_email] = (counts[p.client_email] || 0) + 1;
-          }
-          if (batch.length < PKG_PAGE) break;
-          s += PKG_PAGE;
-          if (s >= 50000) break; // safety
-        }
-        return counts;
-      };
+    const [clientsRes, pkgRes] = await Promise.all([
+      clientsValid ? Promise.resolve(null) : loadAllClients(base44),
+      (needsPackageCounts && !cachedPkgCounts) ? loadAllPackageCounts(base44) : Promise.resolve(null),
+    ]);
 
-      const [allRaw, pkgCounts, creditBalances] = await Promise.all([
-        loadAllClients(base44),
-        loadAllPackageCounts(),
-        loadAllCreditBalances(base44),
-      ]);
+    const all = clientsRes
+      ? clientsRes
+          .filter((u) => u && u.id && u.email && u.custom_role !== 'super_admin_oculto')
+          .map(sanitize)
+      : _cache.allClients;
+    const packageCounts = pkgRes || cachedPkgCounts || {};
 
-      all = allRaw
-        .filter((u) => u && u.id && u.email && u.custom_role !== 'super_admin_oculto')
-        .map((u) => ({ ...sanitize(u), credit_balance: creditBalances[u.email] || 0 }));
-      packageCounts = pkgCounts;
-
-      _cache = { at: now, allClients: all, packageCounts };
-    }
+    _cache = {
+      at: clientsValid ? _cache.at : now,
+      allClients: all,
+      packageCounts: pkgRes || cachedPkgCounts,
+    };
 
     // Aplicar filtros
     const filtered = all.filter((c) => {
@@ -274,6 +272,13 @@ Deno.serve(async (req) => {
     // Paginar la lista filtrada
     const total = filtered.length;
     const page = filtered.slice(skip, skip + limit);
+
+    // Balance de crédito solo de los clientes visibles en esta página
+    const pageEmails = page.map((c) => c.email).filter(Boolean);
+    if (pageEmails.length > 0) {
+      const balances = await loadCreditBalancesFor(base44, pageEmails);
+      for (const c of page) c.credit_balance = balances[c.email] || 0;
+    }
 
     return Response.json({
       data: page,
