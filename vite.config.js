@@ -8,6 +8,9 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime']
   },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', '@base44/sdk']
+  },
   plugins: [
     base44({
       // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
