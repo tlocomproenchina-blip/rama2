@@ -7,10 +7,8 @@ import Inicio2Footer from '@/components/inicio2/Inicio2Footer';
 import CityLandingHero from '@/components/city-landing/CityLandingHero';
 import CityLandingContent from '@/components/city-landing/CityLandingContent';
 import CityLandingCta from '@/components/city-landing/CityLandingCta';
+import Inicio2Calculator from '@/components/inicio2/Inicio2Calculator';
 import { Loader2 } from 'lucide-react';
-
-// Calculadora existente reutilizada (lazy para no afectar bundle de la landing)
-const ShippingCalculator = React.lazy(() => import('@/pages/ShippingCalculator'));
 
 function setMetaTag(attr, key, content) {
   let el = document.head.querySelector(`meta[${attr}="${key}"]`);
@@ -106,24 +104,8 @@ export default function CityLanding({ user }) {
 
       {/* Calculadora marítima integrada con ciudad preseleccionada */}
       <section id="calculadora" className="bg-slate-50 py-14">
-        <div className="mx-auto max-w-3xl px-4">
-          <div className="mb-6 text-center">
-            <h2 className="font-display text-2xl font-extrabold text-slate-900 sm:text-3xl">
-              Calcula tu Envío Marítimo a {city.city}
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Estimación instantánea del costo de tu carga desde China hasta {city.state_name}.
-            </p>
-          </div>
-          <React.Suspense fallback={
-            <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
-          }>
-            <ShippingCalculator
-              user={user}
-              defaultStateCode={city.state_code}
-              defaultShippingType="maritimo"
-            />
-          </React.Suspense>
+        <div className="mx-auto max-w-6xl px-4">
+          <Inicio2Calculator defaultStateCode={city.state_code} />
         </div>
       </section>
 

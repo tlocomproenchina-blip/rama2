@@ -7,7 +7,7 @@ const MIN_CBM = 0.13;
 const RECEPTION_FEE = 1;
 const DENSITY_LIMIT_KG = 499;
 
-export default function Inicio2Calculator() {
+export default function Inicio2Calculator({ defaultStateCode }) {
   const [config, setConfig] = useState(null);
   const [pricing, setPricing] = useState(null);
   const [states, setStates] = useState([]);
@@ -29,11 +29,11 @@ export default function Inicio2Calculator() {
       setPricing(prc[0] || null);
       const sorted = sts.sort((a, b) => (a.state_name || '').localeCompare(b.state_name || ''));
       setStates(sorted);
-      const def = sorted.find((s) => s.state_code === 'carabobo') || sorted[0];
+      const def = sorted.find((s) => s.state_code === (defaultStateCode || 'carabobo')) || sorted[0];
       if (def) setSelectedState(def.state_code);
       setLoading(false);
     })();
-  }, []);
+  }, [defaultStateCode]);
 
   const stateCfg = states.find((s) => s.state_code === selectedState);
 
