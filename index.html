@@ -25,8 +25,13 @@
       // basta con desregistrarlo en segundo plano: ya estaría sirviendo chunks
       // viejos. En ese caso desregistramos, limpiamos caches y recargamos.
       (function () {
-        var isPreview = location.hostname !== 'tleccargo.base44.app';
-        if (!isPreview || !('serviceWorker' in navigator)) return;
+        if (!('serviceWorker' in navigator)) return;
+        // Solo limpiar si la versión del SW cambió (evita bucle de recarga).
+        // Esto previene chunks stale de Vite (doble React → "useState null").
+        var SW_VERSION = 'v8';
+        var storedVersion;
+        try { storedVersion = localStorage.getItem('tlec-sw-version'); } catch (e) {}
+        if (storedVersion === SW_VERSION) return; // ya limpio, no hacer nada
         try {
           var hadController = !!navigator.serviceWorker.controller;
           navigator.serviceWorker.getRegistrations().then(function (regs) {
@@ -38,14 +43,11 @@
               });
             }
           }).then(function () {
-            // Si un SW estaba controlando, recargamos para que la página cargue
-            // limpia sin interferencia del cache. Usamos un flag en la URL para
-            // no entrar en bucle de recarga.
+            try { localStorage.setItem('tlec-sw-version', SW_VERSION); } catch (e) {}
             if (hadController && location.search.indexOf('swclean=1') === -1) {
               var sep = location.search ? '&' : '?';
               location.replace(location.href + sep + 'swclean=1');
             } else if (location.search.indexOf('swclean=1') !== -1) {
-              // Ya recargamos limpios: remover el flag de la URL para que no se vea feo.
               try {
                 var cleanUrl = location.pathname + location.hash;
                 var params = new URLSearchParams(location.search);

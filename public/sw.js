@@ -1,5 +1,5 @@
 // TLEC CARGO Service Worker
-const CACHE_NAME = 'tlec-cargo-v7';
+const CACHE_NAME = 'tlec-cargo-v8';
 const APP_SHELL = ['/'];
 
 const SHIP_BADGE = 'https://base44.app/api/apps/695da428c9924ef9b68e8866/files/mp/public/695da428c9924ef9b68e8866/f98391e7a_badge-ship.png';
@@ -13,7 +13,9 @@ function isDevAsset(url) {
   try {
     const u = new URL(url, self.location.origin);
     const pathname = u.pathname;
-    return DEV_PATH_MARKERS.some((seg) => pathname.includes(seg));
+    // Also check for ?v= query param which is a Vite dev signature
+    const hasViteHash = u.searchParams.has('v');
+    return DEV_PATH_MARKERS.some((seg) => pathname.includes(seg)) || hasViteHash;
   } catch (_) {
     return false;
   }
