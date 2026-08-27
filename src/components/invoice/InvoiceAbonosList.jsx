@@ -129,6 +129,18 @@ export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh 
             <div key={p.id} className={`rounded-lg border ${cfg.border} ${cfg.bg} p-3`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
+                  {(() => {
+                    const orderIds = Array.isArray(p.dispatch_order_ids) ? p.dispatch_order_ids : [];
+                    const labels = orderIds
+                      .map((oid) => dispatchOrders[oid]?.order_number)
+                      .filter(Boolean);
+                    if (labels.length === 0) return null;
+                    return (
+                      <p className="text-xs font-semibold text-blue-700 mb-1">
+                        {labels.map((n) => `Envío ${n}`).join(' · ')}
+                      </p>
+                    );
+                  })()}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-slate-800">${Number(p.amount || 0).toFixed(2)}</span>
                     <span className="text-xs text-slate-500">·</span>
@@ -137,18 +149,6 @@ export default function InvoiceAbonosList({ invoice, isAdmin = false, onRefresh 
                       <StatusIcon className="h-3 w-3" /> {cfg.label}
                     </span>
                   </div>
-                  {(() => {
-                    const orderIds = Array.isArray(p.dispatch_order_ids) ? p.dispatch_order_ids : [];
-                    const labels = orderIds
-                      .map((oid) => dispatchOrders[oid]?.order_number)
-                      .filter(Boolean);
-                    if (labels.length === 0) return null;
-                    return (
-                      <p className="text-xs font-medium text-blue-700 mt-1">
-                        {labels.map((n) => `Envío ${n}`).join(' · ')}
-                      </p>
-                    );
-                  })()}
                   <p className="text-xs text-slate-500 mt-1">
                     {format(new Date(p.created_date), 'dd/MM/yyyy HH:mm')}
                     {p.reference && ` · Ref: ${p.reference}`}
