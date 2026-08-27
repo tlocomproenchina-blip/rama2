@@ -13,9 +13,15 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
+    // Vite espera a terminar de rastrear TODO antes de servir dependencias,
+    // así no sirve un chunk con un hash que después cambia.
+    holdUntilCrawlEnd: true,
     // Incluir aquí todo lo que consume React evita que Vite descubra una
     // dependencia nueva a mitad de sesión y reoptimice (lo que cambia el
     // hash ?v= mientras el navegador ya cargó los chunks viejos).
+    // Las páginas se cargan en diferido, así que muchas de estas librerías
+    // solo aparecen al navegar: si no están declaradas aquí, provocan una
+    // reoptimización tardía y dos copias de React conviviendo.
     include: [
       'react',
       'react-dom',
@@ -27,7 +33,35 @@ export default defineConfig({
       '@tanstack/react-query',
       'framer-motion',
       'lucide-react',
-      'recharts'
+      'recharts',
+      'react-hook-form',
+      '@hookform/resolvers/zod',
+      'zod',
+      'date-fns',
+      'moment',
+      'lodash',
+      'clsx',
+      'tailwind-merge',
+      'class-variance-authority',
+      'react-markdown',
+      'react-day-picker',
+      'react-resizable-panels',
+      'react-hot-toast',
+      'sonner',
+      'next-themes',
+      'cmdk',
+      'vaul',
+      'embla-carousel-react',
+      'input-otp',
+      'canvas-confetti',
+      'html2canvas',
+      'jspdf',
+      'xlsx',
+      'three',
+      'react-leaflet',
+      '@hello-pangea/dnd',
+      '@stripe/stripe-js',
+      '@stripe/react-stripe-js'
     ]
   },
   plugins: [
