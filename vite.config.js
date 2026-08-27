@@ -6,10 +6,10 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   logLevel: 'error', // Suppress warnings, only show errors
   resolve: {
-    dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime']
+    dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', '@base44/sdk']
+    include: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@base44/sdk']
   },
   plugins: [
     base44({
