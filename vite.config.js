@@ -69,7 +69,9 @@ export default defineConfig({
       'jspdf',
       'xlsx',
       'three',
-      'react-leaflet',
+      // 'react-leaflet' NO se pre-empaqueta: requiere `leaflet` como peer y no
+      // está instalado, así que el optimizador falla a mitad de la corrida y
+      // deja dos conjuntos de chunks (dos copias de React con hashes ?v= distintos).
       '@hello-pangea/dnd',
       '@stripe/stripe-js',
       '@stripe/react-stripe-js',

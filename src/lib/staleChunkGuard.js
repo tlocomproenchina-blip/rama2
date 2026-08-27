@@ -13,8 +13,8 @@
  */
 
 const RECOVERY_KEY = 'tlec-stale-chunk-recovery';
-const MAX_ATTEMPTS = 2;
-const ATTEMPT_WINDOW_MS = 60000; // reintentos válidos dentro de 1 minuto
+const MAX_ATTEMPTS = 3;
+const ATTEMPT_WINDOW_MS = 120000; // reintentos válidos dentro de 2 minutos
 
 const DUPLICATE_REACT_SIGNATURES = [
   "reading 'useState'",
