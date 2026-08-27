@@ -72,10 +72,10 @@ export default function DispatchOrderSelector({ invoice, onChange }) {
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
         <Truck className="h-4 w-4 text-blue-600" />
-        Órdenes de despacho disponibles para pagar
+        Envíos / Recibos disponibles para pagar
       </div>
       <p className="text-xs text-slate-500">
-        Selecciona las órdenes que deseas pagar en este abono. El monto se calcula automáticamente.
+        Selecciona los envíos que deseas pagar en este abono. El monto se calcula automáticamente.
       </p>
 
       <div className="space-y-2">
@@ -93,7 +93,9 @@ export default function DispatchOrderSelector({ invoice, onChange }) {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="font-bold text-slate-800 break-all">{o.order_number}</span>
+                <span className="font-bold text-slate-800 break-all">
+                  {o.recibos && o.recibos.length > 0 ? o.recibos.join(', ') : o.order_number}
+                </span>
                 <span className="font-bold text-blue-700 shrink-0">${num(o.amount).toFixed(2)}</span>
               </div>
               <div className="flex items-center gap-3 mt-1 text-xs text-slate-600 flex-wrap">
@@ -141,14 +143,14 @@ export default function DispatchOrderSelector({ invoice, onChange }) {
       {paid.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t">
           <p className="text-xs font-medium text-emerald-700 flex items-center gap-1">
-            <CheckCircle2 className="h-3.5 w-3.5" /> Órdenes ya pagadas ({paid.length})
+          <CheckCircle2 className="h-3.5 w-3.5" /> Envíos ya pagados ({paid.length})
           </p>
           {paid.map((o) => (
-            <div key={o.order_id} className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
-              <div className="min-w-0">
-                <span className="font-semibold text-slate-700 text-sm break-all">{o.order_number}</span>
-                <span className="text-xs text-slate-500 ml-2 inline-flex items-center gap-1"><Lock className="h-3 w-3" /> pagada</span>
-              </div>
+          <div key={o.order_id} className="flex items-center justify-between gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
+            <div className="min-w-0">
+              <span className="font-semibold text-slate-700 text-sm break-all">{o.recibos && o.recibos.length > 0 ? o.recibos.join(', ') : o.order_number}</span>
+              <span className="text-xs text-slate-500 ml-2 inline-flex items-center gap-1"><Lock className="h-3 w-3" /> pagado</span>
+            </div>
               <span className="text-sm font-medium text-emerald-700 shrink-0">${num(o.amount).toFixed(2)}</span>
             </div>
           ))}
