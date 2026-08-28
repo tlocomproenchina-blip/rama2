@@ -9,6 +9,7 @@ import ClientInfoCard from '@/components/manual-billing/ClientInfoCard';
 import ClientStateRatesCard from '@/components/manual-billing/ClientStateRatesCard';
 import BillingInvoiceRow from '@/components/manual-billing/BillingInvoiceRow';
 import BillingSummary from '@/components/manual-billing/BillingSummary';
+import PackagesWithoutReceiptSection from '@/components/manual-billing/PackagesWithoutReceiptSection';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -33,6 +34,7 @@ export default function AdminManualBilling() {
   const [recovering, setRecovering] = useState(false);
   const [creditBalance, setCreditBalance] = useState(0);
   const [rateHistory, setRateHistory] = useState([]);
+  const [orphanPackages, setOrphanPackages] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -183,6 +185,7 @@ export default function AdminManualBilling() {
     setClient(selectedClient);
     setRows([]);
     setCreditBalance(0);
+    setOrphanPackages([]);
     setLoadingRows(true);
     try {
       const [ingresos, pkgs, credits] = await Promise.all([
@@ -210,6 +213,28 @@ export default function AdminManualBilling() {
 
       // Excluir registros que ya fueron facturados (solo se liberan al desconsolidar)
       const available = (ingresos || []).filter((ing) => !ing.billed);
+
+      // Construir set de trackings que ya tienen recibo (CbmIngreso)
+      const trackingsWithReceipt = new Set();
+      (ingresos || []).forEach((ing) => {
+        (ing.tracking_numbers || []).forEach((t) => trackingsWithReceipt.add(normTracking(t)));
+      });
+
+      // Paquetes sin recibo: su tracking no aparece en ningún CbmIngreso
+      const orphans = (pkgs || [])
+        .filter((p) => {
+          const t = normTracking(p.tracking_number);
+          return t && !trackingsWithReceipt.has(t);
+        })
+        .map((p) => ({
+          id: p.id,
+          tracking_number: p.tracking_number,
+          fob_value: num(p.fob_value),
+          selected: false,
+          cbm: '',
+        }));
+      setOrphanPackages(orphans);
+
       const built = available.map((ing) => {
         const cbm = num(ing.cbm);
         const trackings = ing.tracking_numbers || [];
@@ -258,13 +283,18 @@ export default function AdminManualBilling() {
   };
 
   const selectedRows = rows.filter((r) => r.selected);
+  const selectedOrphans = orphanPackages.filter((p) => p.selected);
   // El envío SIEMPRE se cobra consolidado: un solo cálculo sobre el CBM total
   // (manual si se indicó "CBM facturado", o la suma de las cargas seleccionadas)
   const selectedCbmSum = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
-  const shippingTotal = calcConsolidatedShipping(billedCbm !== '' ? num(billedCbm) : selectedCbmSum, selectedRows);
+  const orphanCbmSum = selectedOrphans.reduce((s, p) => s + num(p.cbm), 0);
+  const totalCbmAll = selectedCbmSum + orphanCbmSum;
+  const shippingTotal = calcConsolidatedShipping(billedCbm !== '' ? num(billedCbm) : totalCbmAll, selectedRows);
   const autoInsuranceTotal = selectedRows.reduce((s, r) => s + num(r.insurance_amount), 0);
-  const insuranceTotal = manualInsurance !== '' ? num(manualInsurance) : autoInsuranceTotal;
-  const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0);
+  // Seguro de paquetes sin recibo: 5% del FOB si tienen valor asegurado
+  const orphanInsuranceTotal = selectedOrphans.reduce((s, p) => s + (num(p.fob_value) * 0.05), 0);
+  const insuranceTotal = manualInsurance !== '' ? num(manualInsurance) : (autoInsuranceTotal + orphanInsuranceTotal);
+  const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0) + selectedOrphans.length;
   const consolidationFee = consolidationMode === 'manual' ? num(manualConsolidationFee) : totalPackages * 1;
   const extraAmountValue = num(extraAmount);
   const doorToDoorValue = num(doorToDoorFee);
@@ -272,8 +302,13 @@ export default function AdminManualBilling() {
 
   const handleCreate = async () => {
     const manualReceipt = String(manualReceiptNumber || '').trim();
-    if (selectedRows.length === 0 && !manualReceipt) { toast.error('Selecciona al menos una factura o ingresa un número de recibo nuevo'); return; }
-    if (selectedRows.length === 0 && num(billedCbm) <= 0) { toast.error('Ingresa el CBM facturado (manual) para el recibo nuevo'); return; }
+    const selOrphans = orphanPackages.filter((p) => p.selected);
+    const orphanCbm = selOrphans.reduce((s, p) => s + num(p.cbm), 0);
+    if (selectedRows.length === 0 && !manualReceipt && selOrphans.length === 0) { toast.error('Selecciona al menos una factura, un paquete sin recibo o ingresa un número de recibo nuevo'); return; }
+    if (selectedRows.length === 0 && !manualReceipt && selOrphans.length > 0 && num(billedCbm) <= 0 && orphanCbm <= 0) { toast.error('Ingresa el CBM para los paquetes sin recibo'); return; }
+    // Validar que cada paquete sin recibo seleccionado tenga CBM
+    const orphansWithoutCbm = selOrphans.filter((p) => num(p.cbm) <= 0);
+    if (orphansWithoutCbm.length > 0) { toast.error(`Falta ingresar CBM para ${orphansWithoutCbm.length} paquete(s) sin recibo`); return; }
     setCreating(true);
     try {
       // Validar que el número de recibo nuevo no exista ya
@@ -287,7 +322,15 @@ export default function AdminManualBilling() {
       }
 
       const totalCbm = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
-      const billedCbmValue = billedCbm !== '' ? num(billedCbm) : totalCbm;
+      const selOrphans = orphanPackages.filter((p) => p.selected);
+      const orphanCbmTotal = selOrphans.reduce((s, p) => s + num(p.cbm), 0);
+      const totalCbmWithOrphans = totalCbm + orphanCbmTotal;
+      const billedCbmValue = billedCbm !== '' ? num(billedCbm) : totalCbmWithOrphans;
+
+      // Generar número de recibo para los paquetes sin recibo seleccionados
+      const orphanReceiptNumber = selOrphans.length > 0
+        ? `MANUAL-${Date.now().toString().slice(-8)}`
+        : null;
 
       const useManualInsurance = manualInsurance !== '';
       const items = [];
@@ -296,9 +339,10 @@ export default function AdminManualBilling() {
       const sourceOrders = [
         ...selectedRows.map((r) => r.invoice_number).filter((n) => n && n !== '—'),
         ...(manualReceipt ? [manualReceipt] : []),
+        ...(orphanReceiptNumber ? [orphanReceiptNumber] : []),
       ];
       // Detalle por recibo: número + CBM individual
-      const manualReceiptCbm = Math.max(billedCbmValue - totalCbm, 0);
+      const manualReceiptCbm = Math.max(billedCbmValue - totalCbmWithOrphans, 0);
       const ratePerCbm = billedCbmValue > 0 ? consolidatedShipping / billedCbmValue : 0;
       // Cada recibo (envío) se muestra como su propia línea con su CBM y precio individual
       selectedRows
@@ -322,6 +366,15 @@ export default function AdminManualBilling() {
           details: { cbm: manualReceiptCbm, invoice_number: manualReceipt, source_invoices: [manualReceipt] },
         });
       }
+      if (orphanReceiptNumber) {
+        items.push({
+          description: `Envío ${orphanReceiptNumber} (paquetes sin recibo)`,
+          quantity: orphanCbmTotal,
+          unit_price: ratePerCbm,
+          total: orphanCbmTotal * ratePerCbm,
+          details: { cbm: orphanCbmTotal, invoice_number: orphanReceiptNumber, source_invoices: [orphanReceiptNumber], orphan_packages: true },
+        });
+      }
       if (!useManualInsurance) {
         selectedRows.forEach((r) => {
           if (num(r.insurance_amount) > 0) {
@@ -331,6 +384,19 @@ export default function AdminManualBilling() {
               unit_price: num(r.insurance_amount),
               total: num(r.insurance_amount),
               details: { fob_value: r.total_fob, insured_packages: r.insured_count },
+            });
+          }
+        });
+        // Seguro de paquetes sin recibo (5% FOB)
+        selOrphans.forEach((p) => {
+          const ins = num(p.fob_value) * 0.05;
+          if (ins > 0) {
+            items.push({
+              description: `Seguro de carga - ${p.tracking_number}`,
+              quantity: 1,
+              unit_price: ins,
+              total: ins,
+              details: { fob_value: p.fob_value, insured_packages: 1, orphan_package: true },
             });
           }
         });
@@ -385,9 +451,15 @@ export default function AdminManualBilling() {
             tracking_numbers: r.tracking_numbers || [],
           })),
         ...(manualReceipt ? [{ cbm_ingreso_id: null, invoice_number: manualReceipt, cbm: manualReceiptCbm, tracking_numbers: [] }] : []),
+        ...(orphanReceiptNumber ? [{
+          cbm_ingreso_id: null,
+          invoice_number: orphanReceiptNumber,
+          cbm: orphanCbmTotal,
+          tracking_numbers: selOrphans.map((p) => p.tracking_number),
+        }] : []),
       ];
       const costBreakdown = {
-        total_cbm: totalCbm,
+        total_cbm: totalCbmWithOrphans,
         billed_cbm: billedCbmValue,
         shipping_total: consolidatedShipping,
         insurance_total: insuranceTotal,
@@ -396,6 +468,8 @@ export default function AdminManualBilling() {
         extra_amount: extraAmountValue,
         extra_concept: String(extraConcept || '').trim(),
         rate_per_cbm: ratePerCbm,
+        orphan_packages_count: selOrphans.length,
+        orphan_cbm: orphanCbmTotal,
       };
 
       const dueDate = new Date();
@@ -418,7 +492,7 @@ export default function AdminManualBilling() {
         total_cbm: totalCbm,
         manual_recibos: manualRecibos,
         cost_breakdown: costBreakdown,
-        notes: `Factura manual combinada generada desde ${sourceOrders.length} recibo(s): ${sourceOrders.join(', ')}. CBM total: ${totalCbm.toFixed(5)} | CBM facturado: ${billedCbmValue.toFixed(5)}`,
+        notes: `Factura manual combinada generada desde ${sourceOrders.length} recibo(s): ${sourceOrders.join(', ')}. CBM total: ${totalCbmWithOrphans.toFixed(5)} | CBM facturado: ${billedCbmValue.toFixed(5)}${selOrphans.length > 0 ? ` | Paquetes sin recibo: ${selOrphans.length} (${selOrphans.map((p) => p.tracking_number).join(', ')})` : ''}`,
       });
 
       // Marcar los registros de CBM usados como facturados
@@ -438,6 +512,23 @@ export default function AdminManualBilling() {
           client_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.full_name || client.email,
           shipping_mark: client.shipping_mark || '',
           invoice_number: manualReceipt,
+          billed: true,
+          billed_invoice_id: invoice.id,
+        }).catch(() => {});
+      }
+
+      // Registrar CbmIngreso para paquetes sin recibo y marcarlos como facturados
+      if (orphanReceiptNumber) {
+        await base44.entities.CbmIngreso.create({
+          fecha: new Date().toISOString(),
+          cbm: orphanCbmTotal,
+          mes: new Date().toISOString().slice(0, 7),
+          client_email: client.email,
+          client_name: `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.full_name || client.email,
+          shipping_mark: client.shipping_mark || '',
+          invoice_number: orphanReceiptNumber,
+          tracking_numbers: selOrphans.map((p) => p.tracking_number),
+          fob_total: selOrphans.reduce((s, p) => s + num(p.fob_value), 0),
           billed: true,
           billed_invoice_id: invoice.id,
         }).catch(() => {});
@@ -502,6 +593,9 @@ export default function AdminManualBilling() {
       // Quitar de la lista los registros ya facturados
       const billedIds = new Set(selectedRows.map((r) => r.id));
       setRows((prev) => prev.filter((r) => !billedIds.has(r.id)));
+      // Quitar los paquetes sin recibo ya facturados
+      const orphanIds = new Set(selOrphans.map((p) => p.id));
+      setOrphanPackages((prev) => prev.filter((p) => !orphanIds.has(p.id)));
       setPaymentMethod('');
       setManualConsolidationFee('');
       setBilledCbm('');
@@ -594,6 +688,13 @@ export default function AdminManualBilling() {
                 ))}
               </div>
             )}
+
+            {orphanPackages.length > 0 && (
+              <PackagesWithoutReceiptSection
+                packages={orphanPackages}
+                onChange={setOrphanPackages}
+              />
+            )}
           </div>
 
           <div className="lg:col-span-1 min-w-0">
@@ -615,7 +716,7 @@ export default function AdminManualBilling() {
               appConfig={appConfig}
               onCreate={handleCreate}
               creating={creating}
-              canCreate={selectedRows.length > 0 || (manualReceiptNumber.trim() !== '' && num(billedCbm) > 0)}
+              canCreate={selectedRows.length > 0 || (manualReceiptNumber.trim() !== '' && num(billedCbm) > 0) || orphanPackages.some((p) => p.selected)}
               billedCbm={billedCbm}
               setBilledCbm={setBilledCbm}
               manualReceiptNumber={manualReceiptNumber}
