@@ -188,16 +188,26 @@ export default function AdminManualBilling() {
     setOrphanPackages([]);
     setLoadingRows(true);
     try {
-      const [ingresos, pkgs, credits] = await Promise.all([
+      const [ingresos, pkgs, credits, dispatchOrders] = await Promise.all([
         base44.entities.CbmIngreso.filter({ client_email: selectedClient.email }, '-fecha', 200),
         base44.entities.Package.filter({ client_email: selectedClient.email }, '-created_date', 500).catch(() => []),
         base44.entities.ClientCredit.filter({ client_email: selectedClient.email }).catch(() => []),
+        base44.entities.DispatchOrder.filter({ client_email: selectedClient.email }, '-dispatched_date', 500).catch(() => []),
       ]);
       const balance = (credits || []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
       setCreditBalance(Math.max(0, balance));
 
       // Normaliza un tracking: quita prefijo de transportista (texto antes de ":" o "：") y mayúsculas
       const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
+
+      // Set de trackings que tienen orden de despacho registrada (DispatchOrder)
+      const dispatchedTrackings = new Set();
+      (dispatchOrders || []).forEach((ord) => {
+        (ord.items || []).forEach((it) => {
+          const t = normTracking(it.tracking_number);
+          if (t) dispatchedTrackings.add(t);
+        });
+      });
 
       // Mapa de FOB asegurado por número de tracking normalizado (desde los paquetes con seguro)
       const insuredFobByTracking = {};
@@ -221,10 +231,11 @@ export default function AdminManualBilling() {
       });
 
       // Paquetes sin recibo: su tracking no aparece en ningún CbmIngreso
+      // Y además deben tener una orden de despacho registrada (DispatchOrder)
       const orphans = (pkgs || [])
         .filter((p) => {
           const t = normTracking(p.tracking_number);
-          return t && !trackingsWithReceipt.has(t);
+          return t && !trackingsWithReceipt.has(t) && dispatchedTrackings.has(t);
         })
         .map((p) => ({
           id: p.id,
