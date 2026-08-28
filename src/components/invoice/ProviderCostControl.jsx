@@ -14,7 +14,6 @@ import { Loader2, Check, Trash2, Pencil, X } from 'lucide-react';
 export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid, onDeleteAbono, onEditAbono }) {
   const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
-  const [date, setDate] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
 
@@ -27,7 +26,6 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
   const resetForm = () => {
     setDescription('');
     setValue('');
-    setDate('');
     setEditingIndex(null);
   };
 
@@ -36,7 +34,7 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
     setSaving(true);
     try {
       if (editingIndex !== null && onEditAbono) {
-        await onEditAbono(invoice, editingIndex, entered, description.trim(), date || null);
+        await onEditAbono(invoice, editingIndex, entered, description.trim(), null);
       } else {
         await onSaveCost(invoice, entered, description.trim());
       }
@@ -52,7 +50,6 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
     setEditingIndex(idx);
     setDescription(abono.description || '');
     setValue(String(abono.amount || ''));
-    setDate(abono.date ? new Date(abono.date).toISOString().slice(0, 10) : '');
   };
 
   return (
@@ -84,13 +81,6 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Descripción del abono (ej: Transferencia 12/08)"
           className="bg-white"
-        />
-        <Input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="bg-white"
-          title="Fecha del abono (opcional)"
         />
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex-1 min-w-[120px]">
