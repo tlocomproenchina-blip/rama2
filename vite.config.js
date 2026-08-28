@@ -12,6 +12,33 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
+    // Escanea TODAS las páginas (incluidas las cargadas con React.lazy) como
+    // entradas, para que Vite descubra y pre-empaquete sus dependencias desde
+    // el arranque en frío. Sin esto, Vite solo ve los imports estáticos y
+    // reoptimiza a mitad de sesión al navegar a una página lazy, generando
+    // chunks nuevos de React que conviven con los viejos ("useState" null).
+    entries: ['index.html', 'src/**/*.{js,jsx}'],
+    // Declara explícitamente las dependencias más usadas para que queden
+    // incluidas en el pre-bundle inicial sin depender solo del escaneo.
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
+      'react-router-dom',
+      '@tanstack/react-query',
+      'lucide-react',
+      'recharts',
+      'date-fns',
+      'moment',
+      'lodash',
+      'framer-motion',
+      'react-hook-form',
+      '@hello-pangea/dnd',
+      'react-markdown',
+      'react-quill-new'
+    ],
     // Espera a terminar de rastrear todas las dependencias antes de servir nada,
     // evitando que Vite reoptimice a mitad de sesión y cambie los chunks de React.
     holdUntilCrawlEnd: true
