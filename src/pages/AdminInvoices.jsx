@@ -390,14 +390,24 @@ export default function AdminInvoices({ user }) {
   };
 
   // Suma un abono al total pagado al proveedor (acumulación), recalcula la
-  // ganancia y sincroniza/crea la Cuenta por Pagar asociada a la consolidación.
-  const handleSaveProviderCost = async (invoice, enteredAmount) => {
+  // ganancia, marca el envío seleccionado como pagado individualmente y
+  // sincroniza/crea la Cuenta por Pagar asociada a la consolidación.
+  const handleSaveProviderCost = async (invoice, enteredAmount, selectedItemIndex) => {
     try {
       const newTotal = Number(invoice.provider_cost_total || 0) + Number(enteredAmount || 0);
       const profit = Number(invoice.total || 0) - newTotal;
+
+      // Marcar el envío seleccionado como pagado al proveedor (en items[].details)
+      const updatedItems = Array.isArray(invoice.items)
+        ? invoice.items.map((it, idx) => idx === selectedItemIndex
+          ? { ...it, details: { ...(it.details || {}), provider_paid: true, provider_paid_amount: Number(enteredAmount) } }
+          : it)
+        : invoice.items;
+
       await base44.entities.Invoice.update(invoice.id, {
         provider_cost_total: newTotal,
-        profit_amount: profit
+        profit_amount: profit,
+        items: updatedItems
       });
 
       // Sincronizar Cuentas por Pagar: el acumulado es lo pagado hasta ahora.
@@ -426,12 +436,12 @@ export default function AdminInvoices({ user }) {
         }
       }
 
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit } : i));
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit, items: updatedItems } : i));
       setStats(prev => {
         const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
         return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
       });
-      toast.success('Abono sumado al total pagado al proveedor');
+      toast.success(selectedItemIndex != null ? 'Envío marcado como pagado al proveedor' : 'Abono sumado al total pagado al proveedor');
     } catch (error) {
       toast.error('Error al guardar el abono del proveedor');
     }
