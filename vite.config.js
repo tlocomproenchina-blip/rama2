@@ -24,14 +24,17 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
-    // NO usar `force: true`: re-empaqueta las dependencias en CADA reinicio del
-    // servidor, cambiando el hash ?v=. Si una pestaña queda abierta entre
-    // reinicios, el navegador mezcla chunks viejos (?v=A) con nuevos (?v=B)
-    // → DOS copias de React → "Cannot read properties of null (useState)".
-    // Sin `force`, Vite reutiliza la caché de .vite/deps y el hash ?v= queda
-    // estable entre reinicios. `dedupe` + `entries` + `holdUntilCrawlEnd`
-    // garantizan una única pasada de optimización consistente.
-    // force: true,
+    // `force: true` re-empaqueta TODAS las dependencias en cada arranque del
+    // servidor, generando un hash ?v= NUEVO y consistente para todos los chunks.
+    // Esto es necesario porque el navegador puede tener chunks de React cacheados
+    // como `immutable` (de antes de que se añadiera el header `no-store`), y la
+    // única forma de bypasear esa caché HTTP obsoleta es cambiar la URL (?v= nuevo).
+    // Sin `force`, Vite reutiliza la caché de disco y el navegador sigue sirviendo
+    // el chunk viejo immutable → DOS copias de React → "useState null".
+    // El header `no-store` (server.headers) impide que los NUEVOS chunks se
+    // cacheen, y el staleChunkGuard recarga la página si una pestaña abierta
+    // mezcla hashes viejos/nuevos tras un reinicio.
+    force: true,
     // Vite espera a terminar de rastrear TODO antes de servir dependencias,
     // así no sirve un chunk con un hash que después cambia.
     holdUntilCrawlEnd: true,
