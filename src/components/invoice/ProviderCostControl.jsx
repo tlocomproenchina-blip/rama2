@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, Trash2 } from 'lucide-react';
 
 /**
  * Control manual de costo al proveedor por factura (acumulación por abonos).
- * - El admin ingresa montos de abono que se SUMAN al total ya pagado.
- * - Muestra el acumulado actual y la ganancia resultante (total - acumulado).
+ * - El admin ingresa una descripción + monto de abono que se SUMA al total pagado.
+ * - Muestra el acumulado actual, el historial de abonos y la ganancia resultante.
  * - El checkbox "pagado al proveedor" es manual: se marca al liquidar todo.
- * No contiene lógica de persistencia: delega en onSaveCost y onTogglePaid.
  */
-export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid }) {
+export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid, onDeleteAbono }) {
+  const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -19,12 +19,14 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid 
   const entered = parseFloat(value);
   const validEntered = Number.isFinite(entered) && entered > 0;
   const profit = Number(invoice.total || 0) - accumulated;
+  const history = Array.isArray(invoice.provider_payment_history) ? invoice.provider_payment_history : [];
 
   const handleSave = async () => {
     if (!validEntered) return;
     setSaving(true);
     try {
-      await onSaveCost(invoice, entered);
+      await onSaveCost(invoice, entered, description.trim());
+      setDescription('');
       setValue('');
     } finally {
       setSaving(false);
@@ -36,33 +38,67 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid 
       className="w-full rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-3"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-[160px]">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-slate-600">Pagado al proveedor ($)</label>
-            <span className="text-xs text-slate-500">Acumulado: ${accumulated.toFixed(2)}</span>
-          </div>
-          <Input
-            type="number"
-            step="0.01"
-            min="0"
-            inputMode="decimal"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="Monto del abono"
-            className="mt-1 bg-white"
-          />
-        </div>
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={!validEntered || saving}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-          <span className="ml-1">Guardar</span>
-        </Button>
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-slate-600">Pagado al proveedor ($)</label>
+        <span className="text-xs text-slate-500">Acumulado: ${accumulated.toFixed(2)}</span>
       </div>
+
+      <div className="space-y-2">
+        <Input
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Descripción del abono (ej: Transferencia 12/08)"
+          className="bg-white"
+        />
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[120px]">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="Monto del abono"
+              className="bg-white"
+            />
+          </div>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!validEntered || saving}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            <span className="ml-1">Guardar</span>
+          </Button>
+        </div>
+      </div>
+
+      {history.length > 0 && (
+        <div className="rounded-md border border-slate-200 bg-white divide-y divide-slate-100 max-h-40 overflow-y-auto">
+          {history.map((h, idx) => (
+            <div key={idx} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs">
+              <div className="min-w-0 flex-1">
+                <span className="text-slate-700 truncate block">{h.description || 'Sin descripción'}</span>
+                <span className="text-slate-400">
+                  {h.date ? new Date(h.date).toLocaleDateString() : ''} · ${Number(h.amount || 0).toFixed(2)}
+                </span>
+              </div>
+              {onDeleteAbono && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onDeleteAbono(invoice, idx); }}
+                  className="text-slate-400 hover:text-red-600 shrink-0"
+                  title="Eliminar abono"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-between text-sm">
         <span className="text-slate-500">Ganancia de esta factura</span>

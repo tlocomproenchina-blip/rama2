@@ -156,6 +156,29 @@
       "type": "string",
       "description": "URL de la imagen de la factura del proveedor (ImgBB, uso interno)"
     },
+    "provider_payment_history": {
+      "type": "array",
+      "default": [],
+      "description": "Historial de abonos pagados al proveedor (cada monto se acumula en provider_cost_total)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Descripci\u00f3n o nota del abono"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Monto del abono"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha del abono"
+          }
+        }
+      }
+    },
     "dispatched": {
       "type": "boolean",
       "default": false,

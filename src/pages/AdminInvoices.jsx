@@ -390,14 +390,17 @@ export default function AdminInvoices({ user }) {
   };
 
   // Suma un abono al total pagado al proveedor (acumulación), recalcula la
-  // ganancia y sincroniza/crea la Cuenta por Pagar asociada a la consolidación.
-  const handleSaveProviderCost = async (invoice, enteredAmount) => {
+  // ganancia, registra el abono en el historial y sincroniza la Cuenta por Pagar.
+  const handleSaveProviderCost = async (invoice, enteredAmount, description = '') => {
     try {
       const newTotal = Number(invoice.provider_cost_total || 0) + Number(enteredAmount || 0);
       const profit = Number(invoice.total || 0) - newTotal;
+      const history = Array.isArray(invoice.provider_payment_history) ? invoice.provider_payment_history : [];
+      const newHistory = [...history, { description, amount: Number(enteredAmount), date: new Date().toISOString() }];
       await base44.entities.Invoice.update(invoice.id, {
         provider_cost_total: newTotal,
-        profit_amount: profit
+        profit_amount: profit,
+        provider_payment_history: newHistory
       });
 
       // Sincronizar Cuentas por Pagar: el acumulado es lo pagado hasta ahora.
@@ -426,7 +429,7 @@ export default function AdminInvoices({ user }) {
         }
       }
 
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit } : i));
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit, provider_payment_history: newHistory } : i));
       setStats(prev => {
         const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
         return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
@@ -434,6 +437,31 @@ export default function AdminInvoices({ user }) {
       toast.success('Abono sumado al total pagado al proveedor');
     } catch (error) {
       toast.error('Error al guardar el abono del proveedor');
+    }
+  };
+
+  // Elimina un abono del historial y resta su monto del acumulado.
+  const handleDeleteProviderAbono = async (invoice, index) => {
+    try {
+      const history = Array.isArray(invoice.provider_payment_history) ? invoice.provider_payment_history : [];
+      const abono = history[index];
+      if (!abono) return;
+      const newHistory = history.filter((_, i) => i !== index);
+      const newTotal = Math.max(0, Number(invoice.provider_cost_total || 0) - Number(abono.amount || 0));
+      const profit = Number(invoice.total || 0) - newTotal;
+      await base44.entities.Invoice.update(invoice.id, {
+        provider_cost_total: newTotal,
+        profit_amount: profit,
+        provider_payment_history: newHistory
+      });
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit, provider_payment_history: newHistory } : i));
+      setStats(prev => {
+        const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
+        return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
+      });
+      toast.success('Abono eliminado del historial');
+    } catch (error) {
+      toast.error('Error al eliminar el abono');
     }
   };
 
@@ -851,6 +879,7 @@ export default function AdminInvoices({ user }) {
                         invoice={invoice}
                         onSaveCost={handleSaveProviderCost}
                         onTogglePaid={handleToggleProviderPaid}
+                        onDeleteAbono={handleDeleteProviderAbono}
                       />
                       <div onClick={(e) => e.stopPropagation()}>
                         <ProviderInvoiceUploader
