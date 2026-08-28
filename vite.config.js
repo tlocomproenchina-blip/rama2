@@ -38,6 +38,12 @@ export default defineConfig({
     // Vite espera a terminar de rastrear TODO antes de servir dependencias,
     // así no sirve un chunk con un hash que después cambia.
     holdUntilCrawlEnd: true,
+    // esbuildOptions cambia el metadataHash de Vite, forzando un NUEVO hash ?v=
+    // para TODOS los chunks. Esto bypasea la caché HTTP obsoleta del navegador
+    // (chunks de React cacheados como `immutable` con el hash anterior, que
+    // el navegador sigue sirviendo sin revalidar). keepNames preserva nombres
+    // de funciones (mejor debugging en dev) y es inofensivo.
+    esbuildOptions: { keepNames: true },
     // CLAVE: el rastreo por defecto solo sigue imports estáticos desde index.html.
     // Como casi todas las páginas se cargan con import() diferido, sus dependencias
     // se descubren recién al navegar → Vite reoptimiza y cambia el hash ?v=,
@@ -130,6 +136,30 @@ export default defineConfig({
     ]
   },
   plugins: [
+    // Forzar `no-store` en chunks internos de Vite (.vite/deps, /@vite, /@react-refresh, /src).
+    // Vite envía `Cache-Control: max-age=31536000, immutable` para .vite/deps por defecto,
+    // lo que hace que el navegador cachee React por un año. Cuando Vite re-optimiza y
+    // cambia el hash ?v= de algunos chunks pero no de otros, el navegador mezcla chunks
+    // de optimizaciones distintas → DOS copias de React → "useState null".
+    // Este plugin intercepta setHeader y reemplaza cualquier Cache-Control por no-store.
+    {
+      name: 'force-no-store-vite-chunks',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const url = req.url || '';
+          if (url.includes('/.vite/deps/') || url.includes('/@vite/') || url.includes('/@react-refresh') || url.includes('/@fs/') || url.startsWith('/src/')) {
+            const origSetHeader = res.setHeader.bind(res);
+            res.setHeader = function (name, value) {
+              if (name.toLowerCase() === 'cache-control') {
+                return origSetHeader(name, 'no-store, no-cache, must-revalidate');
+              }
+              return origSetHeader(name, value);
+            };
+          }
+          next();
+        });
+      }
+    },
     base44({
       // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
       // can be removed if the code has been updated to use the new SDK imports from @base44/sdk
