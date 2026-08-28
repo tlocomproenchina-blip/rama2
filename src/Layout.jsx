@@ -45,7 +45,7 @@ const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
 const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
 const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
-const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
+const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator').catch(() => ({ default: () => null })));
 const MaintenanceScreen = lazy(() => import('@/components/MaintenanceScreen'));
 const GlobalSearchPalette = lazy(() =>
   import('@/components/admin/GlobalSearchPalette').catch(() => ({ default: () => null }))
