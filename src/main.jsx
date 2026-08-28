@@ -21,6 +21,27 @@ function reactChunksAreStale() {
   }
 }
 
+// Detecta si el navegador cargó chunks de Vite con hashes ?v= distintos.
+// Si React viene de ?v=a197ff3c y ReactDOM de ?v=86ffe7ba, hay dos copias
+// incompatibles y useState fallará con "Cannot read properties of null".
+function hasMixedViteChunkVersions() {
+  try {
+    var entries = performance.getEntriesByType('resource');
+    var versions = {};
+    for (var i = 0; i < entries.length; i++) {
+      var match = (entries[i].name || '').match(/\/\.vite\/deps\/[^?]+\.js\?v=([a-f0-9]+)/);
+      if (match) {
+        versions[match[1]] = (versions[match[1]] || 0) + 1;
+      }
+    }
+    var count = 0;
+    for (var k in versions) { count++; }
+    return count > 1;
+  } catch (_) {
+    return false;
+  }
+}
+
 // Debe instalarse ANTES del primer render: si un Service Worker de una visita
 // anterior está controlando la página, se limpia y recarga antes de renderizar
 // (evita dos copias de React por chunks de Vite cacheados). Si los chunks están
@@ -28,6 +49,10 @@ function reactChunksAreStale() {
 installStaleChunkGuard().then(() => {
   if (reactChunksAreStale()) {
     recoverFromStaleChunks('pre-render: React/ReactDOM inconsistentes');
+    return; // No renderizar: la página se va a recargar
+  }
+  if (hasMixedViteChunkVersions()) {
+    recoverFromStaleChunks('pre-render: chunks de Vite con hashes ?v= mezclados');
     return; // No renderizar: la página se va a recargar
   }
   try {

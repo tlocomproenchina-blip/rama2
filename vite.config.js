@@ -111,7 +111,13 @@ export default defineConfig({
             url.includes('/@id/') ||
             url.includes('/@fs/') ||
             url.includes('/src/') ||
-            /\.(js|jsx|ts|tsx|css|mjs)(\?|$)/.test(url);
+            // El documento HTML también debe ser no-cacheado: si el navegador
+            // sirve un HTML stale, referencia chunks con ?v= viejos que se
+            // mezclan con los nuevos → dos copias de React.
+            url === '/' ||
+            url === '/index.html' ||
+            url.endsWith('/') ||
+            /\.(js|jsx|ts|tsx|css|mjs|html)(\?|$)/.test(url);
           if (isDevAsset) {
             const origSetHeader = res.setHeader.bind(res);
             res.setHeader = function (name, value) {

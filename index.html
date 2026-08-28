@@ -27,10 +27,27 @@
       gtag('config', 'G-7PQJ4RT38K', { send_page_view: true });
     </script>
     <script>
-      // En el preview de base44.app nunca debe haber un service worker.
-      // Se desregistra en segundo plano (sin tocar el DOM ni detener la carga).
-      // La recuperación de chunks mezclados la maneja staleChunkGuard.js.
+      // LIMPIEZA TEMPRANA: debe ejecutarse ANTES de que el navegador empiece a
+      // cargar los módulos de Vite. Si queda metadata de optimización de Vite
+      // de una sesión anterior en sessionStorage/localStorage, el navegador
+      // puede resolver imports a chunks con hashes ?v= viejos y mezclarlos
+      // con los nuevos → dos copias de React → "useState null".
       (function () {
+        try {
+          var cleanStorage = function (storage) {
+            Object.keys(storage).forEach(function (k) {
+              if (k.indexOf('vite-') === 0 || k.indexOf('vite') !== -1 || k.indexOf('dep-optim') !== -1) {
+                storage.removeItem(k);
+              }
+            });
+          };
+          cleanStorage(sessionStorage);
+          cleanStorage(localStorage);
+        } catch (e) {}
+
+        // En el preview de base44.app nunca debe haber un service worker.
+        // Se desregistra en segundo plano (sin tocar el DOM ni detener la carga).
+        // La recuperación de chunks mezclados la maneja staleChunkGuard.js.
         if (!('serviceWorker' in navigator)) return;
         if (location.hostname.indexOf('.base44.app') === -1) return;
         try {
