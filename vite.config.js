@@ -24,26 +24,9 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
-    // `force: true` re-empaqueta TODAS las dependencias en cada arranque del
-    // servidor, generando un hash ?v= NUEVO y consistente para todos los chunks.
-    // Esto es necesario porque el navegador puede tener chunks de React cacheados
-    // como `immutable` (de antes de que se añadiera el header `no-store`), y la
-    // única forma de bypasear esa caché HTTP obsoleta es cambiar la URL (?v= nuevo).
-    // Sin `force`, Vite reutiliza la caché de disco y el navegador sigue sirviendo
-    // el chunk viejo immutable → DOS copias de React → "useState null".
-    // El header `no-store` (server.headers) impide que los NUEVOS chunks se
-    // cacheen, y el staleChunkGuard recarga la página si una pestaña abierta
-    // mezcla hashes viejos/nuevos tras un reinicio.
-    force: true,
-    // Vite espera a terminar de rastrear TODO antes de servir dependencias,
-    // así no sirve un chunk con un hash que después cambia.
+    // Mantener una optimización estable entre reinicios. `force: true` cambiaba
+    // continuamente los hashes y permitía mezclar dos runtimes de React.
     holdUntilCrawlEnd: true,
-    // esbuildOptions cambia el metadataHash de Vite, forzando un NUEVO hash ?v=
-    // para TODOS los chunks. Esto bypasea la caché HTTP obsoleta del navegador
-    // (chunks de React cacheados como `immutable` con el hash anterior, que
-    // el navegador sigue sirviendo sin revalidar). keepNames preserva nombres
-    // de funciones (mejor debugging en dev) y es inofensivo.
-    esbuildOptions: { keepNames: true },
     // CLAVE: el rastreo por defecto solo sigue imports estáticos desde index.html.
     // Como casi todas las páginas se cargan con import() diferido, sus dependencias
     // se descubren recién al navegar → Vite reoptimiza y cambia el hash ?v=,

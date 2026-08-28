@@ -37,6 +37,11 @@
           navigator.serviceWorker.getRegistrations().then(function (regs) {
             regs.forEach(function (reg) { reg.unregister(); });
           }).catch(function () {});
+          if (window.caches && window.caches.keys) {
+            window.caches.keys().then(function (keys) {
+              keys.forEach(function (key) { window.caches.delete(key); });
+            }).catch(function () {});
+          }
         } catch (e) {}
       })();
     </script>
