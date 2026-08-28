@@ -13,8 +13,8 @@
  */
 
 const RECOVERY_KEY = 'tlec-stale-chunk-recovery';
-const MAX_ATTEMPTS = 3;
-const ATTEMPT_WINDOW_MS = 120000; // reintentos válidos dentro de 2 minutos
+const MAX_ATTEMPTS = 5;
+const ATTEMPT_WINDOW_MS = 180000; // reintentos válidos dentro de 3 minutos
 
 const DUPLICATE_REACT_SIGNATURES = [
   "reading 'useState'",
@@ -56,12 +56,43 @@ function writeState(state) {
 
 let recovering = false;
 
+function showManualRefreshOverlay() {
+  if (document.getElementById('tlec-stale-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'tlec-stale-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.92);font-family:system-ui,sans-serif;padding:1.5rem;text-align:center;';
+  overlay.innerHTML = `
+    <div style="max-width:420px;color:#fff;">
+      <div style="font-size:2.5rem;margin-bottom:0.5rem;">⚠️</div>
+      <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;">Caché del navegador desactualizada</h2>
+      <p style="font-size:0.875rem;opacity:0.8;margin-bottom:1.5rem;line-height:1.5;">
+        Tu navegador tiene archivos JavaScript antiguos guardados en caché.
+        Presiona el botón para forzar una recarga limpia.
+      </p>
+      <button id="tlec-stale-refresh" style="background:#3b82f6;color:#fff;border:none;border-radius:0.75rem;padding:0.75rem 2rem;font-size:0.875rem;font-weight:600;cursor:pointer;">
+        Recargar limpio
+      </button>
+      <p style="font-size:0.75rem;opacity:0.5;margin-top:1rem;">
+        Si el problema persiste, limpia la caché con Ctrl+Shift+R (Cmd+Shift+R en Mac).
+      </p>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('tlec-stale-refresh')?.addEventListener('click', () => {
+    try { sessionStorage.removeItem(RECOVERY_KEY); } catch (_) {}
+    // fetch the page with no-cache, then reload to bust HTTP cache
+    fetch(window.location.href, { cache: 'no-store' }).finally(() => {
+      window.location.reload();
+    });
+  });
+}
+
 export async function recoverFromStaleChunks(reason) {
   if (recovering) return;
 
   const state = readState();
   if (state.attempts >= MAX_ATTEMPTS) {
     console.error('[TLEC] Chunks obsoletos persistentes. Limpia la caché del navegador manualmente (Ctrl+Shift+R).');
+    showManualRefreshOverlay();
     return;
   }
 
@@ -89,10 +120,13 @@ export async function recoverFromStaleChunks(reason) {
     }
   } catch (_) {}
 
-  // 3. Recargar con cache-buster para forzar red
+  // 3. Recargar forzando red: fetch no-cache del HTML para invalidar la
+  //    caché HTTP del navegador, luego reload para que los módulos se
+  //    re-descarguen desde el servidor (no desde disk cache).
   try {
     const url = new URL(window.location.href);
     url.searchParams.set('_fresh', Date.now().toString(36));
+    await fetch(url.toString(), { cache: 'no-store' }).catch(() => {});
     window.location.replace(url.toString());
   } catch (_) {
     window.location.reload();

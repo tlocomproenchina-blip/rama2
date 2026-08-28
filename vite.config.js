@@ -95,6 +95,36 @@ export default defineConfig({
     holdUntilCrawlEnd: true
   },
   plugins: [
+    {
+      // Evita que el navegador cachee chunks de Vite con `immutable`.
+      // Sin esto, el browser sirve chunks de una optimización anterior desde
+      // disk cache y los mezcla con los nuevos → dos copias de React →
+      // "Cannot read properties of null (reading 'useState')".
+      name: 'no-cache-dev-chunks',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const url = req.url || '';
+          const isDevAsset =
+            url.includes('/.vite/deps/') ||
+            url.includes('/@vite/') ||
+            url.includes('/@react-refresh') ||
+            url.includes('/@id/') ||
+            url.includes('/@fs/') ||
+            url.includes('/src/') ||
+            /\.(js|jsx|ts|tsx|css|mjs)(\?|$)/.test(url);
+          if (isDevAsset) {
+            const orig = res.setHeader.bind(res);
+            res.setHeader = function (name, value) {
+              if (name.toLowerCase() === 'cache-control') {
+                return orig(name, 'no-store, no-cache, must-revalidate');
+              }
+              return orig(name, value);
+            };
+          }
+          next();
+        });
+      }
+    },
     base44({
       // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
       // can be removed if the code has been updated to use the new SDK imports from @base44/sdk
