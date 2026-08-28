@@ -5,32 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Check } from 'lucide-react';
 
 /**
- * Control manual de costo al proveedor por factura.
- * - Permite ingresar cuánto se pagó al proveedor (provider_cost_total).
- * - Muestra la ganancia resultante (total - costo proveedor).
- * - Permite marcar la factura como pagada al proveedor.
+ * Control manual de costo al proveedor por factura (acumulación por abonos).
+ * - El admin ingresa montos de abono que se SUMAN al total ya pagado.
+ * - Muestra el acumulado actual y la ganancia resultante (total - acumulado).
+ * - El checkbox "pagado al proveedor" es manual: se marca al liquidar todo.
  * No contiene lógica de persistencia: delega en onSaveCost y onTogglePaid.
  */
 export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid }) {
-  const [value, setValue] = useState(
-    invoice.provider_cost_total != null ? String(invoice.provider_cost_total) : ''
-  );
+  const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const cost = parseFloat(value);
-  const validCost = Number.isFinite(cost);
-  const profit = validCost ? (Number(invoice.total || 0) - cost) : null;
-  const dirty = String(invoice.provider_cost_total ?? '') !== value.trim();
+  const accumulated = Number(invoice.provider_cost_total || 0);
+  const entered = parseFloat(value);
+  const validEntered = Number.isFinite(entered) && entered > 0;
+  const profit = Number(invoice.total || 0) - accumulated;
 
   const handleSave = async () => {
-    if (!validCost) return;
+    if (!validEntered) return;
     setSaving(true);
     try {
-      await onSaveCost(invoice, cost);
-      // Al guardar el monto, se marca automáticamente como pagado al proveedor
-      if (!invoice.provider_paid) {
-        await onTogglePaid({ ...invoice, provider_cost_total: cost }, true);
-      }
+      await onSaveCost(invoice, entered);
+      setValue('');
     } finally {
       setSaving(false);
     }
@@ -43,7 +38,10 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid 
     >
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[160px]">
-          <label className="text-xs font-medium text-slate-600">Pagado al proveedor ($)</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-slate-600">Pagado al proveedor ($)</label>
+            <span className="text-xs text-slate-500">Acumulado: ${accumulated.toFixed(2)}</span>
+          </div>
           <Input
             type="number"
             step="0.01"
@@ -51,14 +49,14 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid 
             inputMode="decimal"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="0.00"
+            placeholder="Monto del abono"
             className="mt-1 bg-white"
           />
         </div>
         <Button
           size="sm"
           onClick={handleSave}
-          disabled={!validCost || !dirty || saving}
+          disabled={!validEntered || saving}
           className="bg-blue-600 hover:bg-blue-700"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -66,14 +64,12 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid 
         </Button>
       </div>
 
-      {profit != null && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-500">Ganancia de esta factura</span>
-          <span className={`font-semibold ${profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-            ${profit.toFixed(2)}
-          </span>
-        </div>
-      )}
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-slate-500">Ganancia de esta factura</span>
+        <span className={`font-semibold ${profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+          ${profit.toFixed(2)}
+        </span>
+      </div>
 
       <label className="flex items-center gap-2 cursor-pointer pt-1 border-t border-slate-200">
         <Checkbox
@@ -84,7 +80,7 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid 
           Marcar como pagado al proveedor
         </span>
       </label>
-      <p className="text-xs text-slate-500">Al guardar el monto se marca automáticamente como pagado al proveedor.</p>
+      <p className="text-xs text-slate-500">Cada monto se suma al total pagado. Marca el checkbox cuando termines de liquidar.</p>
     </div>
   );
 }

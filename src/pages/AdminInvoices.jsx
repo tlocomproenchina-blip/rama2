@@ -389,47 +389,51 @@ export default function AdminInvoices({ user }) {
     window.open(url, '_blank');
   };
 
-  // Guarda manualmente cuánto se pagó al proveedor, recalcula la ganancia
-  // y sincroniza/crea la Cuenta por Pagar asociada a la consolidación.
-  const handleSaveProviderCost = async (invoice, cost) => {
+  // Suma un abono al total pagado al proveedor (acumulación), recalcula la
+  // ganancia y sincroniza/crea la Cuenta por Pagar asociada a la consolidación.
+  const handleSaveProviderCost = async (invoice, enteredAmount) => {
     try {
-      const profit = Number(invoice.total || 0) - Number(cost || 0);
+      const newTotal = Number(invoice.provider_cost_total || 0) + Number(enteredAmount || 0);
+      const profit = Number(invoice.total || 0) - newTotal;
       await base44.entities.Invoice.update(invoice.id, {
-        provider_cost_total: Number(cost),
+        provider_cost_total: newTotal,
         profit_amount: profit
       });
 
-      // Sincronizar Cuentas por Pagar: actualizar el monto original a pagar.
+      // Sincronizar Cuentas por Pagar: el acumulado es lo pagado hasta ahora.
       if (invoice.consolidation_id) {
         const aps = await base44.entities.AccountsPayable.filter({ related_consolidation_id: invoice.consolidation_id }).catch(() => []);
         if (aps && aps.length > 0) {
-          await Promise.all(aps.map(ap => base44.entities.AccountsPayable.update(ap.id, {
-            original_amount_due: Number(cost),
-            balance_due: ap.status === 'pagado' ? 0 : Number(cost),
-            amount_paid: ap.status === 'pagado' ? Number(cost) : Number(ap.amount_paid || 0)
-          })));
+          await Promise.all(aps.map(ap => {
+            const original = Number(ap.original_amount_due || 0);
+            const balance = Math.max(0, original - newTotal);
+            return base44.entities.AccountsPayable.update(ap.id, {
+              amount_paid: newTotal,
+              balance_due: ap.status === 'pagado' ? 0 : balance
+            });
+          }));
         } else {
           // No existe AP aún: crear una para mantener Cuentas por Pagar al día.
           await base44.entities.AccountsPayable.create({
             vendor_name: 'Proveedor logístico',
             description: `Costo proveedor factura ${invoice.invoice_number || ''}`.trim(),
-            original_amount_due: Number(cost),
-            balance_due: invoice.provider_paid ? 0 : Number(cost),
-            amount_paid: invoice.provider_paid ? Number(cost) : 0,
+            original_amount_due: newTotal,
+            balance_due: invoice.provider_paid ? 0 : newTotal,
+            amount_paid: newTotal,
             status: invoice.provider_paid ? 'pagado' : 'pendiente',
             related_consolidation_id: invoice.consolidation_id
           });
         }
       }
 
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: Number(cost), profit_amount: profit } : i));
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit } : i));
       setStats(prev => {
         const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
         return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
       });
-      toast.success('Costo del proveedor y ganancia actualizados');
+      toast.success('Abono sumado al total pagado al proveedor');
     } catch (error) {
-      toast.error('Error al guardar el costo del proveedor');
+      toast.error('Error al guardar el abono del proveedor');
     }
   };
 
