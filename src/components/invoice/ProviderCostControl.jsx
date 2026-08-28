@@ -64,9 +64,9 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid 
                   disabled={paid}
                   onCheckedChange={(c) => setSelectedItemIndex(c ? idx : null)}
                 />
-                <span className="flex-1 truncate text-slate-700">{item.description}</span>
+                <span className={`flex-1 truncate text-slate-700 ${paid ? 'line-through opacity-60' : ''}`}>{item.description}</span>
                 {paid ? (
-                  <span className="text-xs font-semibold text-emerald-700 whitespace-nowrap">✓ Pagado ${paidAmount.toFixed(2)}</span>
+                  <span className="text-xs font-semibold text-emerald-700 whitespace-nowrap line-through">${paidAmount.toFixed(2)}</span>
                 ) : (
                   <span className="text-xs text-slate-500 whitespace-nowrap">${Number(item.total || 0).toFixed(2)}</span>
                 )}
