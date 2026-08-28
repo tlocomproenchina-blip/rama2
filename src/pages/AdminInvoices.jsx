@@ -393,48 +393,38 @@ export default function AdminInvoices({ user }) {
   // ganancia, registra el abono en el historial y sincroniza la Cuenta por Pagar.
   const handleSaveProviderCost = async (invoice, enteredAmount, description = '') => {
     try {
-      const newTotal = Number(invoice.provider_cost_total || 0) + Number(enteredAmount || 0);
-      const profit = Number(invoice.total || 0) - newTotal;
+      // provider_cost_total es el COSTO del proveedor (fijo), no se modifica.
+      // Solo registramos el abono en el historial.
       const history = Array.isArray(invoice.provider_payment_history) ? invoice.provider_payment_history : [];
       const newHistory = [...history, { description, amount: Number(enteredAmount), date: new Date().toISOString() }];
+      const totalPaid = newHistory.reduce((sum, h) => sum + Number(h.amount || 0), 0);
+      const providerCost = Number(invoice.provider_cost_total || 0);
+      const profit = Number(invoice.total || 0) - providerCost;
       await base44.entities.Invoice.update(invoice.id, {
-        provider_cost_total: newTotal,
-        profit_amount: profit,
         provider_payment_history: newHistory
       });
 
-      // Sincronizar Cuentas por Pagar: el acumulado es lo pagado hasta ahora.
+      // Sincronizar Cuentas por Pagar: el acumulado (suma de abonos) es lo pagado.
       if (invoice.consolidation_id) {
         const aps = await base44.entities.AccountsPayable.filter({ related_consolidation_id: invoice.consolidation_id }).catch(() => []);
         if (aps && aps.length > 0) {
           await Promise.all(aps.map(ap => {
             const original = Number(ap.original_amount_due || 0);
-            const balance = Math.max(0, original - newTotal);
+            const balance = Math.max(0, original - totalPaid);
             return base44.entities.AccountsPayable.update(ap.id, {
-              amount_paid: newTotal,
+              amount_paid: totalPaid,
               balance_due: ap.status === 'pagado' ? 0 : balance
             });
           }));
-        } else {
-          // No existe AP aún: crear una para mantener Cuentas por Pagar al día.
-          await base44.entities.AccountsPayable.create({
-            vendor_name: 'Proveedor logístico',
-            description: `Costo proveedor factura ${invoice.invoice_number || ''}`.trim(),
-            original_amount_due: newTotal,
-            balance_due: invoice.provider_paid ? 0 : newTotal,
-            amount_paid: newTotal,
-            status: invoice.provider_paid ? 'pagado' : 'pendiente',
-            related_consolidation_id: invoice.consolidation_id
-          });
         }
       }
 
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit, provider_payment_history: newHistory } : i));
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_payment_history: newHistory } : i));
       setStats(prev => {
         const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
         return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
       });
-      toast.success('Abono sumado al total pagado al proveedor');
+      toast.success('Abono registrado');
     } catch (error) {
       toast.error('Error al guardar el abono del proveedor');
     }
@@ -454,18 +444,10 @@ export default function AdminInvoices({ user }) {
         date: newDate ? new Date(newDate).toISOString() : oldAbono.date
       };
       const newHistory = history.map((item, i) => (i === index ? updatedAbono : item));
-      const newTotal = Math.max(0, Number(invoice.provider_cost_total || 0) - oldAmount + Number(newAmount));
-      const profit = Number(invoice.total || 0) - newTotal;
       await base44.entities.Invoice.update(invoice.id, {
-        provider_cost_total: newTotal,
-        profit_amount: profit,
         provider_payment_history: newHistory
       });
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit, provider_payment_history: newHistory } : i));
-      setStats(prev => {
-        const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
-        return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
-      });
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_payment_history: newHistory } : i));
       toast.success('Abono actualizado');
     } catch (error) {
       toast.error('Error al editar el abono');
@@ -479,18 +461,10 @@ export default function AdminInvoices({ user }) {
       const abono = history[index];
       if (!abono) return;
       const newHistory = history.filter((_, i) => i !== index);
-      const newTotal = Math.max(0, Number(invoice.provider_cost_total || 0) - Number(abono.amount || 0));
-      const profit = Number(invoice.total || 0) - newTotal;
       await base44.entities.Invoice.update(invoice.id, {
-        provider_cost_total: newTotal,
-        profit_amount: profit,
         provider_payment_history: newHistory
       });
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit, provider_payment_history: newHistory } : i));
-      setStats(prev => {
-        const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
-        return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
-      });
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_payment_history: newHistory } : i));
       toast.success('Abono eliminado del historial');
     } catch (error) {
       toast.error('Error al eliminar el abono');

@@ -17,11 +17,15 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
   const [saving, setSaving] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
 
-  const accumulated = Number(invoice.provider_cost_total || 0);
+  // El acumulado es la SUMA real de los abonos del historial, NO provider_cost_total
+  // (ese campo guarda el costo del proveedor, no lo pagado).
+  const history = Array.isArray(invoice.provider_payment_history) ? invoice.provider_payment_history : [];
+  const accumulated = history.reduce((sum, h) => sum + Number(h.amount || 0), 0);
   const entered = parseFloat(value);
   const validEntered = Number.isFinite(entered) && entered > 0;
-  const profit = Number(invoice.total || 0) - accumulated;
-  const history = Array.isArray(invoice.provider_payment_history) ? invoice.provider_payment_history : [];
+  // La ganancia = total facturado - costo real del proveedor (no lo pagado en abonos)
+  const providerCost = Number(invoice.provider_cost_total || 0);
+  const profit = Number(invoice.total || 0) - providerCost;
 
   const resetForm = () => {
     setDescription('');
