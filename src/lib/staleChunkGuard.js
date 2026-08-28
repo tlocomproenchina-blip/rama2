@@ -120,6 +120,22 @@ export async function recoverFromStaleChunks(reason) {
     }
   } catch (_) {}
 
+  // 2b. Limpiar metadata de optimización de Vite guardada en sessionStorage/localStorage.
+  // Vite guarda info de dependencias cacheadas aquí; si queda metadata vieja, el
+  // navegador sigue pidiendo chunks con hashes anteriores → dos copias de React.
+  try {
+    const cleanStorage = (storage) => {
+      const keys = Object.keys(storage);
+      keys.forEach((k) => {
+        if (k.startsWith('vite-') || k.includes('vite') || k.includes('dep-optim')) {
+          storage.removeItem(k);
+        }
+      });
+    };
+    cleanStorage(sessionStorage);
+    cleanStorage(localStorage);
+  } catch (_) {}
+
   // 3. Recargar forzando red: fetch no-cache del HTML para invalidar la
   //    caché HTTP del navegador, luego reload para que los módulos se
   //    re-descarguen desde el servidor (no desde disk cache).
@@ -163,6 +179,21 @@ export async function installStaleChunkGuard() {
       window.location.replace(url.toString());
       return; // La página se va a recargar, no continuar
     }
+  } catch (_) {}
+
+  // Limpiar metadata de optimización de Vite del sessionStorage/localStorage
+  // incluso sin Service Worker: Vite guarda info de dependencias aquí y si
+  // queda de una optimización anterior, el navegador pide chunks viejos.
+  try {
+    const cleanStorage = (storage) => {
+      Object.keys(storage).forEach((k) => {
+        if (k.startsWith('vite-') || k.includes('vite') || k.includes('dep-optim')) {
+          storage.removeItem(k);
+        }
+      });
+    };
+    cleanStorage(sessionStorage);
+    cleanStorage(localStorage);
   } catch (_) {}
 
   window.addEventListener('error', (event) => {
