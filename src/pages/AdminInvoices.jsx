@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
+import ClientPaymentTracking from '@/components/invoice/ClientPaymentTracking';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
 import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle, Truck, ShieldCheck } from 'lucide-react';
@@ -447,6 +448,26 @@ export default function AdminInvoices({ user }) {
     }
   };
 
+  // Registra un pago del cliente contra un envío específico (acumula en
+  // items[].details.client_paid_amount). El envío se tacha al quedar saldado.
+  const handleSaveClientPayment = async (invoice, enteredAmount, selectedItemIndex) => {
+    try {
+      const updatedItems = Array.isArray(invoice.items)
+        ? invoice.items.map((it, idx) => {
+            if (idx !== selectedItemIndex) return it;
+            const prev = Number(it.details?.client_paid_amount || 0);
+            return { ...it, details: { ...(it.details || {}), client_paid_amount: prev + Number(enteredAmount) } };
+          })
+        : invoice.items;
+
+      await base44.entities.Invoice.update(invoice.id, { items: updatedItems });
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, items: updatedItems } : i));
+      toast.success('Pago del cliente registrado en el envío');
+    } catch (error) {
+      toast.error('Error al registrar el pago del cliente');
+    }
+  };
+
   // Suma un abono al envío pagado por el cliente (acumulación, solo informativo).
   const handleSaveShippingPaid = async (invoice, enteredAmount) => {
     try {
@@ -869,6 +890,10 @@ export default function AdminInvoices({ user }) {
                           <MessageCircle className="h-4 w-4" /> Notificar pago
                         </button>
                       )}
+                      <ClientPaymentTracking
+                        invoice={invoice}
+                        onSavePayment={handleSaveClientPayment}
+                      />
                       <ProviderCostControl
                         invoice={invoice}
                         onSaveCost={handleSaveProviderCost}
