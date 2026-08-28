@@ -119,6 +119,23 @@ export function installStaleChunkGuard() {
     const message = event?.reason?.message || '';
     if (looksLikeStaleChunk(message)) recoverFromStaleChunks('unhandledrejection');
   });
+
+  // React en modo desarrollo captura los errores de render y los reporta vía
+  // console.error (no llegan a window.error). createRoot().render() es asíncrono,
+  // así que el try/catch de main.jsx no los atrapa. Interceptamos console.error
+  // para detectar la firma de doble React y disparar la recuperación.
+  try {
+    const originalConsoleError = console.error.bind(console);
+    console.error = function (...args) {
+      try {
+        const text = args.map((a) => (a && typeof a === 'object' ? a?.message || '' : String(a))).join(' ');
+        if (looksLikeStaleChunk(text)) {
+          recoverFromStaleChunks('console.error: ' + text.slice(0, 120));
+        }
+      } catch (_) {}
+      return originalConsoleError(...args);
+    };
+  } catch (_) {}
 }
 
 /** Marca que la app arrancó bien: limpia el contador de reintentos. */
