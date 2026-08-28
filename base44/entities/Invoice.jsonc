@@ -152,11 +152,6 @@
       "format": "date-time",
       "description": "Fecha en que se marc\u00f3 como pagado al proveedor"
     },
-    "shipping_paid": {
-      "type": "number",
-      "default": 0,
-      "description": "Monto acumulado de env\u00edo pagado por el cliente (informativo, no afecta ganancia)"
-    },
     "provider_invoice_image_url": {
       "type": "string",
       "description": "URL de la imagen de la factura del proveedor (ImgBB, uso interno)"

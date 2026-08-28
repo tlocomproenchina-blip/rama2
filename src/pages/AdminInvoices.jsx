@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
-import ClientPaymentTracking from '@/components/invoice/ClientPaymentTracking';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
 import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle, Truck, ShieldCheck } from 'lucide-react';
@@ -391,24 +390,14 @@ export default function AdminInvoices({ user }) {
   };
 
   // Suma un abono al total pagado al proveedor (acumulación), recalcula la
-  // ganancia, marca el envío seleccionado como pagado individualmente y
-  // sincroniza/crea la Cuenta por Pagar asociada a la consolidación.
-  const handleSaveProviderCost = async (invoice, enteredAmount, selectedItemIndex) => {
+  // ganancia y sincroniza/crea la Cuenta por Pagar asociada a la consolidación.
+  const handleSaveProviderCost = async (invoice, enteredAmount) => {
     try {
       const newTotal = Number(invoice.provider_cost_total || 0) + Number(enteredAmount || 0);
       const profit = Number(invoice.total || 0) - newTotal;
-
-      // Marcar el envío seleccionado como pagado al proveedor (en items[].details)
-      const updatedItems = Array.isArray(invoice.items)
-        ? invoice.items.map((it, idx) => idx === selectedItemIndex
-          ? { ...it, details: { ...(it.details || {}), provider_paid: true, provider_paid_amount: Number(enteredAmount) } }
-          : it)
-        : invoice.items;
-
       await base44.entities.Invoice.update(invoice.id, {
         provider_cost_total: newTotal,
-        profit_amount: profit,
-        items: updatedItems
+        profit_amount: profit
       });
 
       // Sincronizar Cuentas por Pagar: el acumulado es lo pagado hasta ahora.
@@ -437,46 +426,14 @@ export default function AdminInvoices({ user }) {
         }
       }
 
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit, items: updatedItems } : i));
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit } : i));
       setStats(prev => {
         const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
         return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
       });
-      toast.success(selectedItemIndex != null ? 'Envío marcado como pagado al proveedor' : 'Abono sumado al total pagado al proveedor');
+      toast.success('Abono sumado al total pagado al proveedor');
     } catch (error) {
       toast.error('Error al guardar el abono del proveedor');
-    }
-  };
-
-  // Registra un pago del cliente contra un envío específico (acumula en
-  // items[].details.client_paid_amount). El envío se tacha al quedar saldado.
-  const handleSaveClientPayment = async (invoice, enteredAmount, selectedItemIndex) => {
-    try {
-      const updatedItems = Array.isArray(invoice.items)
-        ? invoice.items.map((it, idx) => {
-            if (idx !== selectedItemIndex) return it;
-            const prev = Number(it.details?.client_paid_amount || 0);
-            return { ...it, details: { ...(it.details || {}), client_paid_amount: prev + Number(enteredAmount) } };
-          })
-        : invoice.items;
-
-      await base44.entities.Invoice.update(invoice.id, { items: updatedItems });
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, items: updatedItems } : i));
-      toast.success('Pago del cliente registrado en el envío');
-    } catch (error) {
-      toast.error('Error al registrar el pago del cliente');
-    }
-  };
-
-  // Suma un abono al envío pagado por el cliente (acumulación, solo informativo).
-  const handleSaveShippingPaid = async (invoice, enteredAmount) => {
-    try {
-      const newTotal = Number(invoice.shipping_paid || 0) + Number(enteredAmount || 0);
-      await base44.entities.Invoice.update(invoice.id, { shipping_paid: newTotal });
-      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, shipping_paid: newTotal } : i));
-      toast.success('Abono de envío sumado');
-    } catch (error) {
-      toast.error('Error al guardar el abono de envío');
     }
   };
 
@@ -890,14 +847,9 @@ export default function AdminInvoices({ user }) {
                           <MessageCircle className="h-4 w-4" /> Notificar pago
                         </button>
                       )}
-                      <ClientPaymentTracking
-                        invoice={invoice}
-                        onSavePayment={handleSaveClientPayment}
-                      />
                       <ProviderCostControl
                         invoice={invoice}
                         onSaveCost={handleSaveProviderCost}
-                        onSaveShippingPaid={handleSaveShippingPaid}
                         onTogglePaid={handleToggleProviderPaid}
                       />
                       <div onClick={(e) => e.stopPropagation()}>
