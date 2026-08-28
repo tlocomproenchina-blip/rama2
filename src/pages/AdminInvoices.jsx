@@ -437,6 +437,18 @@ export default function AdminInvoices({ user }) {
     }
   };
 
+  // Suma un abono al envío pagado por el cliente (acumulación, solo informativo).
+  const handleSaveShippingPaid = async (invoice, enteredAmount) => {
+    try {
+      const newTotal = Number(invoice.shipping_paid || 0) + Number(enteredAmount || 0);
+      await base44.entities.Invoice.update(invoice.id, { shipping_paid: newTotal });
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, shipping_paid: newTotal } : i));
+      toast.success('Abono de envío sumado');
+    } catch (error) {
+      toast.error('Error al guardar el abono de envío');
+    }
+  };
+
   const handleToggleProviderPaid = async (invoice, checked) => {
     try {
       const paidDate = checked ? new Date().toISOString() : null;
@@ -850,6 +862,7 @@ export default function AdminInvoices({ user }) {
                       <ProviderCostControl
                         invoice={invoice}
                         onSaveCost={handleSaveProviderCost}
+                        onSaveShippingPaid={handleSaveShippingPaid}
                         onTogglePaid={handleToggleProviderPaid}
                       />
                       <div onClick={(e) => e.stopPropagation()}>
