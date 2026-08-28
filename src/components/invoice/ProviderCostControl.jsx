@@ -2,18 +2,21 @@ import React, { useState } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check, Trash2 } from 'lucide-react';
+import { Loader2, Check, Trash2, Pencil, X } from 'lucide-react';
 
 /**
  * Control manual de costo al proveedor por factura (acumulación por abonos).
  * - El admin ingresa una descripción + monto de abono que se SUMA al total pagado.
  * - Muestra el acumulado actual, el historial de abonos y la ganancia resultante.
  * - El checkbox "pagado al proveedor" es manual: se marca al liquidar todo.
+ * - Los abonos del historial se pueden editar o eliminar.
  */
-export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid, onDeleteAbono }) {
+export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid, onDeleteAbono, onEditAbono }) {
   const [description, setDescription] = useState('');
   const [value, setValue] = useState('');
+  const [date, setDate] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
 
   const accumulated = Number(invoice.provider_cost_total || 0);
   const entered = parseFloat(value);
@@ -21,16 +24,35 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
   const profit = Number(invoice.total || 0) - accumulated;
   const history = Array.isArray(invoice.provider_payment_history) ? invoice.provider_payment_history : [];
 
+  const resetForm = () => {
+    setDescription('');
+    setValue('');
+    setDate('');
+    setEditingIndex(null);
+  };
+
   const handleSave = async () => {
     if (!validEntered) return;
     setSaving(true);
     try {
-      await onSaveCost(invoice, entered, description.trim());
-      setDescription('');
-      setValue('');
+      if (editingIndex !== null && onEditAbono) {
+        await onEditAbono(invoice, editingIndex, entered, description.trim(), date || null);
+      } else {
+        await onSaveCost(invoice, entered, description.trim());
+      }
+      resetForm();
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleStartEdit = (idx) => {
+    const abono = history[idx];
+    if (!abono) return;
+    setEditingIndex(idx);
+    setDescription(abono.description || '');
+    setValue(String(abono.amount || ''));
+    setDate(abono.date ? new Date(abono.date).toISOString().slice(0, 10) : '');
   };
 
   return (
@@ -44,11 +66,31 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
       </div>
 
       <div className="space-y-2">
+        {editingIndex !== null && (
+          <div className="flex items-center justify-between rounded-md bg-blue-50 px-2 py-1 text-xs text-blue-700">
+            <span>Editando abono #{editingIndex + 1}</span>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); resetForm(); }}
+              className="text-blue-600 hover:text-blue-800"
+              title="Cancelar edición"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
         <Input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Descripción del abono (ej: Transferencia 12/08)"
           className="bg-white"
+        />
+        <Input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="bg-white"
+          title="Fecha del abono (opcional)"
         />
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex-1 min-w-[120px]">
@@ -70,7 +112,7 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
             className="bg-blue-600 hover:bg-blue-700"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            <span className="ml-1">Guardar</span>
+            <span className="ml-1">{editingIndex !== null ? 'Actualizar' : 'Guardar'}</span>
           </Button>
         </div>
       </div>
@@ -85,6 +127,16 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
                   {h.date ? new Date(h.date).toLocaleDateString() : ''} · ${Number(h.amount || 0).toFixed(2)}
                 </span>
               </div>
+              {onEditAbono && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleStartEdit(idx); }}
+                  className="text-slate-400 hover:text-blue-600 shrink-0"
+                  title="Editar abono"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              )}
               {onDeleteAbono && (
                 <button
                   type="button"

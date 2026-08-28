@@ -440,6 +440,38 @@ export default function AdminInvoices({ user }) {
     }
   };
 
+  // Edita un abono existente del historial: ajusta el acumulado y la ganancia.
+  const handleEditProviderAbono = async (invoice, index, newAmount, newDescription, newDate) => {
+    try {
+      const history = Array.isArray(invoice.provider_payment_history) ? invoice.provider_payment_history : [];
+      const oldAbono = history[index];
+      if (!oldAbono) return;
+      const oldAmount = Number(oldAbono.amount || 0);
+      const updatedAbono = {
+        ...oldAbono,
+        description: newDescription,
+        amount: Number(newAmount),
+        date: newDate ? new Date(newDate).toISOString() : oldAbono.date
+      };
+      const newHistory = history.map((item, i) => (i === index ? updatedAbono : item));
+      const newTotal = Math.max(0, Number(invoice.provider_cost_total || 0) - oldAmount + Number(newAmount));
+      const profit = Number(invoice.total || 0) - newTotal;
+      await base44.entities.Invoice.update(invoice.id, {
+        provider_cost_total: newTotal,
+        profit_amount: profit,
+        provider_payment_history: newHistory
+      });
+      setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_cost_total: newTotal, profit_amount: profit, provider_payment_history: newHistory } : i));
+      setStats(prev => {
+        const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
+        return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
+      });
+      toast.success('Abono actualizado');
+    } catch (error) {
+      toast.error('Error al editar el abono');
+    }
+  };
+
   // Elimina un abono del historial y resta su monto del acumulado.
   const handleDeleteProviderAbono = async (invoice, index) => {
     try {
@@ -880,6 +912,7 @@ export default function AdminInvoices({ user }) {
                         onSaveCost={handleSaveProviderCost}
                         onTogglePaid={handleToggleProviderPaid}
                         onDeleteAbono={handleDeleteProviderAbono}
+                        onEditAbono={handleEditProviderAbono}
                       />
                       <div onClick={(e) => e.stopPropagation()}>
                         <ProviderInvoiceUploader
