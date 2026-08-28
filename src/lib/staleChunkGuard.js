@@ -99,7 +99,7 @@ export async function recoverFromStaleChunks(reason) {
   }
 }
 
-export function installStaleChunkGuard() {
+export async function installStaleChunkGuard() {
   // Limpiar el parámetro cache-buster de la URL para no ensuciarla
   try {
     const url = new URL(window.location.href);
@@ -107,6 +107,27 @@ export function installStaleChunkGuard() {
       url.searchParams.delete('_fresh');
       const qs = url.searchParams.toString();
       window.history.replaceState(null, '', url.pathname + (qs ? '?' + qs : '') + url.hash);
+    }
+  } catch (_) {}
+
+  // PRE-CHEQUEO CRÍTICO: si un Service Worker de una visita anterior está
+  // controlando esta página, puede estar sirviendo JS cacheado de una
+  // optimización de Vite anterior (chunks con ?v= viejos). Esto provoca
+  // dos copias de React ("Cannot read properties of null (reading 'useState')").
+  // Debemos limpiarlo ANTES de que la app se renderice, no después del error.
+  try {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
+      if (window.caches && caches.keys) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k).catch(() => {})));
+      }
+      // Recargar inmediatamente para que la próxima carga sea sin SW
+      const url = new URL(window.location.href);
+      url.searchParams.set('_fresh', Date.now().toString(36));
+      window.location.replace(url.toString());
+      return; // La página se va a recargar, no continuar
     }
   } catch (_) {}
 
