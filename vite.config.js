@@ -113,12 +113,42 @@ export default defineConfig({
             url.includes('/src/') ||
             /\.(js|jsx|ts|tsx|css|mjs)(\?|$)/.test(url);
           if (isDevAsset) {
-            const orig = res.setHeader.bind(res);
+            const origSetHeader = res.setHeader.bind(res);
             res.setHeader = function (name, value) {
-              if (name.toLowerCase() === 'cache-control') {
-                return orig(name, 'no-store, no-cache, must-revalidate');
+              const lower = name.toLowerCase();
+              if (lower === 'cache-control') {
+                return origSetHeader(name, 'no-store, no-cache, must-revalidate');
               }
-              return orig(name, value);
+              // Strip headers that allow the browser to serve from disk cache
+              // without revalidating (immutable, etag, expires).
+              if (lower === 'etag' || lower === 'expires' || lower === 'last-modified') {
+                return this;
+              }
+              return origSetHeader(name, value);
+            };
+            // Also intercept writeHead which can set headers in a batch
+            const origWriteHead = res.writeHead.bind(res);
+            res.writeHead = function (statusCode, ...rest) {
+              try {
+                let headers = rest.length > 0 ? rest[rest.length - 1] : undefined;
+                if (typeof headers === 'object' && headers !== null) {
+                  const cleaned = { ...headers };
+                  cleaned['cache-control'] = 'no-store, no-cache, must-revalidate';
+                  cleaned['Cache-Control'] = 'no-store, no-cache, must-revalidate';
+                  delete cleaned['etag'];
+                  delete cleaned['ETag'];
+                  delete cleaned['expires'];
+                  delete cleaned['Expires'];
+                  delete cleaned['last-modified'];
+                  delete cleaned['Last-Modified'];
+                  if (rest.length > 1) {
+                    rest[rest.length - 1] = cleaned;
+                  } else {
+                    rest.push(cleaned);
+                  }
+                }
+              } catch (_) {}
+              return origWriteHead(statusCode, ...rest);
             };
           }
           next();
