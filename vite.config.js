@@ -24,11 +24,14 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-router-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
   optimizeDeps: {
-    // `force` descarta la caché de dependencias de corridas anteriores al
-    // arrancar. Sin esto, el servidor puede seguir sirviendo chunks de una
-    // optimización vieja (?v=5be56ec2) junto a los nuevos (?v=a2131b81),
-    // dejando DOS copias de React → "Cannot read properties of null (useState)".
-    force: true,
+    // NO usar `force: true`: re-empaqueta las dependencias en CADA reinicio del
+    // servidor, cambiando el hash ?v=. Si una pestaña queda abierta entre
+    // reinicios, el navegador mezcla chunks viejos (?v=A) con nuevos (?v=B)
+    // → DOS copias de React → "Cannot read properties of null (useState)".
+    // Sin `force`, Vite reutiliza la caché de .vite/deps y el hash ?v= queda
+    // estable entre reinicios. `dedupe` + `entries` + `holdUntilCrawlEnd`
+    // garantizan una única pasada de optimización consistente.
+    // force: true,
     // Vite espera a terminar de rastrear TODO antes de servir dependencias,
     // así no sirve un chunk con un hash que después cambia.
     holdUntilCrawlEnd: true,
