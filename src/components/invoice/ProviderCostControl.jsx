@@ -23,9 +23,8 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
   const accumulated = history.reduce((sum, h) => sum + Number(h.amount || 0), 0);
   const entered = parseFloat(value);
   const validEntered = Number.isFinite(entered) && entered > 0;
-  // La ganancia = total facturado - costo real del proveedor (no lo pagado en abonos)
-  const providerCost = Number(invoice.provider_cost_total || 0);
-  const profit = Number(invoice.total || 0) - providerCost;
+  // La ganancia = total facturado - acumulado real pagado al proveedor (abonos)
+  const profit = Number(invoice.total || 0) - accumulated;
 
   const resetForm = () => {
     setDescription('');
