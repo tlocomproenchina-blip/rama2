@@ -18,6 +18,42 @@ export default async function (req) {
 
     const newItems = Array.isArray(items) ? items : [];
 
+    // Prevenir items con consolidation_tracking vacío: resolver el recibo
+    // (CbmIngreso.invoice_number) para cada tracking faltante, así todas las
+    // órdenes quedan con su recibo desde la creación y los consumidores
+    // (getInvoiceDispatchOrders, vistas de despacho, etc.) no dependen de
+    // lookups externos posteriores.
+    const trackingsMissingRecibo = newItems
+      .filter((i) => i.tracking_number && !i.consolidation_tracking)
+      .map((i) => String(i.tracking_number).trim())
+      .filter(Boolean);
+    if (trackingsMissingRecibo.length > 0) {
+      try {
+        const ingresos = await base44.asServiceRole.entities.CbmIngreso.filter(
+          { client_email },
+          '-fecha',
+          500
+        ).catch(() => []);
+        const trackingToRecibo = {};
+        (ingresos || []).forEach((ing) => {
+          const reciboNum = String(ing.invoice_number || '').trim();
+          if (!reciboNum) return;
+          const trackings = Array.isArray(ing.tracking_numbers) ? ing.tracking_numbers : [];
+          trackings.forEach((t) => {
+            const tt = String(t || '').trim().toUpperCase();
+            if (tt) trackingToRecibo[tt] = reciboNum;
+          });
+        });
+        newItems.forEach((i) => {
+          if (!i.consolidation_tracking && i.tracking_number) {
+            const tt = String(i.tracking_number).trim().toUpperCase();
+            const recibo = trackingToRecibo[tt];
+            if (recibo) i.consolidation_tracking = recibo;
+          }
+        });
+      } catch (_) {}
+    }
+
   // Marcar los recibos incluidos en la orden como disponibles para entrega.
   // Solo cuando se crea/actualiza una orden de despacho real, no al facturar.
   const markRecibosDisponible = async (clientEmail, orderItems) => {
