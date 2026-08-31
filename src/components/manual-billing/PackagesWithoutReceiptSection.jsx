@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { PackageX, ShieldCheck, FileText } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { PackageX, ShieldCheck, FileText, Layers } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -12,6 +13,8 @@ import {
 } from "@/components/ui/select";
 
 export default function PackagesWithoutReceiptSection({ packages, onChange, availableReceipts, onAssignReceipt }) {
+  const [bulkReceiptId, setBulkReceiptId] = useState('');
+
   if (!packages || packages.length === 0) return null;
 
   const updatePkg = (id, patch) => {
@@ -31,6 +34,13 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
   const handleAssign = (pkgId, receiptId) => {
     updatePkg(pkgId, { assigned_receipt_id: receiptId });
     if (onAssignReceipt) onAssignReceipt(receiptId);
+  };
+
+  const applyBulkAssign = () => {
+    if (!bulkReceiptId) return;
+    onChange(packages.map((p) => p.selected ? { ...p, assigned_receipt_id: bulkReceiptId } : p));
+    if (onAssignReceipt) onAssignReceipt(bulkReceiptId);
+    setBulkReceiptId('');
   };
 
   return (
@@ -63,6 +73,38 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
         {selectedCount > 0 && receipts.length === 0 && (
           <div className="rounded-lg border border-amber-300 bg-amber-50/50 p-2 text-xs text-amber-700">
             Este cliente no tiene recibos disponibles.
+          </div>
+        )}
+        {selectedCount > 0 && receipts.length > 0 && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Layers className="h-4 w-4 text-blue-600" />
+              <p className="text-xs font-medium text-blue-800">
+                Asignar los {selectedCount} paquetes seleccionados a un mismo recibo
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={bulkReceiptId} onValueChange={setBulkReceiptId}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Elegir recibo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {receipts.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.invoice_number}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                size="sm"
+                onClick={applyBulkAssign}
+                disabled={!bulkReceiptId}
+              >
+                Asignar a todos
+              </Button>
+            </div>
           </div>
         )}
         <div className="space-y-2">
