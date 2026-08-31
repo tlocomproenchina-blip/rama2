@@ -283,30 +283,13 @@ export default function Dashboard({ user, refreshUser }) {
 
             {/* Ejemplo Shipping Mark + Etiqueta lado a lado */}
             <div className="border-t border-slate-200 pt-4 mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Shipping Mark Example Image */}
-              {config?.shipping_mark_example_image_url && (
-                <div className="bg-slate-50 rounded-lg p-3 md:p-4">
-                  <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm mb-2">
-                    <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
-                    Ejemplo del Shipping Mark
-                  </div>
-                  <p className="text-xs text-slate-600 mb-3 whitespace-pre-line">
-                    {config.shipping_mark_example_description || 'Así debe quedar tu shipping mark en la web'}
-                  </p>
-                  <OptimizedImage
-                    src={config.shipping_mark_example_image_url}
-                    alt="Ejemplo de Shipping Mark"
-                    width={800}
-                    height={600}
-                    className="w-full rounded-lg border border-slate-200 shadow-sm"
-                    priority={false}
-                  />
-                </div>
-              )}
-
-              {/* Ejemplos por plataforma (colapsables) */}
+              {/* Ejemplos de Shipping Mark (colapsables por plataforma) */}
               {config?.shipping_mark_examples?.length > 0 && (
                 <div className="bg-slate-50 rounded-lg p-3 md:p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
+                    <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
+                    Ejemplos del Shipping Mark
+                  </div>
                   <ShippingMarkExamplesViewer examples={config.shipping_mark_examples} />
                 </div>
               )}
