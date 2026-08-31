@@ -212,6 +212,7 @@ export default function AdminManualBilling() {
       // Mapa de FOB asegurado por número de tracking normalizado (desde los paquetes con seguro)
       const insuredFobByTracking = {};
       (pkgs || []).forEach((p) => {
+        if (!p.has_insurance) return;
         const fob = num(p.fob_value);
         if (fob <= 0) return;
         String(p.tracking_number || '')
@@ -241,6 +242,7 @@ export default function AdminManualBilling() {
           id: p.id,
           tracking_number: p.tracking_number,
           fob_value: num(p.fob_value),
+          has_insurance: !!p.has_insurance,
           selected: false,
           assigned_receipt_id: '',
         }));
@@ -301,8 +303,8 @@ export default function AdminManualBilling() {
   const totalCbmAll = selectedCbmSum;
   const shippingTotal = calcConsolidatedShipping(billedCbm !== '' ? num(billedCbm) : totalCbmAll, selectedRows);
   const autoInsuranceTotal = selectedRows.reduce((s, r) => s + num(r.insurance_amount), 0);
-  // Seguro de paquetes sin recibo: 5% del FOB si tienen valor asegurado (línea separada)
-  const orphanInsuranceTotal = selectedOrphans.reduce((s, p) => s + (num(p.fob_value) * 0.05), 0);
+  // Seguro de paquetes sin recibo: 5% del FOB solo si el cliente marcó asegurar (línea separada)
+  const orphanInsuranceTotal = selectedOrphans.reduce((s, p) => s + (p.has_insurance ? num(p.fob_value) * 0.05 : 0), 0);
   const insuranceTotal = manualInsurance !== '' ? num(manualInsurance) : (autoInsuranceTotal + orphanInsuranceTotal);
   const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0) + selectedOrphans.length;
   const consolidationFee = consolidationMode === 'manual' ? num(manualConsolidationFee) : totalPackages * 1;
@@ -383,8 +385,9 @@ export default function AdminManualBilling() {
             });
           }
         });
-        // Seguro de paquetes sin recibo (5% FOB)
+        // Seguro de paquetes sin recibo (5% FOB) solo si el cliente marcó asegurar
         selOrphans.forEach((p) => {
+          if (!p.has_insurance) return;
           const ins = num(p.fob_value) * 0.05;
           if (ins > 0) {
             items.push({
