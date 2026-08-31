@@ -51,6 +51,7 @@ import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import ShippingLabelGenerator from '@/components/client-portal/ShippingLabelGenerator';
+import ShippingMarkExamplesViewer from '@/components/client-portal/ShippingMarkExamplesViewer';
 import WarehouseAddressCard from '@/components/client-portal/WarehouseAddressCard';
 import ClientCbmWidget from '@/components/client-portal/ClientCbmWidget';
 import CreditBalanceWidget from '@/components/client-portal/CreditBalanceWidget';
@@ -300,6 +301,13 @@ export default function Dashboard({ user, refreshUser }) {
                     className="w-full rounded-lg border border-slate-200 shadow-sm"
                     priority={false}
                   />
+                </div>
+              )}
+
+              {/* Ejemplos por plataforma (colapsables) */}
+              {config?.shipping_mark_examples?.length > 0 && (
+                <div className="bg-slate-50 rounded-lg p-3 md:p-4 space-y-2">
+                  <ShippingMarkExamplesViewer examples={config.shipping_mark_examples} />
                 </div>
               )}
 

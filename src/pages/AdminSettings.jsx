@@ -44,6 +44,7 @@ import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { generateClientPriceListPdf } from '@/lib/clientPriceListPdf';
 import PushTestCard from '@/components/admin/PushTestCard';
 import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
+import ShippingMarkExamplesEditor from '@/components/admin/ShippingMarkExamplesEditor';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -1435,6 +1436,13 @@ export default function AdminSettings({ user }) {
                   Este texto aparecerá en el dashboard del cliente junto a la imagen de ejemplo
                 </p>
               </div>
+
+              <ShippingMarkExamplesEditor
+                examples={appConfig.shipping_mark_examples || []}
+                onChange={(updated) => setAppConfig({ ...appConfig, shipping_mark_examples: updated })}
+                onSave={handleSaveGeneral}
+                saving={saving}
+              />
 
               <div className="space-y-2">
                 <Label>Porcentaje de seguro (%)</Label>

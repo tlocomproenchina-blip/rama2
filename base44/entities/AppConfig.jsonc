@@ -66,6 +66,31 @@
       "default": "Esta imagen se mostrar\u00e1 a los usuarios como ejemplo de c\u00f3mo debe quedar su shipping mark",
       "description": "Texto descriptivo que aparece junto a la imagen de ejemplo del Shipping Mark"
     },
+    "shipping_mark_examples": {
+      "type": "array",
+      "description": "Ejemplos de Shipping Mark por plataforma (Pinduoduo, 1688, Taobao, etc.). Cada item tiene t\u00edtulo, imagen y descripci\u00f3n.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "T\u00edtulo de la plataforma (ej: Pinduoduo, 1688, Taobao, Alibaba, Tmall)"
+          },
+          "image_url": {
+            "type": "string",
+            "description": "URL de la imagen de ejemplo para esta plataforma"
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripci\u00f3n del ejemplo para esta plataforma"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "default": []
+    },
     "contract_text": {
       "type": "string",
       "description": "Legal contract text"
