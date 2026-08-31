@@ -31,11 +31,16 @@ export default async function (req: Request): Promise<Response> {
     const clientEmail = invoice.client_email;
     const reciboCbmMap = {}; // { invoice_number: cbm }
     const reciboTrackingsMap = {}; // { invoice_number: tracking_numbers[] }
+    const trackingToReciboMap = {}; // { tracking_number: invoice_number } desde manual_recibos
     manualRecibos.forEach((r) => {
       const num_ = String(r.invoice_number || '').trim();
       if (num_) {
         reciboCbmMap[num_] = num(r.cbm);
         reciboTrackingsMap[num_] = Array.isArray(r.tracking_numbers) ? r.tracking_numbers : [];
+        (reciboTrackingsMap[num_] || []).forEach((t) => {
+          const tt = String(t || '').trim();
+          if (tt) trackingToReciboMap[tt.toUpperCase()] = num_;
+        });
       }
     });
     const reciboSet = new Set(Object.keys(reciboCbmMap));
@@ -47,11 +52,14 @@ export default async function (req: Request): Promise<Response> {
       200
     ).catch(() => []);
 
-    // Resolver consolidation_tracking faltante vía getDispatchReceiptsMap
+    // Mapa tracking→recibo construido directamente desde manual_recibos (fuente primaria).
+    // Solo se consulta getDispatchReceiptsMap (Consolidation) como fallback para trackings
+    // que no aparecen en manual_recibos.
     const trackingsToLookup = [];
     (dispatchOrders || []).forEach((o) => {
       (o.items || []).forEach((item) => {
-        if (item.tracking_number && !item.consolidation_tracking) {
+        const tt = String(item.tracking_number || '').trim().toUpperCase();
+        if (tt && !item.consolidation_tracking && !trackingToReciboMap[tt]) {
           trackingsToLookup.push(item.tracking_number);
         }
       });
@@ -95,7 +103,9 @@ export default async function (req: Request): Promise<Response> {
         const orderRecibos = new Set();
         const orderTrackings = [];
         (o.items || []).forEach((item) => {
+          const tt = String(item.tracking_number || '').trim().toUpperCase();
           const recibo = String(item.consolidation_tracking || '').trim()
+            || String(trackingToReciboMap[tt] || '').trim()
             || String(receiptMap[item.tracking_number] || '').trim();
           if (recibo && reciboSet.has(recibo)) {
             orderRecibos.add(recibo);
