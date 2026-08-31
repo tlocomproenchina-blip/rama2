@@ -3,8 +3,8 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { Package, ChevronDown } from 'lucide-react';
 import OptimizedImage from '@/components/OptimizedImage';
 
-export default function ShippingMarkExamplesViewer({ examples }) {
-  const list = Array.isArray(examples) ? examples.filter((e) => e && (e.image_url || e.description)) : [];
+export default function ShippingMarkExamplesViewer({ examples, description }) {
+  const list = Array.isArray(examples) ? examples.filter((e) => e && e.image_url) : [];
   const [openIndex, setOpenIndex] = useState(null);
 
   if (list.length === 0) return null;
@@ -15,6 +15,9 @@ export default function ShippingMarkExamplesViewer({ examples }) {
         <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
         Ejemplos por plataforma
       </div>
+      {description && (
+        <p className="text-xs text-slate-600 whitespace-pre-line">{description}</p>
+      )}
       {list.map((item, index) => (
         <Collapsible
           key={index}
@@ -39,20 +42,15 @@ export default function ShippingMarkExamplesViewer({ examples }) {
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="p-3 pt-0 space-y-2">
-              {item.description && (
-                <p className="text-xs text-slate-600 whitespace-pre-line">{item.description}</p>
-              )}
-              {item.image_url && (
-                <OptimizedImage
-                  src={item.image_url}
-                  alt={item.title || 'Ejemplo de Shipping Mark'}
-                  width={800}
-                  height={600}
-                  className="w-full rounded-lg border border-slate-200 shadow-sm"
-                  priority={false}
-                />
-              )}
+            <div className="p-3 pt-0">
+              <OptimizedImage
+                src={item.image_url}
+                alt={item.title || 'Ejemplo de Shipping Mark'}
+                width={800}
+                height={600}
+                className="w-full rounded-lg border border-slate-200 shadow-sm"
+                priority={false}
+              />
             </div>
           </CollapsibleContent>
         </Collapsible>

@@ -286,11 +286,10 @@ export default function Dashboard({ user, refreshUser }) {
               {/* Ejemplos de Shipping Mark (colapsables por plataforma) */}
               {config?.shipping_mark_examples?.length > 0 && (
                 <div className="bg-slate-50 rounded-lg p-3 md:p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-slate-500 text-xs md:text-sm">
-                    <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 flex-shrink-0" />
-                    Ejemplos del Shipping Mark
-                  </div>
-                  <ShippingMarkExamplesViewer examples={config.shipping_mark_examples} />
+                  <ShippingMarkExamplesViewer
+                    examples={config.shipping_mark_examples}
+                    description={config.shipping_mark_example_description}
+                  />
                 </div>
               )}
 

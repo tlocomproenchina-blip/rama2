@@ -9,7 +9,7 @@ import { Upload, ChevronDown, Plus, Trash2, Loader2, Package } from 'lucide-reac
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { toast } from 'sonner';
 
-export default function ShippingMarkExamplesEditor({ examples, onChange, onSave, saving }) {
+export default function ShippingMarkExamplesEditor({ examples, onChange, onSave, saving, description, onDescriptionChange }) {
   const list = Array.isArray(examples) ? examples : [];
   const [openIndex, setOpenIndex] = useState(null);
   const [uploadingIndex, setUploadingIndex] = useState(null);
@@ -20,7 +20,7 @@ export default function ShippingMarkExamplesEditor({ examples, onChange, onSave,
   };
 
   const addExample = () => {
-    const newItem = { title: '', image_url: '', description: '' };
+    const newItem = { title: '', image_url: '' };
     onChange([...list, newItem]);
     setOpenIndex(list.length);
   };
@@ -51,10 +51,23 @@ export default function ShippingMarkExamplesEditor({ examples, onChange, onSave,
           Ejemplos de Shipping Mark por plataforma
         </CardTitle>
         <CardDescription>
-          Crea ejemplos desplegables por plataforma (Pinduoduo, 1688, Taobao, Alibaba, Tmall, etc.). Cada ejemplo se muestra al cliente como una sección colapsable.
+          Crea ejemplos desplegables por plataforma (Pinduoduo, 1688, Taobao, Alibaba, Tmall, etc.). La descripción es única y aplica a todos los ejemplos.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 p-4 md:space-y-4 md:p-6">
+        <div className="space-y-2">
+          <Label>Descripción (aplica a todos los ejemplos)</Label>
+          <Textarea
+            value={description || ''}
+            onChange={(e) => onDescriptionChange?.(e.target.value)}
+            placeholder="Ejemplo de cómo debe quedar tu shipping mark registrado en la web"
+            rows={3}
+          />
+          <p className="text-xs text-slate-500">
+            Este texto aparecerá en el dashboard del cliente junto a los ejemplos
+          </p>
+        </div>
+
         {list.length === 0 && (
           <div className="text-center py-8 text-slate-500 text-sm border border-dashed border-slate-200 rounded-xl">
             No hay ejemplos por plataforma. Toca "Agregar ejemplo" para crear el primero.
@@ -143,16 +156,6 @@ export default function ShippingMarkExamplesEditor({ examples, onChange, onSave,
                       </div>
                     )}
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Descripción</Label>
-                  <Textarea
-                    value={item.description || ''}
-                    onChange={(e) => update(index, { description: e.target.value })}
-                    placeholder="Explica cómo debe quedar el shipping mark en esta plataforma..."
-                    rows={3}
-                  />
                 </div>
 
                 <div className="flex justify-end">

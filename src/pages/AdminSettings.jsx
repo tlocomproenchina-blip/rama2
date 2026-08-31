@@ -1394,6 +1394,8 @@ export default function AdminSettings({ user }) {
                 onChange={(updated) => setAppConfig({ ...appConfig, shipping_mark_examples: updated })}
                 onSave={handleSaveGeneral}
                 saving={saving}
+                description={appConfig.shipping_mark_example_description}
+                onDescriptionChange={(val) => setAppConfig({ ...appConfig, shipping_mark_example_description: val })}
               />
 
               <div className="space-y-2">
