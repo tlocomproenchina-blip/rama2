@@ -252,7 +252,7 @@ export default function AdminManualBilling() {
         // FOB asegurado: usar fob_total del registro o, si falta, sumar el FOB de los paquetes asegurados que coincidan por tracking
         const trackingFob = trackings.reduce((s, t) => s + (insuredFobByTracking[normTracking(t)] || 0), 0);
         const insuredCount = trackings.filter((t) => (insuredFobByTracking[normTracking(t)] || 0) > 0).length;
-        const totalFob = num(ing.fob_total) > 0 ? num(ing.fob_total) : trackingFob;
+        const totalFob = trackingFob;
         return {
           id: ing.id,
           invoice_number: ing.invoice_number || ing.descripcion || '—',
