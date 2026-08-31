@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { PackageX, Boxes, ShieldCheck, CheckCheck } from 'lucide-react';
+import { PackageX, ShieldCheck, FileText } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export default function PackagesWithoutReceiptSection({ packages, onChange }) {
-  const [bulkCbm, setBulkCbm] = useState('');
-
+export default function PackagesWithoutReceiptSection({ packages, onChange, selectedRows }) {
   if (!packages || packages.length === 0) return null;
 
   const updatePkg = (id, patch) => {
@@ -22,11 +25,8 @@ export default function PackagesWithoutReceiptSection({ packages, onChange }) {
   const selectedCount = packages.filter((p) => p.selected).length;
   const allSelected = packages.length > 0 && selectedCount === packages.length;
 
-  const applyBulkCbm = () => {
-    const val = parseFloat(bulkCbm);
-    if (isNaN(val) || val <= 0) return;
-    onChange(packages.map((p) => (p.selected ? { ...p, cbm: bulkCbm } : p)));
-  };
+  // Recibos seleccionados en la lista principal — opciones del dropdown
+  const availableReceipts = (selectedRows || []).filter((r) => r.invoice_number && r.invoice_number !== '—');
 
   return (
     <Card className="border-amber-200 shadow-sm">
@@ -52,26 +52,12 @@ export default function PackagesWithoutReceiptSection({ packages, onChange }) {
           )}
         </div>
         <p className="text-xs text-slate-500">
-          Estos paquetes no tienen recibo registrado. Selecciona los que deseas facturar e ingresa su CBM.
-          Se creará un recibo automático al generar la factura.
+          Estos paquetes no tienen recibo registrado. Selecciona los que deseas facturar y asígnalos a un recibo ya seleccionado en la lista principal.
+          Al generar la factura, el paquete se integrará al recibo elegido.
         </p>
-        {selectedCount > 0 && (
-          <div className="flex items-end gap-2 rounded-lg border border-amber-200 bg-amber-50/30 p-2">
-            <div className="flex-1">
-              <Label className="text-xs flex items-center gap-1"><Boxes className="h-3 w-3" /> CBM general (aplica a {selectedCount} seleccionados)</Label>
-              <Input
-                type="number"
-                step="0.0001"
-                min="0"
-                value={bulkCbm}
-                onChange={(e) => setBulkCbm(e.target.value)}
-                placeholder="0.0000"
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyBulkCbm(); } }}
-              />
-            </div>
-            <Button type="button" size="sm" onClick={applyBulkCbm} className="gap-1">
-              <CheckCheck className="h-4 w-4" /> Aplicar a todos
-            </Button>
+        {selectedCount > 0 && availableReceipts.length === 0 && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50/50 p-2 text-xs text-amber-700">
+            Primero selecciona al menos un recibo en la lista principal para poder asignar estos paquetes.
           </div>
         )}
         <div className="space-y-2">
@@ -94,16 +80,23 @@ export default function PackagesWithoutReceiptSection({ packages, onChange }) {
                     </p>
                   )}
                   {pkg.selected && (
-                    <div className="mt-2 max-w-[200px]">
-                      <Label className="text-xs flex items-center gap-1"><Boxes className="h-3 w-3" /> CBM</Label>
-                      <Input
-                        type="number"
-                        step="0.0001"
-                        min="0"
-                        value={pkg.cbm || ''}
-                        onChange={(e) => updatePkg(pkg.id, { cbm: e.target.value })}
-                        placeholder="0.0000"
-                      />
+                    <div className="mt-2 max-w-[260px]">
+                      <Label className="text-xs flex items-center gap-1 mb-1"><FileText className="h-3 w-3" /> Asignar a recibo</Label>
+                      <Select
+                        value={pkg.assigned_receipt_id || ''}
+                        onValueChange={(val) => updatePkg(pkg.id, { assigned_receipt_id: val })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={availableReceipts.length === 0 ? "Sin recibos seleccionados" : "Elegir recibo..."} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableReceipts.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>
+                              {r.invoice_number}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                 </div>
