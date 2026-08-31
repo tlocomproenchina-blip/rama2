@@ -157,7 +157,7 @@ export default function ShippingLabelGenerator({ user, config }) {
             <p className="text-xs text-slate-500 mb-2 hidden lg:block">Vista previa</p>
             <div className="lg:border-2 lg:border-slate-300 lg:rounded-lg lg:overflow-hidden lg:shadow-lg max-lg:absolute max-lg:-left-[9999px] max-lg:top-0">
               <div ref={labelRef} style={{ width: 380, padding: 0, background: '#fff', fontFamily: 'Arial, sans-serif' }}>
-                <LabelContent shippingMark={shippingMark} form={form} logoUrl={logoUrl} companyName={companyName} />
+                <LabelContent shippingMark={shippingMark} form={form} logoUrl={logoUrl} companyName={companyName} config={config} />
               </div>
             </div>
             <p className="text-xs text-slate-400 text-center lg:hidden">La etiqueta se generará al descargar</p>
@@ -168,8 +168,15 @@ export default function ShippingLabelGenerator({ user, config }) {
   );
 }
 
-function LabelContent({ shippingMark, form, logoUrl, companyName }) {
+function LabelContent({ shippingMark, form, logoUrl, companyName, config }) {
   const check = (val) => val ? '☑' : '☐';
+
+  // Dirección del almacén: preferir almacén 2 (Yiwu) si está activo, sino almacén 1
+  const useWarehouse2 = !!(config?.warehouse2_address && config.warehouse2_address.trim());
+  const warehouseAddress = (useWarehouse2 ? config.warehouse2_address : config?.warehouse_address) || '';
+  const warehousePhone = (useWarehouse2 ? config.warehouse2_phone : config?.warehouse_phone) || '';
+  const warehouseZipcode = (useWarehouse2 ? config.warehouse2_zipcode : config?.warehouse_zipcode) || '';
+  const warehouseName = (useWarehouse2 ? config.warehouse2_name : config?.warehouse_name) || '';
 
   return (
     <div style={{ width: 380, fontSize: 12, color: '#000', lineHeight: 1.4 }}>
@@ -243,10 +250,10 @@ function LabelContent({ shippingMark, form, logoUrl, companyName }) {
 
       {/* Footer */}
       <div style={{ padding: '8px 12px', fontSize: 11, lineHeight: 1.6, borderTop: '1px solid #999' }}>
-        <div>地址：浙江省义乌市福田宗宅5区14栋6单元1-8号</div>
-        <div>国仓库负责人：刘生</div>
-        <div>邮编：322000</div>
-        <div>电话：19858987879</div>
+        {warehouseAddress && <div>地址：{warehouseAddress}</div>}
+        {warehouseName && <div>仓库负责人：{warehouseName}</div>}
+        {warehouseZipcode && <div>邮编：{warehouseZipcode}</div>}
+        {warehousePhone && <div>电话：{warehousePhone}</div>}
       </div>
     </div>
   );
