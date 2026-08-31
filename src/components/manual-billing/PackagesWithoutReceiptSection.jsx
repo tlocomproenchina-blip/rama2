@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function PackagesWithoutReceiptSection({ packages, onChange, selectedRows }) {
+export default function PackagesWithoutReceiptSection({ packages, onChange, availableReceipts, onAssignReceipt }) {
   if (!packages || packages.length === 0) return null;
 
   const updatePkg = (id, patch) => {
@@ -25,8 +25,13 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, sele
   const selectedCount = packages.filter((p) => p.selected).length;
   const allSelected = packages.length > 0 && selectedCount === packages.length;
 
-  // Recibos seleccionados en la lista principal — opciones del dropdown
-  const availableReceipts = (selectedRows || []).filter((r) => r.invoice_number && r.invoice_number !== '—');
+  // Todos los recibos disponibles del cliente (no facturados)
+  const receipts = (availableReceipts || []).filter((r) => r.invoice_number && r.invoice_number !== '—');
+
+  const handleAssign = (pkgId, receiptId) => {
+    updatePkg(pkgId, { assigned_receipt_id: receiptId });
+    if (onAssignReceipt) onAssignReceipt(receiptId);
+  };
 
   return (
     <Card className="border-amber-200 shadow-sm">
@@ -55,9 +60,9 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, sele
           Estos paquetes no tienen recibo registrado. Selecciona los que deseas facturar y asígnalos a un recibo ya seleccionado en la lista principal.
           Al generar la factura, el paquete se integrará al recibo elegido.
         </p>
-        {selectedCount > 0 && availableReceipts.length === 0 && (
+        {selectedCount > 0 && receipts.length === 0 && (
           <div className="rounded-lg border border-amber-300 bg-amber-50/50 p-2 text-xs text-amber-700">
-            Primero selecciona al menos un recibo en la lista principal para poder asignar estos paquetes.
+            Este cliente no tiene recibos disponibles.
           </div>
         )}
         <div className="space-y-2">
@@ -84,13 +89,13 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, sele
                       <Label className="text-xs flex items-center gap-1 mb-1"><FileText className="h-3 w-3" /> Asignar a recibo</Label>
                       <Select
                         value={pkg.assigned_receipt_id || ''}
-                        onValueChange={(val) => updatePkg(pkg.id, { assigned_receipt_id: val })}
+                        onValueChange={(val) => handleAssign(pkg.id, val)}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder={availableReceipts.length === 0 ? "Sin recibos seleccionados" : "Elegir recibo..."} />
+                          <SelectValue placeholder={receipts.length === 0 ? "Sin recibos disponibles" : "Elegir recibo..."} />
                         </SelectTrigger>
                         <SelectContent>
-                          {availableReceipts.map((r) => (
+                          {receipts.map((r) => (
                             <SelectItem key={r.id} value={r.id}>
                               {r.invoice_number}
                             </SelectItem>

@@ -315,10 +315,6 @@ export default function AdminManualBilling() {
     const selOrphans = orphanPackages.filter((p) => p.selected);
     if (selectedRows.length === 0 && !manualReceipt && selOrphans.length === 0) { toast.error('Selecciona al menos una factura, un paquete sin recibo o ingresa un número de recibo nuevo'); return; }
     // Validar que cada paquete sin recibo seleccionado tenga un recibo asignado
-    if (selOrphans.length > 0 && selectedRows.length === 0 && !manualReceipt) {
-      toast.error('Primero selecciona al menos un recibo en la lista principal para asignar los paquetes sin recibo');
-      return;
-    }
     const orphansWithoutReceipt = selOrphans.filter((p) => !p.assigned_receipt_id);
     if (orphansWithoutReceipt.length > 0) { toast.error(`Falta asignar un recibo a ${orphansWithoutReceipt.length} paquete(s) sin recibo`); return; }
     setCreating(true);
@@ -691,7 +687,8 @@ export default function AdminManualBilling() {
               <PackagesWithoutReceiptSection
                 packages={orphanPackages}
                 onChange={setOrphanPackages}
-                selectedRows={selectedRows}
+                availableReceipts={rows}
+                onAssignReceipt={(receiptId) => setRows((prev) => prev.map((r) => r.id === receiptId ? { ...r, selected: true } : r))}
               />
             )}
           </div>
