@@ -12,35 +12,37 @@ export default async function(req) {
 
     const config = configs[0] || {};
 
-    // Tarifas base de AppConfig
-    const rateSeaGeneral = config.rate_sea_general || 0;
-    const rateSeaSensitive = config.rate_sea_sensitive || 0;
+    // Tarifas globales de fallback desde AppConfig
+    const globalRegular = config.rate_sea_general || 0;
+    const globalHigh = config.rate_sea_sensitive || 0;
 
-    // Estados: rate_cbm = shipping_rate del estado (tarifa por CBM marítimo regular)
-    const estados = (states || []).map((s) => ({
-      name: s.state_name,
-      rate_cbm: s.shipping_rate || 0
-    }));
+    // Estados: usamos final_rate_regular y final_rate_high de cada estado.
+  // Si el estado tiene 0 en final_rate, caemos al global de AppConfig.
+    const estados = (states || []).map((s) => {
+      const regular = s.final_rate_regular && s.final_rate_regular > 0
+        ? s.final_rate_regular
+        : globalRegular;
+      const high = s.final_rate_high && s.final_rate_high > 0
+        ? s.final_rate_high
+        : globalHigh;
+      return {
+        name: s.state_name,
+        rate_cbm: regular,
+        rate_cbm_high_risk: high
+      };
+    });
 
-    // Tipos de carga marítima: multiplier relativo a la tarifa regular
+    // Tipos de carga marítima
     const tipos_carga = [
-      {
-        key: 'maritimo_regular',
-        label: 'Marítimo Regular',
-        multiplier: 1
-      },
-      {
-        key: 'maritimo_alto_riesgo',
-        label: 'Marítimo Alto Riesgo',
-        multiplier: rateSeaGeneral > 0 ? rateSeaSensitive / rateSeaGeneral : 1
-      }
+      { key: 'maritimo_regular', label: 'Marítimo Regular' },
+      { key: 'maritimo_alto_riesgo', label: 'Marítimo Alto Riesgo' }
     ];
 
     return Response.json({
       estados,
       tipos_carga,
-      rate_sea_general: rateSeaGeneral,
-      rate_sea_sensitive: rateSeaSensitive,
+      rate_sea_general: globalRegular,
+      rate_sea_sensitive: globalHigh,
       updated_date: config.updated_date || null
     });
   } catch (error) {
