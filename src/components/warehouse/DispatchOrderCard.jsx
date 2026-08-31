@@ -7,11 +7,11 @@ import { FileDown, Printer, Pencil, Trash2, Ban, Package as PackageIcon, Receipt
 import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
 import { toast } from 'sonner';
 
-export default function DispatchOrderCard({ order, liveReceiptTotals, invoiceInfo, onEdit, onDelete, onCancel, onDownload, onPrint, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
+export default function DispatchOrderCard({ order, liveReceiptTotals, invoiceInfo, trackingToReceipt, onEdit, onDelete, onCancel, onDownload, onPrint, onToggleDespachado, togglingDespachado, selectable, selected, onSelectToggle }) {
   const items = Array.isArray(order.items) ? order.items : [];
   const cancelled = order.status === 'cancelada';
   const despachado = order.status === 'despachado';
-  const receiptGroups = groupItemsByReceipt(items);
+  const receiptGroups = groupItemsByReceipt(items, trackingToReceipt);
   const hasReceipts = receiptGroups.some((g) => g.receipt !== 'Sin recibo');
   // Totales en vivo desde CbmIngreso (prioridad); fallback al snapshot guardado
   const receiptTotals = { ...(order.receipt_totals || {}), ...(liveReceiptTotals || {}) };

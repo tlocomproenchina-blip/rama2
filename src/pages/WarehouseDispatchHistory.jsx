@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, History, Search, GitMerge, X, UserRound, Filter, FileText, DollarSign, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
+import { buildTrackingToReceiptMap } from '@/lib/dispatchOrderGroups';
 import DispatchOrderEditModal from '@/components/warehouse/DispatchOrderEditModal';
 import { generateDispatchOrderPdf } from '@/lib/dispatchOrderPdf';
 
@@ -22,6 +23,7 @@ export default function WarehouseDispatchHistory({ user }) {
   const [merging, setMerging] = useState(false);
   const [orderTotalsMap, setOrderTotalsMap] = useState({});
   const [invoiceInfoMap, setInvoiceInfoMap] = useState({});
+  const [trackingToReceiptMap, setTrackingToReceiptMap] = useState({});
   const [creatorFilter, setCreatorFilter] = useState('all');
   const [dispatchFilter, setDispatchFilter] = useState('all');
   const [invoiceFilter, setInvoiceFilter] = useState('all');
@@ -121,6 +123,8 @@ export default function WarehouseDispatchHistory({ user }) {
       groupByEmail(ingresos, ingresosByClient);
       groupByEmail(invoices, invoicesByClient);
       groupByEmail(payments, paymentsByClient);
+      // Mapa global tracking→recibo desde todos los CbmIngreso cargados
+      setTrackingToReceiptMap(buildTrackingToReceiptMap(ingresos));
     } catch (_) {}
 
     const map = {};
@@ -722,6 +726,7 @@ export default function WarehouseDispatchHistory({ user }) {
               order={order}
               liveReceiptTotals={orderTotalsMap[order.id] || {}}
               invoiceInfo={invoiceInfoMap[order.id]}
+              trackingToReceipt={trackingToReceiptMap}
               onEdit={setEditOrder}
               onDelete={handleDelete}
               onCancel={handleCancel}

@@ -4,13 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import { Truck, ChevronDown, ChevronRight, Package as PackageIcon, CheckCircle2 } from 'lucide-react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
-import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
+import { groupItemsByReceipt, buildTrackingToReceiptMap } from '@/lib/dispatchOrderGroups';
 
 export default function ClientDispatchOrders({ orders = [], client }) {
   const [expanded, setExpanded] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
   const [localOrders, setLocalOrders] = useState(orders);
   const [receiptTotals, setReceiptTotals] = useState({});
+  const [trackingToReceipt, setTrackingToReceipt] = useState({});
 
   // Sincronizar cuando cambian las órdenes entrantes
   React.useEffect(() => { setLocalOrders(orders); }, [orders]);
@@ -50,6 +51,22 @@ export default function ClientDispatchOrders({ orders = [], client }) {
     return () => { cancelled = true; };
   }, [sorted, client?.email]);
 
+  // Cargar CbmIngreso del cliente para resolver el recibo real de los items
+  // que no tienen consolidation_tracking (consistencia con AdminManualBilling).
+  React.useEffect(() => {
+    if (!client?.email) { setTrackingToReceipt({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const ingresos = await base44.entities.CbmIngreso.filter({ client_email: client.email }, '-fecha', 500);
+        if (!cancelled) setTrackingToReceipt(buildTrackingToReceiptMap(ingresos || []));
+      } catch {
+        if (!cancelled) setTrackingToReceipt({});
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [client?.email]);
+
   const handleToggleDespachado = async (order) => {
     setTogglingId(order.id);
     try {
@@ -85,7 +102,7 @@ export default function ClientDispatchOrders({ orders = [], client }) {
             const items = Array.isArray(order.items) ? order.items : [];
             const cancelled = order.status === 'cancelada';
             const despachado = order.status === 'despachado';
-            const receiptGroups = groupItemsByReceipt(items);
+            const receiptGroups = groupItemsByReceipt(items, trackingToReceipt);
 
             // Calcular total de paquetes faltantes en la orden
             const missingTotal = receiptGroups.reduce((sum, g) => {

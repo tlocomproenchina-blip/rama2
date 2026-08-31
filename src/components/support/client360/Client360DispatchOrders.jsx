@@ -3,14 +3,32 @@ import { Truck, CheckCircle2, Package as PackageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
+import { groupItemsByReceipt, buildTrackingToReceiptMap } from '@/lib/dispatchOrderGroups';
 import Client360Section from './Client360Section';
 
 export default function Client360DispatchOrders({ orders = [] }) {
   const [togglingId, setTogglingId] = useState(null);
   const [localOrders, setLocalOrders] = useState(orders);
+  const [trackingToReceipt, setTrackingToReceipt] = useState({});
 
   React.useEffect(() => { setLocalOrders(orders); }, [orders]);
+
+  // Cargar CbmIngreso por client_email de las órdenes para resolver el recibo
+  // real de los items sin consolidation_tracking (consistencia con AdminManualBilling).
+  React.useEffect(() => {
+    const emails = [...new Set((orders || []).map((o) => (o.client_email || '').trim()).filter(Boolean))];
+    if (!emails.length) { setTrackingToReceipt({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const ingresos = await base44.entities.CbmIngreso.filter({ client_email: { $in: emails } }, '-fecha', 1000);
+        if (!cancelled) setTrackingToReceipt(buildTrackingToReceiptMap(ingresos || []));
+      } catch {
+        if (!cancelled) setTrackingToReceipt({});
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [orders]);
 
   const handleToggleDespachado = async (order) => {
     setTogglingId(order.id);
@@ -36,7 +54,7 @@ export default function Client360DispatchOrders({ orders = [] }) {
         const items = Array.isArray(order.items) ? order.items : [];
         const cancelled = order.status === 'cancelada';
         const despachado = order.status === 'despachado';
-        const receiptGroups = groupItemsByReceipt(items);
+        const receiptGroups = groupItemsByReceipt(items, trackingToReceipt);
 
         return (
           <div key={order.id} className="px-3 py-2 space-y-1.5">
