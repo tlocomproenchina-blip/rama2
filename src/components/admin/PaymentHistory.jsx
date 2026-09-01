@@ -41,18 +41,30 @@ export default function PaymentHistory() {
   const [hasMore, setHasMore] = useState(false);
   const [subFilter, setSubFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [backfilling, setBackfilling] = useState(false);
   const fileViewer = useFileViewer();
   const loadedEmailsRef = useRef(new Set());
 
+  const buildQuery = useCallback(() => {
+    const query = {};
+    if (dateFrom) query.reported_date = { $gte: new Date(dateFrom + 'T00:00:00').toISOString() };
+    if (dateTo) query.reported_date = { ...(query.reported_date || {}), $lte: new Date(dateTo + 'T23:59:59').toISOString() };
+    return Object.keys(query).length ? query : null;
+  }, [dateFrom, dateTo]);
+
   const fetchPage = useCallback(async (skip, append) => {
-    const data = await base44.entities.InvoicePayment.list('-created_date', PAGE_SIZE + 1, skip);
+    const query = buildQuery();
+    const data = query
+      ? await base44.entities.InvoicePayment.filter(query, '-reported_date', PAGE_SIZE + 1, skip)
+      : await base44.entities.InvoicePayment.list('-reported_date', PAGE_SIZE + 1, skip);
     const list = data || [];
     const more = list.length > PAGE_SIZE;
     const page = more ? list.slice(0, PAGE_SIZE) : list;
     setHasMore(more);
     return page;
-  }, []);
+  }, [buildQuery]);
 
   const loadRelated = useCallback(async (list) => {
     const invIds = Array.from(new Set(list.map((p) => p.invoice_id).filter(Boolean)));
@@ -89,7 +101,7 @@ export default function PaymentHistory() {
 
   useEffect(() => {
     loadInitial();
-  }, [loadInitial]);
+  }, [loadInitial, dateFrom, dateTo]);
 
   const handleBackfill = async () => {
     setBackfilling(true);
@@ -159,6 +171,27 @@ export default function PaymentHistory() {
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9 sm:w-56"
             />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-4 w-4 text-slate-400" />
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 w-[150px] text-xs"
+            />
+            <span className="text-slate-400 text-xs">→</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 w-[150px] text-xs"
+            />
+            {(dateFrom || dateTo) && (
+              <Button variant="ghost" size="sm" onClick={() => { setDateFrom(''); setDateTo(''); }} className="h-9 px-2 text-xs">
+                Limpiar
+              </Button>
+            )}
           </div>
           <Tabs value={subFilter} onValueChange={setSubFilter}>
             <TabsList className="h-9">
