@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PaymentValidation from '@/components/admin/PaymentValidation';
 import InvoicePaymentValidation from '@/components/admin/InvoicePaymentValidation';
 import AdminAbonosValidation from '@/components/admin/AdminAbonosValidation';
+import PaymentHistory from '@/components/admin/PaymentHistory';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -265,6 +266,7 @@ export default function AdminPayments({ user }) {
                 <TabsTrigger value="pending">Pendientes</TabsTrigger>
                 <TabsTrigger value="validated">Validados</TabsTrigger>
                 <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="history">Historial</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -359,6 +361,8 @@ export default function AdminPayments({ user }) {
           ))}
         </div>
       )}
+
+      {statusFilter === 'history' && <PaymentHistory />}
     </div>
   );
 }
