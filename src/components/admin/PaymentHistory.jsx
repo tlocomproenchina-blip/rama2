@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ export default function PaymentHistory() {
   const [subFilter, setSubFilter] = useState('all');
   const [search, setSearch] = useState('');
   const fileViewer = useFileViewer();
+  const loadedEmailsRef = useRef(new Set());
 
   const fetchPage = useCallback(async (skip, append) => {
     const data = await base44.entities.InvoicePayment.list('-created_date', PAGE_SIZE + 1, skip);
@@ -61,14 +62,15 @@ export default function PaymentHistory() {
     }
 
     const emails = Array.from(new Set(list.map((p) => p.client_email).filter(Boolean)));
-    const newEmails = emails.filter((e) => !clients[e]);
+    const newEmails = emails.filter((e) => !loadedEmailsRef.current.has(e));
     if (newEmails.length) {
+      newEmails.forEach((e) => loadedEmailsRef.current.add(e));
       const res = await base44.functions.invoke('getClientsByEmails', { emails: newEmails }).catch(() => null);
       const cmap = {};
       Object.values(res?.data?.clients || {}).forEach((c) => { cmap[c.email] = c; });
       setClients((prev) => ({ ...prev, ...cmap }));
     }
-  }, [clients]);
+  }, []);
 
   const loadInitial = useCallback(async () => {
     setLoading(true);

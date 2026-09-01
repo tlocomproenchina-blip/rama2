@@ -274,7 +274,9 @@ export default function AdminPayments({ user }) {
       </Card>
 
       {/* Consolidations List */}
-      {statusFilter === 'pending' ? (
+      {statusFilter === 'history' ? (
+        <PaymentHistory />
+      ) : statusFilter === 'pending' ? (
         <div className="space-y-6">
           <AdminAbonosValidation onRefresh={loadData} />
           {filteredReviewInvoices.length > 0 && (
@@ -362,7 +364,6 @@ export default function AdminPayments({ user }) {
         </div>
       )}
 
-      {statusFilter === 'history' && <PaymentHistory />}
     </div>
   );
 }
