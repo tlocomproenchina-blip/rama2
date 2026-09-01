@@ -232,7 +232,7 @@ export default function PaymentHistory() {
                           <Calendar className="w-4 h-4" /> Reportado
                         </div>
                         <div className="font-medium text-slate-800 text-sm">
-                          {p.created_date ? format(new Date(p.created_date), 'dd/MM/yyyy HH:mm') : '—'}
+                          {format(new Date(p.reported_date || p.created_date), 'dd/MM/yyyy HH:mm')}
                         </div>
                         {resolutionDate && (
                           <div className="text-xs text-slate-500">

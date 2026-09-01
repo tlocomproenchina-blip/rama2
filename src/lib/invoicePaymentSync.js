@@ -50,6 +50,7 @@ export const ensureInvoicePaymentForPaidInvoice = async (b44, invoice, adminEmai
     return null;
   }
 
+  const reportDate = invoice.payment_date || new Date().toISOString();
   const paymentData = {
     invoice_id: invoice.id,
     invoice_number: invoice.invoice_number || '',
@@ -58,7 +59,8 @@ export const ensureInvoicePaymentForPaidInvoice = async (b44, invoice, adminEmai
     method: mapInvoiceMethodToPayment(invoice.payment_method),
     reference: invoice.payment_reference || '',
     status: 'aprobado',
-    approved_date: invoice.payment_date || new Date().toISOString(),
+    reported_date: reportDate,
+    approved_date: reportDate,
     approved_by: adminEmail || 'sistema',
   };
 

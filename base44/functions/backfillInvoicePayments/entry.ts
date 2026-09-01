@@ -37,8 +37,10 @@ export default async function (req: Request): Promise<Response> {
     let hasMore = true;
     let checked = 0;
     let created = 0;
+    let patched = 0;
     let skipped = 0;
 
+    // 1. Crear InvoicePayment faltantes para facturas pagadas
     while (hasMore) {
       const invoices = await base44.entities.Invoice.filter(
         { status: 'pagada' },
@@ -58,6 +60,7 @@ export default async function (req: Request): Promise<Response> {
           continue;
         }
 
+        const reportDate = inv.payment_date || new Date().toISOString();
         const paymentData: Record<string, any> = {
           invoice_id: inv.id,
           invoice_number: inv.invoice_number || '',
@@ -66,7 +69,8 @@ export default async function (req: Request): Promise<Response> {
           method: mapMethod(inv.payment_method),
           reference: inv.payment_reference || '',
           status: 'aprobado',
-          approved_date: inv.payment_date || new Date().toISOString(),
+          reported_date: reportDate,
+          approved_date: reportDate,
           approved_by: user.email,
         };
 
@@ -81,7 +85,31 @@ export default async function (req: Request): Promise<Response> {
       skip += limit;
     }
 
-    return Response.json({ checked, created, skipped });
+    // 2. Parchear registros existentes sin reported_date (backfills anteriores)
+    let patchSkip = 0;
+    let patchHasMore = true;
+    while (patchHasMore) {
+      const payments = await base44.entities.InvoicePayment.list(
+        '-created_date',
+        limit + 1,
+        patchSkip
+      );
+      const plist: any[] = payments || [];
+      patchHasMore = plist.length > limit;
+      const ppage = patchHasMore ? plist.slice(0, limit) : plist;
+
+      for (const p of ppage) {
+        if (!p.reported_date) {
+          const rd = p.approved_date || p.created_date || new Date().toISOString();
+          await base44.entities.InvoicePayment.update(p.id, { reported_date: rd });
+          patched++;
+        }
+      }
+
+      patchSkip += limit;
+    }
+
+    return Response.json({ checked, created, patched, skipped });
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 500 });
   }

@@ -62,6 +62,11 @@
       "default": "pendiente",
       "description": "Estado de validaci\u00f3n del abono"
     },
+    "reported_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha real en que se report\u00f3 el pago (fecha de pago de la factura para registros sincronizados). Fallback visual: created_date."
+    },
     "approved_date": {
       "type": "string",
       "format": "date-time",
