@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Loader2, Wallet, Search, Clock, ChevronDown } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Loader2, Wallet, Search, Clock, ChevronDown, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import useFileViewer from '@/hooks/useFileViewer';
 
 const METHOD_LABELS = {
@@ -40,6 +41,7 @@ export default function PaymentHistory() {
   const [hasMore, setHasMore] = useState(false);
   const [subFilter, setSubFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [backfilling, setBackfilling] = useState(false);
   const fileViewer = useFileViewer();
   const loadedEmailsRef = useRef(new Set());
 
@@ -88,6 +90,23 @@ export default function PaymentHistory() {
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
+
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    try {
+      const res = await base44.functions.invoke('backfillInvoicePayments', {});
+      const data = res?.data || {};
+      if (data.created > 0) {
+        toast.success(`Sincronizado: ${data.created} abono(s) creado(s) de ${data.checked} factura(s) revisada(s)`);
+        await loadInitial();
+      } else {
+        toast.info(`Todo sincronizado — ${data.checked || 0} factura(s) revisada(s), ninguna faltante`);
+      }
+    } catch {
+      toast.error('Error al sincronizar abonos');
+    }
+    setBackfilling(false);
+  };
 
   const handleLoadMore = async () => {
     setLoadingMore(true);
@@ -149,6 +168,10 @@ export default function PaymentHistory() {
               <TabsTrigger value="rechazado" className="text-xs">Rechazados</TabsTrigger>
             </TabsList>
           </Tabs>
+          <Button variant="outline" size="sm" onClick={handleBackfill} disabled={backfilling} className="h-9 gap-1.5 whitespace-nowrap">
+            {backfilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sincronizar
+          </Button>
         </div>
       </div>
 

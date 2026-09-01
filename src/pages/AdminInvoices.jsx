@@ -18,6 +18,7 @@ import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
 import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle, Truck, ShieldCheck } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
+import { ensureInvoicePaymentForPaidInvoice } from '@/lib/invoicePaymentSync';
 
 export default function AdminInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
@@ -175,6 +176,7 @@ export default function AdminInvoices({ user }) {
       await base44.entities.Invoice.update(editingInvoice.id, updatePayload);
 
       // Stripe sync behavior (configurable)
+      let stripeReverted = false;
       if (editingInvoice.status === 'pagada') {
         const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
         const cfg = cfgs?.[0] || {};
@@ -188,6 +190,7 @@ export default function AdminInvoices({ user }) {
             if (res?.data && res.data.ok === false) {
               if (errMode === 'revert' || errMode === 'retry_then_revert') {
                 await base44.entities.Invoice.update(editingInvoice.id, { status: 'pendiente' });
+                stripeReverted = true;
                 toast.error('Stripe no se actualizó; se revirtió la factura a pendiente.');
               } else {
                 toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
@@ -196,6 +199,7 @@ export default function AdminInvoices({ user }) {
           } catch (e) {
             if (errMode === 'revert' || errMode === 'retry_then_revert') {
               await base44.entities.Invoice.update(editingInvoice.id, { status: 'pendiente' });
+              stripeReverted = true;
               toast.error('Stripe no se actualizó; se revirtió la factura a pendiente.');
             } else {
               toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
@@ -204,8 +208,13 @@ export default function AdminInvoices({ user }) {
         } else if (mode === 'button') {
           toast.info('Modo botón: usa "Marcar pagada en Stripe" en las acciones de la factura.');
         }
+
+        // Sincronizar InvoicePayment para que aparezca en el Historial de AdminPayments
+        if (!stripeReverted) {
+          await ensureInvoicePaymentForPaidInvoice(base44, editingInvoice, user?.email);
+        }
       }
-      
+
       toast.success('Factura actualizada');
       setShowEditModal(false);
       setEditingInvoice(null);
@@ -334,10 +343,14 @@ export default function AdminInvoices({ user }) {
         ));
         toast.success(`${selectedInvoices.length} factura(s) eliminada(s)`);
       } else if (bulkAction === 'status') {
-        await Promise.all(selectedInvs.map(inv => 
-          base44.entities.Invoice.update(inv.id, { status: bulkStatus })
-        ));
+        const now = new Date().toISOString();
+        await Promise.all(selectedInvs.map(inv => {
+          const payload = { status: bulkStatus };
+          if (bulkStatus === 'pagada' && !inv.payment_date) payload.payment_date = now;
+          return base44.entities.Invoice.update(inv.id, payload);
+        }));
 
+        let revertedIds = [];
         if (bulkStatus === 'pagada') {
           const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
           const cfg = cfgs?.[0] || {};
@@ -354,6 +367,7 @@ export default function AdminInvoices({ user }) {
               .map(x => x.id);
             if ((errMode === 'revert' || errMode === 'retry_then_revert') && failedIds.length) {
               await Promise.all(failedIds.map(id => base44.entities.Invoice.update(id, { status: 'pendiente' })));
+              revertedIds = failedIds;
               toast.error(`Stripe no se actualizó para ${failedIds.length} factura(s); se revirtieron a pendiente.`);
             } else if (failedIds.length) {
               toast.warning(`Stripe no se actualizó para ${failedIds.length} factura(s).`);
@@ -361,6 +375,13 @@ export default function AdminInvoices({ user }) {
           } else if (mode === 'button') {
             toast.info('Modo botón: usa la acción "Marcar en Stripe" por factura.');
           }
+
+          // Sincronizar InvoicePayment para que aparezcan en el Historial de AdminPayments
+          const revertedSet = new Set(revertedIds);
+          await Promise.all(selectedInvs
+            .filter(inv => !revertedSet.has(inv.id))
+            .map(inv => ensureInvoicePaymentForPaidInvoice(base44, { ...inv, status: 'pagada', payment_date: inv.payment_date || now }, user?.email))
+          );
         }
 
         toast.success(`${selectedInvoices.length} factura(s) actualizada(s)`);
