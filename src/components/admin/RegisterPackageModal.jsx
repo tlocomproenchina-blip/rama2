@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -9,8 +10,6 @@ import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Image as ImageIcon, Loader2, AlertCircle, Plus, Trash2, Camera } from 'lucide-react';
 import { toast } from 'sonner';
-import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
-import QuickBulkPreAlertForm from '@/components/admin/QuickBulkPreAlertForm';
 import TrackingPhotoUploader from '@/components/admin/packages/TrackingPhotoUploader';
 
 
@@ -28,12 +27,21 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [trackingStatusByCode, setTrackingStatusByCode] = useState({});
   const [existingPackagesByTracking, setExistingPackagesByTracking] = useState({});
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [quickPreAlertOpen, setQuickPreAlertOpen] = useState({});
-  const [bulkPreAlertOpen, setBulkPreAlertOpen] = useState(false);
   const [scannedPhotoByTracking, setScannedPhotoByTracking] = useState({});
   const [orderNumber, setOrderNumber] = useState('');
   const [cbmTotal, setCbmTotal] = useState('');
   const [fechaRegistro, setFechaRegistro] = useState(nowLocalInput());
+  const [warehouses, setWarehouses] = useState([]);
+  const [orphanWarehouseId, setOrphanWarehouseId] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const w = await base44.entities.Warehouse.filter({ is_active: true }, 'name', 100);
+        setWarehouses(w || []);
+      } catch (_) {}
+    })();
+  }, []);
 
   // Foto capturada automáticamente por el escáner en el momento del pitido.
   // Se sube a ImgBB en segundo plano y se vincula al tracking correspondiente.
@@ -50,11 +58,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       setScannedPhotoByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
     }
   };
-
-  // Trackings que no existen en el sistema (necesitan pre-alerta)
-  const notFoundTrackings = trackingNumbers
-    .map((t) => t.trim())
-    .filter((t) => t && trackingStatusByCode[t]?.state === 'not_found');
 
   const removeScannedTracking = (index) => {
     const code = (trackingNumbers[index] || '').trim();
@@ -74,8 +77,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setTrackingStatusByCode({});
     setExistingPackagesByTracking({});
     setCameraOpen(false);
-    setQuickPreAlertOpen({});
-    setBulkPreAlertOpen(false);
     setScannedPhotoByTracking({});
     setOrderNumber('');
     setCbmTotal('');
@@ -124,7 +125,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         });
         setTrackingStatusByCode((prev) => ({
           ...prev,
-          [t]: { state: 'not_found', message: 'No existe en el sistema. Debe tener pre-alerta primero.' }
+          [t]: { state: 'not_found', message: 'No existe en el sistema. Se registrará como huérfano.' }
         }));
         return { state: 'not_found', pkg: null };
       }
@@ -174,7 +175,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     // Procesar todos los trackings que existen (incluye los ya recibidos: solo actualizan imagen)
     const alreadyReceivedStatuses = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'];
     const existingTrackings = cleanedTrackingNumbers.filter((t) => !!resultsByTracking[t]?.pkg);
-    const invalidTrackings = cleanedTrackingNumbers.filter((t) => !resultsByTracking[t]?.pkg);
     const newTrackings = existingTrackings.filter((t) => {
       const pkg = resultsByTracking[t]?.pkg;
       return !alreadyReceivedStatuses.includes(pkg.status);
@@ -183,11 +183,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       const pkg = resultsByTracking[t]?.pkg;
       return alreadyReceivedStatuses.includes(pkg.status);
     });
-
-    if (existingTrackings.length === 0) {
-      toast.error('Ninguno de los trackings existe en el sistema. Deben tener pre-alerta primero.');
-      return;
-    }
+    const orphanTrackings = cleanedTrackingNumbers.filter((t) => resultsByTracking[t]?.state === 'not_found');
 
     setSubmitting(true);
 
@@ -231,6 +227,29 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         processedPackages.push(existingPackage);
       }
 
+      // Trackings no encontrados: registrar como huérfanos
+      const orphanResults = [];
+      for (const tracking of orphanTrackings) {
+        const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
+        const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
+        const uploadedUrls = [];
+        for (const f of files) {
+          uploadedUrls.push(await uploadImageNoCredits(f));
+        }
+        const allUrls = [scannedPhotoUrl, ...uploadedUrls].filter(Boolean).slice(0, 3);
+        try {
+          const { data } = await base44.functions.invoke('registerOrphanPackage', {
+            tracking_number: tracking,
+            warehouse_id: orphanWarehouseId || undefined,
+            package_image_url: allUrls[0] || undefined,
+            package_image_urls: allUrls.length ? allUrls : undefined,
+          });
+          if (data?.package) orphanResults.push(data.package);
+        } catch (e) {
+          console.error('Error registrando huérfano', tracking, e);
+        }
+      }
+
       // Crear CbmIngreso por orden si los campos están llenos (incluye todos los trackings existentes)
       if (hasOrder && hasCbm && existingTrackings.length > 0) {
         try {
@@ -250,6 +269,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           });
           let msg = `${newTrackings.length} recibido(s)`;
           if (alreadyReceivedTrackings.length > 0) msg += ` · ${alreadyReceivedTrackings.length} actualizado(s)`;
+          if (orphanResults.length > 0) msg += ` · ${orphanResults.length} huérfano(s) enviado(s)`;
           msg += ` · CBM ${cbmVal} registrado en orden ${orderNum}`;
           toast.success(msg);
         } catch (e) {
@@ -260,8 +280,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         if (alreadyReceivedTrackings.length > 0) {
           msg += `. ${alreadyReceivedTrackings.length} actualizado(s) (ya recibidos, imagen actualizada)`;
         }
-        if (invalidTrackings.length > 0) {
-          msg += `. ${invalidTrackings.length} ignorado(s) (no existen)`;
+        if (orphanResults.length > 0) {
+          msg += `. ${orphanResults.length} huérfano(s) enviado(s) a /AdminOrphanPackages`;
         }
         toast.success(msg);
       }
@@ -341,6 +361,22 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             <p className="text-[11px] text-slate-400">Si llenas orden y CBM, se creará un registro de CBM agrupando todos los trackings válidos. Déjalo vacío para solo marcar recibidos.</p>
           </div>
 
+          {/* Almacén para huérfanos (opcional) */}
+          {warehouses.length > 0 && (
+            <div className="space-y-1.5 pb-3 border-b border-slate-200">
+              <Label className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Almacén para huérfanos (opcional)</Label>
+              <Select value={orphanWarehouseId} onValueChange={setOrphanWarehouseId}>
+                <SelectTrigger><SelectValue placeholder="Sin almacén — se asignará después" /></SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((w) => (
+                    <SelectItem key={w.id} value={w.id}>{w.name} · {w.city}, {w.country}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-slate-400">Los trackings sin pre-alerta se registrarán como huérfanos en este almacén (o sin almacén si lo dejas vacío) y aparecerán en /AdminOrphanPackages.</p>
+            </div>
+          )}
+
           {/* Tracking */}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
@@ -410,7 +446,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                           : trackingStatusByCode[tracking.trim()]?.state === 'already_received'
                           ? 'border-amber-400'
                           : trackingStatusByCode[tracking.trim()]?.state === 'not_found'
-                          ? 'border-red-300'
+                          ? 'border-amber-300'
                           : trackingStatusByCode[tracking.trim()]?.state === 'error'
                           ? 'border-amber-300'
                           : ''
@@ -440,31 +476,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 );
               })}
             </div>
-            {notFoundTrackings.length > 1 && (
-              <div className="space-y-2">
-                {!bulkPreAlertOpen ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-1.5 text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                    onClick={() => setBulkPreAlertOpen(true)}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Asignar los {notFoundTrackings.length} trackings a un solo cliente
-                  </Button>
-                ) : (
-                  <QuickBulkPreAlertForm
-                    trackingNumbers={notFoundTrackings}
-                    onCreated={(client, created) => {
-                      setBulkPreAlertOpen(false);
-                      (created || []).forEach((t) => checkTrackingDuplicate(t));
-                    }}
-                    onCancel={() => setBulkPreAlertOpen(false)}
-                  />
-                )}
-              </div>
-            )}
 
             <div className="space-y-2">
               {[...trackingNumbers].reverse().map((tracking, revIndex) => {
@@ -481,34 +492,12 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                         : status.state === 'already_received'
                         ? 'text-amber-600 font-medium'
                         : status.state === 'not_found'
-                        ? 'text-red-600'
+                        ? 'text-amber-600 font-medium'
                         : 'text-amber-600'
                     }`}>
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       <span className="flex-1 min-w-0 break-words">{tracking}: {status.message}</span>
-                      {status.state === 'not_found' && !quickPreAlertOpen[trimmed] && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 shrink-0 ml-1"
-                          onClick={() => setQuickPreAlertOpen(prev => ({ ...prev, [trimmed]: true }))}
-                        >
-                          + Pre-alerta
-                        </Button>
-                      )}
                     </div>
-                    {status.state === 'not_found' && quickPreAlertOpen[trimmed] && (
-                      <QuickPreAlertForm
-                        trackingNumber={trimmed}
-                        onCreated={(client) => {
-                          setQuickPreAlertOpen(prev => { const n = { ...prev }; delete n[trimmed]; return n; });
-                          // Re-check tracking to update status
-                          checkTrackingDuplicate(trimmed);
-                        }}
-                        onCancel={() => setQuickPreAlertOpen(prev => { const n = { ...prev }; delete n[trimmed]; return n; })}
-                      />
-                    )}
                   </div>
                 );
               })}
@@ -554,7 +543,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             if (s && counts[s] !== undefined) counts[s]++;
           });
           const ready = counts.exists;
-          const remaining = total - ready - counts.already_received;
+          const remaining = counts.checking + counts.error;
           return (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
               <span className="font-semibold text-slate-700">{total} tracking(s)</span>
@@ -563,7 +552,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
               <span className="text-slate-300">·</span>
               <span className="text-amber-600 font-medium">{counts.already_received} ya recibidos</span>
               <span className="text-slate-300">·</span>
-              <span className="text-red-500 font-medium">{counts.not_found} sin pre-alerta</span>
+              <span className="text-amber-600 font-medium">{counts.not_found} huérfanos</span>
               {counts.checking > 0 && (
                 <>
                   <span className="text-slate-300">·</span>
@@ -659,7 +648,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                           <p className={`text-xs truncate ${
                             status.state === 'exists' ? 'text-emerald-600'
                             : status.state === 'already_received' ? 'text-amber-600'
-                            : status.state === 'not_found' ? 'text-red-600'
+                            : status.state === 'not_found' ? 'text-amber-600'
                             : 'text-amber-600'
                           }`}>{status.message}</p>
                         )}
