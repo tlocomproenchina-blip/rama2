@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2, UserX, UserCheck, Package, MapPin, Calendar } from 'lucide-react';
+import { Search, Loader2, UserX, UserCheck, Package, MapPin, Calendar, Trash2, Pencil, AlertTriangle, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import useClientSearch from '@/hooks/useClientSearch';
@@ -20,12 +21,19 @@ export default function AdminOrphanPackages({ user }) {
   const [search, setSearch] = useState('');
   const [skip, setSkip] = useState(0);
   const [hasMore, setHasMore] = useState(false);
-  const [assignTarget, setAssignTarget] = useState(null);
+  const [assignTarget, setAssignTarget] = useState(null); // { ids: [], multi: bool }
   const enabledTypes = useEnabledShippingTypes();
   const { query: clientQuery, setQuery: setClientQuery, results: clientResults, setResults: setClientResults, searching: searchingClients } = useClientSearch();
   const [selectedClient, setSelectedClient] = useState(null);
   const [shippingType, setShippingType] = useState('aereo');
   const [assigning, setAssigning] = useState(false);
+
+  // Multi-select y acciones en lote
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [bulkAction, setBulkAction] = useState(null); // 'edit' | 'delete'
+  const [bulkEdit, setBulkEdit] = useState({ shipping_type: '', risk_category: '', warehouse_id: '' });
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const loadOrphans = useCallback(async (reset = false) => {
     try {
@@ -43,14 +51,43 @@ export default function AdminOrphanPackages({ user }) {
 
   useEffect(() => { loadOrphans(true); }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const w = await base44.entities.Warehouse.filter({ is_active: true }, 'name', 100);
+        setWarehouses(w || []);
+      } catch (_) {}
+    })();
+  }, []);
+
   const filtered = orphans.filter((p) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (p.tracking_number || '').toLowerCase().includes(q) || (p.shipping_mark || '').toLowerCase().includes(q);
   });
 
+  const allSelected = filtered.length > 0 && filtered.every((p) => selectedIds.includes(p.id));
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const toggleSelectAll = () => {
+    if (allSelected) setSelectedIds((prev) => prev.filter((id) => !filtered.some((p) => p.id === id)));
+    else setSelectedIds((prev) => [...new Set([...prev, ...filtered.map((p) => p.id)])]);
+  };
+  const clearSelection = () => setSelectedIds([]);
+
   const openAssign = (pkg) => {
-    setAssignTarget(pkg);
+    setAssignTarget({ ids: [pkg.id], multi: false });
+    setSelectedClient(null);
+    setClientQuery('');
+    setClientResults([]);
+    if (enabledTypes.aereo) setShippingType('aereo');
+    else if (enabledTypes.maritimo) setShippingType('maritimo');
+  };
+
+  const openBulkAssign = () => {
+    if (selectedIds.length === 0) return;
+    setAssignTarget({ ids: [...selectedIds], multi: true });
     setSelectedClient(null);
     setClientQuery('');
     setClientResults([]);
@@ -59,24 +96,76 @@ export default function AdminOrphanPackages({ user }) {
   };
 
   const handleAssign = async () => {
-    if (!selectedClient || !assignTarget) return;
+    if (!selectedClient || !assignTarget?.ids?.length) return;
     setAssigning(true);
-    try {
-      const { data } = await base44.functions.invoke('assignOrphanPackage', {
-        package_id: assignTarget.id,
-        client_email: selectedClient.email,
-        shipping_mark: selectedClient.shipping_mark || undefined,
-        shipping_type: shippingType,
-      });
-      if (data?.error) throw new Error(data.error);
-      toast.success(`Huérfano asignado a ${selectedClient.email}`);
-      setOrphans((prev) => prev.filter((p) => p.id !== assignTarget.id));
-      setAssignTarget(null);
-      setSelectedClient(null);
-    } catch (e) {
-      toast.error(e?.message || 'No se pudo asignar el huérfano');
+    let ok = 0; let fail = 0;
+    for (const id of assignTarget.ids) {
+      try {
+        const { data } = await base44.functions.invoke('assignOrphanPackage', {
+          package_id: id,
+          client_email: selectedClient.email,
+          shipping_mark: selectedClient.shipping_mark || undefined,
+          shipping_type: shippingType,
+        });
+        if (data?.error) throw new Error(data.error);
+        ok++;
+      } catch (e) { fail++; }
     }
+    setOrphans((prev) => prev.filter((p) => !assignTarget.ids.includes(p.id)));
+    setSelectedIds((prev) => prev.filter((id) => !assignTarget.ids.includes(id)));
+    const msg = assignTarget.multi
+      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${fail > 0 ? ` · ${fail} fallaron` : ''}`
+      : `Huérfano asignado a ${selectedClient.email}`;
+    toast.success(msg);
+    setAssignTarget(null);
+    setSelectedClient(null);
     setAssigning(false);
+  };
+
+  const handleBulkEdit = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkProcessing(true);
+    const patch = {};
+    if (bulkEdit.shipping_type) patch.shipping_type = bulkEdit.shipping_type;
+    if (bulkEdit.risk_category) patch.risk_category = bulkEdit.risk_category;
+    if (bulkEdit.warehouse_id) {
+      const wh = warehouses.find((w) => w.id === bulkEdit.warehouse_id);
+      patch.warehouse_id = bulkEdit.warehouse_id;
+      if (wh) {
+        patch.warehouse_name = wh.name;
+        patch.warehouse_city = wh.city;
+        patch.warehouse_country = wh.country;
+      }
+    }
+    let ok = 0; let fail = 0;
+    for (const id of selectedIds) {
+      try {
+        await base44.entities.Package.update(id, patch);
+        ok++;
+      } catch (e) { fail++; }
+    }
+    setOrphans((prev) => prev.map((p) => selectedIds.includes(p.id) ? { ...p, ...patch } : p));
+    toast.success(`${ok} paquete(s) actualizado(s)${fail > 0 ? ` · ${fail} fallaron` : ''}`);
+    setSelectedIds([]);
+    setBulkAction(null);
+    setBulkEdit({ shipping_type: '', risk_category: '', warehouse_id: '' });
+    setBulkProcessing(false);
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkProcessing(true);
+    let ok = 0; let fail = 0;
+    for (const id of selectedIds) {
+      try {
+        await base44.entities.Package.delete(id);
+        ok++;
+      } catch (e) { fail++; }
+    }
+    setOrphans((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
+    setSelectedIds([]);
+    setBulkAction(null);
+    toast.success(`${ok} paquete(s) eliminado(s)${fail > 0 ? ` · ${fail} fallaron` : ''}`);
+    setBulkProcessing(false);
   };
 
   return (
@@ -95,6 +184,37 @@ export default function AdminOrphanPackages({ user }) {
         </CardContent>
       </Card>
 
+      {/* Barra de selección múltiple */}
+      {filtered.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Checkbox id="select-all-orphans" checked={allSelected} onCheckedChange={toggleSelectAll} />
+            <Label htmlFor="select-all-orphans" className="text-sm text-slate-600 cursor-pointer">
+              {allSelected ? 'Quitar selección' : 'Seleccionar todos'}
+            </Label>
+          </div>
+          {selectedIds.length > 0 && (
+            <>
+              <Badge variant="secondary" className="text-amber-700 bg-amber-50 border-amber-200">{selectedIds.length} seleccionado(s)</Badge>
+              <div className="flex flex-wrap items-center gap-2 ml-auto">
+                <Button size="sm" onClick={openBulkAssign} className="bg-blue-600 hover:bg-blue-700 gap-1.5">
+                  <UserCheck className="h-4 w-4" /> Asignar ({selectedIds.length})
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setBulkAction('edit')} className="gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50">
+                  <Pencil className="h-4 w-4" /> Modificar ({selectedIds.length})
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setBulkAction('delete')} className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50">
+                  <Trash2 className="h-4 w-4" /> Borrar ({selectedIds.length})
+                </Button>
+                <Button size="sm" variant="ghost" onClick={clearSelection} className="text-slate-500 gap-1">
+                  <X className="h-4 w-4" /> Limpiar
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {loading && orphans.length === 0 ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
       ) : filtered.length === 0 ? (
@@ -105,38 +225,44 @@ export default function AdminOrphanPackages({ user }) {
         </CardContent></Card>
       ) : (
         <div className="grid gap-3">
-          {filtered.map((p) => (
-            <Card key={p.id} className="shadow-sm border-amber-100">
-              <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Package className="h-4 w-4 text-amber-600 shrink-0" />
-                    <span className="font-mono font-semibold text-slate-800 break-all">{p.tracking_number}</span>
-                    <Badge variant="outline" className="text-amber-700 border-amber-200 bg-amber-50">Sin cliente</Badge>
-                    <Badge variant="secondary">{p.shipping_type === 'maritimo' ? 'Marítimo' : 'Aéreo'}</Badge>
-                    {p.shipping_mark && <Badge variant="outline">SM: {p.shipping_mark}</Badge>}
+          {filtered.map((p) => {
+            const checked = selectedIds.includes(p.id);
+            return (
+              <Card key={p.id} className={`shadow-sm transition-colors ${checked ? 'border-amber-300 bg-amber-50/40' : 'border-amber-100'}`}>
+                <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Checkbox checked={checked} onCheckedChange={() => toggleSelect(p.id)} />
                   </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                    {p.warehouse_name && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{p.warehouse_name}{p.warehouse_location_code ? ` · ${p.warehouse_location_code}` : ''}</span>}
-                    {p.actual_weight_kg && <span>{p.actual_weight_kg} kg</span>}
-                    {p.actual_cbm && <span>{p.actual_cbm.toFixed(4)} CBM</span>}
-                    {p.received_date && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{moment(p.received_date).format('DD/MM/YYYY')}</span>}
-                    {p.description && <span className="truncate max-w-[200px]">· {p.description}</span>}
-                  </div>
-                  {p.package_image_urls?.length > 0 && (
-                    <div className="flex gap-1.5 mt-1">
-                      {p.package_image_urls.map((url, i) => (
-                        <img key={i} src={url} alt={`Foto ${i + 1}`} className="h-12 w-12 rounded-md object-cover border" />
-                      ))}
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Package className="h-4 w-4 text-amber-600 shrink-0" />
+                      <span className="font-mono font-semibold text-slate-800 break-all">{p.tracking_number}</span>
+                      <Badge variant="outline" className="text-amber-700 border-amber-200 bg-amber-50">Sin cliente</Badge>
+                      <Badge variant="secondary">{p.shipping_type === 'maritimo' ? 'Marítimo' : 'Aéreo'}</Badge>
+                      {p.shipping_mark && <Badge variant="outline">SM: {p.shipping_mark}</Badge>}
                     </div>
-                  )}
-                </div>
-                <Button onClick={() => openAssign(p)} className="bg-blue-600 hover:bg-blue-700 gap-2 shrink-0">
-                  <UserCheck className="h-4 w-4" /> Asignar
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                      {p.warehouse_name && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{p.warehouse_name}{p.warehouse_location_code ? ` · ${p.warehouse_location_code}` : ''}</span>}
+                      {p.actual_weight_kg && <span>{p.actual_weight_kg} kg</span>}
+                      {p.actual_cbm && <span>{p.actual_cbm.toFixed(4)} CBM</span>}
+                      {p.received_date && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{moment(p.received_date).format('DD/MM/YYYY')}</span>}
+                      {p.description && <span className="truncate max-w-[200px]">· {p.description}</span>}
+                    </div>
+                    {p.package_image_urls?.length > 0 && (
+                      <div className="flex gap-1.5 mt-1">
+                        {p.package_image_urls.map((url, i) => (
+                          <img key={i} src={url} alt={`Foto ${i + 1}`} className="h-12 w-12 rounded-md object-cover border" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Button onClick={() => openAssign(p)} className="bg-blue-600 hover:bg-blue-700 gap-2 shrink-0">
+                    <UserCheck className="h-4 w-4" /> Asignar
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
           {hasMore && !search && (
             <div className="flex justify-center pt-2">
               <Button variant="outline" onClick={() => loadOrphans(false)} disabled={loading}>Cargar más</Button>
@@ -145,12 +271,20 @@ export default function AdminOrphanPackages({ user }) {
         </div>
       )}
 
+      {/* Modal de asignación (individual o lote) */}
       {assignTarget && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4" onClick={() => setAssignTarget(null)}>
           <Card className="w-full md:max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base"><UserCheck className="h-5 w-5 text-blue-600" /> Asignar huérfano</CardTitle>
-              <p className="text-sm text-slate-500 font-mono break-all">{assignTarget.tracking_number}</p>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <UserCheck className="h-5 w-5 text-blue-600" />
+                {assignTarget.multi ? `Asignar ${assignTarget.ids.length} huérfanos` : 'Asignar huérfano'}
+              </CardTitle>
+              {assignTarget.multi ? (
+                <p className="text-sm text-slate-500">Se asignarán los {assignTarget.ids.length} paquetes seleccionados al mismo cliente.</p>
+              ) : (
+                <p className="text-sm text-slate-500 font-mono break-all">{orphans.find((p) => p.id === assignTarget.ids[0])?.tracking_number}</p>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               {!selectedClient ? (
@@ -203,7 +337,87 @@ export default function AdminOrphanPackages({ user }) {
                 <Button variant="outline" onClick={() => setAssignTarget(null)}>Cancelar</Button>
                 <Button onClick={handleAssign} disabled={!selectedClient || assigning} className="bg-blue-600 hover:bg-blue-700 gap-2">
                   {assigning ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
-                  Asignar huérfano
+                  {assignTarget.multi ? `Asignar ${assignTarget.ids.length}` : 'Asignar huérfano'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal de edición en lote */}
+      {bulkAction === 'edit' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4" onClick={() => !bulkProcessing && setBulkAction(null)}>
+          <Card className="w-full md:max-w-md shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base"><Pencil className="h-5 w-5 text-amber-600" /> Modificar {selectedIds.length} huérfano(s)</CardTitle>
+              <p className="text-sm text-slate-500">Deja un campo vacío para no cambiarlo.</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Tipo de envío</Label>
+                <Select value={bulkEdit.shipping_type} onValueChange={(v) => setBulkEdit((prev) => ({ ...prev, shipping_type: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Sin cambiar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aereo">Aéreo</SelectItem>
+                    <SelectItem value="maritimo">Marítimo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Tipo de carga</Label>
+                <Select value={bulkEdit.risk_category} onValueChange={(v) => setBulkEdit((prev) => ({ ...prev, risk_category: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Sin cambiar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="alto_riesgo">Alto riesgo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {warehouses.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Almacén</Label>
+                  <Select value={bulkEdit.warehouse_id} onValueChange={(v) => setBulkEdit((prev) => ({ ...prev, warehouse_id: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Sin cambiar" /></SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>{w.name} · {w.city}, {w.country}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" onClick={() => setBulkAction(null)} disabled={bulkProcessing}>Cancelar</Button>
+                <Button onClick={handleBulkEdit} disabled={bulkProcessing || (!bulkEdit.shipping_type && !bulkEdit.risk_category && !bulkEdit.warehouse_id)} className="bg-amber-600 hover:bg-amber-700 gap-2">
+                  {bulkProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+                  Aplicar a {selectedIds.length}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Diálogo de borrado en lote */}
+      {bulkAction === 'delete' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4" onClick={() => !bulkProcessing && setBulkAction(null)}>
+          <Card className="w-full md:max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-red-50 rounded-full shrink-0">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-800">¿Borrar {selectedIds.length} huérfano(s)?</h3>
+                  <p className="text-sm text-slate-500 mt-1">Esta acción es permanente. Los paquetes seleccionados se eliminarán del sistema y no podrán reclamarse después.</p>
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setBulkAction(null)} disabled={bulkProcessing}>Cancelar</Button>
+                <Button onClick={handleBulkDelete} disabled={bulkProcessing} variant="destructive" className="gap-2">
+                  {bulkProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Sí, borrar {selectedIds.length}
                 </Button>
               </div>
             </CardContent>
