@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       tracking_number: tracking,
       client_email: '',
       shipping_mark: body.shipping_mark ? String(body.shipping_mark).trim() : null,
-      shipping_type: body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo',
+      shipping_type: body.shipping_type === 'aereo' ? 'aereo' : 'maritimo',
       risk_category: body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general',
       package_count: Number(body.package_count) || 1,
       description: body.description ? String(body.description) : 'Paquete huérfano (sin pre-alerta)',
