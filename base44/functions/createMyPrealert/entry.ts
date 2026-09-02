@@ -18,8 +18,32 @@ Deno.serve(async (req) => {
     if (!tracking) return Response.json({ error: 'Tracking requerido' }, { status: 400 });
     if (!description) return Response.json({ error: 'Descripción requerida' }, { status: 400 });
 
-    // Verificar duplicados
+    // 1) Reclamo automático: si existe un huérfano con el mismo tracking, reclamarlo
     const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
+    const orphan = existing.find((p) => p.is_orphan);
+    if (orphan) {
+      const wasReceived = !!(orphan.warehouse_location_id || orphan.actual_weight_kg || orphan.received_date);
+      const nextStatus = wasReceived ? 'recibido' : 'pre_alerta';
+      const claimed = await base44.asServiceRole.entities.Package.update(orphan.id, {
+        client_email: user.email,
+        shipping_mark: user.shipping_mark,
+        is_orphan: false,
+        status: nextStatus,
+        shipping_company: shippingCompany,
+        shipping_type: body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo',
+        risk_category: body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general',
+        package_count: Number(body.package_count) || 1,
+        description,
+        has_insurance: !!body.has_insurance,
+        fob_value: parseFloat(body.fob_value) || 0,
+        invoice_url: body.invoice_url || null,
+        product_image_url: body.product_image_url || null,
+        reported: true,
+      });
+      return Response.json({ package: claimed, claimed_orphan: true });
+    }
+
+    // 2) Si ya existe un paquete NO huérfano con ese tracking, es duplicado real
     if (existing.length > 0) {
       return Response.json({ error: 'Este número de tracking ya ha sido registrado' }, { status: 409 });
     }

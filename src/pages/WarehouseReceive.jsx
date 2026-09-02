@@ -7,6 +7,7 @@ import { Loader2, Package, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import ReceivePackagePanel from '@/components/warehouse/ReceivePackagePanel';
+import OrphanRegisterPanel from '@/components/warehouse/OrphanRegisterPanel';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 
@@ -30,6 +31,7 @@ export default function WarehouseReceive({ user }) {
   const [submitting, setSubmitting] = useState(false);
   const [suggestedLocation, setSuggestedLocation] = useState(null);
   const [receiveFailed, setReceiveFailed] = useState(false);
+  const [notFoundTracking, setNotFoundTracking] = useState(null);
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseReceive');
   const { handlePhotoCaptured, waitForPhoto } = useScannedPhotoUploader();
 
@@ -59,9 +61,10 @@ export default function WarehouseReceive({ user }) {
       const nextPkg = found?.[0] || null;
       setPkg(nextPkg);
       if (!nextPkg) {
-        toast.error('No se encontró ese tracking');
+        setNotFoundTracking(nextTracking);
         return;
       }
+      setNotFoundTracking(null);
       setForm({
         warehouse_id: nextPkg.warehouse_id || '',
         location_id: '',
@@ -190,6 +193,22 @@ export default function WarehouseReceive({ user }) {
           onSubmit={handleReceive}
           submitting={submitting}
           failed={receiveFailed}
+        />
+      )}
+
+      {notFoundTracking && !loadingLocations && (
+        <OrphanRegisterPanel
+          tracking={notFoundTracking}
+          warehouses={warehouses}
+          locations={locations}
+          suggestedLocation={suggestedLocation}
+          onSuggest={handleSuggest}
+          onDone={() => {
+            setNotFoundTracking(null);
+            setTracking('');
+            setForm({ ...emptyForm, warehouse_id: '' });
+            setSuggestedLocation(null);
+          }}
         />
       )}
     </div>

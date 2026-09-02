@@ -29,6 +29,7 @@ import {
   ReceiptText,
   CalendarRange,
   FileSpreadsheet,
+  UserX,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -57,6 +58,7 @@ export const adminMenuItems = [
   { name: 'Resumen Diario', page: 'AdminDailySummary', icon: FileText },
   { name: 'Paquetes', page: 'AdminPackages', icon: Package },
   { name: 'Pre-alertas', page: 'AdminPreAlerts', icon: FileText },
+  { name: 'Paquetes Huérfanos', page: 'AdminOrphanPackages', icon: UserX },
   { name: 'Logística', page: 'AdminLogistica', icon: Truck },
   { name: 'Vehículos', page: 'AdminVehiculos', icon: Truck },
   { name: 'Choferes', page: 'AdminChoferes', icon: UserCheck },
@@ -117,7 +119,7 @@ export const adminMenuItems = [
 
 export const adminGroups = [
   { label: 'PRINCIPAL', items: ['AdminDashboard', 'AdminLogistica', 'ClientAnalytics'] },
-  { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminDailySummary', 'AdminPackages', 'AdminPreAlerts', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments', 'AdminQuotes'] },
+  { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminDailySummary', 'AdminPackages', 'AdminPreAlerts', 'AdminOrphanPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments', 'AdminQuotes'] },
   { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseDispatch', 'WarehouseDispatchHistory'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminClientCredits', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviderCredits', 'AdminProviders', 'AdminCbmIngresos', 'AdminArrivalCalendar'] },

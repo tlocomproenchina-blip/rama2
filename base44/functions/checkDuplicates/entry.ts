@@ -80,7 +80,10 @@ Deno.serve(async (req) => {
         const trimmed = String(value).trim();
         if (!trimmed) return Response.json({ duplicate: false });
         
-        const matches = await base44.asServiceRole.entities.Package.filter({ tracking_number: trimmed });
+        const allMatches = await base44.asServiceRole.entities.Package.filter({ tracking_number: trimmed });
+        // Los huérfanos (sin cliente) no cuentan como duplicado: el cliente puede
+        // reclamarlos con su pre-alerta.
+        const matches = (allMatches || []).filter(p => !p.is_orphan);
         return Response.json({ 
           duplicate: matches.length > 0, 
           count: matches.length,
