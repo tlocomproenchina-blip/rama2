@@ -392,6 +392,22 @@ aside nav::-webkit-scrollbar-thumb {
   }
 }
 
+/* ===== Sonner Toaster: forzar top-center con alta prioridad ===== */
+/* La prop position="top-center" del SonnerToaster a veces no se respeta
+   cuando un ancestro crea un contexto de apilado (transform/backdrop-filter).
+   Estas reglas garantizan la posición desde CSS con !important. */
+ol[data-sonner-toaster],
+[data-sonner-toaster],
+.toaster[class*="toaster"] {
+  position: fixed !important;
+  top: 0 !important;
+  bottom: auto !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  z-index: 9999 !important;
+}
+
 /* Barra de carga animada para buscador de paquetes */
 @keyframes loading-bar {
   0% { transform: translateX(-100%); }
