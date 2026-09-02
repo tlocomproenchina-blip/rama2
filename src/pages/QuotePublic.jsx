@@ -209,6 +209,7 @@ export default function QuotePublic() {
                       </a>
                     )}
                     <p className="text-xs text-gray-500">Cantidad: {item.quantity} {item.size ? `| Talla: ${item.size}` : ''}</p>
+                    {item.description && <p className="text-xs text-gray-600 mt-0.5">{item.description}</p>}
                     {isCompleted && (
                       <p className="mt-1 text-sm font-semibold text-gray-700">
                         {item.currency === 'USD' ? '$' : '¥'}{(item.unit_price || 0).toFixed(2)} c/u → Total: ${(item.total_usd || 0).toFixed(2)}

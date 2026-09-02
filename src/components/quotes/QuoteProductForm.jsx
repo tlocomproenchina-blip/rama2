@@ -15,7 +15,7 @@ export default function QuoteProductForm({ items, onChange }) {
   };
 
   const addItem = () => {
-    onChange([...items, { link: '', quantity: 1, image_url: '', size: '' }]);
+    onChange([...items, { link: '', quantity: 1, image_url: '', size: '', description: '' }]);
   };
 
   const removeItem = (idx) => {
@@ -116,6 +116,17 @@ export default function QuoteProductForm({ items, onChange }) {
                 />
               </div>
             </div>
+          </div>
+
+          <div className="mt-3">
+            <label className="mb-1 block text-xs font-semibold text-gray-600">Descripción</label>
+            <textarea
+              placeholder="Describe el producto, color, material, detalles importantes..."
+              value={item.description || ''}
+              onChange={(e) => updateItem(idx, 'description', e.target.value)}
+              rows={2}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400"
+            />
           </div>
 
           <div className="mt-3">

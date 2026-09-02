@@ -343,10 +343,28 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
   }));
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(publicUrl);
+    const instructions = `¡Hola! Te compartimos tu enlace de presupuesto de TLEC CARGO.
+
+Ingresa al siguiente enlace y completa estos datos para que podamos procesar tu cotización:
+
+${publicUrl}
+
+📋 Pasos a completar:
+1. Datos del cliente: Nombre, Apellido, Email, Ciudad de despacho y Número de contacto.
+2. Productos: Para cada producto agrega:
+   • Enlace del producto
+   • Cantidad
+   • Talla / Variante (si aplica)
+   • Descripción (color, material, detalles importantes)
+   • Imagen del artículo (opcional)
+3. Notas para el administrador (opcional).
+4. Envía la solicitud y nuestro equipo te responderá con tu presupuesto.
+
+¡Gracias por confiar en TLEC CARGO!`;
+    navigator.clipboard.writeText(instructions);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    toast({ title: 'Enlace copiado' });
+    toast({ title: 'Enlace e indicaciones copiados' });
   };
 
   const handleWhatsApp = async () => {
