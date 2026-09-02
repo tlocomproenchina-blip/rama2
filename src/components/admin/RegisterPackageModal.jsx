@@ -99,6 +99,14 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       const pkg = existing?.[0];
       if (pkg) {
         setExistingPackagesByTracking((prev) => ({ ...prev, [t]: pkg }));
+        // Si ya existe como huérfano (sin cliente), no se procesa ni registra de nuevo
+        if (pkg.is_orphan) {
+          setTrackingStatusByCode((prev) => ({
+            ...prev,
+            [t]: { state: 'orphan_exists', message: 'Ya está registrado como huérfano. Asígnalo en /AdminOrphanPackages' }
+          }));
+          return { state: 'orphan_exists', pkg };
+        }
         const info = `Cliente: ${pkg.shipping_mark || pkg.client_email} · Estado: ${pkg.status}`;
         const alreadyReceived = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'].includes(pkg.status);
         if (alreadyReceived) {
@@ -227,9 +235,11 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         processedPackages.push(existingPackage);
       }
 
-      // Trackings no encontrados: registrar como huérfanos
+      // Trackings no encontrados: registrar como huérfanos (deduplicados dentro del lote)
+      const uniqueOrphanTrackings = [...new Set(orphanTrackings)];
       const orphanResults = [];
-      for (const tracking of orphanTrackings) {
+      let orphanDuplicates = 0;
+      for (const tracking of uniqueOrphanTrackings) {
         const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
         const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
         const uploadedUrls = [];
@@ -246,7 +256,14 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           });
           if (data?.package) orphanResults.push(data.package);
         } catch (e) {
-          console.error('Error registrando huérfano', tracking, e);
+          const status = e?.response?.status || e?.status;
+          const msg = String(e?.message || '');
+          // 409 = duplicado detectado por el backend
+          if (status === 409 || msg.includes('ya está registrado')) {
+            orphanDuplicates++;
+          } else {
+            console.error('Error registrando huérfano', tracking, e);
+          }
         }
       }
 
@@ -270,6 +287,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           let msg = `${newTrackings.length} recibido(s)`;
           if (alreadyReceivedTrackings.length > 0) msg += ` · ${alreadyReceivedTrackings.length} actualizado(s)`;
           if (orphanResults.length > 0) msg += ` · ${orphanResults.length} huérfano(s) enviado(s)`;
+          if (orphanDuplicates > 0) msg += ` · ${orphanDuplicates} duplicado(s) omitido(s)`;
           msg += ` · CBM ${cbmVal} registrado en orden ${orderNum}`;
           toast.success(msg);
         } catch (e) {
@@ -282,6 +300,9 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         }
         if (orphanResults.length > 0) {
           msg += `. ${orphanResults.length} huérfano(s) enviado(s) a /AdminOrphanPackages`;
+        }
+        if (orphanDuplicates > 0) {
+          msg += `. ${orphanDuplicates} duplicado(s) omitido(s)`;
         }
         toast.success(msg);
       }
@@ -447,6 +468,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                           ? 'border-amber-400'
                           : trackingStatusByCode[tracking.trim()]?.state === 'not_found'
                           ? 'border-amber-300'
+                          : trackingStatusByCode[tracking.trim()]?.state === 'orphan_exists'
+                          ? 'border-amber-400'
                           : trackingStatusByCode[tracking.trim()]?.state === 'error'
                           ? 'border-amber-300'
                           : ''
@@ -493,6 +516,8 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                         ? 'text-amber-600 font-medium'
                         : status.state === 'not_found'
                         ? 'text-amber-600 font-medium'
+                        : status.state === 'orphan_exists'
+                        ? 'text-amber-600 font-medium'
                         : 'text-amber-600'
                     }`}>
                       <AlertCircle className="h-4 w-4 shrink-0" />
@@ -537,7 +562,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           const filled = trackingNumbers.map((t) => t.trim()).filter(Boolean);
           const total = filled.length;
           if (total === 0) return null;
-          const counts = { exists: 0, already_received: 0, not_found: 0, checking: 0, error: 0 };
+          const counts = { exists: 0, already_received: 0, not_found: 0, orphan_exists: 0, checking: 0, error: 0 };
           filled.forEach((t) => {
             const s = trackingStatusByCode[t]?.state;
             if (s && counts[s] !== undefined) counts[s]++;
@@ -553,6 +578,12 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
               <span className="text-amber-600 font-medium">{counts.already_received} ya recibidos</span>
               <span className="text-slate-300">·</span>
               <span className="text-amber-600 font-medium">{counts.not_found} huérfanos</span>
+              {counts.orphan_exists > 0 && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-amber-600 font-medium">{counts.orphan_exists} ya huérfanos</span>
+                </>
+              )}
               {counts.checking > 0 && (
                 <>
                   <span className="text-slate-300">·</span>
