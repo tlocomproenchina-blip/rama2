@@ -26,7 +26,7 @@ export default function AdminOrphanPackages({ user }) {
   const enabledTypes = useEnabledShippingTypes();
   const { query: clientQuery, setQuery: setClientQuery, results: clientResults, setResults: setClientResults, searching: searchingClients } = useClientSearch();
   const [selectedClient, setSelectedClient] = useState(null);
-  const [shippingType, setShippingType] = useState('aereo');
+  const [shippingType, setShippingType] = useState('maritimo');
   const [assigning, setAssigning] = useState(false);
 
   // Multi-select y acciones en lote
@@ -84,8 +84,8 @@ export default function AdminOrphanPackages({ user }) {
     setSelectedClient(null);
     setClientQuery('');
     setClientResults([]);
-    if (enabledTypes.aereo) setShippingType('aereo');
-    else if (enabledTypes.maritimo) setShippingType('maritimo');
+    if (enabledTypes.maritimo) setShippingType('maritimo');
+    else if (enabledTypes.aereo) setShippingType('aereo');
   };
 
   const openBulkAssign = () => {
@@ -94,8 +94,8 @@ export default function AdminOrphanPackages({ user }) {
     setSelectedClient(null);
     setClientQuery('');
     setClientResults([]);
-    if (enabledTypes.aereo) setShippingType('aereo');
-    else if (enabledTypes.maritimo) setShippingType('maritimo');
+    if (enabledTypes.maritimo) setShippingType('maritimo');
+    else if (enabledTypes.aereo) setShippingType('aereo');
   };
 
   const handleAssign = async () => {
@@ -412,7 +412,7 @@ export default function AdminOrphanPackages({ user }) {
 
       {/* Diálogo de borrado en lote */}
       {bulkAction === 'delete' && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4" onClick={() => !bulkProcessing && setBulkAction(null)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-0 md:p-4 md:pt-20" onClick={() => !bulkProcessing && setBulkAction(null)}>
           <Card className="w-full md:max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
             <CardContent className="p-6 space-y-4">
               <div className="flex items-start gap-3">
