@@ -82,8 +82,14 @@ export default function AdminQuotes({ user }) {
     try {
       setSaving(true);
       const token = generateQuoteToken();
-      const count = quotes.length + 1;
-      const quoteNumber = `PR-${String(count).padStart(4, '0')}`;
+      // Calcular el siguiente número como el máximo existente + 1, para que
+      // borrar un presupuesto no reutilice un número ya usado.
+      const maxNum = quotes.reduce((max, q) => {
+        const m = /PR-(\d+)/i.exec(q.quote_number || '');
+        const n = m ? parseInt(m[1], 10) : 0;
+        return n > max ? n : max;
+      }, 0);
+      const quoteNumber = `PR-${String(maxNum + 1).padStart(4, '0')}`;
       const globalRate = config?.quote_conversion_rate || 0.15;
       const created = await base44.entities.Quote.create({
         token,
