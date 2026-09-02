@@ -6,7 +6,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
  * BarcodeScannerModule en el instante de detectar un código.
  *
  * - handlePhotoCaptured(code, base64): callback para onPhotoCaptured del scanner.
- *   Inicia la subida a ImgBB en segundo plano y guarda la promesa.
+ *   Inicia la subida a Bunny en segundo plano y guarda la promesa.
  * - waitForPhoto(code): espera a que la subida termine y devuelve la URL (o null).
  *   Se llama antes de enviar la recepción/despacho para asegurar que la foto
  *   ya esté subida.
@@ -21,7 +21,7 @@ export default function useScannedPhotoUploader() {
     setPhotosByTracking((prev) => ({ ...prev, [code]: { status: 'uploading' } }));
     const promise = (async () => {
       try {
-        const { data } = await base44.functions.invoke('uploadImageToImgbb', { image_base64: base64 });
+        const { data } = await base44.functions.invoke('uploadImageToBunny', { image_base64: base64 });
         if (data?.url) {
           setPhotosByTracking((prev) => ({ ...prev, [code]: { status: 'ready', url: data.url } }));
           return data.url;

@@ -44,11 +44,11 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   }, []);
 
   // Foto capturada automáticamente por el escáner en el momento del pitido.
-  // Se sube a ImgBB en segundo plano y se vincula al tracking correspondiente.
+  // Se sube a Bunny en segundo plano y se vincula al tracking correspondiente.
   const handleScannedPhoto = async (code, base64) => {
     setScannedPhotoByTracking((prev) => ({ ...prev, [code]: { status: 'uploading' } }));
     try {
-      const { data } = await base44.functions.invoke('uploadImageToImgbb', { image_base64: base64 });
+      const { data } = await base44.functions.invoke('uploadImageToBunny', { image_base64: base64 });
       if (data?.url) {
         setScannedPhotoByTracking((prev) => ({ ...prev, [code]: { status: 'ready', url: data.url } }));
       } else {
