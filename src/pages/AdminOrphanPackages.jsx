@@ -34,6 +34,7 @@ export default function AdminOrphanPackages({ user }) {
   const [bulkAction, setBulkAction] = useState(null); // 'edit' | 'delete'
   const [bulkEdit, setBulkEdit] = useState({ shipping_type: '', risk_category: '', warehouse_id: '' });
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState(null); // { current, total }
 
   const loadOrphans = useCallback(async (reset = false) => {
     try {
@@ -154,16 +155,22 @@ export default function AdminOrphanPackages({ user }) {
 
   const handleBulkDelete = async () => {
     setBulkProcessing(true);
+    const ids = [...selectedIds];
+    const total = ids.length;
     let ok = 0; let fail = 0;
-    for (const id of selectedIds) {
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      setDeleteProgress({ current: i + 1, total });
       try {
         await base44.entities.Package.delete(id);
         ok++;
+        // Elimina el paquete de la lista inmediatamente (feedback en tiempo real)
+        setOrphans((prev) => prev.filter((p) => p.id !== id));
       } catch (e) { fail++; }
     }
-    setOrphans((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
     setSelectedIds([]);
     setBulkAction(null);
+    setDeleteProgress(null);
     toast.success(`${ok} paquete(s) eliminado(s)${fail > 0 ? ` · ${fail} fallaron` : ''}`);
     setBulkProcessing(false);
   };
@@ -417,7 +424,9 @@ export default function AdminOrphanPackages({ user }) {
                 <Button variant="outline" onClick={() => setBulkAction(null)} disabled={bulkProcessing}>Cancelar</Button>
                 <Button onClick={handleBulkDelete} disabled={bulkProcessing} variant="destructive" className="gap-2">
                   {bulkProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  Sí, borrar {selectedIds.length}
+                  {bulkProcessing && deleteProgress
+                    ? `Borrando ${deleteProgress.current}/${deleteProgress.total}...`
+                    : `Sí, borrar ${selectedIds.length}`}
                 </Button>
               </div>
             </CardContent>
