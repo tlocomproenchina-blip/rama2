@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import useClientSearch from '@/hooks/useClientSearch';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
+import ImageViewerModal from '@/components/common/ImageViewerModal';
 import moment from 'moment';
 
 const PAGE_SIZE = 50;
@@ -35,6 +36,7 @@ export default function AdminOrphanPackages({ user }) {
   const [bulkEdit, setBulkEdit] = useState({ shipping_type: '', risk_category: '', warehouse_id: '' });
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState(null); // { current, total }
+  const [viewerImage, setViewerImage] = useState(null); // url de imagen a ampliar
 
   const loadOrphans = useCallback(async (reset = false) => {
     try {
@@ -258,7 +260,9 @@ export default function AdminOrphanPackages({ user }) {
                     {p.package_image_urls?.length > 0 && (
                       <div className="flex gap-1.5 mt-1">
                         {p.package_image_urls.map((url, i) => (
-                          <img key={i} src={url} alt={`Foto ${i + 1}`} className="h-12 w-12 rounded-md object-cover border" />
+                          <button key={i} type="button" onClick={() => setViewerImage(url)} className="block rounded-md border overflow-hidden hover:ring-2 hover:ring-blue-400 transition" title="Ver foto">
+                            <img src={url} alt={`Foto ${i + 1}`} className="h-12 w-12 object-cover" />
+                          </button>
                         ))}
                       </div>
                     )}
@@ -433,6 +437,13 @@ export default function AdminOrphanPackages({ user }) {
           </Card>
         </div>
       )}
+
+      <ImageViewerModal
+        open={!!viewerImage}
+        imageUrl={viewerImage}
+        onClose={() => setViewerImage(null)}
+        title="Foto del paquete huérfano"
+      />
     </div>
   );
 }
