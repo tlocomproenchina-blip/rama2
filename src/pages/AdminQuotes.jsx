@@ -39,7 +39,20 @@ export default function AdminQuotes({ user }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [contractModalOpen, setContractModalOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const { toast } = useToast();
+
+  const filteredQuotes = quotes.filter((q) => {
+    if (!search.trim()) return true;
+    const term = search.trim().toLowerCase();
+    const name = `${q.client_first_name || ''} ${q.client_last_name || ''}`.toLowerCase();
+    return (
+      (q.quote_number || '').toLowerCase().includes(term) ||
+      name.includes(term) ||
+      (q.client_email || '').toLowerCase().includes(term) ||
+      (q.client_phone || '').toLowerCase().includes(term)
+    );
+  });
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -158,13 +171,28 @@ export default function AdminQuotes({ user }) {
         onSaved={(updated) => setConfig(updated)}
       />
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por número (PR-0001), nombre, email o teléfono..."
+          className="pl-10"
+        />
+      </div>
+
       <div className="space-y-3">
         {quotes.length === 0 && (
           <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-gray-400">
             No hay presupuestos creados. Crea el primero con "Nuevo Presupuesto".
           </div>
         )}
-        {quotes.map((q) => {
+        {filteredQuotes.length === 0 && search.trim() && (
+          <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-gray-400">
+            No se encontraron presupuestos con "{search.trim()}".
+          </div>
+        )}
+        {filteredQuotes.map((q) => {
           const st = STATUS_LABELS[q.status] || STATUS_LABELS.esperando_cliente;
           const clientName = `${q.client_first_name || ''} ${q.client_last_name || ''}`.trim() || 'Sin datos del cliente';
           return (
@@ -344,6 +372,9 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
 
   const handleCopyLink = () => {
     const instructions = `¡Hola! Te compartimos tu enlace de presupuesto de TLEC CARGO.
+
+🧾 Número de presupuesto: ${quote.quote_number}
+Guarda este número para cualquier consulta o seguimiento.
 
 Ingresa al siguiente enlace y completa estos datos para que podamos procesar tu cotización:
 
