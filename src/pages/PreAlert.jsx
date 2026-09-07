@@ -316,8 +316,9 @@ export default function PreAlert({ user }) {
           <div>
             <h3 className="font-semibold text-indigo-900 text-sm mb-1">Información de Consolidación</h3>
             <p className="text-indigo-800 text-sm leading-relaxed">
-              Una vez recibido tu primer paquete, contarás con <span className="font-bold">{config?.consolidation_periods?.[0] || 30} días</span> para solicitar la consolidación. 
-              De lo contrario, realizaremos una consolidación automática con los paquetes disponibles en depósito. El envío mínimo es de 0.130 CBM o el equivalente a una caja de 50cm × 50cm × 50cm.
+               Contamos con salidas cada <span className="font-bold">10 o 15 días</span>. La consolidación se realizará en Venezuela y, una vez esté disponible la misma, se emitirá la factura.
+               El pago de esta se debe realizar en un período de <span className="font-bold">7 días continuos</span>.
+               El servicio de puerta a puerta es únicamente para aquellas cargas consolidadas que sean <span className="font-bold">iguales o superiores a 0.13 CBM</span>.
             </p>
             <p className="mt-2 text-sm font-semibold text-red-600 leading-relaxed flex items-start gap-1.5">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
