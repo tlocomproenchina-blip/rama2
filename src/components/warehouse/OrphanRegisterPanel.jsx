@@ -88,6 +88,12 @@ export default function OrphanRegisterPanel({ tracking, warehouses, locations, o
           Este tracking no existe en el sistema. Si llegó sin pre-alerta, regístralo como <b>huérfano</b> (sin cliente). Cuando el cliente haga su pre-alerta con el mismo tracking, se le asignará automáticamente.
         </div>
 
+        {tracking.length > 5 && /\d$/.test(tracking) && (
+          <div className="rounded-lg bg-blue-50/80 border border-blue-200 p-3 text-sm text-blue-800">
+            ⚠️ Este código podría ser un <b>sub-tracking</b> (tracking master + dígitos extra). Al registrar, el sistema verificará automáticamente si el tracking master ya existe.
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2 text-sm">
           <Badge variant="outline">Sin cliente</Badge>
           <Badge variant="secondary">{form.shipping_type === 'maritimo' ? 'Marítimo' : 'Aéreo'}</Badge>

@@ -22,6 +22,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Este número de tracking ya está registrado en el sistema' }, { status: 409 });
     }
 
+    // Verificar candidatos más cortos (sub-tracking → tracking master)
+    // Si algún candidato ya existe, el tracking master ya está registrado
+    const removalOrder = [3, 2, 4, 1, 5, 6];
+    for (const remove of removalOrder) {
+      if (tracking.length - remove < 5) continue;
+      const candidate = tracking.slice(0, tracking.length - remove);
+      const masterExists = await base44.asServiceRole.entities.Package.filter({ tracking_number: candidate }, '-created_date', 1);
+      if (masterExists.length > 0) {
+        return Response.json({ error: `El tracking master ${candidate} ya está registrado en el sistema` }, { status: 409 });
+      }
+    }
+
     const warehouseId = String(body.warehouse_id || '').trim() || null;
     const locationId = String(body.location_id || '').trim() || null;
 
