@@ -20,8 +20,21 @@ Deno.serve(async (req) => {
       : [];
     const allPhotoUrls = photoUrls.length ? photoUrls : (photoUrl ? [photoUrl] : []);
 
-    const matches = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking });
-    const pkg = matches?.[0];
+    // Intenta coincidencia exacta; si falla, prueba removiendo dígitos del final
+    // (sub-tracking: master + sufijo numérico, ej. S71332762881001 → S71332762881)
+    const removalOrder = [0, 3, 2, 4, 1, 5, 6];
+    let pkg: any = null;
+    let resolvedTracking = tracking;
+    for (const remove of removalOrder) {
+      const candidate = remove === 0 ? tracking : (tracking.length - remove >= 5 ? tracking.slice(0, tracking.length - remove) : null);
+      if (!candidate) continue;
+      const matches = await base44.asServiceRole.entities.Package.filter({ tracking_number: candidate });
+      if (matches?.[0]) {
+        pkg = matches[0];
+        resolvedTracking = candidate;
+        break;
+      }
+    }
     if (!pkg) {
       return Response.json({ error: 'Paquete no encontrado en el sistema', not_found: true }, { status: 404 });
     }

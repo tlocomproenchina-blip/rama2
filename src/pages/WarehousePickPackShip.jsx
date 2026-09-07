@@ -9,6 +9,7 @@ import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import PickingOrderList from '@/components/warehouse/PickingOrderList';
 import PickingPackagesTable from '@/components/warehouse/PickingPackagesTable';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
+import { getTrackingCandidatesLower } from '@/lib/trackingNormalizer';
 
 export default function WarehousePickPackShip({ user }) {
   const [requests, setRequests] = useState([]);
@@ -69,8 +70,11 @@ export default function WarehousePickPackShip({ user }) {
       return;
     }
 
-    const normalizedCode = code.trim().toLowerCase();
-    const packageIndex = pickingData.packages.findIndex((pkg) => String(pkg.tracking_number || '').trim().toLowerCase() === normalizedCode);
+    const candidates = getTrackingCandidatesLower(code);
+    const packageIndex = pickingData.packages.findIndex((pkg) => {
+      const pkgTracking = String(pkg.tracking_number || '').trim().toLowerCase();
+      return candidates.includes(pkgTracking);
+    });
 
     if (packageIndex === -1) {
       toast.error('Ese código no pertenece a la solicitud activa');
@@ -78,6 +82,10 @@ export default function WarehousePickPackShip({ user }) {
     }
 
     const matchedPackage = pickingData.packages[packageIndex];
+    const resolvedMaster = String(matchedPackage.tracking_number || '').trim().toLowerCase() !== code.trim().toLowerCase();
+    if (resolvedMaster) {
+      toast.info(`Tracking master resuelto: ${matchedPackage.tracking_number}`);
+    }
     setPackagesPage((prev) => Math.max(prev, Math.ceil((packageIndex + 1) / packagesPageSize)));
     setSelectedPackageIds((prev) => prev.includes(matchedPackage.id) ? prev : [...prev, matchedPackage.id]);
     toast.success(`Paquete ${matchedPackage.tracking_number} seleccionado`);

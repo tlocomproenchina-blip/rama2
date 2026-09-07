@@ -10,6 +10,7 @@ import ReceivePackagePanel from '@/components/warehouse/ReceivePackagePanel';
 import OrphanRegisterPanel from '@/components/warehouse/OrphanRegisterPanel';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
+import { getTrackingCandidates } from '@/lib/trackingNormalizer';
 
 const emptyForm = {
   location_id: '',
@@ -57,12 +58,24 @@ export default function WarehouseReceive({ user }) {
     try {
       setSearching(true);
       setTracking(nextTracking);
-      const found = await base44.entities.Package.filter({ tracking_number: nextTracking }, '-created_date', 1);
-      const nextPkg = found?.[0] || null;
+      const candidates = getTrackingCandidates(nextTracking);
+      let nextPkg = null;
+      let resolvedFromMaster = false;
+      for (const candidate of candidates) {
+        const found = await base44.entities.Package.filter({ tracking_number: candidate }, '-created_date', 1);
+        if (found?.[0]) {
+          nextPkg = found[0];
+          if (candidate !== nextTracking) resolvedFromMaster = true;
+          break;
+        }
+      }
       setPkg(nextPkg);
       if (!nextPkg) {
         setNotFoundTracking(nextTracking);
         return;
+      }
+      if (resolvedFromMaster) {
+        toast.info(`Tracking master resuelto: ${nextPkg.tracking_number}`);
       }
       setNotFoundTracking(null);
       setForm({
