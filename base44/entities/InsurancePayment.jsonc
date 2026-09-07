@@ -1,0 +1,131 @@
+{
+  "name": "InsurancePayment",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente que paga el seguro"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "N\u00famero de tracking del paquete asegurado"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "ID del paquete (Package) asociado"
+    },
+    "fob_value": {
+      "type": "number",
+      "description": "Valor FOB declarado por el cliente"
+    },
+    "insurance_percentage": {
+      "type": "number",
+      "default": 5,
+      "description": "Porcentaje del FOB cobrado como seguro"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto del seguro (FOB \u00d7 percentage / 100)"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "binance",
+        "usdt_trc20",
+        "paypal",
+        "wally",
+        "zinli",
+        "wise",
+        "skrill",
+        "pago_movil_usdt",
+        "stripe",
+        "otro"
+      ],
+      "default": "transferencia",
+      "description": "M\u00e9todo de pago del seguro"
+    },
+    "proof_url": {
+      "type": "string",
+      "description": "URL del comprobante de pago (imagen)"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Referencia o n\u00famero de transacci\u00f3n"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobado",
+        "rechazado"
+      ],
+      "default": "pendiente",
+      "description": "Estado de validaci\u00f3n del pago del seguro"
+    },
+    "reported_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se report\u00f3 el pago del seguro"
+    },
+    "approved_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el admin aprob\u00f3 el pago"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Email del admin que aprob\u00f3 el pago"
+    },
+    "reject_reason": {
+      "type": "string",
+      "description": "Motivo del rechazo (si aplica)"
+    },
+    "rejected_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el admin rechaz\u00f3 el pago"
+    }
+  },
+  "required": [
+    "client_email",
+    "tracking_number",
+    "amount"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

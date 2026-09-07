@@ -10,18 +10,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Package, 
-  Plane, 
-  Ship, 
-  Shield, 
-  Upload, 
+import {
+  Package,
+  Plane,
+  Ship,
+  Shield,
+  Upload,
   CheckCircle,
   AlertCircle,
   Loader2,
   ArrowLeft,
   Clock
 } from 'lucide-react';
+import InsurancePaymentModal from '@/components/client-portal/InsurancePaymentModal';
 import { toast } from 'sonner';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 import { logActionAudit } from '@/lib/actionAudit';
@@ -48,6 +49,8 @@ export default function PreAlert({ user }) {
   const [productPhoto, setProductPhoto] = useState(null);
   const [errors, setErrors] = useState({});
   const [uploadsDisabled, setUploadsDisabled] = useState(false);
+  const [showInsuranceModal, setShowInsuranceModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState(null);
 
   useEffect(() => {
     loadConfig();
@@ -198,6 +201,24 @@ export default function PreAlert({ user }) {
         } catch (uploadError) {
           toast.warning('No se pudo subir la factura. Continuaremos sin ella.');
         }
+      }
+
+      // Si el cliente marcó seguro, mostrar pantalla de pago del seguro antes de crear
+      if (formData.has_insurance) {
+        setPendingFormData({
+          shipping_company: formData.shipping_company,
+          tracking_number: formData.tracking_number,
+          shipping_type: formData.shipping_type,
+          risk_category: formData.risk_category,
+          package_count: Number(formData.package_count),
+          description: formData.description,
+          fob_value: parseFloat(formData.fob_value),
+          invoice_url: invoiceUrl,
+          product_image_url: productPhotoUrl
+        });
+        setShowInsuranceModal(true);
+        setSaving(false);
+        return;
       }
 
       // Create package (vía función segura del servidor)
@@ -618,6 +639,10 @@ export default function PreAlert({ user }) {
                   <p className="text-sm text-slate-500">
                     La carga será asegurada por {config?.insurance_percentage || 5}% del valor FOB
                   </p>
+                  <p className="mt-2 text-sm font-medium text-red-600 leading-relaxed flex items-start gap-1.5">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <span>⚠️ Importante: La mercancía no asegurada viaja bajo responsabilidad del cliente. TLEC CARGO no se hace responsable por pérdidas o daños ocasionados durante etapas logísticas fuera de nuestro control.</span>
+                  </p>
                 </div>
               </div>
 
@@ -695,6 +720,55 @@ export default function PreAlert({ user }) {
           </p>
         )}
       </form>
+
+      {showInsuranceModal && pendingFormData && (
+        <InsurancePaymentModal
+          open={showInsuranceModal}
+          onClose={() => { setShowInsuranceModal(false); setPendingFormData(null); }}
+          trackingNumber={pendingFormData.tracking_number}
+          fobValue={pendingFormData.fob_value}
+          insurancePercentage={config?.insurance_percentage || 5}
+          formData={pendingFormData}
+          user={user}
+          onPaid={async (newPackage) => {
+            setShowInsuranceModal(false);
+            setPendingFormData(null);
+
+            await logActionAudit(base44, user, {
+              target_email: user?.email,
+              target_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email,
+              action_type: 'report_prealert',
+              module_name: 'PreAlert',
+              reference_id: newPackage?.id,
+              area_name: 'Operaciones',
+              summary: `Reportó pre-alerta asegurada ${pendingFormData.tracking_number}`,
+              details: `Tipo: ${pendingFormData.shipping_type} · Seguro pagado FOB $${pendingFormData.fob_value}`,
+              changed_fields: ['tracking_number', 'shipping_type', 'has_insurance'],
+            });
+
+            const isHighValue = parseFloat(pendingFormData.fob_value) >= 500;
+            import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
+              notifyAdmins({
+                subject: `🛡️ Nueva Pre-alerta Asegurada (pago pendiente)${isHighValue ? ' - ALTO VALOR' : ''}`,
+                body: `Nueva pre-alerta asegurada registrada:\n\nTracking: ${pendingFormData.tracking_number}\nCliente: ${user.first_name || ''} ${user.last_name || ''} (${user.email})\nShipping Mark: ${user.shipping_mark}\nTipo: ${pendingFormData.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}\nValor FOB: $${pendingFormData.fob_value}\nSeguro: $${(parseFloat(pendingFormData.fob_value) * (config?.insurance_percentage || 5) / 100).toFixed(2)}\n\nEl pago del seguro está pendiente de validación en Admin Payments → SEGURO.`,
+                title: `🛡️ Pre-alerta Asegurada${isHighValue ? ' (ALTO VALOR)' : ''}`,
+                message: `${user.first_name || user.email}: ${pendingFormData.tracking_number} - Seguro pagado (pendiente validación)`,
+                type: 'package',
+                icon: 'alert',
+                referenceId: newPackage?.id
+              });
+            });
+
+            toast.success('Pre-alerta creada exitosamente con seguro');
+            navigate(createPageUrl('MyPackages'));
+          }}
+          onSkip={() => {
+            setShowInsuranceModal(false);
+            setPendingFormData(null);
+            toast.info('Puedes desmarcar el seguro o intentar el pago nuevamente.');
+          }}
+        />
+      )}
     </div>
   );
 }

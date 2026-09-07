@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, Package as PackageIcon, Boxes, Ship, CalendarClock } from 'lucide-react';
+import { ShieldCheck, Package as PackageIcon, Boxes, Ship, CalendarClock, BadgeCheck } from 'lucide-react';
 
 const fmtDate = (d) => {
   if (!d) return null;
@@ -51,6 +51,11 @@ export default function BillingInvoiceRow({ row, onChange }) {
               {row.total_fob > 0 && (
                 <span className="inline-flex items-center gap-1 text-emerald-700">
                   <ShieldCheck className="h-3 w-3" /> FOB ${Number(row.total_fob || 0).toFixed(2)}
+                </span>
+              )}
+              {Number(row.paid_insurance_amount || 0) > 0 && (
+                <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  <BadgeCheck className="h-3 w-3" /> Seguro pagado ${Number(row.paid_insurance_amount).toFixed(2)}
                 </span>
               )}
               {fmtDate(row.fecha_salida) && (

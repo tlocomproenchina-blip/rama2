@@ -35,6 +35,7 @@ export default function AdminManualBilling() {
   const [creditBalance, setCreditBalance] = useState(0);
   const [rateHistory, setRateHistory] = useState([]);
   const [orphanPackages, setOrphanPackages] = useState([]);
+  const [approvedInsuranceByTracking, setApprovedInsuranceByTracking] = useState({});
 
   useEffect(() => {
     (async () => {
@@ -188,11 +189,12 @@ export default function AdminManualBilling() {
     setOrphanPackages([]);
     setLoadingRows(true);
     try {
-      const [ingresos, pkgs, credits, dispatchOrders] = await Promise.all([
+      const [ingresos, pkgs, credits, dispatchOrders, insurancePayments] = await Promise.all([
         base44.entities.CbmIngreso.filter({ client_email: selectedClient.email }, '-fecha', 200),
         base44.entities.Package.filter({ client_email: selectedClient.email }, '-created_date', 500).catch(() => []),
         base44.entities.ClientCredit.filter({ client_email: selectedClient.email }).catch(() => []),
         base44.entities.DispatchOrder.filter({ client_email: selectedClient.email }, '-dispatched_date', 500).catch(() => []),
+        base44.entities.InsurancePayment.filter({ client_email: selectedClient.email, status: 'aprobado' }, '-created_date', 500).catch(() => []),
       ]);
       const balance = (credits || []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
       setCreditBalance(Math.max(0, balance));
@@ -209,7 +211,16 @@ export default function AdminManualBilling() {
         });
       });
 
+      // Mapa de seguros ya pagados (aprobados) por tracking normalizado
+      const approvedMap = {};
+      (insurancePayments || []).forEach((ip) => {
+        const t = normTracking(ip.tracking_number);
+        if (t) approvedMap[t] = { amount: num(ip.amount), fob: num(ip.fob_value) };
+      });
+      setApprovedInsuranceByTracking(approvedMap);
+
       // Mapa de FOB asegurado por número de tracking normalizado (desde los paquetes con seguro)
+      // EXCLUYENDO los trackings que ya tienen seguro pagado y aprobado (no se vuelve a cobrar)
       const insuredFobByTracking = {};
       (pkgs || []).forEach((p) => {
         if (!p.has_insurance) return;
@@ -219,7 +230,10 @@ export default function AdminManualBilling() {
           .split(/[，,;|]+/)
           .map(normTracking)
           .filter(Boolean)
-          .forEach((t) => { insuredFobByTracking[t] = Math.max(insuredFobByTracking[t] || 0, fob); });
+          .forEach((t) => {
+            if (approvedMap[t]) return; // ya pagado, no se cobra de nuevo
+            insuredFobByTracking[t] = Math.max(insuredFobByTracking[t] || 0, fob);
+          });
       });
 
       // Excluir registros que ya fueron facturados (solo se liberan al desconsolidar)
@@ -238,14 +252,20 @@ export default function AdminManualBilling() {
           const t = normTracking(p.tracking_number);
           return t && !trackingsWithReceipt.has(t) && dispatchedTrackings.has(t);
         })
-        .map((p) => ({
-          id: p.id,
-          tracking_number: p.tracking_number,
-          fob_value: num(p.fob_value),
-          has_insurance: !!p.has_insurance,
-          selected: false,
-          assigned_receipt_id: '',
-        }));
+        .map((p) => {
+          const t = normTracking(p.tracking_number);
+          const paidIns = approvedMap[t]?.amount || 0;
+          return {
+            id: p.id,
+            tracking_number: p.tracking_number,
+            fob_value: num(p.fob_value),
+            has_insurance: !!p.has_insurance,
+            has_paid_insurance: paidIns > 0,
+            paid_insurance_amount: paidIns,
+            selected: false,
+            assigned_receipt_id: '',
+          };
+        });
       setOrphanPackages(orphans);
 
       const built = available.map((ing) => {
@@ -255,6 +275,8 @@ export default function AdminManualBilling() {
         const trackingFob = trackings.reduce((s, t) => s + (insuredFobByTracking[normTracking(t)] || 0), 0);
         const insuredCount = trackings.filter((t) => (insuredFobByTracking[normTracking(t)] || 0) > 0).length;
         const totalFob = trackingFob;
+        // Seguro ya pagado (aprobado) para los trackings de este recibo
+        const paidInsurance = trackings.reduce((s, t) => s + (approvedMap[normTracking(t)]?.amount || 0), 0);
         return {
           id: ing.id,
           invoice_number: ing.invoice_number || ing.descripcion || '—',
@@ -275,6 +297,7 @@ export default function AdminManualBilling() {
           shipping_amount: calcShippingForRow(cbm, ing.fecha).toFixed(2),
           rate_label: getRateLabel(ing.fecha),
           insurance_amount: (totalFob * 0.05).toFixed(2),
+          paid_insurance_amount: paidInsurance,
         };
       });
       setRows(built);
@@ -303,9 +326,12 @@ export default function AdminManualBilling() {
   const totalCbmAll = selectedCbmSum;
   const shippingTotal = calcConsolidatedShipping(billedCbm !== '' ? num(billedCbm) : totalCbmAll, selectedRows);
   const autoInsuranceTotal = selectedRows.reduce((s, r) => s + num(r.insurance_amount), 0);
-  // Seguro de paquetes sin recibo: 5% del FOB solo si el cliente marcó asegurar (línea separada)
-  const orphanInsuranceTotal = selectedOrphans.reduce((s, p) => s + (p.has_insurance ? num(p.fob_value) * 0.05 : 0), 0);
+  // Seguro de paquetes sin recibo: 5% del FOB solo si el cliente marcó asegurar y NO tiene seguro ya pagado
+  const orphanInsuranceTotal = selectedOrphans.reduce((s, p) => s + (p.has_insurance && !p.has_paid_insurance ? num(p.fob_value) * 0.05 : 0), 0);
+  const orphanPaidInsuranceTotal = selectedOrphans.reduce((s, p) => s + num(p.paid_insurance_amount || 0), 0);
   const insuranceTotal = manualInsurance !== '' ? num(manualInsurance) : (autoInsuranceTotal + orphanInsuranceTotal);
+  // Seguro ya pagado y aprobado (referencia, NO se suma al total)
+  const paidInsuranceTotal = selectedRows.reduce((s, r) => s + num(r.paid_insurance_amount), 0) + orphanPaidInsuranceTotal;
   const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0) + selectedOrphans.length;
   const consolidationFee = consolidationMode === 'manual' ? num(manualConsolidationFee) : totalPackages * 1;
   const extraAmountValue = num(extraAmount);
@@ -384,10 +410,31 @@ export default function AdminManualBilling() {
               details: { fob_value: r.total_fob, insured_packages: r.insured_count },
             });
           }
+          // Seguro ya pagado: línea de referencia con monto 0 (no se cobra de nuevo)
+          if (num(r.paid_insurance_amount) > 0) {
+            items.push({
+              description: `Seguro ya pagado (referencia) - ${r.consolidation_tracking || r.invoice_number}`,
+              quantity: 1,
+              unit_price: 0,
+              total: 0,
+              details: { paid_insurance: num(r.paid_insurance_amount), reference_only: true },
+            });
+          }
         });
-        // Seguro de paquetes sin recibo (5% FOB) solo si el cliente marcó asegurar
+        // Seguro de paquetes sin recibo (5% FOB) solo si el cliente marcó asegurar y NO tiene seguro ya pagado
         selOrphans.forEach((p) => {
           if (!p.has_insurance) return;
+          if (p.has_paid_insurance) {
+            // Referencia de seguro ya pagado (no se cobra)
+            items.push({
+              description: `Seguro ya pagado (referencia) - ${p.tracking_number}`,
+              quantity: 1,
+              unit_price: 0,
+              total: 0,
+              details: { paid_insurance: num(p.paid_insurance_amount), reference_only: true, orphan_package: true },
+            });
+            return;
+          }
           const ins = num(p.fob_value) * 0.05;
           if (ins > 0) {
             items.push({
@@ -464,6 +511,7 @@ export default function AdminManualBilling() {
         billed_cbm: billedCbmValue,
         shipping_total: consolidatedShipping,
         insurance_total: insuranceTotal,
+        paid_insurance_total: paidInsuranceTotal,
         consolidation_fee: consolidationFee,
         door_to_door_fee: doorToDoorValue,
         extra_amount: extraAmountValue,
@@ -709,6 +757,7 @@ export default function AdminManualBilling() {
               autoInsuranceTotal={autoInsuranceTotal}
               manualInsurance={manualInsurance}
               setManualInsurance={setManualInsurance}
+              paidInsuranceTotal={paidInsuranceTotal}
               total={total}
               paymentMethod={paymentMethod}
               setPaymentMethod={setPaymentMethod}

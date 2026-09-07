@@ -12,6 +12,7 @@ export default function BillingSummary({
   rows, consolidationMode, setConsolidationMode, manualConsolidationFee, setManualConsolidationFee,
   consolidationFee, shippingTotal, insuranceTotal, total,
   autoInsuranceTotal, manualInsurance, setManualInsurance,
+  paidInsuranceTotal = 0,
   paymentMethod, setPaymentMethod, appConfig, onCreate, creating, canCreate,
   billedCbm, setBilledCbm,
   providerInvoiceUrl, setProviderInvoiceUrl,
@@ -143,6 +144,12 @@ export default function BillingSummary({
           <div className="flex justify-between text-slate-600"><span>Envío</span><span>${Number(shippingTotal).toFixed(2)}</span></div>
           <div className="flex justify-between text-slate-600"><span>Consolidación</span><span>${Number(consolidationFee).toFixed(2)}</span></div>
           <div className="flex justify-between text-slate-600"><span>Seguro</span><span>${Number(insuranceTotal).toFixed(2)}</span></div>
+          {Number(paidInsuranceTotal) > 0 && (
+            <div className="flex justify-between text-emerald-600 text-xs">
+              <span>Seguro ya pagado (referencia)</span>
+              <span className="line-through">${Number(paidInsuranceTotal).toFixed(2)}</span>
+            </div>
+          )}
           {Number(doorToDoorFee) > 0 && (
             <div className="flex justify-between text-slate-600"><span>Puerta a puerta</span><span>${Number(doorToDoorFee).toFixed(2)}</span></div>
           )}

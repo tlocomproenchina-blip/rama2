@@ -18,6 +18,7 @@ import PaymentValidation from '@/components/admin/PaymentValidation';
 import InvoicePaymentValidation from '@/components/admin/InvoicePaymentValidation';
 import AdminAbonosValidation from '@/components/admin/AdminAbonosValidation';
 import PaymentHistory from '@/components/admin/PaymentHistory';
+import InsuranceValidation from '@/components/admin/InsuranceValidation';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -61,6 +62,11 @@ export default function AdminPayments({ user }) {
   // Tiempo real: solo recargar cuando llega un abono NUEVO (create).
   // Las aprobaciones/actualizaciones se manejan localmente sin recargar.
   useEntitySubscription('InvoicePayment', (event) => {
+    if (event.type === 'create') loadData();
+  });
+
+  // Tiempo real: pagos de seguro
+  useEntitySubscription('InsurancePayment', (event) => {
     if (event.type === 'create') loadData();
   });
 
@@ -264,6 +270,7 @@ export default function AdminPayments({ user }) {
             <Tabs value={statusFilter} onValueChange={setStatusFilter}>
               <TabsList>
                 <TabsTrigger value="pending">Pendientes</TabsTrigger>
+                <TabsTrigger value="seguro">Seguro</TabsTrigger>
                 <TabsTrigger value="validated">Validados</TabsTrigger>
                 <TabsTrigger value="all">Todos</TabsTrigger>
                 <TabsTrigger value="history">Historial</TabsTrigger>
@@ -276,6 +283,8 @@ export default function AdminPayments({ user }) {
       {/* Consolidations List */}
       {statusFilter === 'history' ? (
         <PaymentHistory />
+      ) : statusFilter === 'seguro' ? (
+        <InsuranceValidation onRefresh={loadData} currentUser={user} />
       ) : statusFilter === 'pending' ? (
         <div className="space-y-6">
           <AdminAbonosValidation onRefresh={loadData} />
