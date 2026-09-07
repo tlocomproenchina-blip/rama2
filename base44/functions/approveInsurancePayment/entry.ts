@@ -34,11 +34,13 @@ export default async function(req: Request): Promise<Response> {
       approved_by: user.email
     });
 
-    // Marcar automáticamente el paquete como asegurado
+    // Marcar automáticamente el paquete como asegurado y limpiar deadline/expired
     if (payment.package_id) {
       try {
         await base44.asServiceRole.entities.Package.update(payment.package_id, {
-          has_insurance: true
+          has_insurance: true,
+          insurance_deadline: null,
+          insurance_expired: false
         });
       } catch (_) {}
     }

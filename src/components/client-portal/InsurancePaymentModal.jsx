@@ -18,7 +18,9 @@ export default function InsurancePaymentModal({
   formData,
   user,
   onPaid,
-  onSkip
+  onSkip,
+  mode = 'create',
+  pkg = null
 }) {
   const [config, setConfig] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -27,8 +29,9 @@ export default function InsurancePaymentModal({
   const [loading, setLoading] = useState(true);
   const [availableMethods, setAvailableMethods] = useState([]);
 
-  const insuranceAmount = fobValue && insurancePercentage
-    ? (parseFloat(fobValue) * (insurancePercentage / 100))
+  const effectivePercentage = insurancePercentage || config?.insurance_percentage || 5;
+  const insuranceAmount = fobValue
+    ? (parseFloat(fobValue) * (effectivePercentage / 100))
     : 0;
 
   useEffect(() => {
@@ -107,24 +110,33 @@ export default function InsurancePaymentModal({
     try {
       const proofUrl = await uploadImageNoCredits(proofFile);
 
-      const { data } = await base44.functions.invoke('createInsuredPrealert', {
-        shipping_company: formData.shipping_company,
-        tracking_number: formData.tracking_number,
-        shipping_type: formData.shipping_type,
-        risk_category: formData.risk_category,
-        package_count: Number(formData.package_count),
-        description: formData.description,
-        fob_value: parseFloat(formData.fob_value),
-        invoice_url: formData.invoice_url || null,
-        product_image_url: formData.product_image_url || null,
-        insurance_percentage: insurancePercentage,
-        insurance_amount: insuranceAmount,
-        payment_method: paymentMethod,
-        proof_url: proofUrl
-      });
-
-      toast.success('Pre-alerta creada con seguro. El pago está pendiente de validación.');
-      onPaid(data?.package, data?.insurance_payment);
+      if (mode === 'retry' && pkg) {
+        const { data } = await base44.functions.invoke('retryInsurancePayment', {
+          package_id: pkg.id,
+          proof_url: proofUrl,
+          method: paymentMethod
+        });
+        toast.success('Comprobante enviado. El pago está pendiente de validación.');
+        onPaid(pkg, data?.insurance_payment);
+      } else {
+        const { data } = await base44.functions.invoke('createInsuredPrealert', {
+          shipping_company: formData.shipping_company,
+          tracking_number: formData.tracking_number,
+          shipping_type: formData.shipping_type,
+          risk_category: formData.risk_category,
+          package_count: Number(formData.package_count),
+          description: formData.description,
+          fob_value: parseFloat(formData.fob_value),
+          invoice_url: formData.invoice_url || null,
+          product_image_url: formData.product_image_url || null,
+          insurance_percentage: insurancePercentage,
+          insurance_amount: insuranceAmount,
+          payment_method: paymentMethod,
+          proof_url: proofUrl
+        });
+        toast.success('Pre-alerta creada con seguro. El pago está pendiente de validación.');
+        onPaid(data?.package, data?.insurance_payment);
+      }
     } catch (error) {
       console.error('Error creating insured pre-alert:', error);
       toast.error(error?.response?.data?.error || 'Error al crear la pre-alerta asegurada');
@@ -146,7 +158,7 @@ export default function InsurancePaymentModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onSkip(); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { if (mode === 'retry') onClose(); else onSkip(); } }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
@@ -155,7 +167,7 @@ export default function InsurancePaymentModal({
             </div>
             <div>
               <DialogTitle className="text-xl font-semibold text-slate-800">
-                Pagar Seguro de Envío
+                {mode === 'retry' ? 'Pagar Seguro Nuevamente' : 'Pagar Seguro de Envío'}
               </DialogTitle>
               <DialogDescription className="text-slate-500">
                 Seguro de <span className="font-bold text-emerald-600">${insuranceAmount.toFixed(2)}</span> · Tracking: <span className="font-mono font-semibold">{trackingNumber}</span>
@@ -256,8 +268,8 @@ export default function InsurancePaymentModal({
         </div>
 
         <DialogFooter className="flex gap-3">
-          <Button variant="outline" onClick={onSkip} className="flex-1">
-            No pagar ahora
+          <Button variant="outline" onClick={mode === 'retry' ? onClose : onSkip} className="flex-1">
+            {mode === 'retry' ? 'Cancelar' : 'No pagar ahora'}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -267,7 +279,7 @@ export default function InsurancePaymentModal({
             {uploading ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
             ) : (
-              'Confirmar y Crear Pre-alerta'
+              mode === 'retry' ? 'Confirmar Pago' : 'Confirmar y Crear Pre-alerta'
             )}
           </Button>
         </DialogFooter>

@@ -68,6 +68,16 @@
       "type": "number",
       "description": "FOB value for insurance"
     },
+    "insurance_deadline": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha l\u00edmite para pagar el seguro tras un rechazo del admin (ahora + 12h). Si vence sin pago aprobado, el paquete queda sin seguro permanente."
+    },
+    "insurance_expired": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si venci\u00f3 el plazo de 12h para pagar el seguro tras rechazo. El paquete queda sin seguro permanente."
+    },
     "invoice_url": {
       "type": "string",
       "description": "Invoice file URL"

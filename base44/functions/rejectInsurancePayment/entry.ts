@@ -32,12 +32,24 @@ export default async function(req: Request): Promise<Response> {
       rejected_date: nowIso
     });
 
+    // Marcar el paquete como sin seguro + establecer deadline de 12h para reintentar
+    const deadline = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(); // +12h
+    if (payment.package_id) {
+      try {
+        await base44.asServiceRole.entities.Package.update(payment.package_id, {
+          has_insurance: false,
+          insurance_deadline: deadline,
+          insurance_expired: false
+        });
+      } catch (_) {}
+    }
+
     // Notificar al cliente
     try {
       await base44.asServiceRole.entities.Notification.create({
         user_email: payment.client_email,
         title: '❌ Seguro rechazado',
-        message: `El pago del seguro para el tracking ${payment.tracking_number} fue rechazado${reason ? `: ${reason}` : ''}. Puedes intentar nuevamente.`,
+        message: `El pago del seguro para el tracking ${payment.tracking_number} fue rechazado${reason ? `: ${reason}` : ''}. Tienes 12 horas para volver a pagar el seguro. Vence el ${new Date(deadline).toLocaleString('es-VE')}.`,
         type: 'payment',
         icon: 'alert',
         reference_id: paymentId,

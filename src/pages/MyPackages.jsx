@@ -34,6 +34,8 @@ import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader'
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import InsurePackageModal from '@/components/client-portal/InsurePackageModal';
+import InsuranceBadge, { getInsuranceState } from '@/components/client-portal/InsuranceBadge';
+import InsurancePaymentModal from '@/components/client-portal/InsurancePaymentModal';
 
 export default function MyPackages({ user }) {
   const PAGE_SIZE = 200;
@@ -54,15 +56,41 @@ export default function MyPackages({ user }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [insureModal, setInsureModal] = useState(null);
+  const [insurancePayments, setInsurancePayments] = useState({});
+  const [retryInsurancePkg, setRetryInsurancePkg] = useState(null);
 
   useEffect(() => {
     loadPackages(false);
+    loadInsurancePayments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.email]);
+
+  const loadInsurancePayments = async () => {
+    if (!user?.email) return;
+    try {
+      const payments = await base44.entities.InsurancePayment.filter({ client_email: user.email }, '-created_date', 500);
+      const map = {};
+      for (const p of payments) {
+        if (p.package_id && !map[p.package_id]) map[p.package_id] = p;
+      }
+      setInsurancePayments(map);
+    } catch (_) {}
+  };
 
   useEntitySubscription(
     'Package',
     () => loadPackages(),
+    {
+      enabled: !!user?.email,
+      filter: (event) => event?.data?.client_email === user?.email,
+      debounceMs: 1000,
+    },
+    [user?.email]
+  );
+
+  useEntitySubscription(
+    'InsurancePayment',
+    () => { loadPackages(); loadInsurancePayments(); },
     {
       enabled: !!user?.email,
       filter: (event) => event?.data?.client_email === user?.email,
@@ -298,27 +326,19 @@ export default function MyPackages({ user }) {
 
                   {/* Badges */}
                   <div className="flex flex-wrap items-center gap-2">
-                    {pkg.has_insurance ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs cursor-pointer"
-                        onClick={() => setInsureModal(pkg)}
-                      >
-                        <Shield className="h-3 w-3 mr-1" />
-                        Asegurado
-                      </Badge>
-                    ) : (
-                      !['despachado', 'entregado'].includes(pkg.status) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setInsureModal(pkg)}
-                          className="text-emerald-700 border-emerald-200 text-xs"
-                        >
-                          <Shield className="h-3 w-3 mr-1" /> Asegurar
-                        </Button>
-                      )
-                    )}
+                    <InsuranceBadge
+                      pkg={pkg}
+                      insurancePayment={insurancePayments[pkg.id]}
+                      showButton={!['despachado', 'entregado'].includes(pkg.status)}
+                      onClick={() => {
+                        const insState = getInsuranceState(pkg, insurancePayments[pkg.id]);
+                        if (insState.state === 'pagar') {
+                          setRetryInsurancePkg(pkg);
+                        } else {
+                          setInsureModal(pkg);
+                        }
+                      }}
+                    />
                     {(pkg.package_image_urls && pkg.package_image_urls.length > 0 || pkg.package_image_url) && (
                       <Button
                         variant="outline"
@@ -528,6 +548,26 @@ export default function MyPackages({ user }) {
         onClose={() => setInsureModal(null)}
         onSaved={(id, updates) => setPackages((prev) => prev.map((p) => p.id === id ? { ...p, ...updates } : p))}
       />
+
+      {/* Retry Insurance Payment Modal */}
+      {retryInsurancePkg && (
+        <InsurancePaymentModal
+          open={!!retryInsurancePkg}
+          onClose={() => setRetryInsurancePkg(null)}
+          mode="retry"
+          pkg={retryInsurancePkg}
+          trackingNumber={retryInsurancePkg.tracking_number}
+          fobValue={retryInsurancePkg.fob_value}
+          user={user}
+          onPaid={() => {
+            setRetryInsurancePkg(null);
+            loadPackages();
+            loadInsurancePayments();
+            toast.success('Comprobante de seguro enviado. Pendiente de validación.');
+          }}
+          onSkip={() => setRetryInsurancePkg(null)}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
