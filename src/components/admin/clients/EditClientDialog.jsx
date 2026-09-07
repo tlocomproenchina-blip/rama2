@@ -25,6 +25,18 @@ export default function EditClientDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Tag className="h-4 w-4" /> Shipping Mark
+            </Label>
+            <Input
+              value={editData.shipping_mark || ''}
+              onChange={(e) => setEditData({ ...editData, shipping_mark: e.target.value })}
+              placeholder="Ingresa el Shipping Mark completo"
+              className="font-mono"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Nombre</Label>
@@ -110,17 +122,6 @@ export default function EditClientDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Tag className="h-4 w-4" /> Shipping Mark
-            </Label>
-            <Input
-              value={editData.shipping_mark || ''}
-              onChange={(e) => setEditData({ ...editData, shipping_mark: e.target.value })}
-              placeholder="Ingresa el Shipping Mark completo"
-              className="font-mono"
-            />
-          </div>
         </div>
 
         <DialogFooter className="sticky bottom-0 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-t border-slate-200">
