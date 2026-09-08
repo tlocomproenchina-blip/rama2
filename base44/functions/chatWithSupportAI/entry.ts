@@ -79,11 +79,19 @@ function calculateShipping(params: any, cfg: any, pricing: any, states: any[]): 
   // 2) Weight-based CBM adjustment (only if CBM > 1 and weight >= 500kg)
   let billable_cbm = volumetric_cbm;
   let weight_applied = false;
-  if (volumetric_cbm > 1 && typeof peso_kg === 'number' && Number.isFinite(peso_kg) && peso_kg >= 500) {
-    const weight_cbm = peso_kg / 500;
-    if (weight_cbm > volumetric_cbm) {
-      billable_cbm = weight_cbm;
-      weight_applied = true;
+  if (volumetric_cbm > 1) {
+    if (typeof peso_kg !== 'number' || !Number.isFinite(peso_kg)) {
+      return {
+        need_weight: true,
+        message: `El volumen de tu carga es ${volumetric_cbm.toFixed(3)} CBM, que supera 1 CBM. Para darte un cálculo preciso necesito el peso estimado en kg. Pregúntale al cliente: "¿Cuál es el peso estimado de tu carga en kilogramos?"`
+      };
+    }
+    if (peso_kg >= 500) {
+      const weight_cbm = peso_kg / 500;
+      if (weight_cbm > volumetric_cbm) {
+        billable_cbm = weight_cbm;
+        weight_applied = true;
+      }
     }
   }
 
