@@ -2,12 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   MessageSquare, 
   Plus, 
@@ -19,12 +15,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
-import SupportImageUploader from '@/components/support/SupportImageUploader';
 import { uploadSupportImages } from '@/components/support/supportUploadUtils';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import SupportAssistant from '@/components/support/SupportAssistant';
+import NewTicketChat from '@/components/support/NewTicketChat';
 
 export default function Support({ user }) {
   const [tickets, setTickets] = useState([]);
@@ -39,8 +35,6 @@ export default function Support({ user }) {
     related_tracking: '',
     attachments: []
   });
-  const [creating, setCreating] = useState(false);
-
   const urlParams = new URLSearchParams(window.location.search);
   const ticketIdFromUrl = urlParams.get('ticket');
 
@@ -61,82 +55,6 @@ export default function Support({ user }) {
       }
     }
     setLoading(false);
-  };
-
-  const handleCreateTicket = async () => {
-    if (!user?.email) { base44.auth.redirectToLogin(); return; }
-    if (!newTicket.subject.trim() || !newTicket.message.trim()) {
-      toast.error('Por favor completa todos los campos');
-      return;
-    }
-
-    setCreating(true);
-    
-    try {
-      const ticketNumber = `TKT-${Date.now()}`;
-      const uploadedAttachments = await uploadSupportImages(newTicket.attachments);
-      const firstMessage = {
-        sender_email: user.email,
-        sender_name: user.full_name || user.email,
-        message: newTicket.message,
-        timestamp: new Date().toISOString(),
-        is_admin: false,
-        attachments: uploadedAttachments
-      };
-
-      const ticketData = {
-        ticket_number: ticketNumber,
-        client_email: user.email,
-        subject: newTicket.subject,
-        category: newTicket.category,
-        priority: newTicket.priority,
-        status: 'abierto',
-        messages: [firstMessage]
-      };
-
-      // Only add related_tracking if it has a value
-      if (newTicket.related_tracking && newTicket.related_tracking.trim()) {
-        ticketData.related_tracking = newTicket.related_tracking.trim();
-      }
-
-      const created = await base44.entities.SupportTicket.create(ticketData);
-
-      // Optimistic update: agrega el ticket al inicio sin recargar
-      if (created?.id) {
-        setTickets((prev) => [created, ...prev]);
-      }
-
-      // Notify admins
-      import('@/components/NotificationUtils').then(({ notifyAdmins }) => {
-        notifyAdmins({
-          subject: '🎫 Nuevo Ticket de Soporte',
-          body: `Un nuevo ticket de soporte ha sido creado:\n\nTicket: ${ticketNumber}\nAsunto: ${newTicket.subject}\nCategoría: ${newTicket.category}\nPrioridad: ${newTicket.priority}\nCliente: ${user.full_name || user.email}\n${newTicket.related_tracking ? `Tracking: ${newTicket.related_tracking}\n` : ''}\nMensaje:\n${newTicket.message}`,
-          message: `${user.full_name || user.email} creó un ticket: ${newTicket.subject}`,
-          type: 'general',
-          icon: 'alert',
-          referenceId: ticketNumber
-        });
-      });
-
-      // Notify client (non-blocking)
-      base44.entities.Notification.create({
-        user_email: user.email,
-        title: '✅ Ticket Creado',
-        message: `Tu ticket "${newTicket.subject}" ha sido creado exitosamente.`,
-        type: 'general',
-        icon: 'check',
-        reference_id: ticketNumber
-      }).catch(err => console.error('Error notificando cliente:', err));
-
-      toast.success('Ticket creado exitosamente. Te responderemos pronto.');
-      setShowNewTicket(false);
-      setNewTicket({ subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '', attachments: [] });
-    } catch (error) {
-      console.error('Error al crear ticket:', error);
-      toast.error(`Error: ${error.message || 'No se pudo crear el ticket'}`);
-    } finally {
-      setCreating(false);
-    }
   };
 
   const handleSendMessage = async (message, files = []) => {
@@ -339,90 +257,21 @@ export default function Support({ user }) {
         </>
       )}
 
-      {/* New Ticket Dialog */}
+      {/* New Ticket Chat Dialog */}
       <Dialog open={showNewTicket} onOpenChange={setShowNewTicket}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Crear Nuevo Ticket</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Asunto *</Label>
-              <Input
-                value={newTicket.subject}
-                onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
-                placeholder="Describe brevemente tu problema"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Categoría</Label>
-                <Select value={newTicket.category} onValueChange={(value) => setNewTicket({ ...newTicket, category: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pago">Pago</SelectItem>
-                    <SelectItem value="envio">Envío</SelectItem>
-                    <SelectItem value="tracking">Tracking</SelectItem>
-                    <SelectItem value="consolidacion">Consolidación</SelectItem>
-                    <SelectItem value="actualizar_datos">Actualizar Datos</SelectItem>
-                    <SelectItem value="otro">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Prioridad</Label>
-                <Select value={newTicket.priority} onValueChange={(value) => setNewTicket({ ...newTicket, priority: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="baja">Baja</SelectItem>
-                    <SelectItem value="media">Media</SelectItem>
-                    <SelectItem value="alta">Alta</SelectItem>
-                    <SelectItem value="urgente">Urgente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tracking Relacionado (opcional)</Label>
-              <Input
-                value={newTicket.related_tracking}
-                onChange={(e) => setNewTicket({ ...newTicket, related_tracking: e.target.value })}
-                placeholder="Ej: TLEC-123456"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Mensaje *</Label>
-              <Textarea
-                value={newTicket.message}
-                onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
-                placeholder="Describe tu problema en detalle..."
-                rows={5}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Fotos (opcional)</Label>
-              <SupportImageUploader
-                files={newTicket.attachments}
-                onChange={(attachments) => setNewTicket({ ...newTicket, attachments })}
-                disabled={creating}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewTicket(false)} disabled={creating}>Cancelar</Button>
-            <Button onClick={handleCreateTicket} className="bg-blue-600 hover:bg-blue-700" disabled={creating}>
-              {creating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...</> : 'Crear Ticket'}
-            </Button>
-          </DialogFooter>
+        <DialogContent className="max-w-2xl p-5">
+          <NewTicketChat
+            user={user}
+            onClose={() => setShowNewTicket(false)}
+            onCreated={(created) => {
+              if (created?.id) {
+                setTickets((prev) => [created, ...prev]);
+              }
+              setShowNewTicket(false);
+              setNewTicket({ subject: '', category: 'otro', priority: 'media', message: '', related_tracking: '', attachments: [] });
+            }}
+            initialCategory={newTicket.category}
+          />
         </DialogContent>
       </Dialog>
 
