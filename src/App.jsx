@@ -60,6 +60,7 @@ const AdminQuotes = lazy(() => import('./pages/AdminQuotes'));
 const QuotePublic = lazy(() => import('./pages/QuotePublic'));
 const CityLanding = lazy(() => import('./pages/CityLanding'));
 const AdminCityAnalytics = lazy(() => import('./pages/AdminCityAnalytics'));
+const MyWarehouseMerchandise = lazy(() => import('./pages/MyWarehouseMerchandise'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -126,6 +127,7 @@ const AuthenticatedApp = () => {
       {Pages.Dashboard && (
         <Route path="/ClientPortal" element={lazyRoute(Pages.Dashboard, "Dashboard")} />
       )}
+      <Route path="/MyWarehouseMerchandise" element={lazyRoute(MyWarehouseMerchandise, "MyWarehouseMerchandise")} />
       <Route path="/WarehouseReceive" element={lazyRoute(WarehouseReceive, "WarehouseReceive")} />
       <Route path="/WarehouseLocations" element={lazyRoute(WarehouseLocations, "WarehouseLocations")} />
       <Route path="/WarehouseDashboard" element={lazyRoute(WarehouseDashboard, "WarehouseDashboard")} />
