@@ -28,6 +28,7 @@ import {
   CATEGORY_LABELS,
   TICKET_CATEGORY_MAP
 } from '@/lib/kbSearch';
+import { detectProfileIntents, fetchProfileResults } from '@/lib/clientProfileSearch';
 
 const WELCOME_MESSAGE = {
   role: 'assistant',
@@ -114,14 +115,39 @@ export default function NewTicketChat({ user, onClose, onCreated, initialCategor
 
     // Debounce para simular "buscando" y luego mostrar resultados
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      const results = searchKnowledgeBase(articles, text, 'todas', 5);
+    debounceRef.current = setTimeout(async () => {
+      // 1. Detectar si el cliente pregunta por sus propios datos (sin IA)
+      const intents = detectProfileIntents(text);
+      let profileResults = [];
+      if (intents.length > 0) {
+        try {
+          profileResults = await fetchProfileResults(user, intents);
+        } catch (err) {
+          console.error('Error en búsqueda de perfil:', err);
+        }
+      }
+
+      // 2. Buscar artículos de KnowledgeBase
+      const kbResults = searchKnowledgeBase(articles, text, 'todas', 5);
+
+      // 3. Combinar: primero datos del perfil, luego artículos KB
+      const allResults = [...profileResults, ...kbResults];
+
+      let content;
+      if (profileResults.length > 0 && kbResults.length > 0) {
+        content = 'Encontré información de tu cuenta y artículos que podrían ayudarte:';
+      } else if (profileResults.length > 0) {
+        content = 'Esto es lo que encontré en tu cuenta:';
+      } else if (kbResults.length > 0) {
+        content = 'Encontré estos artículos que podrían ayudarte:';
+      } else {
+        content = 'No encontré información relacionada. Puedes intentar con otras palabras o crear un ticket si lo necesitas.';
+      }
+
       const assistantMsg = {
         role: 'assistant',
-        content: results.length > 0
-          ? 'Encontré estos artículos que podrían ayudarte:'
-          : 'No encontré artículos que coincidan con tu búsqueda. Puedes intentar con otras palabras o crear un ticket si lo necesitas.',
-        articles: results,
+        content,
+        articles: allResults,
         timestamp: new Date().toISOString()
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -299,6 +325,7 @@ export default function NewTicketChat({ user, onClose, onCreated, initialCategor
                       const isExpanded = expandedId === article.id;
                       const hasVoted = votedArticles.has(article.id);
                       const preview = stripMarkdown(article.content || '').slice(0, 120);
+                      const isProfile = article.isProfileData;
                       return (
                         <div
                           key={article.id}
@@ -312,8 +339,11 @@ export default function NewTicketChat({ user, onClose, onCreated, initialCategor
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                 <h4 className="font-semibold text-sm text-foreground">{article.title}</h4>
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                  {CATEGORY_LABELS[article.category] || article.category}
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] px-1.5 py-0 ${isProfile ? 'bg-primary/10 text-primary border-primary/20' : ''}`}
+                                >
+                                  {isProfile ? (article._badge || 'Mi perfil') : (CATEGORY_LABELS[article.category] || article.category)}
                                 </Badge>
                               </div>
                               {!isExpanded && (
@@ -335,31 +365,33 @@ export default function NewTicketChat({ user, onClose, onCreated, initialCategor
                               <div className="prose prose-sm max-w-none text-foreground/90 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_a]:text-primary [&_a]:underline">
                                 <ReactMarkdown>{article.content || ''}</ReactMarkdown>
                               </div>
-                              <div className="mt-2 flex items-center justify-end gap-1.5">
-                                <span className="text-[10px] text-muted-foreground mr-1">¿Te ayudó?</span>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={hasVoted || voting}
-                                  onClick={() => handleVote(article, true)}
-                                  className="h-7 px-2 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
-                                >
-                                  <ThumbsUp className="h-3 w-3" />
-                                  <span className="ml-1 text-[10px]">{article.helpful_count || 0}</span>
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={hasVoted || voting}
-                                  onClick={() => handleVote(article, false)}
-                                  className="h-7 px-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                                >
-                                  <ThumbsDown className="h-3 w-3" />
-                                  <span className="ml-1 text-[10px]">{article.not_helpful_count || 0}</span>
-                                </Button>
-                              </div>
+                              {!isProfile && (
+                                <div className="mt-2 flex items-center justify-end gap-1.5">
+                                  <span className="text-[10px] text-muted-foreground mr-1">¿Te ayudó?</span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={hasVoted || voting}
+                                    onClick={() => handleVote(article, true)}
+                                    className="h-7 px-2 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                                  >
+                                    <ThumbsUp className="h-3 w-3" />
+                                    <span className="ml-1 text-[10px]">{article.helpful_count || 0}</span>
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={hasVoted || voting}
+                                    onClick={() => handleVote(article, false)}
+                                    className="h-7 px-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                  >
+                                    <ThumbsDown className="h-3 w-3" />
+                                    <span className="ml-1 text-[10px]">{article.not_helpful_count || 0}</span>
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
