@@ -93,7 +93,18 @@ function calculateShipping(params: any, cfg: any, pricing: any, states: any[]): 
   const profit_pct = Number(pricing.profit_percentage ?? 0);
   const door_to_door_cost = Number(pricing.door_to_door_cost ?? 20);
   const insurance_pct = Number(cfg.insurance_percentage ?? 5);
-  const special_rates = Array.isArray(cfg.special_cbm_rates) ? cfg.special_cbm_rates : [];
+  const DEFAULT_SPECIAL_RATES = [
+    { min_cbm: 0.0001, max_cbm: 0.0025, rate_regular: 3.6, rate_high_risk: 5.4 },
+    { min_cbm: 0.0026, max_cbm: 0.007, rate_regular: 11.4, rate_high_risk: 17.4 },
+    { min_cbm: 0.0071, max_cbm: 0.015, rate_regular: 24, rate_high_risk: 36 },
+    { min_cbm: 0.016, max_cbm: 0.03, rate_regular: 48, rate_high_risk: 72 },
+    { min_cbm: 0.031, max_cbm: 0.06, rate_regular: 72, rate_high_risk: 120 },
+    { min_cbm: 0.061, max_cbm: 0.08, rate_regular: 96, rate_high_risk: 159.6 },
+    { min_cbm: 0.09, max_cbm: 0.129, rate_regular: 102, rate_high_risk: 204 }
+  ];
+  const special_rates = (Array.isArray(cfg.special_cbm_rates) && cfg.special_cbm_rates.length > 0)
+    ? cfg.special_cbm_rates
+    : DEFAULT_SPECIAL_RATES;
 
   // 4) Insurance
   const fob = Number(fob_value);
@@ -336,7 +347,12 @@ export default async function(req: Request): Promise<Response> {
     const currentQuery = (query || '').toLowerCase();
     const hasDimensions = /\d+\s*[x×]\s*\d+\s*[x×]\s*\d+/.test(currentQuery) || /\d+\s*(cm|centimetros)/.test(currentQuery);
     const hasQuoteKeywords = /(cuanto|cuesta|cotiz|precio|costo|envio|envío|calcular|tarifa)/.test(currentQuery);
-    const forceTool = hasDimensions && hasQuoteKeywords;
+    const hasFob = /(fob|valor|dolar|dólar|\$|usd)/.test(currentQuery);
+    // Estimate CBM from dimensions in the query to detect large cargo needing weight
+    const dimMatch = currentQuery.match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+)/);
+    const estimatedCbm = dimMatch ? (Number(dimMatch[1]) * Number(dimMatch[2]) * Number(dimMatch[3])) / 1_000_000 : 0;
+    const needsWeight = estimatedCbm > 1;
+    const forceTool = hasDimensions && hasQuoteKeywords && hasFob && !needsWeight;
 
     // Multi-turn function calling loop (max 3 tool calls)
     let aiResponse = '';
@@ -348,7 +364,7 @@ export default async function(req: Request): Promise<Response> {
         max_tokens: 800,
         temperature: 0.5,
         tools: [SHIPPING_TOOL],
-        tool_choice: forceTool ? 'required' : 'auto'
+        tool_choice: (forceTool && turn === 0) ? 'required' : 'auto'
       });
 
       const choice = response.choices[0];
