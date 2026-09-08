@@ -51,8 +51,13 @@ export async function fetchProfileResults(user, intents) {
   const tasks = [];
   const taskKeys = [];
 
-  if (intents.includes('shipping_mark') || intents.includes('address')) {
-    // El usuario ya lo tenemos, no hace falta fetch
+  if (intents.includes('address')) {
+    taskKeys.push('config');
+    tasks.push(
+      base44.entities.AppConfig
+        .filter({ config_key: 'main' }, '-updated_date', 1)
+        .catch(() => [])
+    );
   }
 
   if (intents.includes('packages')) {
@@ -99,23 +104,36 @@ export async function fetchProfileResults(user, intents) {
     });
   }
 
-  // --- Dirección de envío ---
+  // --- Dirección de envío (almacén en China + shipping mark) ---
   if (intents.includes('address')) {
-    const parts = [
-      user.address,
-      user.city && `Ciudad: ${user.city}`,
-      user.state && `Estado: ${user.state}`,
-      user.whatsapp && `WhatsApp: ${user.whatsapp}`
-    ].filter(Boolean);
-    const addrText = parts.length > 0 ? parts.join('\n') : 'No tienes dirección registrada. Actualízala desde tu perfil.';
-    results.push({
-      id: `profile-addr-${Date.now()}`,
-      title: 'Mi Dirección de Envío',
-      content: addrText,
-      category: 'envios',
-      isProfileData: true,
-      _badge: PROFILE_BADGE
-    });
+    const sm = user.shipping_mark;
+    if (!sm) {
+      results.push({
+        id: `profile-addr-nosm-${Date.now()}`,
+        title: 'Dirección de Envío',
+        content: 'Para enviar paquetes a nuestro almacén en China necesitas tu **Shipping Mark** (código de casillero). Aún no lo tienes asignado. Completa tu perfil desde la sección "Mi Perfil" para obtenerlo automáticamente y poder enviar tus paquetes.',
+        category: 'envios',
+        isProfileData: true,
+        _badge: PROFILE_BADGE
+      });
+    } else {
+      const cfg = data.config?.[0] || {};
+      const wh = [
+        cfg.warehouse_name && `**${cfg.warehouse_name}**`,
+        cfg.warehouse_address,
+        cfg.warehouse_zipcode && `Código postal: ${cfg.warehouse_zipcode}`,
+        cfg.warehouse_phone && `Teléfono: ${cfg.warehouse_phone}`
+      ].filter(Boolean);
+      const whText = wh.length > 0 ? wh.join('\n') : 'Almacén no configurado. Contacta al equipo de soporte.';
+      results.push({
+        id: `profile-addr-${Date.now()}`,
+        title: 'Dirección de Envío a China',
+        content: `Envía tus paquetes a nuestro almacén en China usando tu **Shipping Mark**:\n\n\`${sm}\`\n\n**Dirección del almacén:**\n\n${whText}\n\nAsegúrate de que tus proveedores incluyan tu Shipping Mark en cada paquete para que podamos identificarlo al llegar.`,
+        category: 'envios',
+        isProfileData: true,
+        _badge: PROFILE_BADGE
+      });
+    }
   }
 
   // --- Paquetes ---
