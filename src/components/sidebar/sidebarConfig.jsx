@@ -38,7 +38,7 @@ export const clientMenuItems = [
   { name: 'Mi Perfil', page: 'Profile', icon: Users },
   { name: 'Mis Referidos', page: 'MyReferrals', icon: Gift },
   { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
-  { name: 'Mercancía en Almacén', page: 'MyWarehouseMerchandise', icon: Warehouse },
+  { name: 'Disponible en Almacén', page: 'MyWarehouseMerchandise', icon: Warehouse },
   { name: 'Mis CBM', page: 'MyCbm', icon: TrendingUp },
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
   { name: 'Solicitar Consolidación', page: 'RequestConsolidation', icon: Layers },

@@ -81,8 +81,8 @@ export default function MyWarehouseMerchandise({ user }) {
     <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
       <ClientPageHero
         icon={Warehouse}
-        eyebrow="Mercancía agrupada por recibo"
-        title="Mercancía en Almacén"
+        eyebrow="Disponible agrupado por recibo"
+        title="Disponible en Almacén"
         description="Consulta tu mercancía agrupada por orden de despacho y recibo, con su estado actual."
         badges={[`${stats.total} órdenes`, `${stats.trackings} trackings`]}
         action={
