@@ -32,7 +32,7 @@ import { detectProfileIntents, fetchProfileResults } from '@/lib/clientProfileSe
 
 const WELCOME_MESSAGE = {
   role: 'assistant',
-  content: '¡Hola! 👋 Soy tu asistente de autoatención. Escribe tu duda o problema y te mostraré artículos que podrían ayudarte. Si no encuentras lo que necesitas, podrás crear un ticket al equipo de soporte.',
+  content: '¡Hola! 👋 Soy tu asistente de soporte con IA. Puedo ayudarte con preguntas sobre tus paquetes, facturas, consolidaciones y procesos de envío. Escribe tu duda y te responderé naturalmente. Si necesitas ayuda humana, puedes crear un ticket en cualquier momento.',
   isWelcome: true,
   timestamp: new Date().toISOString()
 };
@@ -99,38 +99,50 @@ export default function NewTicketChat({ user, onClose, onCreated, initialCategor
     }
   }, [messages, isSearching]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = input.trim();
     if (!text) return;
 
-    // Agregar mensaje del cliente
     const clientMsg = {
       role: 'client',
       content: text,
       timestamp: new Date().toISOString()
     };
-    setMessages((prev) => [...prev, clientMsg]);
+    const newMessages = [...messages, clientMsg];
+    setMessages(newMessages);
     setInput('');
     setIsSearching(true);
 
-    // Debounce para simular "buscando" y luego mostrar resultados
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      // 1. Detectar si el cliente pregunta por sus propios datos (sin IA)
+    try {
+      const result = await base44.functions.invoke('chatWithSupportAI', {
+        messages: newMessages,
+        query: text
+      });
+
+      const aiResponse = result?.data?.response || 'Lo siento, no pude procesar tu consulta en este momento.';
+      const suggestedArticles = result?.data?.suggested_articles || [];
+
+      const assistantMsg = {
+        role: 'assistant',
+        content: aiResponse,
+        articles: suggestedArticles,
+        isAI: true,
+        timestamp: new Date().toISOString()
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (err) {
+      console.error('Error en IA, usando fallback local:', err);
+      // Fallback a búsqueda local sin IA
       const intents = detectProfileIntents(text);
       let profileResults = [];
       if (intents.length > 0) {
         try {
           profileResults = await fetchProfileResults(user, intents);
-        } catch (err) {
-          console.error('Error en búsqueda de perfil:', err);
+        } catch (e) {
+          console.error('Error en búsqueda de perfil:', e);
         }
       }
-
-      // 2. Buscar artículos de KnowledgeBase
       const kbResults = searchKnowledgeBase(articles, text, 'todas', 5);
-
-      // 3. Combinar: primero datos del perfil, luego artículos KB
       const allResults = [...profileResults, ...kbResults];
 
       let content;
@@ -148,12 +160,14 @@ export default function NewTicketChat({ user, onClose, onCreated, initialCategor
         role: 'assistant',
         content,
         articles: allResults,
+        isFallback: true,
         timestamp: new Date().toISOString()
       };
       setMessages((prev) => [...prev, assistantMsg]);
+    } finally {
       setIsSearching(false);
       setHasShownSuggestions(true);
-    }, 300);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -316,7 +330,13 @@ export default function NewTicketChat({ user, onClose, onCreated, initialCategor
                     : 'bg-card border border-border/60 text-foreground rounded-bl-md shadow-sm'
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                {msg.isAI ? (
+                  <div className="prose prose-sm max-w-none text-foreground/90 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_a]:text-primary [&_a]:underline [&_strong]:font-semibold">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                )}
 
                 {/* Artículos sugeridos dentro de la burbuja */}
                 {msg.articles && msg.articles.length > 0 && (
