@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import OpenAI from 'npm:openai';
 import { secrets } from 'base44:runtime';
 
-const SYSTEM_PROMPT = `Eres el asistente de soporte de TLEC CARGO, un sistema de envíos entre China y Venezuela.
+const SYSTEM_PROMPT = `Eres el asistente de soporte de TLEC CARGO, un sistema de envíos marítimos entre China y Venezuela.
 
 REGLAS CRÍTICAS DE SEGURIDAD Y PRIVACIDAD:
 1. Solo puedes ver y mencionar información de la cuenta del cliente que está chateando contigo ahora mismo.
@@ -15,11 +15,24 @@ INSTRUCCIONES:
 - Responde en español, de forma natural, amigable y concisa
 - Usa los datos de la cuenta del cliente para responder preguntas sobre sus paquetes, tracking, facturas y consolidaciones
 - Usa los datos de los almacenes en China para responder preguntas sobre direcciones de envío
-- Usa las tarifas vigentes para responder preguntas sobre costos de envío
 - Usa los artículos de la base de conocimiento para preguntas generales sobre procesos, tarifas, políticas
 - Si el cliente necesita ayuda humana que no puedes dar, sugiere crear un ticket de soporte
 - Formatea respuestas con markdown cuando sea útil (listas, negritas)
-- Mantén las respuestas breves, máximo 3-4 párrafos`;
+- Mantén las respuestas breves, máximo 3-4 párrafos
+
+COTIZACIONES DE ENVÍO MARÍTIMO — REGLA OBLIGATORIA:
+- TLEC CARGO NO ofrece envío aéreo. Solo marítimo. Si preguntan por aéreo, indícalo claramente.
+- REGLA ABSOLUTA: Si el cliente menciona dimensiones (ej: "40x40x27", "caja de 30x30x30 cm") Y un valor FOB o valor de la mercancía, DEBES llamar a la herramienta calculate_shipping_quote INMEDIATAMENTE. No exceptions. No pidas confirmación. No repitas los datos. Llama la herramienta y formatea el resultado.
+- Si el cliente da dimensiones pero NO da el estado de destino, pregúntale "¿A qué estado de Venezuela deseas enviar?" y espera su respuesta. NO llames la herramienta aún.
+- Si el cliente da dimensiones pero NO da el valor FOB, pregúntale "¿Cuál es el valor FOB (valor) de tu mercancía en dólares?" y espera su respuesta. NO llames la herramienta aún.
+- Si las dimensiones son grandes (más de 100 cm en cualquier lado, o el producto de los tres supera 1,000,000), pide el peso estimado: "¿Cuál es el peso estimado en kg?" antes de llamar la herramienta.
+- NUNCA hagas cálculos matemáticos tú mismo. NUNCA inventes precios. SIEMPRE usa la herramienta calculate_shipping_quote.
+- La herramienta te devolverá dos precios: carga general y alto riesgo. Muestra AMambos con desglose (flete, seguro, recepción, puerta a puerta si aplica).
+- Si el resultado dice "almacen_valencia_mrw", menciona que llega al almacén de Valencia y el despacho final es vía MRW con cobro a destino.
+- Si el resultado dice "puerta_a_puerta", menciona que incluye entrega hasta la puerta.
+- La herramienta te devolverá dos precios: carga general y carga de alto riesgo. Muestra AMBOS en tu respuesta con un desglose claro (flete, seguro, recepción, puerta a puerta si aplica).
+- Si el resultado indica que es carga menor a 0.13 CBM, menciona que llega al almacén de Valencia y el despacho final es vía MRW con cobro a destino.
+- Si el resultado indica puerta a puerta, menciona que incluye entrega hasta la puerta.`;
 
 function normalize(str: string): string {
   return (str || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -48,6 +61,158 @@ function findRelevantArticles(articles: any[], query: string, limit: number): an
     .map((r) => r.article);
 }
 
+// ===== Shipping quote calculation =====
+const DOOR_TO_DOOR_THRESHOLD = 0.130;
+const PACKAGE_RECEIVED_FEE = 1;
+
+function calculateShipping(params: any, cfg: any, pricing: any, states: any[]): any {
+  const { largo, ancho, alto, estado, peso_kg, fob_value } = params;
+
+  // 1) Calculate volumetric CBM (cm → m³)
+  const l = Number(largo), a = Number(ancho), h = Number(alto);
+  if (!Number.isFinite(l) || !Number.isFinite(a) || !Number.isFinite(h)) {
+    return { error: 'Las dimensiones (largo, ancho, alto) son obligatorias en cm.' };
+  }
+  let volumetric_cbm = (l * a * h) / 1_000_000;
+  if (volumetric_cbm <= 0) return { error: 'Las dimensiones deben ser mayores a 0.' };
+
+  // 2) Weight-based CBM adjustment (only if CBM > 1 and weight >= 500kg)
+  let billable_cbm = volumetric_cbm;
+  let weight_applied = false;
+  if (volumetric_cbm > 1 && typeof peso_kg === 'number' && Number.isFinite(peso_kg) && peso_kg >= 500) {
+    const weight_cbm = peso_kg / 500;
+    if (weight_cbm > volumetric_cbm) {
+      billable_cbm = weight_cbm;
+      weight_applied = true;
+    }
+  }
+
+  // 3) Config values
+  const base_rate_regular = Number(pricing.base_rate_regular ?? 690);
+  const base_rate_high_risk = Number(pricing.base_rate_high_risk ?? 790);
+  const profit_pct = Number(pricing.profit_percentage ?? 0);
+  const door_to_door_cost = Number(pricing.door_to_door_cost ?? 20);
+  const insurance_pct = Number(cfg.insurance_percentage ?? 5);
+  const special_rates = Array.isArray(cfg.special_cbm_rates) ? cfg.special_cbm_rates : [];
+
+  // 4) Insurance
+  const fob = Number(fob_value);
+  if (!Number.isFinite(fob) || fob < 0) {
+    return { error: 'El valor FOB de la mercancía es obligatorio para calcular el seguro.' };
+  }
+  const insurance = (insurance_pct / 100) * fob;
+
+  // 5) Calculate based on CBM threshold
+  let freight_regular = 0, freight_high = 0;
+  let rate_regular = 0, rate_high = 0;
+  let service_type = '', service_notes = '';
+  let state_name = estado || null;
+
+  if (billable_cbm >= DOOR_TO_DOOR_THRESHOLD) {
+    // State-based pricing — need the state
+    if (!estado) {
+      return { error: 'Para cargas de 0.13 CBM o más necesito el estado de destino. Pregúntale al cliente a qué estado de Venezuela desea enviar.' };
+    }
+    // Find state (match by name or code)
+    const stateNorm = normalize(estado);
+    const state = states.find((s: any) =>
+      normalize(s.state_name) === stateNorm ||
+      normalize(s.state_code) === stateNorm ||
+      normalize(s.state_name).includes(stateNorm) ||
+      stateNorm.includes(normalize(s.state_name))
+    );
+    if (!state) {
+      return { error: `No encontré el estado "${estado}" en nuestra lista de destinos disponibles.` };
+    }
+    state_name = state.state_name;
+
+    // State rate: use final_rate if defined, otherwise compute
+    rate_regular = state.final_rate_regular && state.final_rate_regular > 0
+      ? Number(state.final_rate_regular)
+      : (base_rate_regular * (1 + profit_pct / 100) + Number(state.shipping_rate || 0) + door_to_door_cost);
+    rate_high = state.final_rate_high && state.final_rate_high > 0
+      ? Number(state.final_rate_high)
+      : (base_rate_high_risk * (1 + profit_pct / 100) + Number(state.shipping_rate || 0) + door_to_door_cost);
+
+    freight_regular = billable_cbm * rate_regular;
+    freight_high = billable_cbm * rate_high;
+    service_type = 'puerta_a_puerta';
+    service_notes = 'Incluye servicio puerta a puerta (entrega hasta tu dirección).';
+  } else {
+    // Special fixed rate by CBM range (small cargo < 0.13 CBM)
+    const sorted = [...special_rates].sort((x, y) => Number(x.min_cbm) - Number(y.min_cbm));
+    const found = sorted.find((r) => billable_cbm >= Number(r.min_cbm) && billable_cbm <= Number(r.max_cbm));
+    if (!found) {
+      return { error: 'No se encontró una tarifa especial para este volumen. Verifica las dimensiones.' };
+    }
+    rate_regular = Number(found.rate_regular);
+    rate_high = Number(found.rate_high_risk);
+    freight_regular = rate_regular;
+    freight_high = rate_high;
+    service_type = 'almacen_valencia_mrw';
+    service_notes = 'Carga menor a 0.13 CBM. Llega a nuestro almacén en Valencia. El despacho final es vía MRW con cobro a destino (costo de MRW no incluido).';
+  }
+
+  const reception_fee = PACKAGE_RECEIVED_FEE;
+  const subtotal_regular = freight_regular + reception_fee;
+  const total_regular = subtotal_regular + insurance;
+  const subtotal_high = freight_high + reception_fee;
+  const total_high = subtotal_high + insurance;
+
+  return {
+    dimensions: { largo: l, ancho: a, alto: h },
+    volumetric_cbm: Number(volumetric_cbm.toFixed(6)),
+    billable_cbm: Number(billable_cbm.toFixed(6)),
+    weight_applied,
+    peso_kg: typeof peso_kg === 'number' ? peso_kg : null,
+    estado: state_name,
+    fob_value: fob,
+    service_type,
+    service_notes,
+    pricing: {
+      rate_regular: Number(rate_regular.toFixed(2)),
+      rate_high: Number(rate_high.toFixed(2)),
+      reception_fee,
+      insurance_percentage: insurance_pct
+    },
+    results: {
+      general: {
+        flete: Number(freight_regular.toFixed(2)),
+        recepcion: Number(reception_fee.toFixed(2)),
+        seguro: Number(insurance.toFixed(2)),
+        total: Number(total_regular.toFixed(2))
+      },
+      alto_riesgo: {
+        flete: Number(freight_high.toFixed(2)),
+        recepcion: Number(reception_fee.toFixed(2)),
+        seguro: Number(insurance.toFixed(2)),
+        total: Number(total_high.toFixed(2))
+      }
+    }
+  };
+}
+
+// OpenAI tool definition
+const SHIPPING_TOOL = {
+  type: 'function' as const,
+  function: {
+    name: 'calculate_shipping_quote',
+    description: 'Calcula el costo de envío marítimo basado en dimensiones (cm), estado de destino y valor FOB. Devuelve precios para carga general y alto riesgo con desglose de flete, seguro y recepción.',
+    parameters: {
+      type: 'object',
+      properties: {
+        largo: { type: 'number', description: 'Largo del paquete en centímetros' },
+        ancho: { type: 'number', description: 'Ancho del paquete en centímetros' },
+        alto: { type: 'number', description: 'Alto del paquete en centímetros' },
+        estado: { type: 'string', description: 'Nombre del estado de Venezuela de destino (ej: Carabobo, Zulia, Miranda, Aragua)' },
+        peso_kg: { type: 'number', description: 'Peso estimado en kilogramos (solo necesario si el volumen supera 1 CBM)' },
+        fob_value: { type: 'number', description: 'Valor FOB de la mercancía en USD (para calcular el seguro)' }
+      },
+      required: ['largo', 'ancho', 'alto', 'fob_value']
+    }
+  }
+};
+
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -57,16 +222,20 @@ export default async function(req: Request): Promise<Response> {
     const body = await req.json().catch(() => ({}));
     const { messages = [], query = '' } = body as { messages: any[]; query: string };
 
-    // Fetch user's data + app config (warehouse address) in parallel — RLS enforces isolation
-    const [packages, invoices, consolidations, kbArticles, appConfigs] = await Promise.all([
+    // Fetch user's data + config + states + pricing in parallel
+    const [packages, invoices, consolidations, kbArticles, appConfigs, pricingConfigs, states] = await Promise.all([
       base44.entities.Package.filter({ client_email: user.email }, '-created_date', 20).catch(() => []),
       base44.entities.Invoice.filter({ client_email: user.email }, '-created_date', 10).catch(() => []),
       base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', 5).catch(() => []),
       base44.entities.KnowledgeBase.filter({ status: 'published' }, '-updated_date', 50).catch(() => []),
-      base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1).catch(() => [])
+      base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1).catch(() => []),
+      base44.entities.PricingConfig.filter({ config_key: 'main' }, '-updated_date', 1).catch(() => []),
+      base44.entities.StateConfig.filter({ is_active: true }, 'state_name').catch(() => [])
     ]);
 
     const cfg = (appConfigs || [])[0] || {};
+    const pricing = (pricingConfigs || [])[0] || {};
+    const activeStates = (states || []);
 
     const statusLabels: Record<string, string> = {
       pre_alerta: 'Pre-alerta', recibido: 'Recibido', rechazado: 'Rechazado',
@@ -113,6 +282,7 @@ export default async function(req: Request): Promise<Response> {
       },
       almacenes_china: almacenes,
       tarifas_vigentes: tarifas,
+      estados_disponibles: activeStates.map((s: any) => s.state_name),
       paquetes: (packages || []).map((p: any) => ({
         tracking: p.tracking_number,
         estado: statusLabels[p.status] || p.status,
@@ -142,7 +312,7 @@ export default async function(req: Request): Promise<Response> {
 
     // Build messages for OpenAI
     const openaiMessages: any[] = [
-      { role: 'system', content: SYSTEM_PROMPT + '\n\nDATOS DE LA CUENTA DEL CLIENTE:\n' + JSON.stringify(context) }
+      { role: 'system', content: SYSTEM_PROMPT + '\n\nDATOS DE LA CUENTA DEL CLIENTE Y CONTEXTO:\n' + JSON.stringify(context) }
     ];
 
     // Add conversation history (last 10 messages)
@@ -162,14 +332,56 @@ export default async function(req: Request): Promise<Response> {
 
     const openai = new OpenAI({ apiKey: secrets.get('OPENAI_API_KEY') });
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: openaiMessages,
-      max_tokens: 800,
-      temperature: 0.5
-    });
+    // Detect if the current query looks like a shipping quote request
+    const currentQuery = (query || '').toLowerCase();
+    const hasDimensions = /\d+\s*[x×]\s*\d+\s*[x×]\s*\d+/.test(currentQuery) || /\d+\s*(cm|centimetros)/.test(currentQuery);
+    const hasQuoteKeywords = /(cuanto|cuesta|cotiz|precio|costo|envio|envío|calcular|tarifa)/.test(currentQuery);
+    const forceTool = hasDimensions && hasQuoteKeywords;
 
-    const aiResponse = response.choices[0].message.content;
+    // Multi-turn function calling loop (max 3 tool calls)
+    let aiResponse = '';
+    let lastResponse: any = null;
+    for (let turn = 0; turn < 3; turn++) {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: openaiMessages,
+        max_tokens: 800,
+        temperature: 0.5,
+        tools: [SHIPPING_TOOL],
+        tool_choice: forceTool ? 'required' : 'auto'
+      });
+
+      const choice = response.choices[0];
+      const msg = choice.message;
+
+      if (msg.tool_calls && msg.tool_calls.length > 0) {
+        // Add assistant message with tool calls
+        openaiMessages.push(msg);
+        // Execute each tool call
+        for (const tc of msg.tool_calls) {
+          if (tc.function.name === 'calculate_shipping_quote') {
+            const params = JSON.parse(tc.function.arguments || '{}');
+            const result = calculateShipping(params, cfg, pricing, activeStates);
+            openaiMessages.push({
+              role: 'tool',
+              tool_call_id: tc.id,
+              content: JSON.stringify(result)
+            });
+          }
+        }
+        continue; // Let OpenAI process the tool result
+      }
+
+      // No tool calls — this is the final response
+      aiResponse = msg.content || '';
+      lastResponse = response;
+      break;
+    }
+
+    if (!aiResponse && lastResponse) {
+      aiResponse = lastResponse.choices[0].message.content || '';
+    }
+
     const suggestedArticles = findRelevantArticles(kbArticles || [], query, 3);
 
     return Response.json({
