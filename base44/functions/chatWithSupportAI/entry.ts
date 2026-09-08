@@ -14,6 +14,8 @@ REGLAS CRÍTICAS DE SEGURIDAD Y PRIVACIDAD:
 INSTRUCCIONES:
 - Responde en español, de forma natural, amigable y concisa
 - Usa los datos de la cuenta del cliente para responder preguntas sobre sus paquetes, tracking, facturas y consolidaciones
+- Usa los datos de los almacenes en China para responder preguntas sobre direcciones de envío
+- Usa las tarifas vigentes para responder preguntas sobre costos de envío
 - Usa los artículos de la base de conocimiento para preguntas generales sobre procesos, tarifas, políticas
 - Si el cliente necesita ayuda humana que no puedes dar, sugiere crear un ticket de soporte
 - Formatea respuestas con markdown cuando sea útil (listas, negritas)
@@ -55,13 +57,16 @@ export default async function(req: Request): Promise<Response> {
     const body = await req.json().catch(() => ({}));
     const { messages = [], query = '' } = body as { messages: any[]; query: string };
 
-    // Fetch user's data in parallel — RLS enforces isolation (only this user's records)
-    const [packages, invoices, consolidations, kbArticles] = await Promise.all([
+    // Fetch user's data + app config (warehouse address) in parallel — RLS enforces isolation
+    const [packages, invoices, consolidations, kbArticles, appConfigs] = await Promise.all([
       base44.entities.Package.filter({ client_email: user.email }, '-created_date', 20).catch(() => []),
       base44.entities.Invoice.filter({ client_email: user.email }, '-created_date', 10).catch(() => []),
       base44.entities.Consolidation.filter({ client_email: user.email }, '-created_date', 5).catch(() => []),
-      base44.entities.KnowledgeBase.filter({ status: 'published' }, '-updated_date', 50).catch(() => [])
+      base44.entities.KnowledgeBase.filter({ status: 'published' }, '-updated_date', 50).catch(() => []),
+      base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1).catch(() => [])
     ]);
+
+    const cfg = (appConfigs || [])[0] || {};
 
     const statusLabels: Record<string, string> = {
       pre_alerta: 'Pre-alerta', recibido: 'Recibido', rechazado: 'Rechazado',
@@ -74,6 +79,31 @@ export default async function(req: Request): Promise<Response> {
       vencida: 'Vencida', cancelada: 'Cancelada'
     };
 
+    const almacenes = [];
+    if (cfg.warehouse_name && cfg.warehouse_address) {
+      almacenes.push({
+        nombre: cfg.warehouse_name,
+        direccion: cfg.warehouse_address,
+        telefono: cfg.warehouse_phone || null,
+        codigo_postal: cfg.warehouse_zipcode || null
+      });
+    }
+    if (cfg.warehouse2_name && cfg.warehouse2_address) {
+      almacenes.push({
+        nombre: cfg.warehouse2_name,
+        direccion: cfg.warehouse2_address,
+        telefono: cfg.warehouse2_phone || null,
+        codigo_postal: cfg.warehouse2_zipcode || null
+      });
+    }
+
+    const tarifas = [];
+    if (cfg.rate_air_general) tarifas.push({ tipo: 'Aéreo general', valor: `$${cfg.rate_air_general}/kg` });
+    if (cfg.rate_air_sensitive) tarifas.push({ tipo: 'Aéreo sensible', valor: `$${cfg.rate_air_sensitive}/kg` });
+    if (cfg.rate_sea_general) tarifas.push({ tipo: 'Marítimo general', valor: `$${cfg.rate_sea_general}/CBM` });
+    if (cfg.rate_sea_sensitive) tarifas.push({ tipo: 'Marítimo sensible', valor: `$${cfg.rate_sea_sensitive}/CBM` });
+    if (cfg.insurance_percentage) tarifas.push({ tipo: 'Seguro', valor: `${cfg.insurance_percentage}% del FOB` });
+
     const context = {
       cliente: {
         nombre: user.full_name,
@@ -81,6 +111,8 @@ export default async function(req: Request): Promise<Response> {
         shipping_mark: user.shipping_mark || 'No asignado',
         ciudad: user.city
       },
+      almacenes_china: almacenes,
+      tarifas_vigentes: tarifas,
       paquetes: (packages || []).map((p: any) => ({
         tracking: p.tracking_number,
         estado: statusLabels[p.status] || p.status,
