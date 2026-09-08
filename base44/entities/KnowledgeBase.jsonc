@@ -45,10 +45,56 @@
       "type": "string",
       "format": "uri",
       "description": "URL de documento adjunto (opcional)"
+    },
+    "helpful_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Contador de votos positivos de clientes"
+    },
+    "not_helpful_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Contador de votos negativos de clientes"
     }
   },
   "required": [
     "title",
     "content"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.status": "published"
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.status": "published"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

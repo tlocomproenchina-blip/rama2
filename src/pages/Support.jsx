@@ -24,6 +24,7 @@ import { uploadSupportImages } from '@/components/support/supportUploadUtils';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
+import SupportAssistant from '@/components/support/SupportAssistant';
 
 export default function Support({ user }) {
   const [tickets, setTickets] = useState([]);
@@ -261,6 +262,12 @@ export default function Support({ user }) {
           </div>
         }
       />
+
+      {/* Asistente de autoatención (sin IA) */}
+      <SupportAssistant onOpenTicket={(category) => {
+        setNewTicket((prev) => ({ ...prev, category }));
+        setShowNewTicket(true);
+      }} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <PortalMetricCard title="Total" value={supportStats.total} subtitle="Tickets registrados" icon={MessageSquare} tone="blue" />
