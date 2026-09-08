@@ -249,7 +249,9 @@ export default function Layout({ children, currentPageName }) {
 
       // Redirect admin when landing on Home/Dashboard or no page specified.
       // Siempre mostrar el Resumen Diario al iniciar sesión o abrir la app.
-      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Inicio2')) {
+      // En app nativa, también redirigir desde cualquier página pública.
+      const nativePublicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding'];
+      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Inicio2' || ((isApkApp || isNative) && nativePublicPages.includes(currentPageName)))) {
         navigate(createPageUrl('AdminDailySummary'));
         setLoading(false);
         return;
@@ -266,7 +268,8 @@ export default function Layout({ children, currentPageName }) {
 
       // Check contract and profile for regular users
       if (currentUser.role === 'user') {
-        if (!currentPageName || currentPageName === 'Home' || currentPageName === 'ClientPortal' || currentPageName === 'Inicio2') {
+        const userPublicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding'];
+        if (!currentPageName || currentPageName === 'Home' || currentPageName === 'ClientPortal' || currentPageName === 'Inicio2' || ((isApkApp || isNative) && userPublicPages.includes(currentPageName))) {
           navigate(createPageUrl('Dashboard'));
           setLoading(false);
           return;
@@ -298,9 +301,9 @@ export default function Layout({ children, currentPageName }) {
           return;
         }
       } catch (_) {}
-      // Allow specific public pages without login
+      // Allow specific public pages without login (browser only — native app always requires login)
       const publicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding'];
-      if (publicPages.includes(currentPageName)) {
+      if (!isApkApp && !isNative && publicPages.includes(currentPageName)) {
         setUser(null);
         setLoading(false);
         return;
