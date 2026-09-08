@@ -1,0 +1,44 @@
+{
+  "name": "Notificaciones de Almacenamiento Autom\u00e1ticas",
+  "description": "Env\u00eda autom\u00e1ticamente emails de almacenamiento a los 20, 30 y 45 d\u00edas desde la emisi\u00f3n de facturas no pagadas.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 13 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "notificaciones_de_almacenamiento_autom_ticas",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendStorageNotifications",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "sendStorageNotifications"
+  }
+}

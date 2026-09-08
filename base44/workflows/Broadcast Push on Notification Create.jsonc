@@ -1,0 +1,37 @@
+{
+  "name": "Broadcast Push on Notification Create",
+  "description": "Dispara broadcastNotificationPush cada vez que se crea una notificaci\u00f3n, para enviar push a todos los usuarios con suscripci\u00f3n activa (excluye tipo system y package para evitar duplicados).",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "Notification"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "broadcast_push_on_notification_create",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "broadcastNotificationPush",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "broadcastNotificationPush"
+  }
+}
