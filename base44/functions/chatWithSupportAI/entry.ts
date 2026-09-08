@@ -22,17 +22,23 @@ INSTRUCCIONES:
 
 COTIZACIONES DE ENVÍO MARÍTIMO — REGLA OBLIGATORIA:
 - TLEC CARGO NO ofrece envío aéreo. Solo marítimo. Si preguntan por aéreo, indícalo claramente.
-- REGLA ABSOLUTA: Si el cliente menciona dimensiones (ej: "40x40x27", "caja de 30x30x30 cm") Y un valor FOB o valor de la mercancía, DEBES llamar a la herramienta calculate_shipping_quote INMEDIATAMENTE. No exceptions. No pidas confirmación. No repitas los datos. Llama la herramienta y formatea el resultado.
-- Si el cliente da dimensiones pero NO da el estado de destino, pregúntale "¿A qué estado de Venezuela deseas enviar?" y espera su respuesta. NO llames la herramienta aún.
-- Si el cliente da dimensiones pero NO da el valor FOB, pregúntale "¿Cuál es el valor FOB (valor) de tu mercancía en dólares?" y espera su respuesta. NO llames la herramienta aún.
-- Si las dimensiones son grandes (más de 100 cm en cualquier lado, o el producto de los tres supera 1,000,000), pide el peso estimado: "¿Cuál es el peso estimado en kg?" antes de llamar la herramienta.
+- Cuando el cliente mencione dimensiones (ej: "40x40x27", "caja de 30x30x30 cm"), calcula mentalmente el volumen: (largo × ancho × alto) / 1,000,000 = CBM.
+- REGLA DE DATOS FALTANTES (pide todo lo que falte en UN SOLO mensaje):
+  * El valor FOB (valor de la mercancía en dólares) es OBLIGATORIO siempre. Si no lo da, pídelo.
+  * Si el CBM estimado es MENOR a 0.13 (ej: 10×50×27 = 0.0135 CBM, o 40×40×27 = 0.0432 CBM): NO pidas estado bajo ninguna circunstancia. La tarifa es fija por rango de CBM y no depende del destino. Solo pide el FOB si falta. Si el cliente no da estado, NO lo menciones.
+  * Si el CBM estimado es MAYOR o igual a 0.13: pide el estado de destino ("¿A qué estado de Venezuela deseas enviar?") junto con el FOB si también falta, en un solo mensaje.
+  * Si el CBM estimado supera 1 (más de 1,000,000 cm³): pide también el peso estimado en kg.
+- REGLA ABSOLUTA: Si el cliente da dimensiones Y todos los datos requeridos (FOB siempre; estado si CBM >= 0.13; peso si CBM > 1), DEBES llamar a la herramienta calculate_shipping_quote INMEDIATAMENTE. No pidas confirmación. No repitas los datos. Llama la herramienta y formatea el resultado.
 - NUNCA hagas cálculos matemáticos tú mismo. NUNCA inventes precios. SIEMPRE usa la herramienta calculate_shipping_quote.
-- La herramienta te devolverá dos precios: carga general y alto riesgo. Muestra AMambos con desglose (flete, seguro, recepción, puerta a puerta si aplica).
-- Si el resultado dice "almacen_valencia_mrw", menciona que llega al almacén de Valencia y el despacho final es vía MRW con cobro a destino.
-- Si el resultado dice "puerta_a_puerta", menciona que incluye entrega hasta la puerta.
 - La herramienta te devolverá dos precios: carga general y carga de alto riesgo. Muestra AMBOS en tu respuesta con un desglose claro (flete, seguro, recepción, puerta a puerta si aplica).
-- Si el resultado indica que es carga menor a 0.13 CBM, menciona que llega al almacén de Valencia y el despacho final es vía MRW con cobro a destino.
-- Si el resultado indica puerta a puerta, menciona que incluye entrega hasta la puerta.`;
+- Si el resultado indica que es carga menor a 0.13 CBM (almacen_valencia_mrw), menciona que llega al almacén de Valencia y el despacho final es vía MRW con cobro a destino.
+- Si el resultado indica puerta a puerta, menciona que incluye entrega hasta la puerta.
+
+CONCIENCIA CONVERSACIONAL — MUY IMPORTANTE:
+- Si ya pediste un dato (FOB, estado, peso) y el cliente repite su pregunta sin proporcionar lo que pediste, NO repitas la misma respuesta palabra por palabra.
+- Reconoce la situación: "Veo que sigues necesitando la cotización. Para darte el precio exacto necesito que me digas: [lo que falte]."
+- Sé específico y claro sobre qué dato falta y por qué lo necesitas, de forma distinta cada vez.
+- NUNCA des una respuesta idéntica a una anterior en la misma conversación.`;
 
 function normalize(str: string): string {
   return (str || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -351,13 +357,16 @@ export default async function(req: Request): Promise<Response> {
 
     const openai = new OpenAI({ apiKey: secrets.get('OPENAI_API_KEY') });
 
-    // Detect if the current query looks like a shipping quote request
-    const currentQuery = (query || '').toLowerCase();
-    const hasDimensions = /\d+\s*[x×]\s*\d+\s*[x×]\s*\d+/.test(currentQuery) || /\d+\s*(cm|centimetros)/.test(currentQuery);
-    const hasQuoteKeywords = /(cuanto|cuesta|cotiz|precio|costo|envio|envío|calcular|tarifa)/.test(currentQuery);
-    const hasFob = /(fob|valor|dolar|dólar|\$|usd)/.test(currentQuery);
-    // Estimate CBM from dimensions in the query to detect large cargo needing weight
-    const dimMatch = currentQuery.match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+)/);
+    // Detect shipping quote data across the full conversation (dimensions may be in an earlier message)
+    const allClientText = [
+      ...(messages || []).filter((m: any) => m.role === 'client').map((m: any) => m.content || ''),
+      query || ''
+    ].join(' ').toLowerCase();
+    const hasDimensions = /\d+\s*[x×*]\s*\d+\s*[x×*]\s*\d+/.test(allClientText) || /\d+\s*(cm|centimetros)/.test(allClientText);
+    const hasQuoteKeywords = /(cuanto|cuesta|cotiz|precio|costo|envio|envío|calcular|tarifa)/.test(allClientText);
+    const hasFob = /(fob|valor|dolar|dólar|\$|usd)/.test(allClientText);
+    // Estimate CBM from dimensions in the combined text to detect large cargo needing weight
+    const dimMatch = allClientText.match(/(\d+)\s*[x×*]\s*(\d+)\s*[x×*]\s*(\d+)/);
     const estimatedCbm = dimMatch ? (Number(dimMatch[1]) * Number(dimMatch[2]) * Number(dimMatch[3])) / 1_000_000 : 0;
     const needsWeight = estimatedCbm > 1;
     const forceTool = hasDimensions && hasQuoteKeywords && hasFob && !needsWeight;
@@ -406,7 +415,7 @@ export default async function(req: Request): Promise<Response> {
       aiResponse = lastResponse.choices[0].message.content || '';
     }
 
-    const suggestedArticles = findRelevantArticles(kbArticles || [], query, 3);
+    const suggestedArticles = (hasDimensions && hasQuoteKeywords) ? [] : findRelevantArticles(kbArticles || [], query, 3);
 
     return Response.json({
       response: aiResponse,
