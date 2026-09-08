@@ -1,0 +1,45 @@
+{
+  "name": "Renovaci\u00f3n Mensual KnowledgeBase",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9 1 * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "renew_knowledge_base_monthly",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "renew_kb": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "renewKnowledgeBase",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Renovar KnowledgeBase",
+            "description": "Analiza tickets y feedback, genera/actualiza art\u00edculos con IA"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Analiza tickets de soporte y feedback de art\u00edculos mensualmente para crear y actualizar art\u00edculos de la KnowledgeBase con IA"
+}
