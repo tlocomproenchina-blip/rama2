@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
 // Genera el número de orden de despacho en el servidor para garantizar
 // que sea único, y crea el registro de la orden.
@@ -18,75 +18,66 @@ export default async function (req) {
 
     const newItems = Array.isArray(items) ? items : [];
 
+    // Cargar los CbmIngreso del cliente UNA sola vez y reutilizar para:
+    // 1) resolver consolidation_tracking faltante en los items
+    // 2) validación de carga atrasada (>90 días de tránsito)
+    // 3) marcar recibos como disponibles para entrega
+    const clientIngresos = await base44.asServiceRole.entities.CbmIngreso.filter(
+      { client_email },
+      '-fecha',
+      500
+    ).catch(() => []);
+
     // Prevenir items con consolidation_tracking vacío: resolver el recibo
     // (CbmIngreso.invoice_number) para cada tracking faltante, así todas las
-    // órdenes quedan con su recibo desde la creación y los consumidores
-    // (getInvoiceDispatchOrders, vistas de despacho, etc.) no dependen de
-    // lookups externos posteriores.
+    // órdenes quedan con su recibo desde la creación.
     const trackingsMissingRecibo = newItems
       .filter((i) => i.tracking_number && !i.consolidation_tracking)
       .map((i) => String(i.tracking_number).trim())
       .filter(Boolean);
-    if (trackingsMissingRecibo.length > 0) {
-      try {
-        const ingresos = await base44.asServiceRole.entities.CbmIngreso.filter(
-          { client_email },
-          '-fecha',
-          500
-        ).catch(() => []);
-        const trackingToRecibo = {};
-        (ingresos || []).forEach((ing) => {
-          const reciboNum = String(ing.invoice_number || '').trim();
-          if (!reciboNum) return;
-          const trackings = Array.isArray(ing.tracking_numbers) ? ing.tracking_numbers : [];
-          trackings.forEach((t) => {
-            const tt = String(t || '').trim().toUpperCase();
-            if (tt) trackingToRecibo[tt] = reciboNum;
-          });
+
+    if (trackingsMissingRecibo.length > 0 && clientIngresos?.length) {
+      const trackingToRecibo = {};
+      (clientIngresos || []).forEach((ing) => {
+        const reciboNum = String(ing.invoice_number || '').trim();
+        if (!reciboNum) return;
+        const trackings = Array.isArray(ing.tracking_numbers) ? ing.tracking_numbers : [];
+        trackings.forEach((t) => {
+          const tt = String(t || '').trim().toUpperCase();
+          if (tt) trackingToRecibo[tt] = reciboNum;
         });
-        newItems.forEach((i) => {
-          if (!i.consolidation_tracking && i.tracking_number) {
-            const tt = String(i.tracking_number).trim().toUpperCase();
-            const recibo = trackingToRecibo[tt];
-            if (recibo) i.consolidation_tracking = recibo;
-          }
-        });
-      } catch (_) {}
+      });
+      newItems.forEach((i) => {
+        if (!i.consolidation_tracking && i.tracking_number) {
+          const tt = String(i.tracking_number).trim().toUpperCase();
+          const recibo = trackingToRecibo[tt];
+          if (recibo) i.consolidation_tracking = recibo;
+        }
+      });
     }
 
-  // Marcar los recibos incluidos en la orden como disponibles para entrega.
-  // Solo cuando se crea/actualiza una orden de despacho real, no al facturar.
-  const markRecibosDisponible = async (clientEmail, orderItems) => {
-    const reciboNums = Array.from(new Set(
-      (orderItems || []).map((i) => i.consolidation_tracking).filter(Boolean).map(String)
-    ));
-    if (reciboNums.length === 0) return;
-    try {
-      const ingresos = await base44.asServiceRole.entities.CbmIngreso.filter(
-        { client_email: clientEmail },
-        '-fecha',
-        500
-      ).catch(() => []);
-      const toUpdate = (ingresos || []).filter((ing) =>
-        ing.invoice_number && reciboNums.includes(String(ing.invoice_number))
-      );
-      await Promise.all(toUpdate.map((ing) =>
-        base44.asServiceRole.entities.CbmIngreso.update(ing.id, { disponible_entrega: true })
+    // Marcar los recibos incluidos en la orden como disponibles para entrega.
+    const markRecibosDisponible = async (orderItems) => {
+      const reciboNums = Array.from(new Set(
+        (orderItems || []).map((i) => i.consolidation_tracking).filter(Boolean).map(String)
       ));
-    } catch (_) {}
-  };
+      if (reciboNums.length === 0 || !clientIngresos?.length) return;
+      try {
+        const toUpdate = (clientIngresos || []).filter((ing) =>
+          ing.invoice_number && reciboNums.includes(String(ing.invoice_number))
+        );
+        await Promise.all(toUpdate.map((ing) =>
+          base44.asServiceRole.entities.CbmIngreso.update(ing.id, { disponible_entrega: true })
+        ));
+      } catch (_) {}
+    };
 
     // Validación: no permitir generar orden de despacho para recibos con
     // más de 90 días de tránsito (carga atrasada).
     const receiptNumbers = Array.from(new Set(
       newItems.map((i) => i.consolidation_tracking).filter(Boolean).map(String)
     ));
-    if (receiptNumbers.length > 0) {
-      const clientIngresos = await base44.asServiceRole.entities.CbmIngreso.filter(
-        { client_email },
-        '-fecha',
-        500
-      ).catch(() => []);
+    if (receiptNumbers.length > 0 && clientIngresos?.length) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const atrasadas = (clientIngresos || []).filter((ing) => {
@@ -130,7 +121,7 @@ export default async function (req) {
       if (itemsToAdd.length > 0) {
         const updatedItems = [...(orderWithDuplicateTracking.items || []), ...itemsToAdd];
         await base44.asServiceRole.entities.DispatchOrder.update(orderWithDuplicateTracking.id, { items: updatedItems });
-        await markRecibosDisponible(client_email, itemsToAdd);
+        await markRecibosDisponible(itemsToAdd);
         return Response.json({ order: { ...orderWithDuplicateTracking, items: updatedItems }, updated: true, added: itemsToAdd.length, merged_duplicate: true });
       }
       return Response.json({ order: orderWithDuplicateTracking, updated: true, no_change: true, merged_duplicate: true });
@@ -150,7 +141,7 @@ export default async function (req) {
       if (itemsToAdd.length > 0) {
         const updatedItems = [...(matchingOrder.items || []), ...itemsToAdd];
         await base44.asServiceRole.entities.DispatchOrder.update(matchingOrder.id, { items: updatedItems });
-        await markRecibosDisponible(client_email, itemsToAdd);
+        await markRecibosDisponible(itemsToAdd);
         return Response.json({ order: { ...matchingOrder, items: updatedItems }, updated: true, added: itemsToAdd.length });
       }
       return Response.json({ order: matchingOrder, updated: true, no_change: true });
@@ -160,23 +151,25 @@ export default async function (req) {
     const now = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+    const prefix = `OD-${datePart}-`;
 
     // Secuencial del día: cuenta las órdenes existentes con el mismo prefijo
+    // usando list (indexado por created_date) en lotes, con tope de 5000.
     let sequence = 1;
     let skip = 0;
     while (true) {
       const batch = await base44.asServiceRole.entities.DispatchOrder.list('-created_date', 200, skip);
       if (!batch || batch.length === 0) break;
-      sequence += batch.filter((o) => String(o.order_number || '').startsWith(`OD-${datePart}`)).length;
+      sequence += batch.filter((o) => String(o.order_number || '').startsWith(prefix)).length;
       if (batch.length < 200) break;
       skip += 200;
       if (skip >= 5000) break;
     }
 
-    let orderNumber = `OD-${datePart}-${String(sequence).padStart(4, '0')}`;
+    let orderNumber = `${prefix}${String(sequence).padStart(4, '0')}`;
     const existing = await base44.asServiceRole.entities.DispatchOrder.filter({ order_number: orderNumber }, '-created_date', 1);
     if (existing?.length) {
-      orderNumber = `OD-${datePart}-${String(sequence).padStart(4, '0')}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+      orderNumber = `${prefix}${String(sequence).padStart(4, '0')}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
     }
 
     const orderData = {
@@ -193,7 +186,7 @@ export default async function (req) {
     };
 
     const created = await base44.asServiceRole.entities.DispatchOrder.create(orderData);
-    await markRecibosDisponible(client_email, newItems);
+    await markRecibosDisponible(newItems);
     return Response.json({ order: { ...orderData, id: created?.id }, updated: false });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -57,7 +57,8 @@ export default function DispatchOrderButton({ group, email, onCreated }) {
       onCreated?.();
     } catch (error) {
       console.error('Error generando orden:', error);
-      toast.error('Error al generar la orden de despacho');
+      const backendMsg = error?.response?.data?.error || error?.data?.error || error?.message;
+      toast.error(backendMsg ? `Error: ${backendMsg}` : 'Error al generar la orden de despacho');
     }
     setGenerating(false);
   };
