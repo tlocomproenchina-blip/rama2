@@ -39,7 +39,6 @@ export default function AdminClients({ user }) {
   const [stateFilter, setStateFilter] = useState('all');
   const [exclusiveKey, setExclusiveKey] = useState('all');
   const canExport = user?.role === 'admin';
-  const [backfilling, setBackfilling] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [roleUpdatingId, setRoleUpdatingId] = useState(null);
   const PAGE_SIZE = 50;
@@ -267,21 +266,7 @@ Shipping Mark: ${client.shipping_mark || 'N/A'}`;
     toast.success('Información copiada al portapapeles');
   };
 
-  const handleBackfillStripeCustomers = async () => {
-    setBackfilling(true);
-    try {
-      const res = await base44.functions.invoke('backfillStripeCustomers');
-      const data = res?.data || {};
-      const msg = `Stripe backfill: creados ${data.created || 0}, omitidos ${data.skipped || 0}, fallidos ${data.failed || 0}`;
-      toast.success(msg);
-      await loadClients();
-    } catch (e) {
-      toast.error('Error al ejecutar backfill de Stripe');
-    }
-    setBackfilling(false);
-  };
-
-   const handleDelete = async () => {
+  const handleDelete = async () => {
     if (!deleteClient) return;
     setDeleting(true);
 
@@ -437,12 +422,10 @@ Shipping Mark: ${client.shipping_mark || 'N/A'}`;
     <div className="space-y-6 max-w-7xl mx-auto">
       <ClientsHeaderActions
         canExport={canExport}
-        backfilling={backfilling}
         onOpenImport={() => setImportModalOpen(true)}
         onExportFiltered={handleExportFiltered}
         onCopyFiltered={handleCopyFiltered}
         onExportRemarketing={handleExportRemarketing}
-        onBackfillStripe={handleBackfillStripeCustomers}
       />
 
       <ClientsStatsCards counts={counts} fallbackTotal={clients.length} />

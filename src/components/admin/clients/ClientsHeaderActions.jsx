@@ -1,16 +1,14 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Upload, Download, CreditCard, Loader2, ClipboardCopy } from 'lucide-react';
+import { Upload, Download, ClipboardCopy } from 'lucide-react';
 import ClientTxtReportButton from '@/components/admin/clients/ClientTxtReportButton';
 
 export default function ClientsHeaderActions({
   canExport,
-  backfilling,
   onOpenImport,
   onExportFiltered,
   onCopyFiltered,
   onExportRemarketing,
-  onBackfillStripe,
 }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -22,7 +20,7 @@ export default function ClientsHeaderActions({
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button onClick={onOpenImport} variant="outline" className="w-full sm:w-auto">
             <Upload className="h-4 w-4 mr-2" />
-            Importar Clientes
+            Importar
           </Button>
           <Button
             onClick={onExportFiltered}
@@ -30,7 +28,7 @@ export default function ClientsHeaderActions({
             title="Exporta los clientes según los filtros actuales"
           >
             <Download className="h-4 w-4 mr-2" />
-            Exportar Selección (TXT)
+            Exportar TXT
           </Button>
           <Button
             onClick={onCopyFiltered}
@@ -39,24 +37,14 @@ export default function ClientsHeaderActions({
             title="Copia los clientes filtrados al portapapeles (mismo formato TXT)"
           >
             <ClipboardCopy className="h-4 w-4 mr-2" />
-            Copiar Selección
+            Copiar
           </Button>
           <Button
             onClick={onExportRemarketing}
             className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
           >
             <Download className="h-4 w-4 mr-2" />
-            Exportar para Remarketing
-          </Button>
-          <Button
-            variant="outline"
-            onClick={onBackfillStripe}
-            disabled={backfilling}
-            className="w-full sm:w-auto border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-            title="Crear clientes en Stripe para todos los usuarios sin uno"
-          >
-            {backfilling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
-            Backfill Stripe
+            Exportar marketing WS
           </Button>
           <ClientTxtReportButton />
         </div>
