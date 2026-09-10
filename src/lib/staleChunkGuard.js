@@ -36,15 +36,16 @@ function looksLikeStaleChunk(message) {
 }
 
 function readState() {
+  const fresh = { attempts: 0, firstAt: 0, finalCleanupDone: false };
   try {
     const raw = sessionStorage.getItem(RECOVERY_KEY);
-    if (!raw) return { attempts: 0, firstAt: 0 };
+    if (!raw) return fresh;
     const parsed = JSON.parse(raw);
     // Si la ventana expiró, empezar de cero
-    if (Date.now() - parsed.firstAt > ATTEMPT_WINDOW_MS) return { attempts: 0, firstAt: 0 };
-    return parsed;
+    if (Date.now() - parsed.firstAt > ATTEMPT_WINDOW_MS) return fresh;
+    return { ...fresh, ...parsed };
   } catch (_) {
-    return { attempts: 0, firstAt: 0 };
+    return fresh;
   }
 }
 
@@ -56,54 +57,13 @@ function writeState(state) {
 
 let recovering = false;
 
-function showManualRefreshOverlay() {
-  if (document.getElementById('tlec-stale-overlay')) return;
-  const overlay = document.createElement('div');
-  overlay.id = 'tlec-stale-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.92);font-family:system-ui,sans-serif;padding:1.5rem;text-align:center;';
-  overlay.innerHTML = `
-    <div style="max-width:420px;color:#fff;">
-      <div style="font-size:2.5rem;margin-bottom:0.5rem;">⚠️</div>
-      <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;">Caché del navegador desactualizada</h2>
-      <p style="font-size:0.875rem;opacity:0.8;margin-bottom:1.5rem;line-height:1.5;">
-        Tu navegador tiene archivos JavaScript antiguos guardados en caché.
-        Presiona el botón para forzar una recarga limpia.
-      </p>
-      <button id="tlec-stale-refresh" style="background:#3b82f6;color:#fff;border:none;border-radius:0.75rem;padding:0.75rem 2rem;font-size:0.875rem;font-weight:600;cursor:pointer;">
-        Recargar limpio
-      </button>
-      <p style="font-size:0.75rem;opacity:0.5;margin-top:1rem;">
-        Si el problema persiste, limpia la caché con Ctrl+Shift+R (Cmd+Shift+R en Mac).
-      </p>
-    </div>`;
-  document.body.appendChild(overlay);
-  document.getElementById('tlec-stale-refresh')?.addEventListener('click', () => {
-    try { sessionStorage.removeItem(RECOVERY_KEY); } catch (_) {}
-    // fetch the page with no-cache, then reload to bust HTTP cache
-    fetch(window.location.href, { cache: 'no-store' }).finally(() => {
-      window.location.reload();
-    });
-  });
-}
-
-export async function recoverFromStaleChunks(reason) {
-  if (recovering) return;
-
-  const state = readState();
-  if (state.attempts >= MAX_ATTEMPTS) {
-    console.error('[TLEC] Chunks obsoletos persistentes. Limpia la caché del navegador manualmente (Ctrl+Shift+R).');
-    showManualRefreshOverlay();
-    return;
-  }
-
-  recovering = true;
-  writeState({
-    attempts: state.attempts + 1,
-    firstAt: state.firstAt || Date.now()
-  });
-
-  console.warn('[TLEC] Copia duplicada de React detectada (' + reason + '). Limpiando y recargando...');
-
+/**
+ * Limpieza profunda: desregistra Service Workers, borra todas las caches
+ * del Cache Storage y limpia la metadata de optimización de Vite que quedó
+ * de una sesión anterior. Es la única forma de romper el conflicto de
+ * chunks (dos copias de React con hashes ?v= distintos).
+ */
+async function performDeepCleanup() {
   // 1. Desregistrar todos los Service Workers
   try {
     if ('serviceWorker' in navigator) {
@@ -121,12 +81,9 @@ export async function recoverFromStaleChunks(reason) {
   } catch (_) {}
 
   // 2b. Limpiar metadata de optimización de Vite guardada en sessionStorage/localStorage.
-  // Vite guarda info de dependencias cacheadas aquí; si queda metadata vieja, el
-  // navegador sigue pidiendo chunks con hashes anteriores → dos copias de React.
   try {
     const cleanStorage = (storage) => {
-      const keys = Object.keys(storage);
-      keys.forEach((k) => {
+      Object.keys(storage).forEach((k) => {
         if (k.startsWith('vite-') || k.includes('vite') || k.includes('dep-optim')) {
           storage.removeItem(k);
         }
@@ -135,10 +92,10 @@ export async function recoverFromStaleChunks(reason) {
     cleanStorage(sessionStorage);
     cleanStorage(localStorage);
   } catch (_) {}
+}
 
-  // 3. Recargar forzando red: fetch no-cache del HTML para invalidar la
-  //    caché HTTP del navegador, luego reload para que los módulos se
-  //    re-descarguen desde el servidor (no desde disk cache).
+/** Recarga forzando red: fetch no-cache del HTML + replace con cache-buster. */
+async function reloadWithCacheBust() {
   try {
     const url = new URL(window.location.href);
     url.searchParams.set('_fresh', Date.now().toString(36));
@@ -147,6 +104,73 @@ export async function recoverFromStaleChunks(reason) {
   } catch (_) {
     window.location.reload();
   }
+}
+
+function showManualRefreshOverlay() {
+  if (document.getElementById('tlec-stale-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'tlec-stale-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.92);font-family:system-ui,sans-serif;padding:1.5rem;text-align:center;';
+  overlay.innerHTML = `
+    <div style="max-width:420px;color:#fff;">
+      <div style="font-size:2.5rem;margin-bottom:0.5rem;">⚠️</div>
+      <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;">Caché del navegador desactualizada</h2>
+      <p style="font-size:0.875rem;opacity:0.8;margin-bottom:1.5rem;line-height:1.5;">
+        La limpieza automática no fue suficiente. Presiona el botón para forzar
+        una limpieza profunda y recarga limpia.
+      </p>
+      <button id="tlec-stale-refresh" style="background:#3b82f6;color:#fff;border:none;border-radius:0.75rem;padding:0.75rem 2rem;font-size:0.875rem;font-weight:600;cursor:pointer;">
+        Limpiar y recargar
+      </button>
+      <p style="font-size:0.75rem;opacity:0.5;margin-top:1rem;">
+        Si el problema persiste, limpia la caché con Ctrl+Shift+R (Cmd+Shift+R en Mac).
+      </p>
+    </div>`;
+  document.body.appendChild(overlay);
+  const btn = document.getElementById('tlec-stale-refresh');
+  btn?.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = 'Limpiando...';
+    try { sessionStorage.removeItem(RECOVERY_KEY); } catch (_) {}
+    await performDeepCleanup();
+    await reloadWithCacheBust();
+  });
+}
+
+export async function recoverFromStaleChunks(reason) {
+  if (recovering) return;
+
+  const state = readState();
+
+  // Límite de reintentos automáticos alcanzado.
+  if (state.attempts >= MAX_ATTEMPTS) {
+    // Última oportunidad: una limpieza profunda final automática antes de
+    // pedir intervención manual.
+    if (!state.finalCleanupDone) {
+      recovering = true;
+      writeState({ ...state, finalCleanupDone: true });
+      console.warn('[TLEC] Limpieza profunda final automática (' + reason + ').');
+      await performDeepCleanup();
+      await reloadWithCacheBust();
+      return;
+    }
+    // La limpieza final tampoco resolvió el conflicto: mostrar botón manual
+    // (que ahora ejecuta la misma limpieza profunda completa en un clic).
+    console.error('[TLEC] Chunks obsoletos persistentes tras limpieza final.');
+    showManualRefreshOverlay();
+    return;
+  }
+
+  recovering = true;
+  writeState({
+    attempts: state.attempts + 1,
+    firstAt: state.firstAt || Date.now(),
+    finalCleanupDone: state.finalCleanupDone || false
+  });
+
+  console.warn('[TLEC] Copia duplicada de React detectada (' + reason + '). Limpiando y recargando...');
+  await performDeepCleanup();
+  await reloadWithCacheBust();
 }
 
 export async function installStaleChunkGuard() {
