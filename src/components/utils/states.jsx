@@ -15,7 +15,7 @@ export const CANONICAL_STATE_NAMES = {
   bolivar: 'Bolívar',
   miranda: 'Miranda',
   caracas: 'Distrito Capital (Caracas)',
-  vargas: 'La Guaira (Vargas)',
+  la_guaira: 'La Guaira',
   aragua: 'Aragua',
   carabobo: 'Carabobo',
   cojedes: 'Cojedes',

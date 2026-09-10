@@ -26,7 +26,7 @@ export const CITY_LANDINGS = [
   { slug: 'san-carlos', city: 'San Carlos', state_code: 'cojedes', state_name: 'Cojedes', transit_lcl: '78-92 días', transit_fcl: '63-78 días' },
   { slug: 'san-felipe', city: 'San Felipe', state_code: 'yaracuy', state_name: 'Yaracuy', transit_lcl: '78-92 días', transit_fcl: '63-78 días' },
   { slug: 'los-teques', city: 'Los Teques', state_code: 'miranda', state_name: 'Miranda', transit_lcl: '75-90 días', transit_fcl: '60-75 días' },
-  { slug: 'la-guaira', city: 'La Guaira', state_code: 'vargas', state_name: 'La Guaira', transit_lcl: '75-90 días', transit_fcl: '60-75 días' },
+  { slug: 'la-guaira', city: 'La Guaira', state_code: 'la_guaira', state_name: 'La Guaira', transit_lcl: '75-90 días', transit_fcl: '60-75 días' },
 ];
 
 export const getCityBySlug = (slug) => CITY_LANDINGS.find((c) => c.slug === slug) || null;

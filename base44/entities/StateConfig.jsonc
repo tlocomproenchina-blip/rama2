@@ -21,7 +21,7 @@
         "bolivar",
         "miranda",
         "caracas",
-        "vargas",
+        "la_guaira",
         "aragua",
         "carabobo",
         "cojedes",
@@ -35,6 +35,11 @@
     "state_name": {
       "type": "string",
       "description": "Nombre del estado"
+    },
+    "state_code_external": {
+      "type": "string",
+      "description": "C\u00f3digo de estado del archivo de automatizaci\u00f3n (N1\u2013N7) usado para generar el shipping mark",
+      "default": ""
     },
     "shipping_rate": {
       "type": "number",

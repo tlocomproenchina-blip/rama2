@@ -62,7 +62,7 @@ const VENEZUELAN_STATES = [
   { code: 'bolivar', name: 'Bolívar' },
   { code: 'miranda', name: 'Miranda' },
   { code: 'caracas', name: 'Caracas' },
-  { code: 'vargas', name: 'Vargas' },
+  { code: 'la_guaira', name: 'La Guaira' },
   { code: 'aragua', name: 'Aragua' },
   { code: 'carabobo', name: 'Carabobo' },
   { code: 'cojedes', name: 'Cojedes' },
@@ -72,6 +72,17 @@ const VENEZUELAN_STATES = [
   { code: 'sucre', name: 'Sucre' },
   { code: 'nueva_esparta', name: 'Nueva Esparta' }
 ];
+
+// Códigos de estado del archivo de automatización (para generar shipping mark)
+const STATE_EXTERNAL_CODES = {
+  carabobo: 'N1', cojedes: 'N1', falcon: 'N1',
+  caracas: 'N2', miranda: 'N2', la_guaira: 'N2', nueva_esparta: 'N2',
+  lara: 'N3', portuguesa: 'N3', yaracuy: 'N3', barinas: 'N3', tachira: 'N3',
+  zulia: 'N4', trujillo: 'N4', merida: 'N4',
+  anzoategui: 'N5', sucre: 'N5',
+  monagas: 'N6', bolivar: 'N6',
+  delta_amacuro: 'N7', apure: 'N7', amazonas: 'N7', aragua: 'N7'
+};
 
 export default function AdminSettings({ user }) {
   const [loading, setLoading] = useState(true);
@@ -157,6 +168,14 @@ export default function AdminSettings({ user }) {
 
   const loadAllConfigs = async () => {
     try {
+      // Migrar vargas -> la_guaira y pre-poblar códigos de estado (idempotente)
+      try {
+        if (!sessionStorage.getItem('tlec_vargas_migration_done')) {
+          await base44.functions.invoke('migrateVargasToLaGuaira', {});
+          sessionStorage.setItem('tlec_vargas_migration_done', '1');
+        }
+      } catch (e) { console.warn('Migración vargas->la_guaira:', e); }
+
       // Load pricing config
       const pricingConfigs = await base44.entities.PricingConfig.filter({ config_key: 'main' });
       if (pricingConfigs.length > 0) {
@@ -173,6 +192,7 @@ export default function AdminSettings({ user }) {
         const initialStates = VENEZUELAN_STATES.map(s => ({
           state_code: s.code,
           state_name: s.name,
+          state_code_external: STATE_EXTERNAL_CODES[s.code] || '',
           shipping_rate: 0,
           is_active: true
         }));
@@ -939,6 +959,21 @@ export default function AdminSettings({ user }) {
                     </div>
 
                     <div className="space-y-2">
+                      <Label>Código de Estado</Label>
+                      <Input
+                        type="text"
+                        value={state.state_code_external || ''}
+                        onChange={(e) => {
+                          const updated = statesConfig.map(s =>
+                            s.id === state.id ? { ...s, state_code_external: e.target.value } : s
+                          );
+                          setStatesConfig(updated);
+                        }}
+                        placeholder="N1"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <Label>Tarifa de Envío ($)</Label>
                       <Input
                         type="number"
@@ -1012,6 +1047,7 @@ export default function AdminSettings({ user }) {
                   <thead className="bg-slate-50">
                     <tr>
                       <th className="text-left p-3 font-medium text-slate-700">Estado</th>
+                      <th className="text-left p-3 font-medium text-slate-700">Código de Estado</th>
                       <th className="text-left p-3 font-medium text-slate-700">Tarifa de Envío ($)</th>
                       <th className="text-left p-3 font-medium text-slate-700">Precio final Regular ($)</th>
                       <th className="text-left p-3 font-medium text-slate-700">Precio final Alto riesgo ($)</th>
@@ -1023,6 +1059,20 @@ export default function AdminSettings({ user }) {
                     {filteredStates.map((state) => (
                       <tr key={state.id} className="border-t hover:bg-slate-50">
                         <td className="p-3 font-medium text-slate-800">{state.state_name}</td>
+                        <td className="p-3">
+                          <Input
+                            type="text"
+                            value={state.state_code_external || ''}
+                            onChange={(e) => {
+                              const updated = statesConfig.map(s =>
+                                s.id === state.id ? { ...s, state_code_external: e.target.value } : s
+                              );
+                              setStatesConfig(updated);
+                            }}
+                            className="w-24"
+                            placeholder="N1"
+                          />
+                        </td>
                         <td className="p-3">
                           <Input
                             type="number"
