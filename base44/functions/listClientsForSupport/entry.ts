@@ -151,11 +151,15 @@ function matchesSearch(c, q, exact = false) {
   return false;
 }
 
-function matchesCategory(c, key, pkgCount) {
+function matchesCategory(c, key, pkgCount, cursorNumber = 0) {
   switch (key) {
     case 'with_mark': return hasMark(c);
     case 'without_mark': return !hasMark(c);
-    case 'pending': return !hasMark(c) && !isIncomplete(c);
+    case 'pending': {
+      // Mismo criterio que el contador: shipping mark numérico > cursor reportado
+      const markNum = parseShippingMarkNumber(c.shipping_mark);
+      return markNum != null && markNum > cursorNumber;
+    }
     case 'incomplete': return isIncomplete(c);
     case 'active': return c.is_active !== false;
     case 'inactive': return c.is_active === false;
@@ -255,11 +259,14 @@ Deno.serve(async (req) => {
       packageCounts: pkgRes || cachedPkgCounts,
     };
 
+    // Cursor de reporte TXT (para filtro 'pending' y conteo)
+    const cursorNumber = await getReportCursorNumber(base44);
+
     // Aplicar filtros
     const filtered = all.filter((c) => {
       const pkgCount = packageCounts[c.email] || 0;
       if (!matchesSearch(c, q, exact)) return false;
-      if (!matchesCategory(c, exclusiveKey, pkgCount)) return false;
+      if (!matchesCategory(c, exclusiveKey, pkgCount, cursorNumber)) return false;
       if (!matchesState(c, stateFilter)) return false;
       if (!matchesDate(c, fromDate, toDate, quickDate)) return false;
       return true;
@@ -270,7 +277,6 @@ Deno.serve(async (req) => {
     if (includeCounts) {
       // "Pendientes" = clientes con shipping mark numérico mayor al último reportado.
       // Refleja cuántos clientes se han registrado desde el último reporte TXT.
-      const cursorNumber = await getReportCursorNumber(base44);
       counts = {
         total: all.length,
         withMark: 0, withoutMark: 0, pending: 0, incomplete: 0,
