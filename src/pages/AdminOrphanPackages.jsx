@@ -358,7 +358,7 @@ export default function AdminOrphanPackages({ user }) {
 
       {/* Modal de edición en lote */}
       {bulkAction === 'edit' && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4" onClick={() => !bulkProcessing && setBulkAction(null)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-0 md:p-4 md:pt-20" onClick={() => !bulkProcessing && setBulkAction(null)}>
           <Card className="w-full md:max-w-md shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base"><Pencil className="h-5 w-5 text-amber-600" /> Modificar {selectedIds.length} huérfano(s)</CardTitle>
