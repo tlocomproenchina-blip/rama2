@@ -253,14 +253,14 @@ export default function AdminClients({ user }) {
   };
 
   const handleCopyClientInfo = (client) => {
-    const info = `Nombre: ${client.first_name || ''} ${client.last_name || ''}
-Cédula: ${client.cedula || 'N/A'}
+    const info = `Shipping Mark: ${client.shipping_mark || 'N/A'}
+Nombre: ${client.first_name || ''} ${client.last_name || ''}
+Cedula: ${client.cedula || 'N/A'}
 Estado: ${client.state || 'N/A'}
 Ciudad: ${client.city || 'N/A'}
-Dirección: ${client.address || 'N/A'}
+Direccion: ${client.address || 'N/A'}
 WhatsApp: ${client.whatsapp || 'N/A'}
-Email: ${client.email}
-Shipping Mark: ${client.shipping_mark || 'N/A'}`;
+Email: ${client.email}`;
     
     navigator.clipboard.writeText(info);
     toast.success('Información copiada al portapapeles');
