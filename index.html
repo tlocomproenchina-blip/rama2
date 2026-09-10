@@ -26,56 +26,9 @@
       gtag('js', new Date());
       gtag('config', 'G-7PQJ4RT38K', { send_page_view: true });
     </script>
-    <script>
-      // LIMPIEZA TEMPRANA: debe ejecutarse ANTES de que el navegador empiece a
-      // cargar los módulos de Vite. Si queda metadata de optimización de Vite
-      // de una sesión anterior en sessionStorage/localStorage, el navegador
-      // puede resolver imports a chunks con hashes ?v= viejos y mezclarlos
-      // con los nuevos → dos copias de React → "useState null".
-      (function () {
-        try {
-          var cleanStorage = function (storage) {
-            Object.keys(storage).forEach(function (k) {
-              if (k.indexOf('vite-') === 0 || k.indexOf('vite') !== -1 || k.indexOf('dep-optim') !== -1) {
-                storage.removeItem(k);
-              }
-            });
-          };
-          cleanStorage(sessionStorage);
-          cleanStorage(localStorage);
-        } catch (e) {}
-
-        // En el preview de base44.app nunca debe haber un service worker.
-        // Se desregistra en segundo plano (sin tocar el DOM ni detener la carga).
-        // La recuperación de chunks mezclados la maneja staleChunkGuard.js.
-        if (!('serviceWorker' in navigator)) return;
-        if (location.hostname.indexOf('.base44.app') === -1) return;
-        try {
-          navigator.serviceWorker.getRegistrations().then(function (regs) {
-            regs.forEach(function (reg) { reg.unregister(); });
-          }).catch(function () {});
-          if (window.caches && window.caches.keys) {
-            window.caches.keys().then(function (keys) {
-              keys.forEach(function (key) { window.caches.delete(key); });
-            }).catch(function () {});
-          }
-        } catch (e) {}
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script type="module">
-      // Solo registrar el service worker en producción (build real) y SOLO en
-      // el dominio custom (no en base44.app). En base44.app el SW cachea chunks
-      // de Vite y provoca doble React ("useState null").
-      if ('serviceWorker' in navigator && import.meta.env.PROD
-          && location.hostname.indexOf('.base44.app') === -1) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
-        });
-      }
-    </script>
   </body>
 </html>
