@@ -129,7 +129,7 @@ const reserveNextNumber = async (base44) => {
       { $inc: { last_number: 1 } }
     );
 
-    if (result?.modifiedCount === 1 || result?.matchedCount === 1) {
+    if (result?.updated >= 1) {
       return nextValue;
     }
     // Conflict: otro registro simultáneo ganó. Reintentar tras breve pausa.
