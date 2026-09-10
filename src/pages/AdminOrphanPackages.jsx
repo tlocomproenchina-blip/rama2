@@ -284,7 +284,7 @@ export default function AdminOrphanPackages({ user }) {
 
       {/* Modal de asignación (individual o lote) */}
       {assignTarget && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4" onClick={() => setAssignTarget(null)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-0 md:p-4 md:pt-20" onClick={() => setAssignTarget(null)}>
           <Card className="w-full md:max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
