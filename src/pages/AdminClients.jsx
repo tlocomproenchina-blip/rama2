@@ -426,6 +426,7 @@ Email: ${client.email}`;
         onExportFiltered={handleExportFiltered}
         onCopyFiltered={handleCopyFiltered}
         onExportRemarketing={handleExportRemarketing}
+        onReportChanged={() => loadClients(false, true)}
       />
 
       <ClientsStatsCards counts={counts} fallbackTotal={clients.length} />

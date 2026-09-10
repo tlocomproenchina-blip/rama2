@@ -9,6 +9,7 @@ export default function ClientsHeaderActions({
   onExportFiltered,
   onCopyFiltered,
   onExportRemarketing,
+  onReportChanged,
 }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -46,7 +47,7 @@ export default function ClientsHeaderActions({
             <Download className="h-4 w-4 mr-2" />
             Exportar marketing WS
           </Button>
-          <ClientTxtReportButton />
+          <ClientTxtReportButton onReportChanged={onReportChanged} />
         </div>
       )}
     </div>

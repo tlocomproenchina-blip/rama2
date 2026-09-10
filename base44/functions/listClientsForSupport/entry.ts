@@ -96,6 +96,24 @@ function hasMark(c) {
   return !!(c.shipping_mark && String(c.shipping_mark).trim().length > 0);
 }
 
+// Extrae el número secuencial final de un shipping mark con patrón ...-TLEC-NNNNN
+// (mismo parser que generateClientsTxtReport). Devuelve null si no coincide.
+function parseShippingMarkNumber(mark) {
+  if (!mark || typeof mark !== 'string') return null;
+  const match = mark.match(/TLEC-(\d+)\s*$/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+// Lee el cursor global de reporte TXT y devuelve el último número reportado (0 si no hay cursor).
+async function getReportCursorNumber(base44) {
+  try {
+    const rows = await base44.asServiceRole.entities.ClientReportCursor.filter({ config_key: 'main' }, '-updated_date', 1);
+    return Number(rows?.[0]?.last_shipping_mark_number) || 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
 function matchesSearch(c, q, exact = false) {
   if (!q) return true;
   const qText = normalizeText(q);
@@ -247,6 +265,9 @@ Deno.serve(async (req) => {
     // Conteos globales (sobre TODA la lista, sin filtros) para los stat cards
     let counts = null;
     if (includeCounts) {
+      // "Pendientes" = clientes con shipping mark numérico mayor al último reportado.
+      // Refleja cuántos clientes se han registrado desde el último reporte TXT.
+      const cursorNumber = await getReportCursorNumber(base44);
       counts = {
         total: all.length,
         withMark: 0, withoutMark: 0, pending: 0, incomplete: 0,
@@ -260,7 +281,9 @@ Deno.serve(async (req) => {
         const validMark = hasMark(c);
         const incomplete = isIncomplete(c);
         if (validMark) counts.withMark++; else counts.withoutMark++;
-        if (!validMark && !incomplete) counts.pending++;
+        // Pendientes por reportar: shipping mark numérico > cursor
+        const markNum = parseShippingMarkNumber(c.shipping_mark);
+        if (markNum != null && markNum > cursorNumber) counts.pending++;
         if (incomplete) counts.incomplete++;
         if (c.is_active === false) counts.inactive++; else counts.active++;
         if (pkgCount > 0) counts.withPackages++; else counts.withoutPackages++;

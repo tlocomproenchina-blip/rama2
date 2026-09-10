@@ -9,7 +9,7 @@ import {
 import { FileText, Loader2, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function ClientTxtReportButton() {
+export default function ClientTxtReportButton({ onReportChanged }) {
   const [generating, setGenerating] = useState(false);
   const [cursorOpen, setCursorOpen] = useState(false);
   const [cursor, setCursor] = useState(null);
@@ -63,6 +63,8 @@ export default function ClientTxtReportButton() {
       toast.success(`Reporte generado: ${data.count} clientes incluidos. Último: ${data.last_mark}`);
       // Refrescar cursor mostrado si el modal está abierto
       if (cursorOpen) loadCursor();
+      // Refrescar el contador de Pendientes en AdminClients
+      if (onReportChanged) onReportChanged();
     } catch (e) {
       toast.error('Error al generar el reporte');
     } finally {
@@ -85,6 +87,8 @@ export default function ClientTxtReportButton() {
       }
       toast.success(`Punto de inicio actualizado a ${num}. El próximo reporte arrancará desde ${num + 1}.`);
       setCursorOpen(false);
+      // Refrescar el contador de Pendientes en AdminClients
+      if (onReportChanged) onReportChanged();
     } catch (e) {
       toast.error('Error al actualizar el punto de inicio');
     } finally {
