@@ -7,6 +7,7 @@ function buildClientsTxt(all) {
   const lines = [];
   all.forEach((client, index) => {
     const fullName = `${client.first_name || ''} ${client.last_name || ''}`.trim();
+    lines.push(`Shipping Mark: ${client.shipping_mark || ''}`);
     lines.push(`Nombre: ${fullName}`);
     lines.push(`Cedula: ${client.cedula || ''}`);
     lines.push(`Estado: ${client.state || ''}`);
@@ -14,7 +15,6 @@ function buildClientsTxt(all) {
     lines.push(`Direccion: ${client.address || ''}`);
     lines.push(`WhatsApp: ${client.whatsapp || ''}`);
     lines.push(`Email: ${client.email}`);
-    lines.push(`Codigo asignado: ${client.shipping_mark || ''}`);
     if (index < all.length - 1) lines.push('');
   });
   return lines.join('\n');

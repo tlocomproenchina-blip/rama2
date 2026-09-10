@@ -38,10 +38,10 @@ const buildTxtBlock = (client) => {
   return [
     `Shipping Mark: ${client.shipping_mark || ''}`,
     `Nombre: ${fullName}`,
-    `Cédula: ${client.cedula || ''}`,
+    `Cedula: ${client.cedula || ''}`,
     `Estado: ${client.state || ''}`,
     `Ciudad: ${client.city || ''}`,
-    `Dirección: ${client.address || ''}`,
+    `Direccion: ${client.address || ''}`,
     `WhatsApp: ${client.whatsapp || ''}`,
     `Email: ${client.email || ''}`,
   ].join('\n');
