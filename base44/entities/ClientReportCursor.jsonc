@@ -1,0 +1,55 @@
+{
+  "name": "ClientReportCursor",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica del cursor global de reportes TXT (siempre 'main')"
+    },
+    "last_shipping_mark_number": {
+      "type": "number",
+      "default": 0,
+      "description": "\u00daltimo n\u00famero secuencial de Shipping Mark incluido en el reporte anterior. El pr\u00f3ximo reporte incluye clientes con n\u00famero > a este valor."
+    },
+    "last_shipping_mark_string": {
+      "type": "string",
+      "description": "\u00daltimo Shipping Mark completo incluido (cache para mostrar en UI)"
+    },
+    "last_report_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo reporte TXT generado"
+    },
+    "last_report_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de clientes incluidos en el \u00faltimo reporte"
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

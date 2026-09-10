@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload, Download, CreditCard, Loader2, ClipboardCopy } from 'lucide-react';
+import ClientTxtReportButton from '@/components/admin/clients/ClientTxtReportButton';
 
 export default function ClientsHeaderActions({
   canExport,
@@ -57,6 +58,7 @@ export default function ClientsHeaderActions({
             {backfilling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
             Backfill Stripe
           </Button>
+          <ClientTxtReportButton />
         </div>
       )}
     </div>
