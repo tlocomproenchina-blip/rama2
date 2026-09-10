@@ -1,0 +1,41 @@
+{
+  "name": "ShippingMarkCounter",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica del contador global de Shipping Mark (siempre 'main')"
+    },
+    "last_number": {
+      "type": "number",
+      "default": 49999,
+      "description": "\u00daltimo n\u00famero secuencial asignado. El siguiente Shipping Mark usar\u00e1 last_number + 1 (empieza en 50000)."
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

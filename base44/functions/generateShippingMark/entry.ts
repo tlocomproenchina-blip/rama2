@@ -1,18 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
-const DEFAULT_PREFIX = 'TLEC-';
-const DEFAULT_LENGTH = 6;
-const DEFAULT_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-const getRandomPart = (chars, length) => {
-  let value = '';
-  for (let i = 0; i < length; i += 1) {
-    const index = Math.floor(Math.random() * chars.length);
-    value += chars[index];
-  }
-  return value;
-};
+const START_NUMBER = 50000;
+const COUNTER_KEY = 'main';
+const MAX_ATTEMPTS = 12;
 
 const replaceTemplateVariables = (text, variables = {}) => {
   let result = String(text || '');
@@ -89,7 +80,65 @@ const notifyShippingMarkAssigned = async (base44, targetUser, shippingMark) => {
   });
 };
 
-Deno.serve(async (req) => {
+// Resuelve el state_code_external (N1–N7) a partir del estado del usuario.
+// El usuario guarda state_code (ej: 'tachira'); por compatibilidad también
+// buscamos por state_name por si un perfil antiguo guardó el nombre.
+const resolveStateCodeExternal = async (base44, userState) => {
+  if (!userState) return null;
+  const value = String(userState).trim().toLowerCase();
+  // Buscar por state_code
+  let rows = await base44.asServiceRole.entities.StateConfig.filter({ state_code: value }, '-updated_date', 1);
+  if (!rows?.length) {
+    // Fallback: buscar por state_name (case-insensitive en memoria)
+    const all = await base44.asServiceRole.entities.StateConfig.filter({ is_active: true }, '-updated_date', 100);
+    rows = (all || []).filter((s) => String(s.state_name || '').trim().toLowerCase() === value);
+  }
+  const match = rows?.[0];
+  if (!match) return null;
+  const code = String(match.state_code_external || '').trim().toUpperCase();
+  return code || null;
+};
+
+// Contador global atómico con optimistic locking.
+// Lee el valor actual, intenta updateMany con filtro last_number=valorViejo.
+// Si modificó 1 → ganó; si 0 → otro proceso ganó, releer y reintentar.
+const reserveNextNumber = async (base44) => {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    const counters = await base44.asServiceRole.entities.ShippingMarkCounter.filter({ config_key: COUNTER_KEY }, '-updated_date', 1);
+    let counter = counters?.[0] || null;
+
+    // Inicializar el contador si no existe
+    if (!counter) {
+      try {
+        counter = await base44.asServiceRole.entities.ShippingMarkCounter.create({
+          config_key: COUNTER_KEY,
+          last_number: START_NUMBER - 1,
+        });
+      } catch (createErr) {
+        // Otro proceso lo creó al mismo tiempo: releer en el siguiente intento
+        await new Promise((r) => setTimeout(r, 50));
+        continue;
+      }
+    }
+
+    const oldValue = Number(counter.last_number) || (START_NUMBER - 1);
+    const nextValue = oldValue + 1;
+
+    const result = await base44.asServiceRole.entities.ShippingMarkCounter.updateMany(
+      { config_key: COUNTER_KEY, last_number: oldValue },
+      { $inc: { last_number: 1 } }
+    );
+
+    if (result?.modifiedCount === 1 || result?.matchedCount === 1) {
+      return nextValue;
+    }
+    // Conflict: otro registro simultáneo ganó. Reintentar tras breve pausa.
+    await new Promise((r) => setTimeout(r, 60));
+  }
+  return null;
+};
+
+export default async function(req) {
   try {
     const base44 = createClientFromRequest(req);
 
@@ -156,63 +205,28 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, skipped: true, reason: 'already_had_mark' });
     }
 
-    const prefix = String(appConfig?.shipping_mark_auto_assign_prefix || appConfig?.shipping_mark_prefix || DEFAULT_PREFIX).toUpperCase();
-    const length = Math.max(1, Number(appConfig?.shipping_mark_auto_assign_length) || DEFAULT_LENGTH);
-    const chars = String(appConfig?.shipping_mark_auto_assign_chars || DEFAULT_CHARS).toUpperCase();
-
-    if (!chars.length) {
-      return Response.json({ error: 'Shipping mark characters not configured' }, { status: 400 });
+    // Resolver código de estado (N1–N7) desde el estado del usuario
+    const stateCodeExternal = await resolveStateCodeExternal(base44, targetUser.state);
+    if (!stateCodeExternal) {
+      return Response.json({
+        success: false,
+        skipped: true,
+        reason: 'state_code_external_missing',
+        message: `No se encontró state_code_external para el estado "${targetUser.state}". Verifica StateConfig.`,
+      }, { status: 400 });
     }
 
-    let shippingMark = '';
-
-    // Helper: verify a candidate SM is not already assigned to any user
-    const isUnique = async (candidate) => {
-      const existing = await base44.asServiceRole.entities.User.filter({ shipping_mark: candidate }, '-updated_date', 1);
-      return !existing?.length;
-    };
-
-    // Try pool first
-    const availableCodes = await base44.asServiceRole.entities.ShippingMarkCode.filter({ status: 'available' }, 'created_date', 5);
-    for (const pooledCode of (availableCodes || [])) {
-      const candidate = String(pooledCode.code).trim().toUpperCase();
-      if (await isUnique(candidate)) {
-        shippingMark = candidate;
-        await base44.asServiceRole.entities.ShippingMarkCode.update(pooledCode.id, {
-          status: 'assigned',
-          assigned_to_email: targetUser.email || '',
-          assigned_date: new Date().toISOString()
-        });
-        break;
-      } else {
-        // Mark pool code as used/conflicted so it's not reused
-        await base44.asServiceRole.entities.ShippingMarkCode.update(pooledCode.id, {
-          status: 'assigned',
-          assigned_to_email: 'CONFLICTO-DUPLICADO',
-          assigned_date: new Date().toISOString()
-        });
-      }
+    // Reservar número secuencial global con optimistic locking (evita duplicados en registros simultáneos)
+    const nextNumber = await reserveNextNumber(base44);
+    if (!nextNumber) {
+      return Response.json({ error: 'No se pudo reservar un número de Shipping Mark tras varios intentos (concurrencia).' }, { status: 500 });
     }
 
-    // If pool didn't yield a unique code, generate random
-    if (!shippingMark) {
-      let attempts = 0;
-      while (attempts < 20) {
-        const candidate = `${prefix}${getRandomPart(chars, length)}`;
-        if (await isUnique(candidate)) {
-          shippingMark = candidate;
-          break;
-        }
-        attempts += 1;
-      }
-    }
-
-    if (!shippingMark) {
-      return Response.json({ error: 'No se pudo generar un Shipping Mark único' }, { status: 500 });
-    }
+    const shippingMark = `${stateCodeExternal}-TLEC-${nextNumber}`;
 
     await base44.asServiceRole.entities.User.update(targetUser.id, { shipping_mark: shippingMark });
 
+    // Actualizar paquetes existentes del cliente que no tengan shipping mark
     if (targetUser.email) {
       const packages = await base44.asServiceRole.entities.Package.filter({ client_email: targetUser.email }, '-updated_date', 200);
       const packagesToUpdate = (packages || []).filter((pkg) => !pkg.shipping_mark);
@@ -223,8 +237,8 @@ Deno.serve(async (req) => {
 
     await notifyShippingMarkAssigned(base44, targetUser, shippingMark);
 
-    return Response.json({ success: true, shipping_mark: shippingMark, assigned: true });
+    return Response.json({ success: true, shipping_mark: shippingMark, assigned: true, sequence_number: nextNumber, state_code_external: stateCodeExternal });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
-});
+}
