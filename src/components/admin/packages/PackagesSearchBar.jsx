@@ -72,6 +72,7 @@ export default function PackagesSearchBar({
       <div className="flex flex-wrap gap-1.5">
         {STATUS_TABS.map((tab) => {
           const active = statusFilter === tab.value;
+          const countsLoading = !globalCounts;
           const count = globalCounts?.[tab.countKey] ?? 0;
           return (
             <button
@@ -83,7 +84,10 @@ export default function PackagesSearchBar({
                   : 'bg-muted text-muted-foreground hover:bg-accent'
               }`}
             >
-              {tab.label} ({count})
+              {tab.label}{' '}
+              ({countsLoading
+                ? <Loader2 className="inline h-3 w-3 animate-spin" />
+                : count})
             </button>
           );
         })}

@@ -1,12 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Cache en memoria para conteos globales (no dependen de los filtros del usuario).
-// Evita recalcular ~350k registros cada vez que el admin cambia un filtro.
-const COUNTS_TTL_MS = 10 * 60 * 1000; // 10 min — los conteos globales son aproximados, no en tiempo real
-let _countsCache = { at: 0, counts: null };
-let _countsInFlight = false; // evita lanzar varios escaneos simultáneos
-
-// Lista paquetes para AdminPackages con paginación, filtros y conteos server-side
+// Lista paquetes para AdminPackages con paginación y filtros.
+// Los conteos globales se mantienen incrementalmente vía la entidad PackageCounts
+// (workflow "Conteos de Paquetes - Incremental" + recuento nocturno).
+// Esta función ya NO escanea ni devuelve conteos — solo la lista paginada.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -22,7 +19,6 @@ Deno.serve(async (req) => {
       statusFilter = 'all',
       reportedFilter = 'all',
       advancedFilters = null,
-      includeCounts = true,
     } = body || {};
 
     const pageLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
@@ -111,55 +107,9 @@ Deno.serve(async (req) => {
       ? { $and: [query, ...andClauses] }
       : query;
 
-    // === Página + conteos globales en paralelo ===
-    // OPTIMIZACIÓN: Ya no se descargan todos los registros para contarlos.
-    // Se pide pageLimit+1: si llegan más, hay siguiente página (hasMore).
-    // El total exacto solo se devuelve cuando no hay filtros (usa counts.total).
-    const fetchGlobalCounts = async () => {
-      const now = Date.now();
-      const staleThreshold = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const acc = { total: 0, pre_alerta_no_recibido: 0, recibido: 0, consolidado: 0, en_transito: 0, entregado: 0, stale: 0 };
-      const B = 1000;
-      let s = 0;
-      while (true) {
-        const batch = await base44.asServiceRole.entities.Package.list('-created_date', B, s);
-        if (!batch || batch.length === 0) break;
-        for (const p of batch) {
-          acc.total++;
-          const st = p?.status;
-          if (st === 'recibido') acc.recibido++;
-          else if (st === 'consolidado') acc.consolidado++;
-          else if (st === 'en_transito') acc.en_transito++;
-          else if (st === 'entregado') acc.entregado++;
-          else if (st === 'pre_alerta') {
-            if (!p.received_date) acc.pre_alerta_no_recibido++;
-            if (p.created_date && p.created_date <= staleThreshold) acc.stale++;
-          }
-        }
-        if (batch.length < B) break;
-        s += B;
-        if (s > 50000) break; // safety cap
-      }
-      _countsCache = { at: now, counts: acc };
-      return acc;
-    }
-
     // created_date es un campo built-in que NO soporta $gte/$lte en el SDK.
     // Cuando hay filtro de fechas, hay que fetch en lotes iterativos y filtrar en JS.
     const hasDateFilter = advancedFilters && (advancedFilters.dateFrom || advancedFilters.dateTo);
-
-    // Los conteos globales recorren toda la tabla, así que NUNCA bloquean la
-    // respuesta: si hay copia fresca se devuelve, y si no se recalcula en
-    // segundo plano para que la siguiente carga ya la tenga.
-    const cachedCounts = (_countsCache.counts && (Date.now() - _countsCache.at) < COUNTS_TTL_MS)
-      ? _countsCache.counts
-      : null;
-    if (includeCounts && !cachedCounts && !_countsInFlight) {
-      _countsInFlight = true;
-      fetchGlobalCounts()
-        .catch(() => {})
-        .finally(() => { _countsInFlight = false; });
-    }
 
     let data;
     let hasMore;
@@ -204,12 +154,8 @@ Deno.serve(async (req) => {
       data = hasMore ? rawData.slice(0, pageLimit) : rawData;
     }
 
-    const counts = includeCounts ? cachedCounts : null;
-
-    // Total exacto solo cuando no hay filtros (usa counts.total del cache global).
-    // Con filtros, devolvemos null — la UI muestra el conteo cargado en su lugar.
-    const hasActiveFilter = !!(q && String(q).trim()) || statusFilter !== 'all' || reportedFilter !== 'all' || (advancedFilters && Object.keys(advancedFilters).length > 0);
-    const total = (!hasActiveFilter && counts) ? counts.total : null;
+    // Los conteos globales ya no se calculan aquí (se mantienen vía PackageCounts).
+    const total = null;
 
     // === Enriquecer con datos del cliente (whatsapp, nombre) ===
     // Lookup batched por email para mostrar botón de contacto WhatsApp
@@ -231,7 +177,7 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* no bloquear listado por error de lookup */ }
 
-    return Response.json({ data, total, skip: pageSkip, limit: pageLimit, hasMore, counts });
+    return Response.json({ data, total, skip: pageSkip, limit: pageLimit, hasMore });
   } catch (error) {
     console.error('listPackagesForSupport error:', error);
     return Response.json({ error: error.message || 'Internal error' }, { status: 500 });

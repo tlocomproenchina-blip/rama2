@@ -1,0 +1,46 @@
+{
+  "name": "Conteos de Paquetes - Incremental",
+  "description": "Ajusta incrementalmente los conteos globales de paquetes al crear, editar o eliminar un paquete, sin escaneo.",
+  "trigger": {
+    "condition": "${ .trigger.event_type != \"update\" or (.trigger.changed_fields | index(\"status\") != null) }",
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "entity_name": "Package"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "conteos_paquetes_incremental",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "adjust_counts": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "adjustPackageCounts",
+            "args": {
+              "event_type": "${ .trigger.event_type }",
+              "status": "${ .trigger.data.status }",
+              "old_status": "${ .trigger.old_data.status }",
+              "received_date": "${ .trigger.data.received_date }",
+              "old_received_date": "${ .trigger.old_data.received_date }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Ajustar conteos",
+            "description": "Incremental sin escaneo"
+          }
+        }
+      }
+    ]
+  }
+}

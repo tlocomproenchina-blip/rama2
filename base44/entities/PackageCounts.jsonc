@@ -1,0 +1,81 @@
+{
+  "name": "PackageCounts",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica del registro de conteos (siempre 'main' para el registro \u00fanico global)"
+    },
+    "total": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de paquetes en el sistema"
+    },
+    "pre_alerta_no_recibido": {
+      "type": "number",
+      "default": 0,
+      "description": "Paquetes en pre_alerta sin received_date"
+    },
+    "recibido": {
+      "type": "number",
+      "default": 0,
+      "description": "Paquetes con status recibido"
+    },
+    "consolidado": {
+      "type": "number",
+      "default": 0,
+      "description": "Paquetes con status consolidado"
+    },
+    "en_transito": {
+      "type": "number",
+      "default": 0,
+      "description": "Paquetes con status en_transito"
+    },
+    "entregado": {
+      "type": "number",
+      "default": 0,
+      "description": "Paquetes con status entregado"
+    },
+    "stale": {
+      "type": "number",
+      "default": 0,
+      "description": "Paquetes en pre_alerta con m\u00e1s de 7 d\u00edas (calculado en el recuento nocturno)"
+    },
+    "last_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima vez que se ajust\u00f3 incrementalmente"
+    },
+    "last_recount_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima vez que se hizo recuento completo (backfill o nocturno)"
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

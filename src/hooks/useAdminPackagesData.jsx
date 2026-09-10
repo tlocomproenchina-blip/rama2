@@ -38,19 +38,16 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
         statusFilter,
         reportedFilter,
         advancedFilters,
-        includeCounts: !append,
       });
       // Ignorar respuestas obsoletas (llegó una búsqueda más reciente)
       if (seq !== reqSeqRef.current) return;
       const pkgs = res?.data?.data || [];
       const total = res?.data?.total || 0;
-      const counts = res?.data?.counts;
       if (append) {
         setPackages(prev => [...prev, ...pkgs]);
       } else {
         setPackages(pkgs);
         setTotalFiltered(total);
-        if (counts) setGlobalCounts(counts);
       }
       setHasMore(res?.data?.hasMore || false);
     } catch (e) {
@@ -61,10 +58,26 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
     if (append) setLoadingMore(false); else setLoading(false);
   }, [debouncedSearch, statusFilter, reportedFilter, advancedFilters, pageSize]);
 
+  // Cargar conteos globales (registro único PackageCounts, sin escaneo)
+  const loadCounts = useCallback(async () => {
+    try {
+      const res = await base44.functions.invoke('getPackageCounts', {});
+      const counts = res?.data?.counts;
+      if (counts) setGlobalCounts(counts);
+    } catch (e) {
+      console.error('Error loading package counts:', e);
+    }
+  }, []);
+
   // Recargar cuando cambien filtros o búsqueda
   useEffect(() => {
     loadPackages(false);
   }, [loadPackages]);
+
+  // Cargar conteos globales una sola vez al montar
+  useEffect(() => {
+    loadCounts();
+  }, [loadCounts]);
 
   const resetFilters = () => {
     setAdvancedFilters(null);

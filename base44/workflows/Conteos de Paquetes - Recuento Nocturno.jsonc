@@ -1,0 +1,45 @@
+{
+  "name": "Conteos de Paquetes - Recuento Nocturno",
+  "description": "Recalcula todos los conteos de paquetes desde cero cada noche (~3am Caracas) para corregir drift de eventos perdidos.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 7 * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "conteos_paquetes_recuento_nocturno",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "recount": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "recountPackages",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Recuento completo",
+            "description": "Corrige drift acumulado"
+          }
+        }
+      }
+    ]
+  }
+}
