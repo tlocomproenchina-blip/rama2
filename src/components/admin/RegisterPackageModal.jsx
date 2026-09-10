@@ -33,6 +33,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [fechaRegistro, setFechaRegistro] = useState(nowLocalInput());
   const [warehouses, setWarehouses] = useState([]);
   const [orphanWarehouseId, setOrphanWarehouseId] = useState('');
+  const [progress, setProgress] = useState(null); // { done, total }
 
   useEffect(() => {
     (async () => {
@@ -174,14 +175,35 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       }
     }
 
-    // Check all trackings first and collect results locally to avoid stale state
+    // Usar los datos ya validados durante el input (cacheados en existingPackagesByTracking
+    // y trackingStatusByCode). Solo re-validar trackings cuyo estado aún sea 'checking' o vacío.
+    const alreadyReceivedStatuses = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'];
     const resultsByTracking = {};
+    const toRevalidate = [];
     for (const tracking of cleanedTrackingNumbers) {
-      resultsByTracking[tracking] = await checkTrackingDuplicate(tracking);
+      const cachedPkg = existingPackagesByTracking[tracking];
+      const cachedStatus = trackingStatusByCode[tracking];
+      if (cachedPkg) {
+        resultsByTracking[tracking] = { state: cachedStatus?.state || 'exists', pkg: cachedPkg };
+      } else if (cachedStatus?.state === 'not_found') {
+        resultsByTracking[tracking] = { state: 'not_found', pkg: null };
+      } else if (cachedStatus?.state === 'orphan_exists') {
+        resultsByTracking[tracking] = { state: 'orphan_exists', pkg: cachedPkg || null };
+      } else {
+        // Estado 'checking', 'error' o sin validar: re-validar
+        toRevalidate.push(tracking);
+      }
+    }
+    // Re-validar solo los pendientes, en paralelo
+    if (toRevalidate.length > 0) {
+      const revalidated = await Promise.all(
+        toRevalidate.map((t) => checkTrackingDuplicate(t))
+      );
+      toRevalidate.forEach((t, i) => {
+        resultsByTracking[t] = revalidated[i];
+      });
     }
 
-    // Procesar todos los trackings que existen (incluye los ya recibidos: solo actualizan imagen)
-    const alreadyReceivedStatuses = ['recibido', 'rechazado', 'consolidado', 'en_transito', 'disponible', 'entregado'];
     const existingTrackings = cleanedTrackingNumbers.filter((t) => !!resultsByTracking[t]?.pkg);
     const newTrackings = existingTrackings.filter((t) => {
       const pkg = resultsByTracking[t]?.pkg;
@@ -195,17 +217,34 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
 
     setSubmitting(true);
 
+    // Helper: ejecuta tareas con límite de concurrencia y actualiza el progreso
+    const CONCURRENCY = 6;
+    const totalToProcess = newTrackings.length + alreadyReceivedTrackings.length + new Set(orphanTrackings).size;
+    let doneCount = 0;
+    setProgress({ done: 0, total: totalToProcess });
+
+    const runWithConcurrency = async (tasks) => {
+      let idx = 0;
+      const workers = Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, async () => {
+        while (idx < tasks.length) {
+          const current = idx++;
+          await tasks[current]();
+          doneCount++;
+          setProgress({ done: doneCount, total: totalToProcess });
+        }
+      });
+      await Promise.all(workers);
+    };
+
     try {
       const processedPackages = [];
-      // Trackings nuevos: marcar como recibidos + actualizar imagen
-      for (const tracking of newTrackings) {
+
+      // Trackings nuevos: marcar como recibidos + actualizar imagen (en paralelo)
+      const newTasks = newTrackings.map((tracking) => async () => {
         const existingPackage = resultsByTracking[tracking]?.pkg || existingPackagesByTracking[tracking];
         const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
         const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
-        const uploadedUrls = [];
-        for (const f of files) {
-          uploadedUrls.push(await uploadImageNoCredits(f));
-        }
+        const uploadedUrls = await Promise.all(files.map((f) => uploadImageNoCredits(f)));
         const allUrls = [scannedPhotoUrl, ...uploadedUrls].filter(Boolean).slice(0, 3);
         const response = await base44.functions.invoke('processReceptionPhoto', {
           tracking_number: tracking,
@@ -215,16 +254,14 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           skip_email: true,
         });
         processedPackages.push(response?.data?.package || existingPackage);
-      }
-      // Trackings ya recibidos: solo actualizar imagen e info de la orden
-      for (const tracking of alreadyReceivedTrackings) {
+      });
+
+      // Trackings ya recibidos: solo actualizar imagen (en paralelo)
+      const alreadyReceivedTasks = alreadyReceivedTrackings.map((tracking) => async () => {
         const existingPackage = resultsByTracking[tracking]?.pkg || existingPackagesByTracking[tracking];
         const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
         const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
-        const uploadedUrls = [];
-        for (const f of files) {
-          uploadedUrls.push(await uploadImageNoCredits(f));
-        }
+        const uploadedUrls = await Promise.all(files.map((f) => uploadImageNoCredits(f)));
         const allUrls = [scannedPhotoUrl, ...uploadedUrls].filter(Boolean).slice(0, 3);
         if (allUrls.length > 0) {
           await base44.entities.Package.update(existingPackage.id, {
@@ -233,19 +270,16 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           });
         }
         processedPackages.push(existingPackage);
-      }
+      });
 
-      // Trackings no encontrados: registrar como huérfanos (deduplicados dentro del lote)
+      // Trackings no encontrados: registrar como huérfanos (deduplicados dentro del lote, en paralelo)
       const uniqueOrphanTrackings = [...new Set(orphanTrackings)];
       const orphanResults = [];
       let orphanDuplicates = 0;
-      for (const tracking of uniqueOrphanTrackings) {
+      const orphanTasks = uniqueOrphanTrackings.map((tracking) => async () => {
         const scannedPhotoUrl = scannedPhotoByTracking[tracking]?.url || null;
         const files = (imageFilesByTracking[tracking] || []).slice(0, 3);
-        const uploadedUrls = [];
-        for (const f of files) {
-          uploadedUrls.push(await uploadImageNoCredits(f));
-        }
+        const uploadedUrls = await Promise.all(files.map((f) => uploadImageNoCredits(f)));
         const allUrls = [scannedPhotoUrl, ...uploadedUrls].filter(Boolean).slice(0, 3);
         try {
           const { data } = await base44.functions.invoke('registerOrphanPackage', {
@@ -258,14 +292,16 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         } catch (e) {
           const status = e?.response?.status || e?.status;
           const msg = String(e?.message || '');
-          // 409 = duplicado detectado por el backend
           if (status === 409 || msg.includes('ya está registrado')) {
             orphanDuplicates++;
           } else {
             console.error('Error registrando huérfano', tracking, e);
           }
         }
-      }
+      });
+
+      // Ejecutar los tres grupos en paralelo con concurrencia controlada
+      await runWithConcurrency([...newTasks, ...alreadyReceivedTasks, ...orphanTasks]);
 
       // Crear CbmIngreso por orden si los campos están llenos (incluye todos los trackings existentes)
       if (hasOrder && hasCbm && existingTrackings.length > 0) {
@@ -313,6 +349,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       toast.error('No se pudo procesar la recepción');
     }
     setSubmitting(false);
+    setProgress(null);
   };
 
   return (
@@ -600,7 +637,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           </Button>
           <Button onClick={handleSubmit} disabled={submitting || trackingNumbers.every((item) => !item.trim())} className="bg-blue-600 hover:bg-blue-700">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Registrar Recepción
+            {submitting && progress ? `Procesando ${progress.done} de ${progress.total}` : 'Registrar Recepción'}
           </Button>
         </DialogFooter>
       </DialogContent>
