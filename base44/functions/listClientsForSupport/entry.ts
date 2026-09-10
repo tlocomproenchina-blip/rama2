@@ -226,7 +226,10 @@ Deno.serve(async (req) => {
     // Esto resuelve el problema "N+1 / recalcular siempre": cuando el admin
     // cambia filtros varias veces, no recargamos miles de paquetes en cada click.
     const now = Date.now();
-    const clientsValid = !forceRefresh && _cache.allClients && (now - _cache.at) < CACHE_TTL_MS;
+    // Cuando se calculan los conteos (stat cards), forzamos lectura fresca de
+    // clientes para que "Pendientes" refleje shipping marks recién asignados.
+    // La caché solo sirve para la lista paginada y los conteos de paquetes.
+    const clientsValid = !forceRefresh && !includeCounts && _cache.allClients && (now - _cache.at) < CACHE_TTL_MS;
 
     // Los conteos de paquetes solo hacen falta para los stat cards y para las
     // categorías "con/sin paquetes". El buscador (includeCounts: false) ya no
