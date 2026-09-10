@@ -350,57 +350,64 @@ export default function Layout({ children, currentPageName }) {
       });
       setShowProfile(false);
 
-      // 1. Asignar Shipping Mark PRIMERO y esperar la respuesta
-      const shippingMarkResponse = await base44.functions.invoke('generateShippingMark', {});
-      let assignedShippingMark = shippingMarkResponse?.data?.shipping_mark;
+      // Pasos secundarios (shipping mark, email, notificaciones): best-effort.
+      // Si fallan, el perfil ya quedó guardado; no relanzamos para que el
+      // cliente no vea "Error al verificar datos" tras un registro exitoso.
+      try {
+        // 1. Asignar Shipping Mark PRIMERO y esperar la respuesta
+        const shippingMarkResponse = await base44.functions.invoke('generateShippingMark', {});
+        let assignedShippingMark = shippingMarkResponse?.data?.shipping_mark;
 
-      // 2. Si por alguna razón no se asignó, esperar y releer del usuario para asegurar
-      if (!assignedShippingMark) {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        try {
-          const refreshed = await base44.auth.me();
-          assignedShippingMark = refreshed?.shipping_mark || null;
-        } catch (_) {}
-      }
+        // 2. Si por alguna razón no se asignó, esperar y releer del usuario para asegurar
+        if (!assignedShippingMark) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          try {
+            const refreshed = await base44.auth.me();
+            assignedShippingMark = refreshed?.shipping_mark || null;
+          } catch (_) {}
+        }
 
-      const updatedUser = {
-        ...user,
-        ...profileData,
-        profile_completed: true,
-        ...(assignedShippingMark ? { shipping_mark: assignedShippingMark } : {})
-      };
-      setUser(updatedUser);
+        const updatedUser = {
+          ...user,
+          ...profileData,
+          profile_completed: true,
+          ...(assignedShippingMark ? { shipping_mark: assignedShippingMark } : {})
+        };
+        setUser(updatedUser);
 
-      // Show onboarding tour for new users
-      setTimeout(() => setShowTour(true), 1500);
+        // Show onboarding tour for new users
+        setTimeout(() => setShowTour(true), 1500);
 
-      // 3. Enviar email de bienvenida SOLO si tenemos shipping mark asignado
-      if (assignedShippingMark) {
-        await sendTemplatedEmail({
-          to: user.email,
-          templateName: 'Base - Nuevo Cliente',
-          client: updatedUser,
-          extraData: { app_name: config?.app_name || 'TLEC CARGO' },
-          fallbackSubject: '¡Bienvenido a TLEC CARGO!',
-          fallbackBody: 'Hola {cliente_nombre}, tu cuenta ya está activa en TLEC CARGO.',
-          title: 'Bienvenido a TLEC CARGO',
-          message: 'Tu cuenta ya está activa y lista para usarse.',
-          type: 'system',
-          icon: 'check'
+        // 3. Enviar email de bienvenida SOLO si tenemos shipping mark asignado
+        if (assignedShippingMark) {
+          await sendTemplatedEmail({
+            to: user.email,
+            templateName: 'Base - Nuevo Cliente',
+            client: updatedUser,
+            extraData: { app_name: config?.app_name || 'TLEC CARGO' },
+            fallbackSubject: '¡Bienvenido a TLEC CARGO!',
+            fallbackBody: 'Hola {cliente_nombre}, tu cuenta ya está activa en TLEC CARGO.',
+            title: 'Bienvenido a TLEC CARGO',
+            message: 'Tu cuenta ya está activa y lista para usarse.',
+            type: 'system',
+            icon: 'check'
+          });
+        } else {
+          // Si no hay shipping mark, solo crear notificación in-app sin email
+          // El email se enviará automáticamente cuando se asigne el shipping mark vía notifyShippingMarkAssigned
+          console.warn('Shipping mark no asignado aún. Email de bienvenida pospuesto.');
+        }
+
+        notifyAdmins({
+          subject: '👤 Nuevo usuario registrado',
+          body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\n${assignedShippingMark ? `Shipping Mark asignado automáticamente: ${assignedShippingMark}` : 'Revisa el Shipping Mark según la configuración actual del sistema.'}`,
+          message: `${profileData.first_name} ${profileData.last_name} (${user.email}) completó su registro`,
+          type: 'general',
+          icon: 'alert'
         });
-      } else {
-        // Si no hay shipping mark, solo crear notificación in-app sin email
-        // El email se enviará automáticamente cuando se asigne el shipping mark vía notifyShippingMarkAssigned
-        console.warn('Shipping mark no asignado aún. Email de bienvenida pospuesto.');
+      } catch (secondaryError) {
+        console.error('Error en pasos secundarios post-registro (no crítico):', secondaryError);
       }
-
-      notifyAdmins({
-        subject: '👤 Nuevo usuario registrado',
-        body: `Un nuevo usuario ha completado su registro:\n\nNombre: ${profileData.first_name} ${profileData.last_name}\nCiudad: ${profileData.city}\nWhatsApp: ${profileData.whatsapp}\nEmail: ${user.email}\n\n${assignedShippingMark ? `Shipping Mark asignado automáticamente: ${assignedShippingMark}` : 'Revisa el Shipping Mark según la configuración actual del sistema.'}`,
-        message: `${profileData.first_name} ${profileData.last_name} (${user.email}) completó su registro`,
-        type: 'general',
-        icon: 'alert'
-      });
     } catch (error) {
       console.error('Error completing profile:', error);
       throw error;
