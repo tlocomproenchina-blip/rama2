@@ -173,7 +173,7 @@
       word-break: break-all;
     }
 
-    button:not([role="switch"]):not([role="checkbox"]),
+    button:not([role="switch"]):not([role="checkbox"]):not([role="radio"]),
     [role="button"],
     a[role="button"] {
       min-height: 44px;
