@@ -125,6 +125,49 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.User.delete(targetUser.id);
     results.userDeleted = true;
 
+    // 8) Best-effort: reajustar cursor de reporte TXT si el cliente borrado
+    //    era el "Último mark" guardado, para que el modal no muestre un cliente inexistente.
+    try {
+      const parseShippingMarkNumber = (mark) => {
+        if (!mark || typeof mark !== 'string') return null;
+        const match = mark.match(/TLEC-(\d+)\s*$/i);
+        return match ? parseInt(match[1], 10) : null;
+      };
+      const deletedMarkNumber = parseShippingMarkNumber(targetUser.shipping_mark);
+      if (deletedMarkNumber != null) {
+        const cursorRows = await base44.asServiceRole.entities.ClientReportCursor.filter({ config_key: 'main' }, '-updated_date', 1);
+        const cursor = cursorRows?.[0] || null;
+        if (cursor && (Number(cursor.last_shipping_mark_number) || 0) === deletedMarkNumber) {
+          // Buscar entre los usuarios restantes el shipping mark numérico más alto <= al borrado
+          const remaining = [];
+          let skip = 0;
+          while (true) {
+            const batch = await base44.asServiceRole.entities.User.filter({ role: 'user' }, '-created_date', 200, skip);
+            const list = Array.isArray(batch) ? batch : [];
+            remaining.push(...list);
+            if (list.length < 200) break;
+            skip += 200;
+            if (skip > 50000) break;
+          }
+          let bestNum = 0;
+          let bestMark = '';
+          for (const u of remaining) {
+            const num = parseShippingMarkNumber(u.shipping_mark);
+            if (num == null) continue;
+            if (num > deletedMarkNumber) continue;
+            if (num > bestNum) { bestNum = num; bestMark = u.shipping_mark || ''; }
+          }
+          await base44.asServiceRole.entities.ClientReportCursor.update(cursor.id, {
+            last_shipping_mark_number: bestNum,
+            last_shipping_mark_string: bestMark,
+          });
+          results.cursorRevalidated = true;
+        }
+      }
+    } catch (cursorError) {
+      console.error('deleteUserCascade: cursor revalidation failed (non-blocking):', cursorError);
+    }
+
     return Response.json({ success: true, email: targetEmail, results });
   } catch (error) {
     console.error('deleteUserCascade error:', error);
