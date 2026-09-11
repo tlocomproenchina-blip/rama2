@@ -19,12 +19,14 @@ import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
 import { ensureInvoicePaymentForPaidInvoice } from '@/lib/invoicePaymentSync';
+import StateFilter from '@/components/common/StateFilter';
 
 export default function AdminInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [stats, setStats] = useState({
@@ -648,9 +650,11 @@ export default function AdminInvoices({ user }) {
         (fromMs === null || invDate >= fromMs) &&
         (toMs === null || invDate <= toMs)
       );
-      return matchesSearch && matchesStatus && matchesDate;
+      const matchesState = stateFilter === 'all' ? true :
+        String(inv.client_state || '').trim().toLowerCase() === stateFilter;
+      return matchesSearch && matchesStatus && matchesDate && matchesState;
     });
-  }, [invoices, search, statusFilter, dateFrom, dateTo]);
+  }, [invoices, search, statusFilter, stateFilter, dateFrom, dateTo]);
 
   if (loading) {
     return (
@@ -796,15 +800,24 @@ export default function AdminInvoices({ user }) {
       </Card>
 
       {/* Filters */}
-      <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-        <TabsList>
-          <TabsTrigger value="all">Todas</TabsTrigger>
-          <TabsTrigger value="pendiente">Pendientes</TabsTrigger>
-          <TabsTrigger value="pagada">Pagadas</TabsTrigger>
-          <TabsTrigger value="vencida">Vencidas</TabsTrigger>
-          <TabsTrigger value="provider_unpaid">No pagadas al proveedor</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1">
+          <TabsList>
+            <TabsTrigger value="all">Todas</TabsTrigger>
+            <TabsTrigger value="pendiente">Pendientes</TabsTrigger>
+            <TabsTrigger value="pagada">Pagadas</TabsTrigger>
+            <TabsTrigger value="vencida">Vencidas</TabsTrigger>
+            <TabsTrigger value="provider_unpaid">No pagadas al proveedor</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <StateFilter
+          items={invoices}
+          extractState={(inv) => inv.client_state}
+          value={stateFilter}
+          onChange={setStateFilter}
+          className="w-full sm:w-56 shrink-0"
+        />
+      </div>
 
       {/* Bulk Actions Bar */}
       {selectedInvoices.length > 0 && (

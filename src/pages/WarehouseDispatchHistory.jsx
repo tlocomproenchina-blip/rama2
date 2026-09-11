@@ -10,6 +10,7 @@ import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
 import { buildTrackingToReceiptMap } from '@/lib/dispatchOrderGroups';
 import DispatchOrderEditModal from '@/components/warehouse/DispatchOrderEditModal';
 import { generateDispatchOrderPdf } from '@/lib/dispatchOrderPdf';
+import StateFilter from '@/components/common/StateFilter';
 
 export default function WarehouseDispatchHistory({ user }) {
   const [orders, setOrders] = useState([]);
@@ -30,6 +31,7 @@ export default function WarehouseDispatchHistory({ user }) {
   const [paidFilter, setPaidFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [stateFilter, setStateFilter] = useState('all');
   const [employees, setEmployees] = useState([]);
   const [showDuplicateReceipts, setShowDuplicateReceipts] = useState(false);
 
@@ -427,7 +429,11 @@ export default function WarehouseDispatchHistory({ user }) {
     ? byDate.filter((o) => duplicateReceiptOrderIds.has(o.id))
     : byDate;
 
-  const filtered = !q ? byDup : byDup.filter((o) =>
+  const byState = stateFilter === 'all'
+    ? byDup
+    : byDup.filter((o) => String(o.client_snapshot?.state || '').trim().toLowerCase() === stateFilter);
+
+  const filtered = !q ? byState : byState.filter((o) =>
     (o.order_number || '').toLowerCase().includes(q) ||
     (o.client_email || '').toLowerCase().includes(q) ||
     (o.client_name || '').toLowerCase().includes(q) ||
@@ -606,6 +612,12 @@ export default function WarehouseDispatchHistory({ user }) {
             <SelectItem value="unpaid">No pagadas</SelectItem>
           </SelectContent>
         </Select>
+        <StateFilter
+          items={orders}
+          extractState={(o) => o.client_snapshot?.state}
+          value={stateFilter}
+          onChange={setStateFilter}
+        />
         {canFilterByCreator && (
         <Select value={creatorFilter} onValueChange={setCreatorFilter}>
           <SelectTrigger className="w-full sm:w-48 shrink-0">
