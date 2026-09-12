@@ -20,21 +20,62 @@ Deno.serve(async (req) => {
       : [];
     const allPhotoUrls = photoUrls.length ? photoUrls : (photoUrl ? [photoUrl] : []);
 
-    // Intenta coincidencia exacta; si falla, prueba removiendo dígitos del final
-    // (sub-tracking: master + sufijo numérico, ej. S71332762881001 → S71332762881)
-    const removalOrder = [0, 3, 2, 4, 1, 5, 6];
     let pkg: any = null;
     let resolvedTracking = tracking;
-    for (const remove of removalOrder) {
-      const candidate = remove === 0 ? tracking : (tracking.length - remove >= 5 ? tracking.slice(0, tracking.length - remove) : null);
-      if (!candidate) continue;
-      const matches = await base44.asServiceRole.entities.Package.filter({ tracking_number: candidate });
-      if (matches?.[0]) {
-        pkg = matches[0];
-        resolvedTracking = candidate;
-        break;
+    let autoCreatedFromLabel = false;
+
+    // 1) Buscar por label_code (código de etiqueta TLEC) — coincidencia exacta
+    const labelPkgMatches = await base44.asServiceRole.entities.Package.filter({ label_code: tracking });
+    if (labelPkgMatches?.[0]) {
+      pkg = labelPkgMatches[0];
+    }
+
+    // 2) Si no se encuentra por label_code, buscar por tracking_number
+    //    (coincidencia exacta; si falla, prueba removiendo dígitos del final
+    //     para sub-tracking: master + sufijo numérico, ej. S71332762881001 → S71332762881)
+    if (!pkg) {
+      const removalOrder = [0, 3, 2, 4, 1, 5, 6];
+      for (const remove of removalOrder) {
+        const candidate = remove === 0 ? tracking : (tracking.length - remove >= 5 ? tracking.slice(0, tracking.length - remove) : null);
+        if (!candidate) continue;
+        const matches = await base44.asServiceRole.entities.Package.filter({ tracking_number: candidate });
+        if (matches?.[0]) {
+          pkg = matches[0];
+          resolvedTracking = candidate;
+          break;
+        }
       }
     }
+
+    // 3) Si no se encuentra en Package, buscar en ShippingLabel y auto-crear pre-alerta
+    if (!pkg) {
+      const labels = await base44.asServiceRole.entities.ShippingLabel.filter({ label_code: tracking }, '-created_date', 1);
+      const label = labels?.[0];
+      if (label) {
+        // Auto-crear pre-alerta desde los datos de la etiqueta (sin tracking del transportista aún)
+        pkg = await base44.asServiceRole.entities.Package.create({
+          tracking_number: '',
+          client_email: label.client_email,
+          shipping_mark: label.shipping_mark,
+          label_code: label.label_code,
+          shipping_type: 'maritimo',
+          risk_category: (label.has_battery || label.has_liquid || label.has_powder || label.has_fbrand) ? 'alto_riesgo' : 'general',
+          package_count: label.box_count || 1,
+          description: label.content || 'Etiqueta TLEC',
+          status: 'pre_alerta',
+          is_orphan: false,
+        });
+        // Marcar etiqueta como vinculada
+        try {
+          await base44.asServiceRole.entities.ShippingLabel.update(label.id, {
+            status: 'vinculada',
+            linked_package_id: pkg.id
+          });
+        } catch (_) {}
+        autoCreatedFromLabel = true;
+      }
+    }
+
     if (!pkg) {
       return Response.json({ error: 'Paquete no encontrado en el sistema', not_found: true }, { status: 404 });
     }
@@ -107,6 +148,7 @@ Deno.serve(async (req) => {
         already_dispatched: previousStatus === 'despachado',
         is_received: previousStatus !== 'pre_alerta',
         auto_received: false,
+        auto_created_from_label: autoCreatedFromLabel,
         previous_status: previousStatus,
         package: {
           id: pkg.id,

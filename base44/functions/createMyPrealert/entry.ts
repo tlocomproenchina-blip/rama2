@@ -18,6 +18,22 @@ Deno.serve(async (req) => {
     if (!tracking) return Response.json({ error: 'Tracking requerido' }, { status: 400 });
     if (!description) return Response.json({ error: 'Descripción requerida' }, { status: 400 });
 
+    const labelCode = String(body.label_code || '').trim();
+
+    // Helper: marcar la etiqueta como vinculada al paquete
+    const linkLabel = async (pkgId) => {
+      if (!labelCode) return;
+      try {
+        const labels = await base44.asServiceRole.entities.ShippingLabel.filter({ label_code: labelCode, client_email: user.email }, '-created_date', 1);
+        if (labels?.[0]) {
+          await base44.asServiceRole.entities.ShippingLabel.update(labels[0].id, {
+            status: 'vinculada',
+            linked_package_id: pkgId
+          });
+        }
+      } catch (_) {}
+    };
+
     // 1) Reclamo automático: si existe un huérfano con el mismo tracking, reclamarlo
     const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
     const orphan = existing.find((p) => p.is_orphan);
@@ -39,7 +55,9 @@ Deno.serve(async (req) => {
         invoice_url: body.invoice_url || null,
         product_image_url: body.product_image_url || null,
         reported: true,
+        ...(labelCode ? { label_code: labelCode } : {}),
       });
+      await linkLabel(claimed.id);
       return Response.json({ package: claimed, claimed_orphan: true });
     }
 
@@ -48,6 +66,31 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Este número de tracking ya ha sido registrado' }, { status: 409 });
     }
 
+    // 3) Si hay label_code, buscar si el almacén ya creó un paquete con ese código (auto-pre-alerta)
+    if (labelCode) {
+      const labelMatches = await base44.asServiceRole.entities.Package.filter({ label_code: labelCode }, '-created_date', 1);
+      const autoPkg = labelMatches?.[0];
+      if (autoPkg) {
+        // El almacén escaneó la etiqueta antes de que el cliente creara la pre-alerta
+        const updated = await base44.asServiceRole.entities.Package.update(autoPkg.id, {
+          tracking_number: tracking,
+          shipping_company: shippingCompany,
+          shipping_type: body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo',
+          risk_category: body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general',
+          package_count: Number(body.package_count) || 1,
+          description,
+          has_insurance: !!body.has_insurance,
+          fob_value: parseFloat(body.fob_value) || 0,
+          invoice_url: body.invoice_url || null,
+          product_image_url: body.product_image_url || null,
+          reported: true,
+        });
+        await linkLabel(updated.id);
+        return Response.json({ package: updated, linked_from_label: true });
+      }
+    }
+
+    // 4) Crear paquete nuevo
     const newPackage = await base44.asServiceRole.entities.Package.create({
       tracking_number: tracking,
       shipping_company: shippingCompany,
@@ -61,9 +104,10 @@ Deno.serve(async (req) => {
       fob_value: parseFloat(body.fob_value) || 0,
       invoice_url: body.invoice_url || null,
       product_image_url: body.product_image_url || null,
-      status: 'pre_alerta'
+      status: 'pre_alerta',
+      ...(labelCode ? { label_code: labelCode } : {}),
     });
-
+    await linkLabel(newPackage.id);
     return Response.json({ package: newPackage });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

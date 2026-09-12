@@ -1,0 +1,121 @@
+{
+  "name": "ShippingLabel",
+  "type": "object",
+  "properties": {
+    "label_code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico de la etiqueta (shipping_mark + sufijo -L##). Act\u00faa como identificador escaneable en el almac\u00e9n."
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente que gener\u00f3 la etiqueta"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark del cliente al momento de generar la etiqueta"
+    },
+    "suffix_number": {
+      "type": "number",
+      "default": 1,
+      "description": "N\u00famero de sufijo incremental por cliente (1, 2, 3...)"
+    },
+    "content": {
+      "type": "string",
+      "description": "Contenido declarado en la etiqueta"
+    },
+    "dimensions": {
+      "type": "string",
+      "description": "Dimensiones declaradas (ej: 40x30x20 cm)"
+    },
+    "weight": {
+      "type": "string",
+      "description": "Peso declarado (ej: 5 kg)"
+    },
+    "has_fbrand": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfContiene F\u724c (Replica)?"
+    },
+    "has_battery": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfContiene \u5e26\u7535 (Bater\u00eda)?"
+    },
+    "has_liquid": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfContiene \u6db2\u4f53 (L\u00edquido)?"
+    },
+    "has_powder": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfContiene \u7c89\u672b (Polvo)?"
+    },
+    "box_count": {
+      "type": "number",
+      "default": 1,
+      "description": "N\u00famero de cajas declarado"
+    },
+    "linked_package_id": {
+      "type": "string",
+      "description": "ID del Package vinculado al crear la pre-alerta"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "disponible",
+        "vinculada"
+      ],
+      "default": "disponible",
+      "description": "disponible = sin pre-alerta vinculada; vinculada = ya tiene un Package asociado"
+    }
+  },
+  "required": [
+    "label_code",
+    "client_email",
+    "shipping_mark"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

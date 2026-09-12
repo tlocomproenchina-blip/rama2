@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Package,
   Plane,
@@ -20,7 +21,8 @@ import {
   AlertCircle,
   Loader2,
   ArrowLeft,
-  Clock
+  Clock,
+  Tag
 } from 'lucide-react';
 import InsurancePaymentModal from '@/components/client-portal/InsurancePaymentModal';
 import { toast } from 'sonner';
@@ -51,10 +53,27 @@ export default function PreAlert({ user }) {
   const [uploadsDisabled, setUploadsDisabled] = useState(false);
   const [showInsuranceModal, setShowInsuranceModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState(null);
+  const [shippingLabels, setShippingLabels] = useState([]);
+  const [selectedLabelCode, setSelectedLabelCode] = useState('');
 
   useEffect(() => {
     loadConfig();
-  }, []);
+    loadShippingLabels();
+  }, [user]);
+
+  const loadShippingLabels = async () => {
+    if (!user?.email) return;
+    try {
+      const labels = await base44.entities.ShippingLabel.filter(
+        { client_email: user.email, status: 'disponible' },
+        '-created_date',
+        50
+      );
+      setShippingLabels(labels || []);
+    } catch (e) {
+      console.error('Error loading labels:', e);
+    }
+  };
 
   const loadConfig = async () => {
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' });
@@ -214,7 +233,8 @@ export default function PreAlert({ user }) {
           description: formData.description,
           fob_value: parseFloat(formData.fob_value),
           invoice_url: invoiceUrl,
-          product_image_url: productPhotoUrl
+          product_image_url: productPhotoUrl,
+          label_code: selectedLabelCode || undefined
         });
         setShowInsuranceModal(true);
         setSaving(false);
@@ -232,7 +252,8 @@ export default function PreAlert({ user }) {
         has_insurance: formData.has_insurance,
         fob_value: parseFloat(formData.fob_value),
         invoice_url: invoiceUrl,
-        product_image_url: productPhotoUrl
+        product_image_url: productPhotoUrl,
+        label_code: selectedLabelCode || undefined
       });
       const newPackage = createRes.package;
 
@@ -364,6 +385,38 @@ export default function PreAlert({ user }) {
       <form onSubmit={handleSubmit}>
         <Card className="border-border/70 bg-card/95 shadow-card">
           <CardContent className="p-6 space-y-6">
+            {/* Selector de etiqueta TLEC previa */}
+            {shippingLabels.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-slate-700 font-medium flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-amber-600" />
+                  Etiqueta TLEC generada (opcional)
+                </Label>
+                <Select value={selectedLabelCode || 'none'} onValueChange={(v) => {
+                  setSelectedLabelCode(v === 'none' ? '' : v);
+                  if (v !== 'none') {
+                    const label = shippingLabels.find((l) => l.label_code === v);
+                    if (label?.content && !formData.description) {
+                      setFormData(prev => ({ ...prev, description: label.content }));
+                    }
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin etiqueta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin etiqueta</SelectItem>
+                    {shippingLabels.map((label) => (
+                      <SelectItem key={label.id} value={label.label_code}>
+                        {label.label_code} — {label.content || 'Sin contenido'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">Si generaste una etiqueta con código de barras, selecciónala aquí para vincularla y evitar paquetes duplicados al escanear.</p>
+              </div>
+            )}
+
             {/* Empresa de envío */}
             <div className="space-y-2">
               <Label htmlFor="shipping_company" className="text-slate-700 font-medium">

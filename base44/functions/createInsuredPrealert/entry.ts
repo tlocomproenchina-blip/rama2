@@ -25,6 +25,22 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'El monto del seguro debe ser mayor a 0' }, { status: 400 });
     }
 
+    const labelCode = String(body.label_code || '').trim();
+
+    // Helper: marcar la etiqueta como vinculada al paquete
+    const linkLabel = async (pkgId) => {
+      if (!labelCode) return;
+      try {
+        const labels = await base44.asServiceRole.entities.ShippingLabel.filter({ label_code: labelCode, client_email: user.email }, '-created_date', 1);
+        if (labels?.[0]) {
+          await base44.asServiceRole.entities.ShippingLabel.update(labels[0].id, {
+            status: 'vinculada',
+            linked_package_id: pkgId
+          });
+        }
+      } catch (_) {}
+    };
+
     // 1) Reclamo automático: si existe un huérfano con el mismo tracking, reclamarlo
     const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
     const orphan = existing.find((p) => p.is_orphan);
@@ -48,9 +64,49 @@ export default async function(req: Request): Promise<Response> {
         invoice_url: body.invoice_url || null,
         product_image_url: body.product_image_url || null,
         reported: true,
+        ...(labelCode ? { label_code: labelCode } : {}),
       });
+      await linkLabel(pkgRecord.id);
     } else if (existing.length > 0) {
       return Response.json({ error: 'Este número de tracking ya ha sido registrado' }, { status: 409 });
+    } else if (labelCode) {
+      // 2) Buscar si el almacén ya creó un paquete con ese label_code (auto-pre-alerta)
+      const labelMatches = await base44.asServiceRole.entities.Package.filter({ label_code: labelCode }, '-created_date', 1);
+      const autoPkg = labelMatches?.[0];
+      if (autoPkg) {
+        pkgRecord = await base44.asServiceRole.entities.Package.update(autoPkg.id, {
+          tracking_number: tracking,
+          shipping_company: shippingCompany,
+          shipping_type: body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo',
+          risk_category: body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general',
+          package_count: Number(body.package_count) || 1,
+          description,
+          has_insurance: false,
+          fob_value: fobValue,
+          invoice_url: body.invoice_url || null,
+          product_image_url: body.product_image_url || null,
+          reported: true,
+        });
+        await linkLabel(pkgRecord.id);
+      } else {
+        pkgRecord = await base44.asServiceRole.entities.Package.create({
+          tracking_number: tracking,
+          shipping_company: shippingCompany,
+          client_email: user.email,
+          shipping_mark: user.shipping_mark,
+          shipping_type: body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo',
+          risk_category: body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general',
+          package_count: Number(body.package_count) || 1,
+          description,
+          has_insurance: false,
+          fob_value: fobValue,
+          invoice_url: body.invoice_url || null,
+          product_image_url: body.product_image_url || null,
+          status: 'pre_alerta',
+          ...(labelCode ? { label_code: labelCode } : {}),
+        });
+        await linkLabel(pkgRecord.id);
+      }
     } else {
       pkgRecord = await base44.asServiceRole.entities.Package.create({
         tracking_number: tracking,

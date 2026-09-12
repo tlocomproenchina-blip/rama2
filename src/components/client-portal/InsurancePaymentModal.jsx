@@ -132,7 +132,8 @@ export default function InsurancePaymentModal({
           insurance_percentage: insurancePercentage,
           insurance_amount: insuranceAmount,
           payment_method: paymentMethod,
-          proof_url: proofUrl
+          proof_url: proofUrl,
+          label_code: formData.label_code || undefined
         });
         toast.success('Pre-alerta creada con seguro. El pago está pendiente de validación.');
         onPaid(data?.package, data?.insurance_payment);
