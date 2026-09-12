@@ -80,6 +80,14 @@ export default function ShippingLabelGenerator({ user, config }) {
       toast.error('El contenido es requerido para generar la etiqueta');
       return;
     }
+    if (!form.weight.trim()) {
+      toast.error('El peso es requerido para generar la etiqueta');
+      return;
+    }
+    if (!form.boxCount || Number(form.boxCount) < 1) {
+      toast.error('El número de cajas es requerido para generar la etiqueta');
+      return;
+    }
     if (!shippingMark) {
       toast.error('Necesitas un Shipping Mark asignado para generar etiquetas');
       return;
