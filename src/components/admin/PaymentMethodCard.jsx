@@ -63,7 +63,7 @@ export default function PaymentMethodCard({
 }) {
   const styles = toneStyles[tone] || toneStyles.slate;
   const previewLines = [
-    ...(identityFields || []),
+    ...(identityFields || []).map((f) => f.value),
     identityValue,
     instructionsValue,
   ].filter(Boolean);
