@@ -8,6 +8,8 @@ import { Loader2, Check, Package, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import StripeCheckout from '@/components/payments/StripeCheckout';
 import PagoMovilBsDisplay from '@/components/payments/PagoMovilBsDisplay';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { normalizeStates } from '@/components/utils/states';
 
 const METHOD_LABELS = {
   stripe: { label: 'Tarjeta (Stripe)', icon: '💳' },
@@ -43,6 +45,9 @@ export default function QuoteFeePayment() {
   const [notes, setNotes] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
 
+  // States from AdminSettings (StateConfig)
+  const [states, setStates] = useState([]);
+
   // Payment state
   const [selectedMethod, setSelectedMethod] = useState('');
   const [paymentId, setPaymentId] = useState(null);
@@ -69,8 +74,18 @@ export default function QuoteFeePayment() {
     }
   }, []);
 
+  const loadStates = useCallback(async () => {
+    try {
+      const raw = await base44.entities.StateConfig.list('-state_name', 100);
+      setStates(normalizeStates(raw));
+    } catch (err) {
+      console.error('Error loading states:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadConfig();
+    loadStates();
 
     // Check PayPal return params
     const params = new URLSearchParams(window.location.search);
@@ -278,8 +293,17 @@ export default function QuoteFeePayment() {
               <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Apellido" className="mt-1" />
             </div>
             <div>
-              <Label className="text-xs text-gray-600">Ciudad de Despacho *</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ciudad" className="mt-1" />
+              <Label className="text-xs text-gray-600">Estado de Despacho *</Label>
+              <Select value={city} onValueChange={setCity}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Selecciona tu estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((s) => (
+                    <SelectItem key={s.state_code} value={s.state_name}>{s.state_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-xs text-gray-600">Número de Contacto (WhatsApp) *</Label>
