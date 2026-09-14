@@ -260,7 +260,12 @@ export default function QuoteFeePayment() {
                 </p>
               )}
               {success.quote_token && (
-                <a href={`/Quote/${success.quote_token}`} className="inline-block">
+                <a
+                  href={`${window.location.origin}/Quote/${success.quote_token}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
+                >
                   <Button style={{ backgroundColor: '#800080' }} className="text-white hover:opacity-90">
                     Ir a mi presupuesto
                   </Button>
