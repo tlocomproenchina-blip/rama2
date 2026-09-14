@@ -55,13 +55,18 @@ export default function PaymentMethodCard({
   identityValue,
   onIdentityChange,
   identityPlaceholder,
+  identityFields,
   instructionsValue,
   onInstructionsChange,
   instructionsPlaceholder,
   children,
 }) {
   const styles = toneStyles[tone] || toneStyles.slate;
-  const previewLines = [identityValue, instructionsValue].filter(Boolean);
+  const previewLines = [
+    ...(identityFields || []),
+    identityValue,
+    instructionsValue,
+  ].filter(Boolean);
 
   return (
     <Card className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
@@ -116,7 +121,21 @@ export default function PaymentMethodCard({
         {open && (
           <div className="mt-4 border-t border-slate-100 pt-4">
             <div className="grid gap-4">
-              {identityLabel && onIdentityChange && (
+              {identityFields && identityFields.length > 0 && (
+                identityFields.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label>{field.label}</Label>
+                    <Input
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      placeholder={field.placeholder}
+                      className="bg-white"
+                    />
+                  </div>
+                ))
+              )}
+
+              {identityLabel && onIdentityChange && !identityFields && (
                 <div className="space-y-2">
                   <Label>{identityLabel}</Label>
                   <Input

@@ -37,6 +37,17 @@ export default async function(req) {
       }
     }
 
+    // Pago Móvil: campos específicos (teléfono, banco, cédula) en lugar del wallet libre
+    if (enabledMethods.includes('pago_movil_usdt')) {
+      methodDetails.pago_movil_usdt = {
+        wallet: '',
+        instructions: config.pago_movil_usdt_instructions || '',
+        phone: config.pago_movil_phone || '',
+        bank: config.pago_movil_bank || '',
+        cedula: config.pago_movil_cedula || '',
+      };
+    }
+
     // Publishable key de Stripe si stripe está habilitado
     let stripePublishableKey = null;
     if (enabledMethods.includes('stripe')) {
@@ -56,6 +67,8 @@ export default async function(req) {
       stripe_publishable_key: stripePublishableKey,
       paypal_client_id: paypalClientId,
       app_name: config.app_name || 'TLEC CARGO',
+      bcv_eur_rate: Number(config.bcv_eur_rate) || 0,
+      bcv_eur_rate_date: config.bcv_eur_rate_date || null,
     });
   } catch (error) {
     return Response.json({ error: error.message || 'Error interno' }, { status: 500 });

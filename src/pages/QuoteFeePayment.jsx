@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Check, Package, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import StripeCheckout from '@/components/payments/StripeCheckout';
+import PagoMovilBsDisplay from '@/components/payments/PagoMovilBsDisplay';
 
 const METHOD_LABELS = {
   stripe: { label: 'Tarjeta (Stripe)', icon: '💳' },
@@ -340,7 +341,7 @@ export default function QuoteFeePayment() {
           </div>
 
           {/* Detalles del método manual seleccionado */}
-          {isManual && config?.method_details?.[selectedMethod] && (
+          {isManual && config?.method_details?.[selectedMethod] && selectedMethod !== 'pago_movil_usdt' && (
             <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4 text-sm">
               <p className="font-semibold text-gray-700 mb-2">Datos para el pago:</p>
               {config.method_details[selectedMethod].wallet && (
@@ -350,6 +351,26 @@ export default function QuoteFeePayment() {
               )}
               {config.method_details[selectedMethod].instructions && (
                 <p className="text-gray-500 mt-2 whitespace-pre-wrap">{config.method_details[selectedMethod].instructions}</p>
+              )}
+            </div>
+          )}
+
+          {/* Pago Móvil: 3 campos + monto en Bs */}
+          {isManual && selectedMethod === 'pago_movil_usdt' && config?.method_details?.pago_movil_usdt && (
+            <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4">
+              <p className="font-semibold text-gray-700 mb-3 text-sm">Datos para el pago:</p>
+              <PagoMovilBsDisplay
+                config={{
+                  pago_movil_phone: config.method_details.pago_movil_usdt.phone,
+                  pago_movil_bank: config.method_details.pago_movil_usdt.bank,
+                  pago_movil_cedula: config.method_details.pago_movil_usdt.cedula,
+                  bcv_eur_rate: config.bcv_eur_rate,
+                  bcv_eur_rate_date: config.bcv_eur_rate_date,
+                }}
+                amountUsd={config?.amount || 20}
+              />
+              {config.method_details.pago_movil_usdt.instructions && (
+                <p className="mt-3 text-gray-500 whitespace-pre-wrap text-sm">{config.method_details.pago_movil_usdt.instructions}</p>
               )}
             </div>
           )}

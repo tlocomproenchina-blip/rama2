@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Wallet, Copy, Upload, CheckCircle, Loader2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
+import PagoMovilBsDisplay from '@/components/payments/PagoMovilBsDisplay';
 
 export default function PaymentModal({ open, onClose, consolidation, onPaymentSubmitted }) {
   const [config, setConfig] = useState(null);
@@ -262,17 +263,17 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
           </div>
 
           <div className="space-y-2">
-            {paymentMethod !== 'stripe' && (
+            {paymentMethod !== 'stripe' && paymentMethod !== 'pago_movil_usdt' && (
               <>
                 <Label className="text-slate-700 font-medium">
-                  {['paypal', 'wally', 'zinli', 'wise', 'skrill', 'pago_movil_usdt'].includes(paymentMethod) 
-                    ? 'Datos de Pago' 
+                  {['paypal', 'wally', 'zinli', 'wise', 'skrill'].includes(paymentMethod)
+                    ? 'Datos de Pago'
                     : 'Dirección de Wallet'}
                 </Label>
                 <div className="flex gap-2">
-                  <Input 
-                    value={getWalletAddress() || 'No configurado'} 
-                    readOnly 
+                  <Input
+                    value={getWalletAddress() || 'No configurado'}
+                    readOnly
                     className="bg-slate-50 font-mono text-sm"
                   />
                   {getWalletAddress() && (
@@ -282,6 +283,9 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
                   )}
                 </div>
               </>
+            )}
+            {paymentMethod === 'pago_movil_usdt' && (
+              <PagoMovilBsDisplay config={config} amountUsd={effectiveTotal} />
             )}
           </div>
 

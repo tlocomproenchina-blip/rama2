@@ -399,10 +399,38 @@
       "type": "string"
     },
     "wallet_pago_movil_usdt": {
-      "type": "string"
+      "type": "string",
+      "description": "DEPRECATED: Campo libre reemplazado por pago_movil_phone, pago_movil_bank, pago_movil_cedula. Se mantiene por compatibilidad."
+    },
+    "pago_movil_phone": {
+      "type": "string",
+      "description": "N\u00famero de tel\u00e9fono para Pago M\u00f3vil (mostrado al cliente)"
+    },
+    "pago_movil_bank": {
+      "type": "string",
+      "description": "Banco para Pago M\u00f3vil (mostrado al cliente)"
+    },
+    "pago_movil_cedula": {
+      "type": "string",
+      "description": "C\u00e9dula para Pago M\u00f3vil (mostrado al cliente)"
     },
     "pago_movil_usdt_instructions": {
       "type": "string"
+    },
+    "bcv_eur_rate": {
+      "type": "number",
+      "default": 0,
+      "description": "Tasa de cambio EUR\u2192VES del BCV (1 EUR = X Bs). Sincronizada autom\u00e1ticamente 6 veces al d\u00eda."
+    },
+    "bcv_eur_rate_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha efectiva de la tasa BCV (publicada por el BCV)"
+    },
+    "bcv_eur_rate_last_sync": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la \u00faltima sincronizaci\u00f3n de la tasa BCV"
     },
     "wallet_zelle": {
       "type": "string"

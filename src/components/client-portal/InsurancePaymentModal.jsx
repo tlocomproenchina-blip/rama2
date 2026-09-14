@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Shield, Copy, Upload, CheckCircle, Loader2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
+import PagoMovilBsDisplay from '@/components/payments/PagoMovilBsDisplay';
 
 export default function InsurancePaymentModal({
   open,
@@ -198,10 +199,10 @@ export default function InsurancePaymentModal({
             </RadioGroup>
           </div>
 
-          {paymentMethod !== 'transferencia' && (
+          {paymentMethod !== 'transferencia' && paymentMethod !== 'pago_movil_usdt' && (
             <div className="space-y-2">
               <Label className="text-slate-700 font-medium">
-                {['paypal', 'wally', 'zinli', 'wise', 'skrill', 'pago_movil_usdt'].includes(paymentMethod)
+                {['paypal', 'wally', 'zinli', 'wise', 'skrill'].includes(paymentMethod)
                   ? 'Datos de Pago'
                   : 'Dirección de Wallet'}
               </Label>
@@ -218,6 +219,9 @@ export default function InsurancePaymentModal({
                 )}
               </div>
             </div>
+          )}
+          {paymentMethod === 'pago_movil_usdt' && (
+            <PagoMovilBsDisplay config={config} amountUsd={insuranceAmount} />
           )}
 
           {getInstructions() && (

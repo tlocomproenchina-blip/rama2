@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PaymentMethodCard from '@/components/admin/PaymentMethodCard';
+import BcvRateCard from '@/components/admin/BcvRateCard';
 import {
   ArrowRightLeft,
   Banknote,
@@ -156,13 +157,15 @@ const methodGroups = [
       {
         key: 'pago_movil',
         title: 'Pago Móvil → USDT',
-        description: 'Combina referencia local con instrucciones de conversión o validación.',
+        description: 'Datos para Pago Móvil. El cliente verá los 3 campos y el monto en Bolívares (Bs) usando la tasa BCV.',
         enabledKey: 'payments_enable_pago_movil_usdt',
         tone: 'blue',
         icon: Banknote,
-        identityKey: 'wallet_pago_movil_usdt',
-        identityLabel: 'Datos de pago',
-        identityPlaceholder: 'Teléfono o datos de conversión',
+        identityFields: [
+          { key: 'phone', label: 'Número de teléfono', valueKey: 'pago_movil_phone', placeholder: 'Ej: 0414-1234567' },
+          { key: 'bank', label: 'Banco', valueKey: 'pago_movil_bank', placeholder: 'Ej: Banco de Venezuela' },
+          { key: 'cedula', label: 'Cédula', valueKey: 'pago_movil_cedula', placeholder: 'Ej: V-12345678' },
+        ],
         instructionsKey: 'pago_movil_usdt_instructions',
         instructionsPlaceholder: 'Instrucciones para el cliente',
       },
@@ -211,6 +214,8 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
 
   return (
     <div className="space-y-6">
+      <BcvRateCard config={config} />
+
       <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
         <CardHeader className="pb-3 px-4 pt-4 md:pb-4 md:px-6 md:pt-6">
           <CardTitle className="flex items-center gap-2 text-xl">
@@ -309,6 +314,11 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
                 identityValue={config?.[method.identityKey]}
                 onIdentityChange={method.identityKey ? (value) => updateField(method.identityKey, value) : undefined}
                 identityPlaceholder={method.identityPlaceholder}
+                identityFields={method.identityFields ? method.identityFields.map((f) => ({
+                  ...f,
+                  value: config?.[f.valueKey],
+                  onChange: (value) => updateField(f.valueKey, value),
+                })) : undefined}
                 instructionsValue={config?.[method.instructionsKey]}
                 onInstructionsChange={method.instructionsKey ? (value) => updateField(method.instructionsKey, value) : undefined}
                 instructionsPlaceholder={method.instructionsPlaceholder}
