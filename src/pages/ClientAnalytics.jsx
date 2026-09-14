@@ -266,7 +266,16 @@ export default function ClientAnalytics() {
 
       {selectedClient && <ClientDispatchOrders orders={dispatchOrders} client={selectedClient} />}
 
-      {selectedClient && <ClientPackagesTable packages={packages} client={selectedClient} cbmIngresos={cbmIngresos} />}
+      {selectedClient && (
+        <ClientPackagesTable
+          packages={packages}
+          client={selectedClient}
+          cbmIngresos={cbmIngresos}
+          onPackageReceived={(pkgId, patch) => {
+            setPackages((prev) => prev.map((p) => p.id === pkgId ? { ...p, ...patch } : p));
+          }}
+        />
+      )}
 
       {selectedClient && analytics.shipmentCostHistory.length === 0 && !loading && (
         <Card className="border-0 shadow-md">

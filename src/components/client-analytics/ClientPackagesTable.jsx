@@ -4,11 +4,15 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Package, MessageCircle, FileSpreadsheet, ShieldCheck } from 'lucide-react';
+import { Search, Package, MessageCircle, FileSpreadsheet, ShieldCheck, CheckCircle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { exportSelectedToExcel } from '@/components/admin/packages/PackagesExports';
+import { base44 } from '@/components/api/ApiQueueManager';
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
+import { sendInAppNotification, sendNotification } from '@/components/NotificationUtils';
+import ReceivePackageInlineModal from '@/components/client-analytics/ReceivePackageInlineModal';
 
 const STATUS_TABS = [
   { key: 'all', label: 'Todos' },
@@ -22,10 +26,71 @@ const STATUS_TABS = [
 const fmt = (d) => (d ? format(new Date(d), 'dd/MM/yyyy HH:mm') : '—');
 const fmtShort = (d) => (d ? format(new Date(d), 'dd/MM/yyyy') : '—');
 
-export default function ClientPackagesTable({ packages, client, cbmIngresos = [] }) {
+export default function ClientPackagesTable({ packages, client, cbmIngresos = [], onPackageReceived }) {
   const [tab, setTab] = useState('all');
   const [q, setQ] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [receiveModal, setReceiveModal] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [processing, setProcessing] = useState(false);
+
+  const handleReceive = async (nextStatus = 'recibido') => {
+    if (!receiveModal) return;
+    setProcessing(true);
+    try {
+      let imageUrls = Array.isArray(receiveModal.package_image_urls) ? [...receiveModal.package_image_urls] : (receiveModal.package_image_url ? [receiveModal.package_image_url] : []);
+      if (imageFiles && imageFiles.length > 0) {
+        const uploaded = [];
+        for (const f of imageFiles.slice(0, 3)) {
+          const url = await uploadImageNoCredits(f);
+          uploaded.push(url);
+        }
+        imageUrls = uploaded;
+      }
+
+      const receivedDate = new Date().toISOString();
+      const patch = {
+        status: nextStatus,
+        package_image_urls: (imageUrls || []).slice(0, 3),
+        package_image_url: (imageUrls && imageUrls[0]) ? imageUrls[0] : null,
+        received_date: receivedDate,
+        received_by: client?.email || receiveModal?.received_by || 'admin',
+      };
+      await base44.entities.Package.update(receiveModal.id, patch);
+
+      // Notificaciones
+      if (nextStatus === 'rechazado') {
+        sendNotification({
+          to: receiveModal.client_email,
+          subject: '⛔ Tu paquete fue rechazado',
+          body: `Tu paquete con tracking ${receiveModal.tracking_number} fue recibido en nuestro almacén, pero fue rechazado y no podrá exportarse. Hemos guardado evidencia fotográfica de la recepción. Si deseas enviarlo a otra dirección, por favor comunícate con soporte para ayudarte con el proceso.`,
+          type: 'package',
+          icon: 'alert',
+          referenceId: receiveModal.id
+        });
+      } else {
+        sendInAppNotification({
+          user_email: receiveModal.client_email,
+          title: '📦 Tu paquete ha sido recibido',
+          message: `Tu paquete con tracking ${receiveModal.tracking_number} ha sido recibido en nuestro almacén.`,
+          type: 'package',
+          icon: 'check',
+          reference_id: receiveModal.id,
+          entity_type: 'Package',
+          priority: 'high'
+        });
+      }
+
+      toast.success(nextStatus === 'rechazado' ? 'Paquete marcado como rechazado' : 'Paquete marcado como recibido');
+      setReceiveModal(null);
+      setImageFiles([]);
+      onPackageReceived?.(receiveModal.id, patch);
+    } catch (error) {
+      console.error('Error receiving package:', error);
+      toast.error(error?.message || 'Error al procesar la recepción');
+    }
+    setProcessing(false);
+  };
 
   // Mapa tracking → número de recibo/factura (desde los ingresos CBM)
   const receiptByTracking = useMemo(() => {
@@ -209,12 +274,13 @@ export default function ClientPackagesTable({ packages, client, cbmIngresos = []
                 <th className="py-2 pr-3">Entrega vendedor</th>
                 <th className="py-2 pr-3">Recibido</th>
                 <th className="py-2 pr-3">Descripción</th>
+                <th className="py-2 pr-3 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={14} className="py-6 text-center text-slate-500">Sin paquetes</td>
+                  <td colSpan={15} className="py-6 text-center text-slate-500">Sin paquetes</td>
                 </tr>
               )}
               {filtered.map((p) => (
@@ -260,12 +326,36 @@ export default function ClientPackagesTable({ packages, client, cbmIngresos = []
                   <td className="py-2 pr-3 text-xs text-indigo-700">{p.seller_delivery_date ? fmtShort(p.seller_delivery_date) : '—'}</td>
                   <td className="py-2 pr-3 text-xs text-slate-600">{fmt(p.received_date)}</td>
                   <td className="py-2 pr-3 max-w-[260px] truncate" title={p.description}>{p.description || '—'}</td>
+                  <td className="py-2 pr-3 text-center">
+                    {p.status === 'pre_alerta' ? (
+                      <Button
+                        size="sm"
+                        onClick={() => { setReceiveModal(p); setImageFiles([]); }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 h-8 px-2.5"
+                        title="Recibir paquete"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Recibir
+                      </Button>
+                    ) : (
+                      <span className="text-slate-300 text-xs">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </CardContent>
+
+      <ReceivePackageInlineModal
+        pkg={receiveModal}
+        imageFiles={imageFiles}
+        setImageFiles={setImageFiles}
+        processing={processing}
+        onClose={() => { setReceiveModal(null); setImageFiles([]); }}
+        onConfirm={handleReceive}
+      />
     </Card>
   );
 }
