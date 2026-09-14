@@ -1,0 +1,132 @@
+{
+  "name": "QuoteFeePayment",
+  "type": "object",
+  "properties": {
+    "client_first_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "client_last_name": {
+      "type": "string",
+      "description": "Apellido del cliente"
+    },
+    "client_city": {
+      "type": "string",
+      "description": "Ciudad de despacho"
+    },
+    "client_phone": {
+      "type": "string",
+      "description": "N\u00famero de contacto (WhatsApp)"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark del cliente (lookup por email si est\u00e1 registrado)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas del cliente"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto pagado (tarifa de presupuesto)",
+      "default": 20
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "stripe",
+        "paypal",
+        "binance",
+        "usdt_trc20",
+        "transferencia",
+        "wally",
+        "zinli",
+        "wise",
+        "skrill",
+        "pago_movil_usdt",
+        "zelle",
+        "otro"
+      ],
+      "description": "M\u00e9todo de pago utilizado"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "pagado",
+        "rechazado"
+      ],
+      "default": "pendiente",
+      "description": "Estado del pago de la tarifa"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "description": "ID del PaymentIntent de Stripe"
+    },
+    "paypal_order_id": {
+      "type": "string",
+      "description": "ID de la orden de PayPal"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Referencia o n\u00famero de transacci\u00f3n (para m\u00e9todos manuales)"
+    },
+    "proof_url": {
+      "type": "string",
+      "description": "URL del comprobante de pago (imagen, para m\u00e9todos manuales)"
+    },
+    "paid_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se verific\u00f3 el pago"
+    },
+    "generated_quote_id": {
+      "type": "string",
+      "description": "ID del Quote generado al verificarse el pago"
+    },
+    "generated_quote_token": {
+      "type": "string",
+      "description": "Token del Quote generado (para construir el enlace p\u00fablico)"
+    },
+    "generated_quote_number": {
+      "type": "string",
+      "description": "N\u00famero del Quote generado (PR-XXXX)"
+    },
+    "email_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si ya se envi\u00f3 el email con el enlace del presupuesto al cliente"
+    }
+  },
+  "required": [
+    "client_email",
+    "amount",
+    "method"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

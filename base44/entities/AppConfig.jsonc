@@ -104,6 +104,46 @@
       "default": 0.15,
       "description": "Tasa de conversi\u00f3n global \u00a5\u2192$ para presupuestos (1\u00a5 = X USD)"
     },
+    "quote_fee_amount": {
+      "type": "number",
+      "default": 20,
+      "description": "Monto de la tarifa por generar un presupuesto (USD)"
+    },
+    "quote_fee_enabled_methods": {
+      "type": "array",
+      "description": "M\u00e9todos de pago aceptados para la tarifa de presupuesto",
+      "items": {
+        "type": "string",
+        "enum": [
+          "stripe",
+          "paypal",
+          "binance",
+          "usdt_trc20",
+          "transferencia",
+          "wally",
+          "zinli",
+          "wise",
+          "skrill",
+          "pago_movil_usdt",
+          "zelle",
+          "otro"
+        ]
+      },
+      "default": [
+        "stripe",
+        "paypal"
+      ]
+    },
+    "quote_fee_email_subject": {
+      "type": "string",
+      "default": "\ud83c\udf89 Tu enlace de presupuesto est\u00e1 listo",
+      "description": "Asunto del email que recibe el cliente al verificarse el pago de la tarifa"
+    },
+    "quote_fee_email_body": {
+      "type": "string",
+      "default": "Hola {cliente_nombre},\n\n\u00a1Gracias por tu pago! Tu solicitud de presupuesto fue recibida.\n\nN\u00b0 de presupuesto: {numero_presupuesto}\n\nCompleta tus productos en el siguiente enlace:\n{enlace_presupuesto}\n\nTLEC CARGO",
+      "description": "Cuerpo del email con el enlace del presupuesto. Placeholders: {cliente_nombre}, {numero_presupuesto}, {enlace_presupuesto}"
+    },
     "rate_air_general": {
       "type": "number",
       "description": "Rate per kg for air general cargo"

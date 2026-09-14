@@ -56,6 +56,17 @@ Deno.serve(async (req) => {
           }
         }
 
+        // --- QuoteFeePayment (tarifa de presupuesto) ---
+        const quoteFeePaymentId = pi?.metadata?.quote_fee_payment_id;
+        if (quoteFeePaymentId) {
+          try {
+            const { fulfillQuoteFeePayment } = await import('../../shared/quoteFeeFulfillment.ts');
+            await fulfillQuoteFeePayment(base44, quoteFeePaymentId, pi.id);
+          } catch (e) {
+            console.error('Failed to fulfill QuoteFeePayment from Stripe webhook:', e);
+          }
+        }
+
         if (base44Id) {
           try {
             // Check current status to avoid overriding 'revision'

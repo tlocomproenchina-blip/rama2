@@ -58,6 +58,7 @@ const Contact = lazy(() => import('./pages/Contact'));
 const Inicio2 = lazy(() => import('./pages/Inicio2'));
 const AdminQuotes = lazy(() => import('./pages/AdminQuotes'));
 const QuotePublic = lazy(() => import('./pages/QuotePublic'));
+const QuoteFeePayment = lazy(() => import('./pages/QuoteFeePayment'));
 const CityLanding = lazy(() => import('./pages/CityLanding'));
 const AdminCityAnalytics = lazy(() => import('./pages/AdminCityAnalytics'));
 const MyWarehouseMerchandise = lazy(() => import('./pages/MyWarehouseMerchandise'));
@@ -178,6 +179,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/AdminCityAnalytics" element={lazyRoute(AdminCityAnalytics, "AdminCityAnalytics")} />
       <Route path="/Quote/:token" element={<QuotePublic />} />
+      <Route path="/QuoteFeePayment" element={<QuoteFeePayment />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
