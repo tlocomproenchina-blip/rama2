@@ -7,11 +7,21 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Briefcase, KeyRound, Loader2, Mail, Search, ShieldCheck, UserCog, UserPlus, Users } from 'lucide-react';
+import { Briefcase, KeyRound, Loader2, Mail, Search, ShieldCheck, UserCog, UserMinus, UserPlus, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ROLE_OPTIONS, ROLE_PRESETS, ensureRoleConfig } from '@/lib/rolePermissions';
 import PageHero from '@/components/common/PageHero';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function AdminEmployees({ user }) {
   const [employees, setEmployees] = useState([]);
@@ -31,6 +41,8 @@ export default function AdminEmployees({ user }) {
   });
   const [saving, setSaving] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [demoteTarget, setDemoteTarget] = useState(null);
+  const [demoting, setDemoting] = useState(false);
 
   const loadEmployees = async () => {
     setLoading(true);
@@ -85,6 +97,34 @@ export default function AdminEmployees({ user }) {
       address: employee.address || '',
       custom_role: employee.custom_role || 'sin_area',
     });
+  };
+
+  const handleRoleChangeInEdit = (value) => {
+    if (value === 'pasar_a_cliente') {
+      setDemoteTarget(editingEmployee);
+      return;
+    }
+    setEditData({ ...editData, custom_role: value });
+  };
+
+  const handleConfirmDemote = async () => {
+    if (!demoteTarget) return;
+    setDemoting(true);
+    try {
+      const res = await base44.functions.invoke('manageRoleAssignment', {
+        target_user_id: demoteTarget.id,
+        next_role: 'pasar_a_cliente',
+      });
+      if (res?.data?.demoted) {
+        setEmployees((prev) => prev.filter((item) => item.id !== demoteTarget.id));
+        setEditingEmployee(null);
+        toast.success(`${demoteTarget.full_name || demoteTarget.email} ahora es un cliente`);
+      }
+    } catch (err) {
+      toast.error(err?.data?.error || 'No se pudo convertir en cliente');
+    }
+    setDemoting(false);
+    setDemoteTarget(null);
   };
 
   const handleSave = async () => {
@@ -342,7 +382,7 @@ export default function AdminEmployees({ user }) {
             </div>
             <div className="space-y-2">
               <Label>Rol por área</Label>
-              <Select value={editData.custom_role} onValueChange={(value) => setEditData({ ...editData, custom_role: value })}>
+              <Select value={editData.custom_role} onValueChange={handleRoleChangeInEdit} disabled={demoting}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona área" />
                 </SelectTrigger>
@@ -351,6 +391,13 @@ export default function AdminEmployees({ user }) {
                   {ROLE_OPTIONS.map((role) => (
                     <SelectItem key={role} value={role}>{ROLE_PRESETS[role].role_name}</SelectItem>
                   ))}
+                  <div className="my-1 border-t border-slate-100" />
+                  <SelectItem value="pasar_a_cliente" className="text-rose-600 focus:bg-rose-50 focus:text-rose-700">
+                    <span className="flex items-center gap-2">
+                      <UserMinus className="h-4 w-4" />
+                      Pasar a cliente
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-slate-500">
@@ -373,6 +420,32 @@ export default function AdminEmployees({ user }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!demoteTarget} onOpenChange={(open) => { if (!demoting && !open) setDemoteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Pasar a cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {demoteTarget && (
+                <>
+                  <strong>{demoteTarget.full_name || demoteTarget.email}</strong> dejará de ser empleado y pasará a ser un cliente regular. Esta acción quita su acceso al panel de administración y su área asignada.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={demoting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDemote}
+              disabled={demoting}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {demoting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserMinus className="mr-2 h-4 w-4" />}
+              Sí, pasar a cliente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
