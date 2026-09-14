@@ -60,19 +60,29 @@ export default function useAttentionFlags({ user }) {
           });
           latestMs = relevantAudit?.created_date ? new Date(relevantAudit.created_date).getTime() : 0;
         } else if (w.openOnly) {
-          // Para SupportTicket: solo considerar tickets abiertos/en_proceso
-          // (cerrar un ticket no debe disparar el punto rojo)
-          // Usar dos filtros ligeros (limit 1) en lugar de cargar 200 tickets
+          // Para SupportTicket: solo considerar tickets abiertos/en_proceso donde
+          // el último mensaje es del CLIENTE (no del admin). Las respuestas del
+          // admin no deben disparar el punto rojo.
+          // Cargamos hasta 50 tickets recientes por estado y filtramos en memoria.
           const baseQuery = w.query || {};
           const [openRows, inProcessRows] = await Promise.all([
-            base44.entities[w.entity].filter({ ...baseQuery, status: 'abierto' }, '-updated_date', 1),
-            base44.entities[w.entity].filter({ ...baseQuery, status: 'en_proceso' }, '-updated_date', 1)
+            base44.entities[w.entity].filter({ ...baseQuery, status: 'abierto' }, '-updated_date', 50),
+            base44.entities[w.entity].filter({ ...baseQuery, status: 'en_proceso' }, '-updated_date', 50)
           ]);
-          const openTicket = (openRows || [])[0];
-          const inProcessTicket = (inProcessRows || [])[0];
-          const openMs = openTicket ? new Date(openTicket.updated_date || openTicket.created_date || 0).getTime() : 0;
-          const inProcessMs = inProcessTicket ? new Date(inProcessTicket.updated_date || inProcessTicket.created_date || 0).getTime() : 0;
-          latestMs = Math.max(openMs, inProcessMs);
+          const allOpenTickets = [...(openRows || []), ...(inProcessRows || [])];
+          // Encontrar el ticket con el mensaje de cliente más reciente
+          let maxClientMsgMs = 0;
+          for (const ticket of allOpenTickets) {
+            const msgs = Array.isArray(ticket?.messages) ? ticket.messages : [];
+            if (!msgs.length) continue;
+            const lastMsg = msgs[msgs.length - 1];
+            // Solo cuenta si el último mensaje es del cliente (is_admin !== true)
+            if (lastMsg && lastMsg.is_admin !== true && lastMsg.timestamp) {
+              const msgMs = new Date(lastMsg.timestamp).getTime();
+              if (msgMs > maxClientMsgMs) maxClientMsgMs = msgMs;
+            }
+          }
+          latestMs = maxClientMsgMs;
         } else {
           let rows = [];
           if (w.query) {
