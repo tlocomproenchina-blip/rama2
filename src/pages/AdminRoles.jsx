@@ -5,8 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Search, ShieldCheck, Briefcase, Save, Users, KeyRound, LayoutPanelTop } from 'lucide-react';
+import { Loader2, Search, ShieldCheck, Briefcase, Save, Users, KeyRound, LayoutPanelTop, UserMinus } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import RolePermissionsCard from '@/components/admin/RolePermissionsCard';
 import RoleAreaSidebar from '@/components/admin/RoleAreaSidebar';
 import { ROLE_OPTIONS, ROLE_PRESETS, PAGE_LABELS } from '@/lib/rolePermissions';
@@ -30,6 +40,8 @@ export default function AdminRoles({ user }) {
   const [processingUserId, setProcessingUserId] = useState(null);
   const [processingRoleCode, setProcessingRoleCode] = useState(null);
   const [selectedRoleCode, setSelectedRoleCode] = useState(ROLE_OPTIONS[0]);
+  const [demoteTarget, setDemoteTarget] = useState(null);
+  const [demoting, setDemoting] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -87,6 +99,11 @@ export default function AdminRoles({ user }) {
       return;
     }
 
+    if (nextRole === 'pasar_a_cliente') {
+      setDemoteTarget(targetUser);
+      return;
+    }
+
     setProcessingUserId(targetUser.id);
     try {
       const res = await base44.functions.invoke('manageRoleAssignment', {
@@ -117,6 +134,25 @@ export default function AdminRoles({ user }) {
       toast.error(err?.data?.error || 'No se pudo actualizar el área');
     }
     setProcessingUserId(null);
+  };
+
+  const handleConfirmDemote = async () => {
+    if (!demoteTarget) return;
+    setDemoting(true);
+    try {
+      const res = await base44.functions.invoke('manageRoleAssignment', {
+        target_user_id: demoteTarget.id,
+        next_role: 'pasar_a_cliente',
+      });
+      if (res?.data?.demoted) {
+        setAdmins((prev) => prev.filter((item) => item.id !== demoteTarget.id));
+        toast.success(`${demoteTarget.full_name || demoteTarget.email} ahora es un cliente`);
+      }
+    } catch (err) {
+      toast.error(err?.data?.error || 'No se pudo convertir en cliente');
+    }
+    setDemoting(false);
+    setDemoteTarget(null);
   };
 
   const handleTogglePage = (roleCode, pageName) => {
@@ -247,6 +283,13 @@ export default function AdminRoles({ user }) {
                         {ROLE_OPTIONS.map((role) => (
                           <SelectItem key={role} value={role}>{ROLE_PRESETS[role].role_name}</SelectItem>
                         ))}
+                        <div className="my-1 border-t border-slate-100" />
+                        <SelectItem value="pasar_a_cliente" className="text-rose-600 focus:bg-rose-50 focus:text-rose-700">
+                          <span className="flex items-center gap-2">
+                            <UserMinus className="h-4 w-4" />
+                            Pasar a cliente
+                          </span>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -313,6 +356,32 @@ export default function AdminRoles({ user }) {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={!!demoteTarget} onOpenChange={(open) => { if (!demoting && !open) setDemoteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Pasar a cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {demoteTarget && (
+                <>
+                  <strong>{demoteTarget.full_name || demoteTarget.email}</strong> dejará de ser administrador y pasará a ser un cliente regular. Esta acción quita su acceso al panel de administración y su área asignada.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={demoting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDemote}
+              disabled={demoting}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {demoting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserMinus className="mr-2 h-4 w-4" />}
+              Sí, pasar a cliente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

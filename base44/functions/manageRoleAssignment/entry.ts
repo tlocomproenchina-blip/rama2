@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     if (!targetUserId) {
       return Response.json({ error: 'target_user_id es requerido' }, { status: 400 });
     }
-    if (nextRole !== 'sin_area' && !ROLE_PRESETS[nextRole]) {
+    if (nextRole !== 'sin_area' && nextRole !== 'pasar_a_cliente' && !ROLE_PRESETS[nextRole]) {
       return Response.json({ error: 'Área no válida' }, { status: 400 });
     }
     if (targetUserId === user.id) {
@@ -57,6 +57,32 @@ Deno.serve(async (req) => {
     }
 
     const previousRole = targetUser.custom_role || null;
+
+    // Caso especial: convertir administrador en cliente regular
+    if (nextRole === 'pasar_a_cliente') {
+      await base44.asServiceRole.entities.User.update(targetUserId, { role: 'user', custom_role: null });
+
+      try {
+        await base44.asServiceRole.entities.EmployeeAuditLog.create({
+          actor_email: user.email || 'system',
+          actor_name: user.full_name || '',
+          target_email: targetUser.email,
+          target_name: targetUser.full_name || targetUser.email,
+          action_type: 'demote_admin',
+          area_code: '',
+          area_name: 'Cliente',
+          summary: `Quitó acceso admin a ${targetUser.full_name || targetUser.email}`,
+          details: 'El usuario fue cambiado de administrador a usuario regular desde Roles por área',
+          changed_fields: ['role', 'custom_role'],
+        });
+      } catch (e) {
+        console.error('audit log error:', e.message);
+      }
+
+      const sanitized = sanitizeUser({ ...targetUser, role: 'user', custom_role: null });
+      return Response.json({ success: true, user: sanitized, role_config: null, demoted: true });
+    }
+
     const newRoleValue = nextRole === 'sin_area' ? null : nextRole;
 
     // Actualizar custom_role
