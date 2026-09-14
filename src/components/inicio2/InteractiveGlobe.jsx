@@ -235,8 +235,23 @@ export default function InteractiveGlobe() {
 
           ctx.font = 'bold 9px sans-serif';
           const textWidth = ctx.measureText(label).width;
+          const rx = proj.x - textWidth / 2 - 12;
+          const ry = proj.y - 25;
+          const rw = textWidth + 24;
+          const rh = 15;
+          const rr = 4;
           ctx.beginPath();
-          ctx.roundRect(proj.x - textWidth / 2 - 12, proj.y - 25, textWidth + 24, 15, 4);
+          if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(rx, ry, rw, rh, rr);
+          } else {
+            // Fallback manual para WebViews sin soporte de roundRect
+            ctx.moveTo(rx + rr, ry);
+            ctx.arcTo(rx + rw, ry, rx + rw, ry + rh, rr);
+            ctx.arcTo(rx + rw, ry + rh, rx, ry + rh, rr);
+            ctx.arcTo(rx, ry + rh, rx, ry, rr);
+            ctx.arcTo(rx, ry, rx + rw, ry, rr);
+            ctx.closePath();
+          }
           ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
           ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
           ctx.lineWidth = 1;
