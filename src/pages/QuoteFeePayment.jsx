@@ -55,6 +55,7 @@ export default function QuoteFeePayment() {
   const [paypalApprovalUrl, setPaypalApprovalUrl] = useState(null);
   const [manualReference, setManualReference] = useState('');
   const [confirmingManual, setConfirmingManual] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   // PayPal return handler
   const [paypalReturnOrder, setPaypalReturnOrder] = useState(null);
@@ -189,19 +190,26 @@ export default function QuoteFeePayment() {
 
   const handleManualConfirm = async () => {
     if (!paymentId) return;
+    if (!manualReference.trim()) {
+      toast({ title: 'La referencia de pago es obligatoria', variant: 'destructive' });
+      return;
+    }
     try {
-      setConfirmingManual(true);
-      const res = await base44.functions.invoke('confirmQuoteFeePayment', {
+      setVerifying(true);
+      // Espera variable 10–35s para dar tiempo a que la plataforma cree el enlace
+      const verifyDelay = new Promise((resolve) => setTimeout(resolve, 10000 + Math.random() * 25000));
+      const apiCall = base44.functions.invoke('confirmQuoteFeePayment', {
         payment_id: paymentId,
         payment_reference: manualReference,
       });
+      const [res] = await Promise.all([apiCall, verifyDelay]);
       const data = res.data || res;
       if (data.error) throw new Error(data.error);
       setSuccess({ quote_number: data.quote_number, quote_token: data.quote_token });
     } catch (err) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
-      setConfirmingManual(false);
+      setVerifying(false);
     }
   };
 
@@ -209,6 +217,21 @@ export default function QuoteFeePayment() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <Loader2 className="h-10 w-10 animate-spin text-purple-500" />
+      </div>
+    );
+  }
+
+  // Verifying screen
+  if (verifying) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-purple-500 mx-auto mb-4" />
+          <h1 className="text-lg font-bold text-gray-800 mb-2">Verificando su pago</h1>
+          <p className="text-sm text-gray-500">
+            Estamos confirmando su pago. Esto puede tomar unos segundos...
+          </p>
+        </div>
       </div>
     );
   }
@@ -221,7 +244,7 @@ export default function QuoteFeePayment() {
           <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
             <Check className="h-8 w-8 text-green-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-800 mb-2">¡Pago confirmado!</h1>
+          <h1 className="text-xl font-bold text-gray-800 mb-2">Su pago ha sido verificado</h1>
           {success.stripe_pending ? (
             <p className="text-sm text-gray-600">
               Tu pago está siendo procesado. Te enviaremos un correo a <strong>{email}</strong> con tu enlace de presupuesto en unos momentos.
@@ -434,11 +457,11 @@ export default function QuoteFeePayment() {
             />
             <Button
               onClick={handleManualConfirm}
-              disabled={confirmingManual}
+              disabled={!manualReference.trim()}
               style={{ backgroundColor: '#800080' }}
               className="w-full mt-4 text-white hover:opacity-90"
             >
-              {confirmingManual ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Confirmando...</> : 'Confirmar Pago'}
+              Confirmar Pago
             </Button>
           </div>
         )}

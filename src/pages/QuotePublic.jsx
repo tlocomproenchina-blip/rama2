@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Check, FileText, Package, X } from 'lucide-react';
+import { Loader2, Check, FileText, Package, X, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import QuoteProductForm from '@/components/quotes/QuoteProductForm';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
@@ -23,6 +23,7 @@ export default function QuotePublic() {
   const [contractText, setContractText] = useState('');
   const [contractFileUrl, setContractFileUrl] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadTimeout, setLoadTimeout] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [showContract, setShowContract] = useState(false);
@@ -41,6 +42,7 @@ export default function QuotePublic() {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
+    const timer = setTimeout(() => setLoadTimeout(true), 15000);
     async function load() {
       try {
         const res = await base44.functions.invoke('getPublicQuote', { token });
@@ -61,10 +63,12 @@ export default function QuotePublic() {
       } catch (err) {
         console.error('Error loading quote:', err);
       } finally {
+        clearTimeout(timer);
         setLoading(false);
       }
     }
     load();
+    return () => clearTimeout(timer);
   }, [token]);
 
   const isClientStage = quote?.status === 'esperando_cliente' || quote?.status === 'cliente_completo';
@@ -122,8 +126,19 @@ export default function QuotePublic() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-10 w-10 animate-spin text-purple-500" />
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        {loadTimeout ? (
+          <div className="max-w-md rounded-xl border border-gray-200 bg-white p-8 text-center">
+            <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
+            <p className="text-lg font-semibold text-gray-700">La página tardó demasiado en cargar</p>
+            <p className="mt-2 text-sm text-gray-500">Si la página aparece en blanco, intenta recargar.</p>
+            <Button onClick={() => window.location.reload()} className="mt-4 text-white hover:opacity-90" style={{ backgroundColor: '#8b5cf6' }}>
+              Recargar página
+            </Button>
+          </div>
+        ) : (
+          <Loader2 className="h-10 w-10 animate-spin text-purple-500" />
+        )}
       </div>
     );
   }
@@ -132,8 +147,12 @@ export default function QuotePublic() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
         <div className="max-w-md rounded-xl border border-gray-200 bg-white p-8 text-center">
+          <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
           <p className="text-lg font-semibold text-gray-700">Presupuesto no encontrado</p>
-          <p className="mt-2 text-sm text-gray-500">El enlace no es válido o ha expirado.</p>
+          <p className="mt-2 text-sm text-gray-500">El enlace no es válido o ha expirado. Intenta recargar la página.</p>
+          <Button onClick={() => window.location.reload()} className="mt-4 text-white hover:opacity-90" style={{ backgroundColor: '#8b5cf6' }}>
+            Recargar página
+          </Button>
         </div>
       </div>
     );
