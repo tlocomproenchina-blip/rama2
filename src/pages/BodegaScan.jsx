@@ -245,7 +245,9 @@ export default function BodegaScan() {
     });
   }, [scanFrame]);
 
-  // Botón manual: captura foto, pitido instantáneo, procesa como huérfano directo.
+  // Botón manual: captura foto, intenta leer código de barras del frame.
+  // Si detecta un código → procesa con tracking (recibido/duplicado).
+  // Si no detecta ninguno → procesa como huérfano.
   const handleManualPhoto = useCallback(async () => {
     if (manualBusyRef.current) return;
     manualBusyRef.current = true;
@@ -258,7 +260,16 @@ export default function BodegaScan() {
     }
     playBeep();
     vibrate();
-    await processScan('', photoBase64);
+
+    let detectedCode = '';
+    try {
+      if (detectorRef.current && videoRef.current && videoRef.current.readyState >= 2) {
+        const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
+        detectedCode = detected?.[0]?.rawValue?.trim() || '';
+      }
+    } catch (_) {}
+
+    await processScan(detectedCode, photoBase64);
     manualBusyRef.current = false;
     setManualBusy(false);
   }, [captureFrame, processScan, playBeep, vibrate]);
