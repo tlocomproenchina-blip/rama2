@@ -1,0 +1,54 @@
+{
+  "name": "DispositivoBodega",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "ID \u00fanico persistente del dispositivo (localStorage en el navegador)"
+    },
+    "alias": {
+      "type": "string",
+      "description": "Alias legible del dispositivo (auto-generado o editado por admin)"
+    },
+    "last_activity": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la \u00faltima actividad del dispositivo"
+    },
+    "total_scans": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de escaneos realizados por este dispositivo"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el dispositivo est\u00e1 activo"
+    }
+  },
+  "required": [
+    "device_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

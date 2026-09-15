@@ -51,6 +51,8 @@ const AdminClientCredits = lazy(() => import('./pages/AdminClientCredits'));
 const AdminManualBilling = lazy(() => import('./pages/AdminManualBilling'));
 const AdminEmailHistory = lazy(() => import('./pages/AdminEmailHistory'));
 const AdminProviderCredits = lazy(() => import('./pages/AdminProviderCredits'));
+const AdminDispositivosBodega = lazy(() => import('./pages/AdminDispositivosBodega'));
+const BodegaScan = lazy(() => import('./pages/BodegaScan'));
 const Sitemap = lazy(() => import('./pages/Sitemap'));
 const Contract = lazy(() => import('./pages/Contract'));
 const About = lazy(() => import('./pages/About'));
@@ -160,6 +162,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminManualBilling" element={lazyRoute(AdminManualBilling, "AdminManualBilling")} />
       <Route path="/AdminEmailHistory" element={lazyRoute(AdminEmailHistory, "AdminEmailHistory")} />
       <Route path="/AdminProviderCredits" element={lazyRoute(AdminProviderCredits, "AdminProviderCredits")} />
+      <Route path="/AdminDispositivosBodega" element={lazyRoute(AdminDispositivosBodega, "AdminDispositivosBodega")} />
       <Route path="/Sitemap" element={lazyRoute(Sitemap, "Sitemap")} />
       <Route path="/Contract" element={lazyRoute(Contract, "Contract")} />
       <Route path="/About" element={lazyRoute(About, "About")} />
@@ -172,6 +175,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminCityAnalytics" element={lazyRoute(AdminCityAnalytics, "AdminCityAnalytics")} />
       <Route path="/Quote/:token" element={<QuotePublic />} />
       <Route path="/QuoteFeePayment" element={<QuoteFeePayment />} />
+      <Route path="/BodegaScan" element={<BodegaScan />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
