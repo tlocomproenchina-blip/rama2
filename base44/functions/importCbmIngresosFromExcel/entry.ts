@@ -40,7 +40,7 @@ export default async function(req) {
     const extracted = extractRes?.output || extractRes;
     let rows = Array.isArray(extracted) ? extracted : (extracted?.rows || []);
     if (!Array.isArray(rows) || rows.length === 0) {
-      return Response.json({ error: 'No se pudieron extraer filas del archivo. Verifica que tenga las columnas: SHIPPING MARK, Ordenes/RECIBO, CBM, Fecha De SALIDA.' }, { status: 400 });
+      return Response.json({ error: 'No se pudieron extraer filas del archivo. Verifica que tenga las columnas: SHIPPING MARK, Ordenes/RECIBO, CBM, Fecha De SALIDA.' }, { status: 200 });
     }
 
     // Fallback: si la IA mapeó con nombres alternativos, normalizar las claves
@@ -79,7 +79,7 @@ export default async function(req) {
         error: 'No se encontró la columna SHIPPING MARK en el archivo. Revisa que el encabezado sea exactamente "SHIPPING MARK" (o "Shipping Mark").',
         debug_sample: sampleRaw,
         debug_keys: Array.isArray(extracted?.[0]) ? Object.keys(extracted[0] || {}) : Object.keys(extracted?.rows?.[0] || {})
-      }, { status: 400 });
+      }, { status: 200 });
     }
 
     // Normalizar shipping marks (quitar espacios, mayúsculas)
