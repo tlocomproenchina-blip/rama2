@@ -1,21 +1,23 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Camera, AlertCircle } from 'lucide-react';
+import { Camera, AlertCircle, Zap, ZapOff } from 'lucide-react';
 
 const TXT = {
   received: { zh: '已收货', es: 'Recibido' },
   orphan: { zh: '已创建孤儿', es: 'Huérfano creado' },
   duplicate: { zh: '已存在', es: 'Ya registrado' },
-  manualBtn: { zh: '无追踪号 / 拍照', es: 'Sin tracking / Foto' },
+  manualBtn: { zh: '拍照', es: 'Tomar foto' },
+  autoOn: { zh: '自动扫描开启', es: 'Escaneo automático activado' },
+  autoOff: { zh: '自动扫描关闭', es: 'Escaneo automático desactivado' },
   initializing: { zh: '初始化中...', es: 'Inicializando...' },
   cameraError: { zh: '无法访问摄像头', es: 'No se pudo acceder a la cámara' },
   noDetector: { zh: '此浏览器不支持条码检测', es: 'Este navegador no soporta detección de códigos' },
   error: { zh: '错误', es: 'Error' },
   ready: { zh: '准备扫描', es: 'Listo para escanear' },
+  processing: { zh: '处理中...', es: 'Procesando...' },
 };
 
-// Cooldown corto: solo evita releer el mismo código mientras el operador
-// mueve el paquete fuera de la cámara. 500ms = sensacion de pistola 2D.
+// Cooldown corto para modo automático: evita releer el mismo código.
 const COOLDOWN_MS = 500;
 
 export default function BodegaScan() {
@@ -34,6 +36,7 @@ export default function BodegaScan() {
   const [status, setStatus] = useState('initializing');
   const [toast, setToast] = useState(null);
   const [manualBusy, setManualBusy] = useState(false);
+  const [autoMode, setAutoMode] = useState(false);
 
   // Get/create device ID and register
   useEffect(() => {
@@ -93,7 +96,6 @@ export default function BodegaScan() {
   }, []);
 
   // Procesa el escaneo en segundo plano: sube foto a Bunny + llama al backend.
-  // No bloquea el loop de escaneo — el pitido ya dio feedback instantáneo.
   const processScan = useCallback(async (tracking, photoBase64) => {
     try {
       let photoUrl = null;
@@ -122,8 +124,7 @@ export default function BodegaScan() {
     }
   }, [showToast]);
 
-  // Loop de escaneo optimizado: requestAnimationFrame directo (sin setTimeout),
-  // detección a ~60fps, pitido instantáneo al detectar, procesamiento en background.
+  // Loop de escaneo automático: solo corre cuando autoMode está activo.
   const scanFrame = useCallback(() => {
     if (!activeRef.current) return;
     if (detectingRef.current) {
@@ -151,10 +152,8 @@ export default function BodegaScan() {
           if (!recent.has(code)) {
             recent.set(code, now);
             const photoBase64 = captureFrame();
-            // Feedback instantáneo: pitido + vibración al momento de la detección
             playBeep();
             vibrate();
-            // Procesar en background — no bloquea el siguiente escaneo
             processScan(code, photoBase64);
           }
         }
@@ -208,13 +207,14 @@ export default function BodegaScan() {
         await videoRef.current.play().catch(() => null);
       }
 
-      activeRef.current = true;
+      // activeRef solo se enciende si autoMode está activo
+      activeRef.current = autoMode;
+      if (autoMode) scanFrame();
       setStatus('ready');
-      scanFrame();
     } catch (err) {
       setStatus('cameraError');
     }
-  }, [scanFrame]);
+  }, [scanFrame, autoMode]);
 
   useEffect(() => {
     startCamera();
@@ -227,6 +227,23 @@ export default function BodegaScan() {
       }
     };
   }, [startCamera]);
+
+  // Toggle del modo automático: enciende/apaga el loop de detección
+  const toggleAutoMode = useCallback(() => {
+    setAutoMode((prev) => {
+      const next = !prev;
+      if (next) {
+        activeRef.current = true;
+        // Limpiar códigos recientes al activar para no disparar inmediatamente
+        recentCodesRef.current.clear();
+        scanFrame();
+      } else {
+        activeRef.current = false;
+        if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      }
+      return next;
+    });
+  }, [scanFrame]);
 
   // Botón manual: captura foto, pitido instantáneo, procesa como huérfano directo.
   const handleManualPhoto = useCallback(async () => {
@@ -267,13 +284,30 @@ export default function BodegaScan() {
         </div>
       )}
 
+      {/* Toggle de modo automático - esquina superior derecha */}
+      {status === 'ready' && (
+        <button
+          onClick={toggleAutoMode}
+          className={`absolute top-4 right-4 z-30 flex items-center gap-2 px-4 py-2.5 rounded-full backdrop-blur-md border-2 shadow-lg touch-manipulation transition-colors ${
+            autoMode
+              ? 'bg-green-500/30 border-green-400/80 text-white'
+              : 'bg-white/15 border-white/60 text-white/80'
+          }`}
+        >
+          {autoMode ? <Zap className="w-5 h-5" /> : <ZapOff className="w-5 h-5" />}
+          <span className="text-xs font-semibold">
+            {autoMode ? TXT.autoOn.zh : TXT.autoOff.zh}
+          </span>
+        </button>
+      )}
+
       <div className="absolute top-4 left-4 flex items-center gap-2 text-white/80 text-xs">
         <div className={`w-2 h-2 rounded-full ${status === 'ready' ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`} />
         <span>{status === 'ready' ? TXT.ready.zh : TXT.initializing.zh}</span>
       </div>
 
       {toast && (
-        <div key={toast.id} className="absolute top-12 left-1/2 -translate-x-1/2 z-50 transition-all duration-200">
+        <div key={toast.id} className="absolute top-16 left-1/2 -translate-x-1/2 z-50 transition-all duration-200">
           <div className={`px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md text-center min-w-[220px] ${toastBg}`}>
             <div className="text-white text-lg font-bold">
               {TXT[toast.type]?.zh || TXT.error.zh} ✓
@@ -311,18 +345,23 @@ export default function BodegaScan() {
         </div>
       )}
 
+      {/* Botón manual grande y central - método principal */}
       {status === 'ready' && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+        <div className="absolute bottom-0 left-0 right-0 pb-10 flex flex-col items-center gap-3">
           <button
             onClick={handleManualPhoto}
             disabled={manualBusy}
-            className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border-4 border-white/80 flex items-center justify-center active:scale-95 transition-transform shadow-2xl disabled:opacity-50 touch-manipulation"
+            className="w-28 h-28 rounded-full bg-white/25 backdrop-blur-md border-4 border-white/90 flex items-center justify-center active:scale-95 transition-transform shadow-2xl disabled:opacity-50 touch-manipulation"
           >
-            <Camera className="w-8 h-8 text-white" />
+            {manualBusy ? (
+              <div className="w-8 h-8 border-4 border-white/40 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Camera className="w-12 h-12 text-white" />
+            )}
           </button>
           <div className="text-center">
-            <p className="text-white text-sm font-semibold">{TXT.manualBtn.zh}</p>
-            <p className="text-white/60 text-xs">{TXT.manualBtn.es}</p>
+            <p className="text-white text-base font-bold">{TXT.manualBtn.zh}</p>
+            <p className="text-white/70 text-sm">{TXT.manualBtn.es}</p>
           </div>
         </div>
       )}
