@@ -18,7 +18,7 @@ const TXT = {
 };
 
 // Cooldown corto para modo automático: evita releer el mismo código.
-const COOLDOWN_MS = 500;
+const COOLDOWN_MS = 1500;
 
 export default function BodegaScan() {
   const videoRef = useRef(null);
