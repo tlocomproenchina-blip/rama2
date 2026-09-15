@@ -20,13 +20,14 @@ export default async function(req) {
         properties: {
           rows: {
             type: 'array',
+            description: 'Cada fila del Excel/CSV. Mapea las columnas del archivo a estos campos.',
             items: {
               type: 'object',
               properties: {
-                shipping_mark: { type: 'string' },
-                invoice_number: { type: 'string' },
-                cbm: { type: 'number' },
-                fecha_salida: { type: 'string' }
+                shipping_mark: { type: 'string', description: 'Columna "SHIPPING MARK" o "Shipping Mark" o "MARCA" - identificador del cliente (ej: TLEC-ABC123)' },
+                invoice_number: { type: 'string', description: 'Columna "Ordenes/RECIBO" o "RECIBO" o "Orden" - número de recibo/factura' },
+                cbm: { type: 'number', description: 'Columna "CBM" - volumen en metros cúbicos (número decimal)' },
+                fecha_salida: { type: 'string', description: 'Columna "Fecha De SALIDA" o "Fecha de Salida" o "Fecha Salida" - fecha de salida (ej: 2026-03-16)' }
               },
               required: ['shipping_mark', 'invoice_number', 'cbm', 'fecha_salida']
             }
@@ -40,6 +41,45 @@ export default async function(req) {
     let rows = Array.isArray(extracted) ? extracted : (extracted?.rows || []);
     if (!Array.isArray(rows) || rows.length === 0) {
       return Response.json({ error: 'No se pudieron extraer filas del archivo. Verifica que tenga las columnas: SHIPPING MARK, Ordenes/RECIBO, CBM, Fecha De SALIDA.' }, { status: 400 });
+    }
+
+    // Fallback: si la IA mapeó con nombres alternativos, normalizar las claves
+    const markKeys = ['shipping_mark', 'shippingmark', 'shipping mark', 'marca', 'mark', 'shipping_mark_', 'ShippingMark', 'SHIPPINGMARK'];
+    const invoiceKeys = ['invoice_number', 'ordenes_recibo', 'recibo', 'orden', 'order', 'receipt', 'factura', 'Ordenes/RECIBO', 'invoice'];
+    const cbmKeys = ['cbm', 'CBM', 'volumen', 'volume', 'm3'];
+    const fechaKeys = ['fecha_salida', 'fecha_de_salida', 'fecha', 'salida', 'departure', 'Fecha De SALIDA', 'FechaSalida'];
+
+    const pickField = (row, keys) => {
+      for (const k of keys) {
+        if (row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k];
+      }
+      // Búsqueda case-insensitive
+      const rowKeys = Object.keys(row);
+      for (const k of keys) {
+        const kl = k.toLowerCase().replace(/[\s_/-]/g, '');
+        for (const rk of rowKeys) {
+          if (rk.toLowerCase().replace(/[\s_/-]/g, '') === kl && row[rk] !== undefined && row[rk] !== null && row[rk] !== '') return row[rk];
+        }
+      }
+      return '';
+    };
+
+    rows = rows.map(r => ({
+      shipping_mark: String(r.shipping_mark ?? pickField(r, markKeys) ?? '').trim(),
+      invoice_number: String(r.invoice_number ?? pickField(r, invoiceKeys) ?? '').trim(),
+      cbm: r.cbm ?? pickField(r, cbmKeys),
+      fecha_salida: String(r.fecha_salida ?? pickField(r, fechaKeys) ?? '').trim()
+    }));
+
+    // Debug: si todos los shipping marks están vacíos, devolver muestra para diagnóstico
+    const allEmptyMark = rows.every(r => !r.shipping_mark);
+    if (allEmptyMark) {
+      const sampleRaw = Array.isArray(extracted) ? extracted.slice(0, 3) : (extracted?.rows?.slice(0, 3) || []);
+      return Response.json({
+        error: 'No se encontró la columna SHIPPING MARK en el archivo. Revisa que el encabezado sea exactamente "SHIPPING MARK" (o "Shipping Mark").',
+        debug_sample: sampleRaw,
+        debug_keys: Array.isArray(extracted?.[0]) ? Object.keys(extracted[0] || {}) : Object.keys(extracted?.rows?.[0] || {})
+      }, { status: 400 });
     }
 
     // Normalizar shipping marks (quitar espacios, mayúsculas)
