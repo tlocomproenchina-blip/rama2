@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Camera, Loader2, AlertCircle } from 'lucide-react';
+import { Camera, AlertCircle } from 'lucide-react';
 
 const TXT = {
   received: { zh: '已收货', es: 'Recibido' },
@@ -12,11 +12,11 @@ const TXT = {
   noDetector: { zh: '此浏览器不支持条码检测', es: 'Este navegador no soporta detección de códigos' },
   error: { zh: '错误', es: 'Error' },
   ready: { zh: '准备扫描', es: 'Listo para escanear' },
-  processing: { zh: '处理中...', es: 'Procesando...' },
 };
 
-const COOLDOWN_MS = 2000;
-const POST_SCAN_PAUSE_MS = 400;
+// Cooldown corto: solo evita releer el mismo código mientras el operador
+// mueve el paquete fuera de la cámara. 500ms = sensacion de pistola 2D.
+const COOLDOWN_MS = 500;
 
 export default function BodegaScan() {
   const videoRef = useRef(null);
@@ -25,15 +25,15 @@ export default function BodegaScan() {
   const frameRef = useRef(null);
   const activeRef = useRef(false);
   const detectingRef = useRef(false);
-  const processingRef = useRef(false);
   const canvasRef = useRef(null);
   const recentCodesRef = useRef(new Map());
   const audioCtxRef = useRef(null);
   const deviceIdRef = useRef('');
+  const manualBusyRef = useRef(false);
 
   const [status, setStatus] = useState('initializing');
   const [toast, setToast] = useState(null);
-  const [processing, setProcessing] = useState(false);
+  const [manualBusy, setManualBusy] = useState(false);
 
   // Get/create device ID and register
   useEffect(() => {
@@ -92,11 +92,9 @@ export default function BodegaScan() {
     setTimeout(() => setToast(null), 1500);
   }, []);
 
+  // Procesa el escaneo en segundo plano: sube foto a Bunny + llama al backend.
+  // No bloquea el loop de escaneo — el pitido ya dio feedback instantáneo.
   const processScan = useCallback(async (tracking, photoBase64) => {
-    if (processingRef.current) return;
-    processingRef.current = true;
-    setProcessing(true);
-
     try {
       let photoUrl = null;
       if (photoBase64) {
@@ -119,19 +117,16 @@ export default function BodegaScan() {
         : resultType === 'duplicado' ? 'duplicate'
         : 'orphan';
       showToast(toastType, shippingMark, tracking);
-      playBeep();
-      vibrate();
     } catch (err) {
       showToast('error', '', tracking);
-    } finally {
-      processingRef.current = false;
-      setProcessing(false);
     }
-  }, [showToast, playBeep, vibrate]);
+  }, [showToast]);
 
+  // Loop de escaneo optimizado: requestAnimationFrame directo (sin setTimeout),
+  // detección a ~60fps, pitido instantáneo al detectar, procesamiento en background.
   const scanFrame = useCallback(() => {
     if (!activeRef.current) return;
-    if (processingRef.current || detectingRef.current) {
+    if (detectingRef.current) {
       frameRef.current = requestAnimationFrame(scanFrame);
       return;
     }
@@ -146,7 +141,7 @@ export default function BodegaScan() {
         const detected = await detectorRef.current.detect(video).catch(() => []);
         const code = detected?.[0]?.rawValue?.trim();
 
-        if (code && !processingRef.current) {
+        if (code) {
           const now = Date.now();
           const recent = recentCodesRef.current;
           for (const [k, ts] of recent) {
@@ -156,8 +151,11 @@ export default function BodegaScan() {
           if (!recent.has(code)) {
             recent.set(code, now);
             const photoBase64 = captureFrame();
-            await processScan(code, photoBase64);
-            await new Promise(r => setTimeout(r, POST_SCAN_PAUSE_MS));
+            // Feedback instantáneo: pitido + vibración al momento de la detección
+            playBeep();
+            vibrate();
+            // Procesar en background — no bloquea el siguiente escaneo
+            processScan(code, photoBase64);
           }
         }
       } catch (_) {}
@@ -166,7 +164,7 @@ export default function BodegaScan() {
         frameRef.current = requestAnimationFrame(scanFrame);
       }
     })();
-  }, [captureFrame, processScan]);
+  }, [captureFrame, processScan, playBeep, vibrate]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -230,12 +228,23 @@ export default function BodegaScan() {
     };
   }, [startCamera]);
 
+  // Botón manual: captura foto, pitido instantáneo, procesa como huérfano directo.
   const handleManualPhoto = useCallback(async () => {
-    if (processingRef.current) return;
+    if (manualBusyRef.current) return;
+    manualBusyRef.current = true;
+    setManualBusy(true);
     const photoBase64 = captureFrame();
-    if (!photoBase64) return;
+    if (!photoBase64) {
+      manualBusyRef.current = false;
+      setManualBusy(false);
+      return;
+    }
+    playBeep();
+    vibrate();
     await processScan('', photoBase64);
-  }, [captureFrame, processScan]);
+    manualBusyRef.current = false;
+    setManualBusy(false);
+  }, [captureFrame, processScan, playBeep, vibrate]);
 
   const toastBg = toast?.type === 'received' ? 'bg-green-500/90'
     : toast?.type === 'orphan' ? 'bg-blue-500/90'
@@ -282,12 +291,6 @@ export default function BodegaScan() {
         </div>
       )}
 
-      {processing && (
-        <div className="absolute top-4 right-4">
-          <Loader2 className="w-6 h-6 text-white animate-spin" />
-        </div>
-      )}
-
       {status === 'cameraError' && (
         <div className="absolute inset-0 flex items-center justify-center p-6">
           <div className="text-center text-white">
@@ -312,7 +315,7 @@ export default function BodegaScan() {
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
           <button
             onClick={handleManualPhoto}
-            disabled={processing}
+            disabled={manualBusy}
             className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border-4 border-white/80 flex items-center justify-center active:scale-95 transition-transform shadow-2xl disabled:opacity-50 touch-manipulation"
           >
             <Camera className="w-8 h-8 text-white" />
