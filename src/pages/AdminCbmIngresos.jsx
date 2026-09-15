@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Loader2, Package, Trash2, CalendarDays, TrendingUp, Users, Search, Filter, MapPin, Pencil, CheckSquare, Ship, MapPinned } from 'lucide-react';
+import { Plus, Loader2, Package, Trash2, CalendarDays, TrendingUp, Users, Search, Filter, MapPin, Pencil, CheckSquare, Ship, MapPinned, FileSpreadsheet } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import CbmDatePicker from '@/components/admin/CbmDatePicker';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ import CbmMonthlySummary from '@/components/accounting/CbmMonthlySummary';
 import CbmClientSummary from '@/components/accounting/CbmClientSummary';
 import CbmStateCostPanel from '@/components/accounting/CbmStateCostPanel';
 import CbmBulkEditDialog from '@/components/admin/CbmBulkEditDialog';
+import CbmImportDialog from '@/components/admin/CbmImportDialog';
 
 
 export default function AdminCbmIngresos({ user }) {
@@ -45,6 +46,7 @@ export default function AdminCbmIngresos({ user }) {
   const [sinSalidaFilter, setSinSalidaFilter] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -398,9 +400,14 @@ export default function AdminCbmIngresos({ user }) {
         title="Ingresos de CBM"
         description="Registro mensual de CBM reportados desde almacén China."
         actions={
-          <Button onClick={() => setShowForm(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Registrar CBM
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" /> Importar Excel
+            </Button>
+            <Button onClick={() => setShowForm(true)} className="gap-2">
+              <Plus className="h-4 w-4" /> Registrar CBM
+            </Button>
+          </div>
         }
       />
 
@@ -654,6 +661,13 @@ export default function AdminCbmIngresos({ user }) {
         onOpenChange={setShowBulkEdit}
         selectedIds={selectedIds}
         onDone={() => { setSelectedIds([]); loadData(); }}
+      />
+
+      {/* Import Excel dialog */}
+      <CbmImportDialog
+        open={showImport}
+        onOpenChange={setShowImport}
+        onDone={() => loadData()}
       />
 
       {/* Form dialog */}
