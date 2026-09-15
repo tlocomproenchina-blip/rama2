@@ -9,6 +9,7 @@ export default async function(req) {
 
     const body = await req.json();
     const fileUrl = body?.file_url;
+    const dryRun = !!body?.dry_run;
     if (!fileUrl) return Response.json({ error: 'Falta el archivo' }, { status: 400 });
 
     // Extraer filas del Excel/CSV con el schema de las 4 columnas
@@ -80,15 +81,12 @@ export default async function(req) {
     const skipped = [];
     const notFound = [];
     const toCreate = [];
+    const previewRows = [];
 
     for (const row of rows) {
       const mark = normalizeMark(row.shipping_mark);
       const invoiceNum = String(row.invoice_number || '').trim();
       const cbmVal = parseFloat(row.cbm);
-
-      if (!mark) { notFound.push({ ...row, reason: 'Shipping mark vacío' }); continue; }
-      if (!invoiceNum) { notFound.push({ ...row, reason: 'Número de recibo vacío' }); continue; }
-      if (!cbmVal || cbmVal <= 0) { notFound.push({ ...row, reason: 'CBM inválido' }); continue; }
 
       // Parsear fecha_salida (acepta "2026. 3. 16", "2026-03-16", "16/03/2026")
       let fechaSalida = '';
@@ -99,34 +97,84 @@ export default async function(req) {
         if (!isNaN(parsed.getTime())) fechaSalida = parsed.toISOString().slice(0, 10);
       } catch (_) {}
 
+      const basePreview = {
+        shipping_mark: mark || '',
+        invoice_number: invoiceNum,
+        cbm: cbmVal,
+        fecha_salida: fechaSalida,
+        client_name: '',
+        status: '',
+        reason: ''
+      };
+
+      if (!mark) {
+        notFound.push({ ...row, reason: 'Shipping mark vacío' });
+        previewRows.push({ ...basePreview, status: 'no_encontrado', reason: 'Shipping mark vacío' });
+        continue;
+      }
+      if (!invoiceNum) {
+        notFound.push({ ...row, reason: 'Número de recibo vacío' });
+        previewRows.push({ ...basePreview, status: 'no_encontrado', reason: 'Número de recibo vacío' });
+        continue;
+      }
+      if (!cbmVal || cbmVal <= 0) {
+        notFound.push({ ...row, reason: 'CBM inválido' });
+        previewRows.push({ ...basePreview, status: 'no_encontrado', reason: 'CBM inválido' });
+        continue;
+      }
+
       const client = clientsByMark[mark];
-      if (!client) { notFound.push({ ...row, reason: `Shipping mark no encontrado: ${mark}` }); continue; }
+      if (!client) {
+        notFound.push({ ...row, reason: `Shipping mark no encontrado: ${mark}` });
+        previewRows.push({ ...basePreview, status: 'no_encontrado', reason: `Shipping mark no encontrado: ${mark}` });
+        continue;
+      }
+
+      basePreview.client_name = client.full_name || client.email;
 
       const dupKey = invoiceNum.toLowerCase();
       if (existingByClient[client.email]?.has(dupKey)) {
         skipped.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, client_name: client.full_name || client.email });
+        previewRows.push({ ...basePreview, status: 'duplicado' });
         continue;
       }
 
       // Marcar como existente para evitar duplicados dentro del mismo lote
       existingByClient[client.email].add(dupKey);
 
-      const fechaISO = fechaSalida ? new Date(fechaSalida + 'T12:00:00').toISOString() : new Date().toISOString();
-      const mes = fechaSalida ? fechaSalida.slice(0, 7) : new Date().toISOString().slice(0, 7);
+      if (dryRun) {
+        previewRows.push({ ...basePreview, status: 'nuevo' });
+      } else {
+        const fechaISO = fechaSalida ? new Date(fechaSalida + 'T12:00:00').toISOString() : new Date().toISOString();
+        const mes = fechaSalida ? fechaSalida.slice(0, 7) : new Date().toISOString().slice(0, 7);
 
-      toCreate.push({
-        fecha: fechaISO,
-        cbm: cbmVal,
-        mes,
-        client_email: client.email,
-        client_name: client.full_name || '',
-        shipping_mark: mark,
-        invoice_number: invoiceNum,
-        fecha_salida: fechaSalida,
-        tracking_numbers: [],
-        disponible_entrega: false
+        toCreate.push({
+          fecha: fechaISO,
+          cbm: cbmVal,
+          mes,
+          client_email: client.email,
+          client_name: client.full_name || '',
+          shipping_mark: mark,
+          invoice_number: invoiceNum,
+          fecha_salida: fechaSalida,
+          tracking_numbers: [],
+          disponible_entrega: false
+        });
+        created.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, client_name: client.full_name || client.email });
+      }
+    }
+
+    // En modo dry_run, devolver solo la vista previa sin crear nada
+    if (dryRun) {
+      return Response.json({
+        total: rows.length,
+        rows: previewRows,
+        summary: {
+          nuevos: previewRows.filter(r => r.status === 'nuevo').length,
+          duplicados: previewRows.filter(r => r.status === 'duplicado').length,
+          no_encontrados: previewRows.filter(r => r.status === 'no_encontrado').length
+        }
       });
-      created.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, client_name: client.full_name || client.email });
     }
 
     // Crear en lote
