@@ -52,6 +52,7 @@ const AdminManualBilling = lazy(() => import('./pages/AdminManualBilling'));
 const AdminEmailHistory = lazy(() => import('./pages/AdminEmailHistory'));
 const AdminProviderCredits = lazy(() => import('./pages/AdminProviderCredits'));
 const AdminDispositivosBodega = lazy(() => import('./pages/AdminDispositivosBodega'));
+const AdminBodegaProductividad = lazy(() => import('./pages/AdminBodegaProductividad'));
 const BodegaScan = lazy(() => import('./pages/BodegaScan'));
 const Sitemap = lazy(() => import('./pages/Sitemap'));
 const Contract = lazy(() => import('./pages/Contract'));
@@ -163,6 +164,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminEmailHistory" element={lazyRoute(AdminEmailHistory, "AdminEmailHistory")} />
       <Route path="/AdminProviderCredits" element={lazyRoute(AdminProviderCredits, "AdminProviderCredits")} />
       <Route path="/AdminDispositivosBodega" element={lazyRoute(AdminDispositivosBodega, "AdminDispositivosBodega")} />
+      <Route path="/AdminBodegaProductividad" element={lazyRoute(AdminBodegaProductividad, "AdminBodegaProductividad")} />
       <Route path="/Sitemap" element={lazyRoute(Sitemap, "Sitemap")} />
       <Route path="/Contract" element={lazyRoute(Contract, "Contract")} />
       <Route path="/About" element={lazyRoute(About, "About")} />

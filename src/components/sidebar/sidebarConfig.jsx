@@ -32,6 +32,7 @@ import {
   UserX,
   Warehouse,
   Smartphone,
+  BarChart2,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -75,6 +76,7 @@ export const adminMenuItems = [
   { name: 'Despacho Escáner', page: 'WarehouseDispatch', icon: Truck },
   { name: 'Historial de Despachos', page: 'WarehouseDispatchHistory', icon: History },
   { name: 'Dispositivos Bodega China', page: 'AdminDispositivosBodega', icon: Smartphone },
+  { name: 'Productividad Bodega', page: 'AdminBodegaProductividad', icon: BarChart2 },
   { name: 'Aprobaciones', page: 'AdminConsolidate', icon: Layers },
   { name: 'Consolidar', page: 'AdminShipmentApprovals', icon: CheckCircle2 },
   { name: 'Dashboard Contabilidad', page: 'AccountingDashboard', icon: LayoutDashboard },
@@ -124,7 +126,7 @@ export const adminMenuItems = [
 export const adminGroups = [
   { label: 'PRINCIPAL', items: ['AdminDashboard', 'AdminLogistica', 'ClientAnalytics'] },
   { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminDailySummary', 'AdminPackages', 'AdminPreAlerts', 'AdminOrphanPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments', 'AdminQuotes'] },
-  { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseDispatch', 'WarehouseDispatchHistory', 'AdminDispositivosBodega'] },
+  { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseDispatch', 'WarehouseDispatchHistory', 'AdminDispositivosBodega', 'AdminBodegaProductividad'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminClientCredits', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviderCredits', 'AdminProviders', 'AdminCbmIngresos', 'AdminArrivalCalendar'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailHistory', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
