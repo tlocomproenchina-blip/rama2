@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import ImageViewerModal from '@/components/common/ImageViewerModal';
 import { toast } from 'sonner';
 
 function timeAgo(dateStr) {
@@ -33,6 +34,7 @@ export default function AdminDispositivosBodega({ user }) {
   const [loadingScans, setLoadingScans] = useState(false);
   const [editingAlias, setEditingAlias] = useState(null);
   const [aliasValue, setAliasValue] = useState('');
+  const [viewerImage, setViewerImage] = useState(null);
 
   const loadDevices = useCallback(async () => {
     try {
@@ -215,7 +217,12 @@ export default function AdminDispositivosBodega({ user }) {
                 {scans.map((scan) => (
                   <div key={scan.id} className="flex items-center gap-3 bg-slate-50 rounded-lg p-2.5">
                     {scan.photo_url ? (
-                      <img src={scan.photo_url} alt="paquete" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                      <img
+                        src={scan.photo_url}
+                        alt="paquete"
+                        className="w-14 h-14 rounded-lg object-cover shrink-0 cursor-zoom-in hover:opacity-80 transition-opacity"
+                        onClick={() => setViewerImage({ url: scan.photo_url, title: `Escaneo ${scan.tracking_number || ''}` })}
+                      />
                     ) : (
                       <div className="w-14 h-14 rounded-lg bg-slate-200 flex items-center justify-center shrink-0">
                         <Camera className="w-5 h-5 text-slate-400" />
@@ -245,6 +252,13 @@ export default function AdminDispositivosBodega({ user }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ImageViewerModal
+        open={!!viewerImage}
+        imageUrl={viewerImage?.url}
+        onClose={() => setViewerImage(null)}
+        title={viewerImage?.title || 'Imagen'}
+      />
     </div>
   );
 }
