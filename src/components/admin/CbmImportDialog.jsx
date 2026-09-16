@@ -179,7 +179,7 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
           <div className="space-y-4 py-2">
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                El archivo debe tener <strong>4 columnas fijas en este orden exacto</strong> (los nombres de los encabezados no importan, solo la posición):
+                El archivo debe tener                 <strong>5 columnas fijas en este orden exacto</strong> (los nombres de los encabezados no importan, solo la posición):
               </p>
               <div className="overflow-hidden rounded-lg border border-slate-200">
                 <table className="w-full text-xs">
@@ -210,6 +210,11 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
                       <td className="px-2 py-1.5 text-center font-bold text-slate-500">D</td>
                       <td className="px-2 py-1.5 font-medium text-slate-700">Fecha de salida</td>
                       <td className="px-2 py-1.5 font-mono text-slate-500">2026-03-16</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1.5 text-center font-bold text-slate-500">E</td>
+                      <td className="px-2 py-1.5 font-medium text-slate-700">Notas (opcional)</td>
+                      <td className="px-2 py-1.5 font-mono text-slate-500">Carga frágil</td>
                     </tr>
                   </tbody>
                 </table>
@@ -281,6 +286,7 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
                     <th className="text-left px-2 py-2 font-semibold text-slate-600">Recibo</th>
                     <th className="text-right px-2 py-2 font-semibold text-slate-600">CBM</th>
                     <th className="text-left px-2 py-2 font-semibold text-slate-600">Fecha</th>
+                    <th className="text-left px-2 py-2 font-semibold text-slate-600">Notas</th>
                     <th className="text-left px-2 py-2 font-semibold text-slate-600">Cliente</th>
                     <th className="text-center px-2 py-2 font-semibold text-slate-600">Estado</th>
                   </tr>
@@ -295,6 +301,7 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
                         <td className="px-2 py-1.5 text-slate-600">{r.invoice_number || '—'}</td>
                         <td className="px-2 py-1.5 text-right text-slate-600">{r.cbm || '—'}</td>
                         <td className="px-2 py-1.5 text-slate-600">{r.fecha_salida || '—'}</td>
+                        <td className="px-2 py-1.5 text-slate-600 truncate max-w-[160px]">{r.notas || '—'}</td>
                         <td className="px-2 py-1.5 text-slate-600 truncate max-w-[140px]">{r.client_name || (r.status === 'no_encontrado' ? '—' : '')}</td>
                         <td className="px-2 py-1.5 text-center">
                           <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${meta.color} ${meta.bg} border ${meta.border}`}>

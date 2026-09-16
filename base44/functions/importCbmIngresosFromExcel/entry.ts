@@ -14,7 +14,7 @@ export default async function(req) {
     if (!fileUrl) return Response.json({ error: 'Falta el archivo' }, { status: 400 });
 
     // Descargar y parsear el Excel/CSV por posición fija de columnas:
-    // A=Shipping Mark, B=Orden/Recibo, C=CBM, D=Fecha de salida (datos desde fila 2)
+    // A=Shipping Mark, B=Orden/Recibo, C=CBM, D=Fecha de salida, E=Notas (datos desde fila 2)
     let rows = [];
     try {
       const fileRes = await fetch(fileUrl);
@@ -43,7 +43,8 @@ export default async function(req) {
           cbm: r[2] !== '' && r[2] !== null && r[2] !== undefined ? Number(r[2]) : NaN,
           fecha_salida: r[3] instanceof Date
             ? r[3].toISOString().slice(0, 10)
-            : String(r[3] ?? '').trim()
+            : String(r[3] ?? '').trim(),
+          notas: String(r[4] ?? '').trim()
         }));
       if (rows.length === 0) {
         return Response.json({ error: 'No se encontraron filas de datos (fila 2 en adelante).' }, { status: 200 });
@@ -112,6 +113,7 @@ export default async function(req) {
         invoice_number: invoiceNum,
         cbm: cbmVal,
         fecha_salida: fechaSalida,
+        notas: row.notas || '',
         client_name: '',
         status: '',
         reason: ''
@@ -167,10 +169,11 @@ export default async function(req) {
           shipping_mark: mark,
           invoice_number: invoiceNum,
           fecha_salida: fechaSalida,
+          notas: row.notas || '',
           tracking_numbers: [],
           disponible_entrega: false
         });
-        created.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, client_name: client.full_name || client.email });
+        created.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, notas: row.notas || '', client_name: client.full_name || client.email });
       }
     }
 
