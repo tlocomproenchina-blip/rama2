@@ -155,10 +155,47 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
         {/* Paso 1: Selección de archivo */}
         {!isPreviewStep && !isResultStep && (
           <div className="space-y-4 py-2">
-            <p className="text-xs text-muted-foreground">
-              Sube un archivo Excel o CSV con las columnas: <strong>SHIPPING MARK</strong>, <strong>Ordenes/RECIBO</strong>, <strong>CBM</strong>, <strong>Fecha De SALIDA</strong>.
-              Primero verás una vista previa para aprobar antes de crear los registros.
-            </p>
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                El archivo debe tener <strong>4 columnas fijas en este orden exacto</strong> (los nombres de los encabezados no importan, solo la posición):
+              </p>
+              <div className="overflow-hidden rounded-lg border border-slate-200">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-100 border-b border-slate-200">
+                    <tr>
+                      <th className="px-2 py-1.5 text-center font-bold text-slate-600 w-10">Col</th>
+                      <th className="px-2 py-1.5 text-left font-bold text-slate-600">Campo</th>
+                      <th className="px-2 py-1.5 text-left font-bold text-slate-600">Ejemplo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    <tr className="bg-blue-50/40">
+                      <td className="px-2 py-1.5 text-center font-bold text-blue-600">A</td>
+                      <td className="px-2 py-1.5 font-medium text-slate-700">Shipping Mark</td>
+                      <td className="px-2 py-1.5 font-mono text-slate-500">TLEC-ABC123</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1.5 text-center font-bold text-slate-500">B</td>
+                      <td className="px-2 py-1.5 font-medium text-slate-700">Orden / Recibo</td>
+                      <td className="px-2 py-1.5 font-mono text-slate-500">ORD-001234</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1.5 text-center font-bold text-slate-500">C</td>
+                      <td className="px-2 py-1.5 font-medium text-slate-700">CBM (número)</td>
+                      <td className="px-2 py-1.5 font-mono text-slate-500">2.50000</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1.5 text-center font-bold text-slate-500">D</td>
+                      <td className="px-2 py-1.5 font-medium text-slate-700">Fecha de salida</td>
+                      <td className="px-2 py-1.5 font-mono text-slate-500">2026-03-16</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                ✓ Fila 1 = encabezados (se ignoran) · Los datos se leen desde la fila 2 en adelante.
+              </p>
+            </div>
 
             <div
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
