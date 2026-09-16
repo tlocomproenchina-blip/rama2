@@ -704,6 +704,31 @@
       "default": [],
       "description": "Lista de p\u00e1ginas (page key) ocultas del men\u00fa lateral del cliente"
     },
+    "battery_banner_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Activar banner de permisolog\u00eda de bater\u00eda en la p\u00e1gina de inicio"
+    },
+    "battery_banner_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio de la ventana del banner de bater\u00eda"
+    },
+    "battery_banner_end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin de la ventana del banner de bater\u00eda"
+    },
+    "battery_banner_title": {
+      "type": "string",
+      "default": "Contamos con toda la permisolog\u00eda para la importaci\u00f3n de bater\u00edas",
+      "description": "T\u00edtulo del banner de bater\u00eda"
+    },
+    "battery_banner_html": {
+      "type": "string",
+      "default": "En TLEC CARGO estamos autorizados para gestionar la importaci\u00f3n de bater\u00edas de litio con todos los permisos y certificaciones vigentes. Tu carga viaja segura y cumpliendo con la normativa internacional.",
+      "description": "Cuerpo HTML editable del banner de bater\u00eda"
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,

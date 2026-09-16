@@ -45,6 +45,7 @@ import { generateClientPriceListPdf } from '@/lib/clientPriceListPdf';
 import PushTestCard from '@/components/admin/PushTestCard';
 import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
 import ShippingMarkExamplesEditor from '@/components/admin/ShippingMarkExamplesEditor';
+import BatteryBannerSettings from '@/components/admin/BatteryBannerSettings';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -1149,6 +1150,14 @@ export default function AdminSettings({ user }) {
             <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
               {/* Prueba de Notificaciones Push */}
               <PushTestCard user={user} />
+
+              {/* Banner de Permisología de Batería */}
+              <BatteryBannerSettings
+                appConfig={appConfig}
+                setAppConfig={setAppConfig}
+                onSave={handleSaveGeneral}
+                saving={saving}
+              />
 
               {/* Modo Noche */}
               <DarkModeToggleCard />

@@ -1,5 +1,6 @@
 import React from 'react';
 import Inicio2Header from '@/components/inicio2/Inicio2Header';
+import BatteryBanner from '@/components/inicio2/BatteryBanner';
 import Inicio2Hero from '@/components/inicio2/Inicio2Hero';
 import Inicio2Calculator from '@/components/inicio2/Inicio2Calculator';
 import Inicio2Services from '@/components/inicio2/Inicio2Services';
@@ -11,6 +12,7 @@ export default function Inicio2() {
   return (
     <div className="-m-4 md:-m-6 lg:-m-8 min-h-screen bg-white">
       <Inicio2Header />
+      <BatteryBanner />
       <Inicio2Hero />
       <Inicio2Calculator />
       <Inicio2Services />
