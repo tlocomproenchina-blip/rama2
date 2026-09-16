@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -74,6 +74,13 @@ export default function CbmOrderCard({ item, paid, deliveredDate }) {
       </div>
 
       {item.descripcion && <p className="text-xs text-slate-500">{item.descripcion}</p>}
+
+      {item.notas && (
+        <div className="flex items-start gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2">
+          <MessageSquare className="h-3.5 w-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-slate-600 leading-relaxed">{item.notas}</p>
+        </div>
+      )}
 
       {/* Trackings colapsados */}
       {trackings.length > 0 && (
