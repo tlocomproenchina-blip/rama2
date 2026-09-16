@@ -278,8 +278,8 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
               Total de filas: {preview.total} · Se crearán solo los {preview.summary?.nuevos || 0} recibos nuevos
             </p>
 
-            <div className="max-h-[40vh] overflow-y-auto rounded-lg border border-slate-200">
-              <table className="w-full text-xs">
+            <div className="max-h-[40vh] overflow-y-auto overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-xs min-w-[640px]">
                 <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left px-2 py-2 font-semibold text-slate-600">Shipping Mark</th>
@@ -385,7 +385,7 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
           </div>
         )}
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 flex-wrap">
           {isResultStep ? (
             <>
               <Button variant="outline" onClick={downloadReport} className="gap-2">
