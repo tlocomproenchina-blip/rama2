@@ -50,6 +50,15 @@ export default function CbmOrderCard({ item, paid, deliveredDate }) {
           {paid && (
             <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold">PAGADA</Badge>
           )}
+          {item.notas && (
+            <span
+              title={item.notas}
+              className="inline-flex items-center gap-1 max-w-[160px] text-[10px] text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5"
+            >
+              <MessageSquare className="h-3 w-3 flex-shrink-0 text-slate-400" />
+              <span className="truncate">{item.notas}</span>
+            </span>
+          )}
         </div>
         <span className="text-[11px] text-muted-foreground">
           {item.fecha ? fmtDate(item.fecha, true) : ''}
@@ -74,13 +83,6 @@ export default function CbmOrderCard({ item, paid, deliveredDate }) {
       </div>
 
       {item.descripcion && <p className="text-xs text-slate-500">{item.descripcion}</p>}
-
-      {item.notas && (
-        <div className="flex items-start gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2">
-          <MessageSquare className="h-3.5 w-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-slate-600 leading-relaxed">{item.notas}</p>
-        </div>
-      )}
 
       {/* Trackings colapsados */}
       {trackings.length > 0 && (
