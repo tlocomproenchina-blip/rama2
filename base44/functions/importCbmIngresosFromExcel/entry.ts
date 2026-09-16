@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import * as XLSX from 'npm:xlsx@0.18.5';
 
 export default async function(req) {
   try {
@@ -12,74 +13,43 @@ export default async function(req) {
     const dryRun = !!body?.dry_run;
     if (!fileUrl) return Response.json({ error: 'Falta el archivo' }, { status: 400 });
 
-    // Extraer filas del Excel/CSV con el schema de las 4 columnas
-    const extractRes = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url: fileUrl,
-      json_schema: {
-        type: 'object',
-        properties: {
-          rows: {
-            type: 'array',
-            description: 'Cada fila del Excel/CSV. Mapea las columnas del archivo a estos campos.',
-            items: {
-              type: 'object',
-              properties: {
-                shipping_mark: { type: 'string', description: 'Columna "SHIPPING MARK" o "Shipping Mark" o "MARCA" - identificador del cliente (ej: TLEC-ABC123)' },
-                invoice_number: { type: 'string', description: 'Columna "Ordenes/RECIBO" o "RECIBO" o "Orden" - número de recibo/factura' },
-                cbm: { type: 'number', description: 'Columna "CBM" - volumen en metros cúbicos (número decimal)' },
-                fecha_salida: { type: 'string', description: 'Columna "Fecha De SALIDA" o "Fecha de Salida" o "Fecha Salida" - fecha de salida (ej: 2026-03-16)' }
-              },
-              required: ['shipping_mark', 'invoice_number', 'cbm', 'fecha_salida']
-            }
-          }
-        },
-        required: ['rows']
+    // Descargar y parsear el Excel/CSV por posición fija de columnas:
+    // A=Shipping Mark, B=Orden/Recibo, C=CBM, D=Fecha de salida (datos desde fila 2)
+    let rows = [];
+    try {
+      const fileRes = await fetch(fileUrl);
+      if (!fileRes.ok) {
+        return Response.json({ error: 'No se pudo descargar el archivo para procesar.' }, { status: 200 });
       }
-    });
-
-    const extracted = extractRes?.output || extractRes;
-    let rows = Array.isArray(extracted) ? extracted : (extracted?.rows || []);
-    if (!Array.isArray(rows) || rows.length === 0) {
-      return Response.json({ error: 'No se pudieron extraer filas del archivo. Verifica que tenga las columnas: SHIPPING MARK, Ordenes/RECIBO, CBM, Fecha De SALIDA.' }, { status: 200 });
-    }
-
-    // Fallback: si la IA mapeó con nombres alternativos, normalizar las claves
-    const markKeys = ['shipping_mark', 'shippingmark', 'shipping mark', 'marca', 'mark', 'shipping_mark_', 'ShippingMark', 'SHIPPINGMARK'];
-    const invoiceKeys = ['invoice_number', 'ordenes_recibo', 'recibo', 'orden', 'order', 'receipt', 'factura', 'Ordenes/RECIBO', 'invoice'];
-    const cbmKeys = ['cbm', 'CBM', 'volumen', 'volume', 'm3'];
-    const fechaKeys = ['fecha_salida', 'fecha_de_salida', 'fecha', 'salida', 'departure', 'Fecha De SALIDA', 'FechaSalida'];
-
-    const pickField = (row, keys) => {
-      for (const k of keys) {
-        if (row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k];
+      const arrayBuffer = await fileRes.arrayBuffer();
+      const data = new Uint8Array(arrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) {
+        return Response.json({ error: 'El archivo no contiene hojas con datos.' }, { status: 200 });
       }
-      // Búsqueda case-insensitive
-      const rowKeys = Object.keys(row);
-      for (const k of keys) {
-        const kl = k.toLowerCase().replace(/[\s_/-]/g, '');
-        for (const rk of rowKeys) {
-          if (rk.toLowerCase().replace(/[\s_/-]/g, '') === kl && row[rk] !== undefined && row[rk] !== null && row[rk] !== '') return row[rk];
-        }
+      const sheet = workbook.Sheets[firstSheetName];
+      // header:1 devuelve array de arrays (sin mapear a objetos por nombre de columna)
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+      if (!Array.isArray(rawRows) || rawRows.length < 2) {
+        return Response.json({ error: 'El archivo no tiene datos. Recuerda: la fila 1 son los encabezados y los datos comienzan desde la fila 2.' }, { status: 200 });
       }
-      return '';
-    };
-
-    rows = rows.map(r => ({
-      shipping_mark: String(r.shipping_mark ?? pickField(r, markKeys) ?? '').trim(),
-      invoice_number: String(r.invoice_number ?? pickField(r, invoiceKeys) ?? '').trim(),
-      cbm: r.cbm ?? pickField(r, cbmKeys),
-      fecha_salida: String(r.fecha_salida ?? pickField(r, fechaKeys) ?? '').trim()
-    }));
-
-    // Debug: si todos los shipping marks están vacíos, devolver muestra para diagnóstico
-    const allEmptyMark = rows.every(r => !r.shipping_mark);
-    if (allEmptyMark) {
-      const sampleRaw = Array.isArray(extracted) ? extracted.slice(0, 3) : (extracted?.rows?.slice(0, 3) || []);
-      return Response.json({
-        error: 'No se encontró la columna SHIPPING MARK en el archivo. Revisa que el encabezado sea exactamente "SHIPPING MARK" (o "Shipping Mark").',
-        debug_sample: sampleRaw,
-        debug_keys: Array.isArray(extracted?.[0]) ? Object.keys(extracted[0] || {}) : Object.keys(extracted?.rows?.[0] || {})
-      }, { status: 200 });
+      // Saltar fila 0 (encabezados) y mapear por posición fija A,B,C,D
+      rows = rawRows.slice(1)
+        .filter(r => Array.isArray(r) && r.some(c => c !== '' && c !== null && c !== undefined))
+        .map(r => ({
+          shipping_mark: String(r[0] ?? '').trim(),
+          invoice_number: String(r[1] ?? '').trim(),
+          cbm: r[2] !== '' && r[2] !== null && r[2] !== undefined ? Number(r[2]) : NaN,
+          fecha_salida: r[3] instanceof Date
+            ? r[3].toISOString().slice(0, 10)
+            : String(r[3] ?? '').trim()
+        }));
+      if (rows.length === 0) {
+        return Response.json({ error: 'No se encontraron filas de datos (fila 2 en adelante).' }, { status: 200 });
+      }
+    } catch (parseError) {
+      return Response.json({ error: 'Error al leer el archivo: ' + (parseError?.message || '') }, { status: 200 });
     }
 
     // Normalizar shipping marks (quitar espacios, mayúsculas)
