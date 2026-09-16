@@ -173,7 +173,7 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-blue-600" />
@@ -181,242 +181,245 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
           </DialogTitle>
         </DialogHeader>
 
-        {/* Paso 1: Selección de archivo */}
-        {!isPreviewStep && !isResultStep && (
-          <div className="space-y-4 py-2">
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                El archivo debe tener                 <strong>5 columnas fijas en este orden exacto</strong> (los nombres de los encabezados no importan, solo la posición):
+        {/* Contenido scrolleable */}
+        <div className="overflow-y-auto flex-1 min-h-0">
+          {/* Paso 1: Selección de archivo */}
+          {!isPreviewStep && !isResultStep && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  El archivo debe tener <strong>5 columnas fijas en este orden exacto</strong> (los nombres de los encabezados no importan, solo la posición):
+                </p>
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-100 border-b border-slate-200">
+                      <tr>
+                        <th className="px-2 py-1.5 text-center font-bold text-slate-600 w-10">Col</th>
+                        <th className="px-2 py-1.5 text-left font-bold text-slate-600">Campo</th>
+                        <th className="px-2 py-1.5 text-left font-bold text-slate-600">Ejemplo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      <tr className="bg-blue-50/40">
+                        <td className="px-2 py-1.5 text-center font-bold text-blue-600">A</td>
+                        <td className="px-2 py-1.5 font-medium text-slate-700">Shipping Mark</td>
+                        <td className="px-2 py-1.5 font-mono text-slate-500">TLEC-ABC123</td>
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1.5 text-center font-bold text-slate-500">B</td>
+                        <td className="px-2 py-1.5 font-medium text-slate-700">Orden / Recibo</td>
+                        <td className="px-2 py-1.5 font-mono text-slate-500">ORD-001234</td>
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1.5 text-center font-bold text-slate-500">C</td>
+                        <td className="px-2 py-1.5 font-medium text-slate-700">CBM (número)</td>
+                        <td className="px-2 py-1.5 font-mono text-slate-500">2.50000</td>
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1.5 text-center font-bold text-slate-500">D</td>
+                        <td className="px-2 py-1.5 font-medium text-slate-700">Fecha de salida</td>
+                        <td className="px-2 py-1.5 font-mono text-slate-500">2026-03-16</td>
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1.5 text-center font-bold text-slate-500">E</td>
+                        <td className="px-2 py-1.5 font-medium text-slate-700">Notas (opcional)</td>
+                        <td className="px-2 py-1.5 font-mono text-slate-500">Carga frágil</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  ✓ Fila 1 = encabezados (se ignoran) · Los datos se leen desde la fila 2 en adelante.
+                </p>
+              </div>
+
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => inputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${dragOver ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'}`}
+              >
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={(e) => handleFileSelect(e.target.files)}
+                />
+                <Upload className="h-10 w-10 mx-auto mb-2 text-slate-400" />
+                {file ? (
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">{file.name}</p>
+                    <p className="text-xs text-slate-500 mt-1">{(file.size / 1024).toFixed(1)} KB · Click para cambiar</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Arrastra el archivo aquí o click para seleccionar</p>
+                    <p className="text-xs text-slate-400 mt-1">Formatos: .xlsx, .xls, .csv</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Paso 2: Vista previa */}
+          {isPreviewStep && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-4 gap-2">
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-center">
+                  <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-600 mb-1" />
+                  <p className="text-2xl font-bold text-emerald-700">{preview.summary?.nuevos || 0}</p>
+                  <p className="text-xs text-emerald-600">Nuevos</p>
+                </div>
+                <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
+                  <CheckCircle2 className="h-5 w-5 mx-auto text-blue-600 mb-1" />
+                  <p className="text-2xl font-bold text-blue-700">{preview.summary?.actualizados || 0}</p>
+                  <p className="text-xs text-blue-600">Actualizados</p>
+                </div>
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-center">
+                  <AlertTriangle className="h-5 w-5 mx-auto text-amber-600 mb-1" />
+                  <p className="text-2xl font-bold text-amber-700">{preview.summary?.duplicados || 0}</p>
+                  <p className="text-xs text-amber-600">Duplicados</p>
+                </div>
+                <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
+                  <XCircle className="h-5 w-5 mx-auto text-red-600 mb-1" />
+                  <p className="text-2xl font-bold text-red-700">{preview.summary?.no_encontrados || 0}</p>
+                  <p className="text-xs text-red-600">No encontrados</p>
+                </div>
+              </div>
+              <p className="text-center text-xs text-muted-foreground">
+                Total de filas: {preview.total} · {preview.summary?.nuevos || 0} nuevos · {preview.summary?.actualizados || 0} actualizados
               </p>
-              <div className="overflow-hidden rounded-lg border border-slate-200">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-100 border-b border-slate-200">
+
+              <div className="max-h-[40vh] overflow-y-auto overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full text-xs min-w-[640px]">
+                  <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
                     <tr>
-                      <th className="px-2 py-1.5 text-center font-bold text-slate-600 w-10">Col</th>
-                      <th className="px-2 py-1.5 text-left font-bold text-slate-600">Campo</th>
-                      <th className="px-2 py-1.5 text-left font-bold text-slate-600">Ejemplo</th>
+                      <th className="text-left px-2 py-2 font-semibold text-slate-600">Shipping Mark</th>
+                      <th className="text-left px-2 py-2 font-semibold text-slate-600">Recibo</th>
+                      <th className="text-right px-2 py-2 font-semibold text-slate-600">CBM</th>
+                      <th className="text-left px-2 py-2 font-semibold text-slate-600">Fecha</th>
+                      <th className="text-left px-2 py-2 font-semibold text-slate-600">Notas</th>
+                      <th className="text-left px-2 py-2 font-semibold text-slate-600">Cliente</th>
+                      <th className="text-center px-2 py-2 font-semibold text-slate-600">Estado</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    <tr className="bg-blue-50/40">
-                      <td className="px-2 py-1.5 text-center font-bold text-blue-600">A</td>
-                      <td className="px-2 py-1.5 font-medium text-slate-700">Shipping Mark</td>
-                      <td className="px-2 py-1.5 font-mono text-slate-500">TLEC-ABC123</td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-1.5 text-center font-bold text-slate-500">B</td>
-                      <td className="px-2 py-1.5 font-medium text-slate-700">Orden / Recibo</td>
-                      <td className="px-2 py-1.5 font-mono text-slate-500">ORD-001234</td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-1.5 text-center font-bold text-slate-500">C</td>
-                      <td className="px-2 py-1.5 font-medium text-slate-700">CBM (número)</td>
-                      <td className="px-2 py-1.5 font-mono text-slate-500">2.50000</td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-1.5 text-center font-bold text-slate-500">D</td>
-                      <td className="px-2 py-1.5 font-medium text-slate-700">Fecha de salida</td>
-                      <td className="px-2 py-1.5 font-mono text-slate-500">2026-03-16</td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-1.5 text-center font-bold text-slate-500">E</td>
-                      <td className="px-2 py-1.5 font-medium text-slate-700">Notas (opcional)</td>
-                      <td className="px-2 py-1.5 font-mono text-slate-500">Carga frágil</td>
-                    </tr>
+                  <tbody>
+                    {preview.rows?.map((r, i) => {
+                      const meta = STATUS_META[r.status] || STATUS_META.no_encontrado;
+                      const Icon = meta.icon;
+                      return (
+                        <tr key={i} className={`border-b border-slate-100 last:border-0 ${meta.bg}`}>
+                          <td className="px-2 py-1.5 font-mono text-slate-700">{r.shipping_mark || '—'}</td>
+                          <td className="px-2 py-1.5 text-slate-600">{r.invoice_number || '—'}</td>
+                          <td className="px-2 py-1.5 text-right text-slate-600">{r.cbm || '—'}</td>
+                          <td className="px-2 py-1.5 text-slate-600">{r.fecha_salida || '—'}</td>
+                          <td className="px-2 py-1.5 text-slate-600 truncate max-w-[160px]">{r.notas || '—'}</td>
+                          <td className="px-2 py-1.5 text-slate-600 truncate max-w-[140px]">{r.client_name || (r.status === 'no_encontrado' ? '—' : '')}</td>
+                          <td className="px-2 py-1.5 text-center">
+                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${meta.color} ${meta.bg} border ${meta.border}`}>
+                              <Icon className="h-3 w-3" />
+                              {meta.label}
+                            </span>
+                            {r.reason && <p className="text-[10px] text-slate-500 mt-0.5">{r.reason}</p>}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                ✓ Fila 1 = encabezados (se ignoran) · Los datos se leen desde la fila 2 en adelante.
-              </p>
             </div>
+          )}
 
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => inputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${dragOver ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'}`}
-            >
-              <input
-                ref={inputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={(e) => handleFileSelect(e.target.files)}
-              />
-              <Upload className="h-10 w-10 mx-auto mb-2 text-slate-400" />
-              {file ? (
-                <div>
-                  <p className="text-sm font-medium text-slate-700">{file.name}</p>
-                  <p className="text-xs text-slate-500 mt-1">{(file.size / 1024).toFixed(1)} KB · Click para cambiar</p>
+          {/* Paso 3: Resultado final */}
+          {isResultStep && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-4 gap-2">
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-center">
+                  <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-600 mb-1" />
+                  <p className="text-2xl font-bold text-emerald-700">{result.created}</p>
+                  <p className="text-xs text-emerald-600">Creados</p>
                 </div>
-              ) : (
-                <div>
-                  <p className="text-sm font-medium text-slate-600">Arrastra el archivo aquí o click para seleccionar</p>
-                  <p className="text-xs text-slate-400 mt-1">Formatos: .xlsx, .xls, .csv</p>
+                <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
+                  <CheckCircle2 className="h-5 w-5 mx-auto text-blue-600 mb-1" />
+                  <p className="text-2xl font-bold text-blue-700">{result.updated || 0}</p>
+                  <p className="text-xs text-blue-600">Actualizados</p>
+                </div>
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-center">
+                  <AlertTriangle className="h-5 w-5 mx-auto text-amber-600 mb-1" />
+                  <p className="text-2xl font-bold text-amber-700">{result.skipped}</p>
+                  <p className="text-xs text-amber-600">Sin cambios</p>
+                </div>
+                <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
+                  <XCircle className="h-5 w-5 mx-auto text-red-600 mb-1" />
+                  <p className="text-2xl font-bold text-red-700">{result.notFound}</p>
+                  <p className="text-xs text-red-600">No encontrados</p>
+                </div>
+              </div>
+              <p className="text-center text-xs text-muted-foreground">Total de filas procesadas: {result.total}</p>
+
+              {result.createdDetails?.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-emerald-700">✓ Creados ({result.createdDetails.length})</p>
+                  <div className="max-h-32 overflow-y-auto rounded-lg border border-emerald-100 bg-emerald-50/50">
+                    {result.createdDetails.map((r, i) => (
+                      <div key={i} className="px-3 py-1.5 text-xs flex justify-between border-b border-emerald-100/50 last:border-0">
+                        <span className="font-mono text-emerald-800">{r.shipping_mark}</span>
+                        <span className="text-slate-600">Recibo {r.invoice_number} · {r.cbm} CBM · {r.fecha_salida}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {result.updatedDetails?.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-blue-700">↻ Actualizados - campos mergeados ({result.updatedDetails.length})</p>
+                  <div className="max-h-32 overflow-y-auto rounded-lg border border-blue-100 bg-blue-50/50">
+                    {result.updatedDetails.map((r, i) => (
+                      <div key={i} className="px-3 py-1.5 text-xs flex justify-between border-b border-blue-100/50 last:border-0">
+                        <span className="font-mono text-blue-800">{r.shipping_mark}</span>
+                        <span className="text-slate-600">Recibo {r.invoice_number} · {r.fields?.join(', ') || 'notas'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {result.skippedDetails?.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-amber-700">⚠ Sin cambios - ya existen ({result.skippedDetails.length})</p>
+                  <div className="max-h-32 overflow-y-auto rounded-lg border border-amber-100 bg-amber-50/50">
+                    {result.skippedDetails.map((r, i) => (
+                      <div key={i} className="px-3 py-1.5 text-xs flex justify-between border-b border-amber-100/50 last:border-0">
+                        <span className="font-mono text-amber-800">{r.shipping_mark}</span>
+                        <span className="text-slate-600">Recibo {r.invoice_number} · {r.cbm} CBM</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {result.notFoundDetails?.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-red-700">✕ No encontrados ({result.notFoundDetails.length})</p>
+                  <div className="max-h-32 overflow-y-auto rounded-lg border border-red-100 bg-red-50/50">
+                    {result.notFoundDetails.map((r, i) => (
+                      <div key={i} className="px-3 py-1.5 text-xs flex flex-col border-b border-red-100/50 last:border-0">
+                        <span className="font-mono text-red-800">{r.shipping_mark || '(vacío)'}</span>
+                        <span className="text-slate-500">{r.reason}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Paso 2: Vista previa */}
-        {isPreviewStep && (
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-4 gap-2">
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-center">
-                <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-600 mb-1" />
-                <p className="text-2xl font-bold text-emerald-700">{preview.summary?.nuevos || 0}</p>
-                <p className="text-xs text-emerald-600">Nuevos</p>
-              </div>
-              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
-                <CheckCircle2 className="h-5 w-5 mx-auto text-blue-600 mb-1" />
-                <p className="text-2xl font-bold text-blue-700">{preview.summary?.actualizados || 0}</p>
-                <p className="text-xs text-blue-600">Actualizados</p>
-              </div>
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-center">
-                <AlertTriangle className="h-5 w-5 mx-auto text-amber-600 mb-1" />
-                <p className="text-2xl font-bold text-amber-700">{preview.summary?.duplicados || 0}</p>
-                <p className="text-xs text-amber-600">Duplicados</p>
-              </div>
-              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
-                <XCircle className="h-5 w-5 mx-auto text-red-600 mb-1" />
-                <p className="text-2xl font-bold text-red-700">{preview.summary?.no_encontrados || 0}</p>
-                <p className="text-xs text-red-600">No encontrados</p>
-              </div>
-            </div>
-            <p className="text-center text-xs text-muted-foreground">
-              Total de filas: {preview.total} · {preview.summary?.nuevos || 0} nuevos · {preview.summary?.actualizados || 0} actualizados
-            </p>
-
-            <div className="max-h-[40vh] overflow-y-auto overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-xs min-w-[640px]">
-                <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="text-left px-2 py-2 font-semibold text-slate-600">Shipping Mark</th>
-                    <th className="text-left px-2 py-2 font-semibold text-slate-600">Recibo</th>
-                    <th className="text-right px-2 py-2 font-semibold text-slate-600">CBM</th>
-                    <th className="text-left px-2 py-2 font-semibold text-slate-600">Fecha</th>
-                    <th className="text-left px-2 py-2 font-semibold text-slate-600">Notas</th>
-                    <th className="text-left px-2 py-2 font-semibold text-slate-600">Cliente</th>
-                    <th className="text-center px-2 py-2 font-semibold text-slate-600">Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.rows?.map((r, i) => {
-                    const meta = STATUS_META[r.status] || STATUS_META.no_encontrado;
-                    const Icon = meta.icon;
-                    return (
-                      <tr key={i} className={`border-b border-slate-100 last:border-0 ${meta.bg}`}>
-                        <td className="px-2 py-1.5 font-mono text-slate-700">{r.shipping_mark || '—'}</td>
-                        <td className="px-2 py-1.5 text-slate-600">{r.invoice_number || '—'}</td>
-                        <td className="px-2 py-1.5 text-right text-slate-600">{r.cbm || '—'}</td>
-                        <td className="px-2 py-1.5 text-slate-600">{r.fecha_salida || '—'}</td>
-                        <td className="px-2 py-1.5 text-slate-600 truncate max-w-[160px]">{r.notas || '—'}</td>
-                        <td className="px-2 py-1.5 text-slate-600 truncate max-w-[140px]">{r.client_name || (r.status === 'no_encontrado' ? '—' : '')}</td>
-                        <td className="px-2 py-1.5 text-center">
-                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${meta.color} ${meta.bg} border ${meta.border}`}>
-                            <Icon className="h-3 w-3" />
-                            {meta.label}
-                          </span>
-                          {r.reason && <p className="text-[10px] text-slate-500 mt-0.5">{r.reason}</p>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Paso 3: Resultado final */}
-        {isResultStep && (
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-4 gap-2">
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-center">
-                <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-600 mb-1" />
-                <p className="text-2xl font-bold text-emerald-700">{result.created}</p>
-                <p className="text-xs text-emerald-600">Creados</p>
-              </div>
-              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
-                <CheckCircle2 className="h-5 w-5 mx-auto text-blue-600 mb-1" />
-                <p className="text-2xl font-bold text-blue-700">{result.updated || 0}</p>
-                <p className="text-xs text-blue-600">Actualizados</p>
-              </div>
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-center">
-                <AlertTriangle className="h-5 w-5 mx-auto text-amber-600 mb-1" />
-                <p className="text-2xl font-bold text-amber-700">{result.skipped}</p>
-                <p className="text-xs text-amber-600">Sin cambios</p>
-              </div>
-              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
-                <XCircle className="h-5 w-5 mx-auto text-red-600 mb-1" />
-                <p className="text-2xl font-bold text-red-700">{result.notFound}</p>
-                <p className="text-xs text-red-600">No encontrados</p>
-              </div>
-            </div>
-            <p className="text-center text-xs text-muted-foreground">Total de filas procesadas: {result.total}</p>
-
-            {result.createdDetails?.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-emerald-700">✓ Creados ({result.createdDetails.length})</p>
-                <div className="max-h-32 overflow-y-auto rounded-lg border border-emerald-100 bg-emerald-50/50">
-                  {result.createdDetails.map((r, i) => (
-                    <div key={i} className="px-3 py-1.5 text-xs flex justify-between border-b border-emerald-100/50 last:border-0">
-                      <span className="font-mono text-emerald-800">{r.shipping_mark}</span>
-                      <span className="text-slate-600">Recibo {r.invoice_number} · {r.cbm} CBM · {r.fecha_salida}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {result.updatedDetails?.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-blue-700">↻ Actualizados - campos mergeados ({result.updatedDetails.length})</p>
-                <div className="max-h-32 overflow-y-auto rounded-lg border border-blue-100 bg-blue-50/50">
-                  {result.updatedDetails.map((r, i) => (
-                    <div key={i} className="px-3 py-1.5 text-xs flex justify-between border-b border-blue-100/50 last:border-0">
-                      <span className="font-mono text-blue-800">{r.shipping_mark}</span>
-                      <span className="text-slate-600">Recibo {r.invoice_number} · {r.fields?.join(', ') || 'notas'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {result.skippedDetails?.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-amber-700">⚠ Sin cambios - ya existen ({result.skippedDetails.length})</p>
-                <div className="max-h-32 overflow-y-auto rounded-lg border border-amber-100 bg-amber-50/50">
-                  {result.skippedDetails.map((r, i) => (
-                    <div key={i} className="px-3 py-1.5 text-xs flex justify-between border-b border-amber-100/50 last:border-0">
-                      <span className="font-mono text-amber-800">{r.shipping_mark}</span>
-                      <span className="text-slate-600">Recibo {r.invoice_number} · {r.cbm} CBM</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {result.notFoundDetails?.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-red-700">✕ No encontrados ({result.notFoundDetails.length})</p>
-                <div className="max-h-32 overflow-y-auto rounded-lg border border-red-100 bg-red-50/50">
-                  {result.notFoundDetails.map((r, i) => (
-                    <div key={i} className="px-3 py-1.5 text-xs flex flex-col border-b border-red-100/50 last:border-0">
-                      <span className="font-mono text-red-800">{r.shipping_mark || '(vacío)'}</span>
-                      <span className="text-slate-500">{r.reason}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <DialogFooter className="gap-2 flex-wrap">
+        <DialogFooter className="gap-2 flex-wrap pt-2">
           {isResultStep ? (
             <>
               <Button variant="outline" onClick={downloadReport} className="gap-2">
