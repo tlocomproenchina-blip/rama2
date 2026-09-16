@@ -139,6 +139,28 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
     URL.revokeObjectURL(url);
   };
 
+  const downloadNotFoundReport = () => {
+    if (!result?.notFoundDetails?.length) return;
+    const now = new Date();
+    const lines = [
+      'REPORTE DE NO ENCONTRADOS - IMPORTACIÓN CBM',
+      `Fecha: ${now.toLocaleString('es-VE')}`,
+      `Total no encontrados: ${result.notFoundDetails.length}`,
+      '',
+      'Shipping Mark\tRecibo\tCBM\tFecha Salida\tMotivo'
+    ];
+    result.notFoundDetails.forEach(r => {
+      lines.push(`${r.shipping_mark || '(vacío)'}\t${r.invoice_number || ''}\t${r.cbm || ''}\t${r.fecha_salida || ''}\t${r.reason || ''}`);
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `no_encontrados_cbm_${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const isPreviewStep = preview && !result;
   const isResultStep = result;
 
@@ -362,6 +384,11 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
               <Button variant="outline" onClick={downloadReport} className="gap-2">
                 <Download className="h-4 w-4" /> Descargar reporte
               </Button>
+              {result.notFoundDetails?.length > 0 && (
+                <Button variant="outline" onClick={downloadNotFoundReport} className="gap-2 border-red-200 text-red-700 hover:bg-red-50">
+                  <XCircle className="h-4 w-4" /> Descargar no encontrados ({result.notFoundDetails.length})
+                </Button>
+              )}
               <Button onClick={() => { reset(); onOpenChange?.(false); }} className="gap-2">
                 Cerrar
               </Button>
