@@ -23,6 +23,7 @@ import CbmBulkEditDialog from '@/components/admin/CbmBulkEditDialog';
 import CbmImportDialog from '@/components/admin/CbmImportDialog';
 
 export default function AdminCbmIngresos({ user }) {
+  // eslint-disable-next-line no-unused-vars
   const [ingresos, setIngresos] = useState([]);
   const [allIngresos, setAllIngresos] = useState([]);
   const [loading, setLoading] = useState(true);
