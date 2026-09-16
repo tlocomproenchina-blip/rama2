@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 
 const STATUS_META = {
   nuevo: { label: 'Nuevo', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle2 },
+  actualizado: { label: 'Actualizado', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', icon: CheckCircle2 },
   duplicado: { label: 'Duplicado', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', icon: AlertTriangle },
   no_encontrado: { label: 'No encontrado', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: XCircle },
 };
@@ -102,8 +103,8 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
       }
       setResult(data);
       setPreview(null);
-      toast.success(`${data.created || 0} recibo(s) creado(s)`);
-      if (data.created > 0) onDone?.();
+      toast.success(`${data.created || 0} creado(s) · ${data.updated || 0} actualizado(s)`);
+      if (data.created > 0 || data.updated > 0) onDone?.();
     } catch (e) {
       toast.error('Error al importar: ' + (e?.message || ''));
     }
@@ -112,11 +113,17 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
 
   const downloadReport = () => {
     if (!result) return;
-    const lines = ['REPORTE DE IMPORTACIÓN CBM', `Total filas: ${result.total}`, `Creados: ${result.created}`, `Saltados (ya existen): ${result.skipped}`, `No encontrados: ${result.notFound}`, '', ''];
+    const lines = ['REPORTE DE IMPORTACIÓN CBM', `Total filas: ${result.total}`, `Creados: ${result.created}`, `Actualizados: ${result.updated || 0}`, `Sin cambios (ya existen): ${result.skipped}`, `No encontrados: ${result.notFound}`, '', ''];
     if (result.createdDetails?.length) {
       lines.push('=== CREADOS ===');
       lines.push('Shipping Mark\tRecibo\tCBM\tFecha Salida\tCliente');
       result.createdDetails.forEach(r => lines.push(`${r.shipping_mark}\t${r.invoice_number}\t${r.cbm}\t${r.fecha_salida}\t${r.client_name}`));
+      lines.push('');
+    }
+    if (result.updatedDetails?.length) {
+      lines.push('=== ACTUALIZADOS (merge) ===');
+      lines.push('Shipping Mark\tRecibo\tCBM\tFecha Salida\tCampos\tCliente');
+      result.updatedDetails.forEach(r => lines.push(`${r.shipping_mark}\t${r.invoice_number}\t${r.cbm}\t${r.fecha_salida}\t${(r.fields || []).join(';')}\t${r.client_name}`));
       lines.push('');
     }
     if (result.skippedDetails?.length) {
@@ -257,11 +264,16 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
         {/* Paso 2: Vista previa */}
         {isPreviewStep && (
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-center">
                 <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-600 mb-1" />
                 <p className="text-2xl font-bold text-emerald-700">{preview.summary?.nuevos || 0}</p>
                 <p className="text-xs text-emerald-600">Nuevos</p>
+              </div>
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
+                <CheckCircle2 className="h-5 w-5 mx-auto text-blue-600 mb-1" />
+                <p className="text-2xl font-bold text-blue-700">{preview.summary?.actualizados || 0}</p>
+                <p className="text-xs text-blue-600">Actualizados</p>
               </div>
               <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-center">
                 <AlertTriangle className="h-5 w-5 mx-auto text-amber-600 mb-1" />
@@ -275,7 +287,7 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
               </div>
             </div>
             <p className="text-center text-xs text-muted-foreground">
-              Total de filas: {preview.total} · Se crearán solo los {preview.summary?.nuevos || 0} recibos nuevos
+              Total de filas: {preview.total} · {preview.summary?.nuevos || 0} nuevos · {preview.summary?.actualizados || 0} actualizados
             </p>
 
             <div className="max-h-[40vh] overflow-y-auto overflow-x-auto rounded-lg border border-slate-200">
@@ -322,16 +334,21 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
         {/* Paso 3: Resultado final */}
         {isResultStep && (
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-center">
                 <CheckCircle2 className="h-5 w-5 mx-auto text-emerald-600 mb-1" />
                 <p className="text-2xl font-bold text-emerald-700">{result.created}</p>
                 <p className="text-xs text-emerald-600">Creados</p>
               </div>
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
+                <CheckCircle2 className="h-5 w-5 mx-auto text-blue-600 mb-1" />
+                <p className="text-2xl font-bold text-blue-700">{result.updated || 0}</p>
+                <p className="text-xs text-blue-600">Actualizados</p>
+              </div>
               <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-center">
                 <AlertTriangle className="h-5 w-5 mx-auto text-amber-600 mb-1" />
                 <p className="text-2xl font-bold text-amber-700">{result.skipped}</p>
-                <p className="text-xs text-amber-600">Saltados</p>
+                <p className="text-xs text-amber-600">Sin cambios</p>
               </div>
               <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
                 <XCircle className="h-5 w-5 mx-auto text-red-600 mb-1" />
@@ -355,9 +372,23 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
               </div>
             )}
 
+            {result.updatedDetails?.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-blue-700">↻ Actualizados - campos mergeados ({result.updatedDetails.length})</p>
+                <div className="max-h-32 overflow-y-auto rounded-lg border border-blue-100 bg-blue-50/50">
+                  {result.updatedDetails.map((r, i) => (
+                    <div key={i} className="px-3 py-1.5 text-xs flex justify-between border-b border-blue-100/50 last:border-0">
+                      <span className="font-mono text-blue-800">{r.shipping_mark}</span>
+                      <span className="text-slate-600">Recibo {r.invoice_number} · {r.fields?.join(', ') || 'notas'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {result.skippedDetails?.length > 0 && (
               <div className="space-y-1">
-                <p className="text-xs font-semibold text-amber-700">⚠ Saltados - ya existen ({result.skippedDetails.length})</p>
+                <p className="text-xs font-semibold text-amber-700">⚠ Sin cambios - ya existen ({result.skippedDetails.length})</p>
                 <div className="max-h-32 overflow-y-auto rounded-lg border border-amber-100 bg-amber-50/50">
                   {result.skippedDetails.map((r, i) => (
                     <div key={i} className="px-3 py-1.5 text-xs flex justify-between border-b border-amber-100/50 last:border-0">
@@ -412,7 +443,7 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
                   </>
                 ) : (
                   <>
-                    <Upload className="h-4 w-4" /> Confirmar importación ({preview.summary?.nuevos || 0})
+                    <Upload className="h-4 w-4" /> Confirmar importación ({(preview.summary?.nuevos || 0) + (preview.summary?.actualizados || 0)})
                   </>
                 )}
               </Button>

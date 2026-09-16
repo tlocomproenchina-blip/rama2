@@ -90,9 +90,34 @@ export default async function(req) {
 
     const created = [];
     const skipped = [];
+    const updated = [];
     const notFound = [];
     const toCreate = [];
+    const toUpdate = [];
     const previewRows = [];
+
+    // Map de registros existentes por client_email + invoice_number (para upsert)
+    const existingRecordsByClientInvoice = {};
+    for (const mark of Object.keys(clientsByMark)) {
+      const client = clientsByMark[mark];
+      try {
+        const existing = await base44.asServiceRole.entities.CbmIngreso.filter(
+          { client_email: client.email },
+          '-fecha',
+          500
+        );
+        const map = {};
+        (existing || []).forEach((c) => {
+          if (c.invoice_number) {
+            const key = String(c.invoice_number).trim().toLowerCase();
+            map[key] = c;
+          }
+        });
+        existingRecordsByClientInvoice[client.email] = map;
+      } catch (_) {
+        existingRecordsByClientInvoice[client.email] = {};
+      }
+    }
 
     for (const row of rows) {
       const mark = normalizeMark(row.shipping_mark);
@@ -145,9 +170,32 @@ export default async function(req) {
       basePreview.client_name = client.full_name || client.email;
 
       const dupKey = invoiceNum.toLowerCase();
-      if (existingByClient[client.email]?.has(dupKey)) {
-        skipped.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, client_name: client.full_name || client.email });
-        previewRows.push({ ...basePreview, status: 'duplicado' });
+      const existingRec = existingRecordsByClientInvoice[client.email]?.[dupKey];
+      if (existingRec) {
+        // Upsert/merge: actualizar campos vacíos sin sobrescribir datos existentes
+        const updateFields = {};
+        if (row.notas && !existingRec.notas) updateFields.notas = row.notas;
+        if (fechaSalida && !existingRec.fecha_salida) updateFields.fecha_salida = fechaSalida;
+        if (cbmVal > 0 && (!existingRec.cbm || existingRec.cbm === 0)) updateFields.cbm = cbmVal;
+
+        if (dryRun) {
+          const hasUpdates = Object.keys(updateFields).length > 0;
+          previewRows.push({ ...basePreview, status: hasUpdates ? 'actualizado' : 'duplicado' });
+          if (hasUpdates) {
+            updated.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, notas: row.notas || '', client_name: client.full_name || client.email, fields: Object.keys(updateFields) });
+          } else {
+            skipped.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, client_name: client.full_name || client.email });
+          }
+        } else {
+          if (Object.keys(updateFields).length > 0) {
+            toUpdate.push({ id: existingRec.id, fields: updateFields });
+            updated.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, notas: row.notas || '', client_name: client.full_name || client.email, fields: Object.keys(updateFields) });
+          } else {
+            skipped.push({ shipping_mark: mark, invoice_number: invoiceNum, cbm: cbmVal, fecha_salida: fechaSalida, client_name: client.full_name || client.email });
+          }
+        }
+        // Marcar como existente para evitar duplicados dentro del mismo lote
+        existingByClient[client.email].add(dupKey);
         continue;
       }
 
@@ -184,6 +232,7 @@ export default async function(req) {
         rows: previewRows,
         summary: {
           nuevos: previewRows.filter(r => r.status === 'nuevo').length,
+          actualizados: previewRows.filter(r => r.status === 'actualizado').length,
           duplicados: previewRows.filter(r => r.status === 'duplicado').length,
           no_encontrados: previewRows.filter(r => r.status === 'no_encontrado').length
         }
@@ -201,10 +250,25 @@ export default async function(req) {
       }
     }
 
+    // Actualizar registros existentes (upsert/merge de campos vacíos)
+    let updatedCount = 0;
+    if (toUpdate.length > 0) {
+      for (const upd of toUpdate) {
+        try {
+          await base44.asServiceRole.entities.CbmIngreso.update(upd.id, upd.fields);
+          updatedCount++;
+        } catch (e) {
+          // Error individual no detiene el proceso
+        }
+      }
+    }
+
     return Response.json({
       total: rows.length,
       created: createdCount,
       createdDetails: created,
+      updated: updatedCount,
+      updatedDetails: updated,
       skipped: skipped.length,
       skippedDetails: skipped,
       notFound: notFound.length,
