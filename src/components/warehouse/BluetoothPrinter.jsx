@@ -159,9 +159,9 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         // 1. Barcode (top, centered, bigger) with label code
         try {
           const canvas = document.createElement('canvas');
-          JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 3, height: 60, displayValue: true, fontSize: 16, margin: 0 });
+          JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 4, height: 80, displayValue: true, fontSize: 18, margin: 0 });
           const imgData = canvas.toDataURL('image/png');
-          const imgWidth = 75;
+          const imgWidth = 85;
           const imgHeight = (canvas.height / canvas.width) * imgWidth;
           doc.addImage(imgData, 'PNG', (100 - imgWidth) / 2, y, imgWidth, imgHeight);
           y += imgHeight + 3;

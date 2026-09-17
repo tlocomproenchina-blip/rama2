@@ -68,50 +68,56 @@ export const buildBultoLabelPayload = (bulto) => {
   lines.push('DIRECTION 1');
   lines.push('CLS');
 
-  // 1. Barcode CODE128 centered top (height 150 dots ~18.75mm, wider modules for distance reading)
-  lines.push(`BARCODE 150,15,${q('128')},150,2,0,3,6,${q(labelCode)}`);
+  // 1. Barcode CODE128 centered top (height 180 dots ~22.5mm, wider modules for distance reading)
+  // Dynamic narrow/wide: use 4/8 for typical codes (≤16 chars), fall back to 3/6 for longer to avoid overflow
+  const codeLen = labelCode.length;
+  const narrow = codeLen > 16 ? 3 : 4;
+  const wide = narrow * 2;
+  const barcodeW = (11 * (codeLen + 2) + 2) * narrow;
+  const barcodeX = Math.max(20, Math.floor((LABEL_W - barcodeW) / 2));
+  lines.push(`BARCODE ${barcodeX},15,${q('128')},180,2,0,${narrow},${wide},${q(labelCode)}`);
 
   // 2. Label code text centered below barcode (font 2, 2x2 — bigger for distance)
-  lines.push(`TEXT ${centerX(labelCode, '2', 2)},175,${q('2')},0,2,2,${q(labelCode)}`);
+  lines.push(`TEXT ${centerX(labelCode, '2', 2)},205,${q('2')},0,2,2,${q(labelCode)}`);
 
   // 3. Separator line
-  lines.push('BAR 50,235,700,3');
+  lines.push('BAR 50,265,700,3');
 
   // 4. Estado large centered (font 3, 3x3) — priority for sorting
-  lines.push(`TEXT ${centerX(estado, '3', 3)},250,${q('3')},0,3,3,${q(estado)}`);
+  lines.push(`TEXT ${centerX(estado, '3', 3)},280,${q('3')},0,3,3,${q(estado)}`);
 
   // 5. Shipping mark medium centered (font 2, 2x2)
-  lines.push(`TEXT ${centerX(shippingMark, '2', 2)},360,${q('2')},0,2,2,${q(shippingMark)}`);
+  lines.push(`TEXT ${centerX(shippingMark, '2', 2)},390,${q('2')},0,2,2,${q(shippingMark)}`);
 
   // 6. Separator line
-  lines.push('BAR 50,420,700,3');
+  lines.push('BAR 50,450,700,3');
 
   // 7. Bulto number + package count centered (font 2, 2x2 — two lines)
-  lines.push(`TEXT ${centerX(bultoNum, '2', 2)},440,${q('2')},0,2,2,${q(bultoNum)}`);
-  lines.push(`TEXT ${centerX(pkgStr, '2', 2)},498,${q('2')},0,2,2,${q(pkgStr)}`);
+  lines.push(`TEXT ${centerX(bultoNum, '2', 2)},465,${q('2')},0,2,2,${q(bultoNum)}`);
+  lines.push(`TEXT ${centerX(pkgStr, '2', 2)},523,${q('2')},0,2,2,${q(pkgStr)}`);
 
   // 8. Separator line
-  lines.push('BAR 50,560,700,3');
+  lines.push('BAR 50,583,700,3');
 
   // 9. Client block left side — enlarged fonts
-  let cy = 575;
+  let cy = 598;
   if (cs.full_name) {
     lines.push(`TEXT 50,${cy},${q('2')},0,2,2,${q(cs.full_name)}`);
-    cy += 55;
+    cy += 52;
   }
   if (cs.cedula) {
     lines.push(`TEXT 50,${cy},${q('2')},0,2,2,${q('C.I. ' + cs.cedula)}`);
-    cy += 55;
+    cy += 52;
   }
   if (cs.whatsapp) {
     lines.push(`TEXT 50,${cy},${q('2')},0,1,1,${q('Tel: ' + cs.whatsapp)}`);
-    cy += 28;
+    cy += 26;
   }
   if (cs.address) {
     const addrLines = wrapText(cs.address, 40);
     for (const ln of addrLines.slice(0, 2)) {
       lines.push(`TEXT 50,${cy},${q('2')},0,1,1,${q(ln)}`);
-      cy += 25;
+      cy += 24;
     }
   }
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
