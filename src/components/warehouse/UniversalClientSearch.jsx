@@ -72,7 +72,7 @@ export default function UniversalClientSearch({ onSelect, placeholder = 'Buscar 
   };
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div ref={containerRef} className="relative w-full z-30">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
@@ -89,7 +89,7 @@ export default function UniversalClientSearch({ onSelect, placeholder = 'Buscar 
         )}
       </div>
       {open && !loading && results.length === 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-premium max-h-80 overflow-y-auto">
+        <div className="absolute z-[100] mt-1 w-full rounded-lg border border-border bg-card shadow-premium max-h-80 overflow-y-auto">
           <div className="flex items-center gap-3 px-3 py-3 text-slate-400">
             <SearchX className="h-4 w-4 shrink-0" />
             <p className="text-sm">No se encontraron clientes para "{query}"</p>
@@ -98,7 +98,7 @@ export default function UniversalClientSearch({ onSelect, placeholder = 'Buscar 
       )}
 
       {open && results.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-premium max-h-80 overflow-y-auto">
+        <div className="absolute z-[100] mt-1 w-full rounded-lg border border-border bg-card shadow-premium max-h-80 overflow-y-auto">
           {results.map((c, idx) => (
             <button
               key={c.email}
