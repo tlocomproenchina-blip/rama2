@@ -156,7 +156,7 @@ export default function WarehouseBultos({ user }) {
           </div>
 
           {/* Universal search */}
-          <Card className="shadow-sm">
+          <Card className="shadow-sm relative z-20">
             <CardContent className="p-4">
               <UniversalClientSearch onSelect={selectClient} />
             </CardContent>
