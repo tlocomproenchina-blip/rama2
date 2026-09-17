@@ -10,6 +10,7 @@ import PageNotFound from './lib/PageNotFound';
 import { CITY_LANDINGS } from './lib/cityLandings';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import AdminCbmIngresos from './pages/AdminCbmIngresos';
 
 // Lazy-loaded admin / warehouse pages — reduce bundle inicial para clientes
 const WarehouseReceive = lazy(() => import('./pages/WarehouseReceive'));
@@ -38,16 +39,8 @@ const AdminDailySummary = lazy(() => import('./pages/AdminDailySummary'));
 const AdminSeguimiento = lazy(() => import('./pages/AdminSeguimiento'));
 const AdminRutaDetalle = lazy(() => import('./pages/AdminRutaDetalle'));
 const AdminInternalMessages = lazy(() => import('./pages/AdminInternalMessages'));
-// Retry once on chunk-load failure (stale Vite chunk hash in preview).
-// If it still fails, reload the page so the browser fetches fresh chunks.
-const lazyRetry = (importFn) => lazy(() =>
-  importFn().catch((err) => {
-    if (window.__chunkRetried) { window.location.reload(); }
-    window.__chunkRetried = true;
-    return new Promise((r) => setTimeout(r, 300)).then(() => importFn());
-  })
-);
-const AdminCbmIngresos = lazyRetry(() => import('./pages/AdminCbmIngresos'));
+// AdminCbmIngresos imported statically (see top of file) — its lazy chunk
+// repeatedly failed to load in the preview sandbox.
 const AdminArrivalCalendar = lazy(() => import('./pages/AdminArrivalCalendar'));
 const AdminDuplicates = lazy(() => import('./pages/AdminDuplicates'));
 const AdminRevenueDashboard = lazy(() => import('./pages/AdminRevenueDashboard'));
