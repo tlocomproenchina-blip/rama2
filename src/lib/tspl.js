@@ -51,14 +51,16 @@ const wrapText = (text, maxChars) => {
 };
 
 // Build the full bulto label payload in TSPL (100×100mm).
-// bulto: { label_code, bulto_number, total_bultos, shipping_mark, client_snapshot }
+// bulto: { label_code, bulto_number, total_bultos, shipping_mark, client_snapshot, package_ids, package_trackings }
 // Returns Uint8Array ready for Web Bluetooth writeValue.
 export const buildBultoLabelPayload = (bulto) => {
   const cs = bulto.client_snapshot || {};
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
   const shippingMark = bulto.shipping_mark || '';
   const labelCode = bulto.label_code || '';
-  const bultoNum = `${bulto.bulto_number || 1}/${bulto.total_bultos || 1}`;
+  const bultoNum = `BULTO ${bulto.bulto_number || 1}/${bulto.total_bultos || 1}`;
+  const pkgCount = (bulto.package_ids?.length || bulto.package_trackings?.length || 0);
+  const pkgStr = `${pkgCount} PAQUETES`;
 
   const lines = [];
   lines.push('SIZE 100 mm,100 mm');
@@ -66,51 +68,55 @@ export const buildBultoLabelPayload = (bulto) => {
   lines.push('DIRECTION 1');
   lines.push('CLS');
 
-  // 1. Barcode CODE128 centered top (height 100 dots ~12.5mm, human-readable centered below)
-  lines.push(`BARCODE 200,20,${q('128')},100,2,0,2,4,${q(labelCode)}`);
+  // 1. Barcode CODE128 centered top (height 150 dots ~18.75mm, wider modules for distance reading)
+  lines.push(`BARCODE 150,15,${q('128')},150,2,0,3,6,${q(labelCode)}`);
 
-  // 2. Label code text centered below barcode (font 1, 1x1)
-  lines.push(`TEXT ${centerX(labelCode, '1', 1)},140,${q('1')},0,1,1,${q(labelCode)}`);
+  // 2. Label code text centered below barcode (font 2, 2x2 — bigger for distance)
+  lines.push(`TEXT ${centerX(labelCode, '2', 2)},175,${q('2')},0,2,2,${q(labelCode)}`);
 
   // 3. Separator line
-  lines.push('BAR 50,170,700,3');
+  lines.push('BAR 50,235,700,3');
 
   // 4. Estado large centered (font 3, 3x3) — priority for sorting
-  lines.push(`TEXT ${centerX(estado, '3', 3)},190,${q('3')},0,3,3,${q(estado)}`);
+  lines.push(`TEXT ${centerX(estado, '3', 3)},250,${q('3')},0,3,3,${q(estado)}`);
 
   // 5. Shipping mark medium centered (font 2, 2x2)
-  lines.push(`TEXT ${centerX(shippingMark, '2', 2)},290,${q('2')},0,2,2,${q(shippingMark)}`);
+  lines.push(`TEXT ${centerX(shippingMark, '2', 2)},360,${q('2')},0,2,2,${q(shippingMark)}`);
 
   // 6. Separator line
-  lines.push('BAR 50,350,700,3');
+  lines.push('BAR 50,420,700,3');
 
-  // 7. Bulto number right side large (font 2, 2x2)
-  lines.push(`TEXT 600,370,${q('2')},0,2,2,${q(bultoNum)}`);
+  // 7. Bulto number + package count centered (font 2, 2x2 — two lines)
+  lines.push(`TEXT ${centerX(bultoNum, '2', 2)},440,${q('2')},0,2,2,${q(bultoNum)}`);
+  lines.push(`TEXT ${centerX(pkgStr, '2', 2)},498,${q('2')},0,2,2,${q(pkgStr)}`);
 
-  // 8. Client block left side (font 1, 1x1)
-  let cy = 370;
+  // 8. Separator line
+  lines.push('BAR 50,560,700,3');
+
+  // 9. Client block left side — enlarged fonts
+  let cy = 575;
   if (cs.full_name) {
-    lines.push(`TEXT 50,${cy},${q('1')},0,1,1,${q(cs.full_name)}`);
-    cy += 30;
+    lines.push(`TEXT 50,${cy},${q('2')},0,2,2,${q(cs.full_name)}`);
+    cy += 55;
   }
   if (cs.cedula) {
-    lines.push(`TEXT 50,${cy},${q('1')},0,1,1,${q('C.I. ' + cs.cedula)}`);
-    cy += 30;
+    lines.push(`TEXT 50,${cy},${q('2')},0,2,2,${q('C.I. ' + cs.cedula)}`);
+    cy += 55;
   }
   if (cs.whatsapp) {
-    lines.push(`TEXT 50,${cy},${q('1')},0,1,1,${q('Tel: ' + cs.whatsapp)}`);
-    cy += 30;
+    lines.push(`TEXT 50,${cy},${q('2')},0,1,1,${q('Tel: ' + cs.whatsapp)}`);
+    cy += 28;
   }
   if (cs.address) {
-    const addrLines = wrapText(cs.address, 45);
-    for (const ln of addrLines.slice(0, 3)) {
-      lines.push(`TEXT 50,${cy},${q('1')},0,1,1,${q(ln)}`);
+    const addrLines = wrapText(cs.address, 40);
+    for (const ln of addrLines.slice(0, 2)) {
+      lines.push(`TEXT 50,${cy},${q('2')},0,1,1,${q(ln)}`);
       cy += 25;
     }
   }
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
   if (cityState) {
-    lines.push(`TEXT 50,${cy},${q('1')},0,1,1,${q(cityState)}`);
+    lines.push(`TEXT 50,${cy},${q('2')},0,1,1,${q(cityState)}`);
   }
 
   lines.push('PRINT 1');

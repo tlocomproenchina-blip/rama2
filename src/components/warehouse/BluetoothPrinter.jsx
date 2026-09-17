@@ -153,17 +153,18 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
       for (const bulto of bultos) {
         const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
         const cs = bulto.client_snapshot || {};
-        let y = 6;
+        const pkgCount = bulto.package_ids?.length || bulto.package_trackings?.length || 0;
+        let y = 5;
 
-        // 1. Barcode (top, centered) with label code
+        // 1. Barcode (top, centered, bigger) with label code
         try {
           const canvas = document.createElement('canvas');
-          JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 2, height: 40, displayValue: true, fontSize: 12, margin: 0 });
+          JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 3, height: 60, displayValue: true, fontSize: 16, margin: 0 });
           const imgData = canvas.toDataURL('image/png');
-          const imgWidth = 70;
+          const imgWidth = 75;
           const imgHeight = (canvas.height / canvas.width) * imgWidth;
           doc.addImage(imgData, 'PNG', (100 - imgWidth) / 2, y, imgWidth, imgHeight);
-          y += imgHeight + 2;
+          y += imgHeight + 3;
         } catch (_) {}
 
         // Separator line
@@ -188,25 +189,30 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         doc.line(5, y, 95, y);
         y += 5;
 
-        // 4. Bulto number (right, large) + client name (left)
+        // 4. Bulto number + package count (centered, large, two lines)
         doc.setFontSize(18);
-        doc.text(`${bulto.bulto_number}/${bulto.total_bultos}`, 95, y, { align: 'right' });
-        doc.setFontSize(10);
-        if (cs.full_name) { doc.text(cs.full_name, 5, y); }
+        doc.setFont(undefined, 'bold');
+        doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos}`, 50, y, { align: 'center' });
+        y += 7;
+        doc.text(`${pkgCount} PAQUETES`, 50, y, { align: 'center' });
         y += 6;
 
-        // 5. Cédula
-        if (cs.cedula) { doc.text(`C.I. ${cs.cedula}`, 5, y); y += 5; }
+        // Separator line
+        doc.setLineWidth(0.3);
+        doc.line(5, y, 95, y);
+        y += 5;
 
-        // 6. Teléfono
+        // 5. Client data (enlarged)
+        doc.setFontSize(13);
+        if (cs.full_name) { doc.text(cs.full_name, 5, y); y += 6; }
+        if (cs.cedula) { doc.text(`C.I. ${cs.cedula}`, 5, y); y += 6; }
+        doc.setFontSize(11);
         if (cs.whatsapp) { doc.text(`Tel: ${cs.whatsapp}`, 5, y); y += 5; }
-
-        // 7. Dirección (wrapped, small)
-        doc.setFontSize(9);
+        doc.setFontSize(10);
         if (cs.address) {
           const addrLines = doc.splitTextToSize(cs.address, 90);
-          doc.text(addrLines, 5, y);
-          y += addrLines.length * 4.5;
+          doc.text(addrLines.slice(0, 2), 5, y);
+          y += addrLines.slice(0, 2).length * 4.5;
         }
         const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
         if (cityState) { doc.text(cityState, 5, y); }
