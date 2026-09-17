@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Package, PackageCheck, Printer, Boxes, CheckCircle2, AlertTriangle, History } from 'lucide-react';
+import { Loader2, Package, PackageCheck, Boxes, CheckCircle2, AlertTriangle, History } from 'lucide-react';
 import { toast } from 'sonner';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import BluetoothPrinter from '@/components/warehouse/BluetoothPrinter';
@@ -23,7 +23,6 @@ export default function WarehouseBultos({ user }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [creating, setCreating] = useState(false);
   const [lastCreated, setLastCreated] = useState(null); // bulto data for immediate print
-  const [printAllBultos, setPrintAllBultos] = useState([]); // all bultos of client for batch print
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0); // fuerza refresh del historial tras crear/editar/eliminar
 
   const boxedIds = useMemo(() => {
@@ -115,11 +114,6 @@ export default function WarehouseBultos({ user }) {
     }
   };
 
-  const handlePrintAll = () => {
-    if (!clientBultos.length) return;
-    setPrintAllBultos(clientBultos);
-  };
-
   const bultosToPrint = useMemo(() => {
     if (lastCreated) return [lastCreated];
     return [];
@@ -174,11 +168,6 @@ export default function WarehouseBultos({ user }) {
                     </span>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-normal text-slate-500">{clientBultos.length} bulto(s)</span>
-                      {clientBultos.length > 0 && (
-                        <Button variant="outline" size="sm" onClick={handlePrintAll}>
-                          <Printer className="h-4 w-4" /> Imprimir todos
-                        </Button>
-                      )}
                     </div>
                   </CardTitle>
                 </CardHeader>
@@ -206,14 +195,10 @@ export default function WarehouseBultos({ user }) {
                     <p className="text-sm text-slate-500">Aún no hay bultos creados para este cliente.</p>
                   )}
 
-                  {/* Batch print all */}
-                  {printAllBultos.length > 0 && (
-                    <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-                      <p className="text-sm font-medium text-blue-800 mb-2">Imprimir todas las etiquetas ({printAllBultos.length})</p>
-                      <BluetoothPrinter
-                        bultos={printAllBultos}
-                        onPrinted={() => setPrintAllBultos([])}
-                      />
+                  {/* Print all bultos directly */}
+                  {clientBultos.length > 0 && (
+                    <div className="mt-4">
+                      <BluetoothPrinter bultos={clientBultos} />
                     </div>
                   )}
                 </CardContent>
