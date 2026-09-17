@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, MessageSquare, UserCheck } from 'lucide-react';
+import { Mail, MessageSquare, UserCheck, Bot, AlertTriangle } from 'lucide-react';
 
 export default function AdminSupportTicketsList({
   filteredTickets,
@@ -100,6 +100,18 @@ export default function AdminSupportTicketsList({
                         {isUnread && (
                           <Badge className="bg-blue-500 text-white text-[10px] px-2 py-0.5 animate-pulse flex items-center gap-1">
                             💬 Nuevo mensaje
+                          </Badge>
+                        )}
+                        {ticket.ai_pending_draft && (
+                          <Badge className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 flex items-center gap-1 border border-amber-300">
+                            <Bot className="h-3 w-3" />
+                            Borrador IA pendiente
+                          </Badge>
+                        )}
+                        {ticket.ai_escalated && (
+                          <Badge className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 flex items-center gap-1 border border-red-300">
+                            <AlertTriangle className="h-3 w-3" />
+                            Escalado a humano
                           </Badge>
                         )}
                       </div>

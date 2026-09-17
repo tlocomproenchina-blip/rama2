@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar } from "@/components/ui/avatar";
-import { Send, User, Shield } from 'lucide-react';
+import { Send, User, Shield, Bot } from 'lucide-react';
 import { format } from 'date-fns';
 import SupportImageUploader from '@/components/support/SupportImageUploader';
 import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPreview';
@@ -38,19 +38,25 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
         ) : (
           messages?.map((msg, idx) => {
             const isEmployeeMessage = msg.is_admin;
+            const isAiMessage = msg.is_ai;
             return (
-              <div key={idx} className={`flex gap-3 ${isEmployeeMessage ? '' : 'flex-row-reverse'}`}>
-                <Avatar className={`h-8 w-8 flex items-center justify-center ${isEmployeeMessage ? 'bg-slate-100' : 'bg-green-100'}`}>
-                  {isEmployeeMessage ? (
+              <div key={idx} className={`flex gap-3 ${isEmployeeMessage || isAiMessage ? '' : 'flex-row-reverse'}`}>
+                <Avatar className={`h-8 w-8 flex items-center justify-center ${isAiMessage ? 'bg-violet-100' : isEmployeeMessage ? 'bg-slate-100' : 'bg-green-100'}`}>
+                  {isAiMessage ? (
+                    <Bot className="h-4 w-4 text-violet-600" />
+                  ) : isEmployeeMessage ? (
                     <Shield className="h-4 w-4 text-slate-600" />
                   ) : (
                     <User className="h-4 w-4 text-green-700" />
                   )}
                 </Avatar>
-                <div className={`flex-1 ${isEmployeeMessage ? 'text-left' : 'text-right'}`}>
-                    <div className={`inline-block max-w-[80%] ${isEmployeeMessage ? 'bg-slate-100 text-slate-800' : 'bg-green-500 text-white'} rounded-2xl px-4 py-2`}>
-                      <div className={`mb-1 flex items-center gap-2 text-[11px] ${isEmployeeMessage ? 'justify-between text-slate-500' : 'justify-end text-green-50'}`}>
-                        <p className="text-sm font-medium">{msg.sender_name}</p>
+                <div className={`flex-1 ${isEmployeeMessage || isAiMessage ? 'text-left' : 'text-right'}`}>
+                    <div className={`inline-block max-w-[80%] ${isAiMessage ? 'bg-violet-50 text-slate-800 border border-violet-200' : isEmployeeMessage ? 'bg-slate-100 text-slate-800' : 'bg-green-500 text-white'} rounded-2xl px-4 py-2`}>
+                      <div className={`mb-1 flex items-center gap-2 text-[11px] ${isAiMessage ? 'justify-between text-violet-600' : isEmployeeMessage ? 'justify-between text-slate-500' : 'justify-end text-green-50'}`}>
+                        <p className="text-sm font-medium flex items-center gap-1">
+                          {msg.sender_name}
+                          {isAiMessage && <span className="text-[9px] bg-violet-200 text-violet-700 px-1.5 py-0.5 rounded-full font-semibold">IA</span>}
+                        </p>
                         <span>{format(new Date(msg.timestamp), 'dd/MM/yyyy HH:mm')}</span>
                       </div>
                       {msg.message ? <p className="text-sm whitespace-pre-wrap">{msg.message}</p> : null}

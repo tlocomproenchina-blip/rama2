@@ -70,6 +70,11 @@
           "is_admin": {
             "type": "boolean"
           },
+          "is_ai": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indica si el mensaje fue generado por el asistente IA"
+          },
           "attachments": {
             "type": "array",
             "maxItems": 3,
@@ -103,6 +108,20 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha de resoluci\u00f3n"
+    },
+    "ai_escalated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si la IA escal\u00f3 el ticket a un agente humano"
+    },
+    "ai_pending_draft": {
+      "type": "string",
+      "description": "Borrador de respuesta generado por la IA, pendiente de revisi\u00f3n del admin"
+    },
+    "ai_draft_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que la IA gener\u00f3 el borrador pendiente"
     },
     "description": {
       "type": "string",

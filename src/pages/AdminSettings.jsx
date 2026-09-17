@@ -46,6 +46,7 @@ import PushTestCard from '@/components/admin/PushTestCard';
 import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
 import ShippingMarkExamplesEditor from '@/components/admin/ShippingMarkExamplesEditor';
 import BatteryBannerSettings from '@/components/admin/BatteryBannerSettings';
+import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -1496,6 +1497,14 @@ export default function AdminSettings({ user }) {
                    </div>
                  )}
                </div>
+
+               {/* AI Ticket Auto-Responder */}
+               <AiTicketSettingsCard
+                 appConfig={appConfig}
+                 setAppConfig={setAppConfig}
+                 onSave={handleSaveGeneral}
+                 saving={saving}
+               />
 
                {/* WhatsApp Configuration */}
                <div className="mt-8 p-4 md:p-6 bg-green-50 rounded-xl border border-green-200 space-y-4">

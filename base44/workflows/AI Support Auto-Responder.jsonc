@@ -1,0 +1,40 @@
+{
+  "name": "AI Support Auto-Responder",
+  "description": "Responde autom\u00e1ticamente tickets de soporte cuando un cliente env\u00eda un mensaje, usando la IA con contexto completo del cliente",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "SupportTicket",
+      "events": [
+        "update"
+      ]
+    },
+    "condition": "${ (.trigger.changed_fields // []) | index(\"messages\") != null }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "ai_support_auto_responder",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "respond_ticket": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "respondSupportTicketAI",
+            "args": {
+              "ticket_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Responder ticket con IA",
+            "description": "Genera y env\u00eda respuesta autom\u00e1tica al ticket"
+          }
+        }
+      }
+    ]
+  }
+}

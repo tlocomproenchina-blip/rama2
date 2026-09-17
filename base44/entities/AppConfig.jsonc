@@ -503,6 +503,20 @@
       "default": false,
       "description": "Activar asistente virtual de atenci\u00f3n al cliente"
     },
+    "ai_ticket_autoresponder_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Activar auto-respuesta de IA en tickets de soporte"
+    },
+    "ai_ticket_response_mode": {
+      "type": "string",
+      "enum": [
+        "direct",
+        "review"
+      ],
+      "default": "direct",
+      "description": "Modo de respuesta: direct=env\u00edo autom\u00e1tico al cliente, review=borrador para aprobaci\u00f3n del admin"
+    },
     "shipping_type_air_enabled": {
       "type": "boolean",
       "default": true,
