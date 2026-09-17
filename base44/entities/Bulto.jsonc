@@ -1,0 +1,136 @@
+{
+  "name": "Bulto",
+  "type": "object",
+  "properties": {
+    "label_code": {
+      "type": "string",
+      "description": "C\u00f3digo escaneable de la etiqueta del bulto (shipping_mark-B##). Formato distinto al ShippingLabel (-L##) para evitar colisiones."
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente due\u00f1o de los paquetes agrupados en el bulto"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark del cliente al momento de crear el bulto"
+    },
+    "bulto_number": {
+      "type": "number",
+      "default": 1,
+      "description": "N\u00famero secuencial del bulto para ese cliente (1, 2, 3...)"
+    },
+    "total_bultos": {
+      "type": "number",
+      "default": 1,
+      "description": "Total de bultos del env\u00edo/cliente. Se actualiza en cada bulto nuevo para que todos reflejen el total actual."
+    },
+    "package_ids": {
+      "type": "array",
+      "default": [],
+      "description": "IDs de los Package agrupados f\u00edsicamente en este bulto",
+      "items": {
+        "type": "string"
+      }
+    },
+    "package_trackings": {
+      "type": "array",
+      "default": [],
+      "description": "Cache de tracking numbers de los paquetes contenidos (para mostrar al verificar sin reconsultar)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "client_snapshot": {
+      "type": "object",
+      "description": "Datos del cliente al momento de crear el bulto (para imprimir en la etiqueta)",
+      "properties": {
+        "full_name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "cedula": {
+          "type": "string"
+        },
+        "whatsapp": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "shipping_mark": {
+          "type": "string"
+        }
+      }
+    },
+    "invoice_paid": {
+      "type": "boolean",
+      "default": false,
+      "description": "Snapshot: si la factura m\u00e1s reciente del cliente estaba pagada al crear el bulto"
+    },
+    "invoice_status": {
+      "type": "string",
+      "description": "Snapshot: estado de la factura m\u00e1s reciente (pendiente, pagada, etc.)"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "Snapshot: n\u00famero de la factura m\u00e1s reciente"
+    },
+    "warehouse_id": {
+      "type": "string",
+      "description": "ID del almac\u00e9n donde se empac\u00f3 el bulto"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "activo",
+        "despachado"
+      ],
+      "default": "activo",
+      "description": "Estado del bulto"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Email del admin que cre\u00f3 el bulto"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "label_code",
+    "client_email",
+    "shipping_mark"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

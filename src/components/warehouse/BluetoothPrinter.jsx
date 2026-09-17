@@ -1,0 +1,244 @@
+import React, { useState, useRef, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Printer, Loader2, Bluetooth, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
+import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/escPos';
+
+// Common BLE service/characteristic UUIDs for ESC/POS thermal printers (POS-9250-L / ZJ-9250)
+const PRINTER_SERVICES = [
+  '000018f0-0000-1000-8000-00805f9b34fb',
+  '0000ff00-0000-1000-8000-00805f9b34fb',
+  '0000fee7-0000-1000-8000-00805f9b34fb',
+  '49535343-fe7d-4ae4-9fa8-5b5fef8f6bd7',
+];
+const WRITE_CHARACTERISTICS = [
+  '00002af1-0000-1000-8000-00805f9b34fb',
+  '0000ff02-0000-1000-8000-00805f9b34fb',
+  '49535343-8841-43f4-a8d4-ecbe34729bb3',
+];
+
+const CHUNK_SIZE = 180; // safe BLE write chunk
+
+export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'default', className = '' }) {
+  const [status, setStatus] = useState('idle'); // idle | connecting | connected | printing | error
+  const [error, setError] = useState('');
+  const deviceRef = useRef(null);
+  const serverRef = useRef(null);
+  const characteristicRef = useRef(null);
+
+  const btSupported = typeof navigator !== 'undefined' && !!navigator.bluetooth;
+
+  const findWriteCharacteristic = async (server) => {
+    for (const serviceUuid of PRINTER_SERVICES) {
+      let service;
+      try {
+        service = await server.getPrimaryService(serviceUuid);
+      } catch (_) {
+        continue;
+      }
+      for (const charUuid of WRITE_CHARACTERISTICS) {
+        try {
+          const char = await service.getCharacteristic(charUuid);
+          if (char && (char.properties.write || char.properties.writeWithoutResponse)) {
+            return char;
+          }
+        } catch (_) {}
+      }
+      // Fallback: first writable characteristic in the service
+      try {
+        const chars = await service.getCharacteristics();
+        const writable = chars.find((c) => c.properties.write || c.properties.writeWithoutResponse);
+        if (writable) return writable;
+      } catch (_) {}
+    }
+    return null;
+  };
+
+  const connect = async () => {
+    if (!btSupported) throw new Error('Bluetooth no soportado en este navegador');
+    setStatus('connecting');
+    setError('');
+
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [PRINTER_SERVICES[0]] }, { services: [PRINTER_SERVICES[1]] }, { namePrefix: 'POS' }, { namePrefix: 'ZJ' }, { namePrefix: 'Printer' }],
+      optionalServices: PRINTER_SERVICES,
+    });
+
+    deviceRef.current = device;
+    const server = await device.gatt.connect();
+    serverRef.current = server;
+    const char = await findWriteCharacteristic(server);
+    if (!char) {
+      throw new Error('No se encontró una característica de escritura en la impresora');
+    }
+    characteristicRef.current = char;
+    setStatus('connected');
+    return char;
+  };
+
+  const writeData = async (data) => {
+    const char = characteristicRef.current;
+    if (!char) throw new Error('Impresora no conectada');
+    for (let offset = 0; offset < data.length; offset += CHUNK_SIZE) {
+      const chunk = data.slice(offset, offset + CHUNK_SIZE);
+      try {
+        if (char.properties.writeWithoutResponse) {
+          await char.writeValueWithoutResponse(chunk);
+        } else {
+          await char.writeValue(chunk);
+        }
+      } catch (e) {
+        // Retry once with writeValue if writeWithoutResponse failed
+        if (char.properties.write) {
+          await char.writeValue(chunk);
+        } else {
+          throw e;
+        }
+      }
+      // Small delay between chunks to avoid buffer overflow
+      await new Promise((r) => setTimeout(r, 40));
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!bultos.length) {
+      toast.error('No hay bultos para imprimir');
+      return;
+    }
+    try {
+      // Connect if needed
+      if (!characteristicRef.current || !deviceRef.current?.gatt?.connected) {
+        await connect();
+      }
+      setStatus('printing');
+
+      // Build combined payload for all bultos (single Bluetooth session)
+      const payloads = bultos.map((b) => buildBultoLabelPayload(b));
+      const combined = concatUint8Arrays(payloads);
+      await writeData(combined);
+
+      setStatus('connected');
+      const label = bultos.length === 1
+        ? `Bulto ${bultos[0].bulto_number}/${bultos[0].total_bultos} impreso`
+        : `${bultos.length} bultos impresos`;
+      toast.success(label);
+      onPrinted?.();
+    } catch (e) {
+      setStatus('error');
+      setError(e?.message || 'Error al imprimir');
+      toast.error(`No se pudo imprimir: ${e?.message || 'error Bluetooth'}`);
+    }
+  };
+
+  const downloadPdf = async () => {
+    if (!bultos.length) return;
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const JsBarcode = (await import('jsbarcode')).default;
+
+      for (const bulto of bultos) {
+        const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
+        const cs = bulto.client_snapshot || {};
+        let y = 6;
+
+        // Header
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        doc.text('EMPACADO EN BODEGA', 50, y, { align: 'center' });
+        y += 6;
+
+        // Bulto number (big)
+        doc.setFontSize(28);
+        doc.setTextColor(0);
+        doc.setFont(undefined, 'bold');
+        doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos}`, 50, y + 4, { align: 'center' });
+        y += 16;
+
+        // Shipping mark
+        doc.setFontSize(12);
+        doc.text(bulto.shipping_mark || '', 50, y, { align: 'center' });
+        y += 8;
+
+        // Client data
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        if (cs.full_name) { doc.text(cs.full_name, 5, y); y += 5; }
+        doc.setFont(undefined, 'normal');
+        if (cs.cedula) { doc.text(`C.I. ${cs.cedula}`, 5, y); y += 5; }
+        if (cs.address) {
+          const lines = doc.splitTextToSize(cs.address, 90);
+          doc.text(lines, 5, y);
+          y += lines.length * 5;
+        }
+        const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
+        if (cityState) { doc.text(cityState, 5, y); y += 5; }
+        if (cs.whatsapp) { doc.text(`Tel: ${cs.whatsapp}`, 5, y); y += 5; }
+
+        // Barcode
+        y = Math.max(y + 4, 62);
+        try {
+          const canvas = document.createElement('canvas');
+          JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 2, height: 40, displayValue: true, fontSize: 12, margin: 0 });
+          const imgData = canvas.toDataURL('image/png');
+          const imgWidth = 70;
+          const imgHeight = (canvas.height / canvas.width) * imgWidth;
+          doc.addImage(imgData, 'PNG', (100 - imgWidth) / 2, y, imgWidth, imgHeight);
+          y += imgHeight + 4;
+        } catch (_) {}
+
+        // Invoice status
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(bulto.invoice_paid ? 0 : 200, bulto.invoice_paid ? 140 : 0, 0);
+        doc.text(bulto.invoice_paid ? 'FACTURA PAGADA' : 'FACTURA PENDIENTE', 50, Math.min(y + 2, 92), { align: 'center' });
+        if (bulto.invoice_number) {
+          doc.setFontSize(8);
+          doc.setTextColor(100);
+          doc.setFont(undefined, 'normal');
+          doc.text(bulto.invoice_number, 50, Math.min(y + 7, 97), { align: 'center' });
+        }
+
+        doc.save(`etiqueta-${bulto.label_code}.pdf`);
+      }
+      toast.success(`${bultos.length} etiqueta(s) PDF descargada(s)`);
+    } catch (e) {
+      toast.error(`Error generando PDF: ${e?.message || ''}`);
+    }
+  };
+
+  const isBusy = status === 'connecting' || status === 'printing';
+  const label = bultos.length === 1
+    ? `Imprimir Bulto ${bultos[0].bulto_number}/${bultos[0].total_bultos}`
+    : bultos.length > 1
+      ? `Imprimir ${bultos.length} bultos`
+      : 'Imprimir';
+
+  return (
+    <div className={`flex flex-col gap-2 ${className}`}>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={handlePrint} disabled={!bultos.length || isBusy || !btSupported} className="bg-blue-600 hover:bg-blue-700">
+          {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : status === 'connected' ? <BluetoothConnected className="h-4 w-4" /> : <Printer className="h-4 w-4" />}
+          {label}
+        </Button>
+        <Button variant="outline" onClick={downloadPdf} disabled={!bultos.length || isBusy}>
+          <FileDown className="h-4 w-4" />
+          PDF
+        </Button>
+      </div>
+      {status === 'connected' && (
+        <p className="text-xs text-green-600 flex items-center gap-1">
+          <BluetoothConnected className="h-3 w-3" /> Impresora conectada
+        </p>
+      )}
+      {!btSupported && (
+        <p className="text-xs text-amber-600 flex items-start gap-1">
+          <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+          La impresión Bluetooth solo funciona en Android (Chrome/WebView). Descarga el PDF como alternativa.
+        </p>
+      )}
+      {status === 'error' && error && (
+        <p className="text-xs text-red-600">{error}</p>
+      )}
+    </div>
+  );
+}
