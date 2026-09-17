@@ -2,20 +2,20 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Package, PackageCheck, Printer, Boxes, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, Package, PackageCheck, Printer, Boxes, CheckCircle2, AlertTriangle, History } from 'lucide-react';
 import { toast } from 'sonner';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import BluetoothPrinter from '@/components/warehouse/BluetoothPrinter';
 import BultoVerifier from '@/components/warehouse/BultoVerifier';
+import UniversalClientSearch from '@/components/warehouse/UniversalClientSearch';
+import BultoHistory from '@/components/warehouse/BultoHistory';
 
 export default function WarehouseBultos({ user }) {
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseBultos');
   const [tab, setTab] = useState('empacar');
 
   // Empacar state
-  const [searchTerm, setSearchTerm] = useState('');
   const [searching, setSearching] = useState(false);
   const [clientPackages, setClientPackages] = useState([]);
   const [clientBultos, setClientBultos] = useState([]);
@@ -24,6 +24,7 @@ export default function WarehouseBultos({ user }) {
   const [creating, setCreating] = useState(false);
   const [lastCreated, setLastCreated] = useState(null); // bulto data for immediate print
   const [printAllBultos, setPrintAllBultos] = useState([]); // all bultos of client for batch print
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0); // fuerza refresh del historial tras crear/editar/eliminar
 
   const boxedIds = useMemo(() => {
     const set = new Set();
@@ -33,9 +34,7 @@ export default function WarehouseBultos({ user }) {
     return set;
   }, [clientBultos]);
 
-  const searchClient = async () => {
-    const term = searchTerm.trim();
-    if (!term) return;
+  const selectClient = async (client) => {
     setSearching(true);
     setClientPackages([]);
     setClientBultos([]);
@@ -43,25 +42,27 @@ export default function WarehouseBultos({ user }) {
     setSelectedIds([]);
     setLastCreated(null);
     try {
-      // Try by shipping_mark first, then by email
-      let pkgs = await base44.entities.Package.filter({ shipping_mark: term }, '-received_date', 500);
-      if (!pkgs.length) {
-        pkgs = await base44.entities.Package.filter({ client_email: term.toLowerCase() }, '-received_date', 500);
+      const email = client.email;
+      const sm = client.shipping_mark || '';
+      // Cargar paquetes por email; si no hay email, intentar por shipping_mark
+      let pkgs = [];
+      if (email) {
+        pkgs = await base44.entities.Package.filter({ client_email: email }, '-received_date', 500);
       }
-      if (!pkgs.length) {
-        toast.error('No se encontraron paquetes para ese shipping mark o email');
-        return;
+      if (!pkgs.length && sm) {
+        pkgs = await base44.entities.Package.filter({ shipping_mark: sm }, '-received_date', 500);
       }
-      const email = pkgs[0].client_email;
-      const sm = pkgs[0].shipping_mark || term;
-      setActiveClient({ email, shipping_mark: sm });
+      setActiveClient({ email: email || (pkgs[0]?.client_email || ''), shipping_mark: sm || (pkgs[0]?.shipping_mark || '') });
       setClientPackages(pkgs);
 
       // Fetch existing bultos for this client
-      const bultos = await base44.entities.Bulto.filter({ client_email: email }, 'bulto_number', 500);
-      setClientBultos(bultos || []);
+      const bultoEmail = email || pkgs[0]?.client_email;
+      if (bultoEmail) {
+        const bultos = await base44.entities.Bulto.filter({ client_email: bultoEmail }, 'bulto_number', 500);
+        setClientBultos(bultos || []);
+      }
     } catch (e) {
-      toast.error('Error al buscar paquetes');
+      toast.error('Error al cargar los paquetes del cliente');
     } finally {
       setSearching(false);
     }
@@ -106,6 +107,7 @@ export default function WarehouseBultos({ user }) {
       const bultos = await base44.entities.Bulto.filter({ client_email: activeClient.email }, 'bulto_number', 500);
       setClientBultos(bultos || []);
       setSelectedIds([]);
+      setHistoryRefreshKey((k) => k + 1); // refrescar historial
     } catch (e) {
       toast.error('Error al crear el bulto');
     } finally {
@@ -143,6 +145,7 @@ export default function WarehouseBultos({ user }) {
         <TabsList>
           <TabsTrigger value="empacar">Empacar</TabsTrigger>
           <TabsTrigger value="verificar">Verificar</TabsTrigger>
+          <TabsTrigger value="historial"><History className="h-4 w-4 mr-1" />Historial</TabsTrigger>
         </TabsList>
 
         <TabsContent value="empacar" className="space-y-4">
@@ -152,25 +155,10 @@ export default function WarehouseBultos({ user }) {
             <p className="text-sm">Cierra la app de la impresora antes de imprimir por Bluetooth para evitar conflictos de conexión.</p>
           </div>
 
-          {/* Search */}
+          {/* Universal search */}
           <Card className="shadow-sm">
             <CardContent className="p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && searchClient()}
-                    placeholder="Shipping mark o email del cliente"
-                    className="pl-10"
-                  />
-                </div>
-                <Button onClick={searchClient} disabled={searching || !searchTerm.trim()} className="bg-blue-600 hover:bg-blue-700">
-                  {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  Buscar
-                </Button>
-              </div>
+              <UniversalClientSearch onSelect={selectClient} />
             </CardContent>
           </Card>
 
@@ -311,12 +299,16 @@ export default function WarehouseBultos({ user }) {
           )}
 
           {!activeClient && !searching && (
-            <Card><CardContent className="p-10 text-center text-slate-500">Busca un cliente por shipping mark o email para empezar a empacar.</CardContent></Card>
+            <Card><CardContent className="p-10 text-center text-slate-500">Busca un cliente por shipping mark, email, nombre o cédula para empezar a empacar.</CardContent></Card>
           )}
         </TabsContent>
 
         <TabsContent value="verificar">
           <BultoVerifier />
+        </TabsContent>
+
+        <TabsContent value="historial">
+          <BultoHistory refreshKey={historyRefreshKey} />
         </TabsContent>
       </Tabs>
     </div>
