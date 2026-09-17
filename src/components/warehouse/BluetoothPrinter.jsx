@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Printer, Loader2, Bluetooth, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/escPos';
+import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 
 // Common BLE service/characteristic UUIDs for ESC/POS thermal printers (POS-9250-L / ZJ-9250)
 const PRINTER_SERVICES = [
@@ -155,7 +155,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         const cs = bulto.client_snapshot || {};
         let y = 6;
 
-        // 1. Barcode (top, centered)
+        // 1. Barcode (top, centered) with label code
         try {
           const canvas = document.createElement('canvas');
           JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 2, height: 40, displayValue: true, fontSize: 12, margin: 0 });
@@ -163,43 +163,53 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
           const imgWidth = 70;
           const imgHeight = (canvas.height / canvas.width) * imgWidth;
           doc.addImage(imgData, 'PNG', (100 - imgWidth) / 2, y, imgWidth, imgHeight);
-          y += imgHeight + 4;
+          y += imgHeight + 2;
         } catch (_) {}
 
-        // 2. Estado de registro del cliente (very large, centered)
-        doc.setFontSize(26);
+        // Separator line
+        doc.setLineWidth(0.3);
+        doc.line(5, y, 95, y);
+        y += 4;
+
+        // 2. Estado (very large, centered, bold) — priority for sorting
+        doc.setFontSize(28);
         doc.setTextColor(0);
         doc.setFont(undefined, 'bold');
-        doc.text((cs.state || 'SIN ESTADO').toUpperCase(), 50, y + 4, { align: 'center' });
-        y += 14;
+        doc.text((cs.state || 'SIN ESTADO').toUpperCase(), 50, y + 5, { align: 'center' });
+        y += 12;
 
-        // 3. Shipping mark (medium, bold, centered)
+        // 3. Shipping mark (medium, centered)
         doc.setFontSize(16);
         doc.text(bulto.shipping_mark || '', 50, y, { align: 'center' });
-        y += 9;
+        y += 7;
 
-        // 4. Bulto number (large, right margin)
-        doc.setFontSize(20);
+        // Separator line
+        doc.setLineWidth(0.3);
+        doc.line(5, y, 95, y);
+        y += 5;
+
+        // 4. Bulto number (right, large) + client name (left)
+        doc.setFontSize(18);
         doc.text(`${bulto.bulto_number}/${bulto.total_bultos}`, 95, y, { align: 'right' });
-        y += 10;
-
-        // 5. Cliente (nombre + cédula)
         doc.setFontSize(10);
-        if (cs.full_name) { doc.text(cs.full_name, 5, y); y += 5; }
+        if (cs.full_name) { doc.text(cs.full_name, 5, y); }
+        y += 6;
+
+        // 5. Cédula
         if (cs.cedula) { doc.text(`C.I. ${cs.cedula}`, 5, y); y += 5; }
 
-        // 6. Teléfono (one line)
+        // 6. Teléfono
         if (cs.whatsapp) { doc.text(`Tel: ${cs.whatsapp}`, 5, y); y += 5; }
 
-        // 7. Dirección (normal, 2-3 lines)
+        // 7. Dirección (wrapped, small)
         doc.setFontSize(9);
         if (cs.address) {
-          const lines = doc.splitTextToSize(cs.address, 90);
-          doc.text(lines, 5, y);
-          y += lines.length * 5;
+          const addrLines = doc.splitTextToSize(cs.address, 90);
+          doc.text(addrLines, 5, y);
+          y += addrLines.length * 4.5;
         }
         const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-        if (cityState) { doc.text(cityState, 5, y); y += 5; }
+        if (cityState) { doc.text(cityState, 5, y); }
 
         doc.save(`etiqueta-${bulto.label_code}.pdf`);
       }
