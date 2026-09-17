@@ -38,10 +38,12 @@ export default function useWarehouseAccess(user, pageName) {
         const configs = await base44.entities.RoleConfig.filter({ role_code: user.custom_role, is_active: true }, '-updated_date', 1);
         const roleConfig = configs?.[0] || getDefaultRoleConfig(user.custom_role);
         const visiblePages = roleConfig?.visible_pages || [];
-        if (active) setAllowed(visiblePages.includes(pageName));
+        // visible_pages vacío = acceso total (rol Administrador), igual que en Layout
+        if (active) setAllowed(visiblePages.length === 0 || visiblePages.includes(pageName));
       } catch {
         const fallback = getDefaultRoleConfig(user.custom_role);
-        if (active) setAllowed((fallback?.visible_pages || []).includes(pageName));
+        const fallbackPages = fallback?.visible_pages || [];
+        if (active) setAllowed(fallbackPages.length === 0 || fallbackPages.includes(pageName));
       }
 
       if (active) setLoading(false);

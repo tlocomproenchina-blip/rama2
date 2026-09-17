@@ -15,7 +15,7 @@ export const ROLE_PRESETS = {
     role_code: 'almacen',
     role_name: 'Almacén',
     description: 'Recepción, ubicaciones, picking y packing.',
-    visible_pages: ['AdminDashboard', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'AdminInternalMessages']
+    visible_pages: ['AdminDashboard', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseBultos', 'AdminInternalMessages']
   },
   contabilidad: {
     role_code: 'contabilidad',
@@ -83,6 +83,7 @@ export const PAGE_LABELS = {
   WarehouseReceive: 'Recepción Almacén',
   WarehouseLocations: 'Ubicaciones y Sedes',
   WarehousePickPackShip: 'Picking y Packing',
+  WarehouseBultos: 'Empaque de Bultos',
   AccountingDashboard: 'Dashboard Contabilidad',
   AdminInvoices: 'Facturas',
   AdminPayments: 'Validar Pagos',
