@@ -1,21 +1,22 @@
 {
   "name": "AI Support Auto-Responder",
-  "description": "Responde autom\u00e1ticamente tickets de soporte cuando un cliente env\u00eda un mensaje, usando la IA con contexto completo del cliente",
+  "description": "Responde autom\u00e1ticamente tickets de soporte cuando un cliente env\u00eda un mensaje (creaci\u00f3n o actualizaci\u00f3n), usando la IA con contexto completo del cliente",
   "trigger": {
     "config": {
       "trigger_type": "entity",
       "entity_name": "SupportTicket",
       "events": [
+        "create",
         "update"
       ]
     },
-    "condition": "${ (.trigger.changed_fields // []) | index(\"messages\") != null }"
+    "condition": "${ (.trigger.event_type == \"create\" and ((.trigger.entity.messages // []) | length) > 0) or (.trigger.event_type == \"update\" and ((.trigger.changed_fields // []) | index(\"messages\") != null)) }"
   },
   "definition": {
     "document": {
       "dsl": "1.0.0",
       "name": "ai_support_auto_responder",
-      "version": "1.0",
+      "version": "1.1",
       "namespace": "base44"
     },
     "do": [
