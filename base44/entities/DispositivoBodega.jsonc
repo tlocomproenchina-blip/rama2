@@ -32,6 +32,11 @@
     "last_country": {
       "type": "string",
       "description": "Pa\u00eds detectado por geolocalizaci\u00f3n de IP en la \u00faltima conexi\u00f3n"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

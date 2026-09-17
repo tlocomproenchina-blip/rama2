@@ -84,6 +84,11 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha en que el admin rechaz\u00f3 el abono"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

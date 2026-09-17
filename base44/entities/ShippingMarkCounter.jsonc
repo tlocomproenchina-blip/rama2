@@ -11,6 +11,11 @@
       "type": "number",
       "default": 49999,
       "description": "\u00daltimo n\u00famero secuencial asignado. El siguiente Shipping Mark usar\u00e1 last_number + 1 (empieza en 50000)."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

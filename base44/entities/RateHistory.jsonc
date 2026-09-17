@@ -53,6 +53,11 @@
     "created_by_email": {
       "type": "string",
       "description": "Email del administrador que registr\u00f3 el cambio"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

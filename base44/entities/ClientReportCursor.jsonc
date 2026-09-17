@@ -25,6 +25,11 @@
       "type": "number",
       "default": 0,
       "description": "Cantidad de clientes incluidos en el \u00faltimo reporte"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [
