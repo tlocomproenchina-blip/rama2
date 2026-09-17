@@ -74,11 +74,11 @@ export const buildBultoLabelPayload = (bulto) => {
   parts.push(printBarcodeCODE128(bulto.label_code));
   parts.push(lineFeed(2));
 
-  // 2. --- Estado (very large, centered) ---
+  // 2. --- Estado de registro del cliente (very large, centered) ---
   parts.push(setAlign(1));
   parts.push(setFontSize(3, 3));
   parts.push(boldOn());
-  parts.push(text(bulto.invoice_paid ? 'PAGADA' : 'PENDIENTE'));
+  parts.push(text((cs.state || 'SIN ESTADO').toUpperCase()));
   parts.push(boldOff());
   parts.push(setFontSize(1, 1));
   parts.push(lineFeed(2));

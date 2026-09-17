@@ -166,11 +166,11 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
           y += imgHeight + 4;
         } catch (_) {}
 
-        // 2. Estado (very large, centered)
+        // 2. Estado de registro del cliente (very large, centered)
         doc.setFontSize(26);
         doc.setTextColor(0);
         doc.setFont(undefined, 'bold');
-        doc.text(bulto.invoice_paid ? 'PAGADA' : 'PENDIENTE', 50, y + 4, { align: 'center' });
+        doc.text((cs.state || 'SIN ESTADO').toUpperCase(), 50, y + 4, { align: 'center' });
         y += 14;
 
         // 3. Shipping mark (medium, bold, centered)
