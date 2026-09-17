@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Smartphone, Activity, ScanLine, Clock, AlertTriangle, Loader2, Camera, X } from 'lucide-react';
+import { Smartphone, Activity, ScanLine, Clock, AlertTriangle, Loader2, Camera, X, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -174,6 +174,12 @@ export default function AdminDispositivosBodega({ user }) {
                       </h3>
                     )}
                     <p className="text-[10px] text-slate-400 font-mono truncate">{device.device_id}</p>
+                    {(device.last_city || device.last_country) && (
+                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 truncate">
+                        <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{[device.last_city, device.last_country].filter(Boolean).join(', ')}</span>
+                      </p>
+                    )}
                   </div>
                   <Badge variant={stale ? 'destructive' : 'secondary'} className="shrink-0">
                     {stale ? 'Inactivo' : 'Activo'}

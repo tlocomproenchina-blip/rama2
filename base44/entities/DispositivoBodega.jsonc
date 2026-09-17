@@ -24,6 +24,14 @@
       "type": "boolean",
       "default": true,
       "description": "Si el dispositivo est\u00e1 activo"
+    },
+    "last_city": {
+      "type": "string",
+      "description": "Ciudad detectada por geolocalizaci\u00f3n de IP en la \u00faltima conexi\u00f3n"
+    },
+    "last_country": {
+      "type": "string",
+      "description": "Pa\u00eds detectado por geolocalizaci\u00f3n de IP en la \u00faltima conexi\u00f3n"
     }
   },
   "required": [
