@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Search, Package, PackageCheck, Printer, Boxes, CheckCircle2 } from 'lucide-react';
+import { Loader2, Search, Package, PackageCheck, Printer, Boxes, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import BluetoothPrinter from '@/components/warehouse/BluetoothPrinter';
@@ -146,6 +146,12 @@ export default function WarehouseBultos({ user }) {
         </TabsList>
 
         <TabsContent value="empacar" className="space-y-4">
+          {/* Bluetooth printer reminder */}
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <p className="text-sm">Cierra la app de la impresora antes de imprimir por Bluetooth para evitar conflictos de conexión.</p>
+          </div>
+
           {/* Search */}
           <Card className="shadow-sm">
             <CardContent className="p-4">
