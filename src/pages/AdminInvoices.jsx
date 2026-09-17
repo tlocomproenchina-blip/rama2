@@ -642,7 +642,8 @@ export default function AdminInvoices({ user }) {
         statusFilter === 'provider_unpaid' ? (inv.status === 'pagada' && !inv.provider_paid) :
         statusFilter === 'vencida' ? (() => {
           const days = inv.invoice_date ? Math.floor((Date.now() - new Date(inv.invoice_date).getTime()) / 86400000) : 0;
-          return days >= 20 && inv.status !== 'pagada' && inv.status !== 'cancelada';
+          const hasPartialPayment = Number(inv.paid_amount || 0) > 0;
+          return days >= 20 && inv.status !== 'pagada' && inv.status !== 'cancelada' && !hasPartialPayment;
         })() :
         inv.status === statusFilter;
       const invDate = inv.invoice_date ? new Date(inv.invoice_date).getTime() : null;
