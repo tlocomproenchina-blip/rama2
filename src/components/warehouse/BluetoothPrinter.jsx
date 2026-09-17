@@ -18,6 +18,7 @@ const WRITE_CHARACTERISTICS = [
 ];
 
 const CHUNK_SIZE = 180; // safe BLE write chunk
+const INTER_CHUNK_DELAY_MS = 80; // delay entre chunks para evitar desbordamiento del buffer
 
 export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'default', className = '' }) {
   const [status, setStatus] = useState('idle'); // idle | connecting | connected | printing | error
@@ -79,24 +80,37 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
   const writeData = async (data) => {
     const char = characteristicRef.current;
     if (!char) throw new Error('Impresora no conectada');
+    const canWriteWithResponse = !!char.properties.write;
+    const canWriteWithoutResponse = !!char.properties.writeWithoutResponse;
     for (let offset = 0; offset < data.length; offset += CHUNK_SIZE) {
+      // Verificar conexión GATT antes de cada chunk
+      if (!deviceRef.current?.gatt?.connected) {
+        throw new Error('Conexión Bluetooth perdida durante la impresión');
+      }
       const chunk = data.slice(offset, offset + CHUNK_SIZE);
       try {
-        if (char.properties.writeWithoutResponse) {
+        // Priorizar writeValue (con ACK) sobre writeValueWithoutResponse
+        if (canWriteWithResponse) {
+          await char.writeValue(chunk);
+        } else if (canWriteWithoutResponse) {
           await char.writeValueWithoutResponse(chunk);
         } else {
-          await char.writeValue(chunk);
+          throw new Error('La característica no soporta escritura');
         }
       } catch (e) {
-        // Retry once with writeValue if writeWithoutResponse failed
-        if (char.properties.write) {
-          await char.writeValue(chunk);
+        // Reintentar una vez con el método alternativo si falla
+        if (canWriteWithoutResponse && canWriteWithResponse) {
+          try {
+            await char.writeValueWithoutResponse(chunk);
+          } catch (e2) {
+            throw e2;
+          }
         } else {
           throw e;
         }
       }
-      // Small delay between chunks to avoid buffer overflow
-      await new Promise((r) => setTimeout(r, 40));
+      // Delay entre chunks para evitar desbordamiento del buffer
+      await new Promise((r) => setTimeout(r, INTER_CHUNK_DELAY_MS));
     }
   };
 
