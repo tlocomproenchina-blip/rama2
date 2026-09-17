@@ -66,33 +66,42 @@ export const buildBultoLabelPayload = (bulto) => {
 
   parts.push(initPrinter());
 
-  // --- Header: status (small, centered) ---
+  // 1. --- Barcode CODE128 of label_code (centered, top) ---
   parts.push(setAlign(1));
-  parts.push(setPrintMode(0x01));
-  parts.push(text('EMPACADO EN BODEGA'));
-  parts.push(lineFeed(1));
+  parts.push(setBarcodeHeight(80)); // ~10mm at 8 dots/mm
+  parts.push(setBarcodeWidth(2));
+  parts.push(setBarcodeTextPosition(2)); // HRI below
+  parts.push(printBarcodeCODE128(bulto.label_code));
+  parts.push(lineFeed(2));
 
-  // Reset
-  parts.push(setPrintMode(0x00));
-  parts.push(lineFeed(1));
-
-  // --- Bulto number (big, centered, double size) ---
+  // 2. --- Estado (very large, centered) ---
   parts.push(setAlign(1));
-  parts.push(setFontSize(2, 2));
+  parts.push(setFontSize(3, 3));
   parts.push(boldOn());
-  parts.push(text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos}`));
+  parts.push(text(bulto.invoice_paid ? 'PAGADA' : 'PENDIENTE'));
   parts.push(boldOff());
   parts.push(setFontSize(1, 1));
   parts.push(lineFeed(2));
 
-  // --- Shipping mark (bold, centered) ---
+  // 3. --- Shipping mark (medium, bold, centered) ---
   parts.push(setAlign(1));
-  parts.push(setPrintMode(0x01));
+  parts.push(setFontSize(2, 2));
+  parts.push(boldOn());
   parts.push(text(bulto.shipping_mark || ''));
-  parts.push(setPrintMode(0x00));
+  parts.push(boldOff());
+  parts.push(setFontSize(1, 1));
   parts.push(lineFeed(2));
 
-  // --- Client data (left aligned) ---
+  // 4. --- Bulto number (large, right margin) ---
+  parts.push(setAlign(2));
+  parts.push(setFontSize(2, 2));
+  parts.push(boldOn());
+  parts.push(text(`${bulto.bulto_number}/${bulto.total_bultos}`));
+  parts.push(boldOff());
+  parts.push(setFontSize(1, 1));
+  parts.push(lineFeed(2));
+
+  // 5. --- Cliente (nombre + cédula, left aligned) ---
   parts.push(setAlign(0));
   if (cs.full_name) {
     parts.push(boldOn());
@@ -104,6 +113,14 @@ export const buildBultoLabelPayload = (bulto) => {
     parts.push(text(`C.I. ${cs.cedula}`));
     parts.push(lineFeed(1));
   }
+
+  // 6. --- Teléfono (one line) ---
+  if (cs.whatsapp) {
+    parts.push(text(`Tel: ${cs.whatsapp}`));
+    parts.push(lineFeed(1));
+  }
+
+  // 7. --- Dirección (normal size, may wrap 2-3 lines) ---
   if (cs.address) {
     parts.push(text(cs.address));
     parts.push(lineFeed(1));
@@ -113,36 +130,7 @@ export const buildBultoLabelPayload = (bulto) => {
     parts.push(text(cityState));
     parts.push(lineFeed(1));
   }
-  if (cs.whatsapp) {
-    parts.push(text(`Tel: ${cs.whatsapp}`));
-    parts.push(lineFeed(1));
-  }
   parts.push(lineFeed(1));
-
-  // --- Barcode CODE128 of label_code (centered) ---
-  parts.push(setAlign(1));
-  parts.push(setBarcodeHeight(80)); // ~10mm at 8 dots/mm
-  parts.push(setBarcodeWidth(2));
-  parts.push(setBarcodeTextPosition(2)); // HRI below
-  parts.push(printBarcodeCODE128(bulto.label_code));
-  parts.push(lineFeed(2));
-
-  // --- Invoice status ---
-  parts.push(setAlign(1));
-  parts.push(boldOn());
-  if (bulto.invoice_paid) {
-    parts.push(text('FACTURA PAGADA'));
-  } else {
-    parts.push(text('FACTURA PENDIENTE'));
-  }
-  parts.push(boldOff());
-  if (bulto.invoice_number) {
-    parts.push(lineFeed(1));
-    parts.push(setPrintMode(0x01));
-    parts.push(text(bulto.invoice_number));
-    parts.push(setPrintMode(0x00));
-  }
-  parts.push(lineFeed(2));
 
   // --- Feed and cut ---
   parts.push(lineFeed(2));

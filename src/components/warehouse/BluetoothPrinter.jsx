@@ -141,41 +141,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         const cs = bulto.client_snapshot || {};
         let y = 6;
 
-        // Header
-        doc.setFontSize(8);
-        doc.setTextColor(120);
-        doc.text('EMPACADO EN BODEGA', 50, y, { align: 'center' });
-        y += 6;
-
-        // Bulto number (big)
-        doc.setFontSize(28);
-        doc.setTextColor(0);
-        doc.setFont(undefined, 'bold');
-        doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos}`, 50, y + 4, { align: 'center' });
-        y += 16;
-
-        // Shipping mark
-        doc.setFontSize(12);
-        doc.text(bulto.shipping_mark || '', 50, y, { align: 'center' });
-        y += 8;
-
-        // Client data
-        doc.setFontSize(9);
-        doc.setFont(undefined, 'bold');
-        if (cs.full_name) { doc.text(cs.full_name, 5, y); y += 5; }
-        doc.setFont(undefined, 'normal');
-        if (cs.cedula) { doc.text(`C.I. ${cs.cedula}`, 5, y); y += 5; }
-        if (cs.address) {
-          const lines = doc.splitTextToSize(cs.address, 90);
-          doc.text(lines, 5, y);
-          y += lines.length * 5;
-        }
-        const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-        if (cityState) { doc.text(cityState, 5, y); y += 5; }
-        if (cs.whatsapp) { doc.text(`Tel: ${cs.whatsapp}`, 5, y); y += 5; }
-
-        // Barcode
-        y = Math.max(y + 4, 62);
+        // 1. Barcode (top, centered)
         try {
           const canvas = document.createElement('canvas');
           JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 2, height: 40, displayValue: true, fontSize: 12, margin: 0 });
@@ -186,17 +152,40 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
           y += imgHeight + 4;
         } catch (_) {}
 
-        // Invoice status
-        doc.setFontSize(11);
+        // 2. Estado (very large, centered)
+        doc.setFontSize(26);
+        doc.setTextColor(0);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(bulto.invoice_paid ? 0 : 200, bulto.invoice_paid ? 140 : 0, 0);
-        doc.text(bulto.invoice_paid ? 'FACTURA PAGADA' : 'FACTURA PENDIENTE', 50, Math.min(y + 2, 92), { align: 'center' });
-        if (bulto.invoice_number) {
-          doc.setFontSize(8);
-          doc.setTextColor(100);
-          doc.setFont(undefined, 'normal');
-          doc.text(bulto.invoice_number, 50, Math.min(y + 7, 97), { align: 'center' });
+        doc.text(bulto.invoice_paid ? 'PAGADA' : 'PENDIENTE', 50, y + 4, { align: 'center' });
+        y += 14;
+
+        // 3. Shipping mark (medium, bold, centered)
+        doc.setFontSize(16);
+        doc.text(bulto.shipping_mark || '', 50, y, { align: 'center' });
+        y += 9;
+
+        // 4. Bulto number (large, right margin)
+        doc.setFontSize(20);
+        doc.text(`${bulto.bulto_number}/${bulto.total_bultos}`, 95, y, { align: 'right' });
+        y += 10;
+
+        // 5. Cliente (nombre + cédula)
+        doc.setFontSize(10);
+        if (cs.full_name) { doc.text(cs.full_name, 5, y); y += 5; }
+        if (cs.cedula) { doc.text(`C.I. ${cs.cedula}`, 5, y); y += 5; }
+
+        // 6. Teléfono (one line)
+        if (cs.whatsapp) { doc.text(`Tel: ${cs.whatsapp}`, 5, y); y += 5; }
+
+        // 7. Dirección (normal, 2-3 lines)
+        doc.setFontSize(9);
+        if (cs.address) {
+          const lines = doc.splitTextToSize(cs.address, 90);
+          doc.text(lines, 5, y);
+          y += lines.length * 5;
         }
+        const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
+        if (cityState) { doc.text(cityState, 5, y); y += 5; }
 
         doc.save(`etiqueta-${bulto.label_code}.pdf`);
       }
