@@ -86,27 +86,21 @@ export const buildBultoLabelPayload = (bulto) => {
   // 4. Estado large centered (font 3, 3x3) — priority for sorting
   lines.push(`TEXT ${centerX(estado, '3', 3)},280,${q('3')},0,3,3,${q(estado)}`);
 
-  // 5. Shipping mark medium centered (font 2, 2x2)
-  lines.push(`TEXT ${centerX(shippingMark, '2', 2)},390,${q('2')},0,2,2,${q(shippingMark)}`);
+  // 5. Separator line
+  lines.push('BAR 50,390,700,3');
 
-  // 6. Separator line
-  lines.push('BAR 50,450,700,3');
+  // 6. Bulto number + package count in one line centered (font 2, 2x2)
+  const bultoPkg = `${bultoNum} - ${pkgStr}`;
+  lines.push(`TEXT ${centerX(bultoPkg, '2', 2)},405,${q('2')},0,2,2,${q(bultoPkg)}`);
 
-  // 7. Bulto number + package count centered (font 2, 2x2 — two lines)
-  lines.push(`TEXT ${centerX(bultoNum, '2', 2)},465,${q('2')},0,2,2,${q(bultoNum)}`);
-  lines.push(`TEXT ${centerX(pkgStr, '2', 2)},523,${q('2')},0,2,2,${q(pkgStr)}`);
+  // 7. Separator line
+  lines.push('BAR 50,465,700,3');
 
-  // 8. Separator line
-  lines.push('BAR 50,583,700,3');
-
-  // 9. Client block left side — enlarged fonts
-  let cy = 598;
-  if (cs.full_name) {
-    lines.push(`TEXT 50,${cy},${q('2')},0,2,2,${q(cs.full_name)}`);
-    cy += 52;
-  }
-  if (cs.cedula) {
-    lines.push(`TEXT 50,${cy},${q('2')},0,2,2,${q('C.I. ' + cs.cedula)}`);
+  // 8. Client block — name + cédula in one line, then phone, address, city
+  let cy = 480;
+  const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
+  if (nameCedula) {
+    lines.push(`TEXT 50,${cy},${q('2')},0,2,2,${q(nameCedula)}`);
     cy += 52;
   }
   if (cs.whatsapp) {

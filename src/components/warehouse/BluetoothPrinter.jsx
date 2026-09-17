@@ -179,33 +179,26 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         doc.text((cs.state || 'SIN ESTADO').toUpperCase(), 50, y + 5, { align: 'center' });
         y += 12;
 
-        // 3. Shipping mark (medium, centered)
-        doc.setFontSize(16);
-        doc.text(bulto.shipping_mark || '', 50, y, { align: 'center' });
-        y += 7;
-
         // Separator line
         doc.setLineWidth(0.3);
         doc.line(5, y, 95, y);
         y += 5;
 
-        // 4. Bulto number + package count (centered, large, two lines)
+        // 3. Bulto number + package count in one line (centered, large)
         doc.setFontSize(18);
         doc.setFont(undefined, 'bold');
-        doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos}`, 50, y, { align: 'center' });
+        doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos} - ${pkgCount} PAQUETES`, 50, y, { align: 'center' });
         y += 7;
-        doc.text(`${pkgCount} PAQUETES`, 50, y, { align: 'center' });
-        y += 6;
 
         // Separator line
         doc.setLineWidth(0.3);
         doc.line(5, y, 95, y);
         y += 5;
 
-        // 5. Client data (enlarged)
+        // 4. Client data — name + cédula in one line
         doc.setFontSize(13);
-        if (cs.full_name) { doc.text(cs.full_name, 5, y); y += 6; }
-        if (cs.cedula) { doc.text(`C.I. ${cs.cedula}`, 5, y); y += 6; }
+        const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
+        if (nameCedula) { doc.text(nameCedula, 5, y); y += 6; }
         doc.setFontSize(11);
         if (cs.whatsapp) { doc.text(`Tel: ${cs.whatsapp}`, 5, y); y += 5; }
         doc.setFontSize(10);
