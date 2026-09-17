@@ -1,0 +1,45 @@
+{
+  "name": "Auto-close Inactive AI Tickets",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/30 * * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Cierra autom\u00e1ticamente tickets de soporte tras 24 horas sin respuesta del cliente a la \u00faltima respuesta de la IA",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_close_inactive_ai_tickets",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "close_inactive": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "closeInactiveAiTickets",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Cerrar tickets inactivos",
+            "description": "Busca y cierra tickets con auto_close_scheduled vencido"
+          }
+        }
+      }
+    ]
+  }
+}

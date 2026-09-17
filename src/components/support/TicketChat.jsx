@@ -2,17 +2,51 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar } from "@/components/ui/avatar";
-import { Send, User, Shield, Bot } from 'lucide-react';
+import { Send, User, Shield, Bot, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import SupportImageUploader from '@/components/support/SupportImageUploader';
 import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPreview';
 import QuickMessagePicker from '@/components/support/QuickMessagePicker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { base44 } from '@/api/base44Client';
 
-export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3, status, onStatusChange, statusOptions = [] }) {
+export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3, status, onStatusChange, statusOptions = [], ticketId, feedbackReceived, onFeedbackSubmitted }) {
   const [newMessage, setNewMessage] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [sending, setSending] = useState(false);
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [localFeedback, setLocalFeedback] = useState(null);
+
+  const handleFeedback = async (feedback) => {
+    if (feedbackSending || localFeedback) return;
+    setFeedbackSending(true);
+    setLocalFeedback(feedback);
+    try {
+      const res = await base44.functions.invoke('submitTicketFeedback', { ticket_id: ticketId, feedback });
+      if (res?.data?.error) {
+        toast.error(res.data.error);
+        setLocalFeedback(null);
+      } else {
+        toast.success(feedback === 'positivo' ? '¡Gracias por tu feedback!' : 'Te ayudaremos con más información.');
+        if (onFeedbackSubmitted) onFeedbackSubmitted(res?.data);
+      }
+    } catch {
+      toast.error('No se pudo enviar el feedback');
+      setLocalFeedback(null);
+    }
+    setFeedbackSending(false);
+  };
+
+  // Find last AI message index
+  const lastAiMsgIdx = messages?.length ? (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].is_ai) return i;
+    }
+    return -1;
+  })() : -1;
+
+  const showFeedbackButtons = ticketId && lastAiMsgIdx >= 0 && lastAiMsgIdx === messages.length - 1 && !feedbackReceived && !localFeedback;
 
   const handleSend = async () => {
     if ((!newMessage.trim() && attachments.length === 0) || sending) return;
@@ -62,6 +96,34 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
                       {msg.message ? <p className="text-sm whitespace-pre-wrap">{msg.message}</p> : null}
                       <SupportAttachmentsPreview attachments={msg.attachments} />
                     </div>
+                    {showFeedbackButtons && idx === lastAiMsgIdx && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-xs text-slate-500">¿Te ayudó esta respuesta?</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleFeedback('positivo')}
+                          disabled={feedbackSending}
+                          className="h-8 gap-1.5 rounded-full border-green-200 text-green-700 hover:bg-green-50"
+                        >
+                          <ThumbsUp className="h-3.5 w-3.5" /> Sí
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleFeedback('negativo')}
+                          disabled={feedbackSending}
+                          className="h-8 gap-1.5 rounded-full border-orange-200 text-orange-700 hover:bg-orange-50"
+                        >
+                          <ThumbsDown className="h-3.5 w-3.5" /> No
+                        </Button>
+                      </div>
+                    )}
+                    {localFeedback && idx === lastAiMsgIdx && (
+                      <div className="mt-2 text-xs text-slate-500 italic">
+                        {localFeedback === 'positivo' ? '✓ Indicaste que quedaste satisfecho' : '✓ Indicaste que necesitas más ayuda'}
+                      </div>
+                    )}
                   </div>
               </div>
             );

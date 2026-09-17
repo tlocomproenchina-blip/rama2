@@ -307,6 +307,17 @@ export default function Support({ user }) {
             currentUserEmail={user.email}
             disabled={selectedTicket?.status === 'cerrado'}
             maxFiles={getTicketPhotoLimit(selectedTicket)}
+            ticketId={selectedTicket?.id}
+            feedbackReceived={selectedTicket?.feedback_received}
+            onFeedbackSubmitted={(data) => {
+              if (data?.action === 'resolved') {
+                const updated = { ...selectedTicket, status: 'resuelto', feedback_received: 'positivo' };
+                setSelectedTicket(updated);
+                setTickets((prev) => prev.map((t) => t.id === selectedTicket.id ? updated : t));
+              } else if (data?.action === 're_opened') {
+                loadTickets();
+              }
+            }}
           />
         </DialogContent>
       </Dialog>

@@ -40,6 +40,16 @@ COTIZACIONES DE ENVÍO MARÍTIMO:
 - NUNCA hagas cálculos matemáticos tú mismo. SIEMPRE usa la herramienta.
 - Muestra ambos precios (general y alto riesgo) con desglose claro.
 
+DETECCIÓN DE SATISFACCIÓN — MUY IMPORTANTE:
+- Si el cliente expresa satisfacción, gratitud o confirmación de que su problema fue resuelto (ej: "gracias", "muchas gracias", "todo claro", "ya entendí", "resuelto", "perfecto", "muy amable", "me ayudaste mucho", "listo", "ok gracias", "no más dudas"), devuelve action: "resolve" con un mensaje breve y cálido de despedida.
+- NO confundas satisfacción con una nueva pregunta. Si el cliente dice "gracias" pero luego hace una nueva pregunta, usa action: "answer" y responde la pregunta.
+- Si el cliente solo dice "gracias" sin más, usa action: "resolve".
+
+PREGUNTA DE SATISFACCIÓN OBLIGATORIA:
+- Al final de CADA respuesta con action: "answer" o "ask_info", SIEMPRE pregunta al cliente si quedó satisfecho.
+- Usa una frase natural y cálida como: "¿Te ayudó esta respuesta? Si tienes alguna otra duda, estaré encantado de ayudarte." o "¿Quedó claro? Si necesitas algo más, dímelo 😊"
+- NO preguntes satisfacción si action es "resolve" o "escalate".
+
 DECISIÓN DE RESPUESTA:
 - Si puedes responder con los datos disponibles: responde amablemente.
 - Si faltan datos del cliente (tracking, factura, detalles del problema): pídelos amablemente (action: "ask_info").
@@ -48,12 +58,13 @@ DECISIÓN DE RESPUESTA:
 FORMATO DE RESPUESTA OBLIGATORIO:
 Debes responder SIEMPRE como un JSON válido con esta estructura:
 {
-  "action": "answer" | "ask_info" | "escalate",
+  "action": "answer" | "ask_info" | "escalate" | "resolve",
   "message": "tu respuesta al cliente"
 }
 - "answer": puedes responder completamente con los datos disponibles.
 - "ask_info": necesitas más información del cliente (explica qué necesitas en "message").
-- "escalate": el tema requiere atención humana (explica en "message" que lo estás escalando).`;
+- "escalate": el tema requiere atención humana (explica en "message" que lo estás escalando).
+- "resolve": el cliente expresó satisfacción y el ticket puede cerrarse como resuelto (mensaje breve de despedida).`;
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -308,10 +319,39 @@ export default async function(req: Request): Promise<Response> {
 
     const now = new Date().toISOString();
 
+    // Calculate auto-close time: 24 hours from now
+    const autoCloseDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const autoCloseIso = autoCloseDate.toISOString();
+
+    if (action === 'resolve') {
+      // Client expressed satisfaction — mark as resolved, post brief farewell
+      const resolveMsg = {
+        sender_email: 'ai-assistant@tlec-cargo.local',
+        sender_name: 'Asistente IA',
+        message: aiMessage,
+        timestamp: now,
+        is_admin: false,
+        is_ai: true,
+        is_system: false,
+        attachments: []
+      };
+      const updatedMessages = [...messages, resolveMsg];
+      await base44.asServiceRole.entities.SupportTicket.update(ticket_id, {
+        messages: updatedMessages,
+        status: 'resuelto',
+        resolved_date: now,
+        auto_close_scheduled: null,
+        ai_feedback_buttons_shown: false,
+        feedback_received: 'positivo'
+      });
+      return Response.json({ action: 'resolve', message: aiMessage, resolved: true });
+    }
+
     if (action === 'escalate') {
       // Mark ticket as escalated, don't post AI message
       await base44.asServiceRole.entities.SupportTicket.update(ticket_id, {
-        ai_escalated: true
+        ai_escalated: true,
+        auto_close_scheduled: null
       });
       // Notify admins
       try {
@@ -335,7 +375,9 @@ export default async function(req: Request): Promise<Response> {
       // Save as draft for admin review
       await base44.asServiceRole.entities.SupportTicket.update(ticket_id, {
         ai_pending_draft: aiMessage,
-        ai_draft_date: now
+        ai_draft_date: now,
+        auto_close_scheduled: null,
+        ai_feedback_buttons_shown: false
       });
       return Response.json({ action, message: aiMessage, mode: 'review', draft_saved: true });
     }
@@ -348,13 +390,18 @@ export default async function(req: Request): Promise<Response> {
       timestamp: now,
       is_admin: false,
       is_ai: true,
+      is_system: false,
       attachments: []
     };
 
     const updatedMessages = [...messages, aiMsg];
     await base44.asServiceRole.entities.SupportTicket.update(ticket_id, {
       messages: updatedMessages,
-      status: ticket.status === 'abierto' ? 'en_proceso' : ticket.status
+      status: 'en_proceso',
+      ai_response_timestamp: now,
+      auto_close_scheduled: autoCloseIso,
+      ai_feedback_buttons_shown: true,
+      feedback_received: null
     });
 
     // Notify the client

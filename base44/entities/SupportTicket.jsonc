@@ -75,6 +75,11 @@
             "default": false,
             "description": "Indica si el mensaje fue generado por el asistente IA"
           },
+          "is_system": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indica si es un mensaje del sistema (ej: auto-cierre por inactividad)"
+          },
           "attachments": {
             "type": "array",
             "maxItems": 3,
@@ -122,6 +127,34 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha en que la IA gener\u00f3 el borrador pendiente"
+    },
+    "ai_feedback_buttons_shown": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si ya se mostraron los botones de feedback al cliente tras la \u00faltima respuesta de IA"
+    },
+    "ai_response_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp del \u00faltimo mensaje enviado por la IA (para calcular el cierre autom\u00e1tico)"
+    },
+    "auto_close_scheduled": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento programado para el cierre autom\u00e1tico (24h tras la \u00faltima respuesta de IA)"
+    },
+    "feedback_received": {
+      "type": "string",
+      "enum": [
+        "positivo",
+        "negativo"
+      ],
+      "description": "Feedback del cliente sobre la atenci\u00f3n recibida"
+    },
+    "auto_closed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica si el ticket fue cerrado autom\u00e1ticamente por inactividad de 24h"
     },
     "description": {
       "type": "string",
