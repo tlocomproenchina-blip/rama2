@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, User } from 'lucide-react';
+import { Loader2, Search, User, SearchX } from 'lucide-react';
 
 // Buscador universal con coincidencia parcial (shipping_mark, email, nombre, cédula).
 // Muestra un dropdown de sugerencias mientras el operador escribe (debounce 300ms).
@@ -28,7 +28,7 @@ export default function UniversalClientSearch({ onSelect, placeholder = 'Buscar 
         const res = await base44.functions.invoke('searchBultoClients', { query: query.trim() });
         const clients = res?.data?.clients || [];
         setResults(clients);
-        setOpen(clients.length > 0);
+        setOpen(true);
         setHighlight(-1);
       } catch (_) {
         setResults([]);
@@ -88,6 +88,15 @@ export default function UniversalClientSearch({ onSelect, placeholder = 'Buscar 
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />
         )}
       </div>
+      {open && !loading && results.length === 0 && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-premium max-h-80 overflow-y-auto">
+          <div className="flex items-center gap-3 px-3 py-3 text-slate-400">
+            <SearchX className="h-4 w-4 shrink-0" />
+            <p className="text-sm">No se encontraron clientes para "{query}"</p>
+          </div>
+        </div>
+      )}
+
       {open && results.length > 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-card shadow-premium max-h-80 overflow-y-auto">
           {results.map((c, idx) => (
