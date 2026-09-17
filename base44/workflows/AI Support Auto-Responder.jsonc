@@ -10,13 +10,13 @@
         "update"
       ]
     },
-    "condition": "${ (.trigger.event_type == \"create\" and ((.trigger.entity.messages // []) | length) > 0) or (.trigger.event_type == \"update\" and ((.trigger.changed_fields // []) | index(\"messages\") != null)) }"
+    "condition": "${ .trigger.event_type == \"create\" or (.trigger.event_type == \"update\" and ((.trigger.changed_fields // []) | index(\"messages\") != null)) }"
   },
   "definition": {
     "document": {
       "dsl": "1.0.0",
       "name": "ai_support_auto_responder",
-      "version": "1.1",
+      "version": "1.2",
       "namespace": "base44"
     },
     "do": [
