@@ -16,9 +16,19 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ clients: [] });
     }
 
-    // Listar usuarios (solo admins pueden listar Users) — filtramos en memoria por coincidencia parcial
-    const users = await base44.asServiceRole.entities.User.list('-created_date', 500);
-    const matches = (users || []).filter((u: any) => {
+    // Paginar todos los usuarios (el límite por llamada es 500) para no perder clientes antiguos
+    const allUsers: any[] = [];
+    let offset = 0;
+    const pageSize = 500;
+    const maxPages = 20; // hard cap: 10.000 usuarios
+    for (let i = 0; i < maxPages; i++) {
+      const page = await base44.asServiceRole.entities.User.list('-created_date', pageSize, offset);
+      if (!page || page.length === 0) break;
+      allUsers.push(...page);
+      if (page.length < pageSize) break;
+      offset += pageSize;
+    }
+    const matches = allUsers.filter((u: any) => {
       const sm = (u.shipping_mark || '').toLowerCase();
       const email = (u.email || '').toLowerCase();
       const name = (u.full_name || '').toLowerCase();
