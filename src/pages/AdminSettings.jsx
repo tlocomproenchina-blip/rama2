@@ -1467,6 +1467,23 @@ export default function AdminSettings({ user }) {
                 />
               </div>
 
+              {/* Seguro obligatorio */}
+              <div className="flex items-center justify-between p-4 md:p-6 bg-emerald-50 rounded-xl border border-emerald-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-800">Seguro obligatorio de carga</h3>
+                    <p className="text-sm text-slate-600">Cuando está activo, el cliente debe ingresar el valor FOB y pagar el seguro para poder aprobar la pre-alerta. No puede saltarse el pago.</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={!!appConfig.insurance_mandatory}
+                  onCheckedChange={(checked) => setAppConfig({ ...appConfig, insurance_mandatory: checked })}
+                />
+              </div>
+
               <ShippingMarkAutomationSettings appConfig={appConfig} setAppConfig={setAppConfig} />
 
               {/* Chatbot Configuration */}

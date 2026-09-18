@@ -21,7 +21,8 @@ export default function InsurancePaymentModal({
   onPaid,
   onSkip,
   mode = 'create',
-  pkg = null
+  pkg = null,
+  mandatory = false
 }) {
   const [config, setConfig] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -273,9 +274,11 @@ export default function InsurancePaymentModal({
         </div>
 
         <DialogFooter className="flex gap-3">
-          <Button variant="outline" onClick={mode === 'retry' ? onClose : onSkip} className="flex-1">
-            {mode === 'retry' ? 'Cancelar' : 'No pagar ahora'}
-          </Button>
+          {(!mandatory || mode === 'retry') && (
+            <Button variant="outline" onClick={mode === 'retry' ? onClose : onSkip} className="flex-1">
+              {mode === 'retry' ? 'Cancelar' : 'No pagar ahora'}
+            </Button>
+          )}
           <Button
             onClick={handleSubmit}
             disabled={uploading}

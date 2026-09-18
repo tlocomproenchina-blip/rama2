@@ -94,6 +94,9 @@ export default function PreAlert({ user }) {
   // Check if user has shipping mark
   const hasShippingMark = user?.shipping_mark && user.shipping_mark.length > 0;
 
+  // Seguro obligatorio: cuando el admin lo activa, el cliente no puede saltar el seguro
+  const insuranceMandatory = config?.insurance_mandatory === true;
+
   const [trackingWarning, setTrackingWarning] = useState(null);
   const [checkingTracking, setCheckingTracking] = useState(false);
 
@@ -222,8 +225,8 @@ export default function PreAlert({ user }) {
         }
       }
 
-      // Si el cliente marcó seguro, mostrar pantalla de pago del seguro antes de crear
-      if (formData.has_insurance) {
+      // Si el seguro es obligatorio o el cliente lo marcó, mostrar pantalla de pago antes de crear
+      if (formData.has_insurance || insuranceMandatory) {
         setPendingFormData({
           shipping_company: formData.shipping_company,
           tracking_number: formData.tracking_number,
@@ -334,7 +337,7 @@ export default function PreAlert({ user }) {
         eyebrow="Gestión de envíos"
         title="Nueva Pre-alerta"
         description="Registra tu paquete antes de enviarlo con un flujo más claro y ordenado."
-        badges={[formData.shipping_type === 'maritimo' ? 'Marítimo' : 'Aéreo', formData.has_insurance ? 'Con seguro' : 'Sin seguro']}
+        badges={[formData.shipping_type === 'maritimo' ? 'Marítimo' : 'Aéreo', (formData.has_insurance || insuranceMandatory) ? 'Con seguro' : 'Sin seguro']}
         action={
           <Button variant="outline" onClick={() => navigate(createPageUrl('Dashboard'))}>
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -673,33 +676,50 @@ export default function PreAlert({ user }) {
 
               {/* Insurance Section */}
             <div className="border-t border-slate-100 pt-6">
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="insurance"
-                  checked={formData.has_insurance}
-                  onCheckedChange={(checked) => {
-                    setFormData({ ...formData, has_insurance: checked });
-                    if (!checked) {
-                      setErrors(prev => ({ ...prev, fob_value: null, invoice_file: null }));
-                    }
-                  }}
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="insurance" className="cursor-pointer font-medium text-slate-700 flex items-center gap-2">
+              {insuranceMandatory ? (
+                <div className="flex items-start space-x-3">
+                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-md bg-emerald-100">
                     <Shield className="h-4 w-4 text-emerald-600" />
-                    Deseo asegurar este envío
-                  </Label>
-                  <p className="text-sm text-slate-500">
-                    La carga será asegurada por {config?.insurance_percentage || 5}% del valor FOB
-                  </p>
-                  <p className="mt-2 text-sm font-medium text-red-600 leading-relaxed flex items-start gap-1.5">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                    <span>⚠️ Importante: La mercancía no asegurada viaja bajo responsabilidad del cliente. TLEC CARGO no se hace responsable por pérdidas o daños ocasionados durante etapas logísticas fuera de nuestro control.</span>
-                  </p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="font-medium text-slate-700 flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-emerald-600" />
+                      Seguro obligatorio
+                    </Label>
+                    <p className="text-sm text-slate-500">
+                      El seguro es obligatorio. La carga será asegurada por {config?.insurance_percentage || 5}% del valor FOB y deberás pagar el seguro para completar la pre-alerta.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="insurance"
+                    checked={formData.has_insurance}
+                    onCheckedChange={(checked) => {
+                      setFormData({ ...formData, has_insurance: checked });
+                      if (!checked) {
+                        setErrors(prev => ({ ...prev, fob_value: null, invoice_file: null }));
+                      }
+                    }}
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="insurance" className="cursor-pointer font-medium text-slate-700 flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-emerald-600" />
+                      Deseo asegurar este envío
+                    </Label>
+                    <p className="text-sm text-slate-500">
+                      La carga será asegurada por {config?.insurance_percentage || 5}% del valor FOB
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-red-600 leading-relaxed flex items-start gap-1.5">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      <span>⚠️ Importante: La mercancía no asegurada viaja bajo responsabilidad del cliente. TLEC CARGO no se hace responsable por pérdidas o daños ocasionados durante etapas logísticas fuera de nuestro control.</span>
+                    </p>
+                  </div>
+                </div>
+              )}
 
-              {formData.has_insurance && (
+              {(formData.has_insurance || insuranceMandatory) && (
                 <div className="mt-4 space-y-4 pl-7">
                   {formData.fob_value && (
                     <p className="text-sm text-emerald-600">
@@ -777,6 +797,7 @@ export default function PreAlert({ user }) {
       {showInsuranceModal && pendingFormData && (
         <InsurancePaymentModal
           open={showInsuranceModal}
+          mandatory={insuranceMandatory}
           onClose={() => { setShowInsuranceModal(false); setPendingFormData(null); }}
           trackingNumber={pendingFormData.tracking_number}
           fobValue={pendingFormData.fob_value}
@@ -818,7 +839,11 @@ export default function PreAlert({ user }) {
           onSkip={() => {
             setShowInsuranceModal(false);
             setPendingFormData(null);
-            toast.info('Puedes desmarcar el seguro o intentar el pago nuevamente.');
+            if (insuranceMandatory) {
+              toast.info('Pre-alerta cancelada. Debes pagar el seguro para poder crearla.');
+            } else {
+              toast.info('Puedes desmarcar el seguro o intentar el pago nuevamente.');
+            }
           }}
         />
       )}

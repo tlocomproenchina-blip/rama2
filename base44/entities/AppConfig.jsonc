@@ -164,6 +164,11 @@
       "type": "number",
       "description": "Insurance percentage of FOB"
     },
+    "insurance_mandatory": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cuando es true, el seguro de carga es obligatorio: el cliente debe ingresar el FOB y pagar el seguro antes de poder aprobar la pre-alerta."
+    },
     "provider_rate_air_general": {
       "type": "number",
       "default": 0,
