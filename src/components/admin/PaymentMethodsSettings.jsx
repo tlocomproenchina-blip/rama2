@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PaymentMethodCard from '@/components/admin/PaymentMethodCard';
 import BcvRateCard from '@/components/admin/BcvRateCard';
+import InsuranceMethodsSettings from '@/components/admin/InsuranceMethodsSettings';
 import {
   ArrowRightLeft,
   Banknote,
@@ -346,6 +347,8 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
           </div>
         </div>
       ))}
+
+      <InsuranceMethodsSettings config={config} setConfig={setConfig} />
 
       <div className="sticky bottom-4 z-10">
         <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur">

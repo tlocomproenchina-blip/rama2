@@ -42,16 +42,21 @@ export default function InsurancePaymentModal({
       if (configs.length > 0) {
         setConfig(configs[0]);
         const c = configs[0];
-        const methods = [];
-        if (c.payments_enable_binance === true && c.wallet_binance) methods.push({ id: 'binance', name: 'Binance', color: 'amber' });
-        if (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) methods.push({ id: 'usdt_trc20', name: 'USDT TRC20', color: 'blue' });
-        if (c.payments_enable_paypal === true && c.wallet_paypal) methods.push({ id: 'paypal', name: 'PayPal', color: 'blue' });
-        if (c.payments_enable_wally === true && c.wallet_wally) methods.push({ id: 'wally', name: 'Wally', color: 'green' });
-        if (c.payments_enable_zinli === true && c.wallet_zinli) methods.push({ id: 'zinli', name: 'Zinli', color: 'pink' });
-        if (c.payments_enable_wise === true && c.wallet_wise) methods.push({ id: 'wise', name: 'Wise', color: 'teal' });
-        if (c.payments_enable_skrill === true && c.wallet_skrill) methods.push({ id: 'skrill', name: 'Skrill', color: 'violet' });
-        if (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt) methods.push({ id: 'pago_movil_usdt', name: 'Pago Móvil → USDT', color: 'orange' });
-        if (c.payments_enable_transferencia === true) methods.push({ id: 'transferencia', name: 'Transferencia', color: 'slate' });
+        const allMethods = [];
+        if (c.payments_enable_binance === true && c.wallet_binance) allMethods.push({ id: 'binance', name: 'Binance', color: 'amber' });
+        if (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) allMethods.push({ id: 'usdt_trc20', name: 'USDT TRC20', color: 'blue' });
+        if (c.payments_enable_paypal === true && c.wallet_paypal) allMethods.push({ id: 'paypal', name: 'PayPal', color: 'blue' });
+        if (c.payments_enable_wally === true && c.wallet_wally) allMethods.push({ id: 'wally', name: 'Wally', color: 'green' });
+        if (c.payments_enable_zinli === true && c.wallet_zinli) allMethods.push({ id: 'zinli', name: 'Zinli', color: 'pink' });
+        if (c.payments_enable_wise === true && c.wallet_wise) allMethods.push({ id: 'wise', name: 'Wise', color: 'teal' });
+        if (c.payments_enable_skrill === true && c.wallet_skrill) allMethods.push({ id: 'skrill', name: 'Skrill', color: 'violet' });
+        if (c.payments_enable_pago_movil_usdt === true && c.wallet_pago_movil_usdt) allMethods.push({ id: 'pago_movil_usdt', name: 'Pago Móvil → USDT', color: 'orange' });
+        if (c.payments_enable_transferencia === true) allMethods.push({ id: 'transferencia', name: 'Transferencia', color: 'slate' });
+        // Filtrar por métodos específicos del seguro si están definidos
+        const insuranceMethods = Array.isArray(c.insurance_enabled_methods) ? c.insurance_enabled_methods : [];
+        const methods = insuranceMethods.length
+          ? allMethods.filter((m) => insuranceMethods.includes(m.id))
+          : allMethods;
         setAvailableMethods(methods);
         if (methods.length > 0) setPaymentMethod(methods[0].id);
       }

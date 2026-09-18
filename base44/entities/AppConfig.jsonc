@@ -169,6 +169,28 @@
       "default": false,
       "description": "Cuando es true, el seguro de carga es obligatorio: el cliente debe ingresar el FOB y pagar el seguro antes de poder aprobar la pre-alerta."
     },
+    "insurance_enabled_methods": {
+      "type": "array",
+      "description": "M\u00e9todos de pago aceptados espec\u00edficamente para el seguro de carga. Si est\u00e1 vac\u00edo, se usan todos los m\u00e9todos globales habilitados.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "stripe",
+          "paypal",
+          "binance",
+          "usdt_trc20",
+          "transferencia",
+          "wally",
+          "zinli",
+          "wise",
+          "skrill",
+          "pago_movil_usdt",
+          "zelle",
+          "otro"
+        ]
+      },
+      "default": []
+    },
     "provider_rate_air_general": {
       "type": "number",
       "default": 0,
