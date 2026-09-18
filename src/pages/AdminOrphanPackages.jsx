@@ -54,6 +54,24 @@ export default function AdminOrphanPackages({ user }) {
 
   useEffect(() => { loadOrphans(true); }, []);
 
+  // Suscripción en tiempo real: si un huérfano es asignado desde cualquier otro
+  // lugar (reclamo del cliente, assignOrphanPackage, processBodegaScan, etc.),
+  // el backend setea is_orphan=false y/o client_email. Aquí lo removemos de la
+  // lista local sin necesidad de recargar la página.
+  useEffect(() => {
+    const unsubscribe = base44.entities.Package.subscribe((event) => {
+      if (event.type !== 'update') return;
+      const updated = event.data;
+      if (!updated || !updated.id) return;
+      const stillOrphan = updated.is_orphan === true && !updated.client_email;
+      if (!stillOrphan) {
+        setOrphans((prev) => prev.filter((p) => p.id !== updated.id));
+        setSelectedIds((prev) => prev.filter((id) => id !== updated.id));
+      }
+    });
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
