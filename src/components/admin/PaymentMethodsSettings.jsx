@@ -157,7 +157,7 @@ const methodGroups = [
       },
       {
         key: 'pago_movil',
-        title: 'Pago Móvil → USDT',
+        title: 'Pago Móvil → BCV',
         description: 'Datos para Pago Móvil. El cliente verá los 3 campos y el monto en Bolívares (Bs) usando la tasa BCV.',
         enabledKey: 'payments_enable_pago_movil_usdt',
         tone: 'blue',
