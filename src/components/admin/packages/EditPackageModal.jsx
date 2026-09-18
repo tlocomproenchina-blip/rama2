@@ -96,6 +96,11 @@ export default function EditPackageModal({ pkg, processing, deleting, onClose, o
   const handleSubmit = () => {
     const trackingTrimmed = (form.tracking_number || '').trim();
     if (!trackingTrimmed) return;
+    const clientEmail = (form.client_email || '').trim();
+    // Si el paquete era huérfano y se le está asignando un cliente,
+    // limpiar la bandera is_orphan para que desaparezca de huérfanos.
+    const wasOrphan = !!pkg?.is_orphan;
+    const assigningClient = wasOrphan && clientEmail.length > 0;
     onSave({
       tracking_number: trackingTrimmed,
       shipping_mark: (form.shipping_mark || '').trim(),
@@ -103,7 +108,8 @@ export default function EditPackageModal({ pkg, processing, deleting, onClose, o
       shipping_type: form.shipping_type,
       risk_category: form.risk_category,
       package_count: Number(form.package_count) || 1,
-      client_email: (form.client_email || '').trim(),
+      client_email: clientEmail,
+      ...(assigningClient ? { is_orphan: false, status: pkg.status === 'sin_cliente' ? 'recibido' : pkg.status } : {}),
     });
   };
 

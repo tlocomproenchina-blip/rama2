@@ -139,6 +139,9 @@ export default function AdminPackages({ user }) {
       }
       await base44.entities.Package.update(editPackageModal.id, patch);
       patchPackageInList(editPackageModal.id, patch);
+      if (patch.is_orphan === false) {
+        removePackageFromList?.(editPackageModal.id);
+      }
       toast.success('Paquete actualizado');
       setEditPackageModal(null);
     } catch (error) {
