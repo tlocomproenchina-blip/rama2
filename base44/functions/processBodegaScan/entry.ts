@@ -22,11 +22,50 @@ export default async function(req: Request): Promise<Response> {
     let packageId: string | null = null;
 
     if (tracking) {
-      // Buscar paquete por tracking_number
-      const packages = await base44.asServiceRole.entities.Package.filter(
+      // 1) Buscar paquete por tracking_number (flujo clásico de pre-alerta)
+      let packages = await base44.asServiceRole.entities.Package.filter(
         { tracking_number: tracking }, '-created_date', 1
       );
-      const pkg = packages?.[0];
+      let pkg = packages?.[0];
+
+      // 2) Si no se encuentra por tracking_number, buscar por label_code
+      //    (código de etiqueta TLEC, formato shipping_mark-L##)
+      if (!pkg) {
+        const labelMatches = await base44.asServiceRole.entities.Package.filter(
+          { label_code: tracking }, '-created_date', 1
+        );
+        if (labelMatches?.[0]) pkg = labelMatches[0];
+      }
+
+      // 3) Si tampoco hay Package, buscar en ShippingLabel por label_code y
+      //    auto-crear la pre-alerta con el cliente de la etiqueta (sin huérfano)
+      if (!pkg) {
+        const labels = await base44.asServiceRole.entities.ShippingLabel.filter(
+          { label_code: tracking }, '-created_date', 1
+        );
+        const label = labels?.[0];
+        if (label) {
+          pkg = await base44.asServiceRole.entities.Package.create({
+            tracking_number: '',
+            client_email: label.client_email,
+            shipping_mark: label.shipping_mark,
+            label_code: label.label_code,
+            shipping_type: 'maritimo',
+            risk_category: (label.has_battery || label.has_liquid || label.has_powder || label.has_fbrand) ? 'alto_riesgo' : 'general',
+            package_count: label.box_count || 1,
+            description: label.content || 'Etiqueta TLEC',
+            status: 'pre_alerta',
+            is_orphan: false,
+          });
+          // Vincular la etiqueta al paquete creado
+          try {
+            await base44.asServiceRole.entities.ShippingLabel.update(label.id, {
+              status: 'vinculada',
+              linked_package_id: pkg.id,
+            });
+          } catch (_) {}
+        }
+      }
 
       if (pkg) {
         if (pkg.status === 'pre_alerta') {
@@ -48,7 +87,7 @@ export default async function(req: Request): Promise<Response> {
           packageId = pkg.id;
         }
       } else {
-        // No existe pre-alerta → crear huérfano
+        // No existe pre-alerta ni etiqueta TLEC → crear huérfano
         const orphan = await base44.asServiceRole.entities.Package.create({
           tracking_number: tracking,
           client_email: '',
