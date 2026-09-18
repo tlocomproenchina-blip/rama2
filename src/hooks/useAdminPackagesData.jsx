@@ -79,6 +79,25 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
     loadCounts();
   }, [loadCounts]);
 
+  // Suscripción realtime: reflejar borrados y actualizaciones de Package
+  // que ocurran desde cualquier otra página (AdminOrphanPackages, etc.).
+  useEffect(() => {
+    const unsubscribe = base44.entities.Package.subscribe((event) => {
+      if (!event || !event.data) return;
+      const pkg = event.data;
+      if (event.type === 'delete') {
+        const removedId = pkg.id || event.id;
+        if (!removedId) return;
+        setPackages((prev) => prev.filter((p) => p.id !== removedId));
+        setTotalFiltered((prev) => Math.max(0, prev - 1));
+      } else if (event.type === 'update') {
+        if (!pkg.id) return;
+        setPackages((prev) => prev.map((p) => (p.id === pkg.id ? { ...p, ...pkg } : p)));
+      }
+    });
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
+  }, []);
+
   const resetFilters = () => {
     setAdvancedFilters(null);
     setSearch('');
