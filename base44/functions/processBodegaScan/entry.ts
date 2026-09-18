@@ -22,11 +22,38 @@ export default async function(req: Request): Promise<Response> {
     let packageId: string | null = null;
 
     if (tracking) {
-      // 1) Buscar paquete por tracking_number (flujo clásico de pre-alerta)
-      let packages = await base44.asServiceRole.entities.Package.filter(
-        { tracking_number: tracking }, '-created_date', 1
-      );
-      let pkg = packages?.[0];
+      // 1) Buscar paquete por tracking_number probando candidatos de sub-tracking.
+      //    El escáner suele leer el sub-tracking (master + sufijo de caja: 001, 002…),
+      //    así que removemos 3,2,4,1,5,6 dígitos del final para encontrar el master.
+      const removalOrder = [0, 3, 2, 4, 1, 5, 6];
+      const seenCandidates = new Set<string>();
+      const candidates: string[] = [];
+      for (const remove of removalOrder) {
+        if (remove === 0) {
+          if (!seenCandidates.has(tracking)) {
+            seenCandidates.add(tracking);
+            candidates.push(tracking);
+          }
+          continue;
+        }
+        if (tracking.length - remove < 5) continue;
+        const candidate = tracking.slice(0, tracking.length - remove);
+        if (!seenCandidates.has(candidate)) {
+          seenCandidates.add(candidate);
+          candidates.push(candidate);
+        }
+      }
+
+      let pkg = null;
+      for (const candidate of candidates) {
+        const matches = await base44.asServiceRole.entities.Package.filter(
+          { tracking_number: candidate }, '-created_date', 1
+        );
+        if (matches?.[0]) {
+          pkg = matches[0];
+          break;
+        }
+      }
 
       // 2) Si no se encuentra por tracking_number, buscar por label_code
       //    (código de etiqueta TLEC, formato shipping_mark-L##)
