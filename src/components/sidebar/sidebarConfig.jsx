@@ -74,6 +74,7 @@ export const adminMenuItems = [
   { name: 'Recepción Almacén', page: 'WarehouseReceive', icon: Package },
   { name: 'Ubicaciones y Sedes', page: 'WarehouseLocations', icon: Layers },
   { name: 'Picking y Packing', page: 'WarehousePickPackShip', icon: Truck },
+  { name: 'Escanear y Armar', page: 'WarehouseScanPack', icon: Boxes },
   { name: 'Empacar Bultos', page: 'WarehouseBultos', icon: Boxes },
   { name: 'Despacho Escáner', page: 'WarehouseDispatch', icon: Truck },
   { name: 'Historial de Despachos', page: 'WarehouseDispatchHistory', icon: History },
@@ -128,7 +129,7 @@ export const adminMenuItems = [
 export const adminGroups = [
   { label: 'PRINCIPAL', items: ['AdminDashboard', 'AdminLogistica', 'ClientAnalytics'] },
   { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminDailySummary', 'AdminPackages', 'AdminPreAlerts', 'AdminOrphanPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments', 'AdminQuotes'] },
-  { label: 'ALMACÉN', items: ['WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseBultos', 'WarehouseDispatch', 'WarehouseDispatchHistory', 'AdminDispositivosBodega', 'AdminBodegaProductividad'] },
+  { label: 'ALMACÉN', items: ['WarehouseScanPack', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseBultos', 'WarehouseDispatch', 'WarehouseDispatchHistory', 'AdminDispositivosBodega', 'AdminBodegaProductividad'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminClientCredits', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviderCredits', 'AdminProviders', 'AdminCbmIngresos', 'AdminArrivalCalendar'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailHistory', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
