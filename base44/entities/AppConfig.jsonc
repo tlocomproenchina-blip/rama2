@@ -169,6 +169,14 @@
       "default": false,
       "description": "Cuando es true, el seguro de carga es obligatorio: el cliente debe ingresar el FOB y pagar el seguro antes de poder aprobar la pre-alerta."
     },
+    "insurance_contract_text": {
+      "type": "string",
+      "description": "Texto del contrato espec\u00edfico de la aseguradora que el cliente debe aceptar al activar el seguro obligatorio."
+    },
+    "insurance_contract_file_url": {
+      "type": "string",
+      "description": "URL de archivo (PDF o imagen) del contrato de la aseguradora para descargar/ver."
+    },
     "insurance_enabled_methods": {
       "type": "array",
       "description": "M\u00e9todos de pago aceptados espec\u00edficamente para el seguro de carga. Si est\u00e1 vac\u00edo, se usan todos los m\u00e9todos globales habilitados.",

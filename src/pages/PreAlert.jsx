@@ -25,6 +25,7 @@ import {
   Tag
 } from 'lucide-react';
 import InsurancePaymentModal from '@/components/client-portal/InsurancePaymentModal';
+import InsuranceContractModal from '@/components/client-portal/InsuranceContractModal';
 import { toast } from 'sonner';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 import { logActionAudit } from '@/lib/actionAudit';
@@ -55,6 +56,8 @@ export default function PreAlert({ user }) {
   const [pendingFormData, setPendingFormData] = useState(null);
   const [shippingLabels, setShippingLabels] = useState([]);
   const [selectedLabelCode, setSelectedLabelCode] = useState('');
+  const [showInsuranceContract, setShowInsuranceContract] = useState(false);
+  const [insuranceTermsAccepted, setInsuranceTermsAccepted] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -182,6 +185,16 @@ export default function PreAlert({ user }) {
       newErrors.product_photo = 'La foto del producto es obligatoria';
     }
 
+    // Validaciones del seguro obligatorio
+    if (insuranceMandatory) {
+      if (!insuranceTermsAccepted) {
+        newErrors.insurance_terms = 'Debes aceptar los términos y condiciones de la aseguradora';
+      }
+      if (!invoiceFile) {
+        newErrors.invoice_file = 'La factura es obligatoria para el seguro de carga';
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -211,7 +224,7 @@ export default function PreAlert({ user }) {
         return;
       }
 
-      // Factura opcional: si falla, continuar sin ella
+      // Factura: obligatoria cuando hay seguro. Si falla la subida, detener.
       if (invoiceFile) {
         try {
           if (invoiceFile.type?.startsWith('image/')) {
@@ -221,7 +234,10 @@ export default function PreAlert({ user }) {
             invoiceUrl = file_url;
           }
         } catch (uploadError) {
-          toast.warning('No se pudo subir la factura. Continuaremos sin ella.');
+          setErrors({ invoice_file: 'No se pudo subir la factura. Verifica tu conexión e intenta nuevamente.' });
+          toast.error('No se pudo subir la factura. Es obligatoria para el seguro de carga.');
+          setSaving(false);
+          return;
         }
       }
 
@@ -688,7 +704,44 @@ export default function PreAlert({ user }) {
                     </Label>
                     <p className="text-sm text-slate-500">
                       El seguro es obligatorio. La carga será asegurada por {config?.insurance_percentage || 5}% del valor FOB y deberás pagar el seguro para completar la pre-alerta.
+                      {(config?.insurance_contract_text || config?.insurance_contract_file_url) && (
+                        <button
+                          type="button"
+                          onClick={() => setShowInsuranceContract(true)}
+                          className="ml-1 inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-700 font-medium underline"
+                        >
+                          ver contrato
+                        </button>
+                      )}
                     </p>
+                    <div className="flex items-start space-x-2 pt-2">
+                      <Checkbox
+                        id="insurance_terms"
+                        checked={insuranceTermsAccepted}
+                        onCheckedChange={(checked) => {
+                          setInsuranceTermsAccepted(checked === true);
+                          if (checked) setErrors(prev => ({ ...prev, insurance_terms: null }));
+                        }}
+                      />
+                      <Label htmlFor="insurance_terms" className="cursor-pointer text-sm text-slate-600 leading-relaxed">
+                        Acepto los términos y condiciones de la aseguradora
+                        {(config?.insurance_contract_text || config?.insurance_contract_file_url) && (
+                          <button
+                            type="button"
+                            onClick={() => setShowInsuranceContract(true)}
+                            className="ml-1 text-emerald-600 hover:text-emerald-700 font-medium underline"
+                          >
+                            ver contrato
+                          </button>
+                        )}
+                      </Label>
+                    </div>
+                    {errors.insurance_terms && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.insurance_terms}
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -730,7 +783,7 @@ export default function PreAlert({ user }) {
                   <div className="space-y-2">
                     <Label className="text-slate-700 font-medium flex items-center gap-2">
                       <Upload className="h-4 w-4" />
-                      Factura (PDF o imagen) opcional
+                      Factura (PDF o imagen) obligatoria
                     </Label>
                     <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-colors ${uploadsDisabled ? 'border-slate-200 bg-slate-50 opacity-70' : errors.invoice_file ? 'border-red-300 hover:border-red-400' : 'border-slate-200 hover:border-blue-400'}`}>
                       <input
@@ -755,6 +808,12 @@ export default function PreAlert({ user }) {
                         )}
                       </label>
                     </div>
+                    {errors.invoice_file && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.invoice_file}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -793,6 +852,14 @@ export default function PreAlert({ user }) {
           </p>
         )}
       </form>
+
+      {showInsuranceContract && (
+        <InsuranceContractModal
+          open={showInsuranceContract}
+          onClose={() => setShowInsuranceContract(false)}
+          config={config}
+        />
+      )}
 
       {showInsuranceModal && pendingFormData && (
         <InsurancePaymentModal

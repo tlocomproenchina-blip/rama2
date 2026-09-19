@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import PaymentMethodCard from '@/components/admin/PaymentMethodCard';
 import BcvRateCard from '@/components/admin/BcvRateCard';
 import InsuranceMethodsSettings from '@/components/admin/InsuranceMethodsSettings';
+import InsuranceContractSettings from '@/components/admin/InsuranceContractSettings';
 import {
   ArrowRightLeft,
   Banknote,
@@ -349,6 +350,7 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
       ))}
 
       <InsuranceMethodsSettings config={config} setConfig={setConfig} />
+      <InsuranceContractSettings config={config} setConfig={setConfig} />
 
       <div className="sticky bottom-4 z-10">
         <div className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur">
