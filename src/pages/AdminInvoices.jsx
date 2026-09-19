@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+// AdminInvoices — gestión de facturas y pagos
 import { base44 } from '@/components/api/ApiQueueManager';
 import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
