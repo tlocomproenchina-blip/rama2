@@ -37,7 +37,6 @@ export const PAGES = {
     "AdminLogistica": lazy(() => import('./pages/AdminLogistica')),
     "AdminMarketing": lazy(() => import('./pages/AdminMarketing')),
     "AdminOperaciones": lazy(() => import('./pages/AdminOperaciones')),
-    "AdminPackages": lazy(() => import('./pages/AdminPackages')),
     "AdminPaymentAlerts": lazy(() => import('./pages/AdminPaymentAlerts')),
     "AdminPreAlerts": lazy(() => import('./pages/AdminPreAlerts')),
     "AdminPayments": lazy(() => import('./pages/AdminPayments')),

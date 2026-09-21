@@ -11,6 +11,7 @@ import { CITY_LANDINGS } from './lib/cityLandings';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AdminCbmIngresos from './pages/AdminCbmIngresos';
+import AdminPackages from './pages/AdminPackages';
 
 // Lazy-loaded admin / warehouse pages — reduce bundle inicial para clientes
 const WarehouseReceive = lazy(() => import('./pages/WarehouseReceive'));
@@ -156,6 +157,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminRutaDetalle" element={lazyRoute(AdminRutaDetalle, "AdminRutaDetalle")} />
       <Route path="/AdminInternalMessages" element={lazyRoute(AdminInternalMessages, "AdminInternalMessages")} />
       <Route path="/AdminCbmIngresos" element={lazyRoute(AdminCbmIngresos, "AdminCbmIngresos")} />
+      <Route path="/AdminPackages" element={lazyRoute(AdminPackages, "AdminPackages")} />
       <Route path="/AdminArrivalCalendar" element={lazyRoute(AdminArrivalCalendar, "AdminArrivalCalendar")} />
       <Route path="/AdminDuplicates" element={lazyRoute(AdminDuplicates, "AdminDuplicates")} />
       <Route path="/AdminRevenueDashboard" element={lazyRoute(AdminRevenueDashboard, "AdminRevenueDashboard")} />
