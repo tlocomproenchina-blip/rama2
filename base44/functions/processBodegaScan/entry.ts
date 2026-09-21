@@ -20,6 +20,7 @@ export default async function(req: Request): Promise<Response> {
     let resultType = 'huerfano';
     let shippingMark = '';
     let packageId: string | null = null;
+    let resolvedTracking = tracking; // tracking final (original o extraído por IA)
 
     if (tracking) {
       // 1) Buscar paquete por tracking_number probando candidatos de sub-tracking.
@@ -131,29 +132,161 @@ export default async function(req: Request): Promise<Response> {
         packageId = orphan.id;
       }
     } else {
-      // Sin tracking → foto manual → crear huérfano con pseudo-tracking
-      const pseudoTracking = `MANUAL-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-      const orphan = await base44.asServiceRole.entities.Package.create({
-        tracking_number: pseudoTracking,
-        client_email: '',
-        shipping_type: 'maritimo',
-        description: 'Paquete huérfano (Bodega China, foto manual sin tracking)',
-        status: 'sin_cliente',
-        is_orphan: true,
-        received_date: now,
-        received_by: `Bodega China (${deviceId})`,
-        package_image_url: photoUrl,
-        package_image_urls: photoUrl ? [photoUrl] : [],
-      });
-      resultType = 'huerfano';
-      packageId = orphan.id;
+      // Sin tracking → foto manual.
+      // Intentar extraer el tracking de la imagen con IA (visión) antes de
+      // crear un huérfano. Solo si la IA no encuentra un tracking se crea el
+      // huérfano con pseudo-tracking.
+      let aiTracking = '';
+      if (photoUrl) {
+        try {
+          const aiRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
+            prompt: `Eres un asistente de logística. Examina la foto de un paquete y extrae el número de tracking (tracking number) que aparece en la etiqueta de envío. El número de tracking suele ser una cadena alfanumérica larga (ej: YT2423123456789012, LP009876543210, 4PX1234567890, etc.). NO devuelvas el código de barras numérico (EAN/UPC). Devuelve SOLO el número de tracking de la transportadora. Si no puedes leer ningún tracking claro, devuelve null.`,
+            file_urls: [photoUrl],
+            model: 'gpt_5_mini',
+            response_json_schema: {
+              type: 'object',
+              properties: {
+                tracking_number: { type: ['string', 'null'] },
+              },
+              required: ['tracking_number'],
+            },
+          });
+          const extracted = aiRes?.tracking_number;
+          if (typeof extracted === 'string' && extracted.trim().length >= 5) {
+            aiTracking = extracted.trim();
+            resolvedTracking = aiTracking;
+          }
+        } catch (_) {
+          // Si la IA falla, continuar como huérfano
+        }
+      }
+
+      if (aiTracking) {
+        // La IA extrajo un tracking → re-ejecutar la búsqueda con ese tracking
+        // (misma lógica que arriba: sub-tracking, label_code, ShippingLabel)
+        const removalOrder = [0, 3, 2, 4, 1, 5, 6];
+        const seenCandidates = new Set<string>();
+        const candidates: string[] = [];
+        for (const remove of removalOrder) {
+          if (remove === 0) {
+            if (!seenCandidates.has(aiTracking)) {
+              seenCandidates.add(aiTracking);
+              candidates.push(aiTracking);
+            }
+            continue;
+          }
+          if (aiTracking.length - remove < 5) continue;
+          const candidate = aiTracking.slice(0, aiTracking.length - remove);
+          if (!seenCandidates.has(candidate)) {
+            seenCandidates.add(candidate);
+            candidates.push(candidate);
+          }
+        }
+
+        let pkg = null;
+        for (const candidate of candidates) {
+          const matches = await base44.asServiceRole.entities.Package.filter(
+            { tracking_number: candidate }, '-created_date', 1
+          );
+          if (matches?.[0]) {
+            pkg = matches[0];
+            break;
+          }
+        }
+
+        if (!pkg) {
+          const labelMatches = await base44.asServiceRole.entities.Package.filter(
+            { label_code: aiTracking }, '-created_date', 1
+          );
+          if (labelMatches?.[0]) pkg = labelMatches[0];
+        }
+
+        if (!pkg) {
+          const labels = await base44.asServiceRole.entities.ShippingLabel.filter(
+            { label_code: aiTracking }, '-created_date', 1
+          );
+          const label = labels?.[0];
+          if (label) {
+            pkg = await base44.asServiceRole.entities.Package.create({
+              tracking_number: '',
+              client_email: label.client_email,
+              shipping_mark: label.shipping_mark,
+              label_code: label.label_code,
+              shipping_type: 'maritimo',
+              risk_category: (label.has_battery || label.has_liquid || label.has_powder || label.has_fbrand) ? 'alto_riesgo' : 'general',
+              package_count: label.box_count || 1,
+              description: label.content || 'Etiqueta TLEC',
+              status: 'pre_alerta',
+              is_orphan: false,
+            });
+            try {
+              await base44.asServiceRole.entities.ShippingLabel.update(label.id, {
+                status: 'vinculada',
+                linked_package_id: pkg.id,
+              });
+            } catch (_) {}
+          }
+        }
+
+        if (pkg) {
+          if (pkg.status === 'pre_alerta') {
+            await base44.asServiceRole.entities.Package.update(pkg.id, {
+              status: 'recibido',
+              received_date: now,
+              received_by: `Bodega China (${deviceId})`,
+              package_image_url: photoUrl,
+              package_image_urls: photoUrl ? [photoUrl] : (pkg.package_image_urls || []),
+            });
+            resultType = 'recibido';
+            shippingMark = pkg.shipping_mark || '';
+            packageId = pkg.id;
+          } else {
+            resultType = 'duplicado';
+            shippingMark = pkg.shipping_mark || '';
+            packageId = pkg.id;
+          }
+        } else {
+          // La IA encontró un tracking pero no hay paquete → crear huérfano con ese tracking
+          const orphan = await base44.asServiceRole.entities.Package.create({
+            tracking_number: aiTracking,
+            client_email: '',
+            shipping_type: 'maritimo',
+            description: 'Paquete huérfano (Bodega China, tracking extraído por IA sin pre-alerta)',
+            status: 'sin_cliente',
+            is_orphan: true,
+            received_date: now,
+            received_by: `Bodega China (${deviceId})`,
+            package_image_url: photoUrl,
+            package_image_urls: photoUrl ? [photoUrl] : [],
+          });
+          resultType = 'huerfano';
+          packageId = orphan.id;
+        }
+      } else {
+        // La IA no encontró tracking → crear huérfano con pseudo-tracking
+        const pseudoTracking = `MANUAL-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+        const orphan = await base44.asServiceRole.entities.Package.create({
+          tracking_number: pseudoTracking,
+          client_email: '',
+          shipping_type: 'maritimo',
+          description: 'Paquete huérfano (Bodega China, foto manual sin tracking)',
+          status: 'sin_cliente',
+          is_orphan: true,
+          received_date: now,
+          received_by: `Bodega China (${deviceId})`,
+          package_image_url: photoUrl,
+          package_image_urls: photoUrl ? [photoUrl] : [],
+        });
+        resultType = 'huerfano';
+        packageId = orphan.id;
+      }
     }
 
     // Registrar escaneo en log (best-effort)
     try {
       await base44.asServiceRole.entities.EscaneoBodega.create({
         device_id: deviceId,
-        tracking_number: tracking || '(foto manual)',
+        tracking_number: resolvedTracking || '(foto manual)',
         shipping_mark: shippingMark,
         photo_url: photoUrl,
         result_type: resultType,
@@ -176,7 +309,7 @@ export default async function(req: Request): Promise<Response> {
     return Response.json({
       result_type: resultType,
       shipping_mark: shippingMark,
-      tracking_number: tracking,
+      tracking_number: resolvedTracking,
       package_id: packageId,
     });
   } catch (error) {
