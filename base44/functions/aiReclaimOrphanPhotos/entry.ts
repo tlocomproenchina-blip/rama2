@@ -19,7 +19,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 const CLAUDE_COST_PER_CALL = 4; // créditos estimados por llamada a Claude Sonnet 4.6
 const FALLBACK_THRESHOLD = 0.5;  // 50% del presupuesto
 
-const VISION_PROMPT = `Eres un asistente de logística. Examina la foto de un paquete y extrae el número de tracking (tracking number) que aparece en la etiqueta de envío. El número de tracking suele ser una cadena alfanumérica larga (ej: YT2423123456789012, LP009876543210, 4PX1234567890, 79142337780380, etc.). NO devuelvas el código de barras numérico genérico (EAN/UPC de producto). Devuelve SOLO el número de tracking de la transportadora. Si no puedes leer ningún tracking claro, devuelve null.`;
+const VISION_PROMPT = `Eres un asistente de logística. Examina la foto de un paquete y extrae el número de tracking (tracking number) que aparece en la etiqueta de envío. El número de tracking suele ser una cadena alfanumérica larga (ej: YT2423123456789012, LP009876543210, 4PX1234567890, 79142337780380, etc.). NO devuelvas el código de barras numérico genérico (EAN/UPC de producto). Devuelve SOLO el número de tracking de la transportadora como una cadena CONTINUA sin espacios, guiones ni separadores de ningún tipo (ej: "YT2423123456789012", no "YT2423 1234 5678 9012"). Si no puedes leer ningún tracking claro, devuelve null.`;
 
 // Extrae el tracking usando Claude Sonnet 4.6 vía InvokeLLM (consume créditos de integración).
 async function extractTrackingClaude(base44: any, photoUrl: string): Promise<{ tracking: string | null; error?: string }> {
@@ -37,7 +37,7 @@ async function extractTrackingClaude(base44: any, photoUrl: string): Promise<{ t
       },
     });
     const extracted = (aiRes as any)?.tracking_number;
-    const tracking = typeof extracted === 'string' ? extracted.trim() : '';
+    const tracking = typeof extracted === 'string' ? extracted.replace(/\s+/g, '') : '';
     return { tracking: tracking || null };
   } catch (err: any) {
     return { tracking: null, error: err?.message || 'Claude InvokeLLM failed' };
@@ -80,7 +80,7 @@ async function extractTrackingOpenAI(photoUrl: string): Promise<{ tracking: stri
     if (!content) return { tracking: null, error: 'OpenAI empty response' };
     const parsed = JSON.parse(content);
     const extracted = parsed?.tracking_number;
-    const tracking = typeof extracted === 'string' ? extracted.trim() : '';
+    const tracking = typeof extracted === 'string' ? extracted.replace(/\s+/g, '') : '';
     return { tracking: tracking || null };
   } catch (err: any) {
     return { tracking: null, error: err?.message || 'OpenAI direct failed' };
