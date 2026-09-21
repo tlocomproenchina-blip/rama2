@@ -552,6 +552,20 @@
       "default": "direct",
       "description": "Modo de respuesta: direct=env\u00edo autom\u00e1tico al cliente, review=borrador para aprobaci\u00f3n del admin"
     },
+    "ai_reclaim_credits_used": {
+      "type": "number",
+      "default": 0,
+      "description": "Contador de cr\u00e9ditos de integraci\u00f3n estimados gastados en el mes por aiReclaimOrphanPhotos (ruta Claude Sonnet v\u00eda InvokeLLM). Se resetea a 0 al cambiar de mes."
+    },
+    "ai_reclaim_monthly_budget": {
+      "type": "number",
+      "default": 200,
+      "description": "Presupuesto mensual de cr\u00e9ditos de integraci\u00f3n para el reclamo IA de hu\u00e9rfanos. Al superar el 50% se conmuta a la ruta OpenAI directa (OPENAI_API_KEY) que no consume cr\u00e9ditos de integraci\u00f3n."
+    },
+    "ai_reclaim_counter_month": {
+      "type": "string",
+      "description": "Mes actual del contador (YYYY-MM). Si difiere del mes en curso, ai_reclaim_credits_used se resetea a 0."
+    },
     "shipping_type_air_enabled": {
       "type": "boolean",
       "default": true,
