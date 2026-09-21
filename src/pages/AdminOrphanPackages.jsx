@@ -37,6 +37,7 @@ export default function AdminOrphanPackages({ user }) {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState(null); // { current, total }
   const [viewerImage, setViewerImage] = useState(null); // url de imagen a ampliar
+  const [statFilter, setStatFilter] = useState(null); // null | 'pendingAi' | 'notRegistered' | 'unreadable' | 'noPhoto'
   const [aiScanBusy, setAiScanBusy] = useState(false);
   const [aiProgress, setAiProgress] = useState(null); // { processed, total, assigned, unreadable, notFound, errors }
   const [aiFinalSummary, setAiFinalSummary] = useState(null);
@@ -99,6 +100,14 @@ export default function AdminOrphanPackages({ user }) {
   }, [orphans]);
 
   const filtered = orphans.filter((p) => {
+    // Filtro por categoría de tarjeta
+    if (statFilter) {
+      const hasPhoto = (Array.isArray(p.package_image_urls) && p.package_image_urls.length > 0) || p.package_image_url;
+      if (statFilter === 'pendingAi' && (p.ai_unreadable || p.ai_attempted_date || !hasPhoto)) return false;
+      if (statFilter === 'notRegistered' && (!p.ai_attempted_date || p.ai_unreadable)) return false;
+      if (statFilter === 'unreadable' && !p.ai_unreadable) return false;
+      if (statFilter === 'noPhoto' && hasPhoto) return false;
+    }
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (p.tracking_number || '').toLowerCase().includes(q) || (p.shipping_mark || '').toLowerCase().includes(q);
@@ -327,7 +336,10 @@ export default function AdminOrphanPackages({ user }) {
 
       {/* Estadísticas de huérfanos */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="shadow-sm border-amber-100">
+        <Card
+          className={`shadow-sm cursor-pointer transition-all hover:shadow-md ${statFilter === null ? 'border-amber-400 ring-2 ring-amber-200' : 'border-amber-100'}`}
+          onClick={() => setStatFilter(null)}
+        >
           <CardContent className="p-3 flex items-center gap-3">
             <div className="rounded-lg bg-amber-50 p-2 shrink-0"><UserX className="h-5 w-5 text-amber-600" /></div>
             <div className="min-w-0">
@@ -336,7 +348,10 @@ export default function AdminOrphanPackages({ user }) {
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-purple-100">
+        <Card
+          className={`shadow-sm cursor-pointer transition-all hover:shadow-md ${statFilter === 'pendingAi' ? 'border-purple-400 ring-2 ring-purple-200' : 'border-purple-100'}`}
+          onClick={() => setStatFilter(statFilter === 'pendingAi' ? null : 'pendingAi')}
+        >
           <CardContent className="p-3 flex items-center gap-3">
             <div className="rounded-lg bg-purple-50 p-2 shrink-0"><Sparkles className="h-5 w-5 text-purple-600" /></div>
             <div className="min-w-0">
@@ -345,7 +360,10 @@ export default function AdminOrphanPackages({ user }) {
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-amber-200">
+        <Card
+          className={`shadow-sm cursor-pointer transition-all hover:shadow-md ${statFilter === 'notRegistered' ? 'border-amber-400 ring-2 ring-amber-200' : 'border-amber-200'}`}
+          onClick={() => setStatFilter(statFilter === 'notRegistered' ? null : 'notRegistered')}
+        >
           <CardContent className="p-3 flex items-center gap-3">
             <div className="rounded-lg bg-amber-100 p-2 shrink-0"><AlertTriangle className="h-5 w-5 text-amber-600" /></div>
             <div className="min-w-0">
@@ -354,7 +372,10 @@ export default function AdminOrphanPackages({ user }) {
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-red-100">
+        <Card
+          className={`shadow-sm cursor-pointer transition-all hover:shadow-md ${statFilter === 'unreadable' ? 'border-red-400 ring-2 ring-red-200' : 'border-red-100'}`}
+          onClick={() => setStatFilter(statFilter === 'unreadable' ? null : 'unreadable')}
+        >
           <CardContent className="p-3 flex items-center gap-3">
             <div className="rounded-lg bg-red-50 p-2 shrink-0"><AlertTriangle className="h-5 w-5 text-red-500" /></div>
             <div className="min-w-0">
@@ -363,7 +384,10 @@ export default function AdminOrphanPackages({ user }) {
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-slate-200">
+        <Card
+          className={`shadow-sm cursor-pointer transition-all hover:shadow-md ${statFilter === 'noPhoto' ? 'border-slate-400 ring-2 ring-slate-200' : 'border-slate-200'}`}
+          onClick={() => setStatFilter(statFilter === 'noPhoto' ? null : 'noPhoto')}
+        >
           <CardContent className="p-3 flex items-center gap-3">
             <div className="rounded-lg bg-slate-100 p-2 shrink-0"><Package className="h-5 w-5 text-slate-500" /></div>
             <div className="min-w-0">
