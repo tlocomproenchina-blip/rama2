@@ -157,9 +157,13 @@ export default async function(req: Request): Promise<Response> {
         }
 
         if (!matchedPkg) {
-          // IA leyó el tracking pero no hay cliente coincidente → marcar fecha de intento
-          await base44.asServiceRole.entities.Package.update(orphan.id, { ai_attempted_date: now });
-          results.push({ orphan_id: orphan.id, tracking_number: orphan.tracking_number, detected_tracking: tracking, status: 'no_client_match' });
+          // IA leyó el tracking pero no hay cliente coincidente → renombrar el tracking
+          // manual al detectado por la IA y marcar fecha de intento (se excluye 10 min)
+          await base44.asServiceRole.entities.Package.update(orphan.id, {
+            tracking_number: tracking,
+            ai_attempted_date: now,
+          });
+          results.push({ orphan_id: orphan.id, old_tracking: orphan.tracking_number, detected_tracking: tracking, status: 'no_client_match' });
           notFound++;
           continue;
         }

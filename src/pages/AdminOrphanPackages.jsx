@@ -381,6 +381,11 @@ export default function AdminOrphanPackages({ user }) {
                           <AlertTriangle className="h-3 w-3" /> No legible por IA
                         </Badge>
                       )}
+                      {!p.ai_unreadable && p.ai_attempted_date && (
+                        <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 gap-1">
+                          <AlertTriangle className="h-3 w-3" /> No registrado
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                       {p.warehouse_name && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{p.warehouse_name}{p.warehouse_location_code ? ` · ${p.warehouse_location_code}` : ''}</span>}
