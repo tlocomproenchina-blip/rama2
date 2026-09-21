@@ -232,7 +232,11 @@ export default function AdminOrphanPackages({ user }) {
         toast.info('No hay huérfanos con foto pendientes de escanear');
       }
 
-      // Recargar la lista para reflejar cambios
+      // Invalidar cache del ApiQueueManager para que los campos ai_unreadable /
+      // ai_attempted_date se lean frescos desde el servidor (no de copia stale)
+      if (typeof base44.invalidateEntityCache === 'function') {
+        base44.invalidateEntityCache('Package');
+      }
       setSkip(0);
       loadOrphans(true);
     } catch (e) {

@@ -1,5 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 
+// Reclama huérfanos usando IA para leer el tracking de la foto.
+// Procesa en lotes pequeños (default 3) para evitar timeout del navegador.
+// - Marca ai_unreadable=true si la IA no puede leer el tracking.
+// - Marca ai_attempted_date si la IA lee el tracking pero no hay cliente coincidente
+//   (se excluye por 10 minutos para evitar reprocesar el mismo lote en bucle).
+// - Busca coincidencia por tracking_number (con sub-tracking), label_code en Package,
+//   y label_code en ShippingLabel (auto-crea pre-alerta como processBodegaScan).
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -9,19 +16,26 @@ export default async function(req: Request): Promise<Response> {
 
     const body = await req.json().catch(() => ({}));
     const onlyIds: string[] = Array.isArray(body?.only_ids) ? body.only_ids.filter(Boolean) : [];
-    // Lote pequeño por defecto para evitar timeout del navegador
     const limit = Math.min(Number(body?.limit) || 3, 10);
 
-    // 1) Cargar huérfanos con fotos, excluyendo los ya marcados como ai_unreadable
+    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+    // 1) Cargar huérfanos, excluyendo los ya marcados como ai_unreadable o
+    //    intentados recientemente (ai_attempted_date dentro de 10 min)
     let orphans: any[] = [];
     if (onlyIds.length > 0) {
-      // Cargar por IDs (filtrar ai_unreadable en memoria)
       const rows = await base44.asServiceRole.entities.Package.filter({ is_orphan: true }, '-created_date', 200);
-      orphans = rows.filter((r: any) => onlyIds.includes(r.id) && r.ai_unreadable !== true);
+      orphans = rows.filter((r: any) =>
+        onlyIds.includes(r.id) &&
+        r.ai_unreadable !== true &&
+        (!r.ai_attempted_date || r.ai_attempted_date < tenMinAgo)
+      );
     } else {
       orphans = await base44.asServiceRole.entities.Package.filter({ is_orphan: true }, '-created_date', 200);
-      // Excluir los marcados como no legibles por IA
-      orphans = orphans.filter((p: any) => p.ai_unreadable !== true);
+      orphans = orphans.filter((p: any) =>
+        p.ai_unreadable !== true &&
+        (!p.ai_attempted_date || p.ai_attempted_date < tenMinAgo)
+      );
     }
 
     // Filtrar solo los que tienen al menos una foto
@@ -32,7 +46,6 @@ export default async function(req: Request): Promise<Response> {
       return urls.length > 0;
     });
 
-    // Procesar solo el lote actual
     const batch = withPhotos.slice(0, limit);
     const remaining = withPhotos.length - batch.length;
 
@@ -41,6 +54,7 @@ export default async function(req: Request): Promise<Response> {
     let unreadable = 0;
     let notFound = 0;
     let errors = 0;
+    const now = new Date().toISOString();
 
     for (const orphan of batch) {
       const photoUrl = (Array.isArray(orphan.package_image_urls) && orphan.package_image_urls.length
@@ -66,14 +80,14 @@ export default async function(req: Request): Promise<Response> {
         const tracking = typeof extracted === 'string' ? extracted.trim() : '';
 
         if (!tracking || tracking.length < 5) {
-          // Marcar como no legible por IA para excluir de futuros escaneos
           await base44.asServiceRole.entities.Package.update(orphan.id, { ai_unreadable: true });
           results.push({ orphan_id: orphan.id, tracking_number: orphan.tracking_number, status: 'unreadable' });
           unreadable++;
           continue;
         }
 
-        // 3) Buscar un paquete NO huérfano con ese tracking (o sub-tracking)
+        // 3) Buscar por tracking_number con candidatos de sub-tracking
+        //    (relajado: cualquier Package con client_email, sin exigir is_orphan === false)
         const removalOrder = [0, 3, 2, 4, 1, 5, 6];
         const seenCandidates = new Set<string>();
         const candidates: string[] = [];
@@ -98,35 +112,66 @@ export default async function(req: Request): Promise<Response> {
           const matches = await base44.asServiceRole.entities.Package.filter(
             { tracking_number: candidate }, '-created_date', 5
           );
-          const found = matches?.find((m: any) => m.is_orphan === false && m.client_email);
+          const found = matches?.find((m: any) => m.client_email);
           if (found) {
             matchedPkg = found;
             break;
           }
         }
 
-        // 4) Buscar también por label_code (etiqueta TLEC)
+        // 4) Buscar por label_code en Package
         if (!matchedPkg) {
           const labelMatches = await base44.asServiceRole.entities.Package.filter(
             { label_code: tracking }, '-created_date', 5
           );
-          const found = labelMatches?.find((m: any) => m.is_orphan === false && m.client_email);
+          const found = labelMatches?.find((m: any) => m.client_email);
           if (found) matchedPkg = found;
         }
 
+        // 5) Buscar por label_code en ShippingLabel → auto-crear pre-alerta
         if (!matchedPkg) {
+          const labels = await base44.asServiceRole.entities.ShippingLabel.filter(
+            { label_code: tracking }, '-created_date', 1
+          );
+          const label = labels?.[0];
+          if (label) {
+            matchedPkg = await base44.asServiceRole.entities.Package.create({
+              tracking_number: '',
+              client_email: label.client_email,
+              shipping_mark: label.shipping_mark,
+              label_code: label.label_code,
+              shipping_type: 'maritimo',
+              risk_category: (label.has_battery || label.has_liquid || label.has_powder || label.has_fbrand) ? 'alto_riesgo' : 'general',
+              package_count: label.box_count || 1,
+              description: label.content || 'Etiqueta TLEC',
+              status: 'pre_alerta',
+              is_orphan: false,
+            });
+            try {
+              await base44.asServiceRole.entities.ShippingLabel.update(label.id, {
+                status: 'vinculada',
+                linked_package_id: matchedPkg.id,
+              });
+            } catch (_) {}
+          }
+        }
+
+        if (!matchedPkg) {
+          // IA leyó el tracking pero no hay cliente coincidente → marcar fecha de intento
+          await base44.asServiceRole.entities.Package.update(orphan.id, { ai_attempted_date: now });
           results.push({ orphan_id: orphan.id, tracking_number: orphan.tracking_number, detected_tracking: tracking, status: 'no_client_match' });
           notFound++;
           continue;
         }
 
-        // 5) Asignar el huérfano al cliente del paquete encontrado
+        // 6) Asignar el huérfano al cliente del paquete encontrado
         await base44.asServiceRole.entities.Package.update(orphan.id, {
           tracking_number: matchedPkg.tracking_number || tracking,
           client_email: matchedPkg.client_email,
           shipping_mark: matchedPkg.shipping_mark || '',
           is_orphan: false,
           ai_unreadable: false,
+          ai_attempted_date: null,
           status: matchedPkg.status === 'pre_alerta' ? 'recibido' : matchedPkg.status,
           shipping_type: matchedPkg.shipping_type || orphan.shipping_type || 'maritimo',
         });

@@ -69,6 +69,11 @@
       "default": false,
       "description": "Indica que la IA no pudo leer el tracking de la foto. Se excluye de futuros escaneos IA autom\u00e1ticos. El admin puede reintentar manualmente."
     },
+    "ai_attempted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo intento de IA donde se ley\u00f3 el tracking pero no se encontr\u00f3 cliente coincidente. Se usa para excluir el paquete de lotes recientes y evitar reprocesamiento en bucle."
+    },
     "has_insurance": {
       "type": "boolean",
       "default": false
