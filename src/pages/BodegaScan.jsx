@@ -261,13 +261,21 @@ export default function BodegaScan() {
     playBeep();
     vibrate();
 
+    // Reintentar la detección varias veces: el autofocus puede tardar un instante
+    // en estabilizarse y un solo intento sobre un frame ligeramente borroso
+    // manda un paquete legible directo a huérfano. Hasta 8 intentos con ~150ms.
     let detectedCode = '';
-    try {
-      if (detectorRef.current && videoRef.current && videoRef.current.readyState >= 2) {
-        const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
-        detectedCode = detected?.[0]?.rawValue?.trim() || '';
+    for (let attempt = 0; attempt < 8 && !detectedCode; attempt++) {
+      try {
+        if (detectorRef.current && videoRef.current && videoRef.current.readyState >= 2) {
+          const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
+          detectedCode = detected?.[0]?.rawValue?.trim() || '';
+        }
+      } catch (_) {}
+      if (!detectedCode && attempt < 7) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
       }
-    } catch (_) {}
+    }
 
     await processScan(detectedCode, photoBase64);
     manualBusyRef.current = false;
