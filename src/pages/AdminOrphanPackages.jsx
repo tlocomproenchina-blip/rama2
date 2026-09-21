@@ -84,6 +84,20 @@ export default function AdminOrphanPackages({ user }) {
     })();
   }, []);
 
+  // Estadísticas calculadas de los huérfanos cargados
+  const stats = React.useMemo(() => {
+    const total = orphans.length;
+    let unreadable = 0, notRegistered = 0, pendingAi = 0, noPhoto = 0;
+    for (const p of orphans) {
+      if (p.ai_unreadable) { unreadable++; continue; }
+      if (p.ai_attempted_date) { notRegistered++; continue; }
+      const hasPhoto = (Array.isArray(p.package_image_urls) && p.package_image_urls.length > 0) || p.package_image_url;
+      if (hasPhoto) pendingAi++;
+      else noPhoto++;
+    }
+    return { total, unreadable, notRegistered, pendingAi, noPhoto };
+  }, [orphans]);
+
   const filtered = orphans.filter((p) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
@@ -309,6 +323,55 @@ export default function AdminOrphanPackages({ user }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Estadísticas de huérfanos */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Card className="shadow-sm border-amber-100">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="rounded-lg bg-amber-50 p-2 shrink-0"><UserX className="h-5 w-5 text-amber-600" /></div>
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500 truncate">Sin cliente</p>
+              <p className="text-xl font-bold text-slate-800">{stats.total}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-purple-100">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="rounded-lg bg-purple-50 p-2 shrink-0"><Sparkles className="h-5 w-5 text-purple-600" /></div>
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500 truncate">Pendientes IA</p>
+              <p className="text-xl font-bold text-slate-800">{stats.pendingAi}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-amber-200">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="rounded-lg bg-amber-100 p-2 shrink-0"><AlertTriangle className="h-5 w-5 text-amber-600" /></div>
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500 truncate">No registrados</p>
+              <p className="text-xl font-bold text-slate-800">{stats.notRegistered}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-red-100">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="rounded-lg bg-red-50 p-2 shrink-0"><AlertTriangle className="h-5 w-5 text-red-500" /></div>
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500 truncate">No legibles IA</p>
+              <p className="text-xl font-bold text-slate-800">{stats.unreadable}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-slate-200">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="rounded-lg bg-slate-100 p-2 shrink-0"><Package className="h-5 w-5 text-slate-500" /></div>
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500 truncate">Sin foto</p>
+              <p className="text-xl font-bold text-slate-800">{stats.noPhoto}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="shadow-sm">
