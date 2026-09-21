@@ -64,6 +64,11 @@
       "default": false,
       "description": "Indica si el paquete es un hu\u00e9rfano (lleg\u00f3 sin pre-alerta y no tiene cliente asignado). Cuando se asigna o reclama, pasa a false."
     },
+    "ai_unreadable": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que la IA no pudo leer el tracking de la foto. Se excluye de futuros escaneos IA autom\u00e1ticos. El admin puede reintentar manualmente."
+    },
     "has_insurance": {
       "type": "boolean",
       "default": false

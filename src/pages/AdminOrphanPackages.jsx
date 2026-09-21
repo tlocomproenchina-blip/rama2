@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2, UserX, UserCheck, Package, MapPin, Calendar, Trash2, Pencil, AlertTriangle, X } from 'lucide-react';
+import { Search, Loader2, UserX, UserCheck, Package, MapPin, Calendar, Trash2, Pencil, AlertTriangle, X, Sparkles } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import useClientSearch from '@/hooks/useClientSearch';
@@ -37,6 +37,9 @@ export default function AdminOrphanPackages({ user }) {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState(null); // { current, total }
   const [viewerImage, setViewerImage] = useState(null); // url de imagen a ampliar
+  const [aiScanBusy, setAiScanBusy] = useState(false);
+  const [aiProgress, setAiProgress] = useState(null); // { processed, total, assigned, unreadable, notFound, errors }
+  const [aiFinalSummary, setAiFinalSummary] = useState(null);
 
   const loadOrphans = useCallback(async (reset = false) => {
     try {
@@ -173,6 +176,72 @@ export default function AdminOrphanPackages({ user }) {
     setBulkProcessing(false);
   };
 
+  const handleAiReclaim = async () => {
+    if (aiScanBusy) return;
+    setAiScanBusy(true);
+    setAiFinalSummary(null);
+    setAiProgress({ processed: 0, total: null, assigned: 0, unreadable: 0, notFound: 0, errors: 0 });
+
+    try {
+      let totalAssigned = 0, totalUnreadable = 0, totalNotFound = 0, totalErrors = 0, totalProcessed = 0;
+      let hasMore = true;
+      let guard = 0; // safety limit to prevent infinite loops
+
+      while (hasMore && guard < 200) {
+        guard++;
+        const payload = selectedIds.length > 0 && guard === 1
+          ? { only_ids: selectedIds, limit: 3 }
+          : { limit: 3 };
+        const { data } = await base44.functions.invoke('aiReclaimOrphanPhotos', payload);
+        if (data?.error) throw new Error(data.error);
+
+        totalAssigned += data.assigned || 0;
+        totalUnreadable += data.unreadable || 0;
+        totalNotFound += data.not_found || 0;
+        totalErrors += data.errors || 0;
+        totalProcessed += data.batch_size || 0;
+
+        setAiProgress({
+          processed: totalProcessed,
+          total: totalProcessed + (data.remaining || 0),
+          assigned: totalAssigned,
+          unreadable: totalUnreadable,
+          notFound: totalNotFound,
+          errors: totalErrors,
+        });
+
+        hasMore = data.has_more === true;
+        // Si fue con only_ids, en la segunda iteración ya no filtramos por IDs
+        // porque los asignados ya desaparecieron y los unreadable quedaron marcados
+        if (guard === 1) setSelectedIds([]);
+      }
+
+      setAiFinalSummary({
+        assigned: totalAssigned,
+        unreadable: totalUnreadable,
+        notFound: totalNotFound,
+        errors: totalErrors,
+        total: totalProcessed,
+      });
+
+      if (totalAssigned > 0) {
+        toast.success(`IA completada: ${totalAssigned} asignado(s) · ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia`);
+      } else if (totalProcessed > 0) {
+        toast.info(`IA completada: ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia · ${totalErrors} error(es)`);
+      } else {
+        toast.info('No hay huérfanos con foto pendientes de escanear');
+      }
+
+      // Recargar la lista para reflejar cambios
+      setSkip(0);
+      loadOrphans(true);
+    } catch (e) {
+      toast.error('Error al ejecutar el escaneo IA: ' + (e?.message || 'desconocido'));
+    } finally {
+      setAiScanBusy(false);
+    }
+  };
+
   const handleBulkDelete = async () => {
     setBulkProcessing(true);
     const ids = [...selectedIds];
@@ -197,9 +266,45 @@ export default function AdminOrphanPackages({ user }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2"><UserX className="h-7 w-7 text-amber-600" /> Paquetes Huérfanos</h1>
-        <p className="text-slate-500">Trackings recibidos sin pre-alerta. Asignalos a un cliente o espera a que el cliente los reclame con su pre-alerta.</p>
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2"><UserX className="h-7 w-7 text-amber-600" /> Paquetes Huérfanos</h1>
+          <p className="text-slate-500">Trackings recibidos sin pre-alerta. Asignalos a un cliente o espera a que el cliente los reclame con su pre-alerta.</p>
+        </div>
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <Button
+            onClick={handleAiReclaim}
+            disabled={aiScanBusy || (orphans.length === 0 && selectedIds.length === 0)}
+            variant="outline"
+            className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50"
+            title="Usa IA para leer el tracking de cada foto huérfana y asignarla al cliente si existe una pre-alerta con ese tracking. Procesa en lotes automáticos de 3."
+          >
+            {aiScanBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {aiScanBusy
+              ? `Procesando ${aiProgress?.processed || 0}${aiProgress?.total ? `/${aiProgress.total}` : ''}...`
+              : `Reclamar con IA${selectedIds.length > 0 ? ` (${selectedIds.length})` : ' (todos)'}`}
+          </Button>
+          {aiScanBusy && aiProgress && (
+            <div className="text-xs text-slate-600 text-right max-w-xs bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5">
+              <div className="flex gap-3 justify-end">
+                <span className="text-green-600 font-medium">{aiProgress.assigned} asignados</span>
+                <span className="text-red-500">{aiProgress.unreadable} no legibles</span>
+                <span className="text-slate-500">{aiProgress.notFound} sin coincidencia</span>
+              </div>
+            </div>
+          )}
+          {!aiScanBusy && aiFinalSummary && (
+            <div className="text-xs text-slate-600 text-right max-w-xs bg-slate-50 border rounded-lg px-3 py-1.5">
+              <span className="font-medium text-slate-700">Resumen IA:</span>{' '}
+              <span className="text-green-600 font-medium">{aiFinalSummary.assigned} asignados</span>
+              {' · '}
+              <span className="text-red-500">{aiFinalSummary.unreadable} no legibles</span>
+              {' · '}
+              <span className="text-slate-500">{aiFinalSummary.notFound} sin coincidencia</span>
+              {aiFinalSummary.errors > 0 && <> · <span className="text-red-500">{aiFinalSummary.errors} errores</span></>}
+            </div>
+          )}
+        </div>
       </div>
 
       <Card className="shadow-sm">
@@ -262,11 +367,16 @@ export default function AdminOrphanPackages({ user }) {
                   </div>
                   <div className="flex-1 min-w-0 space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Package className="h-4 w-4 text-amber-600 shrink-0" />
-                      <span className="font-mono font-semibold text-slate-800 break-all">{p.tracking_number}</span>
+                      <Package className={`h-4 w-4 shrink-0 ${p.ai_unreadable ? 'text-red-500' : 'text-amber-600'}`} />
+                      <span className={`font-mono font-semibold break-all ${p.ai_unreadable ? 'text-red-600' : 'text-slate-800'}`}>{p.tracking_number}</span>
                       <Badge variant="outline" className="text-amber-700 border-amber-200 bg-amber-50">Sin cliente</Badge>
                       <Badge variant="secondary">{p.shipping_type === 'maritimo' ? 'Marítimo' : 'Aéreo'}</Badge>
                       {p.shipping_mark && <Badge variant="outline">SM: {p.shipping_mark}</Badge>}
+                      {p.ai_unreadable && (
+                        <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 gap-1">
+                          <AlertTriangle className="h-3 w-3" /> No legible por IA
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                       {p.warehouse_name && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{p.warehouse_name}{p.warehouse_location_code ? ` · ${p.warehouse_location_code}` : ''}</span>}
