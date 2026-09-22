@@ -140,7 +140,7 @@ export default async function(req: Request): Promise<Response> {
       if (photoUrl) {
         try {
           const aiRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
-            prompt: `Eres un asistente de logística. Examina la foto de un paquete y extrae el número de tracking (tracking number) que aparece en la etiqueta de envío. El número de tracking suele ser una cadena alfanumérica larga (ej: YT2423123456789012, LP009876543210, 4PX1234567890, etc.). NO devuelvas el código de barras numérico (EAN/UPC). Devuelve SOLO el número de tracking de la transportadora. Si no puedes leer ningún tracking claro, devuelve null.`,
+            prompt: `Eres un asistente de logística. Examina la foto de un paquete y extrae el número de tracking (tracking number) que aparece en la etiqueta de envío. El número de tracking suele ser una cadena alfanumérica larga (ej: YT2423123456789012, LP009876543210, 4PX1234567890, 79142337780380, etc.). NO devuelvas el código de barras numérico genérico (EAN/UPC de producto). Devuelve SOLO el número de tracking de la transportadora como una cadena CONTINUA sin espacios, guiones ni separadores de ningún tipo (ej: "YT2423123456789012", no "YT2423 1234 5678 9012"). Si no puedes leer ningún tracking claro, devuelve null.`,
             file_urls: [photoUrl],
             model: 'gpt_5_mini',
             response_json_schema: {
@@ -152,8 +152,8 @@ export default async function(req: Request): Promise<Response> {
             },
           });
           const extracted = aiRes?.tracking_number;
-          if (typeof extracted === 'string' && extracted.trim().length >= 5) {
-            aiTracking = extracted.trim();
+          if (typeof extracted === 'string' && extracted.replace(/\s+/g, '').length >= 5) {
+            aiTracking = extracted.replace(/\s+/g, '');
             resolvedTracking = aiTracking;
           }
         } catch (_) {

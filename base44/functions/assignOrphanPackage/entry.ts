@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       status: nextStatus,
       shipping_type: body.shipping_type ? (body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo') : pkg.shipping_type || 'aereo',
       risk_category: body.risk_category ? (body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general') : pkg.risk_category || 'general',
-      description: body.description ? String(body.description) : pkg.description || 'Pre-alerta rápida',
+      description: body.description ? String(body.description) : 'Pre-alerta rápida',
       reported: true,
     });
 
