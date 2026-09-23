@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
+import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight, Printer, CheckSquare, Square, X, Printer as PrinterIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import BultoEditModal from './BultoEditModal';
@@ -22,6 +22,36 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [deleting, setDeleting] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [printTarget, setPrintTarget] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkPrintTarget, setBulkPrintTarget] = useState(null);
+
+  const toggleSelect = useCallback((id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === bultos.length) return new Set();
+      return new Set(bultos.map((b) => b.id));
+    });
+  }, [bultos]);
+
+  const handleBulkPrint = useCallback(() => {
+    const selected = bultos.filter((b) => selectedIds.has(b.id));
+    if (!selected.length) return;
+    setBulkPrintTarget(selected);
+  }, [bultos, selectedIds]);
+
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,9 +141,38 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
               <option value="despachado">Despachados</option>
             </select>
           </div>
-          <p className="text-xs text-slate-500">{total} bulto(s) encontrado(s)</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-slate-500">{total} bulto(s) encontrado(s)</p>
+            <Button
+              variant={selectMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+            >
+              {selectMode ? <X className="h-3.5 w-3.5" /> : <CheckSquare className="h-3.5 w-3.5" />}
+              {selectMode ? 'Salir' : 'Seleccionar'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Barra de acciones de selección múltiple */}
+      {selectMode && (
+        <div className="sticky top-2 z-10 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50/95 backdrop-blur p-2 shadow-sm">
+          <Button variant="outline" size="sm" onClick={toggleSelectAll} disabled={!bultos.length}>
+            {selectedIds.size === bultos.length && bultos.length > 0 ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+            {selectedIds.size === bultos.length && bultos.length > 0 ? 'Quitar todos' : 'Todos'}
+          </Button>
+          <span className="text-sm text-blue-700 font-medium">{selectedIds.size} seleccionado(s)</span>
+          <Button
+            size="sm"
+            onClick={handleBulkPrint}
+            disabled={!selectedIds.size}
+            className="ml-auto bg-blue-600 hover:bg-blue-700"
+          >
+            <PrinterIcon className="h-3.5 w-3.5" /> Imprimir ({selectedIds.size})
+          </Button>
+        </div>
+      )}
 
       {/* Lista */}
       {loading ? (
@@ -126,10 +185,21 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       ) : (
         <div className="space-y-2">
           {bultos.map((b) => (
-            <Card key={b.id} className="shadow-sm">
+            <Card key={b.id} className={`shadow-sm transition-all ${selectMode && selectedIds.has(b.id) ? 'ring-2 ring-blue-400 bg-blue-50/30' : ''}`}>
               <CardContent className="p-3">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
+                  <div
+                    className={`flex items-start gap-2 min-w-0 flex-1 ${selectMode ? 'cursor-pointer' : ''}`}
+                    onClick={selectMode ? () => toggleSelect(b.id) : undefined}
+                  >
+                    {selectMode && (
+                      <button onClick={(e) => { e.stopPropagation(); toggleSelect(b.id); }} className="mt-0.5 shrink-0">
+                        {selectedIds.has(b.id)
+                          ? <CheckSquare className="h-5 w-5 text-blue-600" />
+                          : <Square className="h-5 w-5 text-slate-300" />}
+                      </button>
+                    )}
+                    <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-slate-800">Bulto {b.bulto_number}/{b.total_bultos}</span>
                       <span className="text-xs font-mono text-slate-500 bg-muted px-1.5 py-0.5 rounded">{b.label_code}</span>
@@ -155,17 +225,20 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button variant="outline" size="sm" onClick={() => setPrintTarget(b)}>
-                      <Printer className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setEditTarget(b)}>
-                      <Pencil className="h-3.5 w-3.5" /> Editar
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setDeleteTarget(b)} className="text-red-600 hover:bg-red-50 hover:border-red-200">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
                   </div>
+                  {!selectMode && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => setPrintTarget(b)}>
+                        <Printer className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setEditTarget(b)}>
+                        <Pencil className="h-3.5 w-3.5" /> Editar
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setDeleteTarget(b)} className="text-red-600 hover:bg-red-50 hover:border-red-200">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -209,6 +282,25 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
               <p>{printTarget.package_trackings?.length || 0} paquete(s) incluido(s).</p>
             </div>
             <BluetoothPrinter bultos={[printTarget]} onPrinted={() => setPrintTarget(null)} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Impresión múltiple */}
+      {bulkPrintTarget && (
+        <Dialog open onOpenChange={() => { setBulkPrintTarget(null); exitSelectMode(); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Printer className="h-5 w-5" /> Imprimir {bulkPrintTarget.length} etiqueta(s)
+              </DialogTitle>
+            </DialogHeader>
+            <div className="text-sm text-slate-600 space-y-1">
+              {bulkPrintTarget.map((b) => (
+                <p key={b.id} className="font-mono text-xs">{b.label_code} — {b.client_snapshot?.full_name || b.client_email}</p>
+              ))}
+            </div>
+            <BluetoothPrinter bultos={bulkPrintTarget} onPrinted={() => { setBulkPrintTarget(null); exitSelectMode(); }} />
           </DialogContent>
         </Dialog>
       )}
