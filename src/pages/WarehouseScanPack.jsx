@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Loader2, ScanLine, Boxes, AlertTriangle, CheckCircle2,
-  CloudOff, Cloud, RefreshCw, Clock, Database, Check,
+  CloudOff, Cloud, Package, PackagePlus, X, RefreshCw, Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
@@ -14,115 +15,203 @@ import OpenBultoCard from '@/components/warehouse/OpenBultoCard';
 import OpenBultosChips from '@/components/warehouse/OpenBultosChips';
 import BultoHistory from '@/components/warehouse/BultoHistory';
 import ManualPackageAssign from '@/components/warehouse/ManualPackageAssign';
-import { useOfflineWarehouse } from '@/hooks/useOfflineWarehouse';
+import { useOfflineScanQueue } from '@/hooks/useOfflineScanQueue';
 import { History, ChevronDown, ChevronUp } from 'lucide-react';
 
-// Página unificada offline-first: escanea tracking → busca localmente en IndexedDB
-// → marca despachado + agrega al bulto del cliente. Funciona 100% offline.
-// Los cambios se sincronizan al servidor en segundo plano al volver la conexión.
+// Página unificada: escanea tracking → marca recibido + crea orden de despacho
+// + agrega el paquete al bulto abierto del cliente (uno por cliente en paralelo).
+// Al cerrar un bulto se imprime la etiqueta térmica por Bluetooth.
+// Funciona offline: los escaneos se encolan y se procesan en segundo plano.
 export default function WarehouseScanPack({ user }) {
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseScanPack');
   const [code, setCode] = useState('');
+  const [openBultos, setOpenBultos] = useState([]);
   const [activeBultoId, setActiveBultoId] = useState(null);
   const [lastScan, setLastScan] = useState(null);
   const [closingBulto, setClosingBulto] = useState(null);
+  const [loadingOpen, setLoadingOpen] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [manualAssign, setManualAssign] = useState(null);
-  const [scanning, setScanning] = useState(false);
+  const openBultosRef = useRef([]);
   const { handlePhotoCaptured, waitForPhoto } = useScannedPhotoUploader();
 
-  const {
-    online, cacheReady, caching, openBultos, pendingSync, syncing,
-    cacheData, localScan, localManualAssign, localCloseBulto, localRemoveLast,
-    searchClientsLocal, syncNow,
-  } = useOfflineWarehouse();
+  // Helper: actualiza la ref y el estado sincrónicamente
+  const updateBultosState = useCallback((updater) => {
+    const next = typeof updater === 'function' ? updater(openBultosRef.current) : updater;
+    openBultosRef.current = next;
+    setOpenBultos(next);
+  }, []);
 
-  // Seleccionar bulto activo automáticamente
+  // Cargar bultos abiertos al montar
+  const loadOpenBultos = useCallback(async () => {
+    setLoadingOpen(true);
+    try {
+      const bultos = await base44.entities.Bulto.filter({ status: 'activo' }, 'bulto_number', 500);
+      updateBultosState(bultos || []);
+      if (bultos?.length && !activeBultoId) setActiveBultoId(bultos[0].id);
+    } catch (_) {
+      toast.error('Error al cargar bultos abiertos');
+    } finally {
+      setLoadingOpen(false);
+    }
+  }, [activeBultoId, updateBultosState]);
+
   useEffect(() => {
-    if (openBultos.length && !activeBultoId) {
-      setActiveBultoId(openBultos[0].id);
+    if (allowed) loadOpenBultos();
+  }, [allowed]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Callback cuando un escaneo se confirma en el servidor
+  const handleConfirmed = useCallback((tempId, pkg, client, bultoData) => {
+    setLastScan({ package: pkg, client, auto_received: false, bulto: bultoData });
+    // Actualizar la lista de bultos abiertos
+    if (bultoData?.id && bultoData.status === 'activo') {
+      updateBultosState((prev) => {
+        const exists = prev.find((b) => b.id === bultoData.id);
+        if (exists) {
+          return prev.map((b) => (b.id === bultoData.id ? bultoData : b));
+        }
+        return [...prev, bultoData];
+      });
+      setActiveBultoId(bultoData.id);
     }
-    if (activeBultoId && !openBultos.find((b) => b.id === activeBultoId)) {
-      setActiveBultoId(openBultos[0]?.id || null);
+    toast.success(`Paquete ${pkg.tracking_number} agregado al bulto`, { duration: 2000 });
+  }, [updateBultosState]);
+
+  // Callback cuando un escaneo no se encuentra
+  const handleNotFound = useCallback((tempId, tracking) => {
+    setManualAssign({ tracking, tempId });
+  }, []);
+
+  // Callback cuando se cierra un bulto en el servidor
+  const handleClosed = useCallback(() => {
+    setHistoryRefreshKey((k) => k + 1);
+  }, []);
+
+  // Cola offline
+  const {
+    items, pendingCount, isOnline,
+    enqueueScan, enqueueClose, resolveError,
+  } = useOfflineScanQueue({
+    onConfirmed: handleConfirmed,
+    onNotFound: handleNotFound,
+    onClosed: handleClosed,
+  });
+
+  // Escaneo: encola y retorna inmediatamente (no bloquea)
+  const handleScan = useCallback((tracking) => {
+    const cleaned = (tracking || '').trim();
+    if (!cleaned) return;
+    setCode('');
+    setManualAssign(null);
+    enqueueScan(cleaned, 'lookup', []);
+  }, [enqueueScan, setCode]);
+
+  // Cerrar bulto: cierra localmente + encola cierre en servidor
+  const handleCloseBulto = useCallback((bulto) => {
+    updateBultosState((prev) => {
+      const remaining = prev.filter((b) => b.id !== bulto.id);
+      setActiveBultoId((curr) => (curr === bulto.id ? (remaining[0]?.id || null) : curr));
+      return remaining;
+    });
+    setClosingBulto({ ...bulto, status: 'despachado' });
+    toast.success(`Bulto ${bulto.bulto_number}/${bulto.total_bultos} cerrado`);
+    setHistoryRefreshKey((k) => k + 1);
+    enqueueClose(bulto.id, bulto);
+  }, [updateBultosState, enqueueClose]);
+
+  // Quitar último paquete del bulto
+  const handleRemoveLast = useCallback(async (bulto) => {
+    const ids = bulto.package_ids || [];
+    if (!ids.length) return;
+    const newIds = ids.slice(0, -1);
+    try {
+      if (newIds.length === 0) {
+        await base44.functions.invoke('deleteBulto', { bulto_id: bulto.id });
+        updateBultosState((prev) => {
+          const remaining = prev.filter((b) => b.id !== bulto.id);
+          setActiveBultoId((curr) => (curr === bulto.id ? (remaining[0]?.id || null) : curr));
+          return remaining;
+        });
+        toast.success('Bulto vacío eliminado');
+      } else {
+        const res = await base44.functions.invoke('updateBulto', { bulto_id: bulto.id, package_ids: newIds });
+        const updated = res?.data?.bulto || {
+          ...bulto,
+          package_ids: newIds,
+          package_trackings: (bulto.package_trackings || []).slice(0, -1),
+        };
+        updateBultosState((prev) => prev.map((b) => (b.id === bulto.id ? updated : b)));
+        toast.success('Último paquete quitado del bulto');
+      }
+    } catch (_) {
+      toast.error('Error al quitar el paquete');
     }
-  }, [openBultos]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [updateBultosState]);
+
+  // Asignación manual: crea el paquete y lo agrega al bulto
+  const handleManualAssign = useCallback(async (client) => {
+    if (!manualAssign) return;
+    const { tracking, tempId } = manualAssign;
+    setManualAssign(null);
+    try {
+      const now = new Date().toISOString();
+      const pkg = await base44.entities.Package.create({
+        tracking_number: tracking,
+        client_email: client.email,
+        shipping_mark: client.shipping_mark || '',
+        shipping_type: 'maritimo',
+        status: 'despachado',
+        description: 'Paquete manual',
+        received_date: now,
+        dispatched_date: now,
+        received_by: user?.email || '',
+        dispatched_by: user?.email || '',
+      });
+      setLastScan({ package: pkg, client, auto_received: true });
+      // Agregar al bulto
+      try {
+        const existing = await base44.entities.Bulto.filter(
+          { client_email: client.email, status: 'activo' }, '-created_date', 1
+        );
+        let bultoData;
+        if (existing?.[0]) {
+          const newIds = [...(existing[0].package_ids || []), pkg.id];
+          const res = await base44.functions.invoke('updateBulto', {
+            bulto_id: existing[0].id, package_ids: newIds,
+          });
+          bultoData = res?.data?.bulto || existing[0];
+        } else {
+          const res = await base44.functions.invoke('createBulto', { package_ids: [pkg.id] });
+          bultoData = res?.data?.bulto || res?.data;
+        }
+        if (bultoData?.id && bultoData.status === 'activo') {
+          updateBultosState((prev) => {
+            const exists = prev.find((b) => b.id === bultoData.id);
+            return exists ? prev.map((b) => (b.id === bultoData.id ? bultoData : b)) : [...prev, bultoData];
+          });
+          setActiveBultoId(bultoData.id);
+        }
+      } catch (_) {}
+      resolveError(tempId);
+      toast.success(`Paquete manual asignado a ${client.full_name || client.email}`);
+    } catch (e) {
+      toast.error('Error al crear el paquete manual');
+      setManualAssign({ tracking, tempId });
+    }
+  }, [manualAssign, user, updateBultosState, resolveError]);
 
   const activeBulto = useMemo(
     () => openBultos.find((b) => b.id === activeBultoId),
     [openBultos, activeBultoId]
   );
 
-  // Escaneo: busca localmente, marca despachado, agrega al bulto
-  const handleScan = useCallback(async (tracking) => {
-    const cleaned = (tracking || '').trim();
-    if (!cleaned || scanning) return;
-    setCode('');
-    setManualAssign(null);
-    setScanning(true);
-    try {
-      // Esperar foto si está capturando (requiere conexión; offline = sin foto)
-      let photoUrls = [];
-      try {
-        const photoUrl = await waitForPhoto(cleaned);
-        if (photoUrl) photoUrls = [photoUrl];
-      } catch (_) {}
-      const result = await localScan(cleaned, photoUrls);
-      if (!result.found) {
-        // No encontrado en cache local → abrir panel de asignación manual
-        setManualAssign({ tracking: cleaned });
-        toast.warning(`Tracking no encontrado en datos locales`, { duration: 2000 });
-      } else {
-        setLastScan({ package: result.package, bulto: result.bulto });
-        setActiveBultoId(result.bulto.id);
-        toast.success(`Paquete agregado al bulto`, { duration: 1500 });
-      }
-    } catch (e) {
-      toast.error('Error al escanear: ' + (e?.message || ''));
-    } finally {
-      setScanning(false);
-    }
-  }, [scanning, localScan, waitForPhoto, setCode]);
+  // Filtrar items de la cola para mostrar
+  const pendingItems = items.filter((i) => i.status !== 'done');
+  const syncingItems = items.filter((i) => i.status === 'syncing');
+  const errorItems = items.filter((i) => i.status === 'error');
 
-  // Cerrar bulto: marca localmente + imprime etiqueta
-  const handleCloseBulto = useCallback(async (bulto) => {
-    try {
-      await localCloseBulto(bulto);
-      setClosingBulto({ ...bulto, status: 'despachado' });
-      toast.success(`Bulto cerrado`);
-      setHistoryRefreshKey((k) => k + 1);
-    } catch (e) {
-      toast.error('Error al cerrar bulto');
-    }
-  }, [localCloseBulto]);
-
-  // Quitar último paquete
-  const handleRemoveLast = useCallback(async (bulto) => {
-    try {
-      await localRemoveLast(bulto);
-      toast.success('Último paquete quitado');
-    } catch (_) {
-      toast.error('Error al quitar el paquete');
-    }
-  }, [localRemoveLast]);
-
-  // Asignación manual: crea paquete local + agrega al bulto
-  const handleManualAssign = useCallback(async (client) => {
-    if (!manualAssign) return;
-    const tracking = manualAssign.tracking;
-    setManualAssign(null);
-    try {
-      const result = await localManualAssign(tracking, client, []);
-      setLastScan({ package: result.package, bulto: result.bulto });
-      setActiveBultoId(result.bulto.id);
-      toast.success(`Paquete asignado a ${client.full_name || client.email}`);
-    } catch (e) {
-      toast.error('Error al asignar paquete');
-      setManualAssign({ tracking });
-    }
-  }, [manualAssign, localManualAssign]);
-
-  if (loadingAccess) {
+  if (loadingAccess || loadingOpen) {
     return (
       <div className="flex justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -133,9 +222,6 @@ export default function WarehouseScanPack({ user }) {
     return <Card><CardContent className="p-8 text-center text-slate-500">No tienes acceso a este módulo.</CardContent></Card>;
   }
 
-  // Estado de sincronización: offline / sincronizando / sincronizado
-  const syncState = !online ? 'offline' : syncing ? 'syncing' : pendingSync > 0 ? 'pending' : 'synced';
-
   return (
     <div className="space-y-4 max-w-3xl mx-auto">
       <div>
@@ -143,54 +229,22 @@ export default function WarehouseScanPack({ user }) {
           <Boxes className="h-6 w-6 text-blue-600" /> Escanear y Armar Bultos
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Escanea el tracking: se agrega al bulto del cliente automáticamente. Funciona sin conexión — los cambios se sincronizan solos.
+          Escanea el tracking: se agrega al bulto del cliente automáticamente. Funciona sin conexión — los escaneos se sincronizan en segundo plano.
         </p>
       </div>
 
-      {/* Indicador de estado offline/sync */}
-      <div className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm border ${
-        syncState === 'offline' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-        syncState === 'syncing' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-        syncState === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-        'bg-green-50 text-green-700 border-green-200'
+      {/* Indicador de conexión */}
+      <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+        isOnline ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-orange-50 text-orange-700 border border-orange-200'
       }`}>
-        {syncState === 'offline' ? <CloudOff className="h-4 w-4 shrink-0" /> :
-         syncState === 'syncing' ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin" /> :
-         syncState === 'pending' ? <Clock className="h-4 w-4 shrink-0" /> :
-         <Check className="h-4 w-4 shrink-0" />}
-        <span className="font-medium">
-          {syncState === 'offline' ? 'Offline — datos locales' :
-           syncState === 'syncing' ? 'Sincronizando...' :
-           syncState === 'pending' ? `${pendingSync} pendiente${pendingSync !== 1 ? 's' : ''} de sincronizar` :
-           'Sincronizado'}
-        </span>
-        {pendingSync > 0 && online && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={syncNow}
-            disabled={syncing}
-            className="ml-auto h-7 text-xs gap-1"
-          >
-            <RefreshCw className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
-            Sincronizar ahora
-          </Button>
+        {isOnline ? <Cloud className="h-4 w-4 shrink-0" /> : <CloudOff className="h-4 w-4 shrink-0" />}
+        <span>{isOnline ? 'En línea' : 'Sin conexión — escaneos se guardan localmente'}</span>
+        {pendingCount > 0 && (
+          <span className="ml-auto flex items-center gap-1 text-xs font-medium">
+            <Clock className="h-3 w-3" /> {pendingCount} pendiente{pendingCount !== 1 ? 's' : ''}
+          </span>
         )}
       </div>
-
-      {/* Indicador de cache */}
-      {caching && (
-        <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
-          <Database className="h-3.5 w-3.5 animate-pulse" />
-          <span>Descargando datos al móvil para uso offline...</span>
-        </div>
-      )}
-      {cacheReady && !caching && (
-        <div className="flex items-center gap-2 text-xs text-green-600">
-          <Database className="h-3.5 w-3.5" />
-          <span>Datos offline listos</span>
-        </div>
-      )}
 
       <BarcodeScannerModule
         title="Escaneo de despacho y empaque"
@@ -204,22 +258,47 @@ export default function WarehouseScanPack({ user }) {
         continuous={true}
       />
 
-      {/* Indicador de escaneo en progreso */}
-      {scanning && (
-        <div className="flex items-center justify-center py-2">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-          <span className="ml-2 text-sm text-slate-500">Buscando en datos locales...</span>
-        </div>
+      {/* Lista de escaneos pendientes/error */}
+      {pendingItems.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/40">
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2 text-amber-700">
+              <CloudOff className="h-4 w-4 shrink-0" />
+              <p className="text-sm font-semibold">Sincronizando ({pendingItems.length})</p>
+            </div>
+            <ul className="space-y-1 max-h-32 overflow-y-auto">
+              {pendingItems.map((item) => (
+                <li key={item.id} className="flex items-center gap-2 text-xs">
+                  {item.status === 'syncing' ? (
+                    <Loader2 className="h-3 w-3 shrink-0 animate-spin text-blue-500" />
+                  ) : item.status === 'error' ? (
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" />
+                  ) : (
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400 animate-pulse" />
+                  )}
+                  <span className={`font-mono break-all ${
+                    item.status === 'error' ? 'text-red-600' : 'text-slate-600'
+                  }`}>
+                    {item.tracking || 'Cierre de bulto'}
+                  </span>
+                  {item.status === 'error' && (
+                    <span className="text-[10px] text-red-400 truncate ml-auto">{item.error_message}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Resultado del último escaneo */}
+      {/* Resultado del último escaneo confirmado */}
       {lastScan?.package && !lastScan.error && (
         <Card className="border-green-200">
           <CardContent className="p-4 space-y-1">
             <div className="flex items-center gap-2 text-green-700">
               <CheckCircle2 className="h-4 w-4" />
               <p className="font-medium text-sm">
-                Paquete agregado al bulto {lastScan.bulto?.shipping_mark || ''}
+                Paquete agregado al bulto de {lastScan.client?.full_name || lastScan.package.client_email}
               </p>
             </div>
             <p className="text-xs text-slate-500 font-mono break-all">{lastScan.package.tracking_number}</p>
@@ -232,9 +311,10 @@ export default function WarehouseScanPack({ user }) {
         <ManualPackageAssign
           tracking={manualAssign.tracking}
           onAssigned={handleManualAssign}
-          onCancel={() => setManualAssign(null)}
-          onAssignLater={() => setManualAssign(null)}
-          searchClientsLocal={searchClientsLocal}
+          onCancel={() => {
+            setManualAssign(null);
+            resolveError(manualAssign.tempId);
+          }}
         />
       )}
 
@@ -246,7 +326,7 @@ export default function WarehouseScanPack({ user }) {
           onRemoveLast={() => handleRemoveLast(activeBulto)}
         />
       ) : (
-        !scanning && (
+        !pendingItems.length && (
           <Card>
             <CardContent className="p-8 text-center text-slate-500">
               <ScanLine className="h-8 w-8 mx-auto mb-2 text-slate-300" />
@@ -269,7 +349,7 @@ export default function WarehouseScanPack({ user }) {
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-2 text-green-700">
               <CheckCircle2 className="h-5 w-5" />
-              <p className="font-medium">Bulto cerrado: {closingBulto.label_code}</p>
+              <p className="font-medium">Bulto {closingBulto.bulto_number}/{closingBulto.total_bultos} cerrado: {closingBulto.label_code}</p>
             </div>
             <BluetoothPrinter bultos={[closingBulto]} onPrinted={() => setClosingBulto(null)} />
           </CardContent>
