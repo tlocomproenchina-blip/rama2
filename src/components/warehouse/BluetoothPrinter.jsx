@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Printer, Loader2, Bluetooth, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -55,23 +55,10 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
     return null;
   };
 
-  const disconnect = useCallback(() => {
-    try {
-      if (deviceRef.current?.gatt?.connected) {
-        deviceRef.current.gatt.disconnect();
-      }
-    } catch (_) {}
-    serverRef.current = null;
-    characteristicRef.current = null;
-  }, []);
-
   const connect = async () => {
     if (!btSupported) throw new Error('Bluetooth no soportado en este navegador');
     setStatus('connecting');
     setError('');
-
-    // Limpiar cualquier conexión GATT previa que pueda estar colgada
-    disconnect();
 
     const device = await navigator.bluetooth.requestDevice({
       filters: [{ services: [PRINTER_SERVICES[0]] }, { services: [PRINTER_SERVICES[1]] }, { namePrefix: 'POS' }, { namePrefix: 'ZJ' }, { namePrefix: 'Printer' }],
@@ -79,31 +66,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
     });
 
     deviceRef.current = device;
-
-    // Escuchar desconexión para limpiar refs
-    device.addEventListener('gattserverdisconnected', () => {
-      serverRef.current = null;
-      characteristicRef.current = null;
-      setStatus('idle');
-    });
-
-    // Reintentar gatt.connect() hasta 3 veces (el primer intento suele fallar si quedó colgada)
-    let server;
-    let lastErr;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        server = await device.gatt.connect();
-        break;
-      } catch (e) {
-        lastErr = e;
-        // Esperar progresivo entre reintentos
-        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
-      }
-    }
-    if (!server) {
-      throw lastErr || new Error('No se pudo conectar a la impresora');
-    }
-
+    const server = await device.gatt.connect();
     serverRef.current = server;
     const char = await findWriteCharacteristic(server);
     if (!char) {
@@ -151,11 +114,6 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
     }
   };
 
-  // Limpiar conexión al desmontar
-  useEffect(() => {
-    return () => disconnect();
-  }, [disconnect]);
-
   const handlePrint = async () => {
     if (!bultos.length) {
       toast.error('No hay bultos para imprimir');
@@ -171,19 +129,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
       // Build combined payload for all bultos (single Bluetooth session)
       const payloads = bultos.map((b) => buildBultoLabelPayload(b));
       const combined = concatUint8Arrays(payloads);
-      try {
-        await writeData(combined);
-      } catch (writeErr) {
-        // Si falla la escritura por conexión perdida, reconectar y reintentar una vez
-        if (writeErr?.message?.includes('perdida') || writeErr?.message?.includes('Connection')) {
-          disconnect();
-          await connect();
-          setStatus('printing');
-          await writeData(combined);
-        } else {
-          throw writeErr;
-        }
-      }
+      await writeData(combined);
 
       setStatus('connected');
       const label = bultos.length === 1
@@ -195,8 +141,6 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
       setStatus('error');
       setError(e?.message || 'Error al imprimir');
       toast.error(`No se pudo imprimir: ${e?.message || 'error Bluetooth'}`);
-      // Limpiar refs en caso de error para forzar reconexión limpia la próxima vez
-      disconnect();
     }
   };
 
