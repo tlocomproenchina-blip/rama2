@@ -44,6 +44,9 @@ export function useOfflineScanQueue({ onConfirmed, onNotFound, onClosed }) {
   const ref = useRef([]);
   const activeRef = useRef(false);
   const cbRef = useRef({ onConfirmed, onNotFound, onClosed });
+  // Cache local de bultos activos por cliente — evita crear bultos duplicados
+  // cuando varios escaneos del mismo cliente se procesan en rápida sucesión.
+  const bultoByClientRef = useRef({});
 
   useEffect(() => {
     cbRef.current = { onConfirmed, onNotFound, onClosed };
@@ -198,23 +201,34 @@ export function useOfflineScanQueue({ onConfirmed, onNotFound, onClosed }) {
             return;
           }
           // Buscar bulto activo existente para este cliente
-          const existing = await base44.entities.Bulto.filter(
-            { client_email: pkg.client_email, status: 'activo' },
-            '-created_date',
-            1
-          );
+          // Primero revisar cache local (rápido, eva race condition entre escaneos rápidos)
+          let existingBulto = bultoByClientRef.current[pkg.client_email];
+          if (!existingBulto) {
+            const existing = await base44.entities.Bulto.filter(
+              { client_email: pkg.client_email, status: 'activo' },
+              '-created_date',
+              1
+            );
+            existingBulto = existing?.[0] || null;
+          }
           let bultoData;
-          if (existing?.[0]) {
-            const newIds = [...(existing[0].package_ids || []), pkg.id];
+          if (existingBulto) {
+            const newIds = [...(existingBulto.package_ids || []), pkg.id];
             const res = await base44.functions.invoke('updateBulto', {
-              bulto_id: existing[0].id,
+              bulto_id: existingBulto.id,
               package_ids: newIds,
             });
-            bultoData = res?.data?.bulto || existing[0];
+            bultoData = res?.data?.bulto || { ...existingBulto, package_ids: newIds };
           } else {
             const res = await base44.functions.invoke('createBulto', { package_ids: [pkg.id] });
             bultoData = res?.data?.bulto || res?.data;
           }
+          // Guardar en cache local para que el próximo escaneo del mismo cliente se agrupe
+          if (bultoData?.id && bultoData.status === 'activo') {
+            bultoByClientRef.current[pkg.client_email] = bultoData;
+          }
+          // Invalidar caché de Bulto para que el próximo escaneo encuentre el bulto recién creado
+          try { base44.invalidateEntityCache?.('Bulto'); } catch (_) {}
           // Fire-and-forget: crear/actualizar orden de despacho
           try {
             base44.functions.invoke('createDispatchOrder', {
@@ -276,6 +290,12 @@ export function useOfflineScanQueue({ onConfirmed, onNotFound, onClosed }) {
           bulto_id: item.bulto_id,
           status: 'despachado',
         });
+        // Limpiar cache local de bulto por cliente para que el próximo escaneo cree uno nuevo
+        const snapshot = item.bulto_snapshot;
+        if (snapshot?.client_email) {
+          delete bultoByClientRef.current[snapshot.client_email];
+        }
+        try { base44.invalidateEntityCache?.('Bulto'); } catch (_) {}
         updateItem(item.id, { status: 'done' });
         cbRef.current.onClosed?.(item.id);
       } catch (err) {
