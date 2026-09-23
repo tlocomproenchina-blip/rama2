@@ -3,10 +3,11 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import BultoEditModal from './BultoEditModal';
+import BluetoothPrinter from './BluetoothPrinter';
 
 const PAGE_SIZE = 50;
 
@@ -20,6 +21,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [printTarget, setPrintTarget] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -154,6 +156,9 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
+                    <Button variant="outline" size="sm" onClick={() => setPrintTarget(b)}>
+                      <Printer className="h-3.5 w-3.5" />
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => setEditTarget(b)}>
                       <Pencil className="h-3.5 w-3.5" /> Editar
                     </Button>
@@ -188,6 +193,25 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
         onClose={() => setEditTarget(null)}
         onSaved={handleEditSaved}
       />
+
+      {/* Reimpresión de etiqueta */}
+      {printTarget && (
+        <Dialog open onOpenChange={() => setPrintTarget(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Printer className="h-5 w-5" /> Reimprimir bulto {printTarget.bulto_number}/{printTarget.total_bultos}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="text-sm text-slate-600 space-y-2">
+              <p>Etiqueta: <span className="font-mono">{printTarget.label_code}</span></p>
+              <p>Cliente: {printTarget.client_snapshot?.full_name || printTarget.client_email}</p>
+              <p>{printTarget.package_trackings?.length || 0} paquete(s) incluido(s).</p>
+            </div>
+            <BluetoothPrinter bultos={[printTarget]} onPrinted={() => setPrintTarget(null)} />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Confirmación de eliminación */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>

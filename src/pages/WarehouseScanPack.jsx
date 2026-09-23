@@ -9,6 +9,8 @@ import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import OpenBultoCard from '@/components/warehouse/OpenBultoCard';
 import OpenBultosChips from '@/components/warehouse/OpenBultosChips';
+import BultoHistory from '@/components/warehouse/BultoHistory';
+import { History, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Página unificada: escanea tracking → marca recibido + crea orden de despacho
 // + agrega el paquete al bulto abierto del cliente (uno por cliente en paralelo).
@@ -22,6 +24,8 @@ export default function WarehouseScanPack({ user }) {
   const [lastScan, setLastScan] = useState(null);
   const [closingBulto, setClosingBulto] = useState(null);
   const [loadingOpen, setLoadingOpen] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const pendingOrderRef = useRef(new Map());
   const { handlePhotoCaptured, waitForPhoto } = useScannedPhotoUploader();
 
@@ -170,6 +174,7 @@ export default function WarehouseScanPack({ user }) {
       });
       setClosingBulto({ ...bulto, status: 'despachado' });
       toast.success(`Bulto ${bulto.bulto_number}/${bulto.total_bultos} cerrado`);
+      setHistoryRefreshKey((k) => k + 1);
     } catch (_) {
       toast.error('Error al cerrar el bulto');
     }
@@ -317,6 +322,28 @@ export default function WarehouseScanPack({ user }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Historial de bultos */}
+      <Card>
+        <button
+          onClick={() => setShowHistory((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 p-4 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <History className="h-5 w-5 text-blue-600" />
+            <div>
+              <p className="font-semibold text-slate-800 text-sm">Historial de bultos</p>
+              <p className="text-xs text-slate-500">Ver, reimprimir, editar o eliminar bultos registrados</p>
+            </div>
+          </div>
+          {showHistory ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
+        </button>
+        {showHistory && (
+          <CardContent className="pt-0">
+            <BultoHistory refreshKey={historyRefreshKey} />
+          </CardContent>
+        )}
+      </Card>
     </div>
   );
 }
