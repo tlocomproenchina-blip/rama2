@@ -10,6 +10,7 @@ import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import OpenBultoCard from '@/components/warehouse/OpenBultoCard';
 import OpenBultosChips from '@/components/warehouse/OpenBultosChips';
 import BultoHistory from '@/components/warehouse/BultoHistory';
+import ManualPackageAssign from '@/components/warehouse/ManualPackageAssign';
 import { History, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Página unificada: escanea tracking → marca recibido + crea orden de despacho
@@ -26,6 +27,7 @@ export default function WarehouseScanPack({ user }) {
   const [loadingOpen, setLoadingOpen] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [notFoundTracking, setNotFoundTracking] = useState(null);
   const pendingOrderRef = useRef(new Map());
   const openBultosRef = useRef([]);
   const bultoLocksRef = useRef(new Map());
@@ -159,6 +161,7 @@ export default function WarehouseScanPack({ user }) {
     const cleaned = (tracking || '').trim();
     if (!cleaned || processing) return;
     setProcessing(true);
+    setNotFoundTracking(null);
     if (action === 'lookup') setCode('');
     try {
       let photoUrl = null;
@@ -174,16 +177,54 @@ export default function WarehouseScanPack({ user }) {
       if (data?.package?.id) {
         if (action === 'lookup' && !data.already_dispatched) autoGenerateOrder(data);
         if (data.package.client_email) addPackageToBulto(data.package, data.client);
+      } else {
+        setNotFoundTracking(cleaned);
       }
     } catch (error) {
       const message = error?.response?.data?.error || error?.message || 'Error al procesar el escaneo';
-      setLastScan({ error: message, tracking: cleaned, not_found: error?.response?.status === 404 });
+      const isNotFound = error?.response?.status === 404 || error?.status === 404 || /no encontrado/i.test(message);
+      setLastScan({ error: message, tracking: cleaned, not_found: isNotFound });
+      if (isNotFound) setNotFoundTracking(cleaned);
     } finally {
       setProcessing(false);
     }
   }, [processing, autoGenerateOrder, addPackageToBulto, waitForPhoto]);
 
   const handleScan = useCallback((tracking) => runScan(tracking, 'lookup'), [runScan]);
+
+  // Crea un paquete manual para el cliente seleccionado y lo agrega al bulto.
+  // Se llama desde ManualPackageAssign cuando el tracking no fue encontrado.
+  const handleManualAssign = useCallback(async (client) => {
+    if (!notFoundTracking || !client?.email) return;
+    const tracking = notFoundTracking;
+    setNotFoundTracking(null);
+    setProcessing(true);
+    try {
+      const now = new Date().toISOString();
+      const pkg = await base44.entities.Package.create({
+        tracking_number: tracking,
+        client_email: client.email,
+        shipping_mark: client.shipping_mark || '',
+        shipping_type: 'maritimo',
+        status: 'despachado',
+        description: 'Paquete manual',
+        received_date: now,
+        dispatched_date: now,
+        received_by: user?.email || '',
+        dispatched_by: user?.email || '',
+      });
+      const scanData = { package: pkg, client, auto_received: true };
+      setLastScan(scanData);
+      autoGenerateOrder(scanData);
+      await addPackageToBulto(pkg, client);
+      toast.success(`Paquete manual asignado a ${client.full_name || client.email}`);
+    } catch (e) {
+      toast.error('Error al crear el paquete manual');
+      setNotFoundTracking(tracking);
+    } finally {
+      setProcessing(false);
+    }
+  }, [notFoundTracking, user, autoGenerateOrder, addPackageToBulto]);
 
   // Cierra el bulto: pasa a 'despachado' y se prepara para imprimir la etiqueta
   const handleCloseBulto = useCallback(async (bulto) => {
@@ -306,6 +347,14 @@ export default function WarehouseScanPack({ user }) {
             {lastScan.auto_received && <p className="text-xs text-blue-600">Marcado como recibido automáticamente</p>}
           </CardContent>
         </Card>
+      )}
+
+      {notFoundTracking && !processing && (
+        <ManualPackageAssign
+          tracking={notFoundTracking}
+          onAssigned={handleManualAssign}
+          onCancel={() => setNotFoundTracking(null)}
+        />
       )}
 
       {activeBulto ? (
