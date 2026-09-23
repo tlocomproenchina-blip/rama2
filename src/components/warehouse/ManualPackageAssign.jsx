@@ -31,14 +31,16 @@ export default function ManualPackageAssign({ tracking, onAssigned, onCancel, on
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        // Buscar SIEMPRE en la base de datos local (IndexedDB) — funciona offline
+        // Buscar local primero
         if (searchClientsLocal) {
           const local = await searchClientsLocal(query);
-          setResults(local);
-          setLoading(false);
-          return;
+          if (local.length > 0) {
+            setResults(local);
+            setLoading(false);
+            return;
+          }
         }
-        // Solo si no hay función local (no debería pasar), fallback al servidor
+        // Fallback: servidor
         const server = await base44.entities.User.filter({ role: 'user' }, '-created_date', 50);
         const filtered = (server || []).filter((c) => {
           const q = query.toLowerCase();
