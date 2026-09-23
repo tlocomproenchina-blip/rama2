@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import * as db from '@/lib/offlineDb';
 import { runSync } from '@/lib/offlineSync';
+import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
 
 const genId = (p) => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -61,8 +62,14 @@ export function useOfflineWarehouse() {
   const cacheData = useCallback(async () => {
     setCaching(true);
     try {
-      // Clientes (usuarios con role='user')
-      const clients = await base44.entities.User.filter({ role: 'user' }, '-created_date', 5000);
+      // Clientes: descargar TODA la base de datos de usuarios con role='user' (paginado)
+      const clients = await fetchAllPaginated('User', {
+        method: 'filter',
+        query: { role: 'user' },
+        sort: '-created_date',
+        batchSize: 200,
+        maxItems: 100000,
+      });
       await db.bulkPut('clients', (clients || []).map((c) => ({
         email: c.email,
         full_name: c.full_name || '',
