@@ -2,7 +2,8 @@
 import { base44 } from '@/components/api/ApiQueueManager';
 import * as db from '@/lib/offlineDb';
 
-const MAX_ATTEMPTS = 5;
+// Los errores de red se reintentan indefinidamente (persistente hasta lograr el registro).
+// Solo los errores permanentes (400, 403, validación) se marcan como error.
 
 function isNetworkError(err) {
   const status = err?.status || err?.response?.status;
@@ -84,24 +85,41 @@ async function syncManualPackage(item) {
   } catch (_) {}
 }
 
-// Sincroniza el cierre de un bulto
+// Sincroniza el cierre de un bulto: lo CREA en el servidor y lo marca despachado
 async function syncCloseBulto(item) {
   const bultoId = item.bulto_id;
-  // Si es un bulto local (ID temporal), buscar el bulto del servidor por cliente
+  const snapshot = item.bulto_snapshot || {};
+
   if (!bultoId || String(bultoId).startsWith('local_')) {
-    // El bulto del servidor ya fue creado/actualizado por syncDispatchPackage/syncManualPackage
-    // Solo necesitamos cerrarlo: buscar por client_email + status=activo
-    const serverBultos = await base44.entities.Bulto.filter(
-      { client_email: item.bulto_snapshot?.client_email, status: 'activo' },
-      '-created_date', 1
-    );
-    if (serverBultos?.[0]?.id) {
-      await base44.functions.invoke('updateBulto', {
-        bulto_id: serverBultos[0].id,
-        status: 'despachado',
-      });
+    // Bulto local: nunca se creó en el servidor. Hay que crearlo ahora.
+    const trackings = snapshot.package_trackings || [];
+    if (!trackings.length) throw new Error('Bulto sin paquetes');
+
+    // Resolver IDs de servidor por tracking number (los paquetes ya fueron sincronizados)
+    const serverPkgs = [];
+    for (const tn of trackings) {
+      const found = await base44.entities.Package.filter(
+        { tracking_number: tn }, '-created_date', 1
+      );
+      if (found?.[0]?.id) serverPkgs.push(found[0]);
     }
+    if (!serverPkgs.length) throw new Error('No se encontraron los paquetes en el servidor');
+
+    // Crear el bulto en el servidor con los package_ids reales
+    const createRes = await base44.functions.invoke('createBulto', {
+      package_ids: serverPkgs.map((p) => p.id),
+    });
+    const created = createRes?.data || createRes;
+    const newBultoId = created?.bulto?.id;
+    if (!newBultoId) throw new Error('No se pudo crear el bulto en el servidor');
+
+    // Marcar el bulto recién creado como despachado
+    await base44.functions.invoke('updateBulto', {
+      bulto_id: newBultoId,
+      status: 'despachado',
+    });
   } else {
+    // Bulto que ya existe en el servidor: solo marcar despachado
     await base44.functions.invoke('updateBulto', {
       bulto_id: bultoId,
       status: 'despachado',
@@ -154,16 +172,16 @@ export async function runSync(onProgress) {
       onProgress?.();
     } catch (err) {
       const att = (item.attempts || 0) + 1;
-      if (isNetworkError(err) && att < MAX_ATTEMPTS) {
-        // Reintentar después
+      if (isNetworkError(err)) {
+        // Error de red: reintentar indefinidamente (persistente hasta lograr el registro)
         await db.put('sync_outbox', {
           ...item,
           status: 'pending',
           attempts: att,
-          next_attempt_at: Date.now() + Math.min(30000, att * 5000),
+          next_attempt_at: Date.now() + Math.min(60000, att * 5000),
         });
       } else {
-        // Error permanente o máximo de intentos
+        // Error permanente (validación, 400, 403, etc.): marcar como error
         await db.put('sync_outbox', {
           ...item,
           status: 'error',
