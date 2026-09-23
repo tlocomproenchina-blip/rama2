@@ -27,21 +27,30 @@ export default function WarehouseScanPack({ user }) {
   const [showHistory, setShowHistory] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const pendingOrderRef = useRef(new Map());
+  const openBultosRef = useRef([]);
+  const bultoLocksRef = useRef(new Map());
   const { handlePhotoCaptured, waitForPhoto } = useScannedPhotoUploader();
+
+  // Helper: actualiza la ref y el estado sincrónicamente para evitar closures stale
+  const updateBultosState = useCallback((updater) => {
+    const next = typeof updater === 'function' ? updater(openBultosRef.current) : updater;
+    openBultosRef.current = next;
+    setOpenBultos(next);
+  }, []);
 
   // Cargar bultos abiertos (estado 'activo') al montar para reanudar trabajo interrumpido
   const loadOpenBultos = useCallback(async () => {
     setLoadingOpen(true);
     try {
       const bultos = await base44.entities.Bulto.filter({ status: 'activo' }, 'bulto_number', 500);
-      setOpenBultos(bultos || []);
+      updateBultosState(bultos || []);
       if (bultos?.length && !activeBultoId) setActiveBultoId(bultos[0].id);
     } catch (_) {
       toast.error('Error al cargar bultos abiertos');
     } finally {
       setLoadingOpen(false);
     }
-  }, [activeBultoId]);
+  }, [activeBultoId, updateBultosState]);
 
   useEffect(() => {
     if (allowed) loadOpenBultos();
@@ -91,47 +100,60 @@ export default function WarehouseScanPack({ user }) {
     }
   }, []);
 
-  // Agrega el paquete al bulto abierto del cliente; si no tiene, crea uno nuevo
+  // Agrega el paquete al bulto abierto del cliente; si no tiene, crea uno nuevo.
+  // Usa openBultosRef (siempre actualizado) + candado por cliente para serializar
+  // escaneos rápidos del mismo cliente y evitar crear bultos duplicados.
   const addPackageToBulto = useCallback(async (pkg, client) => {
     if (!pkg?.id || !pkg?.client_email) return;
-    const existing = openBultos.find((b) => b.client_email === pkg.client_email);
-    try {
-      if (existing) {
-        const newIds = [...(existing.package_ids || []), pkg.id];
-        const res = await base44.functions.invoke('updateBulto', {
-          bulto_id: existing.id,
-          package_ids: newIds,
-        });
-        const updated = res?.data?.bulto || {
-          ...existing,
-          package_ids: newIds,
-          package_trackings: [...(existing.package_trackings || []), pkg.tracking_number].filter(Boolean),
-        };
-        setOpenBultos((prev) => prev.map((b) => (b.id === existing.id ? updated : b)));
-        setActiveBultoId(existing.id);
-      } else {
-        const res = await base44.functions.invoke('createBulto', { package_ids: [pkg.id] });
-        const data = res?.data;
-        const newBulto = data?.bulto || {
-          id: data?.id,
-          label_code: data?.label_code,
-          bulto_number: data?.bulto_number,
-          total_bultos: data?.total_bultos,
-          client_email: pkg.client_email,
-          shipping_mark: pkg.shipping_mark || client?.shipping_mark || '',
-          package_ids: [pkg.id],
-          package_trackings: [pkg.tracking_number].filter(Boolean),
-          client_snapshot: data?.client_snapshot || {},
-          invoice_paid: data?.invoice_paid,
-          status: 'activo',
-        };
-        setOpenBultos((prev) => [...prev, newBulto]);
-        setActiveBultoId(newBulto.id);
+    const clientEmail = pkg.client_email;
+
+    // Candado por cliente: serializa operaciones concurrentes del mismo cliente
+    const prevLock = bultoLocksRef.current.get(clientEmail) || Promise.resolve();
+    const currentOp = prevLock.then(async () => {
+      const existing = openBultosRef.current.find((b) => b.client_email === clientEmail);
+      try {
+        if (existing) {
+          const newIds = [...(existing.package_ids || []), pkg.id];
+          const res = await base44.functions.invoke('updateBulto', {
+            bulto_id: existing.id,
+            package_ids: newIds,
+          });
+          const updated = res?.data?.bulto || {
+            ...existing,
+            package_ids: newIds,
+            package_trackings: [...(existing.package_trackings || []), pkg.tracking_number].filter(Boolean),
+          };
+          updateBultosState((prev) => prev.map((b) => (b.id === existing.id ? updated : b)));
+          setActiveBultoId(existing.id);
+        } else {
+          const res = await base44.functions.invoke('createBulto', { package_ids: [pkg.id] });
+          const data = res?.data;
+          const newBulto = data?.bulto || {
+            id: data?.id,
+            label_code: data?.label_code,
+            bulto_number: data?.bulto_number,
+            total_bultos: data?.total_bultos,
+            client_email: clientEmail,
+            shipping_mark: pkg.shipping_mark || client?.shipping_mark || '',
+            package_ids: [pkg.id],
+            package_trackings: [pkg.tracking_number].filter(Boolean),
+            client_snapshot: data?.client_snapshot || {},
+            invoice_paid: data?.invoice_paid,
+            status: 'activo',
+          };
+          updateBultosState((prev) => [...prev, newBulto]);
+          setActiveBultoId(newBulto.id);
+        }
+      } catch (_) {
+        toast.error('Error al agregar paquete al bulto');
       }
-    } catch (_) {
-      toast.error('Error al agregar paquete al bulto');
+    });
+    bultoLocksRef.current.set(clientEmail, currentOp);
+    await currentOp;
+    if (bultoLocksRef.current.get(clientEmail) === currentOp) {
+      bultoLocksRef.current.delete(clientEmail);
     }
-  }, [openBultos]);
+  }, [updateBultosState]);
 
   const runScan = useCallback(async (tracking, action) => {
     const cleaned = (tracking || '').trim();
@@ -167,7 +189,7 @@ export default function WarehouseScanPack({ user }) {
   const handleCloseBulto = useCallback(async (bulto) => {
     try {
       await base44.functions.invoke('updateBulto', { bulto_id: bulto.id, status: 'despachado' });
-      setOpenBultos((prev) => {
+      updateBultosState((prev) => {
         const remaining = prev.filter((b) => b.id !== bulto.id);
         setActiveBultoId((curr) => (curr === bulto.id ? (remaining[0]?.id || null) : curr));
         return remaining;
@@ -178,7 +200,7 @@ export default function WarehouseScanPack({ user }) {
     } catch (_) {
       toast.error('Error al cerrar el bulto');
     }
-  }, []);
+  }, [updateBultosState]);
 
   // Quita el último paquete agregado al bulto; si queda vacío, lo elimina
   const handleRemoveLast = useCallback(async (bulto) => {
@@ -188,7 +210,7 @@ export default function WarehouseScanPack({ user }) {
     try {
       if (newIds.length === 0) {
         await base44.functions.invoke('deleteBulto', { bulto_id: bulto.id });
-        setOpenBultos((prev) => {
+        updateBultosState((prev) => {
           const remaining = prev.filter((b) => b.id !== bulto.id);
           setActiveBultoId((curr) => (curr === bulto.id ? (remaining[0]?.id || null) : curr));
           return remaining;
@@ -201,13 +223,13 @@ export default function WarehouseScanPack({ user }) {
           package_ids: newIds,
           package_trackings: (bulto.package_trackings || []).slice(0, -1),
         };
-        setOpenBultos((prev) => prev.map((b) => (b.id === bulto.id ? updated : b)));
+        updateBultosState((prev) => prev.map((b) => (b.id === bulto.id ? updated : b)));
         toast.success('Último paquete quitado del bulto');
       }
     } catch (_) {
       toast.error('Error al quitar el paquete');
     }
-  }, []);
+  }, [updateBultosState]);
 
   const activeBulto = useMemo(
     () => openBultos.find((b) => b.id === activeBultoId),
