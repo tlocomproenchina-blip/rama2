@@ -2,7 +2,6 @@
   "name": "TLEC CARGO",
   "short_name": "TLEC",
   "description": "Gestión de envíos internacionales desde China a Venezuela.",
-  "id": "/",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
@@ -11,22 +10,10 @@
   "lang": "es-VE",
   "icons": [
     {
-      "src": "https://media.base44.com/images/public/695da428c9924ef9b68e8866/c8079f426_generated_image.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "https://media.base44.com/images/public/695da428c9924ef9b68e8866/c8079f426_generated_image.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "https://media.base44.com/images/public/695da428c9924ef9b68e8866/c8079f426_generated_image.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "src": "https://media.base44.com/images/public/695da428c9924ef9b68e8866/52211ee9d_f747206d-9aac-45da-b57b-eecb77f854af.jpg",
+      "sizes": "any",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
     }
   ]
 }
