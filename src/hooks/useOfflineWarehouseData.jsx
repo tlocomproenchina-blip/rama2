@@ -84,12 +84,35 @@ export function useOfflineWarehouseData() {
 
   // Descargar bultos activos a IndexedDB
   // Preserva bultos locales no sincronizados (creados en WarehouseScanPack offline)
+  // Filtra los bultos del servidor cuyo label_code ya fue cerrado localmente (closed_at)
+  // para evitar que reaparezcan como abiertos al reconectar.
+  // Deduplica por label_code para limpiar entradas repetidas.
   const downloadBultos = useCallback(async () => {
     setProgress((p) => ({ ...p, phase: 'Descargando bultos abiertos…' }));
     const bultos = await base44.entities.Bulto.filter({ status: 'activo' }, 'bulto_number', 500);
-    const withIds = (bultos || []).map((b) => ({ ...b, id: b.id || `bulto_${b.label_code}` }));
-    // Preservar bultos locales no sincronizados antes de limpiar el store
+
+    // Recopilar label_codes de bultos ya cerrados localmente (tienen closed_at)
     const localBultos = await getAll('bultos');
+    const closedLabelCodes = new Set(
+      localBultos
+        .filter((b) => b.closed_at && b.label_code)
+        .map((b) => b.label_code)
+    );
+
+    // Filtrar del servidor los que ya están cerrados localmente + deduplicar por label_code
+    const seenLabelCodes = new Set();
+    const filtered = (bultos || []).filter((b) => {
+      if (!b.label_code) return true;
+      if (closedLabelCodes.has(b.label_code)) return false;
+      if (seenLabelCodes.has(b.label_code)) return false;
+      seenLabelCodes.add(b.label_code);
+      return true;
+    });
+
+    const withIds = filtered.map((b) => ({ ...b, id: b.id || `bulto_${b.label_code}` }));
+
+    // Preservar bultos locales no sincronizados (sin closed_at) antes de limpiar el store
+    // Los bultos con closed_at se preservan también para no perder el registro de cierre
     const localOnly = localBultos.filter((b) => b.is_local || String(b.id || '').startsWith('local_'));
     await clearStore('bultos');
     await bulkPut('bultos', [...withIds, ...localOnly]);
