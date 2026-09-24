@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -14,6 +14,7 @@ import {
   Plane, 
   Ship,
   Shield,
+  Truck,
   Image as ImageIcon,
   Loader2,
   ExternalLink,
@@ -184,20 +185,26 @@ export default function MyPackages({ user }) {
     setDeleting(false);
   };
 
+  const isDisponibleDespacho = useCallback((pkg) => {
+    return !!pkg.label_code && pkg.status !== 'despachado' && pkg.status !== 'entregado';
+  }, []);
+
   const filteredPackages = useMemo(() => {
     return packages.filter(pkg => {
       const matchesSearch = pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
                            (pkg.description || '').toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || pkg.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || pkg.status === statusFilter ||
+                            (statusFilter === 'disponible_despacho' && isDisponibleDespacho(pkg));
       return matchesSearch && matchesStatus;
     });
-  }, [packages, search, statusFilter]);
+  }, [packages, search, statusFilter, isDisponibleDespacho]);
 
   const packageStats = React.useMemo(() => ({
     total: packages.length,
     preAlerta: packages.filter((pkg) => pkg.status === 'pre_alerta').length,
     recibidos: packages.filter((pkg) => pkg.status === 'recibido').length,
     entregados: packages.filter((pkg) => pkg.status === 'entregado').length,
+    disponibleDespacho: packages.filter((pkg) => !!pkg.label_code && pkg.status !== 'despachado' && pkg.status !== 'entregado').length,
   }), [packages]);
 
   if (loading) {
@@ -236,10 +243,11 @@ export default function MyPackages({ user }) {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <PortalMetricCard title="Total" value={packageStats.total} subtitle="Paquetes registrados" icon={Package} tone="blue" />
         <PortalMetricCard title="Pre-alertas" value={packageStats.preAlerta} subtitle="Pendientes de recepción" icon={Plus} tone="amber" />
         <PortalMetricCard title="Recibidos" value={packageStats.recibidos} subtitle="Disponibles para gestión" icon={Ship} tone="violet" />
+        <PortalMetricCard title="Disponibles" value={packageStats.disponibleDespacho} subtitle="Listos para despacho" icon={Truck} tone="amber" />
         <PortalMetricCard title="Entregados" value={packageStats.entregados} subtitle="Procesos completados" icon={Plane} tone="blue" />
       </div>
 
@@ -258,8 +266,9 @@ export default function MyPackages({ user }) {
             </div>
             <div>
               <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 rounded-[1.25rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur-sm">
+              <TabsList className="grid w-full grid-cols-3 md:grid-cols-8 rounded-[1.25rem] border border-white/80 bg-white/78 p-2 shadow-card backdrop-blur-sm">
                 <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="disponible_despacho">Disponible</TabsTrigger>
                 <TabsTrigger value="pre_alerta">Pre-alerta</TabsTrigger>
                 <TabsTrigger value="recibido">Recibido</TabsTrigger>
                 <TabsTrigger value="rechazado">Rechazado</TabsTrigger>
@@ -355,6 +364,12 @@ export default function MyPackages({ user }) {
                       </Button>
                     )}
                     <StatusBadge status={pkg.status} />
+                    {isDisponibleDespacho(pkg) && (
+                      <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200 text-xs whitespace-nowrap shrink-0">
+                        <Truck className="h-3 w-3 mr-1" />
+                        Disponible para despacho
+                      </Badge>
+                    )}
                     {pkg.status === 'pre_alerta' && (
                       <>
                         <Button

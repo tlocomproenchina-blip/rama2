@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -270,7 +271,53 @@ Deno.serve(async (req) => {
     } catch (_) {}
 
     const consolidation_tracking = await loadConsolidationTracking();
-      const paidInvoice = await loadPaidInvoice(consolidation_tracking, pkg.consolidation_id);
+    const paidInvoice = await loadPaidInvoice(consolidation_tracking, pkg.consolidation_id);
+
+    // Notificar al cliente: "Transportista asignado" (in-app + push vía workflow + email)
+    try {
+      const clientName = client?.full_name || (pkg.client_email ? pkg.client_email.split('@')[0] : 'Cliente');
+      const displayTracking = pkg.tracking_number || '(sin tracking)';
+      const notifTitle = '🚚 Transportista asignado';
+      const notifMessage = `Tu paquete ${displayTracking} fue despachado del almacén. Un transportista fue asignado y tu envío va en camino.`;
+
+      // 1. Notificación in-app (el push se dispara automáticamente vía workflow Broadcast Push)
+      await base44.asServiceRole.entities.Notification.create({
+        user_email: pkg.client_email,
+        title: notifTitle,
+        message: notifMessage,
+        type: 'package',
+        priority: 'normal',
+        reference_id: pkg.id,
+        entity_type: 'Package',
+        icon: 'truck'
+      });
+
+      // 2. Email (respeta kill-switch global y modo demo)
+      let cfg: any = null;
+      try {
+        const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
+        cfg = configs?.[0];
+      } catch (_) {}
+      const emailsEnabled = cfg?.emails_enabled !== false;
+      const demoMode = cfg?.demo_mode === true;
+      if (emailsEnabled && !demoMode && pkg.client_email) {
+        const emailBody =
+          `<p>Hola <strong>${clientName}</strong>,</p>` +
+          `<p>Te informamos que tu paquete <strong>${displayTracking}</strong> fue despachado de nuestro almacén.</p>` +
+          `<p>🚚 <strong>Transportista asignado</strong>: tu envío va en camino a su destino.</p>` +
+          `<p>Gracias por confiar en TLEC CARGO.</p>`;
+        try {
+          await sendBrevoEmail(base44, {
+            to: pkg.client_email,
+            subject: '🚚 Transportista asignado — tu paquete fue despachado',
+            body: emailBody,
+            from_name: 'TLEC CARGO',
+            source: 'dispatch_assigned',
+          });
+        } catch (_) {}
+      }
+    } catch (_) {}
+
     return Response.json({
       success: true,
       mode: 'dispatch',
