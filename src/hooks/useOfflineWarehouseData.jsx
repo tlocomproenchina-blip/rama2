@@ -112,8 +112,9 @@ export function useOfflineWarehouseData() {
     const withIds = filtered.map((b) => ({ ...b, id: b.id || `bulto_${b.label_code}` }));
 
     // Preservar bultos locales no sincronizados (sin closed_at) antes de limpiar el store
-    // Los bultos con closed_at se preservan también para no perder el registro de cierre
-    const localOnly = localBultos.filter((b) => b.is_local || String(b.id || '').startsWith('local_'));
+    // Los bultos con closed_at se preservan también (sean locales o del servidor) para no
+    // perder el registro de cierre y evitar que reaparezcan como abiertos en la próxima sincronización
+    const localOnly = localBultos.filter((b) => b.is_local || String(b.id || '').startsWith('local_') || b.closed_at);
     await clearStore('bultos');
     await bulkPut('bultos', [...withIds, ...localOnly]);
     setProgress((p) => ({ ...p, bultos: withIds.length + localOnly.length }));
