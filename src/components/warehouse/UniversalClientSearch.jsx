@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search, User, SearchX } from 'lucide-react';
+import { searchClientsLocal } from '@/lib/offlineDb';
 
-// Buscador universal con coincidencia parcial (shipping_mark, email, nombre, cédula).
-// Muestra un dropdown de sugerencias mientras el operador escribe (debounce 300ms).
-// Al seleccionar un cliente, llama a onSelect con {email, shipping_mark, full_name, cedula, state}.
+// Buscador universal con coincidencia parcial (shipping_mark, email, nombre, cédula, whatsapp).
+// VERSIÓN OFFLINE-FIRST: busca en IndexedDB (instantáneo, 0ms servidor).
+// Muestra un dropdown de sugerencias mientras el operador escribe (debounce 150ms).
+// Al seleccionar un cliente, llama a onSelect con {email, shipping_mark, full_name, cedula, state, ...}.
 export default function UniversalClientSearch({ onSelect, placeholder = 'Buscar por shipping mark, email, nombre o cédula…' }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -25,8 +26,8 @@ export default function UniversalClientSearch({ onSelect, placeholder = 'Buscar 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await base44.functions.invoke('searchBultoClients', { query: query.trim() });
-        const clients = res?.data?.clients || [];
+        // Búsqueda local en IndexedDB (instantánea)
+        const clients = await searchClientsLocal(query.trim());
         setResults(clients);
         setOpen(true);
         setHighlight(-1);
@@ -35,7 +36,7 @@ export default function UniversalClientSearch({ onSelect, placeholder = 'Buscar 
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 150);
     return () => debounceRef.current && clearTimeout(debounceRef.current);
   }, [query]);
 
@@ -101,7 +102,7 @@ export default function UniversalClientSearch({ onSelect, placeholder = 'Buscar 
         <div className="absolute z-[100] mt-1 w-full rounded-lg border border-border bg-card shadow-premium max-h-80 overflow-y-auto">
           {results.map((c, idx) => (
             <button
-              key={c.email}
+              key={c.email || c.id}
               type="button"
               onClick={() => pick(c)}
               onMouseEnter={() => setHighlight(idx)}

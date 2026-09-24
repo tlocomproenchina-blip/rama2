@@ -21,7 +21,6 @@ export default function BarcodeScannerModule({
   inputClassName = '',
   autoStartCamera = false,
   continuous = false,
-  onPhotoCaptured,
 }) {
   const [scanValue, setScanValue] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -132,8 +131,8 @@ export default function BarcodeScannerModule({
       let detected = await detectorRef.current.detect(video).catch(() => []);
       let code = normalizeCode(detected?.[0]?.rawValue || '');
 
-      // Tras ~1.5s sin detectar, probar rotaciones suaves cada cierto tiempo
-      if (!code && scanAttemptsRef.current > 12 && scanAttemptsRef.current % 6 === 0) {
+      // Tras ~0.7s sin detectar, probar rotaciones suaves cada cierto tiempo
+      if (!code && scanAttemptsRef.current > 6 && scanAttemptsRef.current % 4 === 0) {
         const angles = [10, -10, 20, -20];
         for (const angle of angles) {
           if (!activeRef.current) return;
@@ -146,18 +145,6 @@ export default function BarcodeScannerModule({
       }
 
       if (code) {
-        // Captura el frame completo de la cámara en el instante exacto de la detección
-        const capturePhoto = () => {
-          if (!onPhotoCaptured) return;
-          try {
-            const canvas = captureFrame(0);
-            if (canvas) {
-              const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-              if (base64) onPhotoCaptured(code, base64);
-            }
-          } catch (_) {}
-        };
-
         if (continuous) {
           const now = Date.now();
           // Limpia códigos antiguos del historial (vencidos)
@@ -172,16 +159,14 @@ export default function BarcodeScannerModule({
             recent.set(code, now);
             lastCodeRef.current = code;
             lastDetectedAtRef.current = now;
-            capturePhoto();
             handleDetected(code);
             toast.success(`Código agregado: ${code}`);
             playBeep();
             if (navigator.vibrate) navigator.vibrate(100);
-            // Pausa breve antes de seguir escaneando el siguiente código
-            await new Promise((resolve) => setTimeout(resolve, 1200));
+            // Pausa breve antes de seguir escaneando el siguiente código (800ms vs 1200ms anterior)
+            await new Promise((resolve) => setTimeout(resolve, 800));
           }
         } else {
-          capturePhoto();
           handleDetected(code);
           toast.success('Código detectado');
           playBeep();
@@ -193,11 +178,11 @@ export default function BarcodeScannerModule({
       }
     }
 
-    // Limita a ~10 detecciones/segundo. Suficiente para tracking en mano y libera CPU/GPU.
+    // Limita a ~20 detecciones/segundo. Suficiente para tracking en mano y libera CPU/GPU.
     if (activeRef.current) {
       setTimeout(() => {
         frameRef.current = requestAnimationFrame(scanFrame);
-      }, 100);
+      }, 50);
     }
   };
 
