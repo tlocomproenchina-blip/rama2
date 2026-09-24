@@ -12,6 +12,9 @@ import WarehouseLocationList from '@/components/warehouse/WarehouseLocationList'
 import WarehouseForm from '@/components/warehouse/WarehouseForm';
 import WarehouseList from '@/components/warehouse/WarehouseList';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
+import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
+import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
+import { getAll, bulkPut, clearStore } from '@/lib/offlineDb';
 
 export default function WarehouseLocations({ user }) {
   const [warehouses, setWarehouses] = useState([]);
@@ -37,10 +40,38 @@ export default function WarehouseLocations({ user }) {
   const pageSize = 24;
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseLocations');
 
+  const { pending: pendingOps, isOnline, isSyncing, enqueue: enqueueOp } = useOfflineWriteQueue({
+    queueType: 'warehouse_mgmt',
+    processor: async (item) => {
+      const fnMap = {
+        create_location: 'createWarehouseLocation',
+        update_location: 'updateWarehouseLocation',
+        delete_location: 'deleteWarehouseLocation',
+        create_warehouse: 'createWarehouse',
+        update_warehouse: 'updateWarehouse',
+        delete_warehouse: 'deleteWarehouse',
+      };
+      await base44.functions.invoke(fnMap[item.operation], item.payload);
+    },
+  });
+
   const loadLocations = async (append = false) => {
     try {
       if (append) setLoadingMore(true); else setLoading(true);
       const skip = append ? locations.length : 0;
+      // En carga inicial, servir del cache primero
+      if (!append) {
+        const [cachedWh, cachedLoc] = await Promise.all([
+          getAll('warehouses'),
+          getAll('warehouse_locations'),
+        ]);
+        if (cachedWh.length > 0) setWarehouses(cachedWh);
+        if (cachedLoc.length > 0) {
+          setLocations(cachedLoc);
+          setLoading(false);
+        }
+      }
+      if (!navigator.onLine && !append) return;
       const [warehousesData, locationsData] = await Promise.all([
         base44.entities.Warehouse.list('name', 200),
         base44.entities.WarehouseLocation.list('code', pageSize, skip)
@@ -48,6 +79,12 @@ export default function WarehouseLocations({ user }) {
       setWarehouses(warehousesData || []);
       setLocations((prev) => append ? [...prev, ...(locationsData || [])] : (locationsData || []));
       setHasMore((locationsData || []).length === pageSize);
+      if (!append) {
+        await clearStore('warehouses');
+        await bulkPut('warehouses', warehousesData || []);
+        await clearStore('warehouse_locations');
+        await bulkPut('warehouse_locations', locationsData || []);
+      }
     } catch {
       toast.error('No se pudieron cargar las ubicaciones');
     }
@@ -85,8 +122,13 @@ export default function WarehouseLocations({ user }) {
         setPendingLocationIds((prev) => ({ ...prev, [editingLocation.id]: true }));
         setFailedLocationIds((prev) => ({ ...prev, [editingLocation.id]: false }));
         try {
-          await base44.functions.invoke('updateWarehouseLocation', { location_id: editingLocation.id, ...payload });
-          toast.success('Ubicación actualizada');
+          if (navigator.onLine) {
+            await base44.functions.invoke('updateWarehouseLocation', { location_id: editingLocation.id, ...payload });
+            toast.success('Ubicación actualizada');
+          } else {
+            await enqueueOp({ operation: 'update_location', payload: { location_id: editingLocation.id, ...payload } });
+            toast.info('Ubicación actualizada offline — se sincronizará al recuperar conexión');
+          }
         } catch (error) {
           setLocations(previousLocations);
           setFailedLocationIds((prev) => ({ ...prev, [editingLocation.id]: true }));
@@ -99,9 +141,14 @@ export default function WarehouseLocations({ user }) {
         setLocations((prev) => [{ id: tempId, ...optimisticLocation }, ...prev]);
         setPendingLocationIds((prev) => ({ ...prev, [tempId]: true }));
         try {
-          await base44.functions.invoke('createWarehouseLocation', payload);
-          toast.success('Ubicación creada');
-          await loadLocations();
+          if (navigator.onLine) {
+            await base44.functions.invoke('createWarehouseLocation', payload);
+            toast.success('Ubicación creada');
+            await loadLocations();
+          } else {
+            await enqueueOp({ operation: 'create_location', payload });
+            toast.info('Ubicación creada offline — se sincronizará al recuperar conexión');
+          }
         } catch (error) {
           setLocations((prev) => prev.filter((location) => location.id !== tempId));
           toast.error(error?.response?.data?.error || 'No se pudo guardar la ubicación');
@@ -119,7 +166,11 @@ export default function WarehouseLocations({ user }) {
     try {
       setPendingDeleteLocationIds((prev) => ({ ...prev, [location.id]: true }));
       setFailedLocationIds((prev) => ({ ...prev, [location.id]: false }));
-      await base44.functions.invoke('deleteWarehouseLocation', { location_id: location.id });
+      if (navigator.onLine) {
+        await base44.functions.invoke('deleteWarehouseLocation', { location_id: location.id });
+      } else {
+        await enqueueOp({ operation: 'delete_location', payload: { location_id: location.id } });
+      }
       setLocations((prev) => prev.filter((item) => item.id !== location.id));
       toast.success('Ubicación eliminada');
     } catch (error) {
@@ -142,8 +193,13 @@ export default function WarehouseLocations({ user }) {
         setPendingWarehouseIds((prev) => ({ ...prev, [editingWarehouse.id]: true }));
         setFailedWarehouseIds((prev) => ({ ...prev, [editingWarehouse.id]: false }));
         try {
-          await base44.functions.invoke('updateWarehouse', { warehouse_id: editingWarehouse.id, ...payload });
-          toast.success('Almacén actualizado');
+          if (navigator.onLine) {
+            await base44.functions.invoke('updateWarehouse', { warehouse_id: editingWarehouse.id, ...payload });
+            toast.success('Almacén actualizado');
+          } else {
+            await enqueueOp({ operation: 'update_warehouse', payload: { warehouse_id: editingWarehouse.id, ...payload } });
+            toast.info('Almacén actualizado offline — se sincronizará al recuperar conexión');
+          }
         } catch (error) {
           setWarehouses(previousWarehouses);
           setFailedWarehouseIds((prev) => ({ ...prev, [editingWarehouse.id]: true }));
@@ -156,9 +212,14 @@ export default function WarehouseLocations({ user }) {
         setWarehouses((prev) => [{ id: tempId, ...payload }, ...prev]);
         setPendingWarehouseIds((prev) => ({ ...prev, [tempId]: true }));
         try {
-          await base44.functions.invoke('createWarehouse', payload);
-          toast.success('Almacén creado');
-          await loadLocations();
+          if (navigator.onLine) {
+            await base44.functions.invoke('createWarehouse', payload);
+            toast.success('Almacén creado');
+            await loadLocations();
+          } else {
+            await enqueueOp({ operation: 'create_warehouse', payload });
+            toast.info('Almacén creado offline — se sincronizará al recuperar conexión');
+          }
         } catch (error) {
           setWarehouses((prev) => prev.filter((warehouse) => warehouse.id !== tempId));
           toast.error(error?.response?.data?.error || 'No se pudo guardar el almacén');
@@ -176,7 +237,11 @@ export default function WarehouseLocations({ user }) {
     try {
       setPendingDeleteWarehouseIds((prev) => ({ ...prev, [warehouse.id]: true }));
       setFailedWarehouseIds((prev) => ({ ...prev, [warehouse.id]: false }));
-      await base44.functions.invoke('deleteWarehouse', { warehouse_id: warehouse.id });
+      if (navigator.onLine) {
+        await base44.functions.invoke('deleteWarehouse', { warehouse_id: warehouse.id });
+      } else {
+        await enqueueOp({ operation: 'delete_warehouse', payload: { warehouse_id: warehouse.id } });
+      }
       setWarehouses((prev) => prev.filter((item) => item.id !== warehouse.id));
       toast.success('Almacén eliminado');
     } catch (error) {
@@ -202,6 +267,7 @@ export default function WarehouseLocations({ user }) {
           <h1 className="text-3xl font-bold text-slate-800">Ubicaciones de almacén</h1>
           <p className="text-slate-500">Administra sedes, ciudades, países y espacios físicos.</p>
         </div>
+        <OfflineSyncBadge pendingCount={pendingOps.length} isOnline={isOnline} isSyncing={isSyncing} onRetry={() => {}} />
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => { setEditingWarehouse(null); setWarehouseModalOpen(true); }}>
             <Building2 className="h-4 w-4 mr-2" /> Nuevo almacén

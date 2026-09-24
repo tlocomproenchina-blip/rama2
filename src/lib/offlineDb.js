@@ -3,8 +3,11 @@
 // No usa localStorage para datos grandes (solo para flags y device_id).
 
 const DB_NAME = 'tlec_warehouse_offline';
-const DB_VERSION = 2;
-const STORES = ['clients', 'packages', 'bultos', 'bulto_number_blocks', 'sync_queue', 'dispatch_orders'];
+const DB_VERSION = 3;
+const STORES = [
+  'clients', 'packages', 'bultos', 'bulto_number_blocks', 'sync_queue', 'dispatch_orders',
+  'warehouses', 'warehouse_locations', 'consolidation_requests', 'stats_cache',
+];
 
 let dbPromise = null;
 
@@ -184,4 +187,50 @@ export async function remainingInBlock() {
   const block = await getActiveBlock();
   if (!block || block.status !== 'active') return 0;
   return Math.max(0, block.end - block.next_number + 1);
+}
+
+// --- Búsquedas locales para almacenes y ubicaciones ---
+
+// Buscar ubicaciones por texto parcial (code, name, warehouse_name, city, country, zone)
+export async function searchLocationsLocal(query, filters = {}) {
+  const all = await getAll('warehouse_locations');
+  const q = String(query || '').trim().toLowerCase();
+  let results = all;
+  if (filters.warehouse_id) {
+    results = results.filter((l) => l.warehouse_id === filters.warehouse_id);
+  }
+  if (filters.zone && filters.zone !== 'all') {
+    results = results.filter((l) => l.zone === filters.zone);
+  }
+  if (filters.is_active !== undefined) {
+    results = results.filter((l) => filters.is_active ? l.is_active !== false : l.is_active === false);
+  }
+  if (q.length > 0) {
+    results = results.filter((l) => {
+      return [l.name, l.code, l.notes, l.warehouse_name, l.warehouse_city, l.warehouse_country]
+        .some((v) => String(v || '').toLowerCase().includes(q));
+    });
+  }
+  return results;
+}
+
+// Buscar solicitudes de consolidación aprobadas locales
+export async function searchConsolidationRequestsLocal(query) {
+  const all = await getAll('consolidation_requests');
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return all;
+  return all.filter((r) => {
+    return [r.client_email, r.shipping_mark, r.notes]
+      .some((v) => String(v || '').toLowerCase().includes(q));
+  });
+}
+
+// --- Cache de stats (para WarehouseDashboard) ---
+
+export async function getStatsCache(key) {
+  return get('stats_cache', key);
+}
+
+export async function setStatsCache(key, data) {
+  return put('stats_cache', { id: key, data, cached_at: Date.now() });
 }

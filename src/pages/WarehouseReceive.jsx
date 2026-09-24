@@ -11,6 +11,10 @@ import OrphanRegisterPanel from '@/components/warehouse/OrphanRegisterPanel';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import { getTrackingCandidates } from '@/lib/trackingNormalizer';
+import { useOfflineEntityCache } from '@/hooks/useOfflineEntityCache';
+import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
+import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
+import { findPackageByTracking } from '@/lib/offlineDb';
 
 const emptyForm = {
   location_id: '',
@@ -24,10 +28,7 @@ const emptyForm = {
 export default function WarehouseReceive({ user }) {
   const [tracking, setTracking] = useState('');
   const [pkg, setPkg] = useState(null);
-  const [warehouses, setWarehouses] = useState([]);
-  const [locations, setLocations] = useState([]);
   const [form, setForm] = useState({ ...emptyForm, warehouse_id: '' });
-  const [loadingLocations, setLoadingLocations] = useState(true);
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [suggestedLocation, setSuggestedLocation] = useState(null);
@@ -36,21 +37,21 @@ export default function WarehouseReceive({ user }) {
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseReceive');
   const { handlePhotoCaptured, waitForPhoto } = useScannedPhotoUploader();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [warehousesData, locationsData] = await Promise.all([
-          base44.entities.Warehouse.filter({ is_active: true }, 'name', 100),
-          base44.entities.WarehouseLocation.filter({ is_active: true }, 'code', 200)
-        ]);
-        setWarehouses(warehousesData || []);
-        setLocations(locationsData || []);
-      } catch {
-        toast.error('No se pudieron cargar las ubicaciones');
-      }
-      setLoadingLocations(false);
-    })();
-  }, []);
+  const { data: warehouses, loading: loadingWarehouses } = useOfflineEntityCache({
+    storeName: 'warehouses',
+    fetcher: () => base44.entities.Warehouse.filter({ is_active: true }, 'name', 100),
+  });
+  const { data: locations, loading: loadingLocations } = useOfflineEntityCache({
+    storeName: 'warehouse_locations',
+    fetcher: () => base44.entities.WarehouseLocation.filter({ is_active: true }, 'code', 200),
+  });
+
+  const { pending: pendingReceives, isOnline, isSyncing, enqueue: enqueueReceive } = useOfflineWriteQueue({
+    queueType: 'receive',
+    processor: async (item) => {
+      await base44.functions.invoke('assignPackageToLocation', item.payload);
+    },
+  });
 
   const handleSearch = async (rawTracking = tracking) => {
     const nextTracking = rawTracking.trim();
@@ -58,6 +59,31 @@ export default function WarehouseReceive({ user }) {
     try {
       setSearching(true);
       setTracking(nextTracking);
+      // 1. Buscar en cache local (instantáneo, sin red)
+      const localPkg = await findPackageByTracking(nextTracking);
+      if (localPkg) {
+        setPkg(localPkg);
+        setNotFoundTracking(null);
+        setForm({
+          warehouse_id: localPkg.warehouse_id || '',
+          location_id: '',
+          actual_weight_kg: localPkg.actual_weight_kg ?? '',
+          actual_length_cm: localPkg.actual_length_cm ?? '',
+          actual_width_cm: localPkg.actual_width_cm ?? '',
+          actual_height_cm: localPkg.actual_height_cm ?? '',
+          reception_notes: localPkg.reception_notes || '',
+        });
+        setSuggestedLocation(null);
+        setSearching(false);
+        return;
+      }
+      // 2. Si no está en cache y hay conexión, buscar en el servidor
+      if (!navigator.onLine) {
+        setPkg(null);
+        setNotFoundTracking(nextTracking);
+        setSearching(false);
+        return;
+      }
       const candidates = getTrackingCandidates(nextTracking);
       let nextPkg = null;
       let resolvedFromMaster = false;
@@ -142,8 +168,14 @@ export default function WarehouseReceive({ user }) {
         assignPayload.package_image_url = photoUrl;
         assignPayload.package_image_urls = [photoUrl];
       }
-      await base44.functions.invoke('assignPackageToLocation', assignPayload);
-      toast.success('Paquete recibido y ubicado');
+      // Si hay conexión, enviar directo; si no, encolar para sync diferida
+      if (navigator.onLine) {
+        await base44.functions.invoke('assignPackageToLocation', assignPayload);
+        toast.success('Paquete recibido y ubicado');
+      } else {
+        await enqueueReceive({ payload: assignPayload });
+        toast.info('Paquete recibido offline — se sincronizará al recuperar conexión');
+      }
       setTracking('');
       setPkg(null);
       setForm({ ...emptyForm, warehouse_id: '' });
@@ -166,9 +198,12 @@ export default function WarehouseReceive({ user }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-800">Recepción de mercancía</h1>
-        <p className="text-slate-500">Busca el tracking, confirma medidas y asigna ubicación.</p>
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">Recepción de mercancía</h1>
+          <p className="text-slate-500">Busca el tracking, confirma medidas y asigna ubicación.</p>
+        </div>
+        <OfflineSyncBadge pendingCount={pendingReceives.length} isOnline={isOnline} isSyncing={isSyncing} onRetry={() => enqueueReceive} />
       </div>
 
       <Card className="shadow-sm">

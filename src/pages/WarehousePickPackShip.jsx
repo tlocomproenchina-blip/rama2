@@ -10,10 +10,13 @@ import PickingOrderList from '@/components/warehouse/PickingOrderList';
 import PickingPackagesTable from '@/components/warehouse/PickingPackagesTable';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import { getTrackingCandidatesLower } from '@/lib/trackingNormalizer';
+import { useOfflineEntityCache } from '@/hooks/useOfflineEntityCache';
+import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
+import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
+import { getAll, bulkPut, clearStore } from '@/lib/offlineDb';
 
 export default function WarehousePickPackShip({ user }) {
   const [requests, setRequests] = useState([]);
-  const [locations, setLocations] = useState([]);
   const [selectedRequestId, setSelectedRequestId] = useState('');
   const [pickingData, setPickingData] = useState(null);
   const [destinationLocationId, setDestinationLocationId] = useState('');
@@ -29,17 +32,42 @@ export default function WarehousePickPackShip({ user }) {
   const packagesPageSize = 25;
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehousePickPackShip');
 
+  const { data: locations } = useOfflineEntityCache({
+    storeName: 'warehouse_locations',
+    fetcher: () => base44.entities.WarehouseLocation.filter({ is_active: true }, 'code', 200),
+  });
+
+  const { pending: pendingOps, isOnline, isSyncing, enqueue: enqueueOp } = useOfflineWriteQueue({
+    queueType: 'pickpack',
+    processor: async (item) => {
+      if (item.operation === 'move') {
+        await base44.functions.invoke('updatePackageLocationStatus', item.payload);
+      } else if (item.operation === 'packing') {
+        await base44.functions.invoke('confirmPacking', item.payload);
+      }
+    },
+  });
+
   const loadBaseData = async (append = false) => {
     try {
       if (append) setLoadingMoreRequests(true); else setLoading(true);
       const skip = append ? requests.length : 0;
-      const [requestsData, locationsData] = await Promise.all([
-        base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-approved_date', requestsPageSize, skip),
-        base44.entities.WarehouseLocation.filter({ is_active: true }, 'code', 200)
-      ]);
+      // En carga inicial, servir del cache primero si hay
+      if (!append) {
+        const cached = await getAll('consolidation_requests');
+        if (cached.length > 0) {
+          setRequests(cached);
+          setLoading(false);
+        }
+      }
+      if (!navigator.onLine && !append) return;
+      const requestsData = await base44.entities.ConsolidationRequest.filter({ status: 'aprobada' }, '-approved_date', requestsPageSize, skip);
       setRequests((prev) => append ? [...prev, ...(requestsData || [])] : (requestsData || []));
       setHasMoreRequests((requestsData || []).length === requestsPageSize);
-      if (!append) setLocations(locationsData || []);
+      if (!append) {
+        await clearStore('consolidation_requests');
+        await bulkPut('consolidation_requests', requestsData || []);
+      }
     } catch {
       toast.error('No se pudo cargar la preparación de pedidos');
     }
@@ -109,12 +137,26 @@ export default function WarehousePickPackShip({ user }) {
           warehouse_zone: targetLocation?.zone || pkg.warehouse_zone,
         } : pkg),
       } : current);
-      await Promise.all(selectedPackages.map((pkg) => base44.functions.invoke('updatePackageLocationStatus', {
-        package_id: pkg.id,
-        target_location_id: destinationLocationId,
-        movement_note: 'Movimiento desde módulo de picking'
-      })));
-      toast.success('Paquetes movidos');
+      if (navigator.onLine) {
+        await Promise.all(selectedPackages.map((pkg) => base44.functions.invoke('updatePackageLocationStatus', {
+          package_id: pkg.id,
+          target_location_id: destinationLocationId,
+          movement_note: 'Movimiento desde módulo de picking'
+        })));
+        toast.success('Paquetes movidos');
+      } else {
+        for (const pkg of selectedPackages) {
+          await enqueueOp({
+            operation: 'move',
+            payload: {
+              package_id: pkg.id,
+              target_location_id: destinationLocationId,
+              movement_note: 'Movimiento desde módulo de picking',
+            },
+          });
+        }
+        toast.info(`${selectedPackages.length} paquete(s) movidos offline — se sincronizarán al recuperar conexión`);
+      }
       await loadPicking(selectedRequestId);
     } catch {
       setPickingData(previousPickingData);
@@ -137,11 +179,22 @@ export default function WarehousePickPackShip({ user }) {
         ...current,
         packages: current.packages.map((pkg) => ({ ...pkg, status: 'consolidado' })),
       } : current);
-      await base44.functions.invoke('confirmPacking', {
-        request_id: selectedRequestId,
-        target_location_id: destinationLocationId || undefined,
-      });
-      toast.success('Packing confirmado');
+      if (navigator.onLine) {
+        await base44.functions.invoke('confirmPacking', {
+          request_id: selectedRequestId,
+          target_location_id: destinationLocationId || undefined,
+        });
+        toast.success('Packing confirmado');
+      } else {
+        await enqueueOp({
+          operation: 'packing',
+          payload: {
+            request_id: selectedRequestId,
+            target_location_id: destinationLocationId || undefined,
+          },
+        });
+        toast.info('Packing confirmado offline — se sincronizará al recuperar conexión');
+      }
       await loadPicking(selectedRequestId);
     } catch {
       setPickingData(previousPickingData);
@@ -166,9 +219,12 @@ export default function WarehousePickPackShip({ user }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-800">Picking y packing</h1>
-        <p className="text-slate-500">Organiza la preparación física de solicitudes aprobadas.</p>
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800">Picking y packing</h1>
+          <p className="text-slate-500">Organiza la preparación física de solicitudes aprobadas.</p>
+        </div>
+        <OfflineSyncBadge pendingCount={pendingOps.length} isOnline={isOnline} isSyncing={isSyncing} onRetry={() => {}} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[360px,minmax(0,1fr)] min-w-0">
