@@ -291,19 +291,15 @@ export default function WarehouseScanPack({ user }) {
     [openBultos, activeBultoId]
   );
 
-  // --- Registrar bultos creados en lote en el estado local ---
+  // --- Registrar bultos creados en lote (ya despachados) ---
+  // Los bultos del lote se crean con status 'despachado', así que no van a
+  // openBultos. Se muestran en la zona de impresión y se reflejan en historial.
   const handleBulkCreated = useCallback((newBultos) => {
     if (!newBultos?.length) return;
-    updateBultosState((prev) => {
-      // Evitar duplicados por id
-      const existing = new Set(prev.map((b) => b.id));
-      const merged = [...prev, ...newBultos.filter((b) => !existing.has(b.id))];
-      return merged;
-    });
-    // Activar el primer bulto del lote si no hay ninguno activo
-    if (!activeBultoId) setActiveBultoId(newBultos[0].id);
+    // Mostrar el primer bulto en la zona de impresión inmediata
+    setClosingBulto(newBultos[0]);
     setHistoryRefreshKey((k) => k + 1);
-  }, [updateBultosState, activeBultoId]);
+  }, []);
 
   // --- Estados de carga ---
 
@@ -398,6 +394,7 @@ export default function WarehouseScanPack({ user }) {
         getNextNumber={getNextNumber}
         user={user}
         onCreated={handleBulkCreated}
+        enqueueClosedBulto={enqueueClosedBulto}
       />
 
       <BarcodeScannerModule

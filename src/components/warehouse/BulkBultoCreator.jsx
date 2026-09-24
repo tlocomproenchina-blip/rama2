@@ -16,7 +16,7 @@ import { bulkPut } from '@/lib/offlineDb';
 // Reutiliza el bloque de números global (getNextNumber) para asignar bulto_number únicos.
 // Crea los bultos en IndexedDB con status 'activo' para que el operador pueda escanear paquetes en ellos después.
 // Ofrece imprimir todas las etiquetas vía Bluetooth o descargar un PDF combinado.
-export default function BulkBultoCreator({ getNextNumber, user, onCreated }) {
+export default function BulkBultoCreator({ getNextNumber, user, onCreated, enqueueClosedBulto }) {
   const [open, setOpen] = useState(false);
   const [client, setClient] = useState(null);
   const [count, setCount] = useState(1);
@@ -69,6 +69,7 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated }) {
       };
 
       const now = Date.now();
+      const closedAt = new Date().toISOString();
       const newBultos = numbers.map((num, i) => ({
         id: `local_bulto_${now}_${i}_${Math.random().toString(36).slice(2, 8)}`,
         label_code: `${shippingMark}-B${num}`,
@@ -83,7 +84,8 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated }) {
         invoice_status: '',
         invoice_number: '',
         warehouse_id: '',
-        status: 'activo',
+        status: 'despachado',
+        closed_at: closedAt,
         created_by: user?.email || '',
         is_local: true,
       }));
@@ -91,14 +93,42 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated }) {
       await bulkPut('bultos', newBultos);
       setCreatedBultos(newBultos);
       onCreated?.(newBultos);
-      toast.success(`${n} bulto${n !== 1 ? 's' : ''} creado${n !== 1 ? 's' : ''} para ${client.full_name || client.email}`);
+
+      // Encolar sincronización inmediata de todos los bultos cerrados
+      if (enqueueClosedBulto) {
+        for (const b of newBultos) {
+          try {
+            await enqueueClosedBulto({
+              local_bulto_id: b.id,
+              label_code: b.label_code,
+              client_email: b.client_email,
+              shipping_mark: b.shipping_mark,
+              bulto_number: b.bulto_number,
+              total_bultos: b.total_bultos,
+              package_ids: [],
+              package_trackings: [],
+              client_snapshot: b.client_snapshot || {},
+              invoice_paid: false,
+              invoice_status: '',
+              invoice_number: '',
+              warehouse_id: '',
+              created_by: b.created_by,
+              closed_at: b.closed_at,
+            });
+          } catch (e) {
+            console.error('Error encolando bulto del lote:', e);
+          }
+        }
+      }
+
+      toast.success(`${n} bulto${n !== 1 ? 's' : ''} creado${n !== 1 ? 's' : ''} y cerrado${n !== 1 ? 's' : ''} para ${client.full_name || client.email}`);
     } catch (e) {
       console.error('Bulk bulto create error:', e);
       toast.error('Error al crear los bultos');
     } finally {
       setCreating(false);
     }
-  }, [client, count, getNextNumber, user, onCreated]);
+  }, [client, count, getNextNumber, user, onCreated, enqueueClosedBulto]);
 
   // PDF combinado: todas las etiquetas en un solo archivo multi-página
   const downloadCombinedPdf = useCallback(async () => {
@@ -184,7 +214,7 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated }) {
           <Layers className="h-5 w-5 text-blue-600" />
           <div>
             <p className="font-semibold text-slate-800 text-sm">Crear bultos en lote</p>
-            <p className="text-xs text-slate-500">Genera varios bultos vacíos para un cliente de una sola vez</p>
+            <p className="text-xs text-slate-500">Genera varios bultos cerrados para un cliente (cuando no se puede escanear)</p>
           </div>
         </div>
         {open ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
@@ -299,7 +329,7 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated }) {
               </div>
 
               <p className="text-xs text-slate-500">
-                Los bultos están activos. Al escanear paquetes de este cliente se agregarán al primer bulto disponible.
+                Los bultos ya están cerrados y encolados para sincronización. Imprime las etiquetas ahora.
               </p>
             </div>
           )}

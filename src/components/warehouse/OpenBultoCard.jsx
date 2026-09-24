@@ -43,7 +43,7 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast }) {
         )}
 
         <div className="flex flex-col gap-2">
-          <Button onClick={onClose} className="w-full bg-blue-600 hover:bg-blue-700" disabled={count === 0}>
+          <Button onClick={onClose} className="w-full bg-blue-600 hover:bg-blue-700">
             <Lock className="h-4 w-4" /> Cerrar bulto
           </Button>
           <Button variant="outline" onClick={onRemoveLast} disabled={count === 0} className="w-full">
