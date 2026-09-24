@@ -2,8 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Camera, Keyboard, Loader2, ScanLine } from 'lucide-react';
+import { Camera, Keyboard, Loader2, ScanLine, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const normalizeCode = (value = '') => String(value).replace(/\r?\n/g, '').trim();
@@ -332,38 +331,39 @@ export default function BarcodeScannerModule({
               La cámara no está disponible en este navegador, pero la lectora USB sigue funcionando.
             </p>
           )}
+
+          {/* Cámara inline — se despliega debajo de los botones dentro de la misma tarjeta */}
+          {cameraOpen && (
+            <div className="space-y-2">
+              <div className="relative overflow-hidden rounded-xl border bg-black">
+                <video ref={videoRef} autoPlay playsInline muted className="aspect-video w-full object-cover" />
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+                  <div className="h-28 w-full max-w-md rounded-2xl border-2 border-dashed border-white/80 bg-white/10" />
+                </div>
+                {cameraLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white">
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Activando cámara...
+                  </div>
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCameraOpen(false)}
+                  className="absolute right-2 top-2 h-8 gap-1 bg-black/60 text-white hover:bg-black/80"
+                >
+                  <X className="h-3.5 w-3.5" /> Cerrar cámara
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500">
+                {nativeBarcodeSupported
+                  ? 'Escaneo automático. No necesita estar perfectamente recto.'
+                  : 'Sin lector nativo en este navegador. Usa la lectora USB o escribe el código manualmente.'}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      <Dialog open={cameraOpen} onOpenChange={setCameraOpen}>
-        <DialogContent className="max-w-2xl top-[8%] translate-y-0">
-          <DialogHeader>
-            <DialogTitle>Escanear con cámara</DialogTitle>
-            <DialogDescription>
-              Enfoca el código de barras dentro del recuadro para capturarlo automáticamente.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="relative overflow-hidden rounded-xl border bg-black">
-            <video ref={videoRef} autoPlay playsInline muted className="aspect-video w-full object-cover" />
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
-              <div className="h-28 w-full max-w-md rounded-2xl border-2 border-dashed border-white/80 bg-white/10" />
-            </div>
-            {cameraLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Activando cámara...
-              </div>
-            )}
-          </div>
-          <div className="mt-2">
-            <p className="text-xs text-slate-500">
-              {nativeBarcodeSupported
-                ? 'Escaneo automático. No necesita estar perfectamente recto.'
-                : 'Sin lector nativo en este navegador. Usa la lectora USB o escribe el código manualmente.'}
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
