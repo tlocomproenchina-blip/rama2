@@ -18,7 +18,7 @@ const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 min: si la caché es más vieja
 export function useOfflineWarehouseData() {
   const [cacheReady, setCacheReady] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [progress, setProgress] = useState({ clients: 0, packages: 0, bultos: 0, phase: '' });
+  const [progress, setProgress] = useState({ clients: 0, packages: 0, bultos: 0, orders: 0, phase: '' });
   const [lastSync, setLastSync] = useState(null);
   const [error, setError] = useState(null);
   const syncingRef = useRef(false);
@@ -97,6 +97,16 @@ export function useOfflineWarehouseData() {
     return withIds.length + localOnly.length;
   }, []);
 
+  // Descargar órdenes de despacho recientes a IndexedDB
+  const downloadDispatchOrders = useCallback(async () => {
+    setProgress((p) => ({ ...p, phase: 'Descargando órdenes de despacho…' }));
+    const orders = await base44.entities.DispatchOrder.list('-created_date', 200);
+    const withIds = (orders || []).map((o) => ({ ...o, id: o.id }));
+    await clearStore('dispatch_orders');
+    await bulkPut('dispatch_orders', withIds);
+    return withIds.length;
+  }, []);
+
   // Descarga inicial completa
   const syncAll = useCallback(async () => {
     if (syncingRef.current) return;
@@ -107,18 +117,20 @@ export function useOfflineWarehouseData() {
       const clientsCount = await downloadClients();
       const packagesCount = await downloadPackages();
       const bultosCount = await downloadBultos();
+      let ordersCount = 0;
+      try { ordersCount = await downloadDispatchOrders(); } catch (_) {}
       const ts = Date.now();
       setLastSync(ts);
       try { localStorage.setItem(SYNC_FLAG_KEY, String(ts)); } catch (_) {}
       setCacheReady(true);
-      setProgress({ clients: clientsCount, packages: packagesCount, bultos: bultosCount, phase: 'Listo' });
+      setProgress({ clients: clientsCount, packages: packagesCount, bultos: bultosCount, orders: ordersCount, phase: 'Listo' });
     } catch (e) {
       setError(e?.message || 'Error al sincronizar datos');
     } finally {
       setDownloading(false);
       syncingRef.current = false;
     }
-  }, [downloadClients, downloadPackages, downloadBultos]);
+  }, [downloadClients, downloadPackages, downloadBultos, downloadDispatchOrders]);
 
   // Al montar: si hay caché y es reciente, marcar lista y refrescar en segundo plano.
   // Si no hay caché o es vieja, descargar bloqueando.

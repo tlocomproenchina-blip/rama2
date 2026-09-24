@@ -4,17 +4,21 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, History, Search, GitMerge, X, UserRound, Filter, FileText, DollarSign, Copy, Wrench } from 'lucide-react';
+import { Loader2, History, Search, GitMerge, X, UserRound, Filter, FileText, DollarSign, Copy, Wrench, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
 import { buildTrackingToReceiptMap } from '@/lib/dispatchOrderGroups';
 import DispatchOrderEditModal from '@/components/warehouse/DispatchOrderEditModal';
 import { generateDispatchOrderPdf } from '@/lib/dispatchOrderPdf';
 import StateFilter from '@/components/common/StateFilter';
+import { getAll as idbGetAll, bulkPut as idbBulkPut, clearStore as idbClearStore } from '@/lib/offlineDb';
 
 export default function WarehouseDispatchHistory({ user }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fromCache, setFromCache] = useState(false);
+  const [serverRefreshing, setServerRefreshing] = useState(false);
+  const [pendingDispatches, setPendingDispatches] = useState([]);
   const [search, setSearch] = useState('');
   const [editOrder, setEditOrder] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -192,14 +196,47 @@ export default function WarehouseDispatchHistory({ user }) {
     setInvoiceInfoMap(map);
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // Cargar órdenes desde el caché local (IndexedDB) — instantáneo, sin servidor
+  const loadFromCache = useCallback(async () => {
+    try {
+      const cached = await idbGetAll('dispatch_orders');
+      if (cached && cached.length > 0) {
+        // Ordenar por created_date descendente
+        cached.sort((a, b) => new Date(b.created_date || 0) - new Date(a.created_date || 0));
+        setOrders(cached);
+        setFromCache(true);
+        setLoading(false);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }, []);
+
+  // Cargar despachos pendientes de sincronizar desde sync_queue
+  const loadPendingDispatches = useCallback(async () => {
+    try {
+      const queue = await idbGetAll('sync_queue');
+      const pending = queue.filter((q) => q.type === 'bulto_dispatch' && (q.sync_status === 'pending' || q.sync_status === 'error'));
+      setPendingDispatches(pending);
+    } catch (_) {}
+  }, []);
+
+  // Refrescar desde el servidor en segundo plano (no bloqueante)
+  const refreshFromServer = useCallback(async () => {
+    setServerRefreshing(true);
     try {
       const rows = await base44.entities.DispatchOrder.list('-created_date', 100);
       const ordersList = rows || [];
 
-      // La lista se muestra de inmediato; todo lo demás se completa después.
+      // Guardar en caché local
+      try {
+        const withIds = ordersList.map((o) => ({ ...o, id: o.id }));
+        await idbClearStore('dispatch_orders');
+        await idbBulkPut('dispatch_orders', withIds);
+      } catch (_) {}
+
       setOrders(ordersList);
+      setFromCache(false);
       setLoading(false);
 
       // Enriquecer items con consolidation_tracking (recibo) si no lo tienen
@@ -217,7 +254,6 @@ export default function WarehouseDispatchHistory({ user }) {
         try {
           const res = await base44.functions.invoke('getDispatchReceiptsMap', { tracking_numbers: trackingsToLookup });
           const receiptMap = res?.data?.map || res?.map || {};
-          // Inyectar consolidation_tracking en los items que no lo tienen
           enrichedList = ordersList.map((o) => {
             if (!Array.isArray(o.items)) return o;
             return {
@@ -230,26 +266,49 @@ export default function WarehouseDispatchHistory({ user }) {
             };
           });
           setOrders(enrichedList);
+          // Actualizar caché con items enriquecidos
+          try {
+            const enrichedWithIds = enrichedList.map((o) => ({ ...o, id: o.id }));
+            await idbBulkPut('dispatch_orders', enrichedWithIds);
+          } catch (_) {}
         } catch (_) {}
       }
 
-      // Totales esperados por recibo e info de facturación/pago
+      // Totales esperados por recibo e info de facturación/pago (solo si hay conexión)
       enrichReceiptTotals(enrichedList);
       enrichInvoiceInfo(enrichedList);
     } catch (e) {
-      toast.error('No se pudo cargar el historial');
-      setLoading(false);
+      // Si ya tenemos datos del caché, no mostrar error; si no, mostrar error
+      if (orders.length === 0) {
+        toast.error('No se pudo cargar el historial del servidor');
+      }
+      // Si el caché tenía datos, mantenerlos (ya están en pantalla)
+      if (loading) setLoading(false);
+    } finally {
+      setServerRefreshing(false);
     }
-  }, [enrichReceiptTotals, enrichInvoiceInfo]);
+  }, [enrichReceiptTotals, enrichInvoiceInfo, orders.length, loading]);
 
-  useEffect(() => { load(); }, [load]);
+  // Al montar: leer caché al instante, luego refrescar del servidor en background
+  useEffect(() => {
+    (async () => {
+      const hasCache = await loadFromCache();
+      await loadPendingDispatches();
+      if (!hasCache) {
+        // Sin caché: cargar del servidor (bloqueante solo la primera vez)
+        setLoading(true);
+      }
+      // Siempre refrescar del servidor en background
+      refreshFromServer();
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Suscripción en tiempo real: actualiza la lista cuando cambian órdenes de despacho
   useEffect(() => {
     let timer = null;
     const scheduleReload = () => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => { load(); }, 400);
+      timer = setTimeout(() => { refreshFromServer(); }, 400);
     };
     const unsubscribe = base44.entities.DispatchOrder.subscribe((event) => {
       if (!event || !event.type) return;
@@ -269,7 +328,7 @@ export default function WarehouseDispatchHistory({ user }) {
       if (timer) clearTimeout(timer);
       if (typeof unsubscribe === 'function') unsubscribe();
     };
-  }, [load]);
+  }, [refreshFromServer]);
 
   const buildPdf = async (order, mode) => {
     const configs = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1).catch(() => []);
@@ -530,7 +589,7 @@ export default function WarehouseDispatchHistory({ user }) {
       const total = data.total_empty || 0;
       if (repaired > 0) {
         toast.success(`${repaired} orden(es) reparadas de ${total} con items vacíos`);
-        load();
+        refreshFromServer();
       } else if (total === 0) {
         toast.info('No se encontraron órdenes con items vacíos');
       } else {
@@ -567,7 +626,7 @@ export default function WarehouseDispatchHistory({ user }) {
       setSelectMode(false);
 
       // Recargar tras un breve delay para confirmar con datos frescos del servidor
-      setTimeout(() => load(), 600);
+      setTimeout(() => refreshFromServer(), 600);
     } catch (e) {
       const msg = e?.response?.data?.error || e?.message || 'No se pudo fusionar';
       toast.error(msg);
@@ -578,13 +637,51 @@ export default function WarehouseDispatchHistory({ user }) {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-          <History className="h-6 w-6 text-blue-600" /> Historial de Despachos
-        </h1>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <History className="h-6 w-6 text-blue-600" /> Historial de Despachos
+          </h1>
+          <div className="flex items-center gap-2">
+            {fromCache && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-[11px] font-medium text-amber-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+                Datos en caché
+              </span>
+            )}
+            {serverRefreshing && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-1 text-[11px] font-medium text-blue-600">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Sincronizando…
+              </span>
+            )}
+          </div>
+        </div>
         <p className="text-sm text-slate-500 mt-1">
           Consulta, modifica, cancela o elimina órdenes de despacho y descarga su PDF.
         </p>
       </div>
+
+      {pendingDispatches.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+          <p className="text-sm font-medium text-amber-700 mb-2 flex items-center gap-1.5">
+            <Clock className="h-4 w-4" />
+            {pendingDispatches.length} despacho(s) pendiente(s) de sincronizar
+          </p>
+          <div className="space-y-1.5">
+            {pendingDispatches.map((d) => (
+              <div key={d.id} className="flex items-center justify-between gap-2 rounded-lg bg-white/70 border border-amber-200/60 px-3 py-2 text-xs">
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-slate-700">{d.label_code || d.tracking || 'Despacho'}</span>
+                  {d.client_name && <span className="text-slate-500 ml-1.5">· {d.client_name}</span>}
+                </div>
+                <span className="shrink-0 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-medium">
+                  {d.sync_status === 'error' ? 'Error' : 'Pendiente'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[200px]">

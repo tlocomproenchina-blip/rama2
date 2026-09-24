@@ -3,8 +3,8 @@
 // No usa localStorage para datos grandes (solo para flags y device_id).
 
 const DB_NAME = 'tlec_warehouse_offline';
-const DB_VERSION = 1;
-const STORES = ['clients', 'packages', 'bultos', 'bulto_number_blocks', 'sync_queue'];
+const DB_VERSION = 2;
+const STORES = ['clients', 'packages', 'bultos', 'bulto_number_blocks', 'sync_queue', 'dispatch_orders'];
 
 let dbPromise = null;
 
