@@ -36,7 +36,7 @@ export default function ManualPackageAssign({ tracking, onAssigned, onCancel }) 
   };
 
   return (
-    <Card className="border-amber-300 bg-amber-50/40">
+    <Card className="border-amber-300 bg-amber-50/40 relative z-50">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-amber-800">
