@@ -1,0 +1,95 @@
+{
+  "name": "DispatchScanLog",
+  "type": "object",
+  "properties": {
+    "scanned_code": {
+      "type": "string",
+      "description": "Codigo escaneado (label_code, tracking, o bulto -B##)"
+    },
+    "scan_type": {
+      "type": "string",
+      "enum": [
+        "bulto",
+        "package",
+        "not_found"
+      ],
+      "description": "Tipo de escaneo: bulto completo, paquete individual, o no encontrado"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "dispatched",
+        "already_dispatched",
+        "found",
+        "not_found",
+        "error"
+      ],
+      "description": "Resultado del escaneo"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente si se encontro"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente si se encontro"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark del cliente"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Tracking number del paquete despachado"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "ID del paquete si aplica"
+    },
+    "bulto_label_code": {
+      "type": "string",
+      "description": "Codigo del bulto si fue despacho de bulto completo"
+    },
+    "package_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de paquetes despachados (para bultos)"
+    },
+    "scanned_by": {
+      "type": "string",
+      "description": "Email del usuario que escaneo"
+    },
+    "offline": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el escaneo fue procesado offline"
+    }
+  },
+  "required": [
+    "scanned_code",
+    "scan_type",
+    "result"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -36,6 +36,28 @@ export default function WarehouseDispatch({ user }) {
     pendingDispatches, isSyncing, isOnline, enqueueDispatch, enqueueBultoDispatch, retrySync,
   } = useOfflineDispatchQueue();
 
+  // --- Registrar cada escaneo en el historial de despacho (no bloquea el flujo) ---
+  const logScan = useCallback(async (entry) => {
+    try {
+      await base44.entities.DispatchScanLog.create({
+        scanned_code: entry.scanned_code || '',
+        scan_type: entry.scan_type || 'package',
+        result: entry.result || 'found',
+        client_email: entry.client_email || '',
+        client_name: entry.client_name || '',
+        shipping_mark: entry.shipping_mark || '',
+        tracking_number: entry.tracking_number || '',
+        package_id: entry.package_id || '',
+        bulto_label_code: entry.bulto_label_code || '',
+        package_count: entry.package_count || 0,
+        scanned_by: user?.email || '',
+        offline: entry.offline ?? false,
+      });
+    } catch (e) {
+      console.warn('No se pudo registrar el escaneo en el historial:', e);
+    }
+  }, [user]);
+
   // --- Despachar bulto completo: marcar todos los paquetes como despachado ---
   const handleBultoDispatch = useCallback(async (bulto) => {
     const packageIds = bulto.package_ids || [];
@@ -105,7 +127,18 @@ export default function WarehouseDispatch({ user }) {
     });
 
     toast.success(`Bulto ${bulto.label_code} despachado (${packageIds.length} paquetes). Notificando al cliente…`, { duration: 3000 });
-  }, [user, enqueueBultoDispatch]);
+    logScan({
+      scanned_code: bulto.label_code,
+      scan_type: 'bulto',
+      result: 'dispatched',
+      client_email: bulto.client_email || '',
+      client_name: bulto.client_snapshot?.full_name || '',
+      shipping_mark: bulto.shipping_mark || '',
+      bulto_label_code: bulto.label_code,
+      package_count: packageIds.length,
+      offline: true,
+    });
+  }, [user, enqueueBultoDispatch, logScan]);
 
   // --- Escaneo: lookup local instantáneo (IndexedDB) ---
   const handleScan = useCallback(async (tracking) => {
@@ -139,6 +172,14 @@ export default function WarehouseDispatch({ user }) {
               offline: false,
             });
             toast.success(`Bulto ${cleaned} despachado (${data.dispatched_packages || 0} paquetes)`, { duration: 3000 });
+            logScan({
+              scanned_code: cleaned,
+              scan_type: 'bulto',
+              result: data.already_dispatched ? 'already_dispatched' : 'dispatched',
+              bulto_label_code: cleaned,
+              package_count: data.dispatched_packages || 0,
+              offline: false,
+            });
             return;
           }
         } catch (_) {}
@@ -164,6 +205,7 @@ export default function WarehouseDispatch({ user }) {
         } catch (_) {}
         // Tampoco en servidor: ofrecer pre-alerta manual
         setLastResult({ error: 'Paquete no encontrado', tracking: cleaned, not_found: true });
+        logScan({ scanned_code: cleaned, scan_type: 'not_found', result: 'not_found', offline: true });
         return;
       }
 
@@ -183,13 +225,25 @@ export default function WarehouseDispatch({ user }) {
       if (alreadyDispatched) {
         toast.info('Este paquete ya está despachado', { duration: 2000 });
       }
+      logScan({
+        scanned_code: cleaned,
+        scan_type: 'package',
+        result: alreadyDispatched ? 'already_dispatched' : 'found',
+        client_email: pkg.client_email || '',
+        client_name: client?.full_name || '',
+        shipping_mark: pkg.shipping_mark || client?.shipping_mark || '',
+        tracking_number: pkg.tracking_number || '',
+        package_id: pkg.id,
+        offline: true,
+      });
     } catch (e) {
       console.error('Scan error:', e);
       toast.error('Error al procesar el escaneo');
+      logScan({ scanned_code: cleaned, scan_type: 'package', result: 'error', offline: true });
     } finally {
       setScanning(false);
     }
-  }, [findByLabelCode, findByTracking, getClientByEmail, scanning]);
+  }, [findByLabelCode, findByTracking, getClientByEmail, scanning, logScan]);
 
   // --- Aprobar salida de almacén ---
   const handleApproveExit = useCallback(async () => {
@@ -226,6 +280,17 @@ export default function WarehouseDispatch({ user }) {
       }));
 
       toast.success('Salida de almacén aprobada. Notificando al cliente…', { duration: 2500 });
+      logScan({
+        scanned_code: pkg.tracking_number || pkg.label_code || '',
+        scan_type: 'package',
+        result: 'dispatched',
+        client_email: pkg.client_email || '',
+        client_name: lastResult?.client?.full_name || '',
+        shipping_mark: pkg.shipping_mark || lastResult?.client?.shipping_mark || '',
+        tracking_number: pkg.tracking_number || '',
+        package_id: pkg.id,
+        offline: true,
+      });
       setApprovalOpen(false);
     } catch (e) {
       console.error('Approve exit error:', e);
@@ -233,7 +298,7 @@ export default function WarehouseDispatch({ user }) {
     } finally {
       setApproving(false);
     }
-  }, [lastResult, user, enqueueDispatch]);
+  }, [lastResult, user, enqueueDispatch, logScan]);
 
   // Indicador de caché
   if (!cacheReady && downloading) {

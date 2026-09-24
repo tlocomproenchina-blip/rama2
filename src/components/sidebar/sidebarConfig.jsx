@@ -34,6 +34,7 @@ import {
   Warehouse,
   Smartphone,
   BarChart2,
+  ScanLine,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -78,6 +79,7 @@ export const adminMenuItems = [
   { name: 'Empacar Bultos', page: 'WarehouseBultos', icon: Boxes },
   { name: 'Despacho Escáner', page: 'WarehouseDispatch', icon: Truck },
   { name: 'Historial de Despachos', page: 'WarehouseDispatchHistory', icon: History },
+  { name: 'Historial de Escaneos', page: 'WarehouseDispatchScanHistory', icon: ScanLine },
   { name: 'Dispositivos Bodega China', page: 'AdminDispositivosBodega', icon: Smartphone },
   { name: 'Productividad Bodega', page: 'AdminBodegaProductividad', icon: BarChart2 },
   { name: 'Auditoría de Bultos', page: 'AdminBultoAudit', icon: History },
