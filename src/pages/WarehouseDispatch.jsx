@@ -10,7 +10,7 @@ import {
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
-import RecentDispatchOrders from '@/components/warehouse/RecentDispatchOrders';
+import DispatchScanHistoryPanel from '@/components/warehouse/DispatchScanHistoryPanel';
 import DispatchApprovalModal from '@/components/warehouse/DispatchApprovalModal';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
 import { useOfflineDispatchQueue } from '@/hooks/useOfflineDispatchQueue';
@@ -458,7 +458,7 @@ export default function WarehouseDispatch({ user }) {
         </div>
       )}
 
-      <RecentDispatchOrders />
+      <DispatchScanHistoryPanel />
 
       {/* Modal de aprobación de salida de almacén */}
       <DispatchApprovalModal
