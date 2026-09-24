@@ -92,6 +92,17 @@ export function useOfflineBultoSync() {
             closed_at: item.closed_at || new Date().toISOString(),
           });
           if (res?.data?.success || res?.data?.already_exists) {
+            // Enlazar el bulto local con el servidor: guardar server_bulto_id sin tocar label_code
+            const serverBultoId = res?.data?.bulto?.id;
+            if (serverBultoId) {
+              try {
+                const localBultos = await getAll('bultos');
+                const localBulto = localBultos.find((b) => (b.local_bulto_id || b.id) === item.id);
+                if (localBulto) {
+                  await put('bultos', { ...localBulto, server_bulto_id: serverBultoId, synced: true });
+                }
+              } catch (_) {}
+            }
             // Sincronización exitosa: remover de la cola
             await del('sync_queue', item.id);
             setPendingBultos((prev) => prev.filter((p) => p.id !== item.id));
