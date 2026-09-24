@@ -132,7 +132,7 @@ export const adminMenuItems = [
 export const adminGroups = [
   { label: 'PRINCIPAL', items: ['AdminDashboard', 'AdminLogistica', 'ClientAnalytics'] },
   { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminDailySummary', 'AdminPackages', 'AdminPreAlerts', 'AdminOrphanPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments', 'AdminQuotes'] },
-  { label: 'ALMACÉN', items: ['WarehouseScanPack', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseBultos', 'WarehouseDispatch', 'WarehouseDispatchHistory', 'AdminDispositivosBodega', 'AdminBodegaProductividad', 'AdminBultoAudit'] },
+  { label: 'ALMACÉN', items: ['WarehouseScanPack', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseBultos', 'WarehouseDispatch', 'WarehouseDispatchHistory', 'WarehouseDispatchScanHistory', 'AdminDispositivosBodega', 'AdminBodegaProductividad', 'AdminBultoAudit'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminClientCredits', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviderCredits', 'AdminProviders', 'AdminCbmIngresos', 'AdminArrivalCalendar'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailHistory', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
