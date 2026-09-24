@@ -26,6 +26,8 @@ import PackagesDesktopTable from '@/components/admin/packages/PackagesDesktopTab
 import { useAdminPackagesData } from '@/hooks/useAdminPackagesData';
 import { useAdminPackagesBulk } from '@/hooks/useAdminPackagesBulk';
 import { exportPreAlerta, exportSelectedToExcel } from '@/components/admin/packages/PackagesExports';
+import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
+import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
 
 export default function AdminPackages({ user }) {
   const {
@@ -44,6 +46,17 @@ export default function AdminPackages({ user }) {
     patchPackageInList,
     removePackageFromList,
   } = useAdminPackagesData({ pageSize: 50 });
+
+  const { pending: pendingPkgOps, isOnline, isSyncing, enqueue: enqueuePkgOp } = useOfflineWriteQueue({
+    queueType: 'admin_packages',
+    processor: async (item) => {
+      if (item.operation === 'update') {
+        await base44.entities.Package.update(item.payload.id, item.payload.patch);
+      } else if (item.operation === 'delete') {
+        await base44.entities.Package.delete(item.payload.id);
+      }
+    },
+  });
 
   const bulk = useAdminPackagesBulk({
     packages,
@@ -107,9 +120,12 @@ export default function AdminPackages({ user }) {
     if (!editPackageModal) return;
     setDeletePackageProcessing(true);
     try {
-      await base44.entities.Package.delete(editPackageModal.id);
+      if (navigator.onLine) {
+        await base44.entities.Package.delete(editPackageModal.id);
+      } else {
+        await enqueuePkgOp({ operation: 'delete', payload: { id: editPackageModal.id } });
+      }
       removePackageFromList?.(editPackageModal.id);
-      loadPackages(false);
       toast.success('Paquete eliminado');
       setEditPackageModal(null);
     } catch (error) {
@@ -129,7 +145,7 @@ export default function AdminPackages({ user }) {
     try {
       const newTracking = patch.tracking_number.trim();
       const oldTracking = (editPackageModal.tracking_number || '').trim();
-      if (newTracking !== oldTracking) {
+      if (navigator.onLine && newTracking !== oldTracking) {
         const existing = await base44.entities.Package.filter({ tracking_number: newTracking }, '-created_date', 1);
         if (existing?.length > 0) {
           toast.error('Ese tracking ya está registrado en otro paquete');
@@ -137,12 +153,17 @@ export default function AdminPackages({ user }) {
           return;
         }
       }
-      await base44.entities.Package.update(editPackageModal.id, patch);
+      if (navigator.onLine) {
+        await base44.entities.Package.update(editPackageModal.id, patch);
+        toast.success('Paquete actualizado');
+      } else {
+        await enqueuePkgOp({ operation: 'update', payload: { id: editPackageModal.id, patch } });
+        toast.info('Edición encolada — se sincronizará al recuperar conexión');
+      }
       patchPackageInList(editPackageModal.id, patch);
       if (patch.is_orphan === false) {
         removePackageFromList?.(editPackageModal.id);
       }
-      toast.success('Paquete actualizado');
       setEditPackageModal(null);
     } catch (error) {
       console.error('Error editing package:', error);
@@ -260,6 +281,11 @@ export default function AdminPackages({ user }) {
   const handleStatusChange = async (pkg, newStatus) => {
     // Update optimista inmediato
     patchPackageInList(pkg.id, { status: newStatus });
+    if (!navigator.onLine) {
+      await enqueuePkgOp({ operation: 'update', payload: { id: pkg.id, patch: { status: newStatus } } });
+      toast.info('Cambio encolado — se sincronizará al recuperar conexión');
+      return;
+    }
     try {
       await base44.entities.Package.update(pkg.id, { status: newStatus });
 
@@ -411,9 +437,12 @@ export default function AdminPackages({ user }) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-2 md:px-4">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Gestión de Paquetes</h1>
-        <p className="text-slate-500">Administra todos los paquetes del sistema</p>
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Gestión de Paquetes</h1>
+          <p className="text-slate-500">Administra todos los paquetes del sistema</p>
+        </div>
+        <OfflineSyncBadge pendingCount={pendingPkgOps.length} isOnline={isOnline} isSyncing={isSyncing} onRetry={() => {}} />
       </div>
 
       <PackagesSearchBar

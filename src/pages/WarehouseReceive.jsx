@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -203,7 +203,7 @@ export default function WarehouseReceive({ user }) {
           <h1 className="text-3xl font-bold text-slate-800">Recepción de mercancía</h1>
           <p className="text-slate-500">Busca el tracking, confirma medidas y asigna ubicación.</p>
         </div>
-        <OfflineSyncBadge pendingCount={pendingReceives.length} isOnline={isOnline} isSyncing={isSyncing} onRetry={() => enqueueReceive} />
+        <OfflineSyncBadge pendingCount={pendingReceives.length} isOnline={isOnline} isSyncing={isSyncing} onRetry={() => {}} />
       </div>
 
       <Card className="shadow-sm">

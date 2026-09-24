@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
+import { getStatsCache, setStatsCache } from '@/lib/offlineDb';
 
 /**
  * Hook que encapsula la carga paginada de paquetes para el panel admin.
@@ -48,11 +49,31 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
       } else {
         setPackages(pkgs);
         setTotalFiltered(total);
+        // Guardar en IndexedDB para servir offline
+        try { await setStatsCache('admin_packages_list', { packages: pkgs, total }); } catch (_) {}
       }
       setHasMore(res?.data?.hasMore || false);
     } catch (e) {
-      console.error('Error loading packages:', e);
-      toast.error('Error al cargar paquetes');
+      // Si falla la red, intentar servir del cache de IndexedDB
+      if (!append) {
+        try {
+          const cached = await getStatsCache('admin_packages_list');
+          if (cached?.data?.packages?.length > 0) {
+            setPackages(cached.data.packages);
+            setTotalFiltered(cached.data.total || cached.data.packages.length);
+            setHasMore(false);
+            if (!navigator.onLine) {
+              toast.info('Sin conexión — mostrando paquetes en cache');
+            }
+          } else if (!navigator.onLine) {
+            toast.error('Sin conexión y sin cache disponible');
+          }
+        } catch (_) {
+          toast.error('Error al cargar paquetes');
+        }
+      } else {
+        console.error('Error loading packages:', e);
+      }
     }
     if (seq !== reqSeqRef.current) return;
     if (append) setLoadingMore(false); else setLoading(false);

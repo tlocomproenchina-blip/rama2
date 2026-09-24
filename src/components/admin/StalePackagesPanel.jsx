@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Clock, ChevronDown, ChevronUp, PackageOpen, Copy, Ticket, Mail } from 'lucide-react';
 import StaleTicketDialog from './StaleTicketDialog';
 import { toast } from 'sonner';
+import { getAll } from '@/lib/offlineDb';
 
 const STALE_DAYS = 7;
 
@@ -55,8 +56,23 @@ export default function StalePackagesPanel() {
 
   useEffect(() => {
     let cancelled = false;
+    const cutoff = Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000;
     const load = async () => {
       setLoading(true);
+      // 1. Servir del cache de IndexedDB inmediatamente
+      try {
+        const cached = await getAll('packages');
+        const cachedStale = cached
+          .filter(p => p.status === 'pre_alerta' && p.created_date && new Date(p.created_date).getTime() <= cutoff)
+          .sort((a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime());
+        if (cachedStale.length > 0) {
+          setStalePackages(cachedStale);
+          setLoading(false);
+        }
+      } catch (_) {}
+      // 2. Si no hay conexión, mantener el cache
+      if (!navigator.onLine) return;
+      // 3. Fetch desde el servidor
       let all = [];
       let skip = 0;
       while (true) {
@@ -67,7 +83,6 @@ export default function StalePackagesPanel() {
         skip += 200;
       }
       if (cancelled) return;
-      const cutoff = Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000;
       const stale = all.filter(p => p.created_date && new Date(p.created_date).getTime() <= cutoff);
       setStalePackages(stale);
       setLoading(false);

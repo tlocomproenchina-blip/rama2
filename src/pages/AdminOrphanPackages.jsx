@@ -13,6 +13,9 @@ import useClientSearch from '@/hooks/useClientSearch';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 import ImageViewerModal from '@/components/common/ImageViewerModal';
 import moment from 'moment';
+import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
+import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
+import { getAll } from '@/lib/offlineDb';
 
 const PAGE_SIZE = 50;
 
@@ -45,10 +48,35 @@ export default function AdminOrphanPackages({ user }) {
   const [budgetInput, setBudgetInput] = useState('200');
   const [savingBudget, setSavingBudget] = useState(false);
 
+  const { pending: pendingAssigns, isOnline, isSyncing, enqueue: enqueueAssign } = useOfflineWriteQueue({
+    queueType: 'orphan_assign',
+    processor: async (item) => {
+      const { data } = await base44.functions.invoke('assignOrphanPackage', item.payload);
+      if (data?.error) throw new Error(data.error);
+    },
+  });
+
   const loadOrphans = useCallback(async (reset = false) => {
     try {
       setLoading(true);
       const s = reset ? 0 : skip;
+      // En carga inicial, servir del cache de IndexedDB primero
+      if (reset) {
+        try {
+          const cached = await getAll('packages');
+          const cachedOrphans = cached
+            .filter(p => p.is_orphan === true)
+            .sort((a, b) => new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime())
+            .slice(0, PAGE_SIZE);
+          if (cachedOrphans.length > 0) {
+            setOrphans(cachedOrphans);
+            setHasMore(false);
+            setSkip(cachedOrphans.length);
+            setLoading(false);
+          }
+        } catch (_) {}
+      }
+      if (!navigator.onLine && reset) return;
       const rows = await base44.entities.Package.filter({ is_orphan: true }, '-created_date', PAGE_SIZE, s);
       setOrphans(reset ? rows : [...orphans, ...rows]);
       setHasMore(rows.length === PAGE_SIZE);
@@ -179,21 +207,33 @@ export default function AdminOrphanPackages({ user }) {
     let ok = 0; let fail = 0;
     for (const id of assignTarget.ids) {
       try {
-        const { data } = await base44.functions.invoke('assignOrphanPackage', {
-          package_id: id,
-          client_email: selectedClient.email,
-          shipping_mark: selectedClient.shipping_mark || undefined,
-          shipping_type: shippingType,
-        });
-        if (data?.error) throw new Error(data.error);
-        ok++;
+        if (navigator.onLine) {
+          const { data } = await base44.functions.invoke('assignOrphanPackage', {
+            package_id: id,
+            client_email: selectedClient.email,
+            shipping_mark: selectedClient.shipping_mark || undefined,
+            shipping_type: shippingType,
+          });
+          if (data?.error) throw new Error(data.error);
+          ok++;
+        } else {
+          await enqueueAssign({
+            payload: {
+              package_id: id,
+              client_email: selectedClient.email,
+              shipping_mark: selectedClient.shipping_mark || undefined,
+              shipping_type: shippingType,
+            },
+          });
+          ok++;
+        }
       } catch (e) { fail++; }
     }
     setOrphans((prev) => prev.filter((p) => !assignTarget.ids.includes(p.id)));
     setSelectedIds((prev) => prev.filter((id) => !assignTarget.ids.includes(id)));
     const msg = assignTarget.multi
-      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${fail > 0 ? ` · ${fail} fallaron` : ''}`
-      : `Huérfano asignado a ${selectedClient.email}`;
+      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${fail > 0 ? ` · ${fail} fallaron` : ''}${!isOnline ? ' (offline)' : ''}`
+      : `Huérfano asignado a ${selectedClient.email}${!isOnline ? ' (offline)' : ''}`;
     toast.success(msg);
     setAssignTarget(null);
     setSelectedClient(null);
@@ -337,6 +377,7 @@ export default function AdminOrphanPackages({ user }) {
         <div>
           <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2"><UserX className="h-7 w-7 text-amber-600" /> Paquetes Huérfanos</h1>
           <p className="text-slate-500">Trackings recibidos sin pre-alerta. Asignalos a un cliente o espera a que el cliente los reclame con su pre-alerta.</p>
+          <div className="mt-2"><OfflineSyncBadge pendingCount={pendingAssigns.length} isOnline={isOnline} isSyncing={isSyncing} onRetry={() => {}} /></div>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <div className="flex items-center gap-2">

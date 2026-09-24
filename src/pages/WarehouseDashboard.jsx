@@ -9,7 +9,7 @@ import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 
 export default function WarehouseDashboard({ user }) {
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseDashboard');
-  const { data: stats, loading, refresh } = useWarehouseDashboardData(allowed);
+  const { data: stats, loading, refreshing, stale, refresh } = useWarehouseDashboardData(allowed);
 
   const loadStats = async () => {
     try {
@@ -33,6 +33,12 @@ export default function WarehouseDashboard({ user }) {
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Dashboard de almacén</h1>
           <p className="text-slate-500">Vista rápida de ocupación, recepción y preparación.</p>
+          {stale && !loading && (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Datos en cache — actualizando en segundo plano
+            </div>
+          )}
           {loading && (
             <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
