@@ -273,6 +273,32 @@ Deno.serve(async (req) => {
     const consolidation_tracking = await loadConsolidationTracking();
     const paidInvoice = await loadPaidInvoice(consolidation_tracking, pkg.consolidation_id);
 
+    // Crear/actualizar orden de despacho diaria agrupada por cliente
+    // (los despachos individuales también deben aparecer en el historial)
+    try {
+      await base44.functions.invoke('createDispatchOrder', {
+        client_email: pkg.client_email,
+        client_name: client?.full_name || pkg.client_email,
+        shipping_mark: pkg.shipping_mark || client?.shipping_mark || '',
+        client_snapshot: client ? {
+          full_name: client.full_name,
+          email: client.email,
+          cedula: client.cedula,
+          whatsapp: client.whatsapp,
+          address: client.address,
+          city: client.city,
+          state: client.state,
+          shipping_mark: client.shipping_mark,
+        } : {},
+        items: [{
+          tracking_number: pkg.tracking_number || '',
+          description: pkg.description || '',
+          consolidation_tracking: consolidation_tracking || '',
+        }],
+        created_by_email: user.email,
+      });
+    } catch (_) {}
+
     // Notificar al cliente: "Transportista asignado" (in-app + push vía workflow + email)
     try {
       const clientName = client?.full_name || (pkg.client_email ? pkg.client_email.split('@')[0] : 'Cliente');

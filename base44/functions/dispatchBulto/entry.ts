@@ -25,8 +25,19 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const packageIds = Array.isArray(bulto.package_ids) ? bulto.package_ids.filter(Boolean) : [];
-    const packageTrackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
+    let packageTrackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
     const now = closed_at || new Date().toISOString();
+
+    // Si package_trackings está vacío pero hay package_ids, cargar los trackings
+    // desde los paquetes reales (fix para bultos creados en lote sin package_trackings)
+    if (!packageTrackings.length && packageIds.length) {
+      try {
+        const packages = await Promise.all(
+          packageIds.map((id) => base44.asServiceRole.entities.Package.get(id).catch(() => null))
+        );
+        packageTrackings = packages.filter(Boolean).map((p: any) => p.tracking_number).filter(Boolean);
+      } catch (_) {}
+    }
 
     // Marcar todos los paquetes como despachados
     if (packageIds.length) {
@@ -57,6 +68,9 @@ export default async function(req: Request): Promise<Response> {
     // Crear la orden de despacho
     try {
       const items = packageTrackings.map((t) => ({ tracking_number: t }));
+      const orderNotes = (!packageTrackings.length && !packageIds.length)
+        ? 'Bulto vacío despachado intencionalmente (sin paquetes)'
+        : '';
       await base44.functions.invoke('createDispatchOrder', {
         client_email: bulto.client_email,
         client_name: client?.full_name || bulto.client_email,
@@ -64,6 +78,7 @@ export default async function(req: Request): Promise<Response> {
         client_snapshot: bulto.client_snapshot || {},
         items,
         created_by_email: user.email,
+        notes: orderNotes,
       });
     } catch (_) {}
 

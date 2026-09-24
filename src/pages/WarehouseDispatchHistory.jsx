@@ -4,7 +4,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, History, Search, GitMerge, X, UserRound, Filter, FileText, DollarSign, Copy } from 'lucide-react';
+import { Loader2, History, Search, GitMerge, X, UserRound, Filter, FileText, DollarSign, Copy, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
 import { buildTrackingToReceiptMap } from '@/lib/dispatchOrderGroups';
@@ -34,6 +34,7 @@ export default function WarehouseDispatchHistory({ user }) {
   const [stateFilter, setStateFilter] = useState('all');
   const [employees, setEmployees] = useState([]);
   const [showDuplicateReceipts, setShowDuplicateReceipts] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
 
   // El filtro por creador es exclusivo del administrador general
   const canFilterByCreator = user?.role === 'admin';
@@ -518,6 +519,29 @@ export default function WarehouseDispatchHistory({ user }) {
     );
   };
 
+  const handleBackfill = async () => {
+    if (!window.confirm('¿Reparar las órdenes existentes que quedaron con 0 paquetes? Esto buscará los paquetes despachados de cada cliente y reconstruirá los items de la orden.')) return;
+    setBackfilling(true);
+    try {
+      const res = await base44.functions.invoke('backfillDispatchOrderItems', {});
+      const data = res?.data || {};
+      const repaired = data.repaired || 0;
+      const notFound = data.not_found || 0;
+      const total = data.total_empty || 0;
+      if (repaired > 0) {
+        toast.success(`${repaired} orden(es) reparadas de ${total} con items vacíos`);
+        load();
+      } else if (total === 0) {
+        toast.info('No se encontraron órdenes con items vacíos');
+      } else {
+        toast.info(`No se pudieron reparar ${total} orden(es): no se encontraron paquetes despachados para esas fechas`);
+      }
+    } catch (e) {
+      toast.error('No se pudo ejecutar la reparación');
+    }
+    setBackfilling(false);
+  };
+
   const handleMerge = async () => {
     if (!canMerge) return;
     setMerging(true);
@@ -669,6 +693,16 @@ export default function WarehouseDispatchHistory({ user }) {
         >
           <Copy className="h-4 w-4" />
           Copiar sin factura
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleBackfill}
+          disabled={backfilling}
+          className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-50"
+          title="Reparar órdenes existentes que quedaron con 0 paquetes"
+        >
+          {backfilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
+          Reparar 0 paq.
         </Button>
       </div>
 
