@@ -42,6 +42,32 @@ export default function WarehouseDispatch({ user }) {
     const packageTrackings = bulto.package_trackings || [];
     const now = new Date().toISOString();
 
+    // 0. Si el bulto es local (no sincronizado), sincronizarlo primero al servidor
+    const isLocal = bulto.is_local || String(bulto.id || '').startsWith('local_');
+    if (isLocal) {
+      try {
+        await base44.functions.invoke('syncBultoBatch', {
+          local_bulto_id: bulto.id,
+          label_code: bulto.label_code,
+          client_email: bulto.client_email || '',
+          shipping_mark: bulto.shipping_mark || '',
+          bulto_number: bulto.bulto_number,
+          total_bultos: bulto.total_bultos,
+          package_ids: packageIds,
+          package_trackings: packageTrackings,
+          client_snapshot: bulto.client_snapshot || {},
+          invoice_paid: bulto.invoice_paid || false,
+          invoice_status: bulto.invoice_status || '',
+          invoice_number: bulto.invoice_number || '',
+          warehouse_id: bulto.warehouse_id || '',
+          created_by: bulto.created_by || user?.email || '',
+          closed_at: bulto.closed_at || now,
+        });
+      } catch (e) {
+        console.error('Error sincronizando bulto local antes de despachar:', e);
+      }
+    }
+
     // 1. Marcar todos los paquetes como despachados localmente
     const localPackages = await idbGetAll('packages');
     const toUpdate = localPackages.filter((p) => packageIds.includes(p.id));

@@ -56,11 +56,12 @@ export function useOfflineWarehouseData() {
     return allClients.length;
   }, []);
 
-  // Descargar paquetes en pre_alerta, recibido, sin_cliente a IndexedDB
+  // Descargar paquetes en pre_alerta, recibido, disponible, sin_cliente a IndexedDB
+  // Preserva paquetes locales no sincronizados (creados en WarehouseScanPack offline)
   const downloadPackages = useCallback(async () => {
     setProgress((p) => ({ ...p, phase: 'Descargando paquetes…' }));
     let allPackages = [];
-    const statuses = ['pre_alerta', 'recibido', 'sin_cliente'];
+    const statuses = ['pre_alerta', 'recibido', 'disponible', 'sin_cliente'];
     for (const status of statuses) {
       let skip = 0;
       const limit = 500;
@@ -73,20 +74,27 @@ export function useOfflineWarehouseData() {
         skip += limit;
       }
     }
+    // Preservar paquetes locales no sincronizados antes de limpiar el store
+    const localPackages = await getAll('packages');
+    const localOnly = localPackages.filter((p) => p.is_local || String(p.id || '').startsWith('local_'));
     await clearStore('packages');
-    await bulkPut('packages', allPackages);
+    await bulkPut('packages', [...allPackages, ...localOnly]);
     return allPackages.length;
   }, []);
 
   // Descargar bultos activos a IndexedDB
+  // Preserva bultos locales no sincronizados (creados en WarehouseScanPack offline)
   const downloadBultos = useCallback(async () => {
     setProgress((p) => ({ ...p, phase: 'Descargando bultos abiertos…' }));
     const bultos = await base44.entities.Bulto.filter({ status: 'activo' }, 'bulto_number', 500);
     const withIds = (bultos || []).map((b) => ({ ...b, id: b.id || `bulto_${b.label_code}` }));
+    // Preservar bultos locales no sincronizados antes de limpiar el store
+    const localBultos = await getAll('bultos');
+    const localOnly = localBultos.filter((b) => b.is_local || String(b.id || '').startsWith('local_'));
     await clearStore('bultos');
-    await bulkPut('bultos', withIds);
-    setProgress((p) => ({ ...p, bultos: withIds.length }));
-    return withIds.length;
+    await bulkPut('bultos', [...withIds, ...localOnly]);
+    setProgress((p) => ({ ...p, bultos: withIds.length + localOnly.length }));
+    return withIds.length + localOnly.length;
   }, []);
 
   // Descarga inicial completa

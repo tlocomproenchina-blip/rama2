@@ -65,7 +65,7 @@ export function useOfflineBultoSync() {
     setIsSyncing(true);
     try {
       const queue = await getAll('sync_queue');
-      const pending = queue.filter((item) => item.sync_status === 'pending' || item.sync_status === 'error');
+      const pending = queue.filter((item) => (item.sync_status === 'pending' || item.sync_status === 'error') && !item.type);
       for (const item of pending) {
         // Marcar como syncing
         item.sync_status = 'syncing';
