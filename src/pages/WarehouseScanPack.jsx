@@ -14,6 +14,7 @@ import OpenBultoCard from '@/components/warehouse/OpenBultoCard';
 import OpenBultosChips from '@/components/warehouse/OpenBultosChips';
 import BultoHistory from '@/components/warehouse/BultoHistory';
 import ManualPackageAssign from '@/components/warehouse/ManualPackageAssign';
+import BulkBultoCreator from '@/components/warehouse/BulkBultoCreator';
 import OfflineScanResult from '@/components/warehouse/OfflineScanResult';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
 import { useBultoNumberBlock } from '@/hooks/useBultoNumberBlock';
@@ -290,6 +291,20 @@ export default function WarehouseScanPack({ user }) {
     [openBultos, activeBultoId]
   );
 
+  // --- Registrar bultos creados en lote en el estado local ---
+  const handleBulkCreated = useCallback((newBultos) => {
+    if (!newBultos?.length) return;
+    updateBultosState((prev) => {
+      // Evitar duplicados por id
+      const existing = new Set(prev.map((b) => b.id));
+      const merged = [...prev, ...newBultos.filter((b) => !existing.has(b.id))];
+      return merged;
+    });
+    // Activar el primer bulto del lote si no hay ninguno activo
+    if (!activeBultoId) setActiveBultoId(newBultos[0].id);
+    setHistoryRefreshKey((k) => k + 1);
+  }, [updateBultosState, activeBultoId]);
+
   // --- Estados de carga ---
 
   if (loadingAccess) {
@@ -377,6 +392,13 @@ export default function WarehouseScanPack({ user }) {
           {reservingBlock && <Loader2 className="h-3 w-3 animate-spin ml-auto" />}
         </div>
       )}
+
+      {/* Crear bultos en lote (vacíos, solo etiquetas) */}
+      <BulkBultoCreator
+        getNextNumber={getNextNumber}
+        user={user}
+        onCreated={handleBulkCreated}
+      />
 
       <BarcodeScannerModule
         title="Escaneo de despacho y empaque"
