@@ -61,7 +61,7 @@ export default function WarehouseScanPack({ user }) {
     if (!cacheReady) return;
     (async () => {
       const localBultos = await getAll('bultos');
-      const active = localBultos.filter((b) => b.status === 'activo');
+      const active = localBultos.filter((b) => b.status === 'activo' && !b.closed_at);
       updateBultosState(active);
       if (active.length && !activeBultoId) setActiveBultoId(active[0].id);
     })();
@@ -88,18 +88,17 @@ export default function WarehouseScanPack({ user }) {
 
       // Buscar cliente localmente
       const client = pkg.client_email ? await getClientByEmail(pkg.client_email) : null;
-      const alreadyDispatched = pkg.status === 'despachado';
-      const autoReceived = pkg.status === 'pre_alerta';
+      const alreadyReceived = pkg.status === 'recibido' || pkg.status === 'despachado';
+      const wasPreAlert = pkg.status === 'pre_alerta';
 
-      // Actualizar paquete localmente (marcar despachado si no lo está)
-      if (!alreadyDispatched) {
+      // Actualizar paquete localmente (marcar recibido si no lo está)
+      if (!alreadyReceived) {
         const now = new Date().toISOString();
         const updatedPkg = {
           ...pkg,
-          status: 'despachado',
-          dispatched_date: now,
-          dispatched_by: user?.email || '',
-          ...(autoReceived ? { received_date: now, received_by: user?.email || '' } : {}),
+          status: 'recibido',
+          received_date: now,
+          received_by: user?.email || '',
         };
         await put('packages', updatedPkg);
         pkg = updatedPkg;
@@ -108,8 +107,8 @@ export default function WarehouseScanPack({ user }) {
       // Agregar al bulto del cliente (local)
       await addPackageToBulto(pkg, client);
 
-      setLastScan({ pkg, client, already_dispatched: alreadyDispatched, auto_received: autoReceived });
-      toast.success(`Paquete agregado al bulto`, { duration: 1500 });
+      setLastScan({ pkg, client, already_received: alreadyReceived, auto_received: wasPreAlert });
+      toast.success(`Paquete recibido y agregado al bulto`, { duration: 1500 });
     } catch (e) {
       console.error('Scan error:', e);
       toast.error('Error al procesar el escaneo');
@@ -123,9 +122,9 @@ export default function WarehouseScanPack({ user }) {
     const clientEmail = pkg.client_email;
     const shippingMark = pkg.shipping_mark || client?.shipping_mark || '';
 
-    // Buscar bulto activo de este cliente en local
+    // Buscar bulto abierto (activo y sin cerrar) de este cliente en local
     const localBultos = await getAll('bultos');
-    let bulto = localBultos.find((b) => b.client_email === clientEmail && b.status === 'activo');
+    let bulto = localBultos.find((b) => b.client_email === clientEmail && b.status === 'activo' && !b.closed_at);
 
     if (!bulto) {
       // Crear bulto local con número reservado
@@ -186,8 +185,8 @@ export default function WarehouseScanPack({ user }) {
   // --- Cerrar bulto: imprimir etiqueta + sincronizar en segundo plano ---
   const handleCloseBulto = useCallback(async (bulto) => {
     if (!bulto) return;
-    // Marcar como despachado localmente
-    const closedBulto = { ...bulto, status: 'despachado', closed_at: new Date().toISOString() };
+    // Cerrar bulto: queda 'activo' (esperando despacho manual en WarehouseDispatch)
+    const closedBulto = { ...bulto, status: 'activo', closed_at: new Date().toISOString() };
     await put('bultos', closedBulto);
 
     // Quitar de bultos abiertos
@@ -199,7 +198,7 @@ export default function WarehouseScanPack({ user }) {
 
     // Mostrar para impresión inmediata
     setClosingBulto(closedBulto);
-    toast.success(`Bulto ${bulto.bulto_number} cerrado — imprimiendo etiqueta`);
+    toast.success(`Bulto ${bulto.bulto_number} cerrado — listo para despachar. Imprimiendo etiqueta…`);
 
     // Encolar sincronización en segundo plano
     await enqueueClosedBulto({
@@ -268,17 +267,15 @@ export default function WarehouseScanPack({ user }) {
         client_email: client.email,
         shipping_mark: client.shipping_mark || '',
         shipping_type: 'maritimo',
-        status: 'despachado',
+        status: 'recibido',
         description: 'Paquete manual (offline)',
         received_date: now,
-        dispatched_date: now,
         received_by: user?.email || '',
-        dispatched_by: user?.email || '',
         is_local: true,
       };
       await put('packages', pkg);
       await addPackageToBulto(pkg, client);
-      setLastScan({ pkg, client, already_dispatched: false, auto_received: true });
+      setLastScan({ pkg, client, already_received: false, auto_received: true });
       toast.success(`Paquete manual asignado a ${client.full_name || client.email}`);
     } catch (e) {
       toast.error('Error al crear el paquete manual');
@@ -358,7 +355,7 @@ export default function WarehouseScanPack({ user }) {
           <Boxes className="h-6 w-6 text-blue-600" /> Escanear y Armar Bultos
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Escanea el tracking: se agrega al bulto del cliente al instante (offline). Sincroniza al cerrar el bulto.
+          Escanea el tracking: el paquete se marca como recibido y se agrega al bulto del cliente (offline). Al cerrar el bulto, queda listo para despachar en la pantalla de Despacho.
         </p>
       </div>
 
@@ -398,8 +395,8 @@ export default function WarehouseScanPack({ user }) {
       />
 
       <BarcodeScannerModule
-        title="Escaneo de despacho y empaque"
-        description="Usa la cámara, una lectora USB o escribe el tracking. El paquete se agrega al bulto al instante."
+        title="Recepción y empaque de bultos"
+        description="Usa la cámara, una lectora USB o escribe el tracking. El paquete se marca como recibido y se agrega al bulto al instante."
         placeholder="Escanea o escribe el tracking"
         actionLabel="Agregar"
         value={code}

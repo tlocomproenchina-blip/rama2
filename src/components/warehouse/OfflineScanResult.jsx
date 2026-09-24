@@ -7,19 +7,19 @@ import { CheckCircle2, AlertCircle, Package as PackageIcon, User, MapPin, FileTe
 export default function OfflineScanResult({ scanResult, client }) {
   if (!scanResult) return null;
 
-  const { pkg, already_dispatched, auto_received } = scanResult;
+  const { pkg, already_received, auto_received } = scanResult;
   const clientData = client || pkg?.client_snapshot || {};
   const shippingMark = pkg?.shipping_mark || clientData?.shipping_mark || '';
 
   return (
-    <Card className={`border-2 ${already_dispatched ? 'border-blue-200 bg-blue-50/40' : 'border-green-200 bg-green-50/40'}`}>
+    <Card className={`border-2 ${already_received ? 'border-blue-200 bg-blue-50/40' : 'border-green-200 bg-green-50/40'}`}>
       <CardContent className="p-4 space-y-3">
         {/* Header de estado */}
         <div className="flex items-center gap-2">
-          {already_dispatched ? (
+          {already_received ? (
             <>
               <AlertCircle className="h-5 w-5 text-blue-600 shrink-0" />
-              <p className="font-semibold text-sm text-blue-700">Paquete ya despachado</p>
+              <p className="font-semibold text-sm text-blue-700">Paquete ya recibido</p>
             </>
           ) : (
             <>

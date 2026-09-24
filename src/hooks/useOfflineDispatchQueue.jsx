@@ -61,6 +61,26 @@ export function useOfflineDispatchQueue() {
     return queueItem;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Encolar el despacho de un bulto completo
+  const enqueueBultoDispatch = useCallback(async (bultoData) => {
+    const queueItem = {
+      id: bultoData.local_id || `bulto_dispatch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      type: 'bulto_dispatch',
+      label_code: bultoData.label_code,
+      bulto_id: bultoData.bulto_id || null,
+      client_email: bultoData.client_email || '',
+      client_name: bultoData.client_name || '',
+      shipping_mark: bultoData.shipping_mark || '',
+      package_count: bultoData.package_count || 0,
+      sync_status: 'pending',
+      created_at: Date.now(),
+    };
+    await put('sync_queue', queueItem);
+    setPendingDispatches((prev) => [...prev, queueItem]);
+    processQueue();
+    return queueItem;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Procesar la cola de despachos pendientes
   const processQueue = useCallback(async () => {
     if (processingRef.current) return;
@@ -69,34 +89,43 @@ export function useOfflineDispatchQueue() {
     setIsSyncing(true);
     try {
       const queue = await getAll('sync_queue');
-      const pending = queue.filter((item) => item.type === 'dispatch' && (item.sync_status === 'pending' || item.sync_status === 'error'));
-      for (const item of pending) {
-        item.sync_status = 'syncing';
-        await put('sync_queue', item);
-        setPendingDispatches((prev) =>
-          prev.map((p) => (p.id === item.id ? { ...p, sync_status: 'syncing' } : p))
-        );
-        try {
-          const payload = { tracking_number: item.tracking, action: 'dispatch' };
-          if (item.photo_urls?.length) {
-            payload.package_image_url = item.photo_urls[0];
-            payload.package_image_urls = item.photo_urls;
-          }
-          const res = await base44.functions.invoke('scanDispatchPackage', payload);
-          const data = res?.data || res;
-          if (data?.package?.id || data?.success) {
-            // Sincronización exitosa: remover de la cola
-            await del('sync_queue', item.id);
-            setPendingDispatches((prev) => prev.filter((p) => p.id !== item.id));
-          } else {
-            item.sync_status = 'error';
-            item.error_message = data?.error || 'Error desconocido';
-            await put('sync_queue', item);
-            setPendingDispatches((prev) =>
-              prev.map((p) => (p.id === item.id ? { ...p, sync_status: 'error', error_message: item.error_message } : p))
-            );
-          }
-        } catch (e) {
+      const pending = queue.filter((item) => (item.type === 'dispatch' || item.type === 'bulto_dispatch') && (item.sync_status === 'pending' || item.sync_status === 'error'));
+        for (const item of pending) {
+          item.sync_status = 'syncing';
+          await put('sync_queue', item);
+          setPendingDispatches((prev) =>
+            prev.map((p) => (p.id === item.id ? { ...p, sync_status: 'syncing' } : p))
+          );
+          try {
+            let res;
+            if (item.type === 'bulto_dispatch') {
+              // Despacho de bulto completo
+              res = await base44.functions.invoke('dispatchBulto', {
+                label_code: item.label_code,
+              });
+            } else {
+              // Despacho de paquete individual
+              const payload = { tracking_number: item.tracking, action: 'dispatch' };
+              if (item.photo_urls?.length) {
+                payload.package_image_url = item.photo_urls[0];
+                payload.package_image_urls = item.photo_urls;
+              }
+              res = await base44.functions.invoke('scanDispatchPackage', payload);
+            }
+            const data = res?.data || res;
+            if (data?.package?.id || data?.success || data?.bulto) {
+              // Sincronización exitosa: remover de la cola
+              await del('sync_queue', item.id);
+              setPendingDispatches((prev) => prev.filter((p) => p.id !== item.id));
+            } else {
+              item.sync_status = 'error';
+              item.error_message = data?.error || 'Error desconocido';
+              await put('sync_queue', item);
+              setPendingDispatches((prev) =>
+                prev.map((p) => (p.id === item.id ? { ...p, sync_status: 'error', error_message: item.error_message } : p))
+              );
+            }
+          } catch (e) {
           item.sync_status = 'error';
           item.error_message = e?.message || 'Error de red';
           await put('sync_queue', item);
@@ -122,6 +151,7 @@ export function useOfflineDispatchQueue() {
     isSyncing,
     isOnline,
     enqueueDispatch,
+    enqueueBultoDispatch,
     retrySync,
   };
 }

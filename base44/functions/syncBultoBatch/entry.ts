@@ -52,6 +52,10 @@ export default async function(req: Request): Promise<Response> {
     const validPackageIds = Array.isArray(package_ids) ? package_ids.filter(Boolean) : [];
     const validTrackings = Array.isArray(package_trackings) ? package_trackings.filter(Boolean) : [];
 
+    // Bultos con paquetes: status 'activo' (esperando despacho manual en WarehouseDispatch).
+    // Bultos vacíos (bulk/etiquetas): status 'despachado' (cajas pre-armadas sin contenido).
+    const bultoStatus = validPackageIds.length > 0 ? 'activo' : 'despachado';
+
     // Crear el bulto en el servidor
     const newBulto = await base44.asServiceRole.entities.Bulto.create({
       label_code,
@@ -66,52 +70,24 @@ export default async function(req: Request): Promise<Response> {
       invoice_status: invoice_status || '',
       invoice_number: invoice_number || '',
       warehouse_id: warehouse_id || '',
-      status: 'despachado',
+      status: bultoStatus,
       created_by: created_by || user.email || '',
     });
 
-    // Marcar los paquetes como despachados
-    const now = closed_at || new Date().toISOString();
+    // Los paquetes se marcan como 'recibido' (no 'despachado').
+    // El paso a 'despachado' se hace manualmente en WarehouseDispatch.
     if (validPackageIds.length) {
-      try {
-        await base44.asServiceRole.entities.Bulto.bulkUpdate(
-          validPackageIds.map((id) => ({
-            id,
-            status: 'despachado',
-            dispatched_date: now,
-            dispatched_by: created_by || user.email || '',
-          }))
-        );
-      } catch (_) {}
-      // Actualizar los Package records a despachado
       try {
         await base44.asServiceRole.entities.Package.bulkUpdate(
           validPackageIds.map((id) => ({
             id,
-            status: 'despachado',
-            dispatched_date: now,
-            dispatched_by: created_by || user.email || '',
+            status: 'recibido',
+            received_date: closed_at || new Date().toISOString(),
+            received_by: created_by || user.email || '',
           }))
         );
       } catch (_) {}
     }
-
-    // Crear la orden de despacho (fire-and-forget, no bloquea la respuesta)
-    try {
-      const dispatchData = {
-        bulto_id: newBulto.id,
-        bulto_label_code: label_code,
-        client_email,
-        shipping_mark: shipping_mark || '',
-        package_ids: validPackageIds,
-        package_trackings: validTrackings,
-        bulto_number: bulto_number || 1,
-        total_bultos: total_bultos || bulto_number || 1,
-        warehouse_id: warehouse_id || '',
-        created_by: created_by || user.email || '',
-      };
-      await base44.functions.invoke('createDispatchOrder', dispatchData);
-    } catch (_) {}
 
     return Response.json({
       success: true,

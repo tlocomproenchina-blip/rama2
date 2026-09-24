@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Loader2, ScanLine, Truck, DoorOpen, User, Package as PackageIcon,
+  Loader2, ScanLine, Truck, DoorOpen, User, Package as PackageIcon, Boxes,
   CheckCircle2, AlertTriangle, CloudOff, Cloud, RefreshCw, Clock, WifiOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,7 +14,7 @@ import RecentDispatchOrders from '@/components/warehouse/RecentDispatchOrders';
 import DispatchApprovalModal from '@/components/warehouse/DispatchApprovalModal';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
 import { useOfflineDispatchQueue } from '@/hooks/useOfflineDispatchQueue';
-import { put as idbPut } from '@/lib/offlineDb';
+import { put as idbPut, getAll as idbGetAll, bulkPut as idbBulkPut } from '@/lib/offlineDb';
 
 // Página offline-first: escanea tracking → lookup local instantáneo (IndexedDB)
 // → muestra datos del cliente y paquete → botón "Aprobar salida de almacén"
@@ -33,8 +33,53 @@ export default function WarehouseDispatch({ user }) {
   } = useOfflineWarehouseData();
 
   const {
-    pendingDispatches, isSyncing, isOnline, enqueueDispatch, retrySync,
+    pendingDispatches, isSyncing, isOnline, enqueueDispatch, enqueueBultoDispatch, retrySync,
   } = useOfflineDispatchQueue();
+
+  // --- Despachar bulto completo: marcar todos los paquetes como despachado ---
+  const handleBultoDispatch = useCallback(async (bulto) => {
+    const packageIds = bulto.package_ids || [];
+    const packageTrackings = bulto.package_trackings || [];
+    const now = new Date().toISOString();
+
+    // 1. Marcar todos los paquetes como despachados localmente
+    const localPackages = await idbGetAll('packages');
+    const toUpdate = localPackages.filter((p) => packageIds.includes(p.id));
+    const updatedPackages = toUpdate.map((p) => ({
+      ...p,
+      status: 'despachado',
+      dispatched_date: now,
+      dispatched_by: user?.email || '',
+    }));
+    if (updatedPackages.length) await idbBulkPut('packages', updatedPackages);
+
+    // 2. Actualizar el bulto a despachado localmente
+    const updatedBulto = { ...bulto, status: 'despachado' };
+    await idbPut('bultos', updatedBulto);
+
+    // 3. Encolar el despacho del bulto para sincronización
+    await enqueueBultoDispatch({
+      label_code: bulto.label_code,
+      bulto_id: bulto.id,
+      client_email: bulto.client_email || '',
+      client_name: bulto.client_snapshot?.full_name || '',
+      shipping_mark: bulto.shipping_mark || '',
+      package_count: packageIds.length,
+    });
+
+    // 4. Mostrar resultado
+    setLastResult({
+      bulto: updatedBulto,
+      package_count: packageIds.length,
+      package_trackings: packageTrackings,
+      client: bulto.client_snapshot || null,
+      already_dispatched: false,
+      is_bulto: true,
+      offline: true,
+    });
+
+    toast.success(`Bulto ${bulto.label_code} despachado (${packageIds.length} paquetes). Notificando al cliente…`, { duration: 3000 });
+  }, [user, enqueueBultoDispatch]);
 
   // --- Escaneo: lookup local instantáneo (IndexedDB) ---
   const handleScan = useCallback(async (tracking) => {
@@ -43,6 +88,36 @@ export default function WarehouseDispatch({ user }) {
     setScanning(true);
     setCode('');
     try {
+      // 0) Buscar si es un bulto por label_code (código -B##)
+      const localBultos = await idbGetAll('bultos');
+      const bulto = localBultos?.find((b) => b.label_code === cleaned);
+      if (bulto && (bulto.package_ids || []).length > 0) {
+        // Es un bulto local con paquetes: despachar todos
+        await handleBultoDispatch(bulto);
+        return;
+      }
+
+      // 0b) Si no está local pero parece un bulto (contiene -B), intentar en el servidor
+      if (/-B\d+$/i.test(cleaned)) {
+        try {
+          const res = await base44.functions.invoke('dispatchBulto', { label_code: cleaned });
+          const data = res?.data || res;
+          if (data?.success && data?.bulto) {
+            setLastResult({
+              bulto: data.bulto,
+              package_count: data.dispatched_packages || 0,
+              package_trackings: [],
+              client: null,
+              already_dispatched: data.already_dispatched,
+              is_bulto: true,
+              offline: false,
+            });
+            toast.success(`Bulto ${cleaned} despachado (${data.dispatched_packages || 0} paquetes)`, { duration: 3000 });
+            return;
+          }
+        } catch (_) {}
+      }
+
       // 1) Buscar por label_code (código de etiqueta TLEC)
       let pkg = await findByLabelCode(cleaned);
       // 2) Buscar por tracking_number con sub-tracking
@@ -165,8 +240,8 @@ export default function WarehouseDispatch({ user }) {
           <Truck className="h-6 w-6 text-blue-600" /> Despacho por Escaneo
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Escanea el tracking o etiqueta del paquete: verás de qué cliente es.
-          Aproba la salida de almacén y el cliente recibirá la notificación de transportista asignado.
+          Escanea el código del bulto (termina en -B##) para despachar todos sus paquetes a la vez,
+          o escanea un tracking individual para despachar un solo paquete. El cliente recibe la notificación de transportista asignado.
         </p>
       </div>
 
@@ -234,8 +309,8 @@ export default function WarehouseDispatch({ user }) {
 
       <BarcodeScannerModule
         title="Escaneo de despacho"
-        description="Usa la cámara, una lectora USB o escribe el tracking. La búsqueda es local (offline) para máxima velocidad."
-        placeholder="Escanea o escribe el tracking / etiqueta"
+        description="Escanea el código del bulto (-B##) para despachar todo, o el tracking/etiqueta de un paquete individual."
+        placeholder="Escanea bulto (-B##) o tracking individual"
         actionLabel="Buscar"
         value={code}
         onValueChange={setCode}
@@ -255,10 +330,14 @@ export default function WarehouseDispatch({ user }) {
 
       {/* Resultado del escaneo */}
       {lastResult && !lastResult.error && (
-        <ScanResultCard
-          result={lastResult}
-          onApproveExit={() => setApprovalOpen(true)}
-        />
+        lastResult.is_bulto ? (
+          <BultoDispatchResultCard result={lastResult} />
+        ) : (
+          <ScanResultCard
+            result={lastResult}
+            onApproveExit={() => setApprovalOpen(true)}
+          />
+        )
       )}
 
       {lastResult?.error && (
@@ -300,6 +379,66 @@ export default function WarehouseDispatch({ user }) {
         processing={approving}
       />
     </div>
+  );
+}
+
+// Tarjeta de resultado del despacho de bulto completo
+function BultoDispatchResultCard({ result }) {
+  if (!result?.bulto) return null;
+  const bulto = result.bulto;
+  const cs = bulto.client_snapshot || {};
+  const clientName = cs.full_name || bulto.client_email || 'Cliente';
+  const mark = bulto.shipping_mark || cs.shipping_mark;
+  const trackings = result.package_trackings || [];
+
+  return (
+    <Card className="border-emerald-300 bg-emerald-50">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Truck className="h-8 w-8 text-emerald-600 shrink-0" />
+            <div>
+              <p className="text-lg font-bold text-slate-800">{clientName}</p>
+              {mark && <p className="font-mono text-sm font-semibold text-blue-700">Mark: {mark}</p>}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <Badge className="bg-emerald-600 text-white">
+              <CheckCircle2 className="h-3 w-3 mr-1" /> Bulto despachado
+            </Badge>
+            {result.offline && (
+              <Badge variant="outline" className="border-slate-300 text-slate-600 bg-white/70">
+                Procesado offline
+              </Badge>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-slate-700">
+          <Boxes className="h-4 w-4 shrink-0" />
+          <span className="font-mono font-semibold break-all">{bulto.label_code}</span>
+          <span className="text-slate-400">·</span>
+          <span>{result.package_count} paquete{result.package_count !== 1 ? 's' : ''}</span>
+        </div>
+        {trackings.length > 0 && (
+          <div className="rounded-lg border border-emerald-200 bg-white/70 p-2 max-h-28 overflow-y-auto">
+            <ul className="space-y-1">
+              {trackings.map((t, i) => (
+                <li key={`${t}-${i}`} className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-400 font-mono w-5 text-right">{i + 1}.</span>
+                  <span className="font-mono text-slate-700 break-all">{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="flex items-center gap-2 rounded-lg bg-emerald-100 border border-emerald-300 px-3 py-2">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+          <p className="text-sm text-emerald-800">
+            Todos los paquetes del bulto fueron despachados. El cliente recibirá la notificación de transportista asignado.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
