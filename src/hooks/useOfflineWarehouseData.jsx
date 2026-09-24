@@ -31,21 +31,22 @@ export function useOfflineWarehouseData() {
     } catch (_) {}
   }, []);
 
-  // Descargar todos los clientes (User con role=user) a IndexedDB
+  // Descargar todos los clientes (User con role=user) a IndexedDB.
+  // Usa la función backend getWarehouseClients (asServiceRole) para saltar
+  // el RLS integrado de User — los empleados de almacén con custom_role
+  // no pueden llamar User.list() directamente.
   const downloadClients = useCallback(async () => {
     setProgress((p) => ({ ...p, phase: 'Descargando clientes…' }));
-    // Traer todos los usuarios en lotes de 500
     let allClients = [];
     let skip = 0;
     const limit = 500;
     while (true) {
-      const batch = await base44.entities.User.list('email', limit, skip);
-      if (!batch || !batch.length) break;
-      // Filtrar solo role=user (clientes)
-      const clients = batch.filter((u) => u.role === 'user');
-      allClients = allClients.concat(clients);
+      const res = await base44.functions.invoke('getWarehouseClients', { skip, limit });
+      const batch = res?.data?.clients || [];
+      if (!batch.length) break;
+      allClients = allClients.concat(batch);
       setProgress((p) => ({ ...p, clients: allClients.length }));
-      if (batch.length < limit) break;
+      if (!res.data.hasMore) break;
       skip += limit;
     }
     // Guardar en IndexedDB (usando email como id fallback si no tiene id)
