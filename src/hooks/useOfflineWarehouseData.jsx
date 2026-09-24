@@ -111,10 +111,24 @@ export function useOfflineWarehouseData() {
 
     const withIds = filtered.map((b) => ({ ...b, id: b.id || `bulto_${b.label_code}` }));
 
+    // Set de label_codes del servidor (autoritativos): cualquier bulto local con el mismo
+    // label_code ya fue sincronizado y debe descartarse para evitar duplicados en los chips.
+    const serverLabelCodes = new Set(withIds.map((b) => b.label_code).filter(Boolean));
+
     // Preservar bultos locales no sincronizados (sin closed_at) antes de limpiar el store
     // Los bultos con closed_at se preservan también (sean locales o del servidor) para no
-    // perder el registro de cierre y evitar que reaparezcan como abiertos en la próxima sincronización
-    const localOnly = localBultos.filter((b) => b.is_local || String(b.id || '').startsWith('local_') || b.closed_at);
+    // perder el registro de cierre y evitar que reaparezcan como abiertos en la próxima sincronización.
+    // Se excluyen los locales cuyo label_code ya existe en el servidor (duplicados) y se
+    // deduplican entre sí por label_code.
+    const seenLocal = new Set();
+    const localOnly = localBultos.filter((b) => {
+      const keep = (b.is_local || String(b.id || '').startsWith('local_') || b.closed_at) &&
+        !(b.label_code && serverLabelCodes.has(b.label_code));
+      if (!keep) return false;
+      if (b.label_code && seenLocal.has(b.label_code)) return false;
+      if (b.label_code) seenLocal.add(b.label_code);
+      return true;
+    });
     await clearStore('bultos');
     await bulkPut('bultos', [...withIds, ...localOnly]);
     setProgress((p) => ({ ...p, bultos: withIds.length + localOnly.length }));
