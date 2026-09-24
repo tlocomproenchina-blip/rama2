@@ -35,10 +35,17 @@ RESPUESTA SOBRE PAQUETES, FACTURAS, PRE-ALERTAS Y ÓRDENES DE DESPACHO:
 
 COTIZACIONES DE ENVÍO MARÍTIMO:
 - TLEC CARGO NO ofrece envío aéreo. Solo marítimo.
+- MÚLTIPLES BULTOS: Si el cliente describe más de un bulto (ej: "Artículo 1", "Artículo 2", múltiples sets de dimensiones como "53*39*20" y "57*29*28"), cotiza CADA bulto por separado llamando la herramienta calculate_shipping_quote una vez por bulto. Presenta cada cotización con su desglose (flete, seguro, recepción) y al final muestra un total combinado sumando ambos.
+- DETECCIÓN DE ALTO RIESGO: Aplica la tarifa de alto riesgo automáticamente si el cliente menciona cualquiera de estas palabras clave: batería, litio, LiFePO4, ión-litio, líquido, polvo, imán, magnético, perfume, cosmético, electrónico con batería, replica, marca, f牌, 带电, 液体, 粉末. Si la mercancía es ambigua (ej: "un equipo", "artículo") y no puedes determinar si es general o alto riesgo, PREGUNTA al cliente antes de cotizar.
 - Si el cliente da dimensiones (ej: "40x40x27") Y el valor FOB Y (si CBM >= 0.13) el estado de destino, usa la herramienta calculate_shipping_quote INMEDIATAMENTE.
-- Si faltan datos (FOB, estado, o peso si CBM > 1), pídelos en un solo mensaje de forma amable.
+- Si faltan datos (FOB, estado, o peso si CBM > 1, o si no puedes determinar el riesgo), pídelos en un solo mensaje de forma amable.
 - NUNCA hagas cálculos matemáticos tú mismo. SIEMPRE usa la herramienta.
-- Muestra ambos precios (general y alto riesgo) con desglose claro.
+- Muestra ambos precios (general y alto riesgo) con desglose claro cuando corresponda.
+
+TIEMPOS DE TRÁNSITO Y CONTINGENCIA ADUANERA:
+- Si el cliente pregunta por tiempos de tránsito o estado de su envío, usa los artículos de la base de conocimiento con tag "tiempo-transito" (campo articulos_transito del contexto) para responder con la información actual.
+- En TODA respuesta que involucre cotizaciones, tiempos de tránsito o estado de envío, incluye OBLIGATORIAMENTE el mensaje de contingencia aduanera del artículo con tag "contingencia-aduanas" (campo articulos_contingencia del contexto). Preséntalo de forma empática y natural, no como un disclaimer robótico. Ejemplo: "Ten en cuenta que las aduanas en Venezuela están en contingencia nacional tras el terremoto, por lo que el tiempo de tránsito podría extenderse más de lo habitual. Agradecemos tu paciencia."
+- NO copies el texto literal del artículo. Adáptalo a un tono cálido y conversacional.
 
 DETECCIÓN DE SATISFACCIÓN — MUY IMPORTANTE:
 - Si el cliente expresa satisfacción, gratitud o confirmación de que su problema fue resuelto (ej: "gracias", "muchas gracias", "todo claro", "ya entendí", "resuelto", "perfecto", "muy amable", "me ayudaste mucho", "listo", "ok gracias", "no más dudas"), devuelve action: "resolve" con un mensaje breve y cálido de despedida.
@@ -230,6 +237,12 @@ export default async function(req: Request): Promise<Response> {
         categoria: a.category,
         contenido: a.content ? a.content.slice(0, 300) : ''
       })),
+      articulos_transito: (kbArticles || [])
+        .filter((a: any) => (a.tags || []).some((t: string) => /transito|tiempo-transito/i.test(t)))
+        .map((a: any) => ({ titulo: a.title, contenido: a.content || '' })),
+      articulos_contingencia: (kbArticles || [])
+        .filter((a: any) => (a.tags || []).some((t: string) => /contingencia|aduanas/i.test(t)))
+        .map((a: any) => ({ titulo: a.title, contenido: a.content || '' })),
       estados_disponibles: activeStates.map((s: any) => s.state_name)
     };
 
@@ -267,7 +280,7 @@ export default async function(req: Request): Promise<Response> {
     // Multi-turn function calling loop
     let aiResponse = '';
     let rawContent = '';
-    for (let turn = 0; turn < 3; turn++) {
+    for (let turn = 0; turn < 6; turn++) {
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: conversationMessages,

@@ -35,6 +35,19 @@ COTIZACIONES DE ENVÍO MARÍTIMO — REGLA OBLIGATORIA:
 - Si el resultado indica que es carga menor a 0.13 CBM (almacen_valencia_mrw), menciona que llega al almacén de Valencia y el despacho final es vía MRW con cobro a destino.
 - Si el resultado indica puerta a puerta, menciona que incluye entrega hasta la puerta.
 
+MÚLTIPLES BULTOS EN UN EMBARQUE:
+- Si el cliente describe más de un bulto (ej: "Artículo 1", "Artículo 2", múltiples sets de dimensiones como "53*39*20" y "57*29*28"), cotiza CADA bulto por separado llamando la herramienta calculate_shipping_quote una vez por bulto.
+- Presenta cada cotización con su desglose (flete, seguro, recepción) y al final muestra un total combinado sumando todos los bultos.
+
+DETECCIÓN DE ALTO RIESGO:
+- Aplica la tarifa de alto riesgo automáticamente si el cliente menciona cualquiera de estas palabras clave: batería, litio, LiFePO4, ión-litio, líquido, polvo, imán, magnético, perfume, cosmético, electrónico con batería, replica, marca, f牌, 带电, 液体, 粉末.
+- Si la mercancía es ambigua (ej: "un equipo", "artículo") y no puedes determinar si es general o alto riesgo, PREGUNTA al cliente antes de cotizar, en el mismo mensaje donde pides otros datos faltantes.
+
+TIEMPOS DE TRÁNSITO Y CONTINGENCIA ADUANERA:
+- Si el cliente pregunta por tiempos de tránsito o estado de su envío, usa los artículos de la base de conocimiento con tag "tiempo-transito" (campo articulos_transito del contexto) para responder con la información actual.
+- En TODA respuesta que involucre cotizaciones, tiempos de tránsito o estado de envío, incluye OBLIGATORIAMENTE el mensaje de contingencia aduanera del artículo con tag "contingencia-aduanas" (campo articulos_contingencia del contexto). Preséntalo de forma empática y natural, no como un disclaimer robótico. Ejemplo: "Ten en cuenta que las aduanas en Venezuela están en contingencia nacional tras el terremoto, por lo que el tiempo de tránsito podría extenderse más de lo habitual. Agradecemos tu paciencia."
+- NO copies el texto literal del artículo. Adáptalo a un tono cálido y conversacional.
+
 CONCIENCIA CONVERSACIONAL — MUY IMPORTANTE:
 - Si ya pediste un dato (FOB, estado, peso) y el cliente repite su pregunta sin proporcionar lo que pediste, NO repitas la misma respuesta palabra por palabra.
 - Reconoce la situación: "Veo que sigues necesitando la cotización. Para darte el precio exacto necesito que me digas: [lo que falte]."
@@ -137,7 +150,13 @@ export default async function(req: Request): Promise<Response> {
         titulo: a.title,
         categoria: a.category,
         contenido: a.content ? a.content.slice(0, 400) : ''
-      }))
+      })),
+      articulos_transito: (kbArticles || [])
+        .filter((a: any) => (a.tags || []).some((t: string) => /transito|tiempo-transito/i.test(t)))
+        .map((a: any) => ({ titulo: a.title, contenido: a.content || '' })),
+      articulos_contingencia: (kbArticles || [])
+        .filter((a: any) => (a.tags || []).some((t: string) => /contingencia|aduanas/i.test(t)))
+        .map((a: any) => ({ titulo: a.title, contenido: a.content || '' }))
     };
 
     // Build messages for OpenAI
@@ -179,7 +198,7 @@ export default async function(req: Request): Promise<Response> {
     // Multi-turn function calling loop (max 3 tool calls)
     let aiResponse = '';
     let lastResponse: any = null;
-    for (let turn = 0; turn < 3; turn++) {
+    for (let turn = 0; turn < 6; turn++) {
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: openaiMessages,
