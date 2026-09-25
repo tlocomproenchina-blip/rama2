@@ -3,9 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight, Printer, CheckSquare, Square, X, Printer as PrinterIcon } from 'lucide-react';
+import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight, Printer, CheckSquare, Square, X, Printer as PrinterIcon, CloudOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { getAll } from '@/lib/offlineDb';
 import BultoEditModal from './BultoEditModal';
 import BluetoothPrinter from './BluetoothPrinter';
 import PrintCountBadge from './PrintCountBadge';
@@ -58,9 +59,30 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // Cargar todos los bultos ordenados por fecha desc; filtramos en memoria
-      const all = await base44.entities.Bulto.list('-created_date', 1000);
-      let filtered = all || [];
+      // Cargar bultos del servidor ordenados por fecha desc
+      const serverBultos = await base44.entities.Bulto.list('-created_date', 1000);
+
+      // Cargar bultos locales cerrados/despachados que aún no se han sincronizado
+      let localPending = [];
+      try {
+        const localAll = await getAll('bultos');
+        localPending = localAll.filter(
+          (b) => b.status !== 'activo' && b.closed_at && !b.synced && !b.server_bulto_id
+        );
+        // Normalizar campos para que coincidan con la estructura del servidor
+        localPending = localPending.map((b) => ({
+          ...b,
+          id: b.id,
+          is_local_pending: true,
+          print_count: b.print_count || 0,
+          created_date: b.closed_at || b.created_date || new Date().toISOString(),
+        }));
+      } catch (_) {}
+
+      // Fusionar: locales primero (más recientes en dispositivo), luego servidor
+      const serverIds = new Set(serverBultos.map((b) => b.id));
+      const localNotInServer = localPending.filter((b) => !serverIds.has(b.server_bulto_id) && !serverBultos.some((s) => s.label_code === b.label_code));
+      let filtered = [...localNotInServer, ...serverBultos];
 
       if (statusFilter !== 'all') {
         filtered = filtered.filter((b) => b.status === statusFilter);
@@ -213,6 +235,11 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                       }`}>
                         {b.status === 'despachado' ? 'Despachado' : b.status === 'cerrado' ? 'Cerrado' : 'Activo'}
                       </span>
+                      {b.is_local_pending && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 flex items-center gap-1">
+                          <CloudOff className="h-3 w-3" /> Pendiente de sync
+                        </span>
+                      )}
                       <PrintCountBadge count={b.print_count} />
                     </div>
                     <div className="mt-1 text-sm text-slate-600">
