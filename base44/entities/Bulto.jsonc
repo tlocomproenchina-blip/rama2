@@ -100,10 +100,11 @@
       "enum": [
         "activo",
         "cerrado",
+        "en_almacen_ve",
         "despachado"
       ],
       "default": "activo",
-      "description": "Estado del bulto: activo (abierto, llen\u00e1ndose), cerrado (sellado, esperando despacho/impresi\u00f3n), despachado (entregado al transporte)"
+      "description": "Estado del bulto: activo (abierto, llen\u00e1ndose), cerrado (sellado, esperando despacho/impresi\u00f3n), en_almacen_ve (en almac\u00e9n de Venezuela, esperando despacho al cliente), despachado (entregado al transporte/cliente desde WarehouseDispatch)"
     },
     "print_count": {
       "type": "number",

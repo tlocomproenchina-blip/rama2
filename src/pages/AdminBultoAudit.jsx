@@ -19,6 +19,8 @@ export default function AdminBultoAudit() {
   const [orderFilter, setOrderFilter] = useState('all');
   const [showBackfill, setShowBackfill] = useState(false);
   const [backfillRunning, setBackfillRunning] = useState(false);
+  const [showEnAlmacenVeBackfill, setShowEnAlmacenVeBackfill] = useState(false);
+  const [enAlmacenVeRunning, setEnAlmacenVeRunning] = useState(false);
 
   useEffect(() => {
     const loadBultos = async () => {
@@ -95,6 +97,25 @@ export default function AdminBultoAudit() {
     }
   };
 
+  const runEnAlmacenVeBackfill = async () => {
+    setEnAlmacenVeRunning(true);
+    try {
+      const res = await base44.functions.invoke('backfillBultosEnAlmacenVe', {});
+      const updated = res?.data?.updated ?? res?.updated ?? 0;
+      const skipped = res?.data?.skipped ?? res?.skipped ?? 0;
+      toast.success(`Migración completada: ${updated} bulto(s) migrado(s) a 'En Almacén Venezuela'${skipped ? `, ${skipped} ya tenían orden de despacho` : ''}`);
+      setShowEnAlmacenVeBackfill(false);
+      setLoading(true);
+      const rows = await base44.entities.Bulto.list('-created_date', 500);
+      setBultos(rows || []);
+      setLoading(false);
+    } catch (e) {
+      toast.error('Error al ejecutar la migración: ' + (e?.message || 'desconocido'));
+    } finally {
+      setEnAlmacenVeRunning(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
@@ -108,13 +129,20 @@ export default function AdminBultoAudit() {
         description="Registro completo de qué empleado procesó cada bulto y a qué hora, con los paquetes incluidos."
       />
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
         <Button
           variant="outline"
           onClick={() => setShowBackfill(true)}
           className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
         >
           <RefreshCw className="h-4 w-4" /> Backfill bultos cerrados
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setShowEnAlmacenVeBackfill(true)}
+          className="gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+        >
+          <RefreshCw className="h-4 w-4" /> Migrar a En Almacén Venezuela
         </Button>
       </div>
 
@@ -190,8 +218,13 @@ export default function AdminBultoAudit() {
                       <div className="space-y-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold text-slate-800 font-mono text-sm">{b.label_code}</h3>
-                          <Badge className={b.status === 'despachado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
-                            {b.status === 'despachado' ? 'Despachado' : 'Activo'}
+                          <Badge className={
+                            b.status === 'despachado' ? 'bg-emerald-100 text-emerald-700'
+                            : b.status === 'en_almacen_ve' ? 'bg-amber-100 text-amber-700'
+                            : b.status === 'cerrado' ? 'bg-slate-200 text-slate-600'
+                            : 'bg-blue-100 text-blue-700'
+                          }>
+                            {b.status === 'despachado' ? 'Despachado' : b.status === 'en_almacen_ve' ? 'En Almacén Venezuela' : b.status === 'cerrado' ? 'Cerrado' : 'Activo'}
                           </Badge>
                           {b.bulto_number > 0 && (
                             <Badge variant="outline" className="border-slate-200 text-slate-600">
@@ -239,6 +272,39 @@ export default function AdminBultoAudit() {
           )}
         </CardContent>
       </Card>
+
+      {/* Diálogo de confirmación - Migración a En Almacén Venezuela */}
+      <Dialog open={showEnAlmacenVeBackfill} onOpenChange={(v) => !enAlmacenVeRunning && setShowEnAlmacenVeBackfill(v)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-blue-500" />
+              Migrar bultos a "En Almacén Venezuela"
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-slate-600">
+              Esta operación migrará los bultos con estado <span className="font-mono font-semibold">despachado</span> que
+              NO tengan una orden de despacho asociada al nuevo estado <span className="font-mono font-semibold">en_almacen_ve</span> (En Almacén Venezuela).
+            </p>
+            <p className="text-sm text-slate-600">
+              Los bultos que sí fueron despachados desde <span className="font-semibold">WarehouseDispatch</span> (con orden de despacho) se mantendrán como <span className="font-mono font-semibold">despachado</span>.
+            </p>
+            <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800">
+              <strong>Nota:</strong> Esto corrige bultos cerrados antes de la implementación del estado intermedio que quedaron incorrectamente como "despachado".
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowEnAlmacenVeBackfill(false)} disabled={enAlmacenVeRunning}>
+              Cancelar
+            </Button>
+            <Button onClick={runEnAlmacenVeBackfill} disabled={enAlmacenVeRunning} className="gap-2 bg-blue-600 hover:bg-blue-700">
+              {enAlmacenVeRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {enAlmacenVeRunning ? 'Ejecutando…' : 'Ejecutar migración'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Diálogo de confirmación de backfill */}
       <Dialog open={showBackfill} onOpenChange={(v) => !backfillRunning && setShowBackfill(v)}>

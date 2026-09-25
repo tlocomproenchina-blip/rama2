@@ -192,6 +192,8 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="activo">Activo</option>
+                  <option value="cerrado">Cerrado</option>
+                  <option value="en_almacen_ve">En Almacén Venezuela</option>
                   <option value="despachado">Despachado</option>
                 </select>
               </div>

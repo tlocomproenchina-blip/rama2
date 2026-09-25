@@ -54,9 +54,9 @@ export default async function(req: Request): Promise<Response> {
     const validPackageIds = Array.isArray(package_ids) ? package_ids.filter(Boolean) : [];
     const validTrackings = Array.isArray(package_trackings) ? package_trackings.filter(Boolean) : [];
 
-    // Bultos con paquetes: status 'cerrado' (sellado, esperando despacho manual en WarehouseDispatch).
+    // Bultos con paquetes: status 'en_almacen_ve' (en almacén de Venezuela, esperando despacho al cliente).
     // Bultos vacíos (bulk/etiquetas): status 'despachado' (cajas pre-armadas sin contenido).
-    const bultoStatus = validPackageIds.length > 0 ? 'cerrado' : 'despachado';
+    const bultoStatus = validPackageIds.length > 0 ? 'en_almacen_ve' : 'despachado';
 
     // Auto-lookup CbmIngreso order numbers if not provided manually
     let finalOrderNumbers: string[] = Array.isArray(cbm_order_numbers) ? cbm_order_numbers.filter(Boolean) : [];
