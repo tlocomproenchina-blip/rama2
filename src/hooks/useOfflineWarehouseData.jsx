@@ -204,6 +204,18 @@ export function useOfflineWarehouseData() {
   const getClientByEmail = useCallback((email) => findClientByEmail(email), []);
   const searchClients = useCallback((query) => searchClientsLocal(query), []);
 
+  // Refrescar caché solo si es stale (>30s desde última sync). No bloquea la UI.
+  // Útil para llamar antes de operaciones críticas (recibir, despachar, asignar ubicación).
+  const refreshIfStale = useCallback(() => {
+    const STALE_MS = 30 * 1000; // 30s
+    if (!lastSync || (Date.now() - lastSync > STALE_MS)) {
+      syncAll(); // no await — background
+    }
+  }, [lastSync, syncAll]);
+
+  // Forzar refresh completo (tras detectar un conflicto)
+  const forceRefresh = useCallback(() => syncAll(), [syncAll]);
+
   // Refrescar caché manualmente
   const refresh = useCallback(() => syncAll(), [syncAll]);
 
@@ -214,6 +226,8 @@ export function useOfflineWarehouseData() {
     lastSync,
     error,
     refresh,
+    refreshIfStale,
+    forceRefresh,
     findByLabelCode,
     findByTracking,
     getClientByEmail,

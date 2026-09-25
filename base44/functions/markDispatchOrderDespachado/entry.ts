@@ -14,14 +14,24 @@ export default async function (req) {
 
     const body = await req.json().catch(() => ({}));
     const { order_id } = body;
+    const confirmOnly = !!body.confirm_only;
     if (!order_id) return Response.json({ error: 'order_id es requerido' }, { status: 400 });
 
     const order = await base44.asServiceRole.entities.DispatchOrder.get(order_id);
     if (!order) return Response.json({ error: 'Orden no encontrada' }, { status: 404 });
     if (order.status === 'cancelada') return Response.json({ error: 'No se puede despachar una orden cancelada' }, { status: 400 });
 
-    // Si ya está despachada y se vuelve a marcar, solo revertir a emitida
+    // Si ya está despachada:
+    // - confirm_only=true (desde cola offline): devolver already_dispatched sin revertir
+    // - confirm_only=false (toggle manual del admin): revertir a emitida (comportamiento original)
     if (order.status === 'despachado') {
+      if (confirmOnly) {
+        return Response.json({
+          already_dispatched: true,
+          order,
+          message: 'Esta orden ya fue despachada en otro dispositivo',
+        });
+      }
       await base44.asServiceRole.entities.DispatchOrder.update(order_id, {
         status: 'emitida',
         dispatched_confirmed_date: null,

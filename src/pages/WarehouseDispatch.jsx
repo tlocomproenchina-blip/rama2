@@ -29,7 +29,7 @@ export default function WarehouseDispatch({ user }) {
 
   const {
     cacheReady, downloading, progress, lastSync, error: cacheError,
-    refresh: refreshCache, findByLabelCode, findByTracking, getClientByEmail,
+    refresh: refreshCache, refreshIfStale, findByLabelCode, findByTracking, getClientByEmail,
   } = useOfflineWarehouseData();
 
   const {
@@ -146,6 +146,8 @@ export default function WarehouseDispatch({ user }) {
     if (!cleaned || scanning) return;
     setScanning(true);
     setCode('');
+    // Refresh inteligente antes de procesar el escaneo (reduce ventana de conflicto)
+    refreshIfStale();
     try {
       // 0) Buscar si es un bulto por label_code (código -B##)
       const localBultos = await idbGetAll('bultos');

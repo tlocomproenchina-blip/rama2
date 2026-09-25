@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { put, getAll, del } from '@/lib/offlineDb';
+import { toast } from 'sonner';
 
 // Cola offline-first para salidas de almacén (despachos).
 // - Al aprobar una salida, se encola en IndexedDB (sync_queue con type='dispatch').
@@ -113,7 +114,12 @@ export function useOfflineDispatchQueue() {
               res = await base44.functions.invoke('scanDispatchPackage', payload);
             }
             const data = res?.data || res;
-            if (data?.package?.id || data?.success || data?.bulto) {
+            if (data?.already_dispatched) {
+              // Ya despachado por otro dispositivo: informar y remover de la cola
+              toast.info(`Ya fue despachado en otro dispositivo: ${item.tracking || item.label_code || ''}`, { duration: 4000 });
+              await del('sync_queue', item.id);
+              setPendingDispatches((prev) => prev.filter((p) => p.id !== item.id));
+            } else if (data?.package?.id || data?.success || data?.bulto) {
               // Sincronización exitosa: remover de la cola
               await del('sync_queue', item.id);
               setPendingDispatches((prev) => prev.filter((p) => p.id !== item.id));

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { put, getAll, del } from '@/lib/offlineDb';
+import { toast } from 'sonner';
 
 /**
  * Hook genérico para una cola de escrituras offline-first.
@@ -52,9 +53,24 @@ export function useOfflineWriteQueue({ queueType, processor }) {
           prev.map((p) => (p.id === item.id ? { ...p, sync_status: 'syncing' } : p))
         );
         try {
-          await processorRef.current(item);
-          await del('sync_queue', item.id);
-          setPending((prev) => prev.filter((p) => p.id !== item.id));
+          const result = await processorRef.current(item);
+          // Manejar respuestas de conflicto del backend (already_received, location_full, etc.)
+          if (result?.already_received) {
+            toast.info(`Paquete ya fue recibido en otro dispositivo`, { duration: 4000 });
+            await del('sync_queue', item.id);
+            setPending((prev) => prev.filter((p) => p.id !== item.id));
+          } else if (result?.location_full) {
+            toast.warning(`Ubicación llena: ${result.location?.code || ''}. Reasigna el paquete.`, { duration: 5000 });
+            await del('sync_queue', item.id);
+            setPending((prev) => prev.filter((p) => p.id !== item.id));
+          } else if (result?.already_dispatched) {
+            toast.info(`Ya despachado en otro dispositivo`, { duration: 4000 });
+            await del('sync_queue', item.id);
+            setPending((prev) => prev.filter((p) => p.id !== item.id));
+          } else {
+            await del('sync_queue', item.id);
+            setPending((prev) => prev.filter((p) => p.id !== item.id));
+          }
         } catch (e) {
           item.sync_status = 'error';
           item.error_message = e?.message || 'Error de red';

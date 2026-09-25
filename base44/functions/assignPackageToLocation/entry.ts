@@ -52,9 +52,48 @@ Deno.serve(async (req) => {
     const pkg = await base44.asServiceRole.entities.Package.get(packageId);
     if (!pkg) return Response.json({ error: 'Paquete no encontrado' }, { status: 404 });
 
+    // Validación autoritativa: si el paquete ya fue recibido y asignado a una ubicación
+    // (por otro dispositivo), no re-asignar. Devolver already_received para que el
+    // frontend sincronice el estado real.
+    if (pkg.status === 'recibido' && pkg.warehouse_location_id && pkg.warehouse_location_id !== locationId) {
+      const existingLocation = await base44.asServiceRole.entities.WarehouseLocation.get(pkg.warehouse_location_id).catch(() => null);
+      return Response.json({
+        success: false,
+        already_received: true,
+        message: 'Este paquete ya fue recibido y ubicado en otro dispositivo',
+        existing_location: existingLocation ? {
+          id: existingLocation.id,
+          code: existingLocation.code,
+          name: existingLocation.name,
+          zone: existingLocation.zone,
+        } : { id: pkg.warehouse_location_id, code: pkg.warehouse_location_code, name: pkg.warehouse_location_name },
+        package: pkg,
+      });
+    }
+
     const location = await base44.asServiceRole.entities.WarehouseLocation.get(locationId);
     if (!location || location.is_active === false) {
       return Response.json({ error: 'Ubicación no encontrada o inactiva' }, { status: 404 });
+    }
+
+    // Validación de colisión: contar paquetes ACTIVOS en esta ubicación en tiempo real
+    // (no confiar en current_units que puede estar stale por operaciones offline de otros dispositivos).
+    const activeAtLocation = await base44.asServiceRole.entities.Package.filter(
+      { warehouse_location_id: locationId, status: 'recibido' },
+      '-updated_date', 500
+    );
+    const realTimeUnits = (activeAtLocation || []).length;
+    // Si el paquete que estamos asignando ya está en esta ubicación, no contarle de nuevo
+    const alreadyHere = activeAtLocation?.some((p) => p.id === packageId) ? 1 : 0;
+    const effectiveUnits = realTimeUnits - alreadyHere;
+    const capacityUnits = Number(location.capacity_units || 0);
+    if (capacityUnits > 0 && effectiveUnits >= capacityUnits) {
+      return Response.json({
+        success: false,
+        location_full: true,
+        message: 'La ubicación seleccionada ya está llena (ocupada por otro dispositivo)',
+        location: { id: location.id, code: location.code, name: location.name, current_units: realTimeUnits, capacity_units: capacityUnits },
+      });
     }
 
     const actual_length_cm = toNumber(body?.actual_length_cm) ?? toNumber(pkg.actual_length_cm);

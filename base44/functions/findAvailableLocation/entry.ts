@@ -34,14 +34,36 @@ Deno.serve(async (req) => {
     if (warehouseId) query.warehouse_id = warehouseId;
     const locations = await base44.asServiceRole.entities.WarehouseLocation.filter(query, 'code', 200);
 
+    // Conteo autoritativo en tiempo real: consultar paquetes activos (recibido/disponible)
+    // agrupados por ubicación, en lugar de confiar en current_units (que puede estar stale
+    // por asignaciones offline de otros dispositivos).
+    const activeStatuses = ['recibido', 'disponible'];
+    let realTimeCounts = {};
+    try {
+      const pkgQuery = warehouseId ? { warehouse_id: warehouseId } : {};
+      const allActivePkgs = await base44.asServiceRole.entities.Package.filter(pkgQuery, '-updated_date', 2000);
+      for (const p of (allActivePkgs || [])) {
+        if (!p.warehouse_location_id || !activeStatuses.includes(p.status)) continue;
+        realTimeCounts[p.warehouse_location_id] = (realTimeCounts[p.warehouse_location_id] || 0) + 1;
+      }
+    } catch (_) {
+      // Fallback al current_units cacheado si la query falla
+      for (const loc of (locations || [])) {
+        realTimeCounts[loc.id] = Number(loc.current_units || 0);
+      }
+    }
+
     const matches = (locations || []).filter((location) => {
-      const unitsLeft = remaining(location.capacity_units, location.current_units);
+      const realUnits = realTimeCounts[location.id] || 0;
+      const unitsLeft = remaining(location.capacity_units, realUnits);
       const volumeLeft = remaining(location.capacity_volume_cbm, location.current_volume_cbm);
       const weightLeft = remaining(location.capacity_weight_kg, location.current_weight_kg);
       return unitsLeft >= minUnits && volumeLeft >= minVolume && weightLeft >= minWeight;
     }).sort((a, b) => {
-      const aScore = remaining(a.capacity_units, a.current_units) + remaining(a.capacity_volume_cbm, a.current_volume_cbm) + remaining(a.capacity_weight_kg, a.current_weight_kg);
-      const bScore = remaining(b.capacity_units, b.current_units) + remaining(b.capacity_volume_cbm, b.current_volume_cbm) + remaining(b.capacity_weight_kg, b.current_weight_kg);
+      const aReal = realTimeCounts[a.id] || 0;
+      const bReal = realTimeCounts[b.id] || 0;
+      const aScore = remaining(a.capacity_units, aReal) + remaining(a.capacity_volume_cbm, a.current_volume_cbm) + remaining(a.capacity_weight_kg, a.current_weight_kg);
+      const bScore = remaining(b.capacity_units, bReal) + remaining(b.capacity_volume_cbm, b.current_volume_cbm) + remaining(b.capacity_weight_kg, b.current_weight_kg);
       return aScore - bScore;
     });
 

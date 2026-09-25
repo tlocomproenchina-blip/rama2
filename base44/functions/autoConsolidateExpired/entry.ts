@@ -33,13 +33,27 @@ Deno.serve(async (req) => {
     const results = [];
 
     for (const request of pendingRequests) {
+      // Validación autoritativa: si la solicitud ya fue aprobada/consolidada por
+      // otro dispositivo, saltar y reportar already_consolidated.
+      if (request.status === 'aprobada' || request.status === 'consolidada') {
+        results.push({
+          clientEmail: request.client_email,
+          requestId: request.id,
+          action: 'already_consolidated',
+          already_consolidated: true,
+        });
+        continue;
+      }
+
       // Get packages for this client that are in pre_alerta status
       const packages = await base44.asServiceRole.entities.Package.filter({
         client_email: request.client_email
       });
 
-      // Filter received packages from this request
-      const receivedPackages = packages.filter(p => 
+      // Filter received packages from this request.
+      // Excluir paquetes ya consolidados (status='consolidado') — otro dispositivo
+      // puede haberlos consolidado mientras este estaba offline.
+      const receivedPackages = packages.filter(p =>
         request.package_ids?.includes(p.id) && p.status === 'recibido'
       );
 

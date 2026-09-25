@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { getAll, put, del, bulkPut } from '@/lib/offlineDb';
+import { toast } from 'sonner';
 
 // Hook que gestiona la cola de escrituras offline pendientes de sincronizar.
 // - Al cerrar un bulto offline, se encola en IndexedDB (sync_queue).
@@ -98,11 +99,15 @@ export function useOfflineBultoSync() {
         try {
           if (item.type === 'package_reception') {
             // Sincronizar recepción de paquete
-            await base44.entities.Package.update(item.package_id, {
+            const res = await base44.entities.Package.update(item.package_id, {
               status: item.status,
               received_date: item.received_date,
               received_by: item.received_by,
             });
+            // Detectar si el paquete ya fue recibido por otro dispositivo
+            if (res?.already_received) {
+              toast.info(`Paquete ${item.tracking_number || ''} ya fue recibido en otro dispositivo`, { duration: 4000 });
+            }
           } else {
             // Sincronizar bulto cerrado (default)
             const res = await base44.functions.invoke('syncBultoBatch', {
@@ -124,6 +129,10 @@ export function useOfflineBultoSync() {
             });
             if (!res?.data?.success && !res?.data?.already_exists) {
               throw new Error(res?.data?.error || 'Error desconocido');
+            }
+            // Detectar si el bulto ya fue cerrado/despachado por otro dispositivo
+            if (res?.data?.already_closed || res?.data?.already_dispatched) {
+              toast.info(`Bulto ${item.label_code || ''} ya fue procesado en otro dispositivo`, { duration: 4000 });
             }
             // Enlazar el bulto local con el servidor
             const serverBultoId = res?.data?.bulto?.id;

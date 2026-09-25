@@ -43,7 +43,7 @@ export default function WarehouseScanPack({ user }) {
   // Hooks offline-first
   const {
     cacheReady, downloading, progress, lastSync, error: cacheError,
-    refresh: refreshCache, findByLabelCode, findByTracking, getClientByEmail,
+    refresh: refreshCache, refreshIfStale, findByLabelCode, findByTracking, getClientByEmail,
   } = useOfflineWarehouseData();
 
   const { block: numberBlock, getNextNumber, reserving: reservingBlock } = useBultoNumberBlock();
@@ -86,6 +86,8 @@ export default function WarehouseScanPack({ user }) {
     setScanning(true);
     setCode('');
     setManualAssign(null);
+    // Refresh inteligente antes de procesar el escaneo (reduce ventana de conflicto)
+    refreshIfStale();
     try {
       // 1) Buscar por label_code (código de etiqueta TLEC)
       let pkg = await findByLabelCode(cleaned);
