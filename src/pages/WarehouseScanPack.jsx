@@ -3,12 +3,11 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  Loader2, ScanLine, Boxes, AlertTriangle, CheckCircle2,
+  Loader2, ScanLine, Boxes, AlertTriangle,
   CloudOff, Cloud, Package, X, RefreshCw, Clock, Wifi, WifiOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
-import BluetoothPrinter from '@/components/warehouse/BluetoothPrinter';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import OpenBultoCard from '@/components/warehouse/OpenBultoCard';
 import OpenBultosChips from '@/components/warehouse/OpenBultosChips';
@@ -16,6 +15,8 @@ import BultoHistory from '@/components/warehouse/BultoHistory';
 import ManualPackageAssign from '@/components/warehouse/ManualPackageAssign';
 import BulkBultoCreator from '@/components/warehouse/BulkBultoCreator';
 import OfflineScanResult from '@/components/warehouse/OfflineScanResult';
+import PrintQueueCard from '@/components/warehouse/PrintQueueCard';
+import { usePrintQueue } from '@/hooks/usePrintQueue';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
 import { useBultoNumberBlock } from '@/hooks/useBultoNumberBlock';
 import { useOfflineBultoSync } from '@/hooks/useOfflineBultoSync';
@@ -30,12 +31,14 @@ export default function WarehouseScanPack({ user }) {
   const [openBultos, setOpenBultos] = useState([]);
   const [activeBultoId, setActiveBultoId] = useState(null);
   const [lastScan, setLastScan] = useState(null);
-  const [closingBulto, setClosingBulto] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [manualAssign, setManualAssign] = useState(null);
   const [scanning, setScanning] = useState(false);
   const openBultosRef = useRef([]);
+
+  // Cola de impresión persistente (sobrevive recarga/cierre de app)
+  const { queue: printQueue, enqueue: enqueuePrint, remove: removeFromQueue, removeMany: removeFromQueueMany, clear: clearPrintQueue } = usePrintQueue();
 
   // Hooks offline-first
   const {
@@ -205,9 +208,9 @@ export default function WarehouseScanPack({ user }) {
       return remaining;
     });
 
-    // Mostrar para impresión inmediata
-    setClosingBulto(closedBulto);
-    toast.success(`Bulto ${bulto.bulto_number} cerrado — listo para despachar. Imprimiendo etiqueta…`);
+    // Encolar en la cola de impresión persistente (se imprime al acercarse a la impresora)
+    await enqueuePrint(closedBulto);
+    toast.success(`Bulto ${bulto.bulto_number} cerrado — encolado para impresión (${printQueue.length + 1} en cola)`);
 
     // Encolar sincronización en segundo plano
     await enqueueClosedBulto({
@@ -300,12 +303,14 @@ export default function WarehouseScanPack({ user }) {
   // --- Registrar bultos creados en lote (ya despachados) ---
   // Los bultos del lote se crean con status 'despachado', así que no van a
   // openBultos. Se muestran en la zona de impresión y se reflejan en historial.
-  const handleBulkCreated = useCallback((newBultos) => {
+  const handleBulkCreated = useCallback(async (newBultos) => {
     if (!newBultos?.length) return;
-    // Mostrar el primer bulto en la zona de impresión inmediata
-    setClosingBulto(newBultos[0]);
+    // Encolar todos los bultos del lote en la cola de impresión
+    for (const b of newBultos) {
+      await enqueuePrint(b);
+    }
     setHistoryRefreshKey((k) => k + 1);
-  }, []);
+  }, [enqueuePrint]);
 
   // --- Estados de carga ---
 
@@ -454,26 +459,13 @@ export default function WarehouseScanPack({ user }) {
         />
       )}
 
-      {/* Bulto recién cerrado: impresión inmediata */}
-      {closingBulto && (
-        <Card className="border-green-200">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center gap-2 text-green-700">
-              <CheckCircle2 className="h-5 w-5" />
-              <p className="font-medium">Bulto {closingBulto.bulto_number}/{closingBulto.total_bultos} cerrado: {closingBulto.label_code}</p>
-            </div>
-            <BluetoothPrinter bultos={[closingBulto]} onPrinted={async () => {
-              // Registrar primera impresión (best-effort, el bulto puede estar offline aún)
-              if (closingBulto?.id) {
-                try {
-                  await base44.functions.invoke('registerBultoPrint', { bulto_id: closingBulto.id });
-                } catch (_) {}
-              }
-              setClosingBulto(null);
-            }} />
-          </CardContent>
-        </Card>
-      )}
+      {/* Cola de impresión persistente */}
+      <PrintQueueCard
+        queue={printQueue}
+        onRemove={removeFromQueue}
+        onClear={clearPrintQueue}
+        onPrintedAll={removeFromQueueMany}
+      />
 
       {/* Bultos pendientes de sincronizar */}
       {pendingBultos.length > 0 && (
