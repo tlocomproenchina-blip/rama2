@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Search, History, Boxes, User, Clock, Package, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, Search, History, Boxes, User, Clock, Package, RefreshCw, AlertTriangle, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 
@@ -16,6 +16,7 @@ export default function AdminBultoAudit() {
   const [search, setSearch] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  const [orderFilter, setOrderFilter] = useState('all');
   const [showBackfill, setShowBackfill] = useState(false);
   const [backfillRunning, setBackfillRunning] = useState(false);
 
@@ -54,14 +55,19 @@ export default function AdminBultoAudit() {
         if (created < new Date(now.getTime() - 30 * 86400000)) return false;
       }
 
+      const hasOrder = Array.isArray(b.cbm_order_numbers) && b.cbm_order_numbers.length > 0;
+      if (orderFilter === 'with' && !hasOrder) return false;
+      if (orderFilter === 'without' && hasOrder) return false;
+
       if (!term) return true;
       const haystack = [
         b.label_code, b.client_email, b.shipping_mark, b.created_by,
         ...(b.package_trackings || []),
+        ...(b.cbm_order_numbers || []),
       ].map((v) => String(v || '').toLowerCase()).join(' ');
       return haystack.includes(term);
     });
-  }, [bultos, search, employeeFilter, dateFilter]);
+  }, [bultos, search, employeeFilter, dateFilter, orderFilter]);
 
   const stats = useMemo(() => ({
     total: filtered.length,
@@ -138,7 +144,7 @@ export default function AdminBultoAudit() {
           <CardTitle className="flex items-center gap-2 text-xl"><History className="h-5 w-5 text-blue-600" /> Historial de bultos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-[1fr,220px,180px]">
+          <div className="grid gap-3 md:grid-cols-[1fr,220px,180px,180px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por etiqueta, cliente, shipping mark o tracking" className="pl-10" />
@@ -159,6 +165,14 @@ export default function AdminBultoAudit() {
                 <SelectItem value="today">Hoy</SelectItem>
                 <SelectItem value="7d">Últimos 7 días</SelectItem>
                 <SelectItem value="30d">Últimos 30 días</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={orderFilter} onValueChange={setOrderFilter}>
+              <SelectTrigger><SelectValue placeholder="N° de orden" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las órdenes</SelectItem>
+                <SelectItem value="with">Con n° de orden</SelectItem>
+                <SelectItem value="without">Sin n° de orden</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -182,6 +196,11 @@ export default function AdminBultoAudit() {
                           {b.bulto_number > 0 && (
                             <Badge variant="outline" className="border-slate-200 text-slate-600">
                               Bulto {b.bulto_number}/{b.total_bultos || b.bulto_number}
+                            </Badge>
+                          )}
+                          {Array.isArray(b.cbm_order_numbers) && b.cbm_order_numbers.length > 0 && (
+                            <Badge className="bg-blue-100 text-blue-700 gap-1">
+                              <Hash className="h-3 w-3" /> {b.cbm_order_numbers.join(', ')}
                             </Badge>
                           )}
                         </div>

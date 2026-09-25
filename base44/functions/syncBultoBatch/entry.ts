@@ -29,6 +29,7 @@ export default async function(req: Request): Promise<Response> {
       invoice_paid,
       invoice_status,
       invoice_number,
+      cbm_order_numbers,
       warehouse_id,
       created_by,
       closed_at,
@@ -57,6 +58,23 @@ export default async function(req: Request): Promise<Response> {
     // Bultos vacíos (bulk/etiquetas): status 'despachado' (cajas pre-armadas sin contenido).
     const bultoStatus = validPackageIds.length > 0 ? 'cerrado' : 'despachado';
 
+    // Auto-lookup CbmIngreso order numbers if not provided manually
+    let finalOrderNumbers: string[] = Array.isArray(cbm_order_numbers) ? cbm_order_numbers.filter(Boolean) : [];
+    if (finalOrderNumbers.length === 0 && validTrackings.length > 0) {
+      try {
+        const cbms = await base44.asServiceRole.entities.CbmIngreso.filter(
+          { client_email }, '-fecha', 200
+        );
+        const trackingSet = new Set(validTrackings);
+        for (const c of cbms || []) {
+          const tn = Array.isArray(c.tracking_numbers) ? c.tracking_numbers : [];
+          if (tn.some((t: string) => trackingSet.has(t)) && c.invoice_number) {
+            finalOrderNumbers.push(c.invoice_number);
+          }
+        }
+      } catch (_) {}
+    }
+
     // Crear el bulto en el servidor
     const newBulto = await base44.asServiceRole.entities.Bulto.create({
       label_code,
@@ -66,6 +84,7 @@ export default async function(req: Request): Promise<Response> {
       total_bultos: total_bultos || bulto_number || 1,
       package_ids: validPackageIds,
       package_trackings: validTrackings,
+      cbm_order_numbers: finalOrderNumbers,
       client_snapshot: client_snapshot || {},
       invoice_paid: !!invoice_paid,
       invoice_status: invoice_status || '',

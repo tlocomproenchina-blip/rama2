@@ -16,6 +16,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   const [otherBoxedIds, setOtherBoxedIds] = useState(new Set());
   const [loadingPkgs, setLoadingPkgs] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [orderNumbers, setOrderNumbers] = useState('');
 
   useEffect(() => {
     if (!bulto) return;
@@ -31,6 +32,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     });
     setStatus(bulto.status || 'activo');
     setSelectedIds(bulto.package_ids || []);
+    setOrderNumbers(Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.join(', ') : '');
     setClientPackages([]);
     setOtherBoxedIds(new Set());
 
@@ -69,11 +71,15 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     }
     setSaving(true);
     try {
+      const parsedOrders = orderNumbers.trim()
+        ? orderNumbers.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
       const res = await base44.functions.invoke('updateBulto', {
         bulto_id: bulto.id,
         package_ids: selectedIds,
         client_snapshot: snapshot,
         status,
+        cbm_order_numbers: parsedOrders,
       });
       if (res?.data?.error) {
         toast.error(res.data.error);
@@ -188,6 +194,17 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                   <option value="activo">Activo</option>
                   <option value="despachado">Despachado</option>
                 </select>
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="mb-1 block text-xs">Números de orden (CbmIngreso)</Label>
+                <Input
+                  value={orderNumbers}
+                  onChange={(e) => setOrderNumbers(e.target.value)}
+                  placeholder="Separar con comas si son varias"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Número(s) de orden asignado(s) en el almacén de China. Se muestran en la etiqueta y al cliente.
+                </p>
               </div>
             </div>
           </div>

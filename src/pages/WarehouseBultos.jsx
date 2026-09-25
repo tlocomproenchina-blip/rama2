@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Package, PackageCheck, Boxes, CheckCircle2, AlertTriangle, History } from 'lucide-react';
+import { Loader2, Package, PackageCheck, Boxes, CheckCircle2, AlertTriangle, History, Hash, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
 import BluetoothPrinter from '@/components/warehouse/BluetoothPrinter';
@@ -14,6 +14,8 @@ import BultoHistory from '@/components/warehouse/BultoHistory';
 export default function WarehouseBultos({ user }) {
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseBultos');
   const [tab, setTab] = useState('empacar');
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState(null);
 
   // Empacar state
   const [searching, setSearching] = useState(false);
@@ -119,6 +121,45 @@ export default function WarehouseBultos({ user }) {
     return [];
   }, [lastCreated]);
 
+  // Backfill de números de orden en bultos existentes con trackings
+  const handleBackfillOrders = async () => {
+    setBackfilling(true);
+    setBackfillResult(null);
+    try {
+      let totalUpdated = 0;
+      let totalNoMatch = 0;
+      let totalProcessed = 0;
+      let offset = 0;
+      let hasMore = true;
+      let withoutTrackings = 0;
+      let totalCandidates = 0;
+
+      while (hasMore) {
+        const res = await base44.functions.invoke('backfillBultoOrderNumbers', { offset, batch_size: 50 });
+        const data = res?.data || res;
+        if (data?.error) {
+          toast.error(data.error);
+          break;
+        }
+        totalUpdated += data.updated || 0;
+        totalNoMatch += data.no_match || 0;
+        totalProcessed += data.total_processed || 0;
+        withoutTrackings = data.without_trackings || 0;
+        totalCandidates = data.total_candidates || 0;
+        hasMore = !!data.has_more;
+        offset = data.next_offset || 0;
+      }
+
+      setBackfillResult({ totalUpdated, totalNoMatch, totalProcessed, withoutTrackings, totalCandidates });
+      toast.success(`${totalUpdated} bulto(s) actualizados con número de orden`);
+      setHistoryRefreshKey((k) => k + 1);
+    } catch (e) {
+      toast.error('Error al ejecutar el backfill');
+    } finally {
+      setBackfilling(false);
+    }
+  };
+
   if (loadingAccess) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
@@ -134,6 +175,38 @@ export default function WarehouseBultos({ user }) {
         </h1>
         <p className="text-slate-500">Agrupa paquetes recibidos en bultos físicos e imprime etiquetas térmicas 100×100 mm vía Bluetooth.</p>
       </div>
+
+      {/* Backfill de números de orden */}
+      <Card className="border-blue-200 bg-blue-50/30">
+        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Hash className="h-5 w-5 text-blue-600 shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-800 text-sm">Asignar números de orden a bultos existentes</p>
+              <p className="text-xs text-slate-500">
+                Busca bultos con trackings y les asigna el número de orden de CbmIngreso automáticamente.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={handleBackfillOrders}
+            disabled={backfilling}
+            variant="outline"
+            className="shrink-0"
+          >
+            {backfilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {backfilling ? 'Procesando…' : 'Ejecutar backfill'}
+          </Button>
+        </CardContent>
+        {backfillResult && (
+          <div className="px-4 pb-3 text-xs text-slate-600 space-y-0.5">
+            <p>✅ {backfillResult.totalUpdated} bulto(s) actualizados con número de orden</p>
+            <p>⚠️ {backfillResult.totalNoMatch} bulto(s) sin match en CbmIngreso (sin orden asignada)</p>
+            <p>📋 {backfillResult.withoutTrackings} bulto(s) sin trackings (requieren orden manual)</p>
+            <p className="text-slate-400">Total candidatos procesados: {backfillResult.totalProcessed}</p>
+          </div>
+        )}
+      </Card>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>

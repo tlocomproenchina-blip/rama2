@@ -80,6 +80,11 @@ export default async function(req: Request): Promise<Response> {
       update.status = body.status;
     }
 
+    // --- Números de orden manuales (override) ---
+    if (Array.isArray(body.cbm_order_numbers)) {
+      update.cbm_order_numbers = body.cbm_order_numbers.filter(Boolean);
+    }
+
     const updated = await base44.asServiceRole.entities.Bulto.update(bultoId, update);
 
     return Response.json({ bulto: updated });

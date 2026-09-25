@@ -75,6 +75,24 @@ export default async function(req: Request): Promise<Response> {
     const invoiceStatus = latestInvoice?.status || 'sin_factura';
     const invoiceNumber = latestInvoice?.invoice_number || '';
 
+    // Auto-lookup CbmIngreso order numbers by tracking intersection
+    const packageTrackings = selectedPackages.map((p) => p.tracking_number || '').filter(Boolean);
+    const cbmOrderNumbers: string[] = [];
+    if (packageTrackings.length > 0) {
+      try {
+        const cbms = await base44.asServiceRole.entities.CbmIngreso.filter(
+          { client_email: clientEmail }, '-fecha', 200
+        );
+        const trackingSet = new Set(packageTrackings);
+        for (const c of cbms || []) {
+          const tn = Array.isArray(c.tracking_numbers) ? c.tracking_numbers : [];
+          if (tn.some((t: string) => trackingSet.has(t)) && c.invoice_number) {
+            cbmOrderNumbers.push(c.invoice_number);
+          }
+        }
+      } catch (_) {}
+    }
+
     // Create the bulto record
     const newBulto = await base44.asServiceRole.entities.Bulto.create({
       label_code: labelCode,
@@ -83,7 +101,8 @@ export default async function(req: Request): Promise<Response> {
       bulto_number: bultoNumber,
       total_bultos: bultoNumber,
       package_ids: packageIds,
-      package_trackings: selectedPackages.map((p) => p.tracking_number || '').filter(Boolean),
+      package_trackings: packageTrackings,
+      cbm_order_numbers: cbmOrderNumbers,
       client_snapshot: clientSnapshot,
       invoice_paid: invoicePaid,
       invoice_status: invoiceStatus,
@@ -112,6 +131,7 @@ export default async function(req: Request): Promise<Response> {
       invoice_status: invoiceStatus,
       invoice_number: invoiceNumber,
       package_trackings: selectedPackages.map((p) => p.tracking_number || '').filter(Boolean),
+      cbm_order_numbers: cbmOrderNumbers,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

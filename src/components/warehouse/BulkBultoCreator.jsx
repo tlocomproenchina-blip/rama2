@@ -170,6 +170,18 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated, enque
         doc.line(5, y, 95, y);
         y += 5;
 
+        // Orden (CbmIngreso)
+        const orderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
+        if (orderNumbers.length > 0) {
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text(`ORDEN: ${orderNumbers.join(', ')}`, 50, y, { align: 'center' });
+          y += 5;
+          doc.setLineWidth(0.3);
+          doc.line(5, y, 95, y);
+          y += 5;
+        }
+
         doc.setFontSize(18);
         doc.setFont(undefined, 'bold');
         doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos} - ${pkgCount} PAQUETES`, 50, y, { align: 'center' });

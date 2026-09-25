@@ -199,11 +199,16 @@ export default function WarehouseScanPack({ user }) {
   }, [getNextNumber, user, updateBultosState]);
 
   // --- Cerrar bulto: imprimir etiqueta + sincronizar en segundo plano ---
-  const handleCloseBulto = useCallback(async (bulto) => {
+  // Acepta un override manual de números de orden (array de strings) o null.
+  const handleCloseBulto = useCallback(async (bulto, manualOrderNumbers) => {
     if (!bulto) return;
     // Cerrar bulto: status 'cerrado' (sellado, esperando despacho/impresión).
     // El estado es autoritativo en el servidor — se sincroniza vía syncBultoBatch.
-    const closedBulto = { ...bulto, status: 'cerrado', closed_at: new Date().toISOString() };
+    let cbmOrderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers : [];
+    if (manualOrderNumbers && manualOrderNumbers.length > 0) {
+      cbmOrderNumbers = manualOrderNumbers;
+    }
+    const closedBulto = { ...bulto, status: 'cerrado', closed_at: new Date().toISOString(), cbm_order_numbers: cbmOrderNumbers };
     await put('bultos', closedBulto);
 
     // Quitar de bultos abiertos
@@ -231,6 +236,7 @@ export default function WarehouseScanPack({ user }) {
       invoice_paid: closedBulto.invoice_paid || false,
       invoice_status: closedBulto.invoice_status || '',
       invoice_number: closedBulto.invoice_number || '',
+      cbm_order_numbers: cbmOrderNumbers,
       warehouse_id: closedBulto.warehouse_id || '',
       created_by: closedBulto.created_by || user?.email || '',
       closed_at: closedBulto.closed_at,
@@ -459,7 +465,7 @@ export default function WarehouseScanPack({ user }) {
       {activeBulto ? (
         <OpenBultoCard
           bulto={activeBulto}
-          onClose={() => handleCloseBulto(activeBulto)}
+          onClose={(orders) => handleCloseBulto(activeBulto, orders)}
           onRemoveLast={() => handleRemoveLast(activeBulto)}
         />
       ) : (

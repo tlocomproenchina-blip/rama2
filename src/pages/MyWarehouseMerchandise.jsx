@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Warehouse, Search, RefreshCw, Loader2, Package, FileText } from 'lucide-react';
+import { Warehouse, Search, RefreshCw, Loader2, Package, FileText, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
@@ -196,7 +196,15 @@ function OrderCard({ order }) {
                   <div key={idx} className="flex items-start gap-2 px-1 py-1">
                     <span className="text-slate-300 text-xs mt-0.5">•</span>
                     <div className="min-w-0 flex-1">
-                      <p className="font-mono text-xs text-slate-800 break-all">{it.tracking_number || '—'}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-mono text-xs text-slate-800 break-all">{it.tracking_number || '—'}</p>
+                        {it.cbm_order_number && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-medium shrink-0">
+                            <Hash className="h-2.5 w-2.5" />
+                            {it.cbm_order_number}
+                          </span>
+                        )}
+                      </div>
                       {it.description && (
                         <p className="text-[11px] text-slate-500 line-clamp-1">{it.description}</p>
                       )}

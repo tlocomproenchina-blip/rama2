@@ -86,12 +86,23 @@ export const buildBultoLabelPayload = (bulto) => {
   // 4. Estado large centered (font 3, 3x3) — priority for sorting
   lines.push(`TEXT ${centerX(estado, '3', 3)},280,${q('3')},0,3,3,${q(estado)}`);
 
+  // 4b. Orden (CbmIngreso invoice_number) — si hay, línea centrada entre estado y bulto
+  const orderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
+  let ordenY = 390;
+  if (orderNumbers.length > 0) {
+    const ordenStr = `ORDEN: ${orderNumbers.join(', ')}`;
+    lines.push(`TEXT ${centerX(ordenStr, '2', 1)},360,${q('2')},0,2,1,${q(ordenStr)}`);
+    ordenY = 390;
+  } else {
+    ordenY = 390;
+  }
+
   // 5. Separator line
-  lines.push('BAR 50,390,700,3');
+  lines.push(`BAR 50,${ordenY},700,3`);
 
   // 6. Bulto number + package count in one line centered (font 2, 2x2)
   const bultoPkg = `${bultoNum} - ${pkgStr}`;
-  lines.push(`TEXT ${centerX(bultoPkg, '2', 2)},405,${q('2')},0,2,2,${q(bultoPkg)}`);
+  lines.push(`TEXT ${centerX(bultoPkg, '2', 2)},${ordenY + 15},${q('2')},0,2,2,${q(bultoPkg)}`);
 
   // 7. Separator line
   lines.push('BAR 50,465,700,3');

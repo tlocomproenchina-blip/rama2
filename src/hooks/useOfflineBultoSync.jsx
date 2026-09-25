@@ -123,6 +123,7 @@ export function useOfflineBultoSync() {
               invoice_paid: item.invoice_paid || false,
               invoice_status: item.invoice_status || '',
               invoice_number: item.invoice_number || '',
+              cbm_order_numbers: item.cbm_order_numbers || [],
               warehouse_id: item.warehouse_id || '',
               created_by: item.created_by || '',
               closed_at: item.closed_at || new Date().toISOString(),

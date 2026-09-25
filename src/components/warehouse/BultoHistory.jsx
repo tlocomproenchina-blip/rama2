@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight, Printer, CheckSquare, Square, X, Printer as PrinterIcon, CloudOff } from 'lucide-react';
+import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight, Printer, CheckSquare, Square, X, Printer as PrinterIcon, CloudOff, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { getAll } from '@/lib/offlineDb';
@@ -251,6 +251,11 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                       <span>{b.client_email}</span>
                       {b.client_snapshot?.state && <span>{b.client_snapshot.state}</span>}
                       <span>{b.package_trackings?.length || 0} paq.</span>
+                      {Array.isArray(b.cbm_order_numbers) && b.cbm_order_numbers.length > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-blue-600 font-medium">
+                          <Hash className="h-3 w-3" /> {b.cbm_order_numbers.join(', ')}
+                        </span>
+                      )}
                       {b.invoice_paid ? (
                         <span className="text-green-600 font-medium">Factura pagada</span>
                       ) : (

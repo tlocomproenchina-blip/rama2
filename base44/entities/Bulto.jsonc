@@ -40,6 +40,14 @@
         "type": "string"
       }
     },
+    "cbm_order_numbers": {
+      "type": "array",
+      "default": [],
+      "description": "N\u00fameros de orden de CbmIngreso (invoice_number) asociados a los trackings del bulto. Se calculan autom\u00e1ticamente por intersecci\u00f3n de tracking_numbers, o se ingresan manualmente al cerrar.",
+      "items": {
+        "type": "string"
+      }
+    },
     "client_snapshot": {
       "type": "object",
       "description": "Datos del cliente al momento de crear el bulto (para imprimir en la etiqueta)",
@@ -81,7 +89,7 @@
     },
     "invoice_number": {
       "type": "string",
-      "description": "Snapshot: n\u00famero de la factura m\u00e1s reciente"
+      "description": "Snapshot: n\u00famero de la factura de cobro m\u00e1s reciente"
     },
     "warehouse_id": {
       "type": "string",
