@@ -86,6 +86,23 @@ export default async function (req: Request): Promise<Response> {
       }
     }
 
+    // Fetch CbmIngreso records for the same clients (to cross-reference receipts)
+    const cbmIngresoMap = await fetchByClientEmails(
+      base44.asServiceRole.entities.CbmIngreso,
+      clientEmails
+    );
+
+    // Build tracking_number → CbmIngreso lookup
+    const trackingToCbmIngreso = new Map();
+    for (const ing of cbmIngresoMap.values()) {
+      if (Array.isArray(ing.tracking_numbers)) {
+        for (const tn of ing.tracking_numbers) {
+          const key = String(tn || '').trim();
+          if (key) trackingToCbmIngreso.set(key, ing);
+        }
+      }
+    }
+
     // 4. Build rows — only invoices with at least one package still in warehouse
     const rows = [];
     for (const inv of paidInvoices) {
@@ -128,6 +145,23 @@ export default async function (req: Request): Promise<Response> {
       );
       if (inWarehouse.length === 0) continue;
 
+      // Last scan date = most recent received_date among in-warehouse packages
+      const scanDates = inWarehouse
+        .map((p) => (p.received_date ? new Date(p.received_date).getTime() : 0))
+        .filter(Boolean);
+      const lastScanTs = scanDates.length > 0 ? Math.max(...scanDates) : 0;
+
+      // CbmIngreso receipts: collect IDs of CbmIngreso records whose tracking_numbers
+      // intersect with the tracking numbers of the in-warehouse packages
+      const inWarehouseTrackings = new Set(
+        inWarehouse.map((p) => String(p.tracking_number || '').trim()).filter(Boolean)
+      );
+      const cbmIngresoIds = new Set();
+      for (const tn of inWarehouseTrackings) {
+        const ing = trackingToCbmIngreso.get(tn);
+        if (ing) cbmIngresoIds.add(ing.id);
+      }
+
       rows.push({
         invoice_id: inv.id,
         invoice_number: inv.invoice_number || '',
@@ -137,6 +171,8 @@ export default async function (req: Request): Promise<Response> {
         total: Number(inv.total) || 0,
         tracking_numbers: inWarehouse.map((p) => p.tracking_number).filter(Boolean),
         package_count: inWarehouse.length,
+        last_scan_date: lastScanTs ? new Date(lastScanTs).toISOString() : '',
+        cbm_ingreso_ids: [...cbmIngresoIds],
         client_name: '',
         shipping_mark: '',
         client_whatsapp: '',

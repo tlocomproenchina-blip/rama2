@@ -63,12 +63,15 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
     const headers = [
       'Cliente', 'Email', 'Shipping Mark', 'Cedula', 'WhatsApp',
       'Direccion', 'Ciudad', 'Estado',
+      'Fecha Ultimo Reconocimiento', 'Recibos CBM',
       'Fecha de Pago', 'Numero de Envio', 'Numero de Factura',
       'Trackings en Almacen', 'Paquetes en Almacen', 'Total Factura'
     ];
     const lines = [headers.join(',')];
     for (const r of filteredRows) {
       const payDate = r.payment_date ? new Date(r.payment_date).toLocaleDateString('es-VE') : '';
+      const scanDate = r.last_scan_date ? new Date(r.last_scan_date).toLocaleDateString('es-VE') : '';
+      const recibos = (r.cbm_ingreso_ids || []).join('; ');
       const trackings = (r.tracking_numbers || []).join('; ');
       const cells = [
         r.client_name || '',
@@ -79,6 +82,8 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
         r.client_address || '',
         r.client_city || '',
         r.client_state || '',
+        scanDate,
+        recibos,
         payDate,
         r.consolidation_tracking || '',
         r.invoice_number || '',
@@ -163,6 +168,8 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-left">
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Cliente</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Fecha último reconocimiento</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Recibo</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Fecha Pago</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Envío</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Factura</th>
@@ -184,6 +191,29 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                       <div className="text-xs text-slate-500">{r.client_email}</div>
                       {r.shipping_mark && (
                         <div className="text-xs text-blue-600 font-mono mt-0.5">{r.shipping_mark}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
+                      {r.last_scan_date
+                        ? new Date(r.last_scan_date).toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                        : <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
+                      {r.cbm_ingreso_ids && r.cbm_ingreso_ids.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {r.cbm_ingreso_ids.map((id, i) => (
+                            <a
+                              key={i}
+                              href="/AdminCbmIngresos"
+                              className="inline-block bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono hover:bg-blue-100 transition-colors"
+                              title={`Recibo CBM: ${id}`}
+                            >
+                              {id.slice(-6)}
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
