@@ -24,6 +24,7 @@ const WarehouseDispatchScanHistory = lazy(() => import('./pages/WarehouseDispatc
 const WarehouseBultos = lazy(() => import('./pages/WarehouseBultos'));
 const WarehouseScanPack = lazy(() => import('./pages/WarehouseScanPack'));
 const WarehousePrintAudit = lazy(() => import('./pages/WarehousePrintAudit'));
+const BultoOrderScan = lazy(() => import('./pages/BultoOrderScan'));
 const ClientAnalytics = lazy(() => import('./pages/ClientAnalytics'));
 const AccountingDashboard = lazy(() => import('./pages/AccountingDashboard'));
 const AdminEmployees = lazy(() => import('./pages/AdminEmployees'));
@@ -142,6 +143,7 @@ const AuthenticatedApp = () => {
       <Route path="/WarehouseBultos" element={lazyRoute(WarehouseBultos, "WarehouseBultos")} />
       <Route path="/WarehouseScanPack" element={lazyRoute(WarehouseScanPack, "WarehouseScanPack")} />
       <Route path="/WarehousePrintAudit" element={lazyRoute(WarehousePrintAudit, "WarehousePrintAudit")} />
+      <Route path="/BultoOrderScan" element={lazyRoute(BultoOrderScan, "BultoOrderScan")} />
       <Route path="/ClientAnalytics" element={lazyRoute(ClientAnalytics, "ClientAnalytics")} />
       <Route path="/AccountingDashboard" element={lazyRoute(AccountingDashboard, "AccountingDashboard")} />
       <Route path="/AdminEmployees" element={lazyRoute(AdminEmployees, "AdminEmployees")} />

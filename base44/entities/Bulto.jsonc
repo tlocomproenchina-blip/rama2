@@ -48,6 +48,20 @@
         "type": "string"
       }
     },
+    "order_locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que el N\u00b0 de orden CbmIngreso ya fue asignado por un empleado desde la pantalla de escaneo. Bloquea la edici\u00f3n del campo por parte del empleado; solo un admin puede desbloquearlo (cambiar a false) desde BultoEditModal."
+    },
+    "order_assigned_by": {
+      "type": "string",
+      "description": "Email del empleado/admin que asign\u00f3 el N\u00b0 de orden desde la pantalla de escaneo"
+    },
+    "order_assigned_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que se asign\u00f3 el N\u00b0 de orden desde la pantalla de escaneo"
+    },
     "client_snapshot": {
       "type": "object",
       "description": "Datos del cliente al momento de crear el bulto (para imprimir en la etiqueta)",
