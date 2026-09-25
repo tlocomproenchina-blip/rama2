@@ -140,6 +140,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
             >
               <option value="all">Todos los estados</option>
               <option value="activo">Activos</option>
+              <option value="cerrado">Cerrados</option>
               <option value="despachado">Despachados</option>
             </select>
           </div>
@@ -206,9 +207,11 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                       <span className="font-semibold text-slate-800">Bulto {b.bulto_number}/{b.total_bultos}</span>
                       <span className="text-xs font-mono text-slate-500 bg-muted px-1.5 py-0.5 rounded">{b.label_code}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        b.status === 'despachado' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                        b.status === 'despachado' ? 'bg-green-100 text-green-700'
+                        : b.status === 'cerrado' ? 'bg-slate-200 text-slate-600'
+                        : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {b.status === 'despachado' ? 'Despachado' : 'Activo'}
+                        {b.status === 'despachado' ? 'Despachado' : b.status === 'cerrado' ? 'Cerrado' : 'Activo'}
                       </span>
                       <PrintCountBadge count={b.print_count} />
                     </div>

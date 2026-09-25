@@ -6,7 +6,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 //     package_ids: string[], package_trackings: string[], client_snapshot, invoice_paid,
 //     invoice_status, invoice_number, warehouse_id, created_by, closed_at }
 // Idempotente por local_bulto_id: si ya existe un bulto con ese label_code, no lo recrea.
-// Crea el Bulto, marca los Packages como despachados, y crea el DispatchOrder.
+// Crea el Bulto con status 'cerrado' (sellado, esperando despacho manual en WarehouseDispatch),
+// marca los Packages como 'recibido', y crea el DispatchOrder.
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -52,9 +53,9 @@ export default async function(req: Request): Promise<Response> {
     const validPackageIds = Array.isArray(package_ids) ? package_ids.filter(Boolean) : [];
     const validTrackings = Array.isArray(package_trackings) ? package_trackings.filter(Boolean) : [];
 
-    // Bultos con paquetes: status 'activo' (esperando despacho manual en WarehouseDispatch).
+    // Bultos con paquetes: status 'cerrado' (sellado, esperando despacho manual en WarehouseDispatch).
     // Bultos vacíos (bulk/etiquetas): status 'despachado' (cajas pre-armadas sin contenido).
-    const bultoStatus = validPackageIds.length > 0 ? 'activo' : 'despachado';
+    const bultoStatus = validPackageIds.length > 0 ? 'cerrado' : 'despachado';
 
     // Crear el bulto en el servidor
     const newBulto = await base44.asServiceRole.entities.Bulto.create({

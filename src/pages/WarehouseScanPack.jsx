@@ -49,7 +49,7 @@ export default function WarehouseScanPack({ user }) {
   const { block: numberBlock, getNextNumber, reserving: reservingBlock } = useBultoNumberBlock();
 
   const {
-    pendingBultos, isSyncing, isOnline, enqueueClosedBulto, retrySync,
+    pendingBultos, isSyncing, isOnline, enqueueClosedBulto, enqueuePackageReception, retrySync,
   } = useOfflineBultoSync();
 
   // Helper: actualiza la ref y el estado sincrónicamente
@@ -114,6 +114,8 @@ export default function WarehouseScanPack({ user }) {
         };
         await put('packages', updatedPkg);
         pkg = updatedPkg;
+        // Encolar sincronización de recepción al servidor (multi-dispositivo)
+        enqueuePackageReception(updatedPkg);
       }
 
       // Agregar al bulto del cliente (local)
@@ -197,8 +199,9 @@ export default function WarehouseScanPack({ user }) {
   // --- Cerrar bulto: imprimir etiqueta + sincronizar en segundo plano ---
   const handleCloseBulto = useCallback(async (bulto) => {
     if (!bulto) return;
-    // Cerrar bulto: queda 'activo' (esperando despacho manual en WarehouseDispatch)
-    const closedBulto = { ...bulto, status: 'activo', closed_at: new Date().toISOString() };
+    // Cerrar bulto: status 'cerrado' (sellado, esperando despacho/impresión).
+    // El estado es autoritativo en el servidor — se sincroniza vía syncBultoBatch.
+    const closedBulto = { ...bulto, status: 'cerrado', closed_at: new Date().toISOString() };
     await put('bultos', closedBulto);
 
     // Quitar de bultos abiertos

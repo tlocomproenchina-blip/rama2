@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { getAll, put, del, bulkPut } from '@/lib/offlineDb';
 
-// Hook que gestiona la cola de bultos cerrados pendientes de sincronizar.
+// Hook que gestiona la cola de escrituras offline pendientes de sincronizar.
 // - Al cerrar un bulto offline, se encola en IndexedDB (sync_queue).
+// - Al marcar un paquete como recibido offline, se encola (type='package_reception').
 // - Al detectar conexión (online/visibilitychange), procesa la cola en segundo plano.
-// - Llama a syncBultoBatch por cada bulto, idempotente por local_bulto_id.
-// - Expone: pendingBultos (lista de bultos en cola), enqueueClosedBulto, isSyncing.
+// - Llama a syncBultoBatch para bultos, y Package.update para recepción de paquetes.
+// - Idempotente por id (local_bulto_id o package_id).
+// - Expone: pendingBultos, enqueueClosedBulto, enqueuePackageReception, isSyncing.
 
 export function useOfflineBultoSync() {
   const [pendingBultos, setPendingBultos] = useState([]);
@@ -47,17 +49,37 @@ export function useOfflineBultoSync() {
     const queueItem = {
       id: bultoData.local_bulto_id || `sync_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       ...bultoData,
+      type: 'bulto',
       sync_status: 'pending',
       created_at: Date.now(),
     };
     await put('sync_queue', queueItem);
     setPendingBultos((prev) => [...prev, queueItem]);
-    // Intentar procesar inmediatamente si hay internet
     processQueue();
     return queueItem;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Procesar la cola de bultos pendientes
+  // Encolar una recepción de paquete (Package.update status='recibido')
+  const enqueuePackageReception = useCallback(async (pkg) => {
+    if (!pkg?.id) return null;
+    const queueItem = {
+      id: `pkg_${pkg.id}`,
+      type: 'package_reception',
+      package_id: pkg.id,
+      tracking_number: pkg.tracking_number || '',
+      status: 'recibido',
+      received_date: pkg.received_date || new Date().toISOString(),
+      received_by: pkg.received_by || '',
+      sync_status: 'pending',
+      created_at: Date.now(),
+    };
+    await put('sync_queue', queueItem);
+    setPendingBultos((prev) => [...prev, queueItem]);
+    processQueue();
+    return queueItem;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Procesar la cola de items pendientes
   const processQueue = useCallback(async () => {
     if (processingRef.current) return;
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
@@ -65,7 +87,7 @@ export function useOfflineBultoSync() {
     setIsSyncing(true);
     try {
       const queue = await getAll('sync_queue');
-      const pending = queue.filter((item) => (item.sync_status === 'pending' || item.sync_status === 'error') && !item.type);
+      const pending = queue.filter((item) => item.sync_status === 'pending' || item.sync_status === 'error');
       for (const item of pending) {
         // Marcar como syncing
         item.sync_status = 'syncing';
@@ -74,25 +96,36 @@ export function useOfflineBultoSync() {
           prev.map((p) => (p.id === item.id ? { ...p, sync_status: 'syncing' } : p))
         );
         try {
-          const res = await base44.functions.invoke('syncBultoBatch', {
-            local_bulto_id: item.id,
-            label_code: item.label_code,
-            client_email: item.client_email,
-            shipping_mark: item.shipping_mark,
-            bulto_number: item.bulto_number,
-            total_bultos: item.total_bultos,
-            package_ids: item.package_ids || [],
-            package_trackings: item.package_trackings || [],
-            client_snapshot: item.client_snapshot || {},
-            invoice_paid: item.invoice_paid || false,
-            invoice_status: item.invoice_status || '',
-            invoice_number: item.invoice_number || '',
-            warehouse_id: item.warehouse_id || '',
-            created_by: item.created_by || '',
-            closed_at: item.closed_at || new Date().toISOString(),
-          });
-          if (res?.data?.success || res?.data?.already_exists) {
-            // Enlazar el bulto local con el servidor: guardar server_bulto_id sin tocar label_code
+          if (item.type === 'package_reception') {
+            // Sincronizar recepción de paquete
+            await base44.entities.Package.update(item.package_id, {
+              status: item.status,
+              received_date: item.received_date,
+              received_by: item.received_by,
+            });
+          } else {
+            // Sincronizar bulto cerrado (default)
+            const res = await base44.functions.invoke('syncBultoBatch', {
+              local_bulto_id: item.id,
+              label_code: item.label_code,
+              client_email: item.client_email,
+              shipping_mark: item.shipping_mark,
+              bulto_number: item.bulto_number,
+              total_bultos: item.total_bultos,
+              package_ids: item.package_ids || [],
+              package_trackings: item.package_trackings || [],
+              client_snapshot: item.client_snapshot || {},
+              invoice_paid: item.invoice_paid || false,
+              invoice_status: item.invoice_status || '',
+              invoice_number: item.invoice_number || '',
+              warehouse_id: item.warehouse_id || '',
+              created_by: item.created_by || '',
+              closed_at: item.closed_at || new Date().toISOString(),
+            });
+            if (!res?.data?.success && !res?.data?.already_exists) {
+              throw new Error(res?.data?.error || 'Error desconocido');
+            }
+            // Enlazar el bulto local con el servidor
             const serverBultoId = res?.data?.bulto?.id;
             if (serverBultoId) {
               try {
@@ -103,20 +136,12 @@ export function useOfflineBultoSync() {
                 }
               } catch (_) {}
             }
-            // Sincronización exitosa: remover de la cola
-            await del('sync_queue', item.id);
-            setPendingBultos((prev) => prev.filter((p) => p.id !== item.id));
-          } else {
-            // Error lógico: marcar para reintento
-            item.sync_status = 'error';
-            item.error_message = res?.data?.error || 'Error desconocido';
-            await put('sync_queue', item);
-            setPendingBultos((prev) =>
-              prev.map((p) => (p.id === item.id ? { ...p, sync_status: 'error', error_message: item.error_message } : p))
-            );
           }
+          // Sincronización exitosa: remover de la cola
+          await del('sync_queue', item.id);
+          setPendingBultos((prev) => prev.filter((p) => p.id !== item.id));
         } catch (e) {
-          // Error de red: marcar para reintento (se procesará al volver la conexión)
+          // Error: marcar para reintento
           item.sync_status = 'error';
           item.error_message = e?.message || 'Error de red';
           await put('sync_queue', item);
@@ -143,6 +168,7 @@ export function useOfflineBultoSync() {
     isSyncing,
     isOnline,
     enqueueClosedBulto,
+    enqueuePackageReception,
     retrySync,
   };
 }

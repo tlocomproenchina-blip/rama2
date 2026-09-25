@@ -93,22 +93,23 @@ export function useOfflineWarehouseData() {
     try {
       await base44.functions.invoke('consolidateOpenBultos', {});
     } catch (_) {}
-    setProgress((p) => ({ ...p, phase: 'Descargando bultos abiertos…' }));
-    const bultos = await base44.entities.Bulto.filter({ status: 'activo' }, 'bulto_number', 500);
+    setProgress((p) => ({ ...p, phase: 'Descargando bultos…' }));
+    // Descargar bultos activos (abiertos) Y cerrados (sellados, esperando despacho).
+    // Los cerrados se muestran en historial pero no en chips de bultos abiertos.
+    // El estado 'cerrado' es autoritativo en el servidor — ya no dependemos de closed_at local.
+    const [activos, cerrados] = await Promise.all([
+      base44.entities.Bulto.filter({ status: 'activo' }, 'bulto_number', 500),
+      base44.entities.Bulto.filter({ status: 'cerrado' }, 'bulto_number', 500),
+    ]);
+    const bultos = [...(activos || []), ...(cerrados || [])];
 
-    // Recopilar label_codes de bultos ya cerrados localmente (tienen closed_at)
+    // Bultos locales actuales (para preservar los no sincronizados)
     const localBultos = await getAll('bultos');
-    const closedLabelCodes = new Set(
-      localBultos
-        .filter((b) => b.closed_at && b.label_code)
-        .map((b) => b.label_code)
-    );
 
-    // Filtrar del servidor los que ya están cerrados localmente + deduplicar por label_code
+    // Deduplicar por label_code (el servidor ya distingue activo vs cerrado)
     const seenLabelCodes = new Set();
     const filtered = (bultos || []).filter((b) => {
       if (!b.label_code) return true;
-      if (closedLabelCodes.has(b.label_code)) return false;
       if (seenLabelCodes.has(b.label_code)) return false;
       seenLabelCodes.add(b.label_code);
       return true;
@@ -116,18 +117,15 @@ export function useOfflineWarehouseData() {
 
     const withIds = filtered.map((b) => ({ ...b, id: b.id || `bulto_${b.label_code}` }));
 
-    // Set de label_codes del servidor (autoritativos): cualquier bulto local con el mismo
-    // label_code ya fue sincronizado y debe descartarse para evitar duplicados en los chips.
+    // Set de label_codes del servidor (autoritativos)
     const serverLabelCodes = new Set(withIds.map((b) => b.label_code).filter(Boolean));
 
-    // Preservar bultos locales no sincronizados (sin closed_at) antes de limpiar el store
-    // Los bultos con closed_at se preservan también (sean locales o del servidor) para no
-    // perder el registro de cierre y evitar que reaparezcan como abiertos en la próxima sincronización.
-    // Se excluyen los locales cuyo label_code ya existe en el servidor (duplicados) y se
-    // deduplican entre sí por label_code.
+    // Preservar bultos locales no sincronizados (sin closed_at) antes de limpiar el store.
+    // Los bultos locales con closed_at que ya existen en el servidor se descartan (el servidor
+    // ya tiene el registro autoritativo con status 'cerrado').
     const seenLocal = new Set();
     const localOnly = localBultos.filter((b) => {
-      const keep = (b.is_local || String(b.id || '').startsWith('local_') || b.closed_at) &&
+      const keep = (b.is_local || String(b.id || '').startsWith('local_')) &&
         !(b.label_code && serverLabelCodes.has(b.label_code));
       if (!keep) return false;
       if (b.label_code && seenLocal.has(b.label_code)) return false;

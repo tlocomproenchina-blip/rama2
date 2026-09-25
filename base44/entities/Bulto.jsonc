@@ -91,10 +91,11 @@
       "type": "string",
       "enum": [
         "activo",
+        "cerrado",
         "despachado"
       ],
       "default": "activo",
-      "description": "Estado del bulto"
+      "description": "Estado del bulto: activo (abierto, llen\u00e1ndose), cerrado (sellado, esperando despacho/impresi\u00f3n), despachado (entregado al transporte)"
     },
     "print_count": {
       "type": "number",
