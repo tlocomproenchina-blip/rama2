@@ -96,6 +96,16 @@
       "default": "activo",
       "description": "Estado del bulto"
     },
+    "print_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Contador de impresiones de etiqueta. La primera impresi\u00f3n lo lleva a 1. M\u00e1ximo 3 reimpresiones antes de requerir aprobaci\u00f3n de admin."
+    },
+    "reprint_unlocked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que un admin aprob\u00f3 una reimpresi\u00f3n extra tras alcanzar el l\u00edmite de 3. Permite una impresi\u00f3n adicional."
+    },
     "created_by": {
       "type": "string",
       "description": "Email del admin que cre\u00f3 el bulto"

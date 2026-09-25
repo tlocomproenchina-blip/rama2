@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import BultoEditModal from './BultoEditModal';
 import BluetoothPrinter from './BluetoothPrinter';
+import PrintCountBadge from './PrintCountBadge';
+import ReprintDialog from './ReprintDialog';
 
 const PAGE_SIZE = 50;
 
@@ -208,6 +210,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                       }`}>
                         {b.status === 'despachado' ? 'Despachado' : 'Activo'}
                       </span>
+                      <PrintCountBadge count={b.print_count} />
                     </div>
                     <div className="mt-1 text-sm text-slate-600">
                       <span className="font-medium">{b.client_snapshot?.full_name || '—'}</span>
@@ -267,23 +270,14 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
         onSaved={handleEditSaved}
       />
 
-      {/* Reimpresión de etiqueta */}
+      {/* Reimpresión de etiqueta con control de contador */}
       {printTarget && (
-        <Dialog open onOpenChange={() => setPrintTarget(null)}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Printer className="h-5 w-5" /> Reimprimir bulto {printTarget.bulto_number}/{printTarget.total_bultos}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="text-sm text-slate-600 space-y-2">
-              <p>Etiqueta: <span className="font-mono">{printTarget.label_code}</span></p>
-              <p>Cliente: {printTarget.client_snapshot?.full_name || printTarget.client_email}</p>
-              <p>{printTarget.package_trackings?.length || 0} paquete(s) incluido(s).</p>
-            </div>
-            <BluetoothPrinter bultos={[printTarget]} onPrinted={() => setPrintTarget(null)} />
-          </DialogContent>
-        </Dialog>
+        <ReprintDialog
+          bulto={printTarget}
+          open={!!printTarget}
+          onClose={() => setPrintTarget(null)}
+          onRegistered={() => load()}
+        />
       )}
 
       {/* Impresión múltiple */}
@@ -300,7 +294,17 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 <p key={b.id} className="font-mono text-xs">{b.label_code} — {b.client_snapshot?.full_name || b.client_email}</p>
               ))}
             </div>
-            <BluetoothPrinter bultos={bulkPrintTarget} onPrinted={() => { setBulkPrintTarget(null); exitSelectMode(); }} />
+            <BluetoothPrinter bultos={bulkPrintTarget} onPrinted={async () => {
+              // Registrar cada impresión (best-effort)
+              for (const b of bulkPrintTarget) {
+                try {
+                  await base44.functions.invoke('registerBultoPrint', { bulto_id: b.id });
+                } catch (_) {}
+              }
+              setBulkPrintTarget(null);
+              exitSelectMode();
+              load();
+            }} />
           </DialogContent>
         </Dialog>
       )}

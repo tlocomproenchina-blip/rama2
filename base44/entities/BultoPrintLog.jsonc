@@ -1,0 +1,98 @@
+{
+  "name": "BultoPrintLog",
+  "type": "object",
+  "properties": {
+    "bulto_id": {
+      "type": "string",
+      "description": "ID del bulto al que pertenece la impresi\u00f3n"
+    },
+    "label_code": {
+      "type": "string",
+      "description": "C\u00f3digo de etiqueta del bulto (cache para mostrar en auditor\u00eda)"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente due\u00f1o del bulto"
+    },
+    "print_type": {
+      "type": "string",
+      "enum": [
+        "primera",
+        "reimpresion",
+        "solicitud_reimpresion",
+        "reimpresion_aprobada"
+      ],
+      "description": "Tipo de impresi\u00f3n: primera, reimpresion, solicitud de reimpresion, o reimpresion aprobada por admin"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Motivo predefinido de la reimpresi\u00f3n (Etiqueta da\u00f1ada, Se perdi\u00f3, Error de impresi\u00f3n, Otra). Null para primera impresi\u00f3n."
+    },
+    "reason_detail": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Texto libre cuando el motivo es 'Otra'"
+    },
+    "printed_by": {
+      "type": "string",
+      "description": "Email del usuario que imprimi\u00f3 o solicit\u00f3"
+    },
+    "print_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la impresi\u00f3n o solicitud"
+    },
+    "approval_status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobado",
+        "rechazado",
+        "n/a"
+      ],
+      "default": "n/a",
+      "description": "Estado de aprobaci\u00f3n: pendiente (solicitud), aprobado, rechazado, o n/a (impresiones directas)"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Email del admin que aprob\u00f3 la reimpresi\u00f3n"
+    },
+    "approved_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de aprobaci\u00f3n"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "bulto_id",
+    "print_type",
+    "printed_by"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -213,6 +213,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         doc.save(`etiqueta-${bulto.label_code}.pdf`);
       }
       toast.success(`${bultos.length} etiqueta(s) PDF descargada(s)`);
+      onPrinted?.();
     } catch (e) {
       toast.error(`Error generando PDF: ${e?.message || ''}`);
     }

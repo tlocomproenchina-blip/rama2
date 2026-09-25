@@ -462,7 +462,15 @@ export default function WarehouseScanPack({ user }) {
               <CheckCircle2 className="h-5 w-5" />
               <p className="font-medium">Bulto {closingBulto.bulto_number}/{closingBulto.total_bultos} cerrado: {closingBulto.label_code}</p>
             </div>
-            <BluetoothPrinter bultos={[closingBulto]} onPrinted={() => setClosingBulto(null)} />
+            <BluetoothPrinter bultos={[closingBulto]} onPrinted={async () => {
+              // Registrar primera impresión (best-effort, el bulto puede estar offline aún)
+              if (closingBulto?.id) {
+                try {
+                  await base44.functions.invoke('registerBultoPrint', { bulto_id: closingBulto.id });
+                } catch (_) {}
+              }
+              setClosingBulto(null);
+            }} />
           </CardContent>
         </Card>
       )}
