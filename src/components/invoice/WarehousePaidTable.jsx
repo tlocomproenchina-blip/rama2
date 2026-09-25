@@ -71,7 +71,7 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
     for (const r of filteredRows) {
       const payDate = r.payment_date ? new Date(r.payment_date).toLocaleDateString('es-VE') : '';
       const scanDate = r.last_scan_date ? new Date(r.last_scan_date).toLocaleDateString('es-VE') : '';
-      const recibos = (r.cbm_ingreso_ids || []).join('; ');
+      const recibos = (r.cbm_order_numbers || []).join('; ');
       const trackings = (r.tracking_numbers || []).join('; ');
       const cells = [
         r.client_name || '',
@@ -199,16 +199,16 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                         : <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {r.cbm_ingreso_ids && r.cbm_ingreso_ids.length > 0 ? (
+                      {r.cbm_order_numbers && r.cbm_order_numbers.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
-                          {r.cbm_ingreso_ids.map((id, i) => (
+                          {r.cbm_order_numbers.map((num, i) => (
                             <a
                               key={i}
                               href="/AdminCbmIngresos"
                               className="inline-block bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono hover:bg-blue-100 transition-colors"
-                              title={`Recibo CBM: ${id}`}
+                              title={`N° Orden: ${num}`}
                             >
-                              {id.slice(-6)}
+                              {num}
                             </a>
                           ))}
                         </div>

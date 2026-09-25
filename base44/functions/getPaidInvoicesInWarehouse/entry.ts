@@ -157,9 +157,13 @@ export default async function (req: Request): Promise<Response> {
         inWarehouse.map((p) => String(p.tracking_number || '').trim()).filter(Boolean)
       );
       const cbmIngresoIds = new Set();
+      const cbmOrderNumbers = new Set();
       for (const tn of inWarehouseTrackings) {
         const ing = trackingToCbmIngreso.get(tn);
-        if (ing) cbmIngresoIds.add(ing.id);
+        if (ing) {
+          cbmIngresoIds.add(ing.id);
+          if (ing.invoice_number) cbmOrderNumbers.add(ing.invoice_number);
+        }
       }
 
       rows.push({
@@ -173,6 +177,7 @@ export default async function (req: Request): Promise<Response> {
         package_count: inWarehouse.length,
         last_scan_date: lastScanTs ? new Date(lastScanTs).toISOString() : '',
         cbm_ingreso_ids: [...cbmIngresoIds],
+        cbm_order_numbers: [...cbmOrderNumbers],
         client_name: '',
         shipping_mark: '',
         client_whatsapp: '',
