@@ -16,7 +16,8 @@ import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, MessageCircle, Truck, ShieldCheck } from 'lucide-react';
+import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ShieldCheck } from 'lucide-react';
+import WarehousePaidTable from '@/components/invoice/WarehousePaidTable';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
 import { ensureInvoicePaymentForPaidInvoice } from '@/lib/invoicePaymentSync';
@@ -810,6 +811,10 @@ export default function AdminInvoices({ user }) {
             <TabsTrigger value="pagada">Pagadas</TabsTrigger>
             <TabsTrigger value="vencida">Vencidas</TabsTrigger>
             <TabsTrigger value="provider_unpaid">No pagadas al proveedor</TabsTrigger>
+            <TabsTrigger value="en_almacen">
+              <Package className="h-3.5 w-3.5 mr-1" />
+              En Almacén
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         <StateFilter
@@ -880,6 +885,15 @@ export default function AdminInvoices({ user }) {
         </Card>
       )}
 
+      {/* Warehouse Paid Report (En Almacén tab) */}
+      {statusFilter === 'en_almacen' ? (
+        <WarehousePaidTable
+          search={search}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+        />
+      ) : (
+      <>
       {/* Invoice List */}
       {filteredInvoices.length === 0 ? (
         <Card className="border-0 shadow-lg">
@@ -1015,6 +1029,8 @@ export default function AdminInvoices({ user }) {
             {loadingMore ? 'Cargando...' : 'Cargar más'}
           </Button>
         )}
+      </>
+      )}
 
         {/* Create Invoice Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
