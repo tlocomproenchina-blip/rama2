@@ -212,7 +212,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
           </div>
         )}
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="flex-wrap gap-2 min-w-0">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving || loadingPkgs} className="bg-blue-600 hover:bg-blue-700">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
