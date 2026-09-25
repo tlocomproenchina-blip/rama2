@@ -57,14 +57,23 @@ export default function WarehouseScanPack({ user }) {
   }, []);
 
   // Cargar bultos abiertos de IndexedDB al montar (instantáneo)
+  // + consolidar bultos duplicados por cliente en el servidor antes de mostrar
   useEffect(() => {
     if (!cacheReady) return;
+    let cancelled = false;
     (async () => {
+      // Consolidar duplicados en el servidor y refrescar caché antes de leer
+      try {
+        await base44.functions.invoke('consolidateOpenBultos', {});
+        await refreshCache();
+      } catch (_) {}
+      if (cancelled) return;
       const localBultos = await getAll('bultos');
       const active = localBultos.filter((b) => b.status === 'activo' && !b.closed_at);
       updateBultosState(active);
       if (active.length && !activeBultoId) setActiveBultoId(active[0].id);
     })();
+    return () => { cancelled = true; };
   }, [cacheReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Escaneo: lookup local instantáneo ---

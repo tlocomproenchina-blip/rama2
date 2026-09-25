@@ -26,7 +26,7 @@ export default function OpenBultosChips({ bultos, activeId, onSelect }) {
               }`}
             >
               <Package className="h-3.5 w-3.5" />
-              <span className="font-mono">{b.shipping_mark || b.client_email}</span>
+              <span className="font-mono">{b.label_code || b.shipping_mark || b.client_email}</span>
               <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                 isActive ? 'bg-white/25 text-white' : 'bg-blue-100 text-blue-700'
               }`}>

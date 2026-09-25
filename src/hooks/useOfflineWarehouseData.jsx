@@ -88,6 +88,11 @@ export function useOfflineWarehouseData() {
   // para evitar que reaparezcan como abiertos al reconectar.
   // Deduplica por label_code para limpiar entradas repetidas.
   const downloadBultos = useCallback(async () => {
+    setProgress((p) => ({ ...p, phase: 'Consolidando bultos abiertos…' }));
+    // Consolidar bultos duplicados por cliente en el servidor antes de descargar
+    try {
+      await base44.functions.invoke('consolidateOpenBultos', {});
+    } catch (_) {}
     setProgress((p) => ({ ...p, phase: 'Descargando bultos abiertos…' }));
     const bultos = await base44.entities.Bulto.filter({ status: 'activo' }, 'bulto_number', 500);
 
