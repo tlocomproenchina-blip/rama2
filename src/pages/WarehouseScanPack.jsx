@@ -428,14 +428,6 @@ export default function WarehouseScanPack({ user }) {
         </div>
       )}
 
-      {/* Crear bultos en lote (vacíos, solo etiquetas) */}
-      <BulkBultoCreator
-        getNextNumber={getNextNumber}
-        user={user}
-        onCreated={handleBulkCreated}
-        enqueueClosedBulto={enqueueClosedBulto}
-      />
-
       <BarcodeScannerModule
         title="Recepción y empaque de bultos"
         description="Usa la cámara, una lectora USB o escribe el tracking. El paquete se marca como recibido y se agrega al bulto al instante."
@@ -445,6 +437,14 @@ export default function WarehouseScanPack({ user }) {
         onValueChange={setCode}
         onDetected={handleScan}
         continuous={true}
+      />
+
+      {/* Crear bultos en lote (vacíos, solo etiquetas) */}
+      <BulkBultoCreator
+        getNextNumber={getNextNumber}
+        user={user}
+        onCreated={handleBulkCreated}
+        enqueueClosedBulto={enqueueClosedBulto}
       />
 
       {/* Resultado del último escaneo (instantáneo, local) */}
