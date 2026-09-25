@@ -240,11 +240,22 @@ export default function WarehouseScanPack({ user }) {
   }, [updateBultosState, enqueueClosedBulto, user]);
 
   // --- Quitar último paquete del bulto (local) ---
+  // Si el paquete fue creado manualmente offline (is_local), también se borra
+  // del store 'packages' para que re-escanear el tracking vuelva a abrir el
+  // panel de asignación manual y se pueda elegir otro cliente.
   const handleRemoveLast = useCallback(async (bulto) => {
     const ids = bulto.package_ids || [];
     if (!ids.length) return;
+    const removedId = ids[ids.length - 1];
     const newIds = ids.slice(0, -1);
     try {
+      // Borrar paquete manual del store local si aplica
+      const allPkgs = await getAll('packages');
+      const removedPkg = allPkgs.find((p) => p.id === removedId);
+      if (removedPkg?.is_local) {
+        await del('packages', removedId);
+      }
+
       if (newIds.length === 0) {
         // Eliminar bulto local
         await del('bultos', bulto.id);
