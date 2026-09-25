@@ -805,7 +805,7 @@ export default function AdminInvoices({ user }) {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1">
-          <TabsList>
+          <TabsList className="flex-wrap gap-1 overflow-x-auto sm:overflow-visible">
             <TabsTrigger value="all">Todas</TabsTrigger>
             <TabsTrigger value="pendiente">Pendientes</TabsTrigger>
             <TabsTrigger value="pagada">Pagadas</TabsTrigger>

@@ -170,6 +170,7 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Cliente</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Fecha último reconocimiento</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Orden</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 text-center whitespace-nowrap">Paquetes</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Fecha Pago</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Envío</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Factura</th>
@@ -216,11 +217,16 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                         <span className="text-slate-400">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {r.payment_date
-                        ? new Date(r.payment_date).toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                        : <span className="text-slate-400">—</span>}
-                    </td>
+                    <td className="px-4 py-3 text-center">
+                       <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold text-xs">
+                         {r.package_count}
+                       </span>
+                     </td>
+                     <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
+                       {r.payment_date
+                         ? new Date(r.payment_date).toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                         : <span className="text-slate-400">—</span>}
+                     </td>
                     <td className="px-4 py-3 text-slate-700 font-mono text-xs whitespace-nowrap">
                       {r.consolidation_tracking || <span className="text-slate-400">—</span>}
                     </td>
@@ -247,11 +253,6 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold text-xs">
-                        {r.package_count}
-                      </span>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-slate-800 whitespace-nowrap">
                       ${Number(r.total || 0).toFixed(2)}
