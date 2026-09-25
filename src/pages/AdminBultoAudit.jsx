@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, History, Boxes, User, Clock, Package } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Loader2, Search, History, Boxes, User, Clock, Package, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 
@@ -14,6 +16,8 @@ export default function AdminBultoAudit() {
   const [search, setSearch] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
+  const [showBackfill, setShowBackfill] = useState(false);
+  const [backfillRunning, setBackfillRunning] = useState(false);
 
   useEffect(() => {
     const loadBultos = async () => {
@@ -65,6 +69,26 @@ export default function AdminBultoAudit() {
     packages: filtered.reduce((sum, b) => sum + (b.package_ids?.length || 0), 0),
   }), [filtered]);
 
+  const runBackfill = async () => {
+    setBackfillRunning(true);
+    try {
+      const res = await base44.functions.invoke('backfillBultosCerrados', {});
+      const updated = res?.data?.updated ?? res?.updated ?? 0;
+      const alreadyOk = res?.data?.already_ok ?? res?.already_ok ?? 0;
+      toast.success(`Backfill completado: ${updated} bulto(s) migrado(s) a 'cerrado'${alreadyOk ? `, ${alreadyOk} ya estaban correctos` : ''}`);
+      setShowBackfill(false);
+      // Recargar lista para reflejar cambios
+      setLoading(true);
+      const rows = await base44.entities.Bulto.list('-created_date', 500);
+      setBultos(rows || []);
+      setLoading(false);
+    } catch (e) {
+      toast.error('Error al ejecutar el backfill: ' + (e?.message || 'desconocido'));
+    } finally {
+      setBackfillRunning(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
@@ -77,6 +101,16 @@ export default function AdminBultoAudit() {
         title="Historial de escaneos"
         description="Registro completo de qué empleado procesó cada bulto y a qué hora, con los paquetes incluidos."
       />
+
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          onClick={() => setShowBackfill(true)}
+          className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+        >
+          <RefreshCw className="h-4 w-4" /> Backfill bultos cerrados
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="border-0 shadow-lg">
@@ -186,6 +220,38 @@ export default function AdminBultoAudit() {
           )}
         </CardContent>
       </Card>
+
+      {/* Diálogo de confirmación de backfill */}
+      <Dialog open={showBackfill} onOpenChange={(v) => !backfillRunning && setShowBackfill(v)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Backfill de bultos cerrados
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-slate-600">
+              Esta operación migrará los bultos legacy con estado <span className="font-mono font-semibold">activo</span> que
+              no tengan paquetes activos asociados al estado <span className="font-mono font-semibold">cerrado</span> en el
+              servidor.
+            </p>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+              <strong>Advertencia:</strong> Los bultos migrados dejarán de aparecer como abiertos en todos los
+              dispositivos de bodega tras su próxima sincronización. Esta acción no se puede deshacer.
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowBackfill(false)} disabled={backfillRunning}>
+              Cancelar
+            </Button>
+            <Button onClick={runBackfill} disabled={backfillRunning} className="gap-2">
+              {backfillRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {backfillRunning ? 'Ejecutando…' : 'Ejecutar backfill'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

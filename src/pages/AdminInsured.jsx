@@ -39,7 +39,10 @@ export default function AdminInsured({ user }) {
       base44.entities.Invoice.list()
     ]);
 
-    setPackages(pkgs);
+    // Filtrar solo paquetes recibidos y posteriores (excluye pre_alerta, rechazado, sin_cliente)
+    const eligibleStatuses = ['recibido', 'consolidado', 'en_transito', 'disponible'];
+    const eligiblePkgs = (pkgs || []).filter((p) => eligibleStatuses.includes(p.status));
+    setPackages(eligiblePkgs);
     setConsolidations(cons);
     setInvoices(invs);
     if (configs.length > 0) setConfig(configs[0]);

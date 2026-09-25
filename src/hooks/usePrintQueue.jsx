@@ -4,6 +4,15 @@ import { getAll, put, del, clearStore } from '@/lib/offlineDb';
 // Cola de impresión persistente (IndexedDB store 'print_queue').
 // Sobrevive recarga/cierre de app. El operador cierra bultos lejos de la
 // impresora y luego imprime todo en una sola conexión Bluetooth.
+//
+// AUDITORÍA MULTI-DISPOSITIVO (híbrido con auditoría):
+// - La cola es estrictamente LOCAL por dispositivo: no se sincroniza con el
+//   servidor ni con otros dispositivos. Esto evita duplicación de impresiones
+//   entre dispositivos de bodega.
+// - Cada impresión exitosa dispara registerBultoPrint (ver PrintQueueCard),
+//   que crea un BultoPrintLog en el servidor. Ese historial SÍ es global y
+//   autoritativo — cualquier dispositivo lo consulta en WarehousePrintAudit.
+// - No se crea ninguna entidad de servidor para la cola activa.
 export function usePrintQueue() {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(false);

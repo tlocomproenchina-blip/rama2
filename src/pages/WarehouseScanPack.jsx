@@ -384,6 +384,12 @@ export default function WarehouseScanPack({ user }) {
       }`}>
         {isOnline ? <Wifi className="h-4 w-4 shrink-0" /> : <WifiOff className="h-4 w-4 shrink-0" />}
         <span>{isOnline ? 'En línea' : 'Sin conexión — modo offline'}</span>
+        {lastSync && (
+          <span className="flex items-center gap-1 text-xs text-slate-500 ml-2">
+            <Clock className="h-3 w-3" />
+            Últ. sync: {new Date(lastSync).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
         {pendingBultos.length > 0 && (
           <span className="ml-auto flex items-center gap-1 text-xs font-medium">
             <Clock className="h-3 w-3" /> {pendingBultos.length} bulto{pendingBultos.length !== 1 ? 's' : ''} por sincronizar
