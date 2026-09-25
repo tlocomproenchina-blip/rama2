@@ -35,22 +35,16 @@ export default function QuickPreAlertForm({ trackingNumber, onCreated, onCancel 
     if (!selectedClient || !trackingNumber) return;
     setCreating(true);
     try {
-      const existing = await base44.entities.Package.filter({ tracking_number: trackingNumber.trim() }, '-created_date', 1);
-      if (existing?.length > 0) {
-        toast.error('Este tracking ya está registrado en el sistema');
-        setCreating(false);
-        return;
-      }
-      await base44.entities.Package.create({
+      const res = await base44.functions.invoke('createQuickPreAlert', {
         tracking_number: trackingNumber.trim(),
         client_email: selectedClient.email,
-        shipping_mark: selectedClient.shipping_mark || '',
         shipping_type: shippingType,
-        description: 'Pre-alerta rápida',
-        status: 'pre_alerta',
-        reported: true,
       });
-      toast.success(`Pre-alerta creada para ${trackingNumber}`);
+      if (res?.data?.action === 'merged') {
+        toast.success(`Pre-alerta del cliente marcada como recibida (tracking ${res.data.tracking_number || trackingNumber})`);
+      } else {
+        toast.success(`Pre-alerta creada para ${trackingNumber}`);
+      }
       if (typeof onCreated === 'function') onCreated(selectedClient);
     } catch (e) {
       toast.error('No se pudo crear la pre-alerta');
