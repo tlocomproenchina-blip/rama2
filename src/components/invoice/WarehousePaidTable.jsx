@@ -55,54 +55,30 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
     });
   }, [rows, search, dateFrom, dateTo]);
 
-  const handleExportCSV = () => {
+  const handleExportTXT = () => {
     if (filteredRows.length === 0) {
       toast.error('No hay datos para exportar');
       return;
     }
-    const headers = [
-      'Cliente', 'Email', 'Shipping Mark', 'Cedula', 'WhatsApp',
-      'Direccion', 'Ciudad', 'Estado',
-      'Fecha Ultimo Reconocimiento', 'Nº Orden',
-      'Fecha de Pago', 'Numero de Envio', 'Numero de Factura',
-      'Trackings en Almacen', 'Paquetes en Almacen', 'Total Factura'
-    ];
-    const lines = [headers.join(',')];
+    const pad = (s, n) => String(s ?? '').padEnd(n).slice(0, n);
+    const header =
+      pad('Cliente', 28) + pad('Cedula', 12) + pad('WhatsApp', 14) +
+      pad('Ciudad', 18) + pad('Estado', 18) + pad('Shipping Mark', 14) +
+      pad('Nº Orden', 14) + pad('Paquetes', 9) + pad('Total', 10);
+    const lines = [header];
     for (const r of filteredRows) {
-      const payDate = r.payment_date ? new Date(r.payment_date).toLocaleDateString('es-VE') : '';
-      const scanDate = r.last_scan_date ? new Date(r.last_scan_date).toLocaleDateString('es-VE') : '';
-      const recibos = (r.cbm_order_numbers || []).join('; ');
-      const trackings = (r.tracking_numbers || []).join('; ');
-      const cells = [
-        r.client_name || '',
-        r.client_email || '',
-        r.shipping_mark || '',
-        r.client_cedula || '',
-        r.client_whatsapp || '',
-        r.client_address || '',
-        r.client_city || '',
-        r.client_state || '',
-        scanDate,
-        recibos,
-        payDate,
-        r.consolidation_tracking || '',
-        r.invoice_number || '',
-        trackings,
-        r.package_count || 0,
-        Number(r.total || 0).toFixed(2)
-      ].map((c) => {
-        const s = String(c ?? '');
-        return s.includes(',') || s.includes('"') || s.includes('\n')
-          ? `"${s.replace(/"/g, '""')}"`
-          : s;
-      });
-      lines.push(cells.join(','));
+      const recibos = (r.cbm_order_numbers || []).join('; ') || '—';
+      const line =
+        pad(r.client_name || '—', 28) + pad(r.client_cedula || '—', 12) + pad(r.client_whatsapp || '—', 14) +
+        pad(r.client_city || '—', 18) + pad(r.client_state || '—', 18) + pad(r.shipping_mark || '—', 14) +
+        pad(recibos, 14) + pad(String(r.package_count || 0), 9) + pad('$' + Number(r.total || 0).toFixed(2), 10);
+      lines.push(line);
     }
-    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/plain;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `facturas-pagadas-almacen-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `facturas-pagadas-almacen-${new Date().toISOString().split('T')[0]}.txt`;
     link.click();
     URL.revokeObjectURL(url);
     toast.success(`Reporte exportado (${filteredRows.length} factura(s))`);
@@ -144,9 +120,9 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
             )}
           </p>
         </div>
-        <Button onClick={handleExportCSV} variant="outline" disabled={filteredRows.length === 0}>
+        <Button onClick={handleExportTXT} variant="outline" disabled={filteredRows.length === 0}>
           <Download className="h-4 w-4 mr-2" />
-          Exportar CSV
+          Exportar TXT
         </Button>
       </div>
 
@@ -175,7 +151,6 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Envío</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Factura</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Trackings en Almacén</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 text-center whitespace-nowrap">Paquetes</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 text-right whitespace-nowrap">Total</th>
                 </tr>
               </thead>
@@ -192,6 +167,11 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                       <div className="text-xs text-slate-500">{r.client_email}</div>
                       {r.shipping_mark && (
                         <div className="text-xs text-blue-600 font-mono mt-0.5">{r.shipping_mark}</div>
+                      )}
+                      {(r.client_city || r.client_state) && (
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {[r.client_city, r.client_state].filter(Boolean).join(', ')}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
