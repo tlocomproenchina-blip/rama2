@@ -63,7 +63,7 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
     const headers = [
       'Cliente', 'Email', 'Shipping Mark', 'Cedula', 'WhatsApp',
       'Direccion', 'Ciudad', 'Estado',
-      'Fecha Ultimo Reconocimiento', 'Recibos CBM',
+      'Fecha Ultimo Reconocimiento', 'Nº Orden',
       'Fecha de Pago', 'Numero de Envio', 'Numero de Factura',
       'Trackings en Almacen', 'Paquetes en Almacen', 'Total Factura'
     ];
@@ -169,7 +169,7 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                 <tr className="bg-slate-50 border-b border-slate-200 text-left">
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Cliente</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Fecha último reconocimiento</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Recibo</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Orden</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Fecha Pago</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Envío</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Factura</th>
