@@ -296,6 +296,37 @@ export default function BarcodeScannerModule({
           <p className="text-sm text-slate-500">{description}</p>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Cámara inline — se despliega arriba del campo de entrada dentro de la misma tarjeta */}
+          {cameraOpen && (
+            <div className="space-y-2">
+              <div className="relative overflow-hidden rounded-xl border bg-black">
+                <video ref={videoRef} autoPlay playsInline muted className="aspect-video w-full object-cover" />
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+                  <div className="h-28 w-full max-w-md rounded-2xl border-2 border-dashed border-white/80 bg-white/10" />
+                </div>
+                {cameraLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white">
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Activando cámara...
+                  </div>
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCameraOpen(false)}
+                  className="absolute right-2 top-2 h-8 gap-1 bg-black/60 text-white hover:bg-black/80"
+                >
+                  <X className="h-3.5 w-3.5" /> Cerrar cámara
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500">
+                {nativeBarcodeSupported
+                  ? 'Escaneo automático. No necesita estar perfectamente recto.'
+                  : 'Sin lector nativo en este navegador. Usa la lectora USB o escribe el código manualmente.'}
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative w-full lg:max-w-xl xl:max-w-2xl">
               <Keyboard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -330,37 +361,6 @@ export default function BarcodeScannerModule({
             <p className="text-xs text-amber-600">
               La cámara no está disponible en este navegador, pero la lectora USB sigue funcionando.
             </p>
-          )}
-
-          {/* Cámara inline — se despliega debajo de los botones dentro de la misma tarjeta */}
-          {cameraOpen && (
-            <div className="space-y-2">
-              <div className="relative overflow-hidden rounded-xl border bg-black">
-                <video ref={videoRef} autoPlay playsInline muted className="aspect-video w-full object-cover" />
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
-                  <div className="h-28 w-full max-w-md rounded-2xl border-2 border-dashed border-white/80 bg-white/10" />
-                </div>
-                {cameraLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white">
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Activando cámara...
-                  </div>
-                )}
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setCameraOpen(false)}
-                  className="absolute right-2 top-2 h-8 gap-1 bg-black/60 text-white hover:bg-black/80"
-                >
-                  <X className="h-3.5 w-3.5" /> Cerrar cámara
-                </Button>
-              </div>
-              <p className="text-xs text-slate-500">
-                {nativeBarcodeSupported
-                  ? 'Escaneo automático. No necesita estar perfectamente recto.'
-                  : 'Sin lector nativo en este navegador. Usa la lectora USB o escribe el código manualmente.'}
-              </p>
-            </div>
           )}
         </CardContent>
       </Card>
