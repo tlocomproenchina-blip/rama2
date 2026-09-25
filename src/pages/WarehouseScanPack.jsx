@@ -395,16 +395,23 @@ export default function WarehouseScanPack({ user }) {
         </p>
       </div>
 
-      {/* Indicador de conexión + sincronización */}
-      <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+      {/* Indicador de conexión + sincronización + bloque de números (una sola línea) */}
+      <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 text-sm ${
         isOnline ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-orange-50 text-orange-700 border border-orange-200'
       }`}>
         {isOnline ? <Wifi className="h-4 w-4 shrink-0" /> : <WifiOff className="h-4 w-4 shrink-0" />}
         <span>{isOnline ? 'En línea' : 'Sin conexión — modo offline'}</span>
         {lastSync && (
-          <span className="flex items-center gap-1 text-xs text-slate-500 ml-2">
+          <span className="flex items-center gap-1 text-xs text-slate-500">
             <Clock className="h-3 w-3" />
             Últ. sync: {new Date(lastSync).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
+        {numberBlock && (
+          <span className="flex items-center gap-1 text-xs text-blue-700">
+            <Package className="h-3.5 w-3.5 shrink-0" />
+            Números de bulto: {numberBlock.next_number}–{numberBlock.end}
+            {reservingBlock && <Loader2 className="h-3 w-3 animate-spin ml-1" />}
           </span>
         )}
         {pendingBultos.length > 0 && (
@@ -418,15 +425,6 @@ export default function WarehouseScanPack({ user }) {
           </span>
         )}
       </div>
-
-      {/* Estado del bloque de números */}
-      {numberBlock && (
-        <div className="flex items-center gap-2 rounded-lg bg-blue-50/60 border border-blue-100 px-3 py-1.5 text-xs text-blue-700">
-          <Package className="h-3.5 w-3.5 shrink-0" />
-          <span>Números de bulto: {numberBlock.next_number}–{numberBlock.end}</span>
-          {reservingBlock && <Loader2 className="h-3 w-3 animate-spin ml-auto" />}
-        </div>
-      )}
 
       <BarcodeScannerModule
         title="Recepción y empaque de bultos"
