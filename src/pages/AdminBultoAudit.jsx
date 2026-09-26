@@ -125,7 +125,8 @@ export default function AdminBultoAudit() {
     const lines = filtered.map((b) => {
       const state = clientStateMap[(b.client_email || '').trim().toLowerCase()] || '';
       const bulto = b.bulto_number > 0 ? `${b.bulto_number}/${b.total_bultos || b.bulto_number}` : '';
-      return [b.label_code || '', b.client_email || '', bulto, state].join('\t');
+      const cliente = b.client_snapshot?.full_name || b.client_email || '';
+      return [b.label_code || '', cliente, bulto, state].join('\t');
     });
     const header = 'Codigo\tCliente\tBulto\tRegion';
     const content = [header, ...lines].join('\n');
