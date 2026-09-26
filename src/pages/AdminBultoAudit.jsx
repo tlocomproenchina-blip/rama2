@@ -124,10 +124,9 @@ export default function AdminBultoAudit() {
   const exportTxt = () => {
     const lines = filtered.map((b) => {
       const state = clientStateMap[(b.client_email || '').trim().toLowerCase()] || '';
-      const cliente = b.client_snapshot?.full_name || b.client_email || '';
-      return [b.label_code || '', cliente, state].join('\t');
+      return [b.label_code || '', state].join('\t');
     });
-    const header = 'Codigo\tCliente\tRegion';
+    const header = 'Codigo\tRegion';
     const content = [header, ...lines].join('\n');
     const blob = new Blob(['\ufeff' + content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
