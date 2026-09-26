@@ -36,17 +36,19 @@ export default function DispatchScanHistoryPanel({ title = 'Historial de escaneo
   const [clientStateMap, setClientStateMap] = useState({});
 
   // Resuelve el estado (User.state) de cada cliente en lote a partir de los
-  // client_email presentes en los logs. Cachea el mapa email→state en estado.
+  // client_email presentes en los logs, usando la función backend existente
+  // (getClientsByEmails) que usa $in desde el servidor. Cachea email→state.
   const resolveClientStates = useCallback(async (items) => {
     const emails = Array.from(new Set(
-      (items || []).map((l) => (l.client_email || '').trim().toLowerCase()).filter(Boolean)
+      (items || []).map((l) => (l.client_email || '').trim()).filter(Boolean)
     ));
     if (emails.length === 0) return;
     try {
-      const users = await base44.entities.User.filter({ email: { $in: emails } }, '-created_date', 500);
+      const res = await base44.functions.invoke('getClientsByEmails', { emails });
+      const clients = res?.data?.clients || res?.clients || {};
       const map = {};
-      (users || []).forEach((u) => {
-        if (u.email) map[String(u.email).toLowerCase()] = u.state || '';
+      Object.entries(clients).forEach(([email, c]) => {
+        map[String(email).toLowerCase()] = c?.state || '';
       });
       setClientStateMap((prev) => ({ ...prev, ...map }));
     } catch (e) {

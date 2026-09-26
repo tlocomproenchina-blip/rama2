@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Search, History, Boxes, User, Clock, Package, RefreshCw, AlertTriangle, Hash } from 'lucide-react';
+import { Loader2, Search, History, Boxes, User, Clock, Package, RefreshCw, AlertTriangle, Hash, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 
@@ -17,6 +17,8 @@ export default function AdminBultoAudit() {
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   const [orderFilter, setOrderFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
+  const [clientStateMap, setClientStateMap] = useState({});
   const [showBackfill, setShowBackfill] = useState(false);
   const [backfillRunning, setBackfillRunning] = useState(false);
   const [showEnAlmacenVeBackfill, setShowEnAlmacenVeBackfill] = useState(false);
@@ -28,17 +30,49 @@ export default function AdminBultoAudit() {
       try {
         const rows = await base44.entities.Bulto.list('-created_date', 500);
         setBultos(rows || []);
+        resolveClientStates(rows || []);
       } catch {
         toast.error('No se pudo cargar el historial de bultos');
       }
       setLoading(false);
-    };
-    loadBultos();
-  }, []);
+      };
+      loadBultos();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+
+  // Resuelve el estado (User.state) de cada cliente dueño de bulto en lote,
+  // usando la función backend existente (getClientsByEmails) con $in.
+  const resolveClientStates = async (rows) => {
+    const emails = Array.from(new Set(
+      (rows || []).map((b) => (b.client_email || '').trim()).filter(Boolean)
+    ));
+    if (emails.length === 0) return;
+    try {
+      const res = await base44.functions.invoke('getClientsByEmails', { emails });
+      const clients = res?.data?.clients || res?.clients || {};
+      const map = {};
+      Object.entries(clients).forEach(([email, c]) => {
+        map[String(email).toLowerCase()] = c?.state || '';
+      });
+      setClientStateMap(map);
+    } catch (e) {
+      console.warn('No se pudieron resolver estados de cliente:', e);
+    }
+  };
 
   const employees = useMemo(() => {
     return Array.from(new Set(bultos.map((b) => b.created_by).filter(Boolean))).sort();
   }, [bultos]);
+
+  const availableStates = useMemo(() => {
+    const set = new Set();
+    bultos.forEach((b) => {
+      const email = (b.client_email || '').trim().toLowerCase();
+      const st = clientStateMap[email];
+      if (st) set.add(st);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [bultos, clientStateMap]);
 
   const filtered = useMemo(() => {
     const term = String(search || '').toLowerCase();
@@ -46,6 +80,12 @@ export default function AdminBultoAudit() {
     return bultos.filter((b) => {
       const matchesEmployee = employeeFilter === 'all' || b.created_by === employeeFilter;
       if (!matchesEmployee) return false;
+
+      if (stateFilter !== 'all') {
+        const email = (b.client_email || '').trim().toLowerCase();
+        const st = clientStateMap[email] || '';
+        if (st !== stateFilter) return false;
+      }
 
       const created = new Date(b.created_date);
       if (dateFilter === 'today') {
@@ -69,7 +109,7 @@ export default function AdminBultoAudit() {
       ].map((v) => String(v || '').toLowerCase()).join(' ');
       return haystack.includes(term);
     });
-  }, [bultos, search, employeeFilter, dateFilter, orderFilter]);
+  }, [bultos, search, employeeFilter, dateFilter, orderFilter, stateFilter, clientStateMap]);
 
   const stats = useMemo(() => ({
     total: filtered.length,
@@ -172,7 +212,7 @@ export default function AdminBultoAudit() {
           <CardTitle className="flex items-center gap-2 text-xl"><History className="h-5 w-5 text-blue-600" /> Historial de bultos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-[1fr,220px,180px,180px]">
+          <div className="grid gap-3 md:grid-cols-[1fr,200px,160px,160px,160px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por etiqueta, cliente, shipping mark o tracking" className="pl-10" />
@@ -183,6 +223,15 @@ export default function AdminBultoAudit() {
                 <SelectItem value="all">Todos los empleados</SelectItem>
                 {employees.map((email) => (
                   <SelectItem key={email} value={email}>{email}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger><SelectValue placeholder="Estado" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                {availableStates.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -252,6 +301,14 @@ export default function AdminBultoAudit() {
                       <div className="rounded-lg bg-white p-2.5 shadow-sm">
                         <p className="text-xs uppercase tracking-wide text-slate-400">Cliente</p>
                         <p className="mt-0.5 text-sm text-slate-700 break-all">{b.client_email || '—'}</p>
+                        {(() => {
+                          const st = clientStateMap[(b.client_email || '').trim().toLowerCase()] || '';
+                          return (
+                            <span className="mt-1 inline-flex items-center gap-0.5 text-[11px] text-slate-500">
+                              <MapPin className="h-3 w-3" /> {st || 'Sin estado'}
+                            </span>
+                          );
+                        })()}
                       </div>
                       <div className="rounded-lg bg-white p-2.5 shadow-sm">
                         <p className="text-xs uppercase tracking-wide text-slate-400">Shipping Mark</p>
