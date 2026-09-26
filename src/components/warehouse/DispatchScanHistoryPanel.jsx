@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  History, Search, ScanLine, Package as PackageIcon, Boxes,
+  History, Search, ScanLine, Package as PackageIcon, Boxes, MapPin,
   CheckCircle2, AlertTriangle, XCircle, User, Clock, RefreshCw, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,19 +32,41 @@ export default function DispatchScanHistoryPanel({ title = 'Historial de escaneo
   const [search, setSearch] = useState('');
   const [resultFilter, setResultFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [stateFilter, setStateFilter] = useState('all');
+  const [clientStateMap, setClientStateMap] = useState({});
+
+  // Resuelve el estado (User.state) de cada cliente en lote a partir de los
+  // client_email presentes en los logs. Cachea el mapa email→state en estado.
+  const resolveClientStates = useCallback(async (items) => {
+    const emails = Array.from(new Set(
+      (items || []).map((l) => (l.client_email || '').trim().toLowerCase()).filter(Boolean)
+    ));
+    if (emails.length === 0) return;
+    try {
+      const users = await base44.entities.User.filter({ email: { $in: emails } }, '-created_date', 500);
+      const map = {};
+      (users || []).forEach((u) => {
+        if (u.email) map[String(u.email).toLowerCase()] = u.state || '';
+      });
+      setClientStateMap((prev) => ({ ...prev, ...map }));
+    } catch (e) {
+      console.warn('No se pudieron resolver estados de cliente:', e);
+    }
+  }, []);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
       const items = await base44.entities.DispatchScanLog.list('-created_date', 200);
       setLogs(items || []);
+      resolveClientStates(items || []);
     } catch (e) {
       console.error('Error loading scan logs:', e);
       toast.error('No se pudo cargar el historial de escaneos');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [resolveClientStates]);
 
   useEffect(() => {
     loadLogs();
@@ -54,10 +76,26 @@ export default function DispatchScanHistoryPanel({ title = 'Historial de escaneo
     return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, [loadLogs]);
 
+  // Estados distintos presentes en los logs (derivados del mapa email→state)
+  const availableStates = useMemo(() => {
+    const set = new Set();
+    logs.forEach((l) => {
+      const email = (l.client_email || '').trim().toLowerCase();
+      const st = clientStateMap[email];
+      if (st) set.add(st);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [logs, clientStateMap]);
+
   // Filtrado en memoria
   const filtered = logs.filter((log) => {
     if (resultFilter !== 'all' && log.result !== resultFilter) return false;
     if (typeFilter !== 'all' && log.scan_type !== typeFilter) return false;
+    if (stateFilter !== 'all') {
+      const email = (log.client_email || '').trim().toLowerCase();
+      const st = clientStateMap[email] || '';
+      if (st !== stateFilter) return false;
+    }
     if (search) {
       const q = search.toLowerCase();
       const haystack = [
@@ -154,6 +192,16 @@ export default function DispatchScanHistoryPanel({ title = 'Historial de escaneo
             <option value="package">Paquetes</option>
             <option value="not_found">No encontrados</option>
           </select>
+          <select
+            value={stateFilter}
+            onChange={(e) => setStateFilter(e.target.value)}
+            className="text-xs rounded-lg border border-border bg-card px-2.5 py-1.5 text-slate-700"
+          >
+            <option value="all">Todos los estados</option>
+            {availableStates.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -176,6 +224,10 @@ export default function DispatchScanHistoryPanel({ title = 'Historial de escaneo
             const tc = SCAN_TYPE_CONFIG[log.scan_type] || SCAN_TYPE_CONFIG.package;
             const ResultIcon = rc.icon;
             const TypeIcon = tc.icon;
+            const clientEmail = (log.client_email || '').trim().toLowerCase();
+            const clientState = clientEmail ? (clientStateMap[clientEmail] || '') : '';
+            // Conteo de artículos: bulto usa package_count, paquete individual = 1
+            const articleCount = log.scan_type === 'bulto' ? (log.package_count || 0) : 1;
             return (
               <Card key={log.id} className="overflow-hidden">
                 <CardContent className="p-3 space-y-2">
@@ -205,7 +257,11 @@ export default function DispatchScanHistoryPanel({ title = 'Historial de escaneo
                   {(log.client_name || log.client_email) && (
                     <div className="flex items-center gap-1.5 text-xs text-slate-600">
                       <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                      <span className="truncate">{log.client_name || log.client_email}</span>
+                      <span className="truncate flex-1 min-w-0">{log.client_name || log.client_email}</span>
+                      <Badge variant="outline" className="shrink-0 text-[9px] border-slate-200 text-slate-600 bg-slate-50 gap-0.5">
+                        <MapPin className="h-2.5 w-2.5" />
+                        {clientState || 'Sin estado'}
+                      </Badge>
                     </div>
                   )}
 
@@ -223,12 +279,10 @@ export default function DispatchScanHistoryPanel({ title = 'Historial de escaneo
                     </div>
                   )}
 
-                  {log.scan_type === 'bulto' && log.package_count > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                      <Boxes className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                      <span>{log.package_count} paquete(s) en el bulto</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <Boxes className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <span>{articleCount} artículo{articleCount !== 1 ? 's' : ''}{log.scan_type === 'bulto' ? ' en el bulto' : ''}</span>
+                  </div>
 
                   <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/50">
                     <span className="text-[10px] text-slate-400 truncate">
