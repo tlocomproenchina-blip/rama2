@@ -8,7 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Loader2, Search, History, Boxes, User, Clock, Package, RefreshCw, AlertTriangle, Hash, MapPin, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 import PageHero from '@/components/common/PageHero';
+
+const SIN_ESTADO = 'Sin estado';
 
 export default function AdminBultoAudit() {
   const [bultos, setBultos] = useState([]);
@@ -62,6 +65,17 @@ export default function AdminBultoAudit() {
       }
     }
     setClientStateMap(map);
+  };
+
+  // Resuelve el nombre legible del estado de un bulto de forma SINCRÓNICA:
+  // 1) estado guardado en el propio bulto (client_snapshot.state)
+  // 2) respaldo: mapa cargado desde los clientes (o getClientsByEmails)
+  // Así la exportación nunca depende de que la carga en segundo plano termine.
+  const resolveStateName = (bulto) => {
+    const email = (bulto?.client_email || '').trim().toLowerCase();
+    const raw = String(bulto?.client_snapshot?.state || clientStateMap[email] || '').trim();
+    if (!raw) return '';
+    return CANONICAL_STATE_NAMES[raw.toLowerCase()] || raw;
   };
 
   const employees = useMemo(() => {
@@ -122,15 +136,18 @@ export default function AdminBultoAudit() {
   }), [filtered]);
 
   const exportTxt = () => {
-    const byRegion = {};
+    const byState = {};
     filtered.forEach((b) => {
-      const state = clientStateMap[(b.client_email || '').trim().toLowerCase()] || 'Sin region';
-      if (!byRegion[state]) byRegion[state] = [];
-      byRegion[state].push(b.label_code || '');
+      const state = resolveStateName(b) || SIN_ESTADO;
+      if (!byState[state]) byState[state] = [];
+      byState[state].push(b.label_code || '');
     });
-    const sections = Object.keys(byRegion).sort((a, b) => a.localeCompare(b, 'es')).map((region) => {
-      const codes = byRegion[region];
-      return `=== ${region.toUpperCase()} (${codes.length}) ===\n` + codes.join('\n');
+    // Estados ordenados alfabéticamente; el grupo sin estado siempre al final.
+    const groups = Object.keys(byState).filter((s) => s !== SIN_ESTADO).sort((a, b) => a.localeCompare(b, 'es'));
+    if (byState[SIN_ESTADO]) groups.push(SIN_ESTADO);
+    const sections = groups.map((state) => {
+      const codes = byState[state];
+      return `=== ${state.toUpperCase()} (${codes.length}) ===\n` + codes.join('\n');
     });
     const content = sections.join('\n\n');
     const blob = new Blob(['\ufeff' + content], { type: 'text/plain;charset=utf-8' });
@@ -140,7 +157,7 @@ export default function AdminBultoAudit() {
     a.download = `auditoria_bultos_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Exportados ${filtered.length} registro(s) en ${Object.keys(byRegion).length} region(es)`);
+    toast.success(`Exportados ${filtered.length} registro(s) en ${groups.length} estado(s)`);
   };
 
   const runBackfill = async () => {
@@ -310,10 +327,10 @@ export default function AdminBultoAudit() {
                         <p className="text-xs uppercase tracking-wide text-slate-400">Cliente</p>
                         <p className="mt-0.5 text-sm text-slate-700 break-all">{b.client_email || '—'}</p>
                         {(() => {
-                          const st = clientStateMap[(b.client_email || '').trim().toLowerCase()] || '';
+                          const st = resolveStateName(b);
                           return (
                             <span className="mt-1 inline-flex items-center gap-0.5 text-[11px] text-slate-500">
-                              <MapPin className="h-3 w-3" /> {st || 'Sin estado'}
+                              <MapPin className="h-3 w-3" /> {st || SIN_ESTADO}
                             </span>
                           );
                         })()}
