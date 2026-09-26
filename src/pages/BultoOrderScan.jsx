@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,20 @@ export default function BultoOrderScan({ user }) {
   const [saving, setSaving] = useState(false);
   const [orderNumbers, setOrderNumbers] = useState('');
   const [error, setError] = useState('');
+  // Mismo identificador persistente que usa la página del almacén de China.
+  // Cuando no hay sesión, con él se audita quién asignó el N° de orden.
+  const deviceIdRef = useRef('');
+
+  useEffect(() => {
+    try {
+      let id = localStorage.getItem('bodega_device_id');
+      if (!id) {
+        id = (crypto?.randomUUID?.() || 'dev-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+        localStorage.setItem('bodega_device_id', id);
+      }
+      deviceIdRef.current = id;
+    } catch (_) {}
+  }, []);
 
   const reset = useCallback(() => {
     setBulto(null);
@@ -82,6 +96,7 @@ export default function BultoOrderScan({ user }) {
       const res = await base44.functions.invoke('assignBultoOrderNumbers', {
         bulto_id: bulto.id,
         cbm_order_numbers: parsed,
+        device_id: deviceIdRef.current,
       });
       if (res?.data?.error) {
         toast.error(res.data.error);
@@ -175,7 +190,7 @@ export default function BultoOrderScan({ user }) {
               </div>
               <div>
                 <p className="text-xs text-slate-400">Paquetes</p>
-                <p className="text-slate-800">{(bulto.package_ids || []).length} paquete(s)</p>
+                <p className="text-slate-800">{bulto.package_count || 0} paquete(s)</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400">Estado</p>

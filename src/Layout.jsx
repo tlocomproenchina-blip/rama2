@@ -259,7 +259,7 @@ export default function Layout({ children, currentPageName }) {
 
       // Redirect role-limited admins away from any page they can't access
       // (AdminDailySummary y páginas públicas siempre permitidas para admins)
-      const publicAdminPages = ['AdminDailySummary', 'CityLanding', 'About', 'Contact', 'Blog', 'BlogPost', 'ShippingCalculator', 'Sitemap', 'Inicio2', 'Contract', 'TermsOfService', 'FAQ'];
+      const publicAdminPages = ['AdminDailySummary', 'BultoOrderScan', 'CityLanding', 'About', 'Contact', 'Blog', 'BlogPost', 'ShippingCalculator', 'Sitemap', 'Inicio2', 'Contract', 'TermsOfService', 'FAQ'];
       if (currentUser.role === 'admin' && resolvedRoleConfig?.visible_pages?.length && currentPageName && !publicAdminPages.includes(currentPageName) && !resolvedRoleConfig.visible_pages.includes(currentPageName)) {
         navigate(createPageUrl(resolvedRoleConfig.visible_pages[0] || 'AccountingDashboard'));
         setLoading(false);
@@ -302,7 +302,8 @@ export default function Layout({ children, currentPageName }) {
         }
       } catch (_) {}
       // Allow specific public pages without login (browser only — native app always requires login)
-      const publicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding'];
+      // BultoOrderScan: enlace directo de trabajo del almacén (igual que BodegaScan), sin login.
+      const publicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding', 'BultoOrderScan'];
       if (!isApkApp && !isNative && publicPages.includes(currentPageName)) {
         setUser(null);
         setLoading(false);
