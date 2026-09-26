@@ -38,24 +38,30 @@ export default function AdminBultoAudit() {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       }, []);
 
-  // Resuelve el estado (User.state) de cada cliente dueño de bulto en lote,
-  // usando la función backend existente (getClientsByEmails) con $in.
+  // Resuelve el estado (User.state) de cada cliente dueño de bulto.
+  // Fuente principal: Bulto.client_snapshot.state (ya cargado en los bultos).
+  // Fallback: getClientsByEmails (backend) para emails sin snapshot.
   const resolveClientStates = async (rows) => {
-    const emails = Array.from(new Set(
+    const map = {};
+    (rows || []).forEach((b) => {
+      const email = (b.client_email || '').trim().toLowerCase();
+      if (email && b.client_snapshot?.state) map[email] = b.client_snapshot.state;
+    });
+    const missing = Array.from(new Set(
       (rows || []).map((b) => (b.client_email || '').trim()).filter(Boolean)
-    ));
-    if (emails.length === 0) return;
-    try {
-      const res = await base44.functions.invoke('getClientsByEmails', { emails });
-      const clients = res?.data?.clients || res?.clients || {};
-      const map = {};
-      Object.entries(clients).forEach(([email, c]) => {
-        map[String(email).toLowerCase()] = c?.state || '';
-      });
-      setClientStateMap(map);
-    } catch (e) {
-      console.warn('No se pudieron resolver estados de cliente:', e);
+    )).filter((e) => !map[e.toLowerCase()]);
+    if (missing.length > 0) {
+      try {
+        const res = await base44.functions.invoke('getClientsByEmails', { emails: missing });
+        const clients = res?.data?.clients || res?.clients || {};
+        Object.entries(clients).forEach(([email, c]) => {
+          if (c?.state) map[String(email).toLowerCase()] = c.state;
+        });
+      } catch (e) {
+        console.warn('getClientsByEmails falló:', e);
+      }
     }
+    setClientStateMap(map);
   };
 
   const employees = useMemo(() => {

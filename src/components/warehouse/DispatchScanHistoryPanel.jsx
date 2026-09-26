@@ -36,24 +36,43 @@ export default function DispatchScanHistoryPanel({ title = 'Historial de escaneo
   const [clientStateMap, setClientStateMap] = useState({});
 
   // Resuelve el estado (User.state) de cada cliente en lote a partir de los
-  // client_email presentes en los logs, usando la función backend existente
-  // (getClientsByEmails) que usa $in desde el servidor. Cachea email→state.
+  // client_email presentes en los logs. Usa dos fuentes:
+  // 1) getClientsByEmails (backend, $in en User) — fuente principal.
+  // 2) Bulto.client_snapshot.state — fallback para emails sin User registrado.
   const resolveClientStates = useCallback(async (items) => {
     const emails = Array.from(new Set(
       (items || []).map((l) => (l.client_email || '').trim()).filter(Boolean)
     ));
     if (emails.length === 0) return;
+    const map = {};
+    // 1) User state vía backend
     try {
       const res = await base44.functions.invoke('getClientsByEmails', { emails });
       const clients = res?.data?.clients || res?.clients || {};
-      const map = {};
       Object.entries(clients).forEach(([email, c]) => {
-        map[String(email).toLowerCase()] = c?.state || '';
+        if (c?.state) map[String(email).toLowerCase()] = c.state;
       });
-      setClientStateMap((prev) => ({ ...prev, ...map }));
     } catch (e) {
-      console.warn('No se pudieron resolver estados de cliente:', e);
+      console.warn('getClientsByEmails falló:', e);
     }
+    // 2) Fallback: Bulto.client_snapshot.state para emails sin resolver.
+    //    Usa list (sin $in, que no es confiable desde el cliente) y filtra en memoria.
+    const missing = emails.filter((e) => !map[e.toLowerCase()]);
+    if (missing.length > 0) {
+      try {
+        const bultos = await base44.entities.Bulto.list('-created_date', 300);
+        const missingSet = new Set(missing.map((e) => e.toLowerCase()));
+        (bultos || []).forEach((b) => {
+          const email = (b.client_email || '').trim().toLowerCase();
+          if (email && missingSet.has(email) && !map[email] && b.client_snapshot?.state) {
+            map[email] = b.client_snapshot.state;
+          }
+        });
+      } catch (e) {
+        console.warn('Bulto fallback falló:', e);
+      }
+    }
+    setClientStateMap((prev) => ({ ...prev, ...map }));
   }, []);
 
   const loadLogs = useCallback(async () => {
