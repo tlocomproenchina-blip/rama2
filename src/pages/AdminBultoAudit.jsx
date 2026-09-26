@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Search, History, Boxes, User, Clock, Package, RefreshCw, AlertTriangle, Hash, MapPin } from 'lucide-react';
+import { Loader2, Search, History, Boxes, User, Clock, Package, RefreshCw, AlertTriangle, Hash, MapPin, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 
@@ -121,6 +121,24 @@ export default function AdminBultoAudit() {
     packages: filtered.reduce((sum, b) => sum + (b.package_ids?.length || 0), 0),
   }), [filtered]);
 
+  const exportTxt = () => {
+    const lines = filtered.map((b) => {
+      const state = clientStateMap[(b.client_email || '').trim().toLowerCase()] || '';
+      const bulto = b.bulto_number > 0 ? `${b.bulto_number}/${b.total_bultos || b.bulto_number}` : '';
+      return [b.label_code || '', b.client_email || '', bulto, state].join('\t');
+    });
+    const header = 'Codigo\tCliente\tBulto\tRegion';
+    const content = [header, ...lines].join('\n');
+    const blob = new Blob(['\ufeff' + content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `auditoria_bultos_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exportados ${lines.length} registro(s)`);
+  };
+
   const runBackfill = async () => {
     setBackfillRunning(true);
     try {
@@ -155,6 +173,14 @@ export default function AdminBultoAudit() {
       />
 
       <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          variant="outline"
+          onClick={exportTxt}
+          className="gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+          disabled={filtered.length === 0}
+        >
+          <Download className="h-4 w-4" /> Exportar TXT
+        </Button>
         <Button
           variant="outline"
           onClick={() => setShowBackfill(true)}
