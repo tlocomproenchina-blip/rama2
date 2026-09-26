@@ -122,12 +122,17 @@ export default function AdminBultoAudit() {
   }), [filtered]);
 
   const exportTxt = () => {
-    const lines = filtered.map((b) => {
-      const state = clientStateMap[(b.client_email || '').trim().toLowerCase()] || '';
-      return [b.label_code || '', state].join('\t');
+    const byRegion = {};
+    filtered.forEach((b) => {
+      const state = clientStateMap[(b.client_email || '').trim().toLowerCase()] || 'Sin region';
+      if (!byRegion[state]) byRegion[state] = [];
+      byRegion[state].push(b.label_code || '');
     });
-    const header = 'Codigo\tRegion';
-    const content = [header, ...lines].join('\n');
+    const sections = Object.keys(byRegion).sort((a, b) => a.localeCompare(b, 'es')).map((region) => {
+      const codes = byRegion[region];
+      return `=== ${region.toUpperCase()} (${codes.length}) ===\n` + codes.join('\n');
+    });
+    const content = sections.join('\n\n');
     const blob = new Blob(['\ufeff' + content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -135,7 +140,7 @@ export default function AdminBultoAudit() {
     a.download = `auditoria_bultos_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Exportados ${lines.length} registro(s)`);
+    toast.success(`Exportados ${filtered.length} registro(s) en ${Object.keys(byRegion).length} region(es)`);
   };
 
   const runBackfill = async () => {
