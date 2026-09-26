@@ -279,6 +279,13 @@ export default function AdminPackages({ user }) {
   };
 
   const handleStatusChange = async (pkg, newStatus) => {
+    // 'despachado' solo lo establece la herramienta de despacho (escáner),
+    // que crea la DispatchOrder correspondiente. Bloquear aquí evita paquetes
+    // marcados manualmente como despachados sin orden asociada.
+    if (newStatus === 'despachado') {
+      toast.error('El estado "despachado" solo se asigna desde la herramienta de despacho (escáner).');
+      return;
+    }
     // Update optimista inmediato
     patchPackageInList(pkg.id, { status: newStatus });
     if (!navigator.onLine) {

@@ -43,6 +43,10 @@ export function useAdminPackagesBulk({ packages, onReload, patchPackageInList, r
       toast.error('Selecciona un estado');
       return;
     }
+    if (bulkAction === 'status' && bulkStatus === 'despachado') {
+      toast.error('El estado "despachado" solo se asigna desde la herramienta de despacho (escáner).');
+      return;
+    }
     setShowBulkConfirm(true);
   };
 

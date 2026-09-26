@@ -61,17 +61,71 @@ export default async function(req: Request): Promise<Response> {
 
     // 4. Bulk update de los bultos que no tienen DispatchOrder
     let updated = 0;
+    const updatedIds = new Set<string>();
     if (updates.length > 0) {
       try {
         await base44.asServiceRole.entities.Bulto.bulkUpdate(updates);
+        updates.forEach((u) => updatedIds.add(u.id));
         updated = updates.length;
       } catch (e) {
         // Si falla el bulkUpdate, intentar uno por uno
         for (const u of updates) {
           try {
             await base44.asServiceRole.entities.Bulto.update(u.id, { status: 'en_almacen_ve' });
+            updatedIds.add(u.id);
             updated++;
           } catch (_) {}
+        }
+      }
+    }
+
+    // 5. Revertir paquetes de los bultos migrados: estaban marcados como 'despachado'
+    // por dispatchBulto, pero al pasar el bulto a 'en_almacen_ve' deben volver a
+    // 'recibido' (siguen en el almacén de Venezuela). Se excluyen IDs locales
+    // (offline, formato 'local_pkg_...') que no existen en el servidor.
+    const migratedBultos = candidates.filter((b: any) => updatedIds.has(b.id));
+    const packageIdsToRevert: string[] = [];
+    for (const b of migratedBultos) {
+      const pids = Array.isArray(b.package_ids) ? b.package_ids : [];
+      for (const pid of pids) {
+        if (pid && !String(pid).startsWith('local_')) packageIdsToRevert.push(pid);
+      }
+    }
+
+    let packagesReverted = 0;
+    if (packageIdsToRevert.length > 0) {
+      // Recuperar solo los paquetes efectivamente despachados para no sobreescribir otros estados
+      const despachados = await base44.asServiceRole.entities.Package.filter({
+        status: 'despachado',
+      });
+      const toRevert = (despachados || []).filter((p: any) => packageIdsToRevert.includes(p.id));
+      const batches: any[][] = [];
+      for (let i = 0; i < toRevert.length; i += 500) {
+        batches.push(toRevert.slice(i, i + 500));
+      }
+      for (const batch of batches) {
+        try {
+          await base44.asServiceRole.entities.Package.bulkUpdate(
+            batch.map((p) => ({
+              id: p.id,
+              status: 'recibido',
+              dispatched_date: null,
+              dispatched_by: null,
+            }))
+          );
+          packagesReverted += batch.length;
+        } catch (_) {
+          // fallback uno a uno
+          for (const p of batch) {
+            try {
+              await base44.asServiceRole.entities.Package.update(p.id, {
+                status: 'recibido',
+                dispatched_date: null,
+                dispatched_by: null,
+              });
+              packagesReverted++;
+            } catch (_) {}
+          }
         }
       }
     }
@@ -79,6 +133,7 @@ export default async function(req: Request): Promise<Response> {
     return Response.json({
       updated,
       skipped,
+      packages_reverted: packagesReverted,
       total_candidates: candidates.length,
       has_more: false,
     });
