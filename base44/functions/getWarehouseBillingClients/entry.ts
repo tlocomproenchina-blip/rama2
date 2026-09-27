@@ -149,10 +149,20 @@ Deno.serve(async (req) => {
         // sobre lo deducido de los paquetes o del recibo.
         const registeredCbm = num(b.cargo_cbm);
         const registeredCount = num(b.cargo_package_count);
+        // Fecha real de reconocimiento en el almacén de Venezuela: la que dejó el
+        // escaneo de la etiqueta, o la del N° de orden asignado desde la pantalla
+        // de escaneo. Si no hay escaneo, la fecha de registro del bulto se ofrece
+        // aparte, etiquetada como aproximada.
+        const veScanDate = b.ve_recognized_date || b.order_assigned_date || null;
+        const veScanBy = b.ve_recognized_by || b.order_assigned_by || '';
         return {
           id: b.id,
           type: 'bulto',
           label: b.label_code || '',
+          ve_recognized_date: veScanDate,
+          ve_recognized_by: veScanDate ? veScanBy : '',
+          ve_registered_date: b.created_date || null,
+          ve_date_source: veScanDate ? 'escaneo' : (b.created_date ? 'registro' : null),
           bulto_number: b.bulto_number ?? null,
           order_numbers: (b.cbm_order_numbers || []).filter(Boolean),
           fecha: dates.length > 0 ? dates[dates.length - 1] : (b.created_date || null),
@@ -167,10 +177,19 @@ Deno.serve(async (req) => {
         };
       });
 
-      const bultoTrackings = new Set<string>(clientBultos.flatMap((b: any) => b.trackings));
-      const bultoOrders = new Set<string>(
-        clientBultos.flatMap((b: any) => b.order_numbers || []).map((o: any) => String(o).trim())
-      );
+      // Bulto que ya contiene cada tracking y cada N° de orden: permite decir en qué
+      // bulto está cada recibo y con qué fecha se reconoció.
+      const bultoByTracking = new Map<string, any>();
+      const bultoByOrder = new Map<string, any>();
+      for (const b of clientBultos) {
+        for (const t of b.trackings) {
+          if (!bultoByTracking.has(t)) bultoByTracking.set(t, b);
+        }
+        for (const o of (b.order_numbers || [])) {
+          const key = String(o).trim();
+          if (key && !bultoByOrder.has(key)) bultoByOrder.set(key, b);
+        }
+      }
 
       const clientReceipts = receiptsPending
         .filter((r: any) => r.client_email === email)
@@ -178,6 +197,8 @@ Deno.serve(async (req) => {
           const trackings = [...new Set<string>(
             (r.tracking_numbers || []).map(normTracking).filter(Boolean)
           )];
+          const ownerBulto = trackings.map((t) => bultoByTracking.get(t)).find(Boolean)
+            || (r.invoice_number ? bultoByOrder.get(String(r.invoice_number).trim()) : null);
           return {
             id: r.id,
             type: 'receipt',
@@ -186,8 +207,10 @@ Deno.serve(async (req) => {
             cbm: num(r.cbm),
             trackings,
             package_count: trackings.length,
-            overlap_bulto: trackings.some((t) => bultoTrackings.has(t))
-              || (!!r.invoice_number && bultoOrders.has(String(r.invoice_number).trim())),
+            overlap_bulto: !!ownerBulto,
+            in_bulto: ownerBulto?.label || null,
+            ve_date: ownerBulto?.ve_recognized_date || ownerBulto?.ve_registered_date || null,
+            ve_date_source: ownerBulto?.ve_date_source || null,
           };
         });
 

@@ -4,7 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, RefreshCw, Search, Users, Package, Boxes, DollarSign, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Search, Users, Package, Boxes, DollarSign, AlertCircle, CalendarClock } from 'lucide-react';
+import { toast } from 'sonner';
 import WarehouseBillingList from './WarehouseBillingList';
 import WarehouseBillingClientDetail from './WarehouseBillingClientDetail';
 import { buildBillingContext, computeClientEstimate, num } from '@/lib/warehouseBilling';
@@ -33,6 +34,26 @@ export default function WarehouseBillingTab({ search = '' }) {
   const [localSearch, setLocalSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [selected, setSelected] = useState(null);
+  const [loadingDates, setLoadingDates] = useState(false);
+
+  // Corrección de una sola pasada: los bultos que sí tienen registro de escaneo
+  // reciben su fecha real de reconocimiento en el almacén de Venezuela.
+  const handleLoadDates = async () => {
+    setLoadingDates(true);
+    try {
+      const res = await base44.functions.invoke('backfillBultoVeRecognizedDates', {});
+      const data = res?.data || {};
+      if (data?.error) {
+        toast.error(data.error);
+      } else {
+        toast.success(`${data.updated || 0} bulto(s) recibieron su fecha real de escaneo`);
+        await load(false);
+      }
+    } catch (e) {
+      toast.error('No se pudieron cargar las fechas de reconocimiento');
+    }
+    setLoadingDates(false);
+  };
 
   const load = async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
@@ -140,9 +161,15 @@ export default function WarehouseBillingTab({ search = '' }) {
             Bultos en almacén de Venezuela y envíos/recibos de CBM sin facturar, agrupados por cliente.
           </p>
         </div>
-        <Button variant="outline" onClick={() => load()}>
-          <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={handleLoadDates} disabled={loadingDates}>
+            {loadingDates ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CalendarClock className="h-4 w-4 mr-2" />}
+            {loadingDates ? 'Cargando fechas…' : 'Cargar fechas de reconocimiento'}
+          </Button>
+          <Button variant="outline" onClick={() => load()}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Actualizar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

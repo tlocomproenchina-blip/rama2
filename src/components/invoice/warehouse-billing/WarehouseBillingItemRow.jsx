@@ -3,9 +3,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Package, Truck, AlertTriangle, Pencil, Loader2, ShieldCheck } from 'lucide-react';
+import { Package, Truck, Pencil, Loader2, ShieldCheck } from 'lucide-react';
 
 const money = (v) => `$${Number(v || 0).toFixed(2)}`;
+
+const formatDate = (v) => {
+  if (!v) return '—';
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('es-VE');
+};
 
 const toNumber = (raw) => {
   const clean = String(raw ?? '').replace(',', '.').trim();
@@ -85,16 +91,36 @@ export default function WarehouseBillingItemRow({ item, amount, checked, onToggl
             )}
           </div>
 
+          {item.type === 'bulto' && item.ve_date_source === 'escaneo' && (
+            <p className="mt-1.5 text-xs text-emerald-700">
+              Reconocido en almacén VE: {formatDate(item.ve_recognized_date)}
+              {item.ve_recognized_by ? ` · por ${item.ve_recognized_by}` : ''}
+            </p>
+          )}
+          {item.type === 'bulto' && item.ve_date_source === 'registro' && (
+            <p className="mt-1.5 text-xs text-slate-500">
+              En almacén desde: {formatDate(item.ve_registered_date)} · fecha de registro (sin escaneo)
+            </p>
+          )}
+          {item.type === 'bulto' && !item.ve_date_source && (
+            <Badge className="mt-2 mr-1 bg-amber-100 text-amber-700 border border-amber-200">Sin fecha de escaneo</Badge>
+          )}
+
+          {item.type === 'receipt' && (
+            item.in_bulto ? (
+              <p className="mt-1.5 text-xs text-slate-600">
+                En bulto <span className="font-mono">{item.in_bulto}</span> · {item.ve_date_source === 'registro' ? 'en almacén desde' : 'reconocido el'} {formatDate(item.ve_date)}
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-slate-500">Sin bulto asignado</p>
+            )
+          )}
+
           {(item.type === 'bulto' && !item.order_numbers?.length) && (
             <Badge className="mt-2 mr-1 bg-amber-100 text-amber-700 border border-amber-200">Sin N° de orden</Badge>
           )}
           {Number(item.cbm || 0) <= 0 && (
             <Badge className="mt-2 mr-1 bg-slate-100 text-slate-600 border border-slate-200">Sin CBM registrado</Badge>
-          )}
-          {item.overlap_bulto && (
-            <Badge className="mt-2 bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" /> Ya incluido en un bulto en almacén
-            </Badge>
           )}
 
           {item.trackings?.length > 0 && (

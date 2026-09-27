@@ -27,16 +27,9 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
     };
   }), [bultosBase, cargoEdits]);
 
-  const [selectedBultos, setSelectedBultos] = useState(() => {
-    const init = {};
-    bultosBase.forEach((b) => { init[b.id] = num(b.cbm) > 0; });
-    return init;
-  });
-  const [selectedReceipts, setSelectedReceipts] = useState(() => {
-    const init = {};
-    receipts.forEach((r) => { init[r.id] = !r.overlap_bulto; });
-    return init;
-  });
+  // Al abrir un cliente nada llega marcado: el admin decide a mano qué se factura.
+  const [selectedBultos, setSelectedBultos] = useState({});
+  const [selectedReceipts, setSelectedReceipts] = useState({});
   const [overrides, setOverrides] = useState({
     billedCbm: '', insurance: '', consolidationMode: 'auto', consolidationFee: '',
     doorToDoor: '', extraAmount: '', extraConcept: '',
@@ -106,9 +99,6 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
         ...prev,
         [item.id]: { cbm: payload.cargo_cbm, package_count: payload.cargo_package_count },
       }));
-      if (num(payload.cargo_cbm ?? item.cbm) > 0) {
-        setSelectedBultos((prev) => ({ ...prev, [item.id]: true }));
-      }
       toast.success('CBM y paquetes guardados');
       onGenerated?.();
       return true;
