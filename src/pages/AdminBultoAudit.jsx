@@ -21,7 +21,6 @@ export default function AdminBultoAudit() {
   const [dateFilter, setDateFilter] = useState('all');
   const [orderFilter, setOrderFilter] = useState('all');
   const [stateFilter, setStateFilter] = useState('all');
-  const [bultoStatusFilter, setBultoStatusFilter] = useState('all');
   const [clientStateMap, setClientStateMap] = useState({});
   const [showBackfill, setShowBackfill] = useState(false);
   const [backfillRunning, setBackfillRunning] = useState(false);
@@ -106,9 +105,6 @@ export default function AdminBultoAudit() {
         if (st !== stateFilter) return false;
       }
 
-      // Estado del propio bulto: activo, cerrado, en_almacen_ve, despachado
-      if (bultoStatusFilter !== 'all' && String(b.status || 'activo') !== bultoStatusFilter) return false;
-
       const created = new Date(b.created_date);
       if (dateFilter === 'today') {
         const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -131,7 +127,7 @@ export default function AdminBultoAudit() {
       ].map((v) => String(v || '').toLowerCase()).join(' ');
       return haystack.includes(term);
     });
-  }, [bultos, search, employeeFilter, dateFilter, orderFilter, stateFilter, bultoStatusFilter, clientStateMap]);
+  }, [bultos, search, employeeFilter, dateFilter, orderFilter, stateFilter, clientStateMap]);
 
   const stats = useMemo(() => ({
     total: filtered.length,
@@ -247,7 +243,7 @@ export default function AdminBultoAudit() {
           <CardTitle className="flex items-center gap-2 text-xl"><History className="h-5 w-5 text-blue-600" /> Historial de bultos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-[1fr,180px,160px,175px,150px,150px]">
+          <div className="grid gap-3 md:grid-cols-[1fr,200px,160px,160px,160px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por etiqueta, cliente, shipping mark o tracking" className="pl-10" />
@@ -262,22 +258,12 @@ export default function AdminBultoAudit() {
               </SelectContent>
             </Select>
             <Select value={stateFilter} onValueChange={setStateFilter}>
-              <SelectTrigger><SelectValue placeholder="Estado del cliente" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Estado" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos los estados del cliente</SelectItem>
+                <SelectItem value="all">Todos los estados</SelectItem>
                 {availableStates.map((s) => (
                   <SelectItem key={s} value={s}>{s}</SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-            <Select value={bultoStatusFilter} onValueChange={setBultoStatusFilter}>
-              <SelectTrigger><SelectValue placeholder="Estado del bulto" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados del bulto</SelectItem>
-                <SelectItem value="activo">Activo</SelectItem>
-                <SelectItem value="cerrado">Cerrado</SelectItem>
-                <SelectItem value="en_almacen_ve">En Almacén Venezuela</SelectItem>
-                <SelectItem value="despachado">Despachado</SelectItem>
               </SelectContent>
             </Select>
             <Select value={dateFilter} onValueChange={setDateFilter}>

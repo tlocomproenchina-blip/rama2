@@ -6,10 +6,6 @@
       "type": "string",
       "description": "N\u00famero \u00fanico de la orden de despacho"
     },
-    "company_code": {
-      "type": "string",
-      "description": "Empresa due\u00f1a de la orden de despacho: vac\u00edo o 'tlec' = TLEC CARGO; cualquier otro c\u00f3digo corresponde a una empresa socia."
-    },
     "client_email": {
       "type": "string",
       "description": "Email del cliente"

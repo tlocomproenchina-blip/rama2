@@ -6,10 +6,6 @@
       "type": "string",
       "description": "C\u00f3digo escaneable de la etiqueta del bulto (shipping_mark-B##). Formato distinto al ShippingLabel (-L##) para evitar colisiones."
     },
-    "company_code": {
-      "type": "string",
-      "description": "Empresa due\u00f1a del bulto: vac\u00edo o 'tlec' = TLEC CARGO; cualquier otro c\u00f3digo corresponde a una empresa socia. Un bulto solo agrupa paquetes de su misma empresa."
-    },
     "client_email": {
       "type": "string",
       "description": "Email del cliente due\u00f1o de los paquetes agrupados en el bulto"

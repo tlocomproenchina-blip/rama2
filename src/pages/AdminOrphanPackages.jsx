@@ -16,9 +16,6 @@ import moment from 'moment';
 import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
 import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
 import { getAll } from '@/lib/offlineDb';
-import CompanyFilterBar from '@/components/admin/CompanyFilterBar';
-import useCompanyFilter from '@/hooks/useCompanyFilter';
-import { ALL_COMPANIES, DEFAULT_COMPANY_CODE } from '@/lib/companyScope';
 
 const PAGE_SIZE = 50;
 
@@ -34,9 +31,6 @@ export default function AdminOrphanPackages({ user }) {
   const [selectedClient, setSelectedClient] = useState(null);
   const [shippingType, setShippingType] = useState('maritimo');
   const [assigning, setAssigning] = useState(false);
-  // Empresa: filtro de pantalla y empresa destino al asignar
-  const { companies, companyCode, setCompanyCode, matches } = useCompanyFilter();
-  const [assignCompany, setAssignCompany] = useState('');
 
   // Multi-select y acciones en lote
   const [selectedIds, setSelectedIds] = useState([]);
@@ -165,8 +159,6 @@ export default function AdminOrphanPackages({ user }) {
   }, [orphans]);
 
   const filtered = orphans.filter((p) => {
-    // Filtro por empresa
-    if (!matches(p)) return false;
     // Filtro por categoría de tarjeta
     if (statFilter) {
       const hasPhoto = (Array.isArray(p.package_image_urls) && p.package_image_urls.length > 0) || p.package_image_url;
@@ -192,7 +184,6 @@ export default function AdminOrphanPackages({ user }) {
 
   const openAssign = (pkg) => {
     setAssignTarget({ ids: [pkg.id], multi: false });
-    setAssignCompany(companyCode !== ALL_COMPANIES ? companyCode : '');
     setSelectedClient(null);
     setClientQuery('');
     setClientResults([]);
@@ -203,7 +194,6 @@ export default function AdminOrphanPackages({ user }) {
   const openBulkAssign = () => {
     if (selectedIds.length === 0) return;
     setAssignTarget({ ids: [...selectedIds], multi: true });
-    setAssignCompany(companyCode !== ALL_COMPANIES ? companyCode : '');
     setSelectedClient(null);
     setClientQuery('');
     setClientResults([]);
@@ -223,7 +213,6 @@ export default function AdminOrphanPackages({ user }) {
             client_email: selectedClient.email,
             shipping_mark: selectedClient.shipping_mark || undefined,
             shipping_type: shippingType,
-            company_code: assignCompany || undefined,
           });
           if (data?.error) throw new Error(data.error);
           ok++;
@@ -234,7 +223,6 @@ export default function AdminOrphanPackages({ user }) {
               client_email: selectedClient.email,
               shipping_mark: selectedClient.shipping_mark || undefined,
               shipping_type: shippingType,
-              company_code: assignCompany || undefined,
             },
           });
           ok++;
@@ -547,12 +535,11 @@ export default function AdminOrphanPackages({ user }) {
       </Card>
 
       <Card className="shadow-sm">
-        <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
-          <div className="relative flex-1">
+        <CardContent className="p-4">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input placeholder="Buscar por tracking o shipping mark..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
-          <CompanyFilterBar companies={companies} value={companyCode} onChange={setCompanyCode} />
         </CardContent>
       </Card>
 
@@ -647,7 +634,7 @@ export default function AdminOrphanPackages({ user }) {
               </Card>
             );
           })}
-          {hasMore && !search && companyCode === ALL_COMPANIES && (
+          {hasMore && !search && (
             <div className="flex justify-center pt-2">
               <Button variant="outline" onClick={() => loadOrphans(false)} disabled={loading}>Cargar más</Button>
             </div>
@@ -671,20 +658,6 @@ export default function AdminOrphanPackages({ user }) {
               )}
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Empresa destino</Label>
-                <Select value={assignCompany || 'auto'} onValueChange={(v) => setAssignCompany(v === 'auto' ? '' : v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">Automático (según el cliente)</SelectItem>
-                    <SelectItem value={DEFAULT_COMPANY_CODE}>TLEC CARGO</SelectItem>
-                    {companies.map((c) => (
-                      <SelectItem key={c.id} value={c.company_code}>{c.company_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-slate-500">Los huérfanos quedan en TLEC CARGO hasta que se asignen a una empresa socia.</p>
-              </div>
               {!selectedClient ? (
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Buscar cliente</Label>
@@ -707,24 +680,7 @@ export default function AdminOrphanPackages({ user }) {
                     </div>
                   )}
                   {clientQuery.length >= 2 && !searchingClients && clientResults.length === 0 && (
-                    <div className="text-center py-3 space-y-2">
-                      <p className="text-xs text-slate-500">No se encontraron clientes registrados</p>
-                      {clientQuery.includes('@') && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                          onClick={() => {
-                            const email = clientQuery.trim().toLowerCase();
-                            setSelectedClient({ email, full_name: email });
-                            setClientQuery('');
-                            setClientResults([]);
-                          }}
-                        >
-                          <UserCheck className="h-3.5 w-3.5" /> Usar {clientQuery.trim()}
-                        </Button>
-                      )}
-                    </div>
+                    <p className="text-center text-xs text-slate-500 py-2">No se encontraron clientes</p>
                   )}
                 </div>
               ) : (
