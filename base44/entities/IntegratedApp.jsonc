@@ -1,0 +1,86 @@
+{
+  "name": "IntegratedApp",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la app duplicada conectada a esta base de datos"
+    },
+    "slug": {
+      "type": "string",
+      "description": "Identificador corto \u00fanico de la copia (ej: tlec-valencia)"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Email de contacto del responsable de la copia"
+    },
+    "key_hash": {
+      "type": "string",
+      "description": "Hash SHA-256 de la clave de acceso de la copia. La clave nunca se guarda en claro."
+    },
+    "key_prefix": {
+      "type": "string",
+      "description": "Primeros caracteres de la clave, solo para identificarla en el panel"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si est\u00e1 apagada, la copia no puede conectarse (sus llamadas reciben 'no autorizado')"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la \u00faltima llamada recibida desde esta copia"
+    },
+    "last_action": {
+      "type": "string",
+      "description": "\u00daltima acci\u00f3n procesada (recurso y operaci\u00f3n)"
+    },
+    "call_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de llamadas recibidas desde esta copia"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Admin que cre\u00f3 la conexi\u00f3n"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Notas internas sobre esta copia"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "name",
+    "slug",
+    "key_hash"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

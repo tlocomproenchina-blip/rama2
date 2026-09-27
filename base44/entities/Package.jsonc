@@ -225,6 +225,14 @@
       "type": "string",
       "format": "date",
       "description": "Fecha en la que el vendedor entreg\u00f3 el paquete al almac\u00e9n (informada por el cliente)"
+    },
+    "origin_app_id": {
+      "type": "string",
+      "description": "ID de la app integrada (IntegratedApp) que registr\u00f3 este paquete desde una copia. Vac\u00edo = registrado directamente en TLEC CARGO."
+    },
+    "origin_app_label": {
+      "type": "string",
+      "description": "Nombre de la app integrada que origin\u00f3 el registro (cache para mostrar)"
     }
   },
   "required": [
