@@ -1,48 +1,61 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
+import { runChannelAction } from '../../shared/serviceChannel.ts';
 
-Deno.serve(async (req) => {
+// Canal de servicio total de TLEC (puerta única para las apps de las empresas socias).
+// Capacidades: entidades (lectura y escritura), funciones de backend, archivos,
+// directorio de clientes, configuración y lotes. Todo entra con la llave de la
+// empresa; el canal estampa el contexto de empresa, aplica las reglas de acceso y
+// registra el consumo por socia.
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'content-type, x-api-key, x-company-key',
+};
+
+function parseJson(value, fallback) {
   try {
-    const apiKey = req.headers.get('x-api-key');
-    const expectedApiKey = Deno.env.get('APP_SERVICE_API_KEY');
+    return value ? JSON.parse(String(value)) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
 
-    if (!expectedApiKey || apiKey !== expectedApiKey) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+export default async function (req: Request): Promise<Response> {
+  try {
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
     const base44 = createClientFromRequest(req);
-    const body = await req.json().catch(() => ({}));
-    const action = body?.action || 'health';
+    const url = new URL(req.url);
+    const key = req.headers.get('x-api-key')
+      || req.headers.get('x-company-key')
+      || url.searchParams.get('key')
+      || '';
 
-    if (action === 'health') {
-      return Response.json({
-        ok: true,
-        service: 'appServiceAccess',
-        app_id: Deno.env.get('BASE44_APP_ID') || null,
-        timestamp: new Date().toISOString()
-      });
+    let action = 'health';
+    let params: any = {};
+    let actor: any = null;
+    let file: any = null;
+
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const form = await req.formData();
+      action = String(form.get('action') || 'files');
+      params = parseJson(form.get('params'), {});
+      actor = parseJson(form.get('actor'), null);
+      file = form.get('file');
+    } else {
+      const body = await req.json().catch(() => ({}));
+      action = body?.action || 'health';
+      params = body?.params || {};
+      actor = body?.actor || null;
     }
 
-    if (action === 'stats') {
-      const [packages, consolidations, invoices, notifications] = await Promise.all([
-        base44.asServiceRole.entities.Package.list('-created_date', 5),
-        base44.asServiceRole.entities.Consolidation.list('-created_date', 5),
-        base44.asServiceRole.entities.Invoice.list('-created_date', 5),
-        base44.asServiceRole.entities.Notification.list('-created_date', 5),
-      ]);
-
-      return Response.json({
-        ok: true,
-        stats: {
-          packages_recent: packages.length,
-          consolidations_recent: consolidations.length,
-          invoices_recent: invoices.length,
-          notifications_recent: notifications.length,
-        }
-      });
-    }
-
-    return Response.json({ error: 'Unsupported action' }, { status: 400 });
+    const result = await runChannelAction(base44, { key, action, params, actor, file });
+    return Response.json(result.body, { status: result.status, headers: CORS_HEADERS });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ ok: false, error: error.message }, { status: 500, headers: CORS_HEADERS });
   }
-});
+}

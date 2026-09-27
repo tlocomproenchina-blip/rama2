@@ -1,0 +1,91 @@
+{
+  "name": "CompanyClient",
+  "type": "object",
+  "properties": {
+    "company_code": {
+      "type": "string",
+      "description": "C\u00f3digo de la empresa socia due\u00f1a del cliente"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Correo del cliente registrado en la app de la socia"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Nombre completo del cliente"
+    },
+    "first_name": {
+      "type": "string",
+      "description": "Nombres del cliente"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Apellidos del cliente"
+    },
+    "cedula": {
+      "type": "string",
+      "description": "Documento de identidad del cliente"
+    },
+    "whatsapp": {
+      "type": "string",
+      "description": "WhatsApp del cliente"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n del cliente"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad del cliente"
+    },
+    "state": {
+      "type": "string",
+      "description": "Estado del cliente (define su tarifa)"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark del cliente"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Cliente activo en la empresa"
+    },
+    "last_sync_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima vez que la app de la socia sincroniz\u00f3 los datos de este cliente"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "company_code",
+    "client_email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
