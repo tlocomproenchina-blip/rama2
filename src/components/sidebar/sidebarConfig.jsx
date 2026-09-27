@@ -36,6 +36,7 @@ import {
   BarChart2,
   ScanLine,
   Printer,
+  Building2,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -128,6 +129,7 @@ export const adminMenuItems = [
   { name: 'Detector Duplicados', page: 'AdminDuplicates', icon: ShieldAlert },
   { name: 'Base de Conocimiento', page: 'AdminKnowledgeBase', icon: FileText },
   { name: 'Eliminar', page: 'AdminDelete', icon: Trash2 },
+  { name: 'Empresas Socias', page: 'AdminPartnerCompanies', icon: Building2 },
   { name: 'Configuración', page: 'AdminSettings', icon: Settings },
 ];
 
@@ -142,7 +144,7 @@ export const adminGroups = [
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
   { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminSupportQuickMessages', 'AdminInternalMessages', 'AdminFAQ'] },
   { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance'] },
-  { label: 'GESTIÓN', items: ['AdminClients', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
+  { label: 'GESTIÓN', items: ['AdminClients', 'AdminPartnerCompanies', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
 
 export const clientGroups = [

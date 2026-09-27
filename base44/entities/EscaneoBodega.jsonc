@@ -14,6 +14,10 @@
       "type": "string",
       "description": "Shipping mark del cliente si el paquete estaba pre-alertado"
     },
+    "company_code": {
+      "type": "string",
+      "description": "Empresa a la que se atribuy\u00f3 la carga al escanear (vac\u00edo = TLEC CARGO o hu\u00e9rfano sin empresa)"
+    },
     "photo_url": {
       "type": "string",
       "description": "URL de la foto del paquete (Bunny CDN)"

@@ -1,0 +1,96 @@
+{
+  "name": "PartnerClient",
+  "type": "object",
+  "properties": {
+    "company_code": {
+      "type": "string",
+      "description": "C\u00f3digo de la empresa socia due\u00f1a de este cliente"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email del cliente de la empresa socia. Es la llave con la que se le atribuyen sus paquetes y facturas."
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Nombre completo del cliente"
+    },
+    "cedula": {
+      "type": "string",
+      "description": "C\u00e9dula o RIF del cliente"
+    },
+    "whatsapp": {
+      "type": "string",
+      "description": "WhatsApp del cliente"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n de entrega del cliente"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad del cliente"
+    },
+    "state": {
+      "type": "string",
+      "description": "Estado del cliente (usado para tarifas)"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark asignado a este cliente dentro de la empresa socia"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "ID del cliente en la app secundaria, para conciliar altas y cambios"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "partner_api",
+        "manual"
+      ],
+      "default": "manual",
+      "description": "Origen del registro: enviado por la app secundaria o creado a mano por un administrador"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el cliente est\u00e1 activo"
+    },
+    "last_sync_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo alta o cambio recibido desde la app secundaria"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "company_code",
+    "email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

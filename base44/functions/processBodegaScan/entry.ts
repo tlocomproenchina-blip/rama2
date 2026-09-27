@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { resolveCompanyCodeForClient } from '../../shared/companyScope.ts';
 
 // Procesa un escaneo desde la bodega en China.
 // Recibe: { tracking_number, photo_url, device_id, manual? }
@@ -82,6 +83,7 @@ export default async function(req: Request): Promise<Response> {
             risk_category: (label.has_battery || label.has_liquid || label.has_powder || label.has_fbrand) ? 'alto_riesgo' : 'general',
             package_count: label.box_count || 1,
             description: label.content || 'Etiqueta TLEC',
+            company_code: label.company_code || '',
             status: 'pre_alerta',
             is_orphan: false,
           });
@@ -121,6 +123,7 @@ export default async function(req: Request): Promise<Response> {
           client_email: '',
           shipping_type: 'maritimo',
           description: 'Paquete huérfano (Bodega China, sin pre-alerta)',
+          company_code: '',
           status: 'sin_cliente',
           is_orphan: true,
           received_date: now,
@@ -252,6 +255,7 @@ export default async function(req: Request): Promise<Response> {
             client_email: '',
             shipping_type: 'maritimo',
             description: 'Paquete huérfano (Bodega China, tracking extraído por IA sin pre-alerta)',
+          company_code: '',
             status: 'sin_cliente',
             is_orphan: true,
             received_date: now,
@@ -270,6 +274,7 @@ export default async function(req: Request): Promise<Response> {
           client_email: '',
           shipping_type: 'maritimo',
           description: 'Paquete huérfano (Bodega China, foto manual sin tracking)',
+          company_code: '',
           status: 'sin_cliente',
           is_orphan: true,
           received_date: now,
@@ -282,6 +287,21 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
+    // Atribuir empresa: el paquete pre-alertado ya trae company_code; si no lo
+    // tiene, se deduce del cliente dueño (padrón de empresas socias / usuario).
+    let companyCode = '';
+    try {
+      const current = await base44.asServiceRole.entities.Package.filter({ id: packageId }, '-created_date', 1);
+      const pkgRow = current?.[0];
+      companyCode = String(pkgRow?.company_code || '').trim();
+      if (!companyCode && pkgRow?.client_email) {
+        companyCode = await resolveCompanyCodeForClient(base44, pkgRow.client_email);
+        if (companyCode) {
+          await base44.asServiceRole.entities.Package.update(pkgRow.id, { company_code: companyCode });
+        }
+      }
+    } catch (_) {}
+
     // Registrar escaneo en log (best-effort)
     try {
       await base44.asServiceRole.entities.EscaneoBodega.create({
@@ -290,6 +310,7 @@ export default async function(req: Request): Promise<Response> {
         shipping_mark: shippingMark,
         photo_url: photoUrl,
         result_type: resultType,
+        company_code: companyCode,
       });
     } catch (_) {}
 
@@ -311,6 +332,7 @@ export default async function(req: Request): Promise<Response> {
       shipping_mark: shippingMark,
       tracking_number: resolvedTracking,
       package_id: packageId,
+      company_code: companyCode,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

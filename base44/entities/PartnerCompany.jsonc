@@ -1,0 +1,120 @@
+{
+  "name": "PartnerCompany",
+  "type": "object",
+  "properties": {
+    "company_code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico de la empresa socia (min\u00fasculas, sin espacios). Es el filtro que se guarda en paquetes, bultos, facturas, pre-alertas y clientes. El c\u00f3digo 'tlec' est\u00e1 reservado para TLEC CARGO."
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Nombre comercial de la empresa socia, mostrado en el distintivo y en los filtros"
+    },
+    "legal_name": {
+      "type": "string",
+      "description": "Raz\u00f3n social o nombre legal de la empresa socia"
+    },
+    "tagline": {
+      "type": "string",
+      "description": "Eslogan o descripci\u00f3n corta de la empresa socia"
+    },
+    "brand_color": {
+      "type": "string",
+      "default": "#0ea5e9",
+      "description": "Color hex del distintivo visual de la empresa en listas y tarjetas"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL del logo de la empresa socia (1:1)"
+    },
+    "shipping_mark_prefix": {
+      "type": "string",
+      "description": "Prefijo propio de Shipping Mark de esta empresa, para no chocar con los de otra empresa"
+    },
+    "label_prefix": {
+      "type": "string",
+      "description": "Prefijo propio de c\u00f3digos de etiqueta TLEC de esta empresa"
+    },
+    "order_prefix": {
+      "type": "string",
+      "description": "Prefijo propio de numeraci\u00f3n de bultos y \u00f3rdenes de esta empresa"
+    },
+    "service_key": {
+      "type": "string",
+      "description": "Llave de servicio que usa la app secundaria de esta empresa para consultar y enviar datos a esta app (header x-partner-key). Se comparte solo con el socio."
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Persona de contacto de la empresa socia"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Email de contacto de la empresa socia"
+    },
+    "contact_whatsapp": {
+      "type": "string",
+      "description": "WhatsApp de contacto de la empresa socia"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad de la empresa socia"
+    },
+    "state": {
+      "type": "string",
+      "description": "Estado de la empresa socia"
+    },
+    "country": {
+      "type": "string",
+      "description": "Pa\u00eds de la empresa socia"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la empresa est\u00e1 activa. Inactiva: su llave de servicio deja de funcionar y no aparece como destino de asignaci\u00f3n."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas internas sobre el acuerdo con la empresa socia"
+    },
+    "created_by_email": {
+      "type": "string",
+      "description": "Email del administrador de TLEC que cre\u00f3 la empresa socia"
+    },
+    "last_service_use_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo uso de su llave de servicio desde la app secundaria"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "company_code",
+    "company_name"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
