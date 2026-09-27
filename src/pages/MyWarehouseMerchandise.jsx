@@ -163,19 +163,31 @@ function OrderCard({ order }) {
             </div>
             <div className="min-w-0">
               <h3 className="font-semibold text-slate-800 text-sm md:text-base truncate">
-                Orden {order.order_number || '—'}
+                {order.source === 've_recognized'
+                  ? (order.order_number || 'Bulto en almacén')
+                  : `Orden ${order.order_number || '—'}`}
               </h3>
               <p className="text-[11px] md:text-xs text-slate-500">
                 {date ? new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
+                {order.source === 've_recognized' && (
+                  <span className="text-blue-600 ml-1">· Reconocido en Venezuela</span>
+                )}
                 {isDispatched && order.dispatched_confirmed_date && (
                   <span className="text-emerald-600 ml-1">· Despachada</span>
                 )}
               </p>
             </div>
           </div>
-          <Badge className={`${STATUS_TONE[order.status] || 'bg-slate-100 text-slate-600 border-slate-200'} border`}>
-            {STATUS_LABELS[order.status] || order.status}
-          </Badge>
+          <div className="flex items-center gap-2 flex-wrap md:ml-auto">
+            {order.pending_invoice && (
+              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                Pendiente de facturación
+              </Badge>
+            )}
+            <Badge className={`${STATUS_TONE[order.status] || 'bg-slate-100 text-slate-600 border-slate-200'} border`}>
+              {STATUS_LABELS[order.status] || order.status}
+            </Badge>
+          </div>
         </div>
 
         {/* Recibos agrupados */}
