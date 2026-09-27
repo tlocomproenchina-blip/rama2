@@ -105,6 +105,15 @@
       "type": "string",
       "description": "Snapshot: n\u00famero de la factura de cobro m\u00e1s reciente"
     },
+    "billed_invoice_id": {
+      "type": "string",
+      "description": "ID de la factura generada desde la pesta\u00f1a 'Carga en almac\u00e9n' de Gesti\u00f3n de Facturas. Mientras esa factura exista, el bulto no vuelve a ofrecerse para facturar."
+    },
+    "billed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el bulto fue incluido en una factura desde la pesta\u00f1a 'Carga en almac\u00e9n'"
+    },
     "warehouse_id": {
       "type": "string",
       "description": "ID del almac\u00e9n donde se empac\u00f3 el bulto"

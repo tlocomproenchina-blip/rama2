@@ -18,6 +18,7 @@ import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoice
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
 import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ShieldCheck } from 'lucide-react';
 import WarehousePaidTable from '@/components/invoice/WarehousePaidTable';
+import WarehouseBillingTab from '@/components/invoice/warehouse-billing/WarehouseBillingTab';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
 import { ensureInvoicePaymentForPaidInvoice } from '@/lib/invoicePaymentSync';
@@ -811,19 +812,25 @@ export default function AdminInvoices({ user }) {
             <TabsTrigger value="pagada">Pagadas</TabsTrigger>
             <TabsTrigger value="vencida">Vencidas</TabsTrigger>
             <TabsTrigger value="provider_unpaid">No pagadas al proveedor</TabsTrigger>
+            <TabsTrigger value="carga_almacen">
+              <Truck className="h-3.5 w-3.5 mr-1" />
+              Carga en almacén
+            </TabsTrigger>
             <TabsTrigger value="en_almacen">
               <Package className="h-3.5 w-3.5 mr-1" />
               En Almacén
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        <StateFilter
-          items={invoices}
-          extractState={(inv) => inv.client_state}
-          value={stateFilter}
-          onChange={setStateFilter}
-          className="w-full sm:w-56 shrink-0"
-        />
+        {statusFilter !== 'carga_almacen' && (
+          <StateFilter
+            items={invoices}
+            extractState={(inv) => inv.client_state}
+            value={stateFilter}
+            onChange={setStateFilter}
+            className="w-full sm:w-56 shrink-0"
+          />
+        )}
       </div>
 
       {/* Bulk Actions Bar */}
@@ -885,8 +892,10 @@ export default function AdminInvoices({ user }) {
         </Card>
       )}
 
-      {/* Warehouse Paid Report (En Almacén tab) */}
-      {statusFilter === 'en_almacen' ? (
+      {/* Carga en almacén pendiente de facturar */}
+      {statusFilter === 'carga_almacen' ? (
+        <WarehouseBillingTab search={search} />
+      ) : statusFilter === 'en_almacen' ? (
         <WarehousePaidTable
           search={search}
           dateFrom={dateFrom}

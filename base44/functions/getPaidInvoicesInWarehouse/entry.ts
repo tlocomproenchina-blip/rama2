@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
+import { fetchAllFilter, fetchByClientEmails, errorMessage } from '../../shared/paginatedFetch.ts';
 
 // =====================================================================
 // Reporte de facturas PAGADAS cuyos paquetes asociados fueron escaneados
@@ -9,40 +10,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 // =====================================================================
 
 const IN_WAREHOUSE_STATUSES = new Set(['recibido', 'consolidado', 'en_transito', 'disponible']);
-const PAGE = 200;
-const MAX_PAGES = 50;
 
-async function fetchAllFilter(entity, query, sort) {
-  const all = [];
-  let skip = 0;
-  for (let i = 0; i < MAX_PAGES; i++) {
-    const batch = await entity.filter(query, sort, PAGE, skip);
-    if (!batch || batch.length === 0) break;
-    all.push(...batch);
-    if (batch.length < PAGE) break;
-    skip += PAGE;
-  }
-  return all;
-}
-
-// Fetch all entities for a set of client emails (batched $in on regular field)
-async function fetchByClientEmails(entity, clientEmails) {
+// Map id -> registro para un conjunto de emails de cliente
+async function mapByClientEmails(entity, clientEmails) {
   const map = new Map();
-  for (let i = 0; i < clientEmails.length; i += 50) {
-    const batch = clientEmails.slice(i, i + 50);
-    let skip = 0;
-    for (let j = 0; j < MAX_PAGES; j++) {
-      const items = await entity.filter(
-        { client_email: { $in: batch } },
-        '-created_date',
-        PAGE,
-        skip
-      );
-      if (!items || items.length === 0) break;
-      for (const it of items) map.set(it.id, it);
-      if (items.length < PAGE) break;
-      skip += PAGE;
-    }
+  for (const item of await fetchByClientEmails(entity, clientEmails, '-created_date')) {
+    map.set(item.id, item);
   }
   return map;
 }
@@ -68,12 +41,12 @@ export default async function (req: Request): Promise<Response> {
     )];
 
     // 3. Fetch consolidations and packages for those clients only
-    const consolidationMap = await fetchByClientEmails(
+    const consolidationMap = await mapByClientEmails(
       base44.asServiceRole.entities.Consolidation,
       clientEmails
     );
 
-    const packageMap = await fetchByClientEmails(
+    const packageMap = await mapByClientEmails(
       base44.asServiceRole.entities.Package,
       clientEmails
     );
@@ -87,7 +60,7 @@ export default async function (req: Request): Promise<Response> {
     }
 
     // Fetch CbmIngreso records for the same clients (to cross-reference receipts)
-    const cbmIngresoMap = await fetchByClientEmails(
+    const cbmIngresoMap = await mapByClientEmails(
       base44.asServiceRole.entities.CbmIngreso,
       clientEmails
     );
@@ -215,7 +188,6 @@ export default async function (req: Request): Promise<Response> {
 
     return Response.json({ rows, total: rows.length });
   } catch (error) {
-    const message = (error && typeof error === 'object' && 'message' in error) ? error.message : 'Internal Server Error';
-    return Response.json({ error: String(message) }, { status: 500 });
+    return Response.json({ error: errorMessage(error) }, { status: 500 });
   }
 }
