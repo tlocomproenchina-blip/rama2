@@ -31,6 +31,18 @@ export default function WarehouseBillingSummary({
             <span>Envío</span>
             <span className="font-medium text-slate-800">{money(totals.shipping)}</span>
           </div>
+          {Number(totals.registeredShipping || 0) > 0 && (
+            <div className="flex justify-between pl-2 text-xs text-slate-500">
+              <span>· tarifas registradas</span>
+              <span>{money(totals.registeredShipping)}</span>
+            </div>
+          )}
+          {Number(totals.openShipping || 0) > 0 && (
+            <div className="flex justify-between pl-2 text-xs text-slate-500">
+              <span>· recalculado</span>
+              <span>{money(totals.openShipping)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-slate-600">
             <span>Seguro</span>
             <span className="font-medium text-slate-800">{money(totals.insurance)}</span>
@@ -97,6 +109,9 @@ export default function WarehouseBillingSummary({
               />
             </div>
           </div>
+          <p className="text-[10px] text-slate-400">
+            El CBM facturado reparte el envío solo entre lo que no tiene tarifa registrada.
+          </p>
           <div className="space-y-1">
             <Label className="text-[11px] text-slate-500">Concepto del monto adicional</Label>
             <Input

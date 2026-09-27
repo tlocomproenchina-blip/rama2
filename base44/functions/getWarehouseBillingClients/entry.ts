@@ -128,6 +128,12 @@ Deno.serve(async (req) => {
         const trackings = [...new Set<string>(
           (b.package_trackings || []).map(normTracking).filter(Boolean)
         )];
+        // Tipo de carga del bulto: alto riesgo si alguno de sus paquetes lo es.
+        // El admin puede sobrescribirlo al registrar la tarifa (cargo_risk_category).
+        let detectedRisk = 'general';
+        for (const t of trackings) {
+          if (pkgByTracking.get(t)?.risk_category === 'alto_riesgo') { detectedRisk = 'alto_riesgo'; break; }
+        }
         let cbmFromPackages = 0;
         const linkedReceipts: any[] = [];
         const linkedIds = new Set<string>();
@@ -174,6 +180,12 @@ Deno.serve(async (req) => {
             ? Math.round(registeredCount)
             : ((b.package_ids || []).length || trackings.length),
           package_count_manual: registeredCount > 0,
+          // Tarifa registrada del bulto desde 'Carga en almacén': la factura la usa tal cual.
+          risk_category: detectedRisk,
+          cargo_risk_category: b.cargo_risk_category || null,
+          cargo_amount: num(b.cargo_amount),
+          cargo_rate_per_cbm: num(b.cargo_rate_per_cbm),
+          cargo_rate_kind: b.cargo_rate_kind || null,
         };
       });
 

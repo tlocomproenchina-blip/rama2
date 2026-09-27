@@ -20,12 +20,25 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
   const bultos = useMemo(() => bultosBase.map((b) => {
     const edit = cargoEdits[b.id];
     if (!edit) return b;
-    return {
+    const merged = {
       ...b,
       cbm: edit.cbm != null ? edit.cbm : b.cbm,
       package_count: edit.package_count != null ? edit.package_count : b.package_count,
     };
+    if (edit.tariff) {
+      Object.assign(merged, {
+        risk_category: edit.tariff.risk_category,
+        registered_amount: edit.tariff.amount,
+        registered_rate_per_cbm: edit.tariff.rate_per_cbm,
+        registered_rate_kind: edit.tariff.kind,
+        has_registered_tariff: true,
+      });
+    }
+    return merged;
   }), [bultosBase, cargoEdits]);
+
+  // Estado del cliente usado para tarifar (nombre legible si está configurado)
+  const stateLabel = client.state ? (ctx?.stateConfig?.state_name || client.state) : '';
 
   // Al abrir un cliente nada llega marcado: el admin decide a mano qué se factura.
   const [selectedBultos, setSelectedBultos] = useState({});
@@ -66,7 +79,8 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
     setCreating(false);
   };
 
-  // Registra/edita el CBM del bulto y corrige su cantidad de paquetes
+  // Registra/edita el CBM del bulto, corrige su cantidad de paquetes y deja
+  // registrada su tarifa (estado del cliente + volumen + tipo de carga).
   const handleSaveCargo = async (item, values) => {
     const payload = { bulto_id: item.id };
 
@@ -89,6 +103,29 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
       return false;
     }
 
+    const cbm = payload.cargo_cbm ?? num(item.cbm);
+    const risk = values.risk_category || item.risk_category || 'general';
+    const cbmChanged = payload.cargo_cbm !== undefined && cbm !== num(item.cbm);
+    const riskChanged = risk !== (item.risk_category || 'general');
+    // La tarifa se calcula al guardar el CBM, al cambiar el tipo de carga, al
+    // recalcular a mano o cuando el bulto aún no tiene tarifa registrada.
+    const shouldRegister = cbm > 0
+      && (values.recalculate_tariff || cbmChanged || riskChanged || !item.has_registered_tariff);
+
+    let tariff = null;
+    if (shouldRegister) {
+      const calc = ctx.calcTariff(cbm, item.fecha, risk);
+      if (calc.amount <= 0) {
+        toast.error('No se pudo calcular la tarifa: revisa el CBM y las tarifas vigentes');
+        return false;
+      }
+      tariff = { ...calc, risk_category: risk };
+      payload.cargo_amount = calc.amount;
+      payload.cargo_rate_per_cbm = calc.rate_per_cbm;
+      payload.cargo_rate_kind = calc.kind;
+      payload.cargo_risk_category = risk;
+    }
+
     try {
       const res = await base44.functions.invoke('updateBulto', payload);
       if (res?.data?.error) {
@@ -97,9 +134,13 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
       }
       setCargoEdits((prev) => ({
         ...prev,
-        [item.id]: { cbm: payload.cargo_cbm, package_count: payload.cargo_package_count },
+        [item.id]: { cbm: payload.cargo_cbm, package_count: payload.cargo_package_count, tariff },
       }));
-      toast.success('CBM y paquetes guardados');
+      toast.success(
+        tariff
+          ? `CBM guardado y tarifa registrada: $${tariff.amount.toFixed(2)}`
+          : 'CBM y paquetes guardados'
+      );
       onGenerated?.();
       return true;
     } catch (e) {
@@ -192,6 +233,8 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
                   key={item.id}
                   item={item}
                   amount={amounts[item.id] || 0}
+                  stateLabel={stateLabel}
+                  rateLabel={ctx.getRateLabel(item.fecha)}
                   checked={!!selectedBultos[item.id]}
                   onToggle={() => setSelectedBultos((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
                   onSave={handleSaveCargo}

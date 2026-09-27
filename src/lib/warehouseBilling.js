@@ -17,6 +17,8 @@ import { base44 } from '@/components/api/ApiQueueManager';
 
 export const DOOR_TO_DOOR_THRESHOLD = 0.130;
 export const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const round2 = (v) => Math.round(num(v) * 100) / 100;
+const round4 = (v) => Math.round(num(v) * 10000) / 10000;
 export const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
 
 export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHistory, clientState }) {
@@ -58,18 +60,46 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
     };
   };
 
-  const computeRatePerCbm = (rateSet) => num(rateSet.base_rate_regular) * (1 + num(rateSet.profit_percentage) / 100)
-    + stateShippingRate + num(rateSet.door_to_door_cost);
+  // Tarifa por CBM según el tipo de carga: la regular o la de alto riesgo.
+  const computeRatePerCbm = (rateSet, riskCategory) => {
+    const base = String(riskCategory) === 'alto_riesgo'
+      ? num(rateSet.base_rate_high_risk)
+      : num(rateSet.base_rate_regular);
+    return base * (1 + num(rateSet.profit_percentage) / 100)
+      + stateShippingRate + num(rateSet.door_to_door_cost);
+  };
 
-  const calcShippingForRow = (cbm, fecha) => {
+  const specialRateForCbm = (cbm, rateSet) => {
+    const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
+    const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
+    return sorted.find((r) => num(cbm) <= num(r.max_cbm)) || null;
+  };
+
+  // Envío de un bulto/recibo: monto fijo de la tabla especial si es menor a
+  // 0.130 CBM, o CBM × tarifa por CBM del tipo de carga.
+  const shippingFor = (cbm, fecha, riskCategory) => {
     const c = num(cbm);
     if (c <= 0) return 0;
     const rateSet = getRateSetForDate(fecha);
-    if (c >= DOOR_TO_DOOR_THRESHOLD) return c * computeRatePerCbm(rateSet);
-    const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
-    const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
-    const found = sorted.find((r) => c <= num(r.max_cbm));
-    return found ? num(found.rate_regular) : c * computeRatePerCbm(rateSet);
+    if (c >= DOOR_TO_DOOR_THRESHOLD) return c * computeRatePerCbm(rateSet, riskCategory);
+    const found = specialRateForCbm(c, rateSet);
+    if (!found) return c * computeRatePerCbm(rateSet, riskCategory);
+    return String(riskCategory) === 'alto_riesgo' ? num(found.rate_high_risk) : num(found.rate_regular);
+  };
+
+  const calcShippingForRow = (cbm, fecha, riskCategory) => shippingFor(cbm, fecha, riskCategory);
+
+  // Tarifa que se registra en el bulto: monto, tarifa por CBM aplicada y clase de tarifa.
+  const calcTariff = (cbm, fecha, riskCategory) => {
+    const c = num(cbm);
+    if (c <= 0) return { amount: 0, rate_per_cbm: 0, kind: 'estandar' };
+    const rateSet = getRateSetForDate(fecha);
+    const special = c < DOOR_TO_DOOR_THRESHOLD ? specialRateForCbm(c, rateSet) : null;
+    if (special) {
+      return { amount: round2(shippingFor(c, fecha, riskCategory)), rate_per_cbm: 0, kind: 'especial' };
+    }
+    const rate = computeRatePerCbm(rateSet, riskCategory);
+    return { amount: round2(c * rate), rate_per_cbm: round4(rate), kind: 'estandar' };
   };
 
   const getRateLabel = (fecha) => {
@@ -93,12 +123,13 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
       (items || []).forEach((r) => {
         if (num(r.cbm) <= 0) return;
         const rs = getRateSetForDate(r.fecha);
-        const key = rs.effective_date || 'current';
-        if (!groups[key]) groups[key] = { rateSet: rs, cbm: 0 };
+        const risk = r.risk_category || 'general';
+        const key = `${rs.effective_date || 'current'}|${risk}`;
+        if (!groups[key]) groups[key] = { rateSet: rs, risk, cbm: 0 };
         groups[key].cbm += num(r.cbm);
       });
       const scale = c / totalReceiptCbm;
-      return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet), 0);
+      return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet, g.risk), 0);
     }
     const withDates = (items || []).filter((r) => r.fecha);
     const rateSet = withDates.length > 0
@@ -119,6 +150,7 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
     getRateSetForDate,
     computeRatePerCbm,
     calcShippingForRow,
+    calcTariff,
     getRateLabel,
     calcConsolidatedShipping,
     insuranceRate,
@@ -139,12 +171,19 @@ export function buildBillableItems(client, ctx) {
 
   const decorate = (raw, type) => {
     const { fob, count } = insuredOf(raw.trackings);
+    // Tarifa registrada del bulto desde 'Carga en almacén': manda tal cual al facturar.
+    const registeredAmount = type === 'bulto' ? num(raw.cargo_amount) : 0;
     return {
       ...raw,
       type,
       fob,
       insured_count: count,
       insurance: Math.round(fob * ctx.insuranceRate * 100) / 100,
+      risk_category: raw.cargo_risk_category || raw.risk_category || 'general',
+      has_registered_tariff: registeredAmount > 0,
+      registered_amount: registeredAmount,
+      registered_rate_per_cbm: num(raw.cargo_rate_per_cbm),
+      registered_rate_kind: raw.cargo_rate_kind || null,
     };
   };
 
@@ -173,23 +212,34 @@ export function computeSelectionTotals(items, ctx, overrides = {}) {
   const manualCbm = overrides.billedCbm !== '' && overrides.billedCbm != null;
   const billedCbm = manualCbm ? num(overrides.billedCbm) : totalCbm;
 
-  // Envío: cada bulto/recibo se cotiza con su propio CBM y las tarifas de su fecha,
-  // y el envío del resumen es la suma de esos montos. Si el admin escribe un
-  // CBM facturado, ese valor manda y se reparte entre lo marcado.
-  let shipping = 0;
+  // Envío: los bultos con tarifa registrada suman su monto tal cual; el resto se
+  // cotiza con su propio CBM y las tarifas de su fecha. Si el admin escribe un
+  // CBM facturado, ese valor se reparte solo entre lo que no tiene tarifa registrada.
+  const withTariff = list.filter((i) => i.has_registered_tariff);
+  const withoutTariff = list.filter((i) => !i.has_registered_tariff);
+  const registeredShipping = withTariff.reduce((s, i) => s + num(i.registered_amount), 0);
+  const registeredCbm = withTariff.reduce((s, i) => s + num(i.cbm), 0);
+  const openCbm = withoutTariff.reduce((s, i) => s + num(i.cbm), 0);
+
+  let openShipping = 0;
   const shippingByItem = {};
-  if (manualCbm) {
-    shipping = ctx.calcConsolidatedShipping(billedCbm, list);
-    list.forEach((i) => {
-      shippingByItem[i.id] = totalCbm > 0 ? (num(i.cbm) / totalCbm) * shipping : 0;
-    });
-  } else {
-    list.forEach((i) => {
-      const own = ctx.calcShippingForRow(num(i.cbm), i.fecha);
-      shippingByItem[i.id] = own;
-      shipping += own;
-    });
+  withTariff.forEach((i) => { shippingByItem[i.id] = num(i.registered_amount); });
+  if (withoutTariff.length > 0) {
+    if (manualCbm) {
+      const restBilled = Math.max(0, num(overrides.billedCbm) - registeredCbm);
+      openShipping = openCbm > 0 ? ctx.calcConsolidatedShipping(restBilled, withoutTariff) : 0;
+      withoutTariff.forEach((i) => {
+        shippingByItem[i.id] = openCbm > 0 ? (num(i.cbm) / openCbm) * openShipping : 0;
+      });
+    } else {
+      withoutTariff.forEach((i) => {
+        const own = ctx.calcShippingForRow(num(i.cbm), i.fecha, i.risk_category);
+        shippingByItem[i.id] = own;
+        openShipping += own;
+      });
+    }
   }
+  const shipping = registeredShipping + openShipping;
 
   const autoInsurance = list.reduce((s, i) => s + num(i.insurance), 0);
   const insurance = overrides.insurance !== '' && overrides.insurance != null ? num(overrides.insurance) : autoInsurance;
@@ -203,6 +253,8 @@ export function computeSelectionTotals(items, ctx, overrides = {}) {
     manualCbm,
     packages,
     shipping,
+    registeredShipping,
+    openShipping,
     shippingByItem,
     autoInsurance,
     insurance,

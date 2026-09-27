@@ -56,14 +56,38 @@
       "type": "number",
       "description": "Conteo real de paquetes del bulto corregido por un admin desde 'Carga en almac\u00e9n'. Si est\u00e1 definido, manda sobre la cantidad deducida de package_ids o trackings, sin crear ni soltar paquetes escaneados; es el que se usa para facturar."
     },
+    "cargo_risk_category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "alto_riesgo"
+      ],
+      "description": "Tipo de carga con el que se registr\u00f3 la tarifa del bulto: general o alto riesgo. Si est\u00e1 vac\u00edo, se usa el detectado en sus paquetes."
+    },
+    "cargo_rate_per_cbm": {
+      "type": "number",
+      "description": "Tarifa por CBM aplicada al registrar la tarifa del bulto (USD/CBM). Queda en 0 cuando se aplic\u00f3 una tarifa especial por volumen."
+    },
+    "cargo_rate_kind": {
+      "type": "string",
+      "enum": [
+        "estandar",
+        "especial"
+      ],
+      "description": "Clase de tarifa registrada: estandar (CBM \u00d7 tarifa por CBM) o especial (monto fijo por volumen menor a 0.130 CBM)."
+    },
+    "cargo_amount": {
+      "type": "number",
+      "description": "Monto de env\u00edo registrado del bulto (USD), con la tarifa del estado del cliente, su CBM y su tipo de carga. La factura usa este monto tal cual, sin recalcularlo."
+    },
     "cargo_updated_by": {
       "type": "string",
-      "description": "Email del admin que registr\u00f3 o edit\u00f3 el CBM o el conteo de paquetes del bulto"
+      "description": "Email del admin que registr\u00f3 o edit\u00f3 el CBM, el conteo de paquetes o la tarifa del bulto"
     },
     "cargo_updated_date": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha y hora del \u00faltimo registro o edici\u00f3n del CBM o del conteo de paquetes del bulto"
+      "description": "Fecha y hora del \u00faltimo registro o edici\u00f3n del CBM, del conteo de paquetes o de la tarifa del bulto"
     },
     "order_locked": {
       "type": "boolean",

@@ -106,7 +106,30 @@ export default async function(req: Request): Promise<Response> {
       update.cargo_package_count = count;
     }
 
-    if (cargoCbmProvided || cargoCountProvided) {
+    // --- Tarifa registrada del bulto (Carga en almacén) ---
+    // El monto que llega es exactamente el que el admin vio en pantalla al guardar.
+    const cargoRiskProvided = body.cargo_risk_category !== undefined && body.cargo_risk_category !== null && body.cargo_risk_category !== '';
+    if (cargoRiskProvided) {
+      const risk = String(body.cargo_risk_category);
+      if (!['general', 'alto_riesgo'].includes(risk)) {
+        return Response.json({ error: 'Tipo de carga inválido' }, { status: 400 });
+      }
+      update.cargo_risk_category = risk;
+    }
+
+    const cargoAmountProvided = body.cargo_amount !== undefined && body.cargo_amount !== null && body.cargo_amount !== '';
+    if (cargoAmountProvided) {
+      const amount = Number(String(body.cargo_amount).replace(',', '.'));
+      if (!Number.isFinite(amount) || amount < 0) {
+        return Response.json({ error: 'La tarifa registrada debe ser un número igual o mayor a 0' }, { status: 400 });
+      }
+      const rate = Number(String(body.cargo_rate_per_cbm ?? 0).replace(',', '.'));
+      update.cargo_amount = Math.round(amount * 100) / 100;
+      update.cargo_rate_per_cbm = Number.isFinite(rate) && rate > 0 ? Math.round(rate * 10000) / 10000 : 0;
+      update.cargo_rate_kind = String(body.cargo_rate_kind || 'estandar') === 'especial' ? 'especial' : 'estandar';
+    }
+
+    if (cargoCbmProvided || cargoCountProvided || cargoAmountProvided || cargoRiskProvided) {
       update.cargo_updated_by = user.email;
       update.cargo_updated_date = new Date().toISOString();
     }
