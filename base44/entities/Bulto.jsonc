@@ -48,6 +48,23 @@
         "type": "string"
       }
     },
+    "cargo_cbm": {
+      "type": "number",
+      "description": "CBM oficial del bulto registrado o editado a mano por un admin desde 'Carga en almac\u00e9n' (Gesti\u00f3n de Facturas). Si est\u00e1 definido y es mayor a 0, manda sobre el CBM calculado y adem\u00e1s se escribi\u00f3 como volumen real (actual_cbm) de los paquetes del bulto."
+    },
+    "cargo_package_count": {
+      "type": "number",
+      "description": "Conteo real de paquetes del bulto corregido por un admin desde 'Carga en almac\u00e9n'. Si est\u00e1 definido, manda sobre la cantidad deducida de package_ids o trackings, sin crear ni soltar paquetes escaneados; es el que se usa para facturar."
+    },
+    "cargo_updated_by": {
+      "type": "string",
+      "description": "Email del admin que registr\u00f3 o edit\u00f3 el CBM o el conteo de paquetes del bulto"
+    },
+    "cargo_updated_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del \u00faltimo registro o edici\u00f3n del CBM o del conteo de paquetes del bulto"
+    },
     "order_locked": {
       "type": "boolean",
       "default": false,

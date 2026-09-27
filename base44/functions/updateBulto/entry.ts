@@ -85,9 +85,57 @@ export default async function(req: Request): Promise<Response> {
       update.cbm_order_numbers = body.cbm_order_numbers.filter(Boolean);
     }
 
+    // --- CBM oficial y conteo de paquetes (Carga en almacén) ---
+    const cargoCbmProvided = body.cargo_cbm !== undefined && body.cargo_cbm !== null && body.cargo_cbm !== '';
+    const cargoCountProvided = body.cargo_package_count !== undefined && body.cargo_package_count !== null && body.cargo_package_count !== '';
+    let cargoCbm = 0;
+
+    if (cargoCbmProvided) {
+      cargoCbm = Number(String(body.cargo_cbm).replace(',', '.'));
+      if (!Number.isFinite(cargoCbm) || cargoCbm < 0) {
+        return Response.json({ error: 'El CBM debe ser un número igual o mayor a 0' }, { status: 400 });
+      }
+      update.cargo_cbm = cargoCbm;
+    }
+
+    if (cargoCountProvided) {
+      const count = Math.round(Number(body.cargo_package_count));
+      if (!Number.isFinite(count) || count < 1) {
+        return Response.json({ error: 'La cantidad de paquetes debe ser 1 o más' }, { status: 400 });
+      }
+      update.cargo_package_count = count;
+    }
+
+    if (cargoCbmProvided || cargoCountProvided) {
+      update.cargo_updated_by = user.email;
+      update.cargo_updated_date = new Date().toISOString();
+    }
+
     const updated = await base44.asServiceRole.entities.Bulto.update(bultoId, update);
 
-    return Response.json({ bulto: updated });
+    // El CBM registrado es el CBM del bulto: se reparte en partes iguales entre sus
+    // paquetes como volumen real (actual_cbm) para que sumen el CBM del bulto y el
+    // resto del sistema (costos del proveedor, ganancia) use el mismo dato.
+    let cbmAppliedTo = 0;
+    if (cargoCbmProvided && cargoCbm > 0) {
+      const packageIds: string[] = (bulto.package_ids || []).filter(Boolean);
+      const pkgs = (await Promise.all(
+        packageIds.map((id) => base44.asServiceRole.entities.Package.get(id).catch(() => null))
+      )).filter((p) => p) as any[];
+
+      if (pkgs.length > 0) {
+        const per = Math.floor((cargoCbm / pkgs.length) * 1e6) / 1e6;
+        for (let i = 0; i < pkgs.length; i++) {
+          const value = i === pkgs.length - 1
+            ? Math.round((cargoCbm - per * (pkgs.length - 1)) * 1e6) / 1e6
+            : per;
+          await base44.asServiceRole.entities.Package.update(pkgs[i].id, { actual_cbm: value });
+        }
+        cbmAppliedTo = pkgs.length;
+      }
+    }
+
+    return Response.json({ bulto: updated, cbm_applied_to: cbmAppliedTo });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

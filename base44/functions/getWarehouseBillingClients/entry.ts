@@ -127,6 +127,10 @@ Deno.serve(async (req) => {
 
         const cbmFromReceipts = linkedReceipts.reduce((s, r) => s + num(r.cbm), 0);
         const dates = linkedReceipts.map((r) => r.fecha).filter(Boolean).sort();
+        // CBM y cantidad de paquetes registrados a mano desde 'Carga en almacén' mandan
+        // sobre lo deducido de los paquetes o del recibo.
+        const registeredCbm = num(b.cargo_cbm);
+        const registeredCount = num(b.cargo_package_count);
         return {
           id: b.id,
           type: 'bulto',
@@ -134,10 +138,14 @@ Deno.serve(async (req) => {
           bulto_number: b.bulto_number ?? null,
           order_numbers: (b.cbm_order_numbers || []).filter(Boolean),
           fecha: dates.length > 0 ? dates[dates.length - 1] : (b.created_date || null),
-          cbm: cbmFromPackages > 0 ? cbmFromPackages : cbmFromReceipts,
-          cbm_from_packages: cbmFromPackages > 0,
+          cbm: registeredCbm > 0 ? registeredCbm : (cbmFromPackages > 0 ? cbmFromPackages : cbmFromReceipts),
+          cbm_from_packages: registeredCbm > 0 ? true : cbmFromPackages > 0,
+          cbm_manual: registeredCbm > 0,
           trackings,
-          package_count: (b.package_ids || []).length || trackings.length,
+          package_count: registeredCount > 0
+            ? Math.round(registeredCount)
+            : ((b.package_ids || []).length || trackings.length),
+          package_count_manual: registeredCount > 0,
         };
       });
 

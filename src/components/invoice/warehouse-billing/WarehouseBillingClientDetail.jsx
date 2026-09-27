@@ -9,14 +9,27 @@ import WarehouseBillingSummary from './WarehouseBillingSummary';
 import {
   buildBillableItems, computeSelectionTotals, distributeAmounts, generateWarehouseInvoice, num,
 } from '@/lib/warehouseBilling';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 
 export default function WarehouseBillingClientDetail({ client, ctx, appConfig, onBack, onGenerated }) {
-  const { bultos, receipts } = useMemo(() => buildBillableItems(client, ctx), [client, ctx]);
+  const { bultos: bultosBase, receipts } = useMemo(() => buildBillableItems(client, ctx), [client, ctx]);
+
+  // CBM y cantidad de paquetes recién guardados: se aplican al instante sin esperar la recarga
+  const [cargoEdits, setCargoEdits] = useState({});
+  const bultos = useMemo(() => bultosBase.map((b) => {
+    const edit = cargoEdits[b.id];
+    if (!edit) return b;
+    return {
+      ...b,
+      cbm: edit.cbm != null ? edit.cbm : b.cbm,
+      package_count: edit.package_count != null ? edit.package_count : b.package_count,
+    };
+  }), [bultosBase, cargoEdits]);
 
   const [selectedBultos, setSelectedBultos] = useState(() => {
     const init = {};
-    bultos.forEach((b) => { init[b.id] = num(b.cbm) > 0; });
+    bultosBase.forEach((b) => { init[b.id] = num(b.cbm) > 0; });
     return init;
   });
   const [selectedReceipts, setSelectedReceipts] = useState(() => {
@@ -58,6 +71,51 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
       toast.error('Error al generar la factura');
     }
     setCreating(false);
+  };
+
+  // Registra/edita el CBM del bulto y corrige su cantidad de paquetes
+  const handleSaveCargo = async (item, values) => {
+    const payload = { bulto_id: item.id };
+
+    if (values.cbm != null) {
+      if (values.cbm < 0) {
+        toast.error('El CBM debe ser 0 o mayor');
+        return false;
+      }
+      payload.cargo_cbm = values.cbm;
+    }
+    if (values.package_count != null) {
+      if (values.package_count < 1) {
+        toast.error('La cantidad de paquetes debe ser 1 o más');
+        return false;
+      }
+      payload.cargo_package_count = Math.round(values.package_count);
+    }
+    if (payload.cargo_cbm === undefined && payload.cargo_package_count === undefined) {
+      toast.error('Escribe el CBM o la cantidad de paquetes');
+      return false;
+    }
+
+    try {
+      const res = await base44.functions.invoke('updateBulto', payload);
+      if (res?.data?.error) {
+        toast.error(res.data.error);
+        return false;
+      }
+      setCargoEdits((prev) => ({
+        ...prev,
+        [item.id]: { cbm: payload.cargo_cbm, package_count: payload.cargo_package_count },
+      }));
+      if (num(payload.cargo_cbm ?? item.cbm) > 0) {
+        setSelectedBultos((prev) => ({ ...prev, [item.id]: true }));
+      }
+      toast.success('CBM y paquetes guardados');
+      onGenerated?.();
+      return true;
+    } catch (e) {
+      toast.error('No se pudo guardar. Intenta de nuevo.');
+      return false;
+    }
   };
 
   const handleWhatsApp = () => {
@@ -146,6 +204,7 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
                   amount={amounts[item.id] || 0}
                   checked={!!selectedBultos[item.id]}
                   onToggle={() => setSelectedBultos((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                  onSave={handleSaveCargo}
                 />
               ))}
             </CardContent>
