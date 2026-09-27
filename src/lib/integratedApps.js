@@ -37,7 +37,7 @@ export function appState(app) {
     return { label: 'Desactivada', tone: 'bg-slate-100 text-slate-600 border-slate-200' };
   }
   if (!app?.last_seen) {
-    return { label: 'Sin conexión', tone: 'bg-amber-50 text-amber-700 border-amber-200' };
+    return { label: 'Sin conexión aún', tone: 'bg-slate-100 text-slate-600 border-slate-200' };
   }
   const hours = (Date.now() - new Date(app.last_seen).getTime()) / 3600000;
   if (hours <= 48) {
@@ -47,7 +47,7 @@ export function appState(app) {
 }
 
 export function timeAgo(dateStr) {
-  if (!dateStr) return 'Sin conexión';
+  if (!dateStr) return 'Sin llamadas aún';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'hace unos segundos';

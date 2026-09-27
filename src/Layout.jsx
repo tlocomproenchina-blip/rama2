@@ -376,6 +376,9 @@ export default function Layout({ children, currentPageName }) {
         };
         setUser(updatedUser);
 
+        // Copia conectada: enviar el cliente registrado a TLEC CARGO (no bloquea el registro)
+        base44.functions.invoke('masterBridge', { action: 'sync_client', email: user.email }).catch(() => {});
+
         // Show onboarding tour for new users
         setTimeout(() => setShowTour(true), 1500);
 

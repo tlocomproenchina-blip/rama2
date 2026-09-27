@@ -1,0 +1,47 @@
+{
+  "description": "Cada 15 minutos reintenta los env\u00edos que no llegaron a la maestra y recoge clientes y pre-alertas de las \u00faltimas horas que a\u00fan no hayan viajado. En TLEC CARGO no hace nada (no hay conexi\u00f3n configurada all\u00ed).",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "retry_master_sync",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "reintentar_envios": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "masterBridge",
+            "args": {
+              "action": "flush"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Reintentar env\u00edos pendientes",
+            "description": "Cola hacia TLEC CARGO"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/15 * * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Reintentar env\u00edos a TLEC CARGO"
+}
