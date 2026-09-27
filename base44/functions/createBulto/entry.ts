@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
-import { resolveActor } from '../../shared/actorContext.ts';
 
 // Crea un bulto (caja física) que agrupa varios paquetes recibidos de un mismo cliente.
 // Recibe: { package_ids: string[] }
@@ -12,11 +11,11 @@ import { resolveActor } from '../../shared/actorContext.ts';
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const body = await req.json().catch(() => ({}));
-    // Actor: sesión real de TLEC o empleado de una empresa socia que llega por el canal de datos
-    const user: any = await resolveActor(base44, req, body);
+    const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Solo administradores' }, { status: 403 });
+
+    const body = await req.json().catch(() => ({}));
     const packageIds: string[] = Array.isArray(body.package_ids) ? body.package_ids.filter(Boolean) : [];
     if (!packageIds.length) {
       return Response.json({ error: 'Selecciona al menos un paquete' }, { status: 400 });
