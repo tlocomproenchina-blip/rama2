@@ -124,6 +124,20 @@
     "received_by": {
       "type": "string"
     },
+    "ve_recognized_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que la carga fue reconocida en el almac\u00e9n de Venezuela al escanear el bulto que la contiene (/BultoOrderScan). Marca que el paquete ya est\u00e1 en Venezuela y lo excluye del resumen diario de recepci\u00f3n del almac\u00e9n de China."
+    },
+    "ve_recognized_by": {
+      "type": "string",
+      "description": "Usuario o dispositivo que reconoci\u00f3 la carga en el almac\u00e9n de Venezuela"
+    },
+    "ve_notified_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se avis\u00f3 al cliente que su carga ya est\u00e1 en Venezuela (resumen diario). Evita repetir el email."
+    },
     "dispatched_date": {
       "type": "string",
       "format": "date-time",

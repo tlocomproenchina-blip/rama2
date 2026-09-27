@@ -79,6 +79,20 @@
       "format": "date-time",
       "description": "Fecha y hora en que se asign\u00f3 el N\u00b0 de orden desde la pantalla de escaneo"
     },
+    "ve_recognized_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el bulto fue reconocido en el almac\u00e9n de Venezuela al escanear su etiqueta (/BultoOrderScan). Marca la carga que ya lleg\u00f3 a Venezuela y alimenta el aviso diario al cliente."
+    },
+    "ve_recognized_by": {
+      "type": "string",
+      "description": "Usuario o dispositivo que reconoci\u00f3 el bulto en el almac\u00e9n de Venezuela"
+    },
+    "ve_notified_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se avis\u00f3 al cliente que su bulto ya est\u00e1 en Venezuela (resumen diario). Evita repetir el email."
+    },
     "client_snapshot": {
       "type": "object",
       "description": "Datos del cliente al momento de crear el bulto (para imprimir en la etiqueta)",
