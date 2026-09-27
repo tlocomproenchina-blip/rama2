@@ -1,0 +1,45 @@
+{
+  "name": "Aviso diario - Carga en Venezuela",
+  "description": "Env\u00eda 1 email diario a cada cliente cuya carga fue reconocida en el almac\u00e9n de Venezuela en las \u00faltimas 24h: sus paquetes ya est\u00e1n en Venezuela y pr\u00f3ximos a la emisi\u00f3n de la factura.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 21 * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "aviso_diario_carga_en_venezuela",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_venezuela_arrival_notice": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendDailyVenezuelaArrivalSummary",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Avisar carga reconocida en Venezuela",
+            "description": "Un email por cliente"
+          }
+        }
+      }
+    ]
+  }
+}

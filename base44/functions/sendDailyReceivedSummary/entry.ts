@@ -25,7 +25,9 @@ Deno.serve(async (req) => {
 
     // Paquetes recibidos en las últimas 24h
     const recent = await base44.asServiceRole.entities.Package.list('-received_date', 500);
-    const received = (recent || []).filter(p => p.received_date && p.received_date >= since && p.client_email);
+    // Excluye la carga ya reconocida en el almacén de Venezuela: ese aviso lo
+    // envía sendDailyVenezuelaArrivalSummary, no el resumen de recepción de China.
+    const received = (recent || []).filter(p => p.received_date && p.received_date >= since && p.client_email && !p.ve_recognized_date);
 
     if (received.length === 0) {
       return Response.json({ sent: 0, message: 'No hay paquetes recibidos en las últimas 24h' });

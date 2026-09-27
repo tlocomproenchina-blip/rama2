@@ -52,14 +52,38 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const now = new Date().toISOString();
+    // Primera vez que se reconoce este bulto en el almacén de Venezuela:
+    // queda marcado con fecha y responsable (no cambia el status del bulto).
+    const firstRecognition = !bulto.ve_recognized_date;
     const updated = await base44.asServiceRole.entities.Bulto.update(bultoId, {
       cbm_order_numbers: orderNumbers,
       order_locked: true,
       order_assigned_by: assignedBy,
       order_assigned_date: now,
+      ...(firstRecognition ? { ve_recognized_date: now, ve_recognized_by: assignedBy } : {}),
     });
 
-    return Response.json({ bulto: updated });
+    // Los paquetes del bulto quedan reconocidos en Venezuela: salen del resumen
+    // diario de recepción de China y entran al aviso de carga en Venezuela.
+    if (firstRecognition) {
+      const packageIds = (Array.isArray(bulto.package_ids) ? bulto.package_ids : [])
+        .filter((id: any) => id && !String(id).startsWith('local_'));
+      if (packageIds.length) {
+        try {
+          await base44.asServiceRole.entities.Package.bulkUpdate(
+            packageIds.map((id: string) => ({ id, ve_recognized_date: now, ve_recognized_by: assignedBy }))
+          );
+        } catch (_) {
+          for (const id of packageIds) {
+            try {
+              await base44.asServiceRole.entities.Package.update(id, { ve_recognized_date: now, ve_recognized_by: assignedBy });
+            } catch (_) {}
+          }
+        }
+      }
+    }
+
+    return Response.json({ bulto: updated, ve_recognized: firstRecognition });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
