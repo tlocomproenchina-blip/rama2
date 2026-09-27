@@ -167,11 +167,31 @@ export function computeClientEstimate(client, ctx) {
 }
 
 export function computeSelectionTotals(items, ctx, overrides = {}) {
-  const totalCbm = (items || []).reduce((s, i) => s + num(i.cbm), 0);
-  const packages = (items || []).reduce((s, i) => s + num(i.package_count), 0);
-  const billedCbm = overrides.billedCbm !== '' && overrides.billedCbm != null ? num(overrides.billedCbm) : totalCbm;
-  const shipping = ctx.calcConsolidatedShipping(billedCbm, items);
-  const autoInsurance = (items || []).reduce((s, i) => s + num(i.insurance), 0);
+  const list = items || [];
+  const totalCbm = list.reduce((s, i) => s + num(i.cbm), 0);
+  const packages = list.reduce((s, i) => s + num(i.package_count), 0);
+  const manualCbm = overrides.billedCbm !== '' && overrides.billedCbm != null;
+  const billedCbm = manualCbm ? num(overrides.billedCbm) : totalCbm;
+
+  // Envío: cada bulto/recibo se cotiza con su propio CBM y las tarifas de su fecha,
+  // y el envío del resumen es la suma de esos montos. Si el admin escribe un
+  // CBM facturado, ese valor manda y se reparte entre lo marcado.
+  let shipping = 0;
+  const shippingByItem = {};
+  if (manualCbm) {
+    shipping = ctx.calcConsolidatedShipping(billedCbm, list);
+    list.forEach((i) => {
+      shippingByItem[i.id] = totalCbm > 0 ? (num(i.cbm) / totalCbm) * shipping : 0;
+    });
+  } else {
+    list.forEach((i) => {
+      const own = ctx.calcShippingForRow(num(i.cbm), i.fecha);
+      shippingByItem[i.id] = own;
+      shipping += own;
+    });
+  }
+
+  const autoInsurance = list.reduce((s, i) => s + num(i.insurance), 0);
   const insurance = overrides.insurance !== '' && overrides.insurance != null ? num(overrides.insurance) : autoInsurance;
   const consolidation = overrides.consolidationMode === 'manual' ? num(overrides.consolidationFee) : packages * 1;
   const doorToDoor = num(overrides.doorToDoor);
@@ -180,8 +200,10 @@ export function computeSelectionTotals(items, ctx, overrides = {}) {
   return {
     totalCbm,
     billedCbm,
+    manualCbm,
     packages,
     shipping,
+    shippingByItem,
     autoInsurance,
     insurance,
     consolidation,
@@ -192,15 +214,16 @@ export function computeSelectionTotals(items, ctx, overrides = {}) {
   };
 }
 
-// Reparte el envío y el seguro entre los conceptos (proporcional al CBM y al FOB).
+// Monto a pagar de cada concepto: el envío ya viene calculado por bulto/recibo
+// (o repartido si el admin fijó el CBM facturado) + su seguro.
 export function distributeAmounts(items, totals) {
   const map = {};
-  const cbmSum = (items || []).reduce((s, i) => s + num(i.cbm), 0);
   const insuranceSum = (items || []).reduce((s, i) => s + num(i.insurance), 0);
+  const insuranceScale = insuranceSum > 0 ? num(totals.insurance) / insuranceSum : 0;
   for (const i of items || []) {
-    const shipShare = cbmSum > 0 ? (num(i.cbm) / cbmSum) * totals.shipping : 0;
-    const insShare = insuranceSum > 0 ? (num(i.insurance) / insuranceSum) * totals.insurance : 0;
-    map[i.id] = Math.round((shipShare + insShare) * 100) / 100;
+    const ship = num(totals?.shippingByItem?.[i.id]);
+    const ins = num(i.insurance) * insuranceScale;
+    map[i.id] = Math.round((ship + ins) * 100) / 100;
   }
   return map;
 }
@@ -217,11 +240,13 @@ export async function generateWarehouseInvoice({ client, selectedItems, totals, 
   const items = [];
   for (const it of selectedItems) {
     const cbm = num(it.cbm);
+    // Cada línea de envío lleva el monto real de ese bulto/recibo
+    const lineTotal = Math.round(num(totals.shippingByItem?.[it.id]) * 100) / 100;
     items.push({
       description: `Envío ${it.label}`,
       quantity: cbm,
-      unit_price: ratePerCbm,
-      total: cbm * ratePerCbm,
+      unit_price: cbm > 0 ? Math.round((lineTotal / cbm) * 10000) / 10000 : lineTotal,
+      total: lineTotal,
       details: {
         cbm,
         invoice_number: it.label,

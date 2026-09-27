@@ -3,7 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Package, Truck, AlertTriangle, Pencil, Loader2 } from 'lucide-react';
+import { Package, Truck, AlertTriangle, Pencil, Loader2, ShieldCheck } from 'lucide-react';
 
 const money = (v) => `$${Number(v || 0).toFixed(2)}`;
 
@@ -63,6 +63,14 @@ export default function WarehouseBillingItemRow({ item, amount, checked, onToggl
             </span>
             <span className="text-slate-400">·</span>
             <span>{item.package_count || 0} paquete(s)</span>
+            <span className="text-slate-400">·</span>
+            {Number(item.insurance || 0) > 0 ? (
+              <span className="inline-flex items-center gap-1 font-medium text-emerald-600">
+                <ShieldCheck className="h-3 w-3" /> Seguro incluido {money(item.insurance)}
+              </span>
+            ) : (
+              <span className="text-slate-400">Sin seguro registrado</span>
+            )}
             {item.order_numbers?.length > 0 && (
               <>
                 <span className="text-slate-400">·</span>
