@@ -61,18 +61,18 @@ export default async function (req: Request): Promise<Response> {
       })),
     }));
 
-    // Carga reconocida en el almacén de Venezuela (escaneo de llegada en /BultoOrderScan):
-    // se lista en esta misma pestaña junto a las órdenes de despacho. Lo que ya está
-    // listado en una orden de despacho se omite para no duplicar registros.
+    // Carga en almacén de Venezuela: se lista en esta misma pestaña junto a las
+    // órdenes de despacho, con la misma regla que la facturación (todo bulto que
+    // todavía no fue despachado). Lo que ya está listado en una orden de despacho
+    // se omite para no duplicar registros.
     const recognized = [];
     try {
       const bultos = await base44.asServiceRole.entities.Bulto.filter(
-        { client_email: user.email, status: 'en_almacen_ve' },
-        '-ve_recognized_date',
-        100
+        { client_email: user.email, status: { $ne: 'despachado' } },
+        '-created_date',
+        200
       );
       for (const b of (Array.isArray(bultos) ? bultos : [])) {
-        if (!b?.ve_recognized_date) continue;
         const trackings = (Array.isArray(b.package_trackings) ? b.package_trackings : []).filter(Boolean);
         const pendingTrackings = trackings.filter((t: string) => !allTrackings.has(t));
         if (trackings.length && !pendingTrackings.length) continue; // ya listado en una orden
@@ -81,8 +81,8 @@ export default async function (req: Request): Promise<Response> {
           id: `ve-bulto-${b.id}`,
           order_number: `Bulto ${b.bulto_number || 1}/${b.total_bultos || b.bulto_number || 1} · ${b.label_code || ''}`,
           status: 'emitida',
-          dispatched_date: b.ve_recognized_date,
-          created_date: b.ve_recognized_date,
+          dispatched_date: b.ve_recognized_date || b.created_date,
+          created_date: b.ve_recognized_date || b.created_date,
           notes: '',
           source: 've_recognized',
           pending_invoice: !b.billed_invoice_id,

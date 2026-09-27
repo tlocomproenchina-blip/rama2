@@ -30,7 +30,9 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
       state: bulto.client_snapshot?.state || '',
       shipping_mark: bulto.client_snapshot?.shipping_mark || bulto.shipping_mark || '',
     });
-    setStatus(bulto.status || 'activo');
+    // El estado legacy 'cerrado' ya no se usa: al abrir un bulto antiguo se
+    // normaliza a 'en_almacen_ve' (en almacén, listo para facturar).
+    setStatus(bulto.status === 'cerrado' ? 'en_almacen_ve' : (bulto.status || 'activo'));
     setSelectedIds(bulto.package_ids || []);
     setOrderNumbers(Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.join(', ') : '');
     setClientPackages([]);
@@ -192,7 +194,6 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="activo">Activo</option>
-                  <option value="cerrado">Cerrado</option>
                   <option value="en_almacen_ve">En Almacén Venezuela</option>
                   <option value="despachado">Despachado</option>
                 </select>

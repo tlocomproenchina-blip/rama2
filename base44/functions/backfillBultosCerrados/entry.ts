@@ -1,11 +1,14 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.51';
+import { fetchAllFilter, normTracking, errorMessage, BATCH } from '../../shared/paginatedFetch.ts';
 
-// Migración one-off: marca como 'cerrado' todos los Bultos con status 'activo'
-// que ya tienen print_count > 0 (fueron impresos/impack) o que ya fueron despachados
-// (para alinear el histórico con la realidad y que no aparezcan como abiertos).
-//
-// Recibe opcionalmente { dry_run: true } para solo reportar cuántos se marcarían.
-// Devuelve { updated: number, already_ok: number, details: [...] }
+// Corrección única de los bultos que quedaron en el estado huérfano 'cerrado'
+// (sellados sin pasar a almacén Venezuela, invisibles para facturación).
+// - Bultos cuyos paquetes ya están dentro de una orden de despacho NO cancelada
+//   → 'despachado' (su carga ya fue asignada al cliente).
+// - El resto → 'en_almacen_ve' (carga en almacén de Venezuela, lista para facturar).
+// No crea ni suelta paquetes, no toca números de orden ni facturas ya generadas.
+// Idempotente: al repetirla ya no encuentra bultos en 'cerrado' y no cambia nada.
+// Devuelve { updated, to_almacen_ve, to_despachado, total_cerrados, errors }.
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -13,46 +16,49 @@ export default async function(req: Request): Promise<Response> {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Solo administradores' }, { status: 403 });
 
-    const body = await req.json().catch(() => ({}));
-    const dryRun = !!body.dry_run;
-    const forceAll = !!body.force_all;
+    const svc = base44.asServiceRole.entities;
 
-    // Traer todos los bultos activos (paginación simple, límite alto)
-    const all = await base44.asServiceRole.entities.Bulto.filter({ status: 'activo' }, '-created_date', 2000);
-    const activos = all || [];
+    const [cerrados, ordenes] = await Promise.all([
+      fetchAllFilter(svc.Bulto, { status: 'cerrado' }, '-created_date'),
+      fetchAllFilter(svc.DispatchOrder, { status: { $ne: 'cancelada' } }, '-created_date'),
+    ]);
 
-    // Criterio por defecto: print_count > 0  → ya fue impreso → cerrado.
-    // Con force_all: marca TODOS los activos como cerrado (uso manual cuando el
-    // operador sabe que ya están sellados pero no tienen impresión registrada).
-    const toUpdate = forceAll ? activos : activos.filter((b) => (b.print_count || 0) > 0);
-    const alreadyOk = forceAll ? [] : activos.filter((b) => (b.print_count || 0) === 0);
-
-    if (dryRun) {
-      return Response.json({
-        dry_run: true,
-        would_update: toUpdate.length,
-        already_ok: alreadyOk.length,
-        sample: toUpdate.slice(0, 10).map((b) => ({ id: b.id, label_code: b.label_code, print_count: b.print_count })),
-      });
+    // Trackings de carga ya listada en una orden de despacho vigente
+    const trackingsEnOrden = new Set<string>();
+    for (const o of ordenes || []) {
+      for (const it of (o.items || [])) {
+        const key = normTracking(it.tracking_number);
+        if (key) trackingsEnOrden.add(key);
+      }
     }
 
-    // bulkUpdate con status 'cerrado'
-    let updatedCount = 0;
+    const destino: Record<string, string> = {};
+    let toAlmacenVe = 0;
+    let toDespachado = 0;
+    for (const b of cerrados || []) {
+      const trackings = (b.package_trackings || []).map(normTracking).filter(Boolean);
+      const yaDespachado = trackings.some((t: string) => trackingsEnOrden.has(t));
+      destino[b.id] = yaDespachado ? 'despachado' : 'en_almacen_ve';
+      if (yaDespachado) toDespachado++;
+      else toAlmacenVe++;
+    }
+
+    const ids = Object.keys(destino);
     const errors: any[] = [];
-    if (toUpdate.length) {
+    let updated = 0;
+
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const chunk = ids.slice(i, i + BATCH);
       try {
-        await base44.asServiceRole.entities.Bulto.bulkUpdate(
-          toUpdate.map((b) => ({ id: b.id, status: 'cerrado' }))
-        );
-        updatedCount = toUpdate.length;
-      } catch (e: any) {
-        // Fallback: actualizar uno a uno
-        for (const b of toUpdate) {
+        await svc.Bulto.bulkUpdate(chunk.map((id) => ({ id, status: destino[id] })));
+        updated += chunk.length;
+      } catch (_) {
+        for (const id of chunk) {
           try {
-            await base44.asServiceRole.entities.Bulto.update(b.id, { status: 'cerrado' });
-            updatedCount++;
+            await svc.Bulto.update(id, { status: destino[id] });
+            updated++;
           } catch (err: any) {
-            errors.push({ id: b.id, label_code: b.label_code, error: err?.message });
+            errors.push({ id, error: errorMessage(err) });
           }
         }
       }
@@ -60,11 +66,13 @@ export default async function(req: Request): Promise<Response> {
 
     return Response.json({
       success: true,
-      updated: updatedCount,
-      already_ok: alreadyOk.length,
+      updated,
+      to_almacen_ve: toAlmacenVe,
+      to_despachado: toDespachado,
+      total_cerrados: ids.length,
       errors,
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

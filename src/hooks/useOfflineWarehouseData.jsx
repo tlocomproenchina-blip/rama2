@@ -94,19 +94,19 @@ export function useOfflineWarehouseData() {
       await base44.functions.invoke('consolidateOpenBultos', {});
     } catch (_) {}
     setProgress((p) => ({ ...p, phase: 'Descargando bultos…' }));
-    // Descargar bultos activos (abiertos) Y cerrados (sellados, esperando despacho).
-    // Los cerrados se muestran en historial pero no en chips de bultos abiertos.
-    // El estado 'cerrado' es autoritativo en el servidor — ya no dependemos de closed_at local.
-    const [activos, cerrados] = await Promise.all([
+    // Descargar bultos abiertos Y los que ya están en almacén (sellados, esperando
+    // despacho y facturación): el historial del dispositivo no pierde ninguno.
+    // El estado del servidor es autoritativo — ya no dependemos de closed_at local.
+    const [activos, enAlmacen] = await Promise.all([
       base44.entities.Bulto.filter({ status: 'activo' }, 'bulto_number', 500),
-      base44.entities.Bulto.filter({ status: 'cerrado' }, 'bulto_number', 500),
+      base44.entities.Bulto.filter({ status: 'en_almacen_ve' }, 'bulto_number', 500),
     ]);
-    const bultos = [...(activos || []), ...(cerrados || [])];
+    const bultos = [...(activos || []), ...(enAlmacen || [])];
 
     // Bultos locales actuales (para preservar los no sincronizados)
     const localBultos = await getAll('bultos');
 
-    // Deduplicar por label_code (el servidor ya distingue activo vs cerrado)
+    // Deduplicar por label_code (el servidor ya distingue activo vs en almacén)
     const seenLabelCodes = new Set();
     const filtered = (bultos || []).filter((b) => {
       if (!b.label_code) return true;
@@ -122,7 +122,7 @@ export function useOfflineWarehouseData() {
 
     // Preservar bultos locales no sincronizados (sin closed_at) antes de limpiar el store.
     // Los bultos locales con closed_at que ya existen en el servidor se descartan (el servidor
-    // ya tiene el registro autoritativo con status 'cerrado').
+    // ya tiene el registro autoritativo con su estado final).
     const seenLocal = new Set();
     const localOnly = localBultos.filter((b) => {
       const keep = (b.is_local || String(b.id || '').startsWith('local_')) &&

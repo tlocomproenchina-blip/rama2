@@ -24,19 +24,22 @@ Deno.serve(async (req) => {
 
     const svc = base44.asServiceRole.entities;
 
-    const [bultosVe, receiptsPending] = await Promise.all([
-      fetchAllFilter(svc.Bulto, { status: 'en_almacen_ve' }, '-created_date'),
+    // Regla única de carga en almacén (Venezuela): todo bulto con paquetes que
+    // todavía no fue despachado y no tiene factura viva. El estado solo se usa para
+    // excluir lo ya despachado, así ningún bulto del almacén queda invisible.
+    const [bultosCandidatos, receiptsPending] = await Promise.all([
+      fetchAllFilter(svc.Bulto, { status: { $ne: 'despachado' } }, '-created_date'),
       fetchAllFilter(svc.CbmIngreso, { billed: false }, '-fecha'),
     ]);
 
     // Auto-sanación: si la factura que marcó el bulto ya no existe, vuelve a ofrecerse.
-    const invoiceIds = [...new Set(bultosVe.map((b: any) => b.billed_invoice_id).filter(Boolean))] as string[];
+    const invoiceIds = [...new Set(bultosCandidatos.map((b: any) => b.billed_invoice_id).filter(Boolean))] as string[];
     const aliveInvoiceIds = new Set<string>();
     for (let i = 0; i < invoiceIds.length; i += BATCH) {
       const found = await svc.Invoice.filter({ id: { $in: invoiceIds.slice(i, i + BATCH) } }, undefined, BATCH + 10).catch(() => []);
       for (const inv of found || []) aliveInvoiceIds.add(inv.id);
     }
-    const bultos = bultosVe.filter((b: any) => !b.billed_invoice_id || !aliveInvoiceIds.has(b.billed_invoice_id));
+    let bultos = bultosCandidatos.filter((b: any) => !b.billed_invoice_id || !aliveInvoiceIds.has(b.billed_invoice_id));
 
     const clientEmails = [...new Set([
       ...bultos.map((b: any) => b.client_email),
@@ -47,11 +50,26 @@ Deno.serve(async (req) => {
       return Response.json({ clients: [], total: 0, generated_at: new Date().toISOString() });
     }
 
-    const [packages, ingresos, approvedInsurance] = await Promise.all([
+    const [packages, ingresos, approvedInsurance, dispatchOrders] = await Promise.all([
       fetchByClientEmails(svc.Package, clientEmails, '-created_date'),
       fetchByClientEmails(svc.CbmIngreso, clientEmails, '-fecha'),
       fetchByClientEmails(svc.InsurancePayment, clientEmails, '-created_date', { status: 'aprobado' }),
+      fetchByClientEmails(svc.DispatchOrder, clientEmails, '-created_date'),
     ]);
+
+    // La carga que ya está dentro de una orden de despacho vigente no se vuelve a
+    // ofrecer como almacén: fue asignada al cliente (facturada o en camino).
+    const trackingsEnOrden = new Set<string>();
+    for (const o of dispatchOrders || []) {
+      if (o.status === 'cancelada') continue;
+      for (const it of (o.items || [])) {
+        const key = normTracking(it.tracking_number);
+        if (key) trackingsEnOrden.add(key);
+      }
+    }
+    bultos = bultos.filter((b: any) =>
+      !(b.package_trackings || []).some((t: any) => trackingsEnOrden.has(normTracking(t)))
+    );
 
     const buckets: any = {};
     const bucketFor = (email: string) => {

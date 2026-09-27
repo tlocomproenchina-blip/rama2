@@ -74,7 +74,7 @@ export default async function(req: Request): Promise<Response> {
 
     // --- Estado ---
     if (body.status) {
-      if (!['activo', 'despachado'].includes(body.status)) {
+      if (!['activo', 'en_almacen_ve', 'despachado'].includes(body.status)) {
         return Response.json({ error: 'Estado inválido' }, { status: 400 });
       }
       update.status = body.status;

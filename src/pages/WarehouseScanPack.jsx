@@ -202,13 +202,15 @@ export default function WarehouseScanPack({ user }) {
   // Acepta un override manual de números de orden (array de strings) o null.
   const handleCloseBulto = useCallback(async (bulto, manualOrderNumbers) => {
     if (!bulto) return;
-    // Cerrar bulto: status 'cerrado' (sellado, esperando despacho/impresión).
-    // El estado es autoritativo en el servidor — se sincroniza vía syncBultoBatch.
+    // Cerrar bulto: status 'en_almacen_ve' (sellado, en almacén, esperando despacho
+    // y facturación). Es el mismo estado que usa el resto del sistema, así el bulto
+    // aparece en facturación y en el portal del cliente. El servidor lo confirma
+    // vía syncBultoBatch.
     let cbmOrderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers : [];
     if (manualOrderNumbers && manualOrderNumbers.length > 0) {
       cbmOrderNumbers = manualOrderNumbers;
     }
-    const closedBulto = { ...bulto, status: 'cerrado', closed_at: new Date().toISOString(), cbm_order_numbers: cbmOrderNumbers };
+    const closedBulto = { ...bulto, status: 'en_almacen_ve', closed_at: new Date().toISOString(), cbm_order_numbers: cbmOrderNumbers };
     await put('bultos', closedBulto);
 
     // Quitar de bultos abiertos

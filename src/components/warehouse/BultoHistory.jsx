@@ -162,7 +162,6 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
             >
               <option value="all">Todos los estados</option>
               <option value="activo">Activos</option>
-              <option value="cerrado">Cerrados</option>
               <option value="en_almacen_ve">En Almacén Venezuela</option>
               <option value="despachado">Despachados</option>
             </select>

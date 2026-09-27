@@ -164,9 +164,15 @@ export default function AdminBultoAudit() {
     setBackfillRunning(true);
     try {
       const res = await base44.functions.invoke('backfillBultosCerrados', {});
-      const updated = res?.data?.updated ?? res?.updated ?? 0;
-      const alreadyOk = res?.data?.already_ok ?? res?.already_ok ?? 0;
-      toast.success(`Backfill completado: ${updated} bulto(s) migrado(s) a 'cerrado'${alreadyOk ? `, ${alreadyOk} ya estaban correctos` : ''}`);
+      const data = res?.data || res;
+      const updated = data?.updated ?? 0;
+      const toAlmacenVe = data?.to_almacen_ve ?? 0;
+      const toDespachado = data?.to_despachado ?? 0;
+      toast.success(
+        updated > 0
+          ? `${updated} bulto(s) corregido(s): ${toAlmacenVe} a Almacén Venezuela y ${toDespachado} a Despachado`
+          : 'No había bultos en estado cerrado por corregir'
+      );
       setShowBackfill(false);
       // Recargar lista para reflejar cambios
       setLoading(true);
@@ -207,7 +213,7 @@ export default function AdminBultoAudit() {
           onClick={() => setShowBackfill(true)}
           className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
         >
-          <RefreshCw className="h-4 w-4" /> Backfill bultos cerrados
+          <RefreshCw className="h-4 w-4" /> Corregir bultos cerrados
         </Button>
       </div>
 
@@ -361,18 +367,20 @@ export default function AdminBultoAudit() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Backfill de bultos cerrados
+              Corregir bultos cerrados
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm text-slate-600">
-              Esta operación migrará los bultos legacy con estado <span className="font-mono font-semibold">activo</span> que
-              no tengan paquetes activos asociados al estado <span className="font-mono font-semibold">cerrado</span> en el
-              servidor.
+              Esta operación corrige los bultos que quedaron en estado{' '}
+              <span className="font-mono font-semibold">cerrado</span>: los que ya tienen sus paquetes dentro de una
+              orden de despacho pasan a <span className="font-mono font-semibold">despachado</span>, y el resto pasa a{' '}
+              <span className="font-mono font-semibold">en_almacen_ve</span> (En Almacén Venezuela) para que aparezcan
+              en <strong>Carga en almacén</strong> y puedan facturarse.
             </p>
             <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-              <strong>Advertencia:</strong> Los bultos migrados dejarán de aparecer como abiertos en todos los
-              dispositivos de bodega tras su próxima sincronización. Esta acción no se puede deshacer.
+              <strong>Advertencia:</strong> No cambia paquetes, números de orden ni facturas ya generadas. Puedes
+              ejecutarla más de una vez: si no quedan bultos cerrados, no cambia nada.
             </div>
           </div>
           <DialogFooter className="gap-2">
