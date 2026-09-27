@@ -1,0 +1,94 @@
+{
+  "name": "IntegratedClient",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente registrado desde una app duplicada"
+    },
+    "first_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Apellido del cliente"
+    },
+    "cedula": {
+      "type": "string",
+      "description": "Documento de identidad del cliente"
+    },
+    "state": {
+      "type": "string",
+      "description": "Estado de entrega (c\u00f3digo o nombre)"
+    },
+    "city": {
+      "type": "string",
+      "description": "Ciudad de entrega"
+    },
+    "whatsapp": {
+      "type": "string",
+      "description": "WhatsApp del cliente"
+    },
+    "whatsapp_normalized": {
+      "type": "string",
+      "description": "WhatsApp sin caracteres de formato (para b\u00fasquedas y duplicados)"
+    },
+    "address": {
+      "type": "string",
+      "description": "Direcci\u00f3n de entrega"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark con el que se identifican las cargas de este cliente"
+    },
+    "account_created": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que el cliente ya tiene cuenta de acceso en TLEC CARGO (deja de usar este registro sin cuenta)"
+    },
+    "origin_app_id": {
+      "type": "string",
+      "description": "ID de la app integrada (IntegratedApp) que registr\u00f3 este cliente"
+    },
+    "origin_app_label": {
+      "type": "string",
+      "description": "Nombre de la app integrada que origin\u00f3 el registro (cache para mostrar)"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Notas internas sobre el cliente"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "client_email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
