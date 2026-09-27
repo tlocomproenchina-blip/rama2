@@ -46,6 +46,36 @@ export function appState(app) {
   return { label: 'Sin conexión', tone: 'bg-amber-50 text-amber-700 border-amber-200' };
 }
 
+// Veredicto de conexión y paso a seguir, para el diagnóstico de cada copia.
+export function appDiagnostic(app) {
+  const state = appState(app);
+  const pending = Number(app?.report_pending) || 0;
+  const missing = Array.isArray(app?.report_missing) ? app.report_missing.filter(Boolean) : [];
+  const lastError = String(app?.report_error || '');
+  const lastErrorDate = app?.report_error_date || '';
+  const reportDate = app?.report_date || '';
+  const hours = app?.last_seen ? (Date.now() - new Date(app.last_seen).getTime()) / 3600000 : null;
+
+  let step;
+  if (app?.active === false) {
+    step = 'Activa esta conexión para que las llamadas de la copia vuelvan a ser aceptadas.';
+  } else if (!app?.last_seen) {
+    step = 'La copia nunca ha llamado. Guarda en ella la dirección del servicio y la clave de acceso: en su próximo ciclo de sincronización enviará su primer reporte.';
+  } else if (hours > 48) {
+    step = 'La copia dejó de responder. Revisa que siga publicada y que conserve guardados la dirección del servicio y la clave de acceso.';
+  } else if (missing.length) {
+    step = `A la copia le falta guardar: ${missing.join(', ')}.`;
+  } else if (pending > 0) {
+    step = lastError
+      ? `La copia tiene ${pending} envío${pending === 1 ? '' : 's'} pendiente${pending === 1 ? '' : 's'}. Último motivo: ${lastError}`
+      : `La copia tiene ${pending} envío${pending === 1 ? '' : 's'} pendiente${pending === 1 ? '' : 's'}; se reintentan solos cada 15 minutos.`;
+  } else {
+    step = 'Todo en orden: la copia está enviando y no tiene pendientes.';
+  }
+
+  return { label: state.label, tone: state.tone, connected: state.label === 'Conectada', step, pending, missing, lastError, lastErrorDate, reportDate };
+}
+
 export function timeAgo(dateStr) {
   if (!dateStr) return 'Sin llamadas aún';
   const diff = Date.now() - new Date(dateStr).getTime();

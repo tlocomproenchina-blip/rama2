@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { waitUntil } from 'base44:runtime';
-import { authenticateIntegratedApp, touchIntegratedApp, errorResponse } from '../../shared/integratedApps.ts';
+import { authenticateIntegratedApp, touchIntegratedApp, saveStatusReport, errorResponse } from '../../shared/integratedApps.ts';
 import { runOperation, auditPayload, RESOURCE_LABELS } from '../../shared/integratedAppResources.ts';
 
 async function writeAudit(base44, payload) {
@@ -29,7 +29,12 @@ export default async function (req) {
     }
 
     if (resource === 'health' || resource === 'ping') {
-      waitUntil(touchIntegratedApp(base44, app, 'health'));
+      const report = body?.report;
+      // El reporte de la copia y la marca de uso se guardan en orden para no pisarse.
+      waitUntil((async () => {
+        if (report) await saveStatusReport(base44, app, report);
+        await touchIntegratedApp(base44, app, 'health');
+      })());
       return Response.json({
         ok: true,
         service: 'integratedAppApi',

@@ -11,6 +11,7 @@ const URL_SECRETS = ['Dirección_del_servicio', 'Direccion_del_servicio', 'DIREC
 const KEY_SECRETS = ['Clave_de_acceso', 'CLAVE_DE_ACCESO', 'MASTER_APP_KEY', 'TLEC_APP_KEY'];
 const TIMEOUT_MS = 15000;
 const RETRY_LIMIT = 20;
+const REPORT_LIMIT = 200;
 const SCAN_LIMIT = 10;
 const SCAN_WINDOW_MS = 24 * 60 * 60 * 1000;
 const OUTBOX = 'MasterSyncOutbox';
@@ -278,6 +279,28 @@ async function verifyConnection(svc, cfg) {
   return { ok: false, message, code: result.data?.error?.code || '' };
 }
 
+// Reporte de estado: al cerrar cada ciclo la copia cuenta a la maestra cómo está,
+// aunque no tenga nada pendiente. Un reporte fallido nunca afecta los envíos.
+async function sendStatusReport(svc, cfg) {
+  try {
+    const errors = await svc.entities[OUTBOX].filter({ status: 'error' }, '-updated_date', REPORT_LIMIT);
+    const list = errors || [];
+    const last = list[0] || null;
+    return await callMaster(cfg, {
+      resource: 'health',
+      report: {
+        configured: cfg.configured,
+        missing: cfg.missing,
+        pending: list.length,
+        last_error: last?.last_error || '',
+        last_error_date: last?.last_attempt_date || ''
+      }
+    });
+  } catch (_) {
+    return { ok: false };
+  }
+}
+
 function isRecent(value) {
   if (!value) return false;
   const time = new Date(value).getTime();
@@ -313,6 +336,9 @@ async function flushOutbox(svc, cfg) {
     const res = await syncPrealert(svc, cfg, pkg.id);
     if (res.ok && !res.already) summary.sent += 1;
   }
+
+  // La copia reporta su estado a la maestra al cerrar el ciclo, aunque no tenga pendientes.
+  summary.reported = (await sendStatusReport(svc, cfg)).ok;
 
   return summary;
 }

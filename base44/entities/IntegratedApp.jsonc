@@ -41,6 +41,38 @@
       "default": 0,
       "description": "Total de llamadas recibidas desde esta copia"
     },
+    "report_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del \u00faltimo reporte de estado que la copia envi\u00f3 al cerrar su ciclo de sincronizaci\u00f3n"
+    },
+    "report_configured": {
+      "type": "boolean",
+      "description": "Si la copia report\u00f3 tener guardados el enlace del servicio y su clave de acceso"
+    },
+    "report_missing": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Valores de conexi\u00f3n que a la copia le faltan guardar, seg\u00fan su \u00faltimo reporte"
+    },
+    "report_pending": {
+      "type": "number",
+      "default": 0,
+      "description": "Env\u00edos pendientes que la copia ten\u00eda al cerrar su ciclo de sincronizaci\u00f3n"
+    },
+    "report_error": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Motivo del \u00faltimo error de env\u00edo reportado por la copia"
+    },
+    "report_error_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del \u00faltimo error de env\u00edo reportado por la copia"
+    },
     "created_by": {
       "type": "string",
       "description": "Admin que cre\u00f3 la conexi\u00f3n"

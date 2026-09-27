@@ -83,3 +83,22 @@ export async function authenticateIntegratedApp(base44, rawKey) {
   }
   return { app };
 }
+
+// Reporte de estado que la copia adjunta al cerrar su ciclo de sincronización.
+// Queda guardado en su propio registro para que TLEC CARGO pueda diagnosticarla.
+export async function saveStatusReport(base44, app, report) {
+  const data = report && typeof report === 'object' ? report : {};
+  const missing = Array.isArray(data.missing) ? data.missing.map((v) => String(v)).slice(0, 5) : [];
+  try {
+    await base44.asServiceRole.entities.IntegratedApp.update(app.id, {
+      report_date: new Date().toISOString(),
+      report_configured: data.configured !== false,
+      report_missing: missing,
+      report_pending: Number(data.pending) || 0,
+      report_error: String(data.last_error || '').slice(0, 500),
+      report_error_date: data.last_error_date || ''
+    });
+  } catch (_) {
+    // el reporte nunca debe romper la llamada de la copia
+  }
+}

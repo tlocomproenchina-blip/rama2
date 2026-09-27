@@ -47,7 +47,6 @@ import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
 import ShippingMarkExamplesEditor from '@/components/admin/ShippingMarkExamplesEditor';
 import BatteryBannerSettings from '@/components/admin/BatteryBannerSettings';
 import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
-import MasterConnectionCard from '@/components/admin/MasterConnectionCard';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -1150,9 +1149,6 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
-              {/* Conexión con TLEC CARGO (solo aparece en las copias) */}
-              <MasterConnectionCard />
-
               {/* Prueba de Notificaciones Push */}
               <PushTestCard user={user} />
 

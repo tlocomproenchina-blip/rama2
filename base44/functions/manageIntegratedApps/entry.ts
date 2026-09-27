@@ -15,6 +15,12 @@ function publicApp(app) {
     last_seen: app.last_seen || null,
     last_action: app.last_action || '',
     call_count: Number(app.call_count) || 0,
+    report_date: app.report_date || null,
+    report_configured: app.report_configured !== false,
+    report_missing: Array.isArray(app.report_missing) ? app.report_missing : [],
+    report_pending: Number(app.report_pending) || 0,
+    report_error: app.report_error || '',
+    report_error_date: app.report_error_date || null,
     key_prefix: app.key_prefix || '',
     created_by: app.created_by || '',
     created_date: app.created_date || null
