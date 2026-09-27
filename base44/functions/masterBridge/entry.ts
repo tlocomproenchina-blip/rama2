@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { secrets } from 'base44:runtime';
+import { testClientEmail, testClientMark } from '../../shared/integratedApps.ts';
 
 // Puente de la copia hacia TLEC CARGO.
 // La clave de la copia vive en el servidor de la copia: el navegador nunca la ve.
@@ -15,6 +16,9 @@ const REPORT_LIMIT = 200;
 const SCAN_LIMIT = 10;
 const SCAN_WINDOW_MS = 24 * 60 * 60 * 1000;
 const OUTBOX = 'MasterSyncOutbox';
+const TEST_KEY = 'connection_test';
+const TEST_INTERVAL_MS = 22 * 60 * 60 * 1000;
+const TEST_AMOUNT = 0.01;
 
 function readSecret(names) {
   for (const name of names) {
@@ -238,6 +242,178 @@ async function syncPrealert(svc, cfg, packageId) {
   return { ...result, client: clientResult };
 }
 
+function failureText(result) {
+  const message = result?.data?.error?.message || result?.error || `Error ${result?.status || 'desconocido'}`;
+  return String(message).slice(0, 300);
+}
+
+// Prueba de ida y vuelta completa: alta, lectura de vuelta y borrado de datos
+// marcados como prueba. Corre aquí porque la copia es la única que tiene la clave.
+async function runConnectionTest(cfg, slug) {
+  const email = testClientEmail(slug);
+  const mark = testClientMark(slug);
+  const stamp = Date.now().toString(36).toUpperCase();
+  const invoiceNumber = `PRUEBA-${slug.toUpperCase()}-${stamp}`;
+  const steps = [];
+  const leftovers = [];
+  let invoiceId = '';
+  let paymentId = '';
+
+  // 1. Cliente de prueba: alta y lectura de vuelta.
+  const created = await callMaster(cfg, {
+    resource: 'clients',
+    operation: 'create',
+    email,
+    first_name: 'Cliente de prueba',
+    last_name: 'Conexión',
+    shipping_mark: mark
+  });
+  if (!created.ok) {
+    steps.push({ step: 'cliente', label: 'Cliente de prueba', ok: false, detail: failureText(created) });
+  } else {
+    const readBack = await callMaster(cfg, { resource: 'clients', operation: 'get', email });
+    const found = readBack.ok && String(readBack.data?.client?.email || '').toLowerCase() === email;
+    steps.push({
+      step: 'cliente',
+      label: 'Cliente de prueba',
+      ok: found,
+      detail: found ? 'Se creó y se leyó de vuelta correctamente' : `No se pudo leer de vuelta: ${failureText(readBack)}`
+    });
+  }
+
+  // 2. Pre-alerta de prueba: se valida sin guardarla, porque guardarla
+  //    dispararía avisos y correos a operaciones y al cliente.
+  const prealert = await callMaster(cfg, {
+    resource: 'prealerts',
+    operation: 'validate',
+    client_email: email,
+    tracking_number: `PRUEBA-${stamp}`,
+    description: 'Validación de la prueba de conexión',
+    shipping_type: 'aereo',
+    risk_category: 'general'
+  });
+  steps.push({
+    step: 'prealerta',
+    label: 'Pre-alerta de prueba',
+    ok: prealert.ok,
+    detail: prealert.ok ? `Validada con el shipping mark ${mark}` : failureText(prealert)
+  });
+
+  // 3. Factura y cobro de prueba.
+  const invoice = await callMaster(cfg, {
+    resource: 'invoices',
+    operation: 'create',
+    client_email: email,
+    invoice_number: invoiceNumber,
+    total: TEST_AMOUNT,
+    notes: 'PRUEBA DE CONEXIÓN — se elimina automáticamente'
+  });
+  if (invoice.ok) invoiceId = String(invoice.data?.record?.id || '');
+  if (!invoice.ok) {
+    steps.push({ step: 'factura', label: 'Factura y cobro de prueba', ok: false, detail: failureText(invoice) });
+  } else {
+    const payment = await callMaster(cfg, {
+      resource: 'payments',
+      operation: 'create',
+      invoice_id: invoiceId,
+      amount: TEST_AMOUNT,
+      method: 'otro',
+      reference: `PRUEBA-${stamp}`,
+      description: 'Cobro de la prueba de conexión'
+    });
+    if (payment.ok) paymentId = String(payment.data?.record?.id || '');
+    steps.push({
+      step: 'factura',
+      label: 'Factura y cobro de prueba',
+      ok: payment.ok,
+      detail: payment.ok ? `Factura ${invoiceNumber} con su cobro registrados` : failureText(payment)
+    });
+  }
+
+  // 4. Borrado de todo lo creado, en orden inverso.
+  if (paymentId) {
+    const removed = await callMaster(cfg, { resource: 'payments', operation: 'delete', id: paymentId });
+    if (!removed.ok) leftovers.push(`cobro ${invoiceNumber}`);
+  }
+  if (invoiceId) {
+    const removed = await callMaster(cfg, { resource: 'invoices', operation: 'delete', id: invoiceId });
+    if (!removed.ok) leftovers.push(`factura ${invoiceNumber}`);
+  }
+  const clientGone = await callMaster(cfg, { resource: 'clients', operation: 'delete', email });
+  if (!clientGone.ok) leftovers.push(`cliente ${email}`);
+  steps.push({
+    step: 'borrado',
+    label: 'Borrado de datos de prueba',
+    ok: leftovers.length === 0,
+    detail: leftovers.length === 0 ? 'Todo lo creado quedó borrado' : `Quedó sin borrar: ${leftovers.join(', ')}`
+  });
+
+  return {
+    date: new Date().toISOString(),
+    ok: steps.every((step) => step.ok),
+    steps,
+    leftovers
+  };
+}
+
+function testDetail(test) {
+  const failed = (test?.steps || []).find((step) => !step.ok);
+  if (!failed) return '';
+  return `${failed.label || failed.step}: ${failed.detail || 'sin detalle'}`.slice(0, 500);
+}
+
+async function findTestRow(svc) {
+  const rows = await svc.entities[OUTBOX].filter({ idempotency_key: TEST_KEY }, '-created_date', 1);
+  return rows?.[0] || null;
+}
+
+// El resultado vive en la cola hasta que TLEC CARGO lo recibe.
+async function saveTestRun(svc, test) {
+  const row = await findTestRow(svc);
+  const data = {
+    payload: { test },
+    label: test.ok ? 'Prueba de conexión correcta' : 'Prueba de conexión con fallas',
+    status: 'error',
+    attempts: (Number(row?.attempts) || 0) + 1,
+    last_attempt_date: test.date,
+    last_error: test.ok ? '' : testDetail(test),
+    master_response: ''
+  };
+  if (row) return await svc.entities[OUTBOX].update(row.id, data);
+  return await svc.entities[OUTBOX].create({
+    resource: 'health',
+    record_id: 'prueba',
+    idempotency_key: TEST_KEY,
+    ...data
+  });
+}
+
+async function markTestDelivered(svc, test) {
+  const row = await findTestRow(svc);
+  if (!row) return;
+  await svc.entities[OUTBOX].update(row.id, {
+    status: 'enviado',
+    sent_date: new Date().toISOString(),
+    last_error: '',
+    master_response: test?.ok ? 'Resultado recibido por TLEC CARGO' : 'Fallas reportadas a TLEC CARGO'
+  });
+}
+
+async function pendingTestResult(svc) {
+  const row = await findTestRow(svc);
+  if (!row || row.status === 'enviado') return null;
+  return row.payload?.test || null;
+}
+
+// Automática una vez al día: no se repite en cada ciclo de 15 minutos.
+async function isTestDue(svc) {
+  const row = await findTestRow(svc);
+  if (!row) return true;
+  const last = row.sent_date || row.last_attempt_date || row.created_date;
+  const time = last ? new Date(last).getTime() : 0;
+  return !time || Date.now() - time >= TEST_INTERVAL_MS;
+}
+
 async function verifyConnection(svc, cfg) {
   let row = await findRow(svc, 'health');
   if (!row) {
@@ -281,21 +457,26 @@ async function verifyConnection(svc, cfg) {
 
 // Reporte de estado: al cerrar cada ciclo la copia cuenta a la maestra cómo está,
 // aunque no tenga nada pendiente. Un reporte fallido nunca afecta los envíos.
-async function sendStatusReport(svc, cfg) {
+async function sendStatusReport(svc, cfg, test) {
   try {
     const errors = await svc.entities[OUTBOX].filter({ status: 'error' }, '-updated_date', REPORT_LIMIT);
-    const list = errors || [];
+    const list = (errors || []).filter((row) => row.idempotency_key !== TEST_KEY);
     const last = list[0] || null;
-    return await callMaster(cfg, {
+    // Si la prueba anterior no llegó a entregarse, viaja ahora.
+    const include = test || (await pendingTestResult(svc));
+    const result = await callMaster(cfg, {
       resource: 'health',
       report: {
         configured: cfg.configured,
         missing: cfg.missing,
         pending: list.length,
         last_error: last?.last_error || '',
-        last_error_date: last?.last_attempt_date || ''
+        last_error_date: last?.last_attempt_date || '',
+        ...(include ? { test: include } : {})
       }
     });
+    if (result.ok && include) await markTestDelivered(svc, include);
+    return result;
   } catch (_) {
     return { ok: false };
   }
@@ -338,7 +519,21 @@ async function flushOutbox(svc, cfg) {
   }
 
   // La copia reporta su estado a la maestra al cerrar el ciclo, aunque no tenga pendientes.
-  summary.reported = (await sendStatusReport(svc, cfg)).ok;
+  // La respuesta del servicio dice cómo se llama esta copia y si el administrador
+  // pidió una prueba de conexión desde el diagnóstico de TLEC CARGO.
+  const probe = await sendStatusReport(svc, cfg, null);
+  summary.reported = probe.ok;
+
+  const slug = String(probe?.data?.app?.slug || '').toLowerCase();
+  const requested = probe?.data?.test_requested === true;
+  if (slug && (requested || (await isTestDue(svc)))) {
+    const test = await runConnectionTest(cfg, slug);
+    await saveTestRun(svc, test);
+    const sent = await sendStatusReport(svc, cfg, test);
+    summary.tested = true;
+    summary.test_ok = test.ok;
+    summary.test_sent = sent.ok;
+  }
 
   return summary;
 }

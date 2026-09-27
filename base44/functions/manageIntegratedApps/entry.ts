@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
-import { generateAppKey, hashAppKey, keyLabel, slugify } from '../../shared/integratedApps.ts';
+import { generateAppKey, hashAppKey, keyLabel, slugify, isTestEmail } from '../../shared/integratedApps.ts';
 
 const COUNT_LIMIT = 201;
 const COUNT_CAP = 200;
@@ -21,6 +21,16 @@ function publicApp(app) {
     report_pending: Number(app.report_pending) || 0,
     report_error: app.report_error || '',
     report_error_date: app.report_error_date || null,
+    test_date: app.test_date || null,
+    test_ok: app.test_ok === true,
+    test_steps: Array.isArray(app.test_steps) ? app.test_steps : [],
+    test_leftovers: Array.isArray(app.test_leftovers) ? app.test_leftovers : [],
+    test_requested_date: app.test_requested_date || null,
+    test_requested_by: app.test_requested_by || '',
+    rejected_count: Number(app.rejected_count) || 0,
+    rejected_last_date: app.rejected_last_date || null,
+    rejected_last_reason: app.rejected_last_reason || '',
+    rejected_last_action: app.rejected_last_action || '',
     key_prefix: app.key_prefix || '',
     created_by: app.created_by || '',
     created_date: app.created_date || null
@@ -37,10 +47,36 @@ async function uniqueSlug(base44, base) {
   return `${base}-${Date.now().toString(36)}`;
 }
 
+// Los registros de la prueba de conexión (correo reservado) no cuentan como reales.
 async function countByScope(base44, entity, appId) {
   const rows = await base44.asServiceRole.entities[entity].filter({ origin_app_id: appId }, '-created_date', COUNT_LIMIT);
-  const list = rows || [];
+  const list = (rows || []).filter((row) => !isTestEmail(row?.email || row?.client_email));
   return { count: Math.min(list.length, COUNT_CAP), exceeded: list.length > COUNT_CAP };
+}
+
+// Borra los datos de prueba que hayan quedado sin limpiar en TLEC CARGO.
+const TEST_TARGETS = [
+  ['IntegratedClient', 'client_email'],
+  ['Invoice', 'client_email'],
+  ['InvoicePayment', 'client_email'],
+  ['Package', 'client_email']
+];
+
+async function purgeTestData(base44, appId) {
+  let removed = 0;
+  for (const [entity, field] of TEST_TARGETS) {
+    const rows = await base44.asServiceRole.entities[entity].filter({ origin_app_id: appId }, '-created_date', COUNT_LIMIT);
+    for (const row of rows || []) {
+      if (!isTestEmail(row[field])) continue;
+      try {
+        await base44.asServiceRole.entities[entity].delete(row.id);
+        removed += 1;
+      } catch (_) {
+        // si un registro no se puede borrar, se sigue con el resto
+      }
+    }
+  }
+  return removed;
 }
 
 export default async function (req) {
@@ -109,9 +145,11 @@ export default async function (req) {
 
     if (action === 'rotate') {
       const rawKey = generateAppKey();
+      const history = Array.isArray(existing.key_prefixes) ? existing.key_prefixes : [];
       const updated = await base44.asServiceRole.entities.IntegratedApp.update(existing.id, {
         key_hash: await hashAppKey(rawKey),
-        key_prefix: keyLabel(rawKey)
+        key_prefix: keyLabel(rawKey),
+        key_prefixes: existing.key_prefix ? [...history, existing.key_prefix].slice(-5) : history
       });
       return Response.json({ ok: true, app: publicApp(updated), key: rawKey });
     }
@@ -120,6 +158,20 @@ export default async function (req) {
       const active = body?.active !== false;
       const updated = await base44.asServiceRole.entities.IntegratedApp.update(existing.id, { active });
       return Response.json({ ok: true, app: publicApp(updated) });
+    }
+
+    if (action === 'request_test') {
+      const updated = await base44.asServiceRole.entities.IntegratedApp.update(existing.id, {
+        test_requested_date: new Date().toISOString(),
+        test_requested_by: user.email
+      });
+      return Response.json({ ok: true, app: publicApp(updated) });
+    }
+
+    if (action === 'cleanup_test') {
+      const removed = await purgeTestData(base44, existing.id);
+      const updated = await base44.asServiceRole.entities.IntegratedApp.update(existing.id, { test_leftovers: [] });
+      return Response.json({ ok: true, removed, app: publicApp(updated) });
     }
 
     if (action === 'update') {

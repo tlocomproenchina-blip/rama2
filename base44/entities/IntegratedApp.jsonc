@@ -22,6 +22,14 @@
       "type": "string",
       "description": "Primeros caracteres de la clave, solo para identificarla en el panel"
     },
+    "key_prefixes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "Primeros caracteres de las claves anteriores de la copia, para poder atribuir llamadas rechazadas hechas con una clave ya rotada"
+    },
     "active": {
       "type": "boolean",
       "default": true,
@@ -72,6 +80,84 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha y hora del \u00faltimo error de env\u00edo reportado por la copia"
+    },
+    "test_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que la copia ejecut\u00f3 y report\u00f3 su \u00faltima prueba de ida y vuelta"
+    },
+    "test_ok": {
+      "type": "boolean",
+      "description": "Resultado global de la \u00faltima prueba: verdadero solo si todos sus pasos pasaron"
+    },
+    "test_steps": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "step": {
+            "type": "string",
+            "description": "Identificador del paso: cliente, prealerta, factura o borrado"
+          },
+          "label": {
+            "type": "string",
+            "description": "Nombre visible del paso"
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Si el paso pas\u00f3"
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Detalle del paso o motivo del fallo devuelto por TLEC CARGO"
+          }
+        },
+        "required": [
+          "step",
+          "label",
+          "ok"
+        ]
+      },
+      "description": "Resultado paso por paso de la \u00faltima prueba de conexi\u00f3n"
+    },
+    "test_leftovers": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "Datos de prueba que la copia no pudo borrar y quedaron en TLEC CARGO"
+    },
+    "test_requested_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que un administrador pidi\u00f3 una prueba desde el diagn\u00f3stico. Se limpia cuando llega el resultado"
+    },
+    "test_requested_by": {
+      "type": "string",
+      "description": "Administrador que pidi\u00f3 la \u00faltima prueba"
+    },
+    "rejected_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de llamadas de esta copia rechazadas por TLEC CARGO (clave inv\u00e1lida o conexi\u00f3n desactivada)"
+    },
+    "rejected_last_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la \u00faltima llamada rechazada"
+    },
+    "rejected_last_reason": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "Motivo del \u00faltimo rechazo: clave no reconocida o copia desactivada"
+    },
+    "rejected_last_action": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Operaci\u00f3n que tra\u00eda la \u00faltima llamada rechazada"
     },
     "created_by": {
       "type": "string",

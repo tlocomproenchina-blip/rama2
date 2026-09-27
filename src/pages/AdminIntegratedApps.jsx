@@ -131,6 +131,7 @@ export default function AdminIntegratedApps() {
               onRotate={handleRotate}
               onToggle={handleToggle}
               onDelete={setPendingDelete}
+              onRefresh={loadApps}
             />
           ))}
         </div>

@@ -46,6 +46,31 @@ export function appState(app) {
   return { label: 'Sin conexión', tone: 'bg-amber-50 text-amber-700 border-amber-200' };
 }
 
+// Resultado de la última prueba de ida y vuelta que ejecutó la copia.
+export function testSummary(app) {
+  const steps = Array.isArray(app?.test_steps) ? app.test_steps : [];
+  const leftovers = Array.isArray(app?.test_leftovers) ? app.test_leftovers.filter(Boolean) : [];
+  return { ran: !!app?.test_date, ok: app?.test_ok === true, date: app?.test_date || '', steps, leftovers };
+}
+
+// Una prueba pedida desde aquí queda pendiente hasta que llega su resultado.
+export function testRequestState(app) {
+  const requested = app?.test_requested_date || '';
+  if (!requested) return { pending: false, requested: '' };
+  const testDate = app?.test_date ? new Date(app.test_date).getTime() : 0;
+  return { pending: !(testDate && testDate >= new Date(requested).getTime()), requested };
+}
+
+// Llamadas que TLEC CARGO rechazó: clave que no corresponde o conexión desactivada.
+export function rejectedSummary(app) {
+  return {
+    count: Number(app?.rejected_count) || 0,
+    date: app?.rejected_last_date || '',
+    reason: app?.rejected_last_reason || '',
+    action: app?.rejected_last_action || ''
+  };
+}
+
 // Veredicto de conexión y paso a seguir, para el diagnóstico de cada copia.
 export function appDiagnostic(app) {
   const state = appState(app);
@@ -55,16 +80,28 @@ export function appDiagnostic(app) {
   const lastErrorDate = app?.report_error_date || '';
   const reportDate = app?.report_date || '';
   const hours = app?.last_seen ? (Date.now() - new Date(app.last_seen).getTime()) / 3600000 : null;
+  const rejected = rejectedSummary(app);
+  const test = testSummary(app);
+  const testRequest = testRequestState(app);
+  const failedStep = test.steps.find((row) => row.ok === false);
 
   let step;
   if (app?.active === false) {
     step = 'Activa esta conexión para que las llamadas de la copia vuelvan a ser aceptadas.';
+  } else if (!app?.last_seen && rejected.count > 0) {
+    step = `TLEC CARGO rechazó ${rejected.count} llamada${rejected.count === 1 ? '' : 's'} de esta copia${rejected.reason ? ` (${rejected.reason})` : ''}, así que la conexión sí llega pero no se acepta. Revisa que la clave guardada en la copia sea la vigente: puedes rotarla aquí.`;
   } else if (!app?.last_seen) {
     step = 'La copia nunca ha llamado. Guarda en ella la dirección del servicio y la clave de acceso: en su próximo ciclo de sincronización enviará su primer reporte.';
   } else if (hours > 48) {
     step = 'La copia dejó de responder. Revisa que siga publicada y que conserve guardados la dirección del servicio y la clave de acceso.';
   } else if (missing.length) {
     step = `A la copia le falta guardar: ${missing.join(', ')}.`;
+  } else if (testRequest.pending) {
+    step = 'Hay una prueba pedida que todavía no ha respondido; la copia la ejecutará en su próximo ciclo de sincronización (hasta 15 minutos).';
+  } else if (test.ran && !test.ok && failedStep) {
+    step = `La prueba de conexión falló en «${failedStep.label || failedStep.step}»: ${failedStep.detail || 'sin detalle'}`;
+  } else if (test.ran && test.ok) {
+    step = 'La prueba de conexión pasó completa: cliente, pre-alerta, factura y cobro se crearon, se leyeron de vuelta y se borraron.';
   } else if (pending > 0) {
     step = lastError
       ? `La copia tiene ${pending} envío${pending === 1 ? '' : 's'} pendiente${pending === 1 ? '' : 's'}. Último motivo: ${lastError}`
@@ -73,7 +110,20 @@ export function appDiagnostic(app) {
     step = 'Todo en orden: la copia está enviando y no tiene pendientes.';
   }
 
-  return { label: state.label, tone: state.tone, connected: state.label === 'Conectada', step, pending, missing, lastError, lastErrorDate, reportDate };
+  return {
+    label: state.label,
+    tone: state.tone,
+    connected: state.label === 'Conectada',
+    step,
+    pending,
+    missing,
+    lastError,
+    lastErrorDate,
+    reportDate,
+    rejected,
+    test,
+    testRequest
+  };
 }
 
 export function timeAgo(dateStr) {

@@ -6,7 +6,7 @@ import IntegratedAppStats from './IntegratedAppStats';
 import IntegratedAppDiagnosticDialog from './IntegratedAppDiagnosticDialog';
 import { appState, timeAgo } from '@/lib/integratedApps';
 
-export default function IntegratedAppCard({ app, onRotate, onToggle, onDelete }) {
+export default function IntegratedAppCard({ app, onRotate, onToggle, onDelete, onRefresh }) {
   const state = appState(app);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
 
@@ -63,7 +63,7 @@ export default function IntegratedAppCard({ app, onRotate, onToggle, onDelete })
         </Button>
       </div>
 
-      <IntegratedAppDiagnosticDialog app={app} open={showDiagnostic} onOpenChange={setShowDiagnostic} />
+      <IntegratedAppDiagnosticDialog app={app} open={showDiagnostic} onOpenChange={setShowDiagnostic} onRefresh={onRefresh} />
     </div>
   );
 }

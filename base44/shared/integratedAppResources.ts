@@ -138,23 +138,45 @@ function recordLabel(record) {
 
 // ---------- pre-alertas ----------
 
-async function createPrealert(base44, app, payload) {
+// Validaciones comunes a crear y a validar una pre-alerta. El paso de validación
+// existe para que la prueba de conexión compruebe el canal sin guardar nada.
+async function checkPrealert(base44, app, payload) {
   const tracking = String(payload?.tracking_number || '').trim();
   const description = String(payload?.description || '').trim();
-  if (!tracking) return fail('missing_tracking', 'Falta el número de tracking de la pre-alerta.');
-  if (!description) return fail('missing_description', 'Falta la descripción de la pre-alerta.');
+  if (!tracking) return { error: fail('missing_tracking', 'Falta el número de tracking de la pre-alerta.') };
+  if (!description) return { error: fail('missing_description', 'Falta la descripción de la pre-alerta.') };
 
   const email = normalizeEmail(payload?.client_email);
-  if (!email) return fail('missing_client', 'Indica el client_email de la pre-alerta.');
+  if (!email) return { error: fail('missing_client', 'Indica el client_email de la pre-alerta.') };
 
   const client = await findClient(base44, app, email);
   if (!client) {
-    return fail('client_not_found', `El cliente ${email} no está registrado por esta app integrada. Créalo primero con resource "clients".`, 404);
+    return { error: fail('client_not_found', `El cliente ${email} no está registrado por esta app integrada. Créalo primero con resource "clients".`, 404) };
   }
   const shippingMark = client.record?.shipping_mark || String(payload?.shipping_mark || '').trim();
   if (!shippingMark) {
-    return fail('missing_shipping_mark', `El cliente ${email} todavía no tiene shipping mark en TLEC CARGO. Cárgalo en clients.create/update para poder pre-alertar su carga.`);
+    return { error: fail('missing_shipping_mark', `El cliente ${email} todavía no tiene shipping mark en TLEC CARGO. Cárgalo en clients.create/update para poder pre-alertar su carga.`) };
   }
+  return { tracking, description, email, shippingMark };
+}
+
+// Valida la pre-alerta sin guardarla: guardarla dispararía avisos y correos.
+async function validatePrealert(base44, app, payload) {
+  const check = await checkPrealert(base44, app, payload);
+  if (check.error) return check.error;
+  return done({
+    ok: true,
+    validated: true,
+    tracking_number: check.tracking,
+    client_email: check.email,
+    shipping_mark: check.shippingMark
+  });
+}
+
+async function createPrealert(base44, app, payload) {
+  const check = await checkPrealert(base44, app, payload);
+  if (check.error) return check.error;
+  const { tracking, description, email, shippingMark } = check;
 
   const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 10);
   const mine = (existing || []).find((p) => p.origin_app_id === app.id);
@@ -466,6 +488,7 @@ export async function runOperation(base44, app, resource, operation, payload) {
     if (operation === 'list') return await listEntity(base44, 'Package', app, payload);
     if (operation === 'get') return await getEntity(base44, 'Package', app, payload);
     if (operation === 'create') return await createPrealert(base44, app, payload);
+    if (operation === 'validate') return await validatePrealert(base44, app, payload);
     if (operation === 'update') return await updateEntity(base44, 'Package', app, payload, PREALERT_FIELDS, 'Pre-alerta');
     if (operation === 'delete') return await deleteEntity(base44, 'Package', app, payload, 'Pre-alerta');
   }

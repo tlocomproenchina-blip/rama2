@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { waitUntil } from 'base44:runtime';
-import { authenticateIntegratedApp, touchIntegratedApp, saveStatusReport, errorResponse } from '../../shared/integratedApps.ts';
+import { authenticateIntegratedApp, touchIntegratedApp, saveStatusReport, isTestEmail, errorResponse } from '../../shared/integratedApps.ts';
 import { runOperation, auditPayload, RESOURCE_LABELS } from '../../shared/integratedAppResources.ts';
 
 async function writeAudit(base44, payload) {
@@ -17,12 +17,13 @@ export default async function (req) {
     const body = await req.json().catch(() => ({}));
     const rawKey = req.headers.get('x-app-key') || body?.app_key || '';
 
-    const auth = await authenticateIntegratedApp(base44, rawKey);
-    if (auth.error) return auth.error;
-    const app = auth.app;
-
     const resource = String(body?.resource || '').trim().toLowerCase();
     const operation = String(body?.operation || '').trim().toLowerCase();
+    const actionLabel = [resource || 'health', operation].filter(Boolean).join('.');
+
+    const auth = await authenticateIntegratedApp(base44, rawKey, actionLabel);
+    if (auth.error) return auth.error;
+    const app = auth.app;
 
     if (!resource) {
       return errorResponse('missing_resource', 'Indica "resource": clients, prealerts, invoices o payments.', 400);
@@ -40,7 +41,9 @@ export default async function (req) {
         service: 'integratedAppApi',
         app: { name: app.name, slug: app.slug },
         resources: Object.keys(RESOURCE_LABELS),
-        operations: ['list', 'get', 'create', 'update', 'delete'],
+        operations: ['list', 'get', 'create', 'update', 'delete', 'validate'],
+        test_requested: !!app.test_requested_date,
+        test_requested_date: app.test_requested_date || null,
         timestamp: new Date().toISOString()
       });
     }
@@ -53,7 +56,7 @@ export default async function (req) {
     const result = await runOperation(base44, app, resource, operation, body);
 
     waitUntil(touchIntegratedApp(base44, app, `${resource}.${operation}`));
-    const audit = auditPayload(app, result.audit);
+    const audit = isTestEmail(body?.client_email || body?.email) ? null : auditPayload(app, result.audit);
     if (audit) waitUntil(writeAudit(base44, audit));
 
     return Response.json(result.body, { status: result.status });
