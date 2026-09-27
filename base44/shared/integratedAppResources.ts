@@ -151,7 +151,7 @@ async function createPrealert(base44, app, payload) {
   if (!client) {
     return fail('client_not_found', `El cliente ${email} no está registrado por esta app integrada. Créalo primero con resource "clients".`, 404);
   }
-  const shippingMark = client.shipping_mark || String(payload?.shipping_mark || '').trim();
+  const shippingMark = client.record?.shipping_mark || String(payload?.shipping_mark || '').trim();
   if (!shippingMark) {
     return fail('missing_shipping_mark', `El cliente ${email} todavía no tiene shipping mark en TLEC CARGO. Cárgalo en clients.create/update para poder pre-alertar su carga.`);
   }
