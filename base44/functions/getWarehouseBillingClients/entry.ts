@@ -27,10 +27,25 @@ Deno.serve(async (req) => {
     // Regla única de carga en almacén (Venezuela): todo bulto con paquetes que
     // todavía no fue despachado y no tiene factura viva. El estado solo se usa para
     // excluir lo ya despachado, así ningún bulto del almacén queda invisible.
-    const [bultosCandidatos, receiptsPending] = await Promise.all([
+    const [bultosCandidatos, receiptsPending, copies] = await Promise.all([
       fetchAllFilter(svc.Bulto, { status: { $ne: 'despachado' } }, '-created_date'),
       fetchAllFilter(svc.CbmIngreso, { billed: false }, '-fecha'),
+      svc.IntegratedApp.list('-created_date', 100).catch(() => []),
     ]);
+
+    // Tarifa propia de cada copia integrada: los bultos y recibos que llegan de una
+    // copia se facturan con la tarifa de esa copia, no con la de TLEC CARGO.
+    const copyRates: any = {};
+    for (const copy of copies || []) {
+      copyRates[copy.id] = {
+        id: copy.id,
+        label: copy.name || copy.slug || 'Copia',
+        shipping_mark_prefix: copy.shipping_mark_prefix || '',
+        rate_regular: num(copy.rate_cbm_regular),
+        rate_high_risk: num(copy.rate_cbm_high_risk),
+        special_cbm_rates: Array.isArray(copy.special_cbm_rates) ? copy.special_cbm_rates : [],
+      };
+    }
 
     // Auto-sanación: si la factura que marcó el bulto ya no existe, vuelve a ofrecerse.
     const invoiceIds = [...new Set(bultosCandidatos.map((b: any) => b.billed_invoice_id).filter(Boolean))] as string[];
@@ -47,7 +62,7 @@ Deno.serve(async (req) => {
     ].filter(Boolean))] as string[];
 
     if (clientEmails.length === 0) {
-      return Response.json({ clients: [], total: 0, generated_at: new Date().toISOString() });
+      return Response.json({ clients: [], copy_rates: copyRates, total: 0, generated_at: new Date().toISOString() });
     }
 
     const [packages, ingresos, approvedInsurance, dispatchOrders] = await Promise.all([
@@ -186,6 +201,8 @@ Deno.serve(async (req) => {
           cargo_amount: num(b.cargo_amount),
           cargo_rate_per_cbm: num(b.cargo_rate_per_cbm),
           cargo_rate_kind: b.cargo_rate_kind || null,
+          origin_app_id: b.origin_app_id || '',
+          origin_app_label: b.origin_app_label || '',
         };
       });
 
@@ -223,6 +240,8 @@ Deno.serve(async (req) => {
             in_bulto: ownerBulto?.label || null,
             ve_date: ownerBulto?.ve_recognized_date || ownerBulto?.ve_registered_date || null,
             ve_date_source: ownerBulto?.ve_date_source || null,
+            origin_app_id: r.origin_app_id || '',
+            origin_app_label: r.origin_app_label || '',
           };
         });
 
@@ -240,6 +259,10 @@ Deno.serve(async (req) => {
         city: snap.city || '',
         state: snap.state || '',
         registered: false,
+        copies: [...new Set([
+          ...clientBultos.map((b: any) => b.origin_app_label),
+          ...clientReceipts.map((r: any) => r.origin_app_label),
+        ].filter(Boolean))] as string[],
         bultos: clientBultos,
         receipts: clientReceipts,
         insured_fob: insuredFob,
@@ -284,7 +307,7 @@ Deno.serve(async (req) => {
 
     clients.sort((a, b) => num(b.totals.cbm) - num(a.totals.cbm));
 
-    return Response.json({ clients, total: clients.length, generated_at: new Date().toISOString() });
+    return Response.json({ clients, copy_rates: copyRates, total: clients.length, generated_at: new Date().toISOString() });
   } catch (error) {
     return Response.json({ error: errorMessage(error) }, { status: 500 });
   }

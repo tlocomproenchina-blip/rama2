@@ -32,6 +32,10 @@ function publicApp(app) {
     rejected_last_reason: app.rejected_last_reason || '',
     rejected_last_action: app.rejected_last_action || '',
     key_prefix: app.key_prefix || '',
+    rate_cbm_regular: Number(app.rate_cbm_regular) || 0,
+    rate_cbm_high_risk: Number(app.rate_cbm_high_risk) || 0,
+    special_cbm_rates: Array.isArray(app.special_cbm_rates) ? app.special_cbm_rates : [],
+    shipping_mark_prefix: app.shipping_mark_prefix || '',
     created_by: app.created_by || '',
     created_date: app.created_date || null
   };
@@ -172,6 +176,30 @@ export default async function (req) {
       const removed = await purgeTestData(base44, existing.id);
       const updated = await base44.asServiceRole.entities.IntegratedApp.update(existing.id, { test_leftovers: [] });
       return Response.json({ ok: true, removed, app: publicApp(updated) });
+    }
+
+    if (action === 'set_tariff') {
+      const rateRegular = Number(String(body?.rate_cbm_regular ?? 0).replace(',', '.'));
+      const rateHigh = Number(String(body?.rate_cbm_high_risk ?? 0).replace(',', '.'));
+      if (!Number.isFinite(rateRegular) || rateRegular < 0 || !Number.isFinite(rateHigh) || rateHigh < 0) {
+        return Response.json({ ok: false, error: 'Las tarifas por CBM deben ser números iguales o mayores a 0' }, { status: 400 });
+      }
+      const ranges = Array.isArray(body?.special_cbm_rates) ? body.special_cbm_rates.slice(0, 40) : [];
+      const cleanRanges = ranges
+        .map((row) => ({
+          min_cbm: Number(row?.min_cbm) || 0,
+          max_cbm: Number(row?.max_cbm) || 0,
+          rate_regular: Number(row?.rate_regular) || 0,
+          rate_high_risk: Number(row?.rate_high_risk) || 0
+        }))
+        .sort((a, b) => a.min_cbm - b.min_cbm);
+      const updated = await base44.asServiceRole.entities.IntegratedApp.update(existing.id, {
+        rate_cbm_regular: Math.round(rateRegular * 10000) / 10000,
+        rate_cbm_high_risk: Math.round(rateHigh * 10000) / 10000,
+        special_cbm_rates: cleanRanges,
+        shipping_mark_prefix: String(body?.shipping_mark_prefix || '').trim().slice(0, 40)
+      });
+      return Response.json({ ok: true, app: publicApp(updated) });
     }
 
     if (action === 'update') {

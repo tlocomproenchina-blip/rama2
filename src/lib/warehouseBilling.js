@@ -21,21 +21,48 @@ const round2 = (v) => Math.round(num(v) * 100) / 100;
 const round4 = (v) => Math.round(num(v) * 10000) / 10000;
 export const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
 
-export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHistory, clientState }) {
-  const specialRates = [...(Array.isArray(appConfig?.special_cbm_rates) ? appConfig.special_cbm_rates : [])]
-    .sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
+export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHistory, clientState, copyRates }) {
+  const sortRanges = (list) => [...(Array.isArray(list) ? list : [])].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
+  const specialRates = sortRanges(appConfig?.special_cbm_rates);
 
   const stateCode = String(clientState || '').trim().toLowerCase();
   const stateConfig = (stateConfigs || []).find((s) => String(s.state_code).toLowerCase() === stateCode);
   const stateShippingRate = num(stateConfig?.shipping_rate);
 
   const currentRateSet = {
+    key: 'actual',
     base_rate_regular: num(pricing?.base_rate_regular),
     base_rate_high_risk: num(pricing?.base_rate_high_risk),
     profit_percentage: num(pricing?.profit_percentage),
     door_to_door_cost: num(pricing?.door_to_door_cost),
+    state_shipping_rate: stateShippingRate,
     special_cbm_rates: specialRates,
     effective_date: null,
+    copy_id: null,
+    copy_label: '',
+  };
+
+  // Tarifa propia de la copia que originó el bulto o el recibo: manda sobre la
+  // tarifa normal de TLEC CARGO y no lleva recargo de estado ni puerta a puerta.
+  const copyRateSetFor = (originAppId) => {
+    const copy = originAppId ? (copyRates || {})[originAppId] : null;
+    if (!copy) return null;
+    const regular = num(copy.rate_regular);
+    const high = num(copy.rate_high_risk);
+    const ranges = sortRanges(copy.special_cbm_rates);
+    if (regular <= 0 && high <= 0 && ranges.length === 0) return null;
+    return {
+      key: `copia:${originAppId}`,
+      base_rate_regular: regular,
+      base_rate_high_risk: high,
+      profit_percentage: 0,
+      door_to_door_cost: 0,
+      state_shipping_rate: 0,
+      special_cbm_rates: ranges,
+      effective_date: null,
+      copy_id: originAppId,
+      copy_label: copy.label || 'Copia',
+    };
   };
 
   const getRateSetForDate = (fecha) => {
@@ -51,22 +78,32 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
     }
     if (!chosen) return currentRateSet;
     return {
+      key: `hist:${chosen.effective_date}`,
       base_rate_regular: num(chosen.base_rate_regular),
       base_rate_high_risk: num(chosen.base_rate_high_risk),
       profit_percentage: num(chosen.profit_percentage),
       door_to_door_cost: num(chosen.door_to_door_cost),
+      state_shipping_rate: stateShippingRate,
       special_cbm_rates: Array.isArray(chosen.special_cbm_rates) ? chosen.special_cbm_rates : [],
       effective_date: chosen.effective_date,
+      copy_id: null,
+      copy_label: '',
     };
   };
 
+  // Tarifa aplicable a un bulto o recibo: la de su copia si viene de una copia,
+  // y si no la vigente para la fecha del registro.
+  const rateSetFor = (originAppId, fecha) => copyRateSetFor(originAppId) || getRateSetForDate(fecha);
+
   // Tarifa por CBM según el tipo de carga: la regular o la de alto riesgo.
+  // El recargo de estado y el puerta a puerta viven en el juego de tarifas, así
+  // la tarifa de una copia los deja en cero.
   const computeRatePerCbm = (rateSet, riskCategory) => {
     const base = String(riskCategory) === 'alto_riesgo'
       ? num(rateSet.base_rate_high_risk)
       : num(rateSet.base_rate_regular);
     return base * (1 + num(rateSet.profit_percentage) / 100)
-      + stateShippingRate + num(rateSet.door_to_door_cost);
+      + num(rateSet.state_shipping_rate) + num(rateSet.door_to_door_cost);
   };
 
   const specialRateForCbm = (cbm, rateSet) => {
@@ -77,32 +114,34 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
 
   // Envío de un bulto/recibo: monto fijo de la tabla especial si es menor a
   // 0.130 CBM, o CBM × tarifa por CBM del tipo de carga.
-  const shippingFor = (cbm, fecha, riskCategory) => {
+  const shippingFor = (cbm, fecha, riskCategory, originAppId) => {
     const c = num(cbm);
     if (c <= 0) return 0;
-    const rateSet = getRateSetForDate(fecha);
+    const rateSet = rateSetFor(originAppId, fecha);
     if (c >= DOOR_TO_DOOR_THRESHOLD) return c * computeRatePerCbm(rateSet, riskCategory);
     const found = specialRateForCbm(c, rateSet);
     if (!found) return c * computeRatePerCbm(rateSet, riskCategory);
     return String(riskCategory) === 'alto_riesgo' ? num(found.rate_high_risk) : num(found.rate_regular);
   };
 
-  const calcShippingForRow = (cbm, fecha, riskCategory) => shippingFor(cbm, fecha, riskCategory);
+  const calcShippingForRow = (cbm, fecha, riskCategory, originAppId) => shippingFor(cbm, fecha, riskCategory, originAppId);
 
   // Tarifa que se registra en el bulto: monto, tarifa por CBM aplicada y clase de tarifa.
-  const calcTariff = (cbm, fecha, riskCategory) => {
+  const calcTariff = (cbm, fecha, riskCategory, originAppId) => {
     const c = num(cbm);
-    if (c <= 0) return { amount: 0, rate_per_cbm: 0, kind: 'estandar' };
-    const rateSet = getRateSetForDate(fecha);
+    const rateSet = rateSetFor(originAppId, fecha);
+    const copyLabel = rateSet.copy_label || '';
+    if (c <= 0) return { amount: 0, rate_per_cbm: 0, kind: 'estandar', copy_label: copyLabel };
     const special = c < DOOR_TO_DOOR_THRESHOLD ? specialRateForCbm(c, rateSet) : null;
     if (special) {
-      return { amount: round2(shippingFor(c, fecha, riskCategory)), rate_per_cbm: 0, kind: 'especial' };
+      return { amount: round2(shippingFor(c, fecha, riskCategory, originAppId)), rate_per_cbm: 0, kind: 'especial', copy_label: copyLabel };
     }
     const rate = computeRatePerCbm(rateSet, riskCategory);
-    return { amount: round2(c * rate), rate_per_cbm: round4(rate), kind: 'estandar' };
+    return { amount: round2(c * rate), rate_per_cbm: round4(rate), kind: 'estandar', copy_label: copyLabel };
   };
 
-  const getRateLabel = (fecha) => {
+  const getRateLabel = (fecha, originAppId) => {
+    if (originAppId && copyRateSetFor(originAppId)) return 'copia';
     if (!fecha || !rateHistory || rateHistory.length === 0) return 'actual';
     const latest = [...rateHistory].sort((a, b) => new Date(b.effective_date) - new Date(a.effective_date))[0];
     const resolved = getRateSetForDate(fecha);
@@ -122,9 +161,9 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
       const groups = {};
       (items || []).forEach((r) => {
         if (num(r.cbm) <= 0) return;
-        const rs = getRateSetForDate(r.fecha);
+        const rs = rateSetFor(r.origin_app_id, r.fecha);
         const risk = r.risk_category || 'general';
-        const key = `${rs.effective_date || 'current'}|${risk}`;
+        const key = `${rs.key}|${risk}`;
         if (!groups[key]) groups[key] = { rateSet: rs, risk, cbm: 0 };
         groups[key].cbm += num(r.cbm);
       });
@@ -132,9 +171,10 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
       return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet, g.risk), 0);
     }
     const withDates = (items || []).filter((r) => r.fecha);
-    const rateSet = withDates.length > 0
-      ? getRateSetForDate(withDates.reduce((max, r) => (new Date(r.fecha) > new Date(max.fecha) ? r : max)).fecha)
-      : currentRateSet;
+    const sample = withDates.length > 0
+      ? withDates.reduce((max, r) => (new Date(r.fecha) > new Date(max.fecha) ? r : max))
+      : null;
+    const rateSet = sample ? rateSetFor(sample.origin_app_id, sample.fecha) : currentRateSet;
     const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
     const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
     const found = sorted.find((r) => c <= num(r.max_cbm));
@@ -148,6 +188,7 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
     stateShippingRate,
     currentRateSet,
     getRateSetForDate,
+    rateSetFor,
     computeRatePerCbm,
     calcShippingForRow,
     calcTariff,
@@ -233,7 +274,7 @@ export function computeSelectionTotals(items, ctx, overrides = {}) {
       });
     } else {
       withoutTariff.forEach((i) => {
-        const own = ctx.calcShippingForRow(num(i.cbm), i.fecha, i.risk_category);
+        const own = ctx.calcShippingForRow(num(i.cbm), i.fecha, i.risk_category, i.origin_app_id);
         shippingByItem[i.id] = own;
         openShipping += own;
       });
@@ -304,6 +345,7 @@ export async function generateWarehouseInvoice({ client, selectedItems, totals, 
         invoice_number: it.label,
         source_invoices: [it.label],
         bulto_label: it.type === 'bulto' ? it.label : undefined,
+        origin_app: it.origin_app_label || undefined,
       },
     });
   }

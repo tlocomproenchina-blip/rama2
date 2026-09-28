@@ -9,21 +9,23 @@
         "clients",
         "prealerts",
         "invoices",
-        "payments"
+        "payments",
+        "bultos",
+        "recibos"
       ],
-      "description": "Qu\u00e9 se env\u00eda a TLEC CARGO: prueba de conexi\u00f3n, cliente registrado, pre-alerta, factura emitida o cobro registrado"
+      "description": "Qu\u00e9 se env\u00eda a TLEC CARGO: prueba de conexi\u00f3n, cliente registrado, pre-alerta, factura emitida, cobro registrado, bulto creado o recibo de CBM generado"
     },
     "record_id": {
       "type": "string",
-      "description": "ID del registro local que origin\u00f3 el env\u00edo (usuario, paquete, factura o cobro)"
+      "description": "ID del registro local que origin\u00f3 el env\u00edo (usuario, paquete, factura, cobro, bulto o recibo)"
     },
     "idempotency_key": {
       "type": "string",
-      "description": "Llave que evita duplicados: clients:<email>, prealerts:<tracking>, invoices:<numero>, payments:<id local> o health"
+      "description": "Llave que evita duplicados: clients:<email>, prealerts:<tracking>, invoices:<numero>, payments:<id local>, bultos:<codigo de etiqueta>, recibos:<numero de orden> o health"
     },
     "label": {
       "type": "string",
-      "description": "Etiqueta visible del env\u00edo (tracking, n\u00famero de factura, monto del cobro, nombre o email del cliente)"
+      "description": "Etiqueta visible del env\u00edo (tracking, n\u00famero de factura, monto del cobro, c\u00f3digo del bulto, n\u00famero de orden, nombre o email del cliente)"
     },
     "payload": {
       "type": "object",

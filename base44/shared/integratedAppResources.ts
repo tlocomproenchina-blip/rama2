@@ -4,13 +4,20 @@ export const RESOURCE_LABELS = {
   clients: 'Clientes',
   prealerts: 'Pre-alertas',
   invoices: 'Facturas',
-  payments: 'Cobros'
+  payments: 'Cobros',
+  bultos: 'Bultos',
+  recibos: 'Recibos de CBM'
 };
 
 const CLIENT_FIELDS = ['first_name', 'last_name', 'cedula', 'state', 'city', 'whatsapp', 'whatsapp_normalized', 'address', 'shipping_mark'];
 const PREALERT_FIELDS = ['tracking_number', 'shipping_company', 'shipping_type', 'risk_category', 'package_count', 'description', 'has_insurance', 'fob_value', 'invoice_url', 'product_image_url', 'seller_delivery_date', 'shipping_address', 'label_code'];
 const INVOICE_FIELDS = ['invoice_number', 'invoice_date', 'due_date', 'items', 'subtotal', 'tax', 'total', 'notes', 'status', 'consolidation_id', 'consolidation_tracking', 'billed_cbm', 'total_cbm', 'manual_recibos', 'cost_breakdown'];
 const PAYMENT_FIELDS = ['amount', 'method', 'proof_url', 'reference', 'status', 'reported_date', 'description'];
+const BULTO_FIELDS = ['bulto_number', 'total_bultos', 'package_trackings', 'cbm_order_numbers', 'status', 'client_snapshot'];
+const RECIBO_FIELDS = ['cbm', 'fob_total', 'fecha', 'mes', 'descripcion', 'proveedor', 'notas', 'tracking_numbers', 'fecha_salida', 'fecha_estimada_llegada', 'disponible_entrega'];
+
+const BULTO_STATUSES = ['activo', 'cerrado', 'en_almacen_ve', 'despachado'];
+const MAX_TRACKINGS = 300;
 
 const PAYMENT_STATUSES = ['pendiente', 'aprobado', 'rechazado'];
 const INVOICE_STATUSES = ['pendiente', 'revision', 'pagada', 'vencida', 'cancelada'];
@@ -481,6 +488,167 @@ async function clientsOperation(base44, app, operation, payload) {
   return fail('unknown_operation', 'Operación no permitida para clientes. Usa list, get, create, update o delete.');
 }
 
+// ---------- bultos y recibos de CBM ----------
+
+function cleanTrackings(list) {
+  const out = [];
+  const seen = new Set();
+  for (const raw of Array.isArray(list) ? list : []) {
+    const value = String(raw || '').trim().toUpperCase();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+    if (out.length >= MAX_TRACKINGS) break;
+  }
+  return out;
+}
+
+// El cliente de una copia se identifica por su shipping mark (que usa el prefijo
+// propio de esa copia, distinto al de los clientes de TLEC CARGO). El email viaja
+// en el mismo envío y sirve de primera vía; el mark queda como respaldo.
+async function resolveCopyClient(base44, app, payload) {
+  const email = normalizeEmail(payload?.client_email || payload?.email);
+  if (email) {
+    const found = await findClient(base44, app, email);
+    if (found) return found;
+  }
+
+  const raw = String(payload?.shipping_mark || '').trim();
+  if (!raw) return null;
+  const variants = [...new Set([raw, raw.toUpperCase()])];
+  for (const mark of variants) {
+    const [users, profiles] = await Promise.all([
+      base44.asServiceRole.entities.User.filter({ origin_app_id: app.id, shipping_mark: mark }, '-created_date', 1),
+      base44.asServiceRole.entities.IntegratedClient.filter({ origin_app_id: app.id, shipping_mark: mark }, '-created_date', 1)
+    ]);
+    const user = users?.[0];
+    if (user) return { record: user, account: true, entity: 'User' };
+    const profile = profiles?.[0];
+    if (profile) return { record: profile, account: false, entity: 'IntegratedClient' };
+  }
+  return null;
+}
+
+function clientNameOf(record) {
+  const name = record?.full_name || [record?.first_name, record?.last_name].filter(Boolean).join(' ');
+  return String(name || '').trim();
+}
+
+function noClientError(payload) {
+  const who = String(payload?.client_email || payload?.shipping_mark || '').trim() || 'ese cliente';
+  return fail(
+    'client_not_found',
+    `No se encontró el cliente ${who} entre los registrados por esta app integrada. Envíalo primero con resource "clients".`,
+    404
+  );
+}
+
+// Crea o actualiza el registro de la copia por su llave natural (código de etiqueta
+// del bulto, número de orden del recibo), así el reintento nunca duplica.
+async function upsertOwned(base44, entity, app, field, value, data, label, createdDetail) {
+  const rows = await base44.asServiceRole.entities[entity].filter(
+    { origin_app_id: app.id, [field]: value },
+    '-created_date',
+    1
+  );
+  const existing = rows?.[0];
+  if (existing) {
+    const updated = await base44.asServiceRole.entities[entity].update(existing.id, data);
+    return done(
+      { ok: true, action: 'updated', record: updated },
+      200,
+      { entity, recordId: updated.id, label, action: 'update', detail: 'Registro actualizado desde la copia' }
+    );
+  }
+  const created = await base44.asServiceRole.entities[entity].create({ ...data, ...originStamp(app) });
+  return done(
+    { ok: true, action: 'created', record: created },
+    201,
+    { entity, recordId: created.id, label, action: 'create', detail: createdDetail }
+  );
+}
+
+async function createBulto(base44, app, payload) {
+  const labelCode = String(payload?.label_code || '').trim();
+  if (!labelCode) return fail('missing_label', 'Falta el código de etiqueta del bulto.');
+
+  const client = await resolveCopyClient(base44, app, payload);
+  if (!client) return noClientError(payload);
+  const email = normalizeEmail(client.record.email || client.record.client_email);
+  const mark = String(client.record.shipping_mark || payload?.shipping_mark || '').trim();
+
+  const trackings = cleanTrackings(payload?.package_trackings);
+  const packages = email
+    ? await base44.asServiceRole.entities.Package.filter({ client_email: email }, '-created_date', 500).catch(() => [])
+    : [];
+  const byTracking = new Map();
+  for (const pkg of packages || []) {
+    const key = String(pkg.tracking_number || '').trim().toUpperCase();
+    if (key && !byTracking.has(key)) byTracking.set(key, pkg.id);
+  }
+
+  const snapshot = payload?.client_snapshot && typeof payload.client_snapshot === 'object' ? payload.client_snapshot : {};
+  const data = {
+    label_code: labelCode,
+    client_email: email,
+    shipping_mark: mark,
+    bulto_number: Number(payload?.bulto_number) || 1,
+    total_bultos: Number(payload?.total_bultos) || 1,
+    package_trackings: trackings,
+    package_ids: trackings.map((t) => byTracking.get(t)).filter(Boolean),
+    cbm_order_numbers: (Array.isArray(payload?.cbm_order_numbers) ? payload.cbm_order_numbers : [])
+      .map((v) => String(v || '').trim())
+      .filter(Boolean)
+      .slice(0, 50),
+    status: BULTO_STATUSES.includes(payload?.status) ? payload.status : 'activo',
+    client_snapshot: {
+      full_name: String(snapshot.full_name || clientNameOf(client.record) || '').slice(0, 120),
+      email,
+      cedula: String(snapshot.cedula || client.record.cedula || ''),
+      whatsapp: String(snapshot.whatsapp || client.record.whatsapp || ''),
+      address: String(snapshot.address || client.record.address || ''),
+      city: String(snapshot.city || client.record.city || ''),
+      state: String(snapshot.state || client.record.state || ''),
+      shipping_mark: String(snapshot.shipping_mark || mark || '')
+    }
+  };
+
+  return await upsertOwned(base44, 'Bulto', app, 'label_code', labelCode, data, labelCode, 'Bulto de la copia registrado');
+}
+
+async function createRecibo(base44, app, payload) {
+  const orderNumber = String(payload?.invoice_number || '').trim();
+  if (!orderNumber) return fail('missing_order', 'Falta el número de envío o recibo (invoice_number).');
+  const cbm = Number(payload?.cbm);
+  if (!Number.isFinite(cbm) || cbm <= 0) return fail('invalid_cbm', 'El recibo debe tener un CBM mayor a 0.');
+
+  const client = await resolveCopyClient(base44, app, payload);
+  if (!client) return noClientError(payload);
+  const email = normalizeEmail(client.record.email || client.record.client_email);
+  const mark = String(client.record.shipping_mark || payload?.shipping_mark || '').trim();
+
+  const fecha = payload?.fecha || new Date().toISOString();
+  const data = {
+    invoice_number: orderNumber,
+    client_email: email,
+    shipping_mark: mark,
+    client_name: String(payload?.client_name || clientNameOf(client.record) || email).slice(0, 120),
+    cbm,
+    fob_total: Number(payload?.fob_total) || 0,
+    fecha,
+    mes: String(payload?.mes || fecha).slice(0, 7),
+    descripcion: String(payload?.descripcion || ''),
+    proveedor: String(payload?.proveedor || ''),
+    notas: String(payload?.notas || ''),
+    tracking_numbers: cleanTrackings(payload?.tracking_numbers),
+    fecha_salida: String(payload?.fecha_salida || ''),
+    fecha_estimada_llegada: String(payload?.fecha_estimada_llegada || ''),
+    disponible_entrega: payload?.disponible_entrega === true
+  };
+
+  return await upsertOwned(base44, 'CbmIngreso', app, 'invoice_number', orderNumber, data, orderNumber, 'Recibo de CBM de la copia registrado');
+}
+
 // ---------- router ----------
 
 export async function runOperation(base44, app, resource, operation, payload) {
@@ -516,11 +684,27 @@ export async function runOperation(base44, app, resource, operation, payload) {
     }
   }
 
+  if (resource === 'bultos') {
+    if (operation === 'list') return await listEntity(base44, 'Bulto', app, payload);
+    if (operation === 'get') return await getEntity(base44, 'Bulto', app, payload);
+    if (operation === 'create') return await createBulto(base44, app, payload);
+    if (operation === 'update') return await updateEntity(base44, 'Bulto', app, payload, BULTO_FIELDS, 'Bulto');
+    if (operation === 'delete') return await deleteEntity(base44, 'Bulto', app, payload, 'Bulto');
+  }
+
+  if (resource === 'recibos') {
+    if (operation === 'list') return await listEntity(base44, 'CbmIngreso', app, payload);
+    if (operation === 'get') return await getEntity(base44, 'CbmIngreso', app, payload);
+    if (operation === 'create') return await createRecibo(base44, app, payload);
+    if (operation === 'update') return await updateEntity(base44, 'CbmIngreso', app, payload, RECIBO_FIELDS, 'Recibo');
+    if (operation === 'delete') return await deleteEntity(base44, 'CbmIngreso', app, payload, 'Recibo');
+  }
+
   if (resource === 'clients') {
     return await clientsOperation(base44, app, operation, payload);
   }
 
-  return fail('unknown_resource', `Recurso no permitido: ${resource}. Usa clients, prealerts, invoices o payments.`);
+  return fail('unknown_resource', `Recurso no permitido: ${resource}. Usa clients, prealerts, invoices, payments, bultos o recibos.`);
 }
 
 export function auditPayload(app, audit) {

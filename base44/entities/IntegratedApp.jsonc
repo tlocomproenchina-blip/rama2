@@ -35,6 +35,52 @@
       "default": true,
       "description": "Si est\u00e1 apagada, la copia no puede conectarse (sus llamadas reciben 'no autorizado')"
     },
+    "rate_cbm_regular": {
+      "type": "number",
+      "default": 0,
+      "description": "Tarifa propia de esta copia por CBM para carga general (USD/CBM). Se aplica a los bultos y recibos que llegan de ella; si es 0, se usa la tarifa normal de TLEC CARGO."
+    },
+    "rate_cbm_high_risk": {
+      "type": "number",
+      "default": 0,
+      "description": "Tarifa propia de esta copia por CBM para carga de alto riesgo (USD/CBM)"
+    },
+    "special_cbm_rates": {
+      "type": "array",
+      "default": [],
+      "description": "Tarifas propias de esta copia para cargas menores a 0.130 CBM",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min_cbm": {
+            "type": "number",
+            "description": "CBM m\u00ednimo del rango (inclusive)"
+          },
+          "max_cbm": {
+            "type": "number",
+            "description": "CBM m\u00e1ximo del rango (inclusive)"
+          },
+          "rate_regular": {
+            "type": "number",
+            "description": "Tarifa de esta copia para carga regular en este rango"
+          },
+          "rate_high_risk": {
+            "type": "number",
+            "description": "Tarifa de esta copia para carga de alto riesgo en este rango"
+          }
+        },
+        "required": [
+          "min_cbm",
+          "max_cbm",
+          "rate_regular",
+          "rate_high_risk"
+        ]
+      }
+    },
+    "shipping_mark_prefix": {
+      "type": "string",
+      "description": "Prefijo con el que esta copia genera los shipping mark de sus clientes. No es el mismo patr\u00f3n de los clientes de TLEC CARGO."
+    },
     "last_seen": {
       "type": "string",
       "format": "date-time",

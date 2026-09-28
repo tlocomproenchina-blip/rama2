@@ -149,6 +149,63 @@ function paymentChanges(payment) {
   };
 }
 
+// ---------- bultos y recibos ----------
+
+function cleanTrackings(list) {
+  const out = [];
+  const seen = new Set();
+  for (const raw of Array.isArray(list) ? list : []) {
+    const value = String(raw || '').trim().toUpperCase();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+  }
+  return out;
+}
+
+// El bulto viaja con el shipping mark de su cliente en esta copia: ese mark usa el
+// prefijo propio de la copia y es lo que permite reconocerlo en TLEC CARGO.
+function bultoPayload(bulto) {
+  return {
+    resource: 'bultos',
+    operation: 'create',
+    label_code: String(bulto.label_code || '').trim(),
+    client_email: String(bulto.client_email || '').trim().toLowerCase(),
+    shipping_mark: String(bulto.shipping_mark || bulto.client_snapshot?.shipping_mark || '').trim(),
+    bulto_number: Number(bulto.bulto_number) || 1,
+    total_bultos: Number(bulto.total_bultos) || 1,
+    package_trackings: cleanTrackings(bulto.package_trackings),
+    cbm_order_numbers: (Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers : [])
+      .map((v) => String(v || '').trim())
+      .filter(Boolean),
+    status: bulto.status || 'activo',
+    client_snapshot: bulto.client_snapshot || {}
+  };
+}
+
+// El recibo es el número de envío generado en AdminCbmIngresos con su CBM.
+function reciboPayload(recibo) {
+  return {
+    resource: 'recibos',
+    operation: 'create',
+    invoice_number: String(recibo.invoice_number || '').trim(),
+    client_email: String(recibo.client_email || '').trim().toLowerCase(),
+    shipping_mark: String(recibo.shipping_mark || '').trim(),
+    client_name: recibo.client_name || '',
+    cbm: Number(recibo.cbm) || 0,
+    fob_total: Number(recibo.fob_total) || 0,
+    fecha: recibo.fecha || '',
+    mes: recibo.mes || '',
+    descripcion: recibo.descripcion || '',
+    proveedor: recibo.proveedor || '',
+    notas: recibo.notas || '',
+    tracking_numbers: cleanTrackings(recibo.tracking_numbers),
+    fecha_salida: recibo.fecha_salida || '',
+    fecha_estimada_llegada: recibo.fecha_estimada_llegada || '',
+    disponible_entrega: recibo.disponible_entrega === true
+  };
+}
+
 function dayOf(value) {
   const date = value ? new Date(value) : null;
   return date && !Number.isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : '';
@@ -466,6 +523,86 @@ async function syncPayment(svc, cfg, paymentId) {
   return await pushPayment(svc, cfg, payment, invoice);
 }
 
+// Envía el bulto creado en la copia. Si cambió desde el último envío viaja de nuevo
+// con la misma llave, y TLEC CARGO lo actualiza sin duplicarlo.
+async function pushBulto(svc, cfg, bulto) {
+  const label = String(bulto.label_code || '').trim();
+  const key = `bultos:${label}`;
+  if (await alreadySent(svc, key, bulto.updated_date)) {
+    return { ok: true, already: true, message: 'El bulto ya estaba enviado' };
+  }
+  const row = await stage(svc, {
+    resource: 'bultos',
+    record_id: bulto.id,
+    idempotency_key: key,
+    label,
+    payload: bultoPayload(bulto)
+  });
+  return await attempt(svc, cfg, row);
+}
+
+async function syncBulto(svc, cfg, bultoId) {
+  const id = String(bultoId || '').trim();
+  if (!id) return { ok: false, message: 'Falta el id del bulto' };
+
+  let bulto = null;
+  try {
+    bulto = await svc.entities.Bulto.get(id);
+  } catch (_) {
+    bulto = null;
+  }
+  if (!bulto) return { ok: false, message: 'No existe ese bulto en esta app' };
+  if (!bulto.label_code || !bulto.client_email) {
+    return { ok: true, already: true, message: 'El bulto está incompleto: no se envía' };
+  }
+  if (await isMasterApp(svc)) return { ok: true, already: true, message: 'Es la app maestra: no se envía' };
+  if (!cfg.configured) return { ok: false, message: 'Falta configurar la conexión con TLEC CARGO' };
+
+  // El cliente debe existir en la maestra antes que su bulto.
+  await syncClient(svc, cfg, bulto.client_email);
+  return await pushBulto(svc, cfg, bulto);
+}
+
+// Envía el recibo (número de envío) generado en AdminCbmIngresos, con el shipping
+// mark del cliente de esta copia.
+async function pushRecibo(svc, cfg, recibo) {
+  const number = String(recibo.invoice_number || '').trim();
+  const key = `recibos:${number}`;
+  if (await alreadySent(svc, key, recibo.updated_date)) {
+    return { ok: true, already: true, message: 'El recibo ya estaba enviado' };
+  }
+  const row = await stage(svc, {
+    resource: 'recibos',
+    record_id: recibo.id,
+    idempotency_key: key,
+    label: `${number} · ${Number(recibo.cbm) || 0} CBM`,
+    payload: reciboPayload(recibo)
+  });
+  return await attempt(svc, cfg, row);
+}
+
+async function syncRecibo(svc, cfg, reciboId) {
+  const id = String(reciboId || '').trim();
+  if (!id) return { ok: false, message: 'Falta el id del recibo' };
+
+  let recibo = null;
+  try {
+    recibo = await svc.entities.CbmIngreso.get(id);
+  } catch (_) {
+    recibo = null;
+  }
+  if (!recibo) return { ok: false, message: 'No existe ese recibo en esta app' };
+  if (!recibo.invoice_number || !recibo.client_email) {
+    return { ok: true, already: true, message: 'El recibo está incompleto: no se envía' };
+  }
+  if (!(Number(recibo.cbm) > 0)) return { ok: true, already: true, message: 'El recibo no tiene CBM: no se envía' };
+  if (await isMasterApp(svc)) return { ok: true, already: true, message: 'Es la app maestra: no se envía' };
+  if (!cfg.configured) return { ok: false, message: 'Falta configurar la conexión con TLEC CARGO' };
+
+  await syncClient(svc, cfg, recibo.client_email);
+  return await pushRecibo(svc, cfg, recibo);
+}
+
 function failureText(result) {
   const message = result?.data?.error?.message || result?.error || `Error ${result?.status || 'desconocido'}`;
   return String(message).slice(0, 300);
@@ -721,11 +858,13 @@ async function flushOutbox(svc, cfg) {
   for (const row of errors || []) {
     if (row.resource === 'health') continue;
     summary.retried += 1;
-    // Facturas y cobros se reintentan releyendo el registro: su estado pudo
-    // cambiar desde el intento anterior y el cuerpo viejo duplicaría el registro.
+    // Facturas, cobros, bultos y recibos se reintentan releyendo el registro: su
+    // estado pudo cambiar desde el intento anterior y el cuerpo viejo duplicaría el registro.
     const res = row.resource === 'invoices' ? await syncInvoice(svc, cfg, row.record_id)
       : row.resource === 'payments' ? await syncPayment(svc, cfg, row.record_id)
-        : await attempt(svc, cfg, row);
+        : row.resource === 'bultos' ? await syncBulto(svc, cfg, row.record_id)
+          : row.resource === 'recibos' ? await syncRecibo(svc, cfg, row.record_id)
+            : await attempt(svc, cfg, row);
     if (res.ok) summary.sent += 1;
     else summary.failed += 1;
   }
@@ -764,6 +903,26 @@ async function flushOutbox(svc, cfg) {
       if (!isRecent(payment.updated_date || payment.created_date)) continue;
       summary.scanned += 1;
       const res = await syncPayment(svc, cfg, payment.id);
+      if (res.ok && !res.already) summary.sent += 1;
+    }
+
+    // Bultos creados en almacén y recibos (número de envío) generados en
+    // AdminCbmIngresos: se recogen los creados o cambiados en las últimas 24 horas.
+    const bultos = await svc.entities.Bulto.list('-updated_date', LEDGER_SCAN_LIMIT);
+    for (const bulto of bultos || []) {
+      if (!bulto.label_code || !bulto.client_email) continue;
+      if (!isRecent(bulto.updated_date || bulto.created_date)) continue;
+      summary.scanned += 1;
+      const res = await syncBulto(svc, cfg, bulto.id);
+      if (res.ok && !res.already) summary.sent += 1;
+    }
+
+    const recibos = await svc.entities.CbmIngreso.list('-updated_date', LEDGER_SCAN_LIMIT);
+    for (const recibo of recibos || []) {
+      if (!recibo.invoice_number || !recibo.client_email) continue;
+      if (!isRecent(recibo.updated_date || recibo.created_date)) continue;
+      summary.scanned += 1;
+      const res = await syncRecibo(svc, cfg, recibo.id);
       if (res.ok && !res.already) summary.sent += 1;
     }
   }

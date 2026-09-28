@@ -26,7 +26,7 @@ export default async function (req) {
     const app = auth.app;
 
     if (!resource) {
-      return errorResponse('missing_resource', 'Indica "resource": clients, prealerts, invoices o payments.', 400);
+      return errorResponse('missing_resource', 'Indica "resource": clients, prealerts, invoices, payments, bultos o recibos.', 400);
     }
 
     if (resource === 'health' || resource === 'ping') {
@@ -49,7 +49,7 @@ export default async function (req) {
     }
 
     if (!RESOURCE_LABELS[resource]) {
-      return errorResponse('unknown_resource', `Recurso no permitido: ${resource}. Usa clients, prealerts, invoices o payments.`, 400);
+      return errorResponse('unknown_resource', `Recurso no permitido: ${resource}. Usa clients, prealerts, invoices, payments, bultos o recibos.`, 400);
     }
     if (!operation) return errorResponse('missing_operation', 'Indica "operation": list, get, create, update o delete.', 400);
 

@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plug, RefreshCw, Power, Trash2, Mail, Clock, Activity } from 'lucide-react';
+import { Plug, RefreshCw, Power, Trash2, Mail, Clock, Activity, DollarSign } from 'lucide-react';
 import IntegratedAppStats from './IntegratedAppStats';
 import IntegratedAppDiagnosticDialog from './IntegratedAppDiagnosticDialog';
 import { appState, timeAgo } from '@/lib/integratedApps';
 
-export default function IntegratedAppCard({ app, onRotate, onToggle, onDelete, onRefresh }) {
+const money = (v) => `$${Number(v || 0).toFixed(2)}`;
+
+export default function IntegratedAppCard({ app, onRotate, onToggle, onDelete, onRefresh, onTariff }) {
   const state = appState(app);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const hasTariff = Number(app.rate_cbm_regular) > 0 || Number(app.rate_cbm_high_risk) > 0;
 
   return (
     <div className="rounded-xl border bg-card p-4 shadow-card space-y-3">
@@ -43,9 +46,18 @@ export default function IntegratedAppCard({ app, onRotate, onToggle, onDelete, o
         <p className="text-[11px] text-slate-400">Última acción: {app.last_action}</p>
       )}
 
+      <p className={`text-[11px] ${hasTariff ? 'text-slate-500' : 'text-amber-600'}`}>
+        {hasTariff
+          ? `Tarifa propia: ${money(app.rate_cbm_regular)}/CBM general · ${money(app.rate_cbm_high_risk)}/CBM alto riesgo`
+          : 'Sin tarifa propia: su carga se está facturando con la tarifa normal de TLEC CARGO'}
+      </p>
+
       <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2">
         <Button variant="outline" size="sm" onClick={() => setShowDiagnostic(true)} className="gap-1.5">
           <Activity className="h-3.5 w-3.5" /> Diagnóstico
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => onTariff(app)} className="gap-1.5">
+          <DollarSign className="h-3.5 w-3.5" /> Tarifa de la copia
         </Button>
         <Button variant="outline" size="sm" onClick={() => onRotate(app)} className="gap-1.5">
           <RefreshCw className="h-3.5 w-3.5" /> Rotar clave
