@@ -54,6 +54,14 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Escanea al menos un paquete del bulto' }, { status: 400 });
     }
 
+    // Códigos que el empleado confirmó agregar aunque no existan como Package:
+    // viajan dentro de los trackings del bulto, sin crear registros de paquetes.
+    const unregisteredConfirmed = new Set(
+      (Array.isArray(body.unregistered_codes) ? body.unregistered_codes : [])
+        .map((c: any) => String(c || '').trim())
+        .filter(Boolean)
+    );
+
     const orderNumbers = (Array.isArray(body.cbm_order_numbers) ? body.cbm_order_numbers : [])
       .map((s: any) => String(s || '').trim())
       .filter(Boolean);
@@ -83,9 +91,13 @@ export default async function(req: Request): Promise<Response> {
     // que sean del mismo cliente y que no estén ya dentro de otro bulto.
     const uniqueCodes = Array.from(new Set(packageCodes));
     const packages: any[] = [];
+    const unregistered: string[] = [];
     for (const code of uniqueCodes) {
       const pkg = await resolvePackageByCode(base44, code);
-      if (!pkg) return Response.json({ error: `Paquete no encontrado: ${code}` });
+      if (!pkg) {
+        if (unregisteredConfirmed.has(code)) { unregistered.push(code); continue; }
+        return Response.json({ error: `Paquete no encontrado: ${code}` });
+      }
       if ((pkg.client_email || '') && pkg.client_email !== clientEmail) {
         return Response.json({ error: `El paquete ${code} es de otro cliente` });
       }
@@ -113,7 +125,8 @@ export default async function(req: Request): Promise<Response> {
       bulto_number: bultoNumber,
       total_bultos: totalBultos,
       package_ids: packages.map((p) => p.id),
-      package_trackings: packages.map((p) => p.tracking_number || '').filter(Boolean),
+      package_trackings: [...packages.map((p) => p.tracking_number || '').filter(Boolean), ...unregistered],
+      unregistered_codes: unregistered,
       cbm_order_numbers: orderNumbers,
       client_snapshot: buildClientSnapshot(client, shippingMark, clientEmail),
       invoice_paid: invoice.invoicePaid,

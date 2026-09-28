@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
           trackings,
           package_count: registeredCount > 0
             ? Math.round(registeredCount)
-            : ((b.package_ids || []).length || trackings.length),
+            : (((b.package_ids || []).length + (b.unregistered_codes || []).length) || trackings.length),
           package_count_manual: registeredCount > 0,
           // Tarifa registrada del bulto desde 'Carga en almacén': la factura la usa tal cual.
           risk_category: detectedRisk,

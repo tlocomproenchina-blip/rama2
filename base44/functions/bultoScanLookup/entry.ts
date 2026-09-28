@@ -61,7 +61,11 @@ export default async function(req: Request): Promise<Response> {
       if (!code || !clientEmail) return Response.json({ error: 'Faltan datos del paquete' }, { status: 400 });
 
       const pkg = await resolvePackageByCode(base44, code);
-      if (!pkg) return Response.json({ error: `Paquete no encontrado: ${code}` });
+      if (!pkg) {
+        // No existe como Package: la pantalla puede agregarlo igual al bulto como
+        // "sin registrar" (no se crea ningún registro de paquete).
+        return Response.json({ not_registered: true, code });
+      }
       if ((pkg.client_email || '') && pkg.client_email !== clientEmail) {
         return Response.json({ error: `El paquete ${code} es de otro cliente` });
       }

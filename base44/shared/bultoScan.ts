@@ -179,8 +179,11 @@ export function bultoScanProjection(bulto: any) {
     bulto_number: bulto.bulto_number,
     total_bultos: bulto.total_bultos,
     status: bulto.status,
-    package_count: (bulto.package_ids || []).length,
+    // Los códigos sin registrar cuentan como un paquete más del bulto.
+    package_count: ((bulto.package_ids || []).length + (bulto.unregistered_codes || []).length)
+      || (bulto.package_trackings || []).length,
     package_trackings: bulto.package_trackings || [],
+    unregistered_codes: bulto.unregistered_codes || [],
     cbm_order_numbers: bulto.cbm_order_numbers || [],
     order_locked: !!bulto.order_locked,
     order_assigned_by: bulto.order_assigned_by || "",

@@ -22,6 +22,9 @@ export default function BultoCreateFromScanPanel({
   const [packages, setPackages] = useState([]);
   const [pkgCode, setPkgCode] = useState('');
   const [adding, setAdding] = useState(false);
+  // Código escaneado que no existe en el sistema: se pide confirmación antes de
+  // agregarlo al bulto como "sin registrar".
+  const [pendingCode, setPendingCode] = useState('');
   const [packageError, setPackageError] = useState('');
   const [orderNumbers, setOrderNumbers] = useState('');
   const [saving, setSaving] = useState(false);
@@ -46,6 +49,7 @@ export default function BultoCreateFromScanPanel({
     }
     setAdding(true);
     setPackageError('');
+    setPendingCode('');
     try {
       const res = await base44.functions.invoke('bultoScanLookup', {
         action: 'package',
@@ -53,12 +57,19 @@ export default function BultoCreateFromScanPanel({
         client_email: client.email,
         device_id: deviceId,
       });
-      if (res?.data?.error) {
-        setPackageError(res.data.error);
-        toast.error(res.data.error);
+      const data = res?.data || {};
+      if (data.error) {
+        setPackageError(data.error);
+        toast.error(data.error);
         return;
       }
-      const pkg = res.data.package;
+      if (data.not_registered) {
+        // No existe como paquete en el sistema: se ofrece agregarlo igual.
+        setPendingCode(value);
+        toast.info(`El paquete ${value} no está registrado en el sistema`);
+        return;
+      }
+      const pkg = data.package;
       setPackages((prev) => [...prev, { ...pkg, code: value }]);
       setPkgCode('');
       toast.success(`Paquete agregado: ${pkg.tracking_number || value}`);
@@ -68,6 +79,18 @@ export default function BultoCreateFromScanPanel({
     } finally {
       setAdding(false);
     }
+  };
+
+  // Agrega el código no registrado a la lista del bulto: no crea ni modifica
+  // paquetes en la base de datos, solo cuenta como uno más del bulto.
+  const confirmAddUnregistered = () => {
+    const value = pendingCode.trim();
+    if (!value) return;
+    setPackages((prev) => [...prev, { code: value, tracking_number: value, unregistered: true }]);
+    setPendingCode('');
+    setPkgCode('');
+    setPackageError('');
+    toast.success(`Paquete agregado sin registrar: ${value}`);
   };
 
   const handleSave = async () => {
@@ -107,6 +130,7 @@ export default function BultoCreateFromScanPanel({
         label_code: scannedCode,
         client_email: client.email,
         package_codes: packages.map((p) => p.code),
+        unregistered_codes: packages.filter((p) => p.unregistered).map((p) => p.code),
         cbm_order_numbers: parsed,
         device_id: deviceId,
         recognition_photo_url: photoUrl || undefined,
@@ -200,6 +224,29 @@ export default function BultoCreateFromScanPanel({
             </div>
           )}
 
+          {pendingCode && (
+            <Card className="border-amber-200 bg-amber-50">
+              <CardContent className="pt-4 space-y-3">
+                <p className="text-sm text-amber-800 flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    El paquete <span className="font-mono font-semibold break-all">{pendingCode}</span> no está
+                    registrado en el sistema. Puedes agregarlo igual al bulto: quedará marcado como
+                    {' '}"sin registrar" y no se crea ningún paquete nuevo.
+                  </span>
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={confirmAddUnregistered} disabled={adding} className="bg-blue-600 hover:bg-blue-700">
+                    <Package className="h-4 w-4" /> Agregar igual
+                  </Button>
+                  <Button variant="outline" onClick={() => { setPendingCode(''); setPkgCode(''); }} disabled={adding}>
+                    Descartar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {packageError && (
             <Card className="border-rose-200 bg-rose-50">
               <CardContent className="pt-4 text-sm text-rose-700 flex items-start gap-2">
@@ -222,16 +269,21 @@ export default function BultoCreateFromScanPanel({
                 <p className="text-sm text-slate-400">Todavía no has agregado paquetes.</p>
               ) : (
                 packages.map((p) => (
-                  <div key={p.id} className="flex items-start justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2">
+                  <div key={p.id || p.code} className="flex items-start justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2">
                     <div className="min-w-0">
                       <p className="font-mono text-sm text-slate-800 break-all">{p.tracking_number || p.code}</p>
                       {p.description && <p className="text-xs text-slate-500 break-words">{p.description}</p>}
+                      {p.unregistered && (
+                        <Badge variant="outline" className="mt-1 border-amber-300 text-[10px] text-amber-700">
+                          sin registrar
+                        </Badge>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="shrink-0 text-rose-600 hover:text-rose-700"
-                      onClick={() => setPackages((prev) => prev.filter((x) => x.id !== p.id))}
+                      onClick={() => setPackages((prev) => prev.filter((x) => (x.id || x.code) !== (p.id || p.code)))}
                     >
                       <Trash2 className="h-4 w-4" /> Quitar
                     </Button>

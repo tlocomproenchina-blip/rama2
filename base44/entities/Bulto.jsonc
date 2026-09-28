@@ -35,7 +35,15 @@
     "package_trackings": {
       "type": "array",
       "default": [],
-      "description": "Cache de tracking numbers de los paquetes contenidos (para mostrar al verificar sin reconsultar)",
+      "description": "Cache de tracking numbers de los paquetes contenidos (para mostrar al verificar sin reconsultar). Incluye tambi\u00e9n los c\u00f3digos sin registrar agregados al bulto.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unregistered_codes": {
+      "type": "array",
+      "default": [],
+      "description": "C\u00f3digos agregados al bulto desde el escaneo del almac\u00e9n de Venezuela que no existen como Package en el sistema (etiqueta o tracking no registrado). No crean registros de paquetes: se imprimen en el bloque CONTENIDO de la etiqueta y cuentan como un paquete m\u00e1s en el conteo del bulto.",
       "items": {
         "type": "string"
       }

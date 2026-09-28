@@ -58,7 +58,9 @@ export const buildBultoLabelPayload = (bulto) => {
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
   const labelCode = bulto.label_code || '';
   const bultoNum = `BULTO ${bulto.bulto_number || 1}/${bulto.total_bultos || 1}`;
-  const pkgCount = (bulto.package_ids?.length || bulto.package_trackings?.length || 0);
+  // Los códigos sin registrar cuentan como un paquete más del bulto
+  const pkgCount = ((bulto.package_ids?.length || 0) + (bulto.unregistered_codes?.length || 0))
+    || (bulto.package_trackings?.length || 0);
   const bultoPkg = `${bultoNum} - ${pkgCount} PAQUETES`;
   const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
 

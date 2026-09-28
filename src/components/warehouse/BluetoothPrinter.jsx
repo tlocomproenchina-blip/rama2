@@ -153,7 +153,8 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
       for (const bulto of bultos) {
         const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
         const cs = bulto.client_snapshot || {};
-        const pkgCount = bulto.package_ids?.length || bulto.package_trackings?.length || 0;
+        const pkgCount = ((bulto.package_ids?.length || 0) + (bulto.unregistered_codes?.length || 0))
+          || (bulto.package_trackings?.length || 0);
         const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
         const estado = (cs.state || 'SIN ESTADO').toUpperCase();
         const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
