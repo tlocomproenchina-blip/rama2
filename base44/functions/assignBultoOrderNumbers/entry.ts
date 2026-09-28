@@ -8,7 +8,8 @@ import { markPackagesRecognized } from '../../shared/bultoScan.ts';
 // - Sin sesión: se exige device_id y se registra el dispositivo en lugar del correo.
 // - Guarda cbm_order_numbers, marca order_locked=true (sin cambiar el status) y
 //   registra quién lo asignó (order_assigned_by, order_assigned_date).
-// - Si el bulto ya tiene order_locked=true, rechaza la edición.
+// - Si el bulto ya tiene order_locked=true, rechaza la edición salvo si quien edita
+//   es un admin con sesión (puede corregir o agregar otra orden).
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -48,8 +49,10 @@ export default async function(req: Request): Promise<Response> {
     const bulto = await base44.asServiceRole.entities.Bulto.get(bultoId).catch(() => null);
     if (!bulto) return Response.json({ error: 'Bulto no encontrado' }, { status: 404 });
 
-    // Si ya está bloqueado, rechazar. Solo admin puede desbloquear desde BultoEditModal.
-    if (bulto.order_locked) {
+    // Si ya está bloqueado, rechazar: los empleados deben pedir el desbloqueo.
+    // Un admin con sesión sí puede corregir o agregar otra orden desde esta misma
+    // pantalla (el cambio queda registrado a su nombre).
+    if (bulto.order_locked && sessionUser?.role !== 'admin') {
       return Response.json(
         { error: 'Este bulto ya tiene el N° de orden asignado y está bloqueado. Solicita a un admin que lo desbloquee si necesitas corregirlo.' },
         { status: 409 }

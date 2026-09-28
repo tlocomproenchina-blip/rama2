@@ -364,12 +364,14 @@ export default function BultoOrderScan({ user }) {
                     autoFocus
                   />
                   <p className="text-[10px] text-slate-400">
-                    Ingresa el número de orden del almacén de China. Al guardar, el bulto queda bloqueado y no podrás editarlo nuevamente.
+                    {isAdmin && isLocked
+                      ? 'Este bulto ya tiene N° de orden asignado. Como admin puedes corregirlo o agregar otra orden: al guardar se reemplaza y queda registrado a tu usuario.'
+                      : 'Ingresa el número de orden del almacén de China. Al guardar, el bulto queda bloqueado y no podrás editarlo nuevamente.'}
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
                       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      Guardar y bloquear
+                      {isAdmin && isLocked ? 'Guardar cambios' : 'Guardar y bloquear'}
                     </Button>
                     <Button variant="outline" onClick={reset}>
                       <RotateCcw className="h-4 w-4" /> Escanear otro
