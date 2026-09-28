@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   const [snapshot, setSnapshot] = useState(null);
   const [status, setStatus] = useState('activo');
   const [clientPackages, setClientPackages] = useState([]);
+  // Paquetes que ya están dentro del bulto (se listan aunque no estén 'recibidos').
+  const [bultoPkgs, setBultoPkgs] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [otherBoxedIds, setOtherBoxedIds] = useState(new Set());
   const [loadingPkgs, setLoadingPkgs] = useState(false);
@@ -36,13 +38,23 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     setSelectedIds(bulto.package_ids || []);
     setOrderNumbers(Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.join(', ') : '');
     setClientPackages([]);
+    setBultoPkgs([]);
     setOtherBoxedIds(new Set());
 
     // Cargar paquetes recibidos del cliente + bultos hermanos para marcar ocupados
     (async () => {
-      if (!bulto.client_email) return;
       setLoadingPkgs(true);
       try {
+        // Paquetes que realmente existen dentro de este bulto. Los ids del escaneo
+        // offline ('local_pkg_...') no existen: al guardar se conservan como códigos
+        // sin registrar, no como paquetes fantasma.
+        const ownIds = (bulto.package_ids || []).filter((id) => !String(id).startsWith('local_'));
+        const ownPkgs = (await Promise.all(
+          ownIds.map((id) => base44.entities.Package.get(id).catch(() => null))
+        )).filter(Boolean);
+        setBultoPkgs(ownPkgs);
+
+        if (!bulto.client_email) return;
         const [pkgs, bultos] = await Promise.all([
           base44.entities.Package.filter({ client_email: bulto.client_email }, '-received_date', 500),
           base44.entities.Bulto.filter({ client_email: bulto.client_email }, 'bulto_number', 500),
@@ -67,7 +79,9 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   };
 
   const handleSave = async () => {
-    if (!selectedIds.length) {
+    // Los bultos sin paquetes reales en el sistema (cajas pre-armadas o escaneos
+    // offline) sí se pueden guardar: solo se edita su información.
+    if (!selectedIds.length && bultoPkgs.length) {
       toast.error('El bulto debe tener al menos un paquete');
       return;
     }
@@ -99,6 +113,16 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
 
   const updateField = (field, value) => setSnapshot((prev) => ({ ...prev, [field]: value }));
 
+  // Paquetes del cliente + los que ya están en este bulto (aunque no estén recibidos).
+  const listedPackages = useMemo(() => {
+    const seen = new Set(clientPackages.map((p) => p.id));
+    return [...clientPackages, ...bultoPkgs.filter((p) => !seen.has(p.id))];
+  }, [clientPackages, bultoPkgs]);
+
+  const unregisteredCodes = Array.isArray(bulto?.unregistered_codes)
+    ? bulto.unregistered_codes.filter(Boolean)
+    : [];
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -117,11 +141,11 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                 <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
                   <Loader2 className="h-4 w-4 animate-spin" /> Cargando paquetes…
                 </div>
-              ) : clientPackages.length === 0 ? (
+              ) : listedPackages.length === 0 ? (
                 <p className="text-sm text-slate-500">No hay paquetes recibidos para este cliente.</p>
               ) : (
                 <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-lg border border-border p-2">
-                  {clientPackages.map((p) => {
+                  {listedPackages.map((p) => {
                     const isOtherBoxed = otherBoxedIds.has(p.id);
                     const isSelected = selectedIds.includes(p.id);
                     return (
@@ -145,10 +169,19 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                         {isOtherBoxed && !isSelected && (
                           <span className="text-xs text-slate-400 shrink-0">En otro bulto</span>
                         )}
+                        {!isOtherBoxed && p.status && p.status !== 'recibido' && (
+                          <span className="text-xs text-slate-400 shrink-0">{p.status}</span>
+                        )}
                       </label>
                     );
                   })}
                 </div>
+              )}
+              {unregisteredCodes.length > 0 && (
+                <p className="mt-2 text-xs text-slate-500">
+                  Códigos sin registrar en el sistema ({unregisteredCodes.length}):{' '}
+                  <span className="font-mono break-all">{unregisteredCodes.join(', ')}</span>
+                </p>
               )}
             </div>
 

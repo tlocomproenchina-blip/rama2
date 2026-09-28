@@ -25,14 +25,15 @@ export default async function(req: Request): Promise<Response> {
     // --- Paquetes ---
     if (Array.isArray(body.package_ids)) {
       const packageIds: string[] = body.package_ids.filter(Boolean);
-      if (!packageIds.length) return Response.json({ error: 'El bulto debe tener al menos un paquete' }, { status: 400 });
 
-      // Fetch paquetes seleccionados
+      // Solo se resuelven los paquetes que existen en el sistema. Los bultos
+      // escaneados en el almacén pueden traer ids del escaneo offline
+      // ('local_pkg_...') que no existen como Package: no deben impedir guardar.
       const pkgResults = await Promise.all(
         packageIds.map((id) => base44.asServiceRole.entities.Package.get(id).catch(() => null))
       );
       const pkgs = pkgResults.filter((p) => p) as any[];
-      if (!pkgs.length) return Response.json({ error: 'No se encontraron los paquetes' }, { status: 404 });
+      const resolvedIds: string[] = pkgs.map((p) => p.id);
 
       const clientEmail = bulto.client_email;
       const sameClient = pkgs.every((p) => p.client_email === clientEmail);
@@ -47,13 +48,22 @@ export default async function(req: Request): Promise<Response> {
         if (b.id === bultoId) continue;
         for (const pid of b.package_ids || []) otherPackageIds.add(pid);
       }
-      const conflict = packageIds.filter((id) => otherPackageIds.has(id));
+      const conflict = resolvedIds.filter((id) => otherPackageIds.has(id));
       if (conflict.length) {
         return Response.json({ error: 'Algunos paquetes ya están en otro bulto del cliente' }, { status: 400 });
       }
 
-      update.package_ids = packageIds;
-      update.package_trackings = pkgs.map((p) => p.tracking_number || '').filter(Boolean);
+      // Los códigos que ya no corresponden a un paquete del sistema se conservan
+      // como 'sin registrar': siguen en el contenido del bulto y en su etiqueta.
+      const resolvedTrackings: string[] = pkgs.map((p) => p.tracking_number || '').filter(Boolean);
+      const resolvedTrackingsSet = new Set(resolvedTrackings);
+      const keptCodes: string[] = (Array.isArray(bulto.package_trackings) ? bulto.package_trackings : [])
+        .filter((c: string) => c && !resolvedTrackingsSet.has(c));
+      const packageTrackings = [...resolvedTrackings, ...keptCodes];
+
+      update.package_ids = resolvedIds;
+      update.package_trackings = packageTrackings;
+      update.unregistered_codes = packageTrackings.filter((c) => !resolvedTrackingsSet.has(c));
     }
 
     // --- Snapshot del cliente ---

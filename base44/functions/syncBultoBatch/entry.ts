@@ -51,12 +51,21 @@ export default async function(req: Request): Promise<Response> {
     }
 
     // Validar que los package_ids existan (fueron creados offline o ya existían)
-    const validPackageIds = Array.isArray(package_ids) ? package_ids.filter(Boolean) : [];
-    const validTrackings = Array.isArray(package_trackings) ? package_trackings.filter(Boolean) : [];
+    const rawPackageIds: string[] = Array.isArray(package_ids) ? package_ids.filter(Boolean) : [];
+    const rawTrackings: string[] = Array.isArray(package_trackings) ? package_trackings.filter(Boolean) : [];
+    // Los ids del escaneo offline ('local_pkg_...') no existen como Package en el
+    // servidor: sus códigos se guardan como 'sin registrar' para que el bulto no
+    // quede con ids fantasma (rompían la edición del bulto).
+    const validPackageIds = rawPackageIds.filter((id) => !String(id).startsWith('local_'));
+    const validTrackings = rawTrackings;
+    const unregisteredFromLocal: string[] = rawPackageIds
+      .map((id, i) => (String(id).startsWith('local_') ? rawTrackings[i] || '' : ''))
+      .filter(Boolean);
 
-    // Bultos con paquetes: status 'en_almacen_ve' (en almacén de Venezuela, esperando despacho al cliente).
+    // Bultos con contenido: status 'en_almacen_ve' (en almacén de Venezuela, esperando despacho al cliente).
     // Bultos vacíos (bulk/etiquetas): status 'despachado' (cajas pre-armadas sin contenido).
-    const bultoStatus = validPackageIds.length > 0 ? 'en_almacen_ve' : 'despachado';
+    const hasContent = validPackageIds.length > 0 || unregisteredFromLocal.length > 0 || validTrackings.length > 0;
+    const bultoStatus = hasContent ? 'en_almacen_ve' : 'despachado';
 
     // Auto-lookup CbmIngreso order numbers if not provided manually
     let finalOrderNumbers: string[] = Array.isArray(cbm_order_numbers) ? cbm_order_numbers.filter(Boolean) : [];
@@ -84,6 +93,7 @@ export default async function(req: Request): Promise<Response> {
       total_bultos: total_bultos || bulto_number || 1,
       package_ids: validPackageIds,
       package_trackings: validTrackings,
+      unregistered_codes: unregisteredFromLocal,
       cbm_order_numbers: finalOrderNumbers,
       client_snapshot: client_snapshot || {},
       invoice_paid: !!invoice_paid,
