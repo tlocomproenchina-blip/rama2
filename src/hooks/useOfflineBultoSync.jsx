@@ -71,6 +71,8 @@ export function useOfflineBultoSync() {
       status: 'recibido',
       received_date: pkg.received_date || new Date().toISOString(),
       received_by: pkg.received_by || '',
+      package_image_url: pkg.package_image_url || '',
+      package_image_urls: Array.isArray(pkg.package_image_urls) ? pkg.package_image_urls : [],
       sync_status: 'pending',
       created_at: Date.now(),
     };
@@ -99,10 +101,18 @@ export function useOfflineBultoSync() {
         try {
           if (item.type === 'package_reception') {
             // Sincronizar recepción de paquete
+            // Las fotos del escaneo viajan en la misma actualización de recepción.
+            const photoFields = (item.package_image_urls && item.package_image_urls.length)
+              ? {
+                  package_image_url: item.package_image_url || item.package_image_urls[0],
+                  package_image_urls: item.package_image_urls,
+                }
+              : {};
             const res = await base44.entities.Package.update(item.package_id, {
               status: item.status,
               received_date: item.received_date,
               received_by: item.received_by,
+              ...photoFields,
             });
             // Detectar si el paquete ya fue recibido por otro dispositivo
             if (res?.already_received) {

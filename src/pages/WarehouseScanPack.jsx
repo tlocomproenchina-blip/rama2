@@ -14,6 +14,8 @@ import OpenBultosChips from '@/components/warehouse/OpenBultosChips';
 import BultoHistory from '@/components/warehouse/BultoHistory';
 import ManualPackageAssign from '@/components/warehouse/ManualPackageAssign';
 import BulkBultoCreator from '@/components/warehouse/BulkBultoCreator';
+import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
+import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import OfflineScanResult from '@/components/warehouse/OfflineScanResult';
 import PrintQueueCard from '@/components/warehouse/PrintQueueCard';
 import { usePrintQueue } from '@/hooks/usePrintQueue';
@@ -36,6 +38,12 @@ export default function WarehouseScanPack({ user }) {
   const [manualAssign, setManualAssign] = useState(null);
   const [scanning, setScanning] = useState(false);
   const openBultosRef = useRef([]);
+  const {
+    handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto,
+  } = useScannedPhotoUploader();
+  // Fotos de escaneo que no subieron: se avisan en pantalla y se pueden reintentar.
+  const [failedPhotos, setFailedPhotos] = useState([]);
+  const [photoRetrying, setPhotoRetrying] = useState(false);
 
   // Cola de impresión persistente (sobrevive recarga/cierre de app)
   const { queue: printQueue, enqueue: enqueuePrint, remove: removeFromQueue, removeMany: removeFromQueueMany, clear: clearPrintQueue } = usePrintQueue();
@@ -78,6 +86,36 @@ export default function WarehouseScanPack({ user }) {
     })();
     return () => { cancelled = true; };
   }, [cacheReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Foto del escaneo ---
+  // Adjunta la foto al paquete local y reencola su recepción para que llegue al
+  // servidor (idempotente por id). Los paquetes creados a mano en el dispositivo no
+  // se reencolan: todavía no existen en el servidor.
+  const attachScanPhoto = useCallback(async (pkg, photoUrl) => {
+    if (!pkg?.id || !photoUrl) return;
+    const urls = [...(pkg.package_image_urls || []), photoUrl].slice(0, 3);
+    const updatedPkg = {
+      ...pkg,
+      package_image_url: pkg.package_image_url || photoUrl,
+      package_image_urls: urls,
+    };
+    await put('packages', updatedPkg);
+    if (!pkg.is_local && !String(pkg.id).startsWith('local_')) {
+      enqueuePackageReception(updatedPkg);
+    }
+  }, [enqueuePackageReception]);
+
+  // Espera la foto capturada al escanear y la guarda. Si no sube, deja el código
+  // avisado en pantalla: la foto nunca se descarta en silencio.
+  const captureScanPhoto = useCallback(async (code, pkg) => {
+    if (!getPhotoStatus(code)) return;
+    const photoUrl = await waitForPhoto(code);
+    if (photoUrl) {
+      await attachScanPhoto(pkg, photoUrl);
+      return;
+    }
+    setFailedPhotos((prev) => (prev.some((f) => f.code === code) ? prev : [...prev, { code, pkg }]));
+  }, [getPhotoStatus, waitForPhoto, attachScanPhoto]);
 
   // --- Escaneo: lookup local instantáneo ---
   const handleScan = useCallback(async (tracking) => {
@@ -125,13 +163,17 @@ export default function WarehouseScanPack({ user }) {
 
       setLastScan({ pkg, client, already_received: alreadyReceived, auto_received: wasPreAlert });
       toast.success(`Paquete recibido y agregado al bulto`, { duration: 1500 });
+
+      // Foto tomada automáticamente al escanear el código: se guarda en el paquete y
+      // se reencola su recepción. Si no sube, queda avisada arriba para reintentar.
+      captureScanPhoto(cleaned, pkg).catch(() => {});
     } catch (e) {
       console.error('Scan error:', e);
       toast.error('Error al procesar el escaneo');
     } finally {
       setScanning(false);
     }
-  }, [findByLabelCode, findByTracking, getClientByEmail, scanning, user, updateBultosState]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [findByLabelCode, findByTracking, getClientByEmail, scanning, user, updateBultosState, captureScanPhoto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Agregar paquete al bulto activo del cliente (local) ---
   const addPackageToBulto = useCallback(async (pkg, client) => {
@@ -319,6 +361,25 @@ export default function WarehouseScanPack({ user }) {
     }
   }, [manualAssign, user, addPackageToBulto]);
 
+  // --- Reintentar las fotos de escaneo que no subieron ---
+  const handleRetryFailedPhotos = useCallback(async () => {
+    if (!failedPhotos.length) return;
+    setPhotoRetrying(true);
+    const stillFailed = [];
+    for (const entry of failedPhotos) {
+      const photoUrl = await retryPhoto(entry.code);
+      if (photoUrl) await attachScanPhoto(entry.pkg, photoUrl);
+      else stillFailed.push(entry);
+    }
+    setPhotoRetrying(false);
+    setFailedPhotos(stillFailed);
+    if (stillFailed.length) {
+      toast.error('Algunas fotos siguen sin subir. Revisa tu conexión e intenta de nuevo.');
+    } else {
+      toast.success('Fotos guardadas en sus paquetes');
+    }
+  }, [failedPhotos, retryPhoto, attachScanPhoto]);
+
   const activeBulto = useMemo(
     () => openBultos.find((b) => b.id === activeBultoId),
     [openBultos, activeBultoId]
@@ -430,14 +491,27 @@ export default function WarehouseScanPack({ user }) {
 
       <BarcodeScannerModule
         title="Recepción y empaque de bultos"
-        description="Usa la cámara, una lectora USB o escribe el tracking. El paquete se marca como recibido y se agrega al bulto al instante."
+        description="Usa la cámara, una lectora USB o escribe el tracking. El paquete se marca como recibido y se agrega al bulto al instante. La cámara toma una foto automática de cada código escaneado y la guarda en el paquete."
         placeholder="Escanea o escribe el tracking"
         actionLabel="Agregar"
         value={code}
         onValueChange={setCode}
         onDetected={handleScan}
+        onPhotoCaptured={handlePhotoCaptured}
         continuous={true}
       />
+
+      {/* Fotos de escaneo que no subieron */}
+      {failedPhotos.length > 0 && (
+        <ScanPhotoFailureNotice
+          codes={failedPhotos.map((f) => f.code)}
+          retrying={photoRetrying}
+          onRetry={handleRetryFailedPhotos}
+          onSkip={() => setFailedPhotos([])}
+          skipLabel="Continuar sin esas fotos"
+          description="Esas fotos no se guardaron en el paquete. Reintenta la subida o continúa sin ellas (el paquete ya quedó en el bulto)."
+        />
+      )}
 
       {/* Crear bultos en lote (vacíos, solo etiquetas) */}
       <BulkBultoCreator
