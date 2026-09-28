@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Save, Package } from 'lucide-react';
 import { toast } from 'sonner';
+import AccountingSyncNotice from '@/components/warehouse/AccountingSyncNotice';
 
 // Modal de edición completa de un bulto: paquetes incluidos, snapshot del cliente y estado.
 export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
@@ -19,6 +20,8 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   const [loadingPkgs, setLoadingPkgs] = useState(false);
   const [saving, setSaving] = useState(false);
   const [orderNumbers, setOrderNumbers] = useState('');
+  // Avisos cuando el cambio no pudo aplicarse al recibo de contabilidad.
+  const [syncWarnings, setSyncWarnings] = useState([]);
 
   useEffect(() => {
     if (!bulto) return;
@@ -40,6 +43,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     setClientPackages([]);
     setBultoPkgs([]);
     setOtherBoxedIds(new Set());
+    setSyncWarnings([]);
 
     // Cargar paquetes recibidos del cliente + bultos hermanos para marcar ocupados
     (async () => {
@@ -101,7 +105,12 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
         toast.error(res.data.error);
         return;
       }
+      // El recibo de contabilidad se alinea con el N° de orden, el CBM y el conteo
+      // registrados aquí (almacén de Venezuela); si hay conflicto, se avisa.
+      const warnings = res?.data?.sync?.warnings || [];
+      setSyncWarnings(warnings);
       toast.success('Bulto actualizado');
+      if (warnings.length) toast.warning(warnings[0]);
       onSaved?.(res.data.bulto);
       onClose();
     } catch (e) {
@@ -245,6 +254,8 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
             </div>
           </div>
         )}
+
+        {syncWarnings.length > 0 && <AccountingSyncNotice messages={syncWarnings} />}
 
         <DialogFooter className="flex-wrap gap-2 min-w-0">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>

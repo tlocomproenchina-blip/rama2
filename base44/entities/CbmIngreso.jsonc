@@ -79,6 +79,23 @@
       "default": false,
       "description": "Carga disponible para entrega (visible para el cliente)"
     },
+    "package_count": {
+      "type": "number",
+      "description": "Conteo real de paquetes registrado por el almac\u00e9n de Venezuela. Se refleja en el recibo para que cuadre con el bulto."
+    },
+    "ve_synced_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el almac\u00e9n de Venezuela (bulto) actualiz\u00f3 o cre\u00f3 este recibo: N\u00b0 de orden, CBM y conteo de paquetes."
+    },
+    "ve_synced_by": {
+      "type": "string",
+      "description": "Usuario o dispositivo del almac\u00e9n de Venezuela que dej\u00f3 alineado este recibo"
+    },
+    "ve_synced_bulto_label": {
+      "type": "string",
+      "description": "C\u00f3digo de etiqueta del bulto desde el que se aline\u00f3 este recibo"
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,

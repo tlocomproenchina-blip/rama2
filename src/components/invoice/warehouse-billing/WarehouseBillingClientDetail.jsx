@@ -132,6 +132,9 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
         toast.error(res.data.error);
         return false;
       }
+      // El recibo de contabilidad ya quedó alineado con el CBM y el conteo de este bulto.
+      const syncWarnings = res?.data?.sync?.warnings || [];
+      if (syncWarnings.length) toast.warning(syncWarnings[0]);
       setCargoEdits((prev) => ({
         ...prev,
         [item.id]: { cbm: payload.cargo_cbm, package_count: payload.cargo_package_count, tariff },

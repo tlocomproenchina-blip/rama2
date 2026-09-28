@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Loader2, Package, Trash2, CalendarDays, TrendingUp, Users, Search, Filter, MapPin, Pencil, CheckSquare, Ship, MapPinned, FileSpreadsheet } from 'lucide-react';
+import { Plus, Loader2, Package, Trash2, CalendarDays, TrendingUp, Users, Search, Filter, MapPin, Pencil, CheckSquare, Ship, MapPinned, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import CbmDatePicker from '@/components/admin/CbmDatePicker';
 import { toast } from 'sonner';
@@ -47,6 +47,7 @@ export default function AdminCbmIngresos({ user }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [syncingAccounting, setSyncingAccounting] = useState(false);
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -360,6 +361,35 @@ export default function AdminCbmIngresos({ user }) {
     loadData();
   };
 
+  // Corrida de conciliación: el almacén de Venezuela es la fuente definitiva, así que
+  // sus bultos alinean los recibos de contabilidad (N° de orden, CBM y paquetes).
+  const handleSyncFromWarehouse = async () => {
+    setSyncingAccounting(true);
+    const totals = { updated: 0, created: 0, matched: 0, without_match: 0 };
+    const warnings = [];
+    try {
+      let offset = 0;
+      for (let i = 0; i < 40; i++) {
+        const res = await base44.functions.invoke('syncBultosToAccounting', { offset, batch_size: 25 });
+        const data = res?.data || {};
+        if (data.error) { toast.error(data.error); break; }
+        totals.updated += data.updated || 0;
+        totals.created += data.created || 0;
+        totals.matched += data.matched || 0;
+        totals.without_match += data.without_match || 0;
+        if (data.warnings?.length) warnings.push(...data.warnings);
+        if (!data.has_more) break;
+        offset = data.next_offset || offset + 25;
+      }
+      toast.success(`Conciliación lista: ${totals.updated} recibo(s) actualizado(s), ${totals.created} creado(s), ${totals.matched} ya alineado(s), ${totals.without_match} sin coincidencia`);
+      if (warnings.length) toast.warning(warnings[0]);
+      loadData();
+    } catch (e) {
+      toast.error('No se pudo conciliar con el almacén');
+    }
+    setSyncingAccounting(false);
+  };
+
   const setQuickRange = (type) => {
     const now = new Date();
     if (type === 'thisMonth') {
@@ -400,7 +430,10 @@ export default function AdminCbmIngresos({ user }) {
         title="Ingresos de CBM"
         description="Registro mensual de CBM reportados desde almacén China."
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleSyncFromWarehouse} disabled={syncingAccounting} className="gap-2">
+              {syncingAccounting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Conciliar con almacén
+            </Button>
             <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
               <FileSpreadsheet className="h-4 w-4" /> Importar Excel
             </Button>
@@ -598,6 +631,16 @@ export default function AdminCbmIngresos({ user }) {
                           )}
                           {item.invoice_number && (
                             <p className="text-xs text-indigo-600 font-medium">📄 Orden N: {item.invoice_number}</p>
+                          )}
+                          {Number(item.package_count || 0) > 0 && (
+                            <p className="text-xs text-slate-500">{Number(item.package_count)} paquete(s) según almacén Venezuela</p>
+                          )}
+                          {item.ve_synced_date && (
+                            <p className="text-[11px] text-emerald-600">
+                              Actualizado desde almacén Venezuela · {format(new Date(item.ve_synced_date), 'dd/MM/yyyy HH:mm')}
+                              {item.ve_synced_by ? ` · ${item.ve_synced_by}` : ''}
+                              {item.ve_synced_bulto_label ? ` · bulto ${item.ve_synced_bulto_label}` : ''}
+                            </p>
                           )}
                           {item.tracking_numbers && item.tracking_numbers.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">

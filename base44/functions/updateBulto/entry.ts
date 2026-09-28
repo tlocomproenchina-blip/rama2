@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
+import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 
 // Actualiza un bulto existente. Recibe: { bulto_id, package_ids?, client_snapshot?, status? }
 // - Valida que los package_ids sean del mismo cliente del bulto.
@@ -168,7 +169,19 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
-    return Response.json({ bulto: updated, cbm_applied_to: cbmAppliedTo });
+    // El almacén de Venezuela es la fuente definitiva para facturar: lo que registra
+    // o corrige (N° de orden, CBM y conteo de paquetes) se refleja en el recibo de
+    // contabilidad, corrigiendo el recibo vinculado o creando uno si no existe.
+    const ordersChanged = Array.isArray(body.cbm_order_numbers);
+    let sync: any = null;
+    if (ordersChanged || cargoCbmProvided || cargoCountProvided) {
+      sync = await syncBultoToAccounting(base44, updated, {
+        actor: user.email,
+        previous_orders: ordersChanged ? (bulto.cbm_order_numbers || []) : [],
+      }).catch(() => ({ action: 'skipped', warnings: [] }));
+    }
+
+    return Response.json({ bulto: updated, cbm_applied_to: cbmAppliedTo, sync });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

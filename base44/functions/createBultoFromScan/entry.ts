@@ -10,6 +10,7 @@ import {
   findBultoContainingPackage,
   bultoScanProjection,
 } from '../../shared/bultoScan.ts';
+import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 
 // Registra en el almacén de Venezuela un bulto cuya etiqueta escaneada no existía en el
 // sistema, conservando el código ya impreso (no se genera etiqueta ni número nuevo).
@@ -146,8 +147,14 @@ export default async function(req: Request): Promise<Response> {
     await syncClientBultoTotals(base44, clientEmail, totalBultos, existingBultos);
     await markPackagesRecognized(base44, packages.map((p) => p.id), now, assignedBy);
 
+    // El recibo de contabilidad queda alineado con lo registrado en el almacén de
+    // Venezuela (N° de orden, CBM y conteo de paquetes del bulto).
+    const sync: any = await syncBultoToAccounting(base44, created, { actor: assignedBy })
+      .catch(() => ({ action: 'skipped', warnings: [] }));
+
     return Response.json({
       bulto: bultoScanProjection(created),
+      sync,
       invoice_paid: invoice.invoicePaid,
       invoice_status: invoice.invoiceStatus,
       invoice_number: invoice.invoiceNumber,

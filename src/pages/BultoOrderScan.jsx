@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
+import AccountingSyncNotice from '@/components/warehouse/AccountingSyncNotice';
 import BultoCreateFromScanPanel from '@/components/warehouse/BultoCreateFromScanPanel';
 import ReprintDialog from '@/components/warehouse/ReprintDialog';
 import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
@@ -33,6 +34,8 @@ export default function BultoOrderScan({ user }) {
   const [showPrint, setShowPrint] = useState(false);
   const [photoErrors, setPhotoErrors] = useState([]);
   const [photoRetrying, setPhotoRetrying] = useState(false);
+  // Avisos cuando el N° de orden del bulto no pudo aplicarse al recibo de contabilidad.
+  const [syncWarnings, setSyncWarnings] = useState([]);
   const { handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto } = useScannedPhotoUploader();
   // Mismo identificador persistente que usa la página del almacén de China.
   // Cuando no hay sesión, con él se audita quién asignó el N° de orden.
@@ -58,6 +61,7 @@ export default function BultoOrderScan({ user }) {
     setCreateState(null);
     setScannedCode('');
     setPhotoErrors([]);
+    setSyncWarnings([]);
   }, []);
 
   const handleDetected = useCallback(async (code) => {
@@ -71,6 +75,7 @@ export default function BultoOrderScan({ user }) {
     setInvoiceInfo(null);
     setOrderNumbers('');
     setCreateState(null);
+    setSyncWarnings([]);
 
     let res = null;
     let found = null;
@@ -165,7 +170,12 @@ export default function BultoOrderScan({ user }) {
         toast.error(res.data.error);
         return;
       }
+      // El recibo de contabilidad se alinea con lo registrado aquí; si el N° de orden
+      // ya lo usa otro recibo, se avisa sin bloquear el guardado del bulto.
+      const warnings = res.data.sync?.warnings || [];
+      setSyncWarnings(warnings);
       toast.success('N° de orden asignado y bulto bloqueado');
+      if (warnings.length) toast.warning(warnings[0]);
       setBulto(res.data.bulto);
     } catch (e) {
       toast.error('Error al asignar el N° de orden');
@@ -191,6 +201,9 @@ export default function BultoOrderScan({ user }) {
   // El bulto se creó desde esta pantalla: se muestra ya bloqueado con su N° de orden.
   const handleCreated = useCallback((data) => {
     setBulto(data?.bulto || null);
+    const warnings = data?.sync?.warnings || [];
+    setSyncWarnings(warnings);
+    if (warnings.length) toast.warning(warnings[0]);
     setInvoiceInfo({
       invoice_paid: data?.invoice_paid,
       invoice_status: data?.invoice_status,
@@ -240,6 +253,8 @@ export default function BultoOrderScan({ user }) {
           description="El N° de orden no se guardó. Reintenta la subida de la foto para poder asignarlo."
         />
       )}
+
+      {syncWarnings.length > 0 && <AccountingSyncNotice messages={syncWarnings} />}
 
       {createState && !loading && (
         <BultoCreateFromScanPanel

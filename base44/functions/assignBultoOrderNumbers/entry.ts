@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { markPackagesRecognized } from '../../shared/bultoScan.ts';
+import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 
 // Asigna el/los N° de orden CbmIngreso a un bulto desde la pantalla de escaneo
 // (/BultoOrderScan), que se comparte como enlace directo de trabajo y abre sin sesión.
@@ -83,7 +84,15 @@ export default async function(req: Request): Promise<Response> {
       );
     }
 
-    return Response.json({ bulto: updated, ve_recognized: firstRecognition });
+    // El almacén de Venezuela es la fuente definitiva para facturar: el N° de orden,
+    // el CBM y el conteo de paquetes del bulto se reflejan en el recibo de contabilidad
+    // (se corrige el recibo vinculado o se crea uno si no existe).
+    const sync: any = await syncBultoToAccounting(base44, updated, {
+      actor: assignedBy,
+      previous_orders: Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers : [],
+    }).catch(() => ({ action: 'skipped', warnings: [] }));
+
+    return Response.json({ bulto: updated, ve_recognized: firstRecognition, sync });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
