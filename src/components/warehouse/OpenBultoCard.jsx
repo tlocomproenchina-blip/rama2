@@ -1,35 +1,27 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Boxes, Lock, Undo2, Package, Printer, ChevronDown, ChevronUp, Hash } from 'lucide-react';
+import { Boxes, Lock, Undo2, Package, Printer, Hash } from 'lucide-react';
 import PrintCountBadge from './PrintCountBadge';
 import ReprintDialog from './ReprintDialog';
+import CloseBultoDialog from './CloseBultoDialog';
 
 // Tarjeta del bulto activo destacado: shipping mark grande, contador,
 // lista de trackings, botón "Cerrar bulto" y "Quitar último".
-// Incluye campo colapsable opcional para ingresar el número de orden manualmente.
+// Al cerrar abre un diálogo para ver/editar el número de orden.
 export default function OpenBultoCard({ bulto, onClose, onRemoveLast }) {
   const [showReprint, setShowReprint] = useState(false);
-  const [showOrderInput, setShowOrderInput] = useState(false);
-  const [manualOrder, setManualOrder] = useState(
-    Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.join(', ') : ''
-  );
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
   const trackings = bulto.package_trackings || [];
   const count = bulto.package_ids?.length || trackings.length || 0;
   const cs = bulto.client_snapshot || {};
 
   const existingOrders = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
 
-  const handleClose = () => {
-    // Si el operador ingresó un número manual, lo pasa como override
-    const trimmed = manualOrder.trim();
-    if (trimmed) {
-      const orders = trimmed.split(',').map((s) => s.trim()).filter(Boolean);
-      onClose(orders);
-    } else {
-      onClose(existingOrders.length > 0 ? existingOrders : null);
-    }
+  // El diálogo de cierre devuelve las órdenes ya revisadas/editadas (o null).
+  const handleClose = (orders) => {
+    setShowCloseDialog(false);
+    onClose(orders);
   };
 
   return (
@@ -68,39 +60,15 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast }) {
         )}
 
         {/* Número de orden detectado automáticamente (solo lectura) */}
-        {existingOrders.length > 0 && !showOrderInput && (
+        {existingOrders.length > 0 && (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-700">
             <Hash className="h-3.5 w-3.5 shrink-0" />
             <span className="font-medium">Orden detectada: {existingOrders.join(', ')}</span>
           </div>
         )}
 
-        {/* Override manual colapsable */}
-        <div>
-          <button
-            onClick={() => setShowOrderInput((v) => !v)}
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700"
-          >
-            {showOrderInput ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            Número de orden (manual)
-          </button>
-          {showOrderInput && (
-            <div className="mt-1.5">
-              <Input
-                placeholder="Ej: 12345 (separar con comas si son varias)"
-                value={manualOrder}
-                onChange={(e) => setManualOrder(e.target.value)}
-                className="text-sm"
-              />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Reemplaza la orden detectada automáticamente. Deja vacío para usar la automática.
-              </p>
-            </div>
-          )}
-        </div>
-
         <div className="flex flex-col gap-2">
-          <Button onClick={handleClose} className="w-full bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => setShowCloseDialog(true)} className="w-full bg-blue-600 hover:bg-blue-700">
             <Lock className="h-4 w-4" /> Cerrar bulto
           </Button>
           <div className="flex gap-2">
@@ -114,6 +82,12 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast }) {
         </div>
       </CardContent>
       <ReprintDialog bulto={bulto} open={showReprint} onClose={() => setShowReprint(false)} />
+      <CloseBultoDialog
+        open={showCloseDialog}
+        bulto={bulto}
+        onConfirm={handleClose}
+        onCancel={() => setShowCloseDialog(false)}
+      />
     </Card>
   );
 }
