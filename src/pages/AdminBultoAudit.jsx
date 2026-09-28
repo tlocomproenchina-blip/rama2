@@ -1,17 +1,21 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Search, History, Boxes, User, Clock, Package, RefreshCw, AlertTriangle, Hash, MapPin, Download } from 'lucide-react';
+import { Loader2, Search, History, Boxes, User, Package, RefreshCw, AlertTriangle, Download, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 import PageHero from '@/components/common/PageHero';
+import BultoAuditCard from '@/components/admin/bulto-audit/BultoAuditCard';
+import BultoEditModal from '@/components/warehouse/BultoEditModal';
 
 const SIN_ESTADO = 'Sin estado';
+
+// Solo esta cuenta puede eliminar bultos (el backend lo valida también).
+const DELETE_AUTHORIZED_EMAILS = ['genel.agonzalez@gmail.com'];
 
 export default function AdminBultoAudit() {
   const [bultos, setBultos] = useState([]);
@@ -24,22 +28,35 @@ export default function AdminBultoAudit() {
   const [clientStateMap, setClientStateMap] = useState({});
   const [showBackfill, setShowBackfill] = useState(false);
   const [backfillRunning, setBackfillRunning] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
+
+  const loadBultos = useCallback(async () => {
+    try {
+      const rows = await base44.entities.Bulto.list('-created_date', 500);
+      setBultos(rows || []);
+      resolveClientStates(rows || []);
+    } catch {
+      toast.error('No se pudo cargar el historial de bultos');
+    }
+  }, []);
 
   useEffect(() => {
-    const loadBultos = async () => {
+    (async () => {
       setLoading(true);
-      try {
-        const rows = await base44.entities.Bulto.list('-created_date', 500);
-        setBultos(rows || []);
-        resolveClientStates(rows || []);
-      } catch {
-        toast.error('No se pudo cargar el historial de bultos');
-      }
+      await loadBultos();
       setLoading(false);
-      };
-      loadBultos();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
+    })();
+  }, [loadBultos]);
+
+  // Permiso de borrado: solo la cuenta autorizada ve la acción de eliminar
+  useEffect(() => {
+    base44.auth.me()
+      .then((u) => setCanDelete(DELETE_AUTHORIZED_EMAILS.includes((u?.email || '').toLowerCase())))
+      .catch(() => setCanDelete(false));
+  }, []);
 
   // Resuelve el estado (User.state) de cada cliente dueño de bulto.
   // Fuente principal: Bulto.client_snapshot.state (ya cargado en los bultos).
@@ -175,14 +192,41 @@ export default function AdminBultoAudit() {
       );
       setShowBackfill(false);
       // Recargar lista para reflejar cambios
-      setLoading(true);
-      const rows = await base44.entities.Bulto.list('-created_date', 500);
-      setBultos(rows || []);
-      setLoading(false);
+      await loadBultos();
     } catch (e) {
       toast.error('Error al ejecutar el backfill: ' + (e?.message || 'desconocido'));
     } finally {
       setBackfillRunning(false);
+    }
+  };
+
+  const handleEditSaved = () => {
+    setEditTarget(null);
+    loadBultos();
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await base44.functions.invoke('deleteBulto', { bulto_ids: [deleteTarget.id] });
+      const data = res?.data;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      if ((data?.failed || []).length > 0) {
+        toast.warning('No se pudo eliminar el bulto');
+      } else {
+        toast.success('Bulto eliminado');
+      }
+      setDeleteTarget(null);
+      try { base44.invalidateEntityCache('Bulto'); } catch (_) {}
+      await loadBultos();
+    } catch (_) {
+      toast.error('Error al eliminar bulto');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -292,69 +336,15 @@ export default function AdminBultoAudit() {
           ) : (
             <div className="space-y-3">
               {filtered.map((b) => (
-                <Card key={b.id} className="border border-slate-100 bg-slate-50/60 shadow-sm">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-semibold text-slate-800 font-mono text-sm">{b.label_code}</h3>
-                          <Badge className={
-                            b.status === 'despachado' ? 'bg-emerald-100 text-emerald-700'
-                            : b.status === 'en_almacen_ve' ? 'bg-amber-100 text-amber-700'
-                            : b.status === 'cerrado' ? 'bg-slate-200 text-slate-600'
-                            : 'bg-blue-100 text-blue-700'
-                          }>
-                            {b.status === 'despachado' ? 'Despachado' : b.status === 'en_almacen_ve' ? 'En Almacén Venezuela' : b.status === 'cerrado' ? 'Cerrado' : 'Activo'}
-                          </Badge>
-                          {b.bulto_number > 0 && (
-                            <Badge variant="outline" className="border-slate-200 text-slate-600">
-                              Bulto {b.bulto_number}/{b.total_bultos || b.bulto_number}
-                            </Badge>
-                          )}
-                          {Array.isArray(b.cbm_order_numbers) && b.cbm_order_numbers.length > 0 && (
-                            <Badge className="bg-blue-100 text-blue-700 gap-1">
-                              <Hash className="h-3 w-3" /> {b.cbm_order_numbers.join(', ')}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(b.created_date).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' })}
-                        </p>
-                      </div>
-                      <div className="text-sm text-slate-600 lg:text-right">
-                        <p className="text-xs uppercase tracking-wide text-slate-400">Procesado por</p>
-                        <p className="font-medium break-all">{b.created_by || '—'}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2 md:grid-cols-3">
-                      <div className="rounded-lg bg-white p-2.5 shadow-sm">
-                        <p className="text-xs uppercase tracking-wide text-slate-400">Cliente</p>
-                        <p className="mt-0.5 text-sm text-slate-700 break-all">{b.client_email || '—'}</p>
-                        {(() => {
-                          const st = resolveStateName(b);
-                          return (
-                            <span className="mt-1 inline-flex items-center gap-0.5 text-[11px] text-slate-500">
-                              <MapPin className="h-3 w-3" /> {st || SIN_ESTADO}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                      <div className="rounded-lg bg-white p-2.5 shadow-sm">
-                        <p className="text-xs uppercase tracking-wide text-slate-400">Shipping Mark</p>
-                        <p className="mt-0.5 text-sm text-slate-700 font-mono">{b.shipping_mark || '—'}</p>
-                      </div>
-                      <div className="rounded-lg bg-white p-2.5 shadow-sm">
-                        <p className="text-xs uppercase tracking-wide text-slate-400">Paquetes ({b.package_ids?.length || 0})</p>
-                        <p className="mt-0.5 text-xs text-slate-600 break-all">
-                          {(b.package_trackings || []).slice(0, 3).join(', ')}
-                          {(b.package_trackings || []).length > 3 && ` +${b.package_trackings.length - 3} más`}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <BultoAuditCard
+                  key={b.id}
+                  bulto={b}
+                  stateName={resolveStateName(b)}
+                  sinEstadoLabel={SIN_ESTADO}
+                  canDelete={canDelete}
+                  onEdit={() => setEditTarget(b)}
+                  onDelete={() => setDeleteTarget(b)}
+                />
               ))}
             </div>
           )}
@@ -390,6 +380,40 @@ export default function AdminBultoAudit() {
             <Button onClick={runBackfill} disabled={backfillRunning} className="gap-2">
               {backfillRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               {backfillRunning ? 'Ejecutando…' : 'Ejecutar backfill'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de edición (reutiliza el del almacén) */}
+      <BultoEditModal
+        bulto={editTarget}
+        open={!!editTarget}
+        onClose={() => setEditTarget(null)}
+        onSaved={handleEditSaved}
+      />
+
+      {/* Confirmación de eliminación */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && !deleting && setDeleteTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" /> Eliminar bulto
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-slate-600 space-y-2">
+            <p>
+              ¿Seguro que deseas eliminar el{' '}
+              <strong>Bulto {deleteTarget?.bulto_number}/{deleteTarget?.total_bultos}</strong>{' '}
+              (<span className="font-mono break-all">{deleteTarget?.label_code}</span>)?
+            </p>
+            <p>Los paquetes quedarán libres para re-empacar. Los bultos restantes de cada cliente se renumerarán automáticamente.</p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancelar</Button>
+            <Button onClick={confirmDelete} disabled={deleting} className="bg-red-600 hover:bg-red-700">
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Eliminar
             </Button>
           </DialogFooter>
         </DialogContent>
