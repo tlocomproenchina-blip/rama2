@@ -74,7 +74,8 @@ export const buildBultoLabelPayload = (bulto) => {
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
   const addrLines = cs.address ? wrapText(cs.address, 40).slice(0, 2) : [];
   const orderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
-  const ordenStr = orderNumbers.length ? `ORDEN: ${orderNumbers.join(', ')}` : '';
+  // N° de orden tal cual: la etiqueta lo rotula "ORDEN" en pequeño.
+  const ordenStr = orderNumbers.join(', ');
 
   // Cada bloque conoce su alto y se dibuja en la Y que se le asigna
   const blocks = [];
@@ -94,13 +95,33 @@ export const buildBultoLabelPayload = (bulto) => {
   // 2. Separador
   addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
 
-  // 3. Estado en grande (prioridad para clasificar a distancia)
-  addBlock(78, (y) => [`TEXT ${centerX(estado, '3', 3)},${y},${q('3')},0,3,3,${q(estado)}`]);
-
-  // 4. N° de orden (si ya fue asignado)
-  if (ordenStr) {
-    addBlock(26, (y) => [`TEXT ${centerX(ordenStr, '2', 1)},${y},${q('2')},0,2,1,${q(ordenStr)}`]);
-  }
+  // 3. ESTADO + N° de orden: van en la misma línea y con el mismo tamaño, con el
+  //    rótulo "ORDEN" en pequeño justo encima del número.
+  const BIG_CW = FONT_WIDTH['3']; // ancho de carácter de la fuente grande (24 dots)
+  const ROW_GAP = 40; // separación entre ESTADO y el N° de orden
+  addBlock(ordenStr ? 94 : 78, (y) => {
+    // Escala común a los dos textos: llega al tamaño grande del ESTADO (3x) y baja
+    // solo lo necesario para que ambos entren juntos en el ancho de la etiqueta.
+    let scale = 3;
+    if (ordenStr) {
+      const units = (estado.length + ordenStr.length) * BIG_CW;
+      scale = Math.max(1, Math.min(3, Math.floor((LABEL_W - 60) / (units + ROW_GAP))));
+    }
+    const estadoW = estado.length * BIG_CW * scale;
+    const orderW = ordenStr ? ordenStr.length * BIG_CW * scale : 0;
+    const pairW = estadoW + (ordenStr ? ROW_GAP + orderW : 0);
+    const x0 = Math.max(10, Math.floor((LABEL_W - pairW) / 2));
+    // El número baja una línea para dejar sitio al rótulo de arriba.
+    const textY = y + (ordenStr ? 16 : 0);
+    const lines = [`TEXT ${x0},${textY},${q('3')},0,${scale},${scale},${q(estado)}`];
+    if (ordenStr) {
+      const orderX = x0 + estadoW + ROW_GAP;
+      const captionW = 5 * 16; // "ORDEN" con la fuente 1 al doble de ancho
+      lines.push(`TEXT ${orderX + Math.max(0, Math.floor((orderW - captionW) / 2))},${y},${q('1')},0,2,1,${q('ORDEN')}`);
+      lines.push(`TEXT ${orderX},${textY},${q('3')},0,${scale},${scale},${q(ordenStr)}`);
+    }
+    return lines;
+  });
 
   // 5. Separador
   addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);

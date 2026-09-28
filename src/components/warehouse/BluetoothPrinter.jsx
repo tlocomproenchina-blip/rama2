@@ -189,12 +189,35 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         // 2. Separador
         addBlock(4, (yy) => sep(yy + 2));
 
-        // 3. Estado en grande (prioridad para clasificar)
-        addBlock(12, (yy) => {
-          doc.setFontSize(28);
+        // 3. Estado + N° de orden: misma línea y mismo tamaño, con el rótulo
+        //    "ORDEN" en pequeño encima del número.
+        const ordenStr = (Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : []).join(', ');
+        addBlock(ordenStr ? 15 : 12, (yy) => {
           doc.setTextColor(0);
           doc.setFont(undefined, 'bold');
-          doc.text(estado, 50, yy + 11, { align: 'center' });
+          let size = 28;
+          doc.setFontSize(size);
+          const gap = 6;
+          const maxW = 88;
+          const rawW = doc.getTextWidth(estado) + (ordenStr ? gap + doc.getTextWidth(ordenStr) : 0);
+          if (ordenStr && rawW > maxW) {
+            // Ambos textos comparten tamaño: se reduce solo lo necesario para que entren.
+            size = Math.max(9, Math.floor(size * maxW / rawW));
+            doc.setFontSize(size);
+          }
+          const wE = doc.getTextWidth(estado);
+          const wO = ordenStr ? doc.getTextWidth(ordenStr) : 0;
+          const totalW = wE + (ordenStr ? gap + wO : 0);
+          const x0 = Math.max(5, (100 - totalW) / 2);
+          if (ordenStr) {
+            const baseY = yy + 13;
+            doc.text(estado, x0, baseY);
+            doc.text(ordenStr, x0 + wE + gap, baseY);
+            doc.setFontSize(7);
+            doc.text('ORDEN', x0 + wE + gap + wO / 2, yy + 3.5, { align: 'center' });
+          } else {
+            doc.text(estado, 50, yy + 11, { align: 'center' });
+          }
         });
 
         // 4. Separador
