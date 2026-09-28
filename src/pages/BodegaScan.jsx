@@ -15,6 +15,11 @@ const TXT = {
   error: { zh: '错误', es: 'Error' },
   ready: { zh: '准备扫描', es: 'Listo para escanear' },
   processing: { zh: '处理中...', es: 'Procesando...' },
+  photoFailed: { zh: '照片上传失败', es: 'No se pudo subir la foto' },
+  photoFailedHint: { zh: '请检查网络后重试', es: 'Revisa la conexión e intenta de nuevo' },
+  retry: { zh: '重试', es: 'Reintentar' },
+  uploading: { zh: '上传中...', es: 'Subiendo...' },
+  skipPhoto: { zh: '不拍照登记', es: 'Registrar sin foto' },
 };
 
 // Cooldown corto para modo automático: evita releer el mismo código.
@@ -37,6 +42,10 @@ export default function BodegaScan() {
   const [toast, setToast] = useState(null);
   const [manualBusy, setManualBusy] = useState(false);
   const [autoMode, setAutoMode] = useState(false);
+  // Escaneo cuya foto no subió: no se registra en silencio, queda pendiente con
+  // aviso para reintentar la subida o continuar de forma consciente sin foto.
+  const [pendingScan, setPendingScan] = useState(null);
+  const [retryingPhoto, setRetryingPhoto] = useState(false);
 
   // Get/create device ID and register
   useEffect(() => {
@@ -95,15 +104,23 @@ export default function BodegaScan() {
     setTimeout(() => setToast(null), 1500);
   }, []);
 
-  // Procesa el escaneo en segundo plano: sube foto a Bunny + llama al backend.
-  const processScan = useCallback(async (tracking, photoBase64) => {
-    try {
-      let photoUrl = null;
-      if (photoBase64) {
+  // Sube la foto a Bunny con 1 reintento automático. Devuelve la URL o null.
+  const uploadPhoto = useCallback(async (photoBase64) => {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
         const uploadRes = await base44.functions.invoke('uploadImageToBunny', { image_base64: photoBase64 });
-        photoUrl = uploadRes?.data?.url || null;
-      }
+        const url = uploadRes?.data?.url || null;
+        if (url) return url;
+      } catch (_) {}
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 900));
+    }
+    return null;
+  }, []);
 
+  // Registra el escaneo en el backend con la foto ya subida (o sin foto si el
+  // operador confirmó continuar sin ella).
+  const submitScan = useCallback(async (tracking, photoUrl) => {
+    try {
       const res = await base44.functions.invoke('processBodegaScan', {
         tracking_number: tracking || '',
         photo_url: photoUrl,
@@ -123,6 +140,21 @@ export default function BodegaScan() {
       showToast('error', '', tracking);
     }
   }, [showToast]);
+
+  // Procesa el escaneo: primero la foto, después el registro. Si la foto no sube,
+  // el escaneo queda pendiente y se avisa en pantalla (no se pierde en silencio).
+  const processScan = useCallback(async (tracking, photoBase64) => {
+    if (!photoBase64) {
+      await submitScan(tracking, null);
+      return;
+    }
+    const photoUrl = await uploadPhoto(photoBase64);
+    if (!photoUrl) {
+      setPendingScan({ tracking, base64: photoBase64 });
+      return;
+    }
+    await submitScan(tracking, photoUrl);
+  }, [uploadPhoto, submitScan]);
 
   // Loop de escaneo automático: solo corre cuando autoMode está activo.
   const scanFrame = useCallback(() => {
@@ -282,6 +314,24 @@ export default function BodegaScan() {
     setManualBusy(false);
   }, [captureFrame, processScan, playBeep, vibrate]);
 
+  const handleRetryPendingPhoto = useCallback(async () => {
+    if (!pendingScan) return;
+    setRetryingPhoto(true);
+    const photoUrl = await uploadPhoto(pendingScan.base64);
+    setRetryingPhoto(false);
+    if (!photoUrl) return;
+    const pending = pendingScan;
+    setPendingScan(null);
+    await submitScan(pending.tracking, photoUrl);
+  }, [pendingScan, uploadPhoto, submitScan]);
+
+  const handleSkipPendingPhoto = useCallback(async () => {
+    if (!pendingScan) return;
+    const pending = pendingScan;
+    setPendingScan(null);
+    await submitScan(pending.tracking, null);
+  }, [pendingScan, submitScan]);
+
   const toastBg = toast?.type === 'received' ? 'bg-green-500/90'
     : toast?.type === 'orphan' ? 'bg-blue-500/90'
     : toast?.type === 'duplicate' ? 'bg-yellow-500/90'
@@ -360,6 +410,39 @@ export default function BodegaScan() {
             <AlertCircle className="w-12 h-12 mx-auto mb-3 text-yellow-400" />
             <p className="text-lg font-bold">{TXT.noDetector.zh}</p>
             <p className="text-sm text-white/60 mt-1">{TXT.noDetector.es}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Foto que no subió: el escaneo todavía no se registró */}
+      {pendingScan && (
+        <div className="absolute inset-0 z-40 bg-black/85 flex items-center justify-center p-6">
+          <div className="w-full max-w-sm rounded-2xl border-2 border-red-400/70 bg-black/70 p-5 space-y-4 text-center">
+            <AlertCircle className="w-10 h-10 mx-auto text-red-400" />
+            <div>
+              <p className="text-red-300 text-lg font-bold">{TXT.photoFailed.zh}</p>
+              <p className="text-white/80 text-sm">{TXT.photoFailed.es}</p>
+            </div>
+            {pendingScan.tracking && (
+              <p className="font-mono text-white/90 text-sm break-all">{pendingScan.tracking}</p>
+            )}
+            <p className="text-white/60 text-xs">{TXT.photoFailedHint.zh} · {TXT.photoFailedHint.es}</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleRetryPendingPhoto}
+                disabled={retryingPhoto}
+                className="w-full py-3 rounded-xl bg-red-500/90 text-white font-semibold disabled:opacity-60 touch-manipulation"
+              >
+                {retryingPhoto ? `${TXT.uploading.zh} · ${TXT.uploading.es}` : `${TXT.retry.zh} · ${TXT.retry.es}`}
+              </button>
+              <button
+                onClick={handleSkipPendingPhoto}
+                disabled={retryingPhoto}
+                className="w-full py-3 rounded-xl bg-white/15 border border-white/40 text-white/90 font-semibold disabled:opacity-60 touch-manipulation"
+              >
+                {TXT.skipPhoto.zh} · {TXT.skipPhoto.es}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
+import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
+import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import { Loader2, Save, Lock, Package, ScanLine, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,6 +22,11 @@ export default function BultoOrderScan({ user }) {
   const [saving, setSaving] = useState(false);
   const [orderNumbers, setOrderNumbers] = useState('');
   const [error, setError] = useState('');
+  // Código escaneado y estado de la foto que la cámara toma automáticamente.
+  const [scannedCode, setScannedCode] = useState('');
+  const [photoErrors, setPhotoErrors] = useState([]);
+  const [photoRetrying, setPhotoRetrying] = useState(false);
+  const { handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto } = useScannedPhotoUploader();
   // Mismo identificador persistente que usa la página del almacén de China.
   // Cuando no hay sesión, con él se audita quién asignó el N° de orden.
   const deviceIdRef = useRef('');
@@ -41,11 +48,15 @@ export default function BultoOrderScan({ user }) {
     setOrderNumbers('');
     setScanValue('');
     setError('');
+    setScannedCode('');
+    setPhotoErrors([]);
   }, []);
 
   const handleDetected = useCallback(async (code) => {
     const labelCode = String(code || '').trim();
     if (!labelCode) return;
+    // Código con el que se capturó la foto del bulto.
+    setScannedCode(labelCode);
     setLoading(true);
     setError('');
     setBulto(null);
@@ -91,12 +102,29 @@ export default function BultoOrderScan({ user }) {
       toast.error('Ingresa al menos un N° de orden');
       return;
     }
+    // Foto tomada automáticamente al escanear la etiqueta: la asignación del N° de
+    // orden NO se guarda hasta que esa foto termine de subir. Si falla, queda en rojo
+    // con aviso y solo se puede reintentar la subida.
+    const photoCode = scannedCode || bulto.label_code || '';
+    let photoUrl = null;
+    if (photoCode && getPhotoStatus(photoCode)) {
+      setPhotoRetrying(true);
+      photoUrl = await waitForPhoto(photoCode);
+      setPhotoRetrying(false);
+      if (!photoUrl) {
+        setPhotoErrors([photoCode]);
+        toast.error('No se pudo subir la foto del bulto');
+        return;
+      }
+      setPhotoErrors([]);
+    }
     setSaving(true);
     try {
       const res = await base44.functions.invoke('assignBultoOrderNumbers', {
         bulto_id: bulto.id,
         cbm_order_numbers: parsed,
         device_id: deviceIdRef.current,
+        recognition_photo_url: photoUrl || undefined,
       });
       if (res?.data?.error) {
         toast.error(res.data.error);
@@ -109,6 +137,20 @@ export default function BultoOrderScan({ user }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleRetryPhoto = async () => {
+    const pendingCode = photoErrors[0];
+    if (!pendingCode) return;
+    setPhotoRetrying(true);
+    const url = await retryPhoto(pendingCode);
+    setPhotoRetrying(false);
+    if (!url) {
+      toast.error('La foto sigue sin subir. Revisa tu conexión e intenta de nuevo.');
+      return;
+    }
+    setPhotoErrors([]);
+    await handleSave();
   };
 
   const isLocked = !!bulto?.order_locked;
@@ -130,7 +172,7 @@ export default function BultoOrderScan({ user }) {
 
       <BarcodeScannerModule
         title="Escanear etiqueta de bulto"
-        description="Apunta la cámara al código de barras de la etiqueta o usa la lectora USB."
+        description="Apunta la cámara al código de barras de la etiqueta o usa la lectora USB. La cámara toma una foto automática del bulto al leer la etiqueta."
         placeholder="Código de etiqueta (label_code)"
         actionLabel="Buscar bulto"
         cameraLabel="Usar cámara"
@@ -139,7 +181,17 @@ export default function BultoOrderScan({ user }) {
         value={scanValue}
         onValueChange={setScanValue}
         onDetected={handleDetected}
+        onPhotoCaptured={handlePhotoCaptured}
       />
+
+      {photoErrors.length > 0 && (
+        <ScanPhotoFailureNotice
+          codes={photoErrors}
+          retrying={photoRetrying}
+          onRetry={handleRetryPhoto}
+          description="El N° de orden no se guardó. Reintenta la subida de la foto para poder asignarlo."
+        />
+      )}
 
       {loading && (
         <div className="flex items-center justify-center gap-2 text-sm text-slate-500 py-4">

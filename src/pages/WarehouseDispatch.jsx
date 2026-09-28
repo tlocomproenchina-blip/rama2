@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
+import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
+import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 import DispatchScanHistoryPanel from '@/components/warehouse/DispatchScanHistoryPanel';
 import DispatchApprovalModal from '@/components/warehouse/DispatchApprovalModal';
@@ -26,6 +28,14 @@ export default function WarehouseDispatch({ user }) {
   const [lastResult, setLastResult] = useState(null);
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [approving, setApproving] = useState(false);
+  const {
+    handlePhotoCaptured, waitForPhoto, getPhotoStatus, getPhotoUrl, retryPhoto,
+  } = useScannedPhotoUploader();
+  const [photoErrors, setPhotoErrors] = useState([]);
+  const [photoRetrying, setPhotoRetrying] = useState(false);
+  // Bloqueo real de concurrencia: el estado `scanning` puede llegar desactualizado
+  // a la cola de escaneos, la ref no.
+  const scanBusyRef = useRef(false);
 
   const {
     cacheReady, downloading, progress, lastSync, error: cacheError,
@@ -59,7 +69,7 @@ export default function WarehouseDispatch({ user }) {
   }, [user]);
 
   // --- Despachar bulto completo: marcar todos los paquetes como despachado ---
-  const handleBultoDispatch = useCallback(async (bulto) => {
+  const handleBultoDispatch = useCallback(async (bulto, photoUrl = null) => {
     const packageIds = bulto.package_ids || [];
     const packageTrackings = bulto.package_trackings || [];
     const now = new Date().toISOString();
@@ -113,6 +123,7 @@ export default function WarehouseDispatch({ user }) {
       client_name: bulto.client_snapshot?.full_name || '',
       shipping_mark: bulto.shipping_mark || '',
       package_count: packageIds.length,
+      photo_urls: photoUrl ? [photoUrl] : [],
     });
 
     // 4. Mostrar resultado
@@ -143,25 +154,45 @@ export default function WarehouseDispatch({ user }) {
   // --- Escaneo: lookup local instantáneo (IndexedDB) ---
   const handleScan = useCallback(async (tracking) => {
     const cleaned = (tracking || '').trim();
-    if (!cleaned || scanning) return;
+    if (!cleaned || scanBusyRef.current) return;
+    scanBusyRef.current = true;
     setScanning(true);
     setCode('');
     // Refresh inteligente antes de procesar el escaneo (reduce ventana de conflicto)
     refreshIfStale();
     try {
+      // Foto automática del escaneo: el despacho de este código NO se ejecuta hasta
+      // que su foto termine de subir. Si falla, queda en rojo con aviso y solo se
+      // puede reintentar la subida (sin despachar sin foto).
+      let scanPhotoUrl = null;
+      if (getPhotoStatus(cleaned)) {
+        setPhotoRetrying(true);
+        scanPhotoUrl = await waitForPhoto(cleaned);
+        setPhotoRetrying(false);
+        if (!scanPhotoUrl) {
+          setPhotoErrors([cleaned]);
+          toast.error('No se pudo subir la foto del código escaneado');
+          return;
+        }
+        setPhotoErrors([]);
+      }
+
       // 0) Buscar si es un bulto por label_code (código -B##)
       const localBultos = await idbGetAll('bultos');
       const bulto = localBultos?.find((b) => b.label_code === cleaned);
       if (bulto && (bulto.package_ids || []).length > 0) {
         // Es un bulto local con paquetes: despachar todos
-        await handleBultoDispatch(bulto);
+        await handleBultoDispatch(bulto, scanPhotoUrl);
         return;
       }
 
       // 0b) Si no está local pero parece un bulto (contiene -B), intentar en el servidor
       if (/-B\d+$/i.test(cleaned)) {
         try {
-          const res = await base44.functions.invoke('dispatchBulto', { label_code: cleaned });
+          const res = await base44.functions.invoke('dispatchBulto', {
+            label_code: cleaned,
+            ...(scanPhotoUrl ? { photo_url: scanPhotoUrl } : {}),
+          });
           const data = res?.data || res;
           if (data?.success && data?.bulto) {
             setLastResult({
@@ -201,7 +232,7 @@ export default function WarehouseDispatch({ user }) {
           });
           const data = res?.data || res;
           if (data?.package) {
-            setLastResult(data);
+            setLastResult({ ...data, scanned_code: cleaned });
             return;
           }
         } catch (_) {}
@@ -222,6 +253,7 @@ export default function WarehouseDispatch({ user }) {
         is_received: pkg.status !== 'pre_alerta',
         auto_received: false,
         offline: true,
+        scanned_code: cleaned,
       });
 
       if (alreadyDispatched) {
@@ -243,9 +275,37 @@ export default function WarehouseDispatch({ user }) {
       toast.error('Error al procesar el escaneo');
       logScan({ scanned_code: cleaned, scan_type: 'package', result: 'error', offline: true });
     } finally {
+      scanBusyRef.current = false;
       setScanning(false);
     }
-  }, [findByLabelCode, findByTracking, getClientByEmail, scanning, logScan]);
+  }, [findByLabelCode, findByTracking, getClientByEmail, scanning, logScan, getPhotoStatus, waitForPhoto]);
+
+  // Cola de escaneos: cada código espera su foto sin descartar los que lleguen
+  // mientras la subida anterior sigue en curso.
+  const scanChainRef = useRef(Promise.resolve());
+  const handleScanRef = useRef(handleScan);
+  handleScanRef.current = handleScan;
+  const enqueueScan = useCallback((detectedCode) => {
+    const cleaned = String(detectedCode || '').trim();
+    if (!cleaned) return;
+    scanChainRef.current = scanChainRef.current
+      .then(() => handleScanRef.current(cleaned))
+      .catch(() => {});
+  }, []);
+
+  const handleRetryPhoto = async () => {
+    const pendingCode = photoErrors[0];
+    if (!pendingCode) return;
+    setPhotoRetrying(true);
+    const url = await retryPhoto(pendingCode);
+    setPhotoRetrying(false);
+    if (!url) {
+      toast.error('La foto sigue sin subir. Revisa tu conexión e intenta de nuevo.');
+      return;
+    }
+    setPhotoErrors([]);
+    await handleScan(pendingCode);
+  };
 
   // --- Aprobar salida de almacén ---
   const handleApproveExit = useCallback(async () => {
@@ -268,7 +328,7 @@ export default function WarehouseDispatch({ user }) {
       await enqueueDispatch({
         tracking: pkg.tracking_number || pkg.label_code || '',
         package_id: pkg.id,
-        photo_urls: [],
+        photo_urls: [getPhotoUrl(lastResult?.scanned_code)].filter(Boolean),
         client_email: pkg.client_email || '',
         client_name: lastResult?.client?.full_name || '',
         shipping_mark: pkg.shipping_mark || lastResult?.client?.shipping_mark || '',
@@ -300,7 +360,7 @@ export default function WarehouseDispatch({ user }) {
     } finally {
       setApproving(false);
     }
-  }, [lastResult, user, enqueueDispatch, logScan]);
+  }, [lastResult, user, enqueueDispatch, logScan, getPhotoUrl]);
 
   // Indicador de caché
   if (!cacheReady && downloading) {
@@ -402,12 +462,13 @@ export default function WarehouseDispatch({ user }) {
 
       <BarcodeScannerModule
         title="Escaneo de despacho"
-        description="Escanea el código del bulto (-B##) para despachar todo, o el tracking/etiqueta de un paquete individual."
+        description="Escanea el código del bulto (-B##) para despachar todo, o el tracking/etiqueta de un paquete individual. La cámara toma una foto automática al leer el código y el despacho se ejecuta cuando esa foto termina de subir."
         placeholder="Escanea bulto (-B##) o tracking individual"
         actionLabel="Buscar"
         value={code}
         onValueChange={setCode}
-        onDetected={handleScan}
+        onDetected={enqueueScan}
+        onPhotoCaptured={handlePhotoCaptured}
         continuous={true}
       />
 
@@ -419,6 +480,15 @@ export default function WarehouseDispatch({ user }) {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {photoErrors.length > 0 && (
+        <ScanPhotoFailureNotice
+          codes={photoErrors}
+          retrying={photoRetrying}
+          onRetry={handleRetryPhoto}
+          description="El código no se despachó. Reintenta la subida de la foto para poder despacharlo."
+        />
       )}
 
       {/* Resultado del escaneo */}

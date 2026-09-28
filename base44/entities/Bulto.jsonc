@@ -117,6 +117,14 @@
       "format": "date-time",
       "description": "Fecha en que se avis\u00f3 al cliente que su bulto ya est\u00e1 en Venezuela (resumen diario). Evita repetir el email."
     },
+    "recognition_photo_url": {
+      "type": "string",
+      "description": "Foto del bulto capturada autom\u00e1ticamente por el esc\u00e1ner al asignar el N\u00b0 de orden en el almac\u00e9n de Venezuela (/BultoOrderScan). Evidencia del bulto reconocido en destino."
+    },
+    "dispatch_photo_url": {
+      "type": "string",
+      "description": "Foto del bulto capturada autom\u00e1ticamente por el esc\u00e1ner al despacharlo desde el almac\u00e9n (/WarehouseDispatch). Evidencia de la salida de almac\u00e9n."
+    },
     "client_snapshot": {
       "type": "object",
       "description": "Datos del cliente al momento de crear el bulto (para imprimir en la etiqueta)",

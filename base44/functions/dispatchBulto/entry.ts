@@ -13,6 +13,8 @@ export default async function(req: Request): Promise<Response> {
 
     const body = await req.json().catch(() => ({}));
     const { label_code, closed_at } = body;
+    // Foto capturada automáticamente por el escáner al despachar el bulto.
+    const photoUrl = String(body?.photo_url || '').trim();
     if (!label_code) return Response.json({ error: 'label_code es requerido' }, { status: 400 });
 
     // Buscar el bulto por label_code
@@ -56,6 +58,7 @@ export default async function(req: Request): Promise<Response> {
     // Actualizar el bulto a despachado
     const updatedBulto = await base44.asServiceRole.entities.Bulto.update(bulto.id, {
       status: 'despachado',
+      ...(photoUrl ? { dispatch_photo_url: photoUrl } : {}),
     });
 
     // Cargar datos del cliente

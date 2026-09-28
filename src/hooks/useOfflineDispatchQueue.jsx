@@ -73,6 +73,7 @@ export function useOfflineDispatchQueue() {
       client_name: bultoData.client_name || '',
       shipping_mark: bultoData.shipping_mark || '',
       package_count: bultoData.package_count || 0,
+      photo_urls: bultoData.photo_urls || [],
       sync_status: 'pending',
       created_at: Date.now(),
     };
@@ -103,6 +104,7 @@ export function useOfflineDispatchQueue() {
               // Despacho de bulto completo
               res = await base44.functions.invoke('dispatchBulto', {
                 label_code: item.label_code,
+                ...(item.photo_urls?.length ? { photo_url: item.photo_urls[0] } : {}),
               });
             } else {
               // Despacho de paquete individual

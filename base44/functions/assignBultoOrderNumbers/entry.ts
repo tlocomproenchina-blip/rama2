@@ -40,6 +40,10 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Debe ingresar al menos un N° de orden' }, { status: 400 });
     }
 
+    // Foto del bulto capturada automáticamente por el escáner en el momento de leer
+    // la etiqueta: queda como evidencia del reconocimiento en el almacén de Venezuela.
+    const recognitionPhotoUrl = String(body.recognition_photo_url || '').trim();
+
     const bulto = await base44.asServiceRole.entities.Bulto.get(bultoId).catch(() => null);
     if (!bulto) return Response.json({ error: 'Bulto no encontrado' }, { status: 404 });
 
@@ -60,6 +64,7 @@ export default async function(req: Request): Promise<Response> {
       order_locked: true,
       order_assigned_by: assignedBy,
       order_assigned_date: now,
+      ...(recognitionPhotoUrl ? { recognition_photo_url: recognitionPhotoUrl } : {}),
       ...(firstRecognition ? { ve_recognized_date: now, ve_recognized_by: assignedBy } : {}),
     });
 

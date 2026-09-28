@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
+import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
+import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import PickingOrderList from '@/components/warehouse/PickingOrderList';
 import PickingPackagesTable from '@/components/warehouse/PickingPackagesTable';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
@@ -31,6 +33,11 @@ export default function WarehousePickPackShip({ user }) {
   const requestsPageSize = 20;
   const packagesPageSize = 25;
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehousePickPackShip');
+  const { handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto } = useScannedPhotoUploader();
+  // Foto del paquete escaneado (indexada por tracking): viaja con el packing.
+  const [packingPhotos, setPackingPhotos] = useState({});
+  const [photoErrors, setPhotoErrors] = useState([]);
+  const [photoRetrying, setPhotoRetrying] = useState(false);
 
   const { data: locations } = useOfflineEntityCache({
     storeName: 'warehouse_locations',
@@ -95,7 +102,7 @@ export default function WarehousePickPackShip({ user }) {
   const handleScanPackage = (code) => {
     if (!pickingData?.packages?.length) {
       toast.error('Selecciona una solicitud primero');
-      return;
+      return null;
     }
 
     const candidates = getTrackingCandidatesLower(code);
@@ -106,7 +113,7 @@ export default function WarehousePickPackShip({ user }) {
 
     if (packageIndex === -1) {
       toast.error('Ese código no pertenece a la solicitud activa');
-      return;
+      return null;
     }
 
     const matchedPackage = pickingData.packages[packageIndex];
@@ -117,6 +124,45 @@ export default function WarehousePickPackShip({ user }) {
     setPackagesPage((prev) => Math.max(prev, Math.ceil((packageIndex + 1) / packagesPageSize)));
     setSelectedPackageIds((prev) => prev.includes(matchedPackage.id) ? prev : [...prev, matchedPackage.id]);
     toast.success(`Paquete ${matchedPackage.tracking_number} seleccionado`);
+    return matchedPackage;
+  };
+
+  // La cámara toma la foto sola al detectar el código. El paquete NO se marca como
+  // preparado hasta que esa foto termine de subir: si falla, queda en rojo con aviso
+  // y solo se puede reintentar (no se empaca sin foto).
+  const handleScanWithPhoto = async (code) => {
+    const cleaned = String(code || '').trim();
+    if (!cleaned) return;
+    let photoUrl = null;
+    if (getPhotoStatus(cleaned)) {
+      setPhotoRetrying(true);
+      photoUrl = await waitForPhoto(cleaned);
+      setPhotoRetrying(false);
+      if (!photoUrl) {
+        setPhotoErrors([cleaned]);
+        toast.error('No se pudo subir la foto del paquete escaneado');
+        return;
+      }
+      setPhotoErrors([]);
+    }
+    const matchedPackage = handleScanPackage(cleaned);
+    if (matchedPackage && photoUrl) {
+      setPackingPhotos((prev) => ({ ...prev, [matchedPackage.tracking_number]: photoUrl }));
+    }
+  };
+
+  const handleRetryPhoto = async () => {
+    const pendingCode = photoErrors[0];
+    if (!pendingCode) return;
+    setPhotoRetrying(true);
+    const url = await retryPhoto(pendingCode);
+    setPhotoRetrying(false);
+    if (!url) {
+      toast.error('La foto sigue sin subir. Revisa tu conexión e intenta de nuevo.');
+      return;
+    }
+    setPhotoErrors([]);
+    await handleScanWithPhoto(pendingCode);
   };
 
   const handleMoveSelected = async () => {
@@ -183,6 +229,7 @@ export default function WarehousePickPackShip({ user }) {
         await base44.functions.invoke('confirmPacking', {
           request_id: selectedRequestId,
           target_location_id: destinationLocationId || undefined,
+          photos_by_tracking: packingPhotos,
         });
         toast.success('Packing confirmado');
       } else {
@@ -191,6 +238,7 @@ export default function WarehousePickPackShip({ user }) {
           payload: {
             request_id: selectedRequestId,
             target_location_id: destinationLocationId || undefined,
+            photos_by_tracking: packingPhotos,
           },
         });
         toast.info('Packing confirmado offline — se sincronizará al recuperar conexión');
@@ -244,11 +292,21 @@ export default function WarehousePickPackShip({ user }) {
             <>
               <BarcodeScannerModule
                 title="Escaneo rápido para picking"
-                description="Escanea un tracking para marcarlo automáticamente dentro de la solicitud activa."
+                description="Escanea un tracking para marcarlo automáticamente dentro de la solicitud activa. La cámara toma una foto automática del paquete al leer el código y el paquete se marca cuando la foto termina de subir."
                 placeholder="Escanea el tracking a preparar"
                 actionLabel="Seleccionar paquete"
-                onDetected={handleScanPackage}
+                onDetected={handleScanWithPhoto}
+                onPhotoCaptured={handlePhotoCaptured}
               />
+
+              {photoErrors.length > 0 && (
+                <ScanPhotoFailureNotice
+                  codes={photoErrors}
+                  retrying={photoRetrying}
+                  onRetry={handleRetryPhoto}
+                  description="El paquete no se marcó como preparado. Reintenta la subida de la foto para poder empacarlo."
+                />
+              )}
 
               <Card className="shadow-sm overflow-hidden">
                 <CardHeader>

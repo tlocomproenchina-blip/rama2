@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
+import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
+import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Image as ImageIcon, Loader2, AlertCircle, Plus, Trash2, Camera } from 'lucide-react';
+import { CheckCircle, Image as ImageIcon, Loader2, AlertCircle, Plus, Trash2, Camera, ImageOff } from 'lucide-react';
 import { toast } from 'sonner';
 import TrackingPhotoUploader from '@/components/admin/packages/TrackingPhotoUploader';
 
@@ -27,7 +29,17 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
   const [trackingStatusByCode, setTrackingStatusByCode] = useState({});
   const [existingPackagesByTracking, setExistingPackagesByTracking] = useState({});
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [scannedPhotoByTracking, setScannedPhotoByTracking] = useState({});
+  // Fotos capturadas automáticamente por el escáner: se suben con 1 reintento y
+  // nunca se descartan en silencio (si fallan, avisan y dejan reintentar).
+  const {
+    photosByTracking: scannedPhotoByTracking,
+    handlePhotoCaptured,
+    waitForPhoto,
+    getPhotoStatus,
+    retryPhoto,
+  } = useScannedPhotoUploader();
+  const [failedPhotoCodes, setFailedPhotoCodes] = useState([]);
+  const [retryingPhotos, setRetryingPhotos] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [cbmTotal, setCbmTotal] = useState('');
   const [fechaRegistro, setFechaRegistro] = useState(nowLocalInput());
@@ -44,22 +56,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     })();
   }, []);
 
-  // Foto capturada automáticamente por el escáner en el momento del pitido.
-  // Se sube a Bunny en segundo plano y se vincula al tracking correspondiente.
-  const handleScannedPhoto = async (code, base64) => {
-    setScannedPhotoByTracking((prev) => ({ ...prev, [code]: { status: 'uploading' } }));
-    try {
-      const { data } = await base44.functions.invoke('uploadImageToBunny', { image_base64: base64 });
-      if (data?.url) {
-        setScannedPhotoByTracking((prev) => ({ ...prev, [code]: { status: 'ready', url: data.url } }));
-      } else {
-        setScannedPhotoByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
-      }
-    } catch (_) {
-      setScannedPhotoByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
-    }
-  };
-
   const removeScannedTracking = (index) => {
     const code = (trackingNumbers[index] || '').trim();
     const next = trackingNumbers.filter((_, i) => i !== index);
@@ -67,7 +63,6 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     if (code && !next.some((t) => t.trim() === code)) {
       setTrackingStatusByCode((prev) => { const c = { ...prev }; delete c[code]; return c; });
       setExistingPackagesByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
-      setScannedPhotoByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
       setImageFilesByTracking((prev) => { const c = { ...prev }; delete c[code]; return c; });
     }
   };
@@ -78,7 +73,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     setTrackingStatusByCode({});
     setExistingPackagesByTracking({});
     setCameraOpen(false);
-    setScannedPhotoByTracking({});
+    setFailedPhotoCodes([]);
     setOrderNumber('');
     setCbmTotal('');
     setFechaRegistro(nowLocalInput());
@@ -147,7 +142,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async ({ skipFailedPhotos = false } = {}) => {
     const cleanedTrackingNumbers = trackingNumbers.map((item) => item.trim()).filter(Boolean);
     if (cleanedTrackingNumbers.length === 0) { toast.error('Ingresa al menos un número de tracking'); return; }
 
@@ -214,6 +209,25 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       return alreadyReceivedStatuses.includes(pkg.status);
     });
     const orphanTrackings = cleanedTrackingNumbers.filter((t) => resultsByTracking[t]?.state === 'not_found');
+
+    // Fotos del escáner: se espera el resultado real de cada subida. Si alguna falla
+    // no se descarta en silencio: se avisa y se puede reintentar o registrar sin
+    // esas fotos de forma consciente.
+    const photoCodes = cleanedTrackingNumbers.filter((t) => getPhotoStatus(t));
+    const failedCodes = [];
+    for (const code of photoCodes) {
+      if (getPhotoStatus(code) === 'failed') {
+        failedCodes.push(code);
+        continue;
+      }
+      const url = await waitForPhoto(code);
+      if (!url) failedCodes.push(code);
+    }
+    if (failedCodes.length && !skipFailedPhotos) {
+      setFailedPhotoCodes(failedCodes);
+      return;
+    }
+    setFailedPhotoCodes([]);
 
     setSubmitting(true);
 
@@ -350,6 +364,24 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     }
     setSubmitting(false);
     setProgress(null);
+  };
+
+  const handleRetryPhotos = async () => {
+    if (!failedPhotoCodes.length) return;
+    setRetryingPhotos(true);
+    const stillFailed = [];
+    for (const code of failedPhotoCodes) {
+      const url = await retryPhoto(code);
+      if (!url) stillFailed.push(code);
+    }
+    setRetryingPhotos(false);
+    if (stillFailed.length) {
+      setFailedPhotoCodes(stillFailed);
+      toast.error('Alguna foto sigue sin subir. Revisa tu conexión e intenta de nuevo.');
+      return;
+    }
+    setFailedPhotoCodes([]);
+    await handleSubmit();
   };
 
   return (
@@ -595,6 +627,19 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           })()}
         </div>
 
+        {failedPhotoCodes.length > 0 && (
+          <div className="pb-2">
+            <ScanPhotoFailureNotice
+              codes={failedPhotoCodes}
+              retrying={retryingPhotos}
+              onRetry={handleRetryPhotos}
+              onSkip={() => { setFailedPhotoCodes([]); handleSubmit({ skipFailedPhotos: true }); }}
+              skipLabel="Registrar sin esas fotos"
+              description="Esas fotos no se guardarán. Reintenta la subida o confirma que quieres registrar sin ellas."
+            />
+          </div>
+        )}
+
         {(() => {
           const filled = trackingNumbers.map((t) => t.trim()).filter(Boolean);
           const total = filled.length;
@@ -660,7 +705,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             continuous
             value=""
             onValueChange={() => {}}
-            onPhotoCaptured={handleScannedPhoto}
+            onPhotoCaptured={handlePhotoCaptured}
             onDetected={(value) => {
               const code = String(value || '').trim();
               if (!code) return;
@@ -706,6 +751,10 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                       ) : photo?.status === 'uploading' ? (
                         <div className="h-10 w-10 shrink-0 rounded-md border border-dashed flex items-center justify-center">
                           <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                        </div>
+                      ) : photo?.status === 'failed' ? (
+                        <div className="h-10 w-10 shrink-0 rounded-md border border-rose-300 bg-rose-50 flex items-center justify-center">
+                          <ImageOff className="h-4 w-4 text-rose-500" />
                         </div>
                       ) : null}
                       <div className="flex-1 min-w-0">

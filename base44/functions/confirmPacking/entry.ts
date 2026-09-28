@@ -49,6 +49,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const requestId = String(body?.request_id || '').trim();
     const targetLocationId = body?.target_location_id ? String(body.target_location_id).trim() : '';
+    // Fotos capturadas automáticamente por el escáner de picking/packing,
+    // indexadas por tracking_number del paquete empaquetado.
+    const photosByTracking = (body?.photos_by_tracking && typeof body.photos_by_tracking === 'object')
+      ? body.photos_by_tracking
+      : {};
     if (!requestId) return Response.json({ error: 'request_id es obligatorio' }, { status: 400 });
 
     const request = await base44.asServiceRole.entities.ConsolidationRequest.get(requestId);
@@ -76,6 +81,19 @@ Deno.serve(async (req) => {
         updates.warehouse_location_code = targetLocation.code;
         updates.warehouse_location_name = targetLocation.name;
         updates.warehouse_zone = targetLocation.zone;
+      }
+
+      // Foto del paquete capturada al escanearlo para empacar: se agrega a las
+      // imágenes del paquete (máximo 3, se conservan las más recientes).
+      const photoUrl = String(photosByTracking[pkg.tracking_number] || '').trim();
+      if (photoUrl) {
+        const existingUrls = Array.isArray(pkg.package_image_urls)
+          ? pkg.package_image_urls.filter(Boolean)
+          : (pkg.package_image_url ? [pkg.package_image_url] : []);
+        updates.package_image_urls = [...existingUrls, photoUrl]
+          .filter((url, index, arr) => arr.indexOf(url) === index)
+          .slice(-3);
+        if (!pkg.package_image_url) updates.package_image_url = photoUrl;
       }
 
       await base44.asServiceRole.entities.Package.update(pkg.id, updates);
