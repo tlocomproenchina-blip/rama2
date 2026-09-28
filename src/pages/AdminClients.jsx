@@ -1,4 +1,4 @@
-// AdminClients — gestión de clientes (force re-transform)
+// AdminClients — gestión de clientes
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from "@/components/ui/input";
