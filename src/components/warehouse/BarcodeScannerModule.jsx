@@ -14,6 +14,7 @@ export default function BarcodeScannerModule({
   actionLabel = 'Procesar código',
   cameraLabel = 'Usar cámara',
   onDetected,
+  onPhotoCaptured,
   value,
   onValueChange,
   extraAction,
@@ -118,6 +119,18 @@ export default function BarcodeScannerModule({
     return canvas;
   }, []);
 
+  // Foto del paquete en el instante en que se detecta el código: se entrega al
+  // consumidor para que la suba y la guarde junto con la recepción.
+  const emitPhoto = (code) => {
+    if (!onPhotoCaptured) return;
+    try {
+      const canvas = captureFrame();
+      if (!canvas) return;
+      const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+      if (base64) onPhotoCaptured(code, base64);
+    } catch (_) {}
+  };
+
   const scanFrame = async () => {
     if (!activeRef.current || !videoRef.current) return;
     scanAttemptsRef.current++;
@@ -158,6 +171,7 @@ export default function BarcodeScannerModule({
             recent.set(code, now);
             lastCodeRef.current = code;
             lastDetectedAtRef.current = now;
+            emitPhoto(code);
             handleDetected(code);
             toast.success(`Código agregado: ${code}`);
             playBeep();
@@ -166,6 +180,7 @@ export default function BarcodeScannerModule({
             await new Promise((resolve) => setTimeout(resolve, 800));
           }
         } else {
+          emitPhoto(code);
           handleDetected(code);
           toast.success('Código detectado');
           playBeep();

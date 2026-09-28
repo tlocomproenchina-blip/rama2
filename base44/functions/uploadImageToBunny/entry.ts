@@ -14,9 +14,17 @@ Deno.serve(async (req) => {
 
     const storageKey = Deno.env.get('BUNNY_STORAGE_KEY');
     const storageZone = Deno.env.get('BUNNY_STORAGE_ZONE');
-    const cdnHost = Deno.env.get('BUNNY_CDN_HOST');
+    // Normalizar el host del CDN: puede venir con "https://" y/o con barra final,
+    // lo que generaba enlaces con doble barra que no cargaban la foto.
+    const cdnHost = String(Deno.env.get('BUNNY_CDN_HOST') || '')
+      .trim()
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/+$/, '');
     if (!storageKey || !storageZone || !cdnHost) {
       return Response.json({ error: 'Falta configuración de Bunny (key/zone/cdn host)' }, { status: 500 });
+    }
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(cdnHost)) {
+      return Response.json({ error: 'BUNNY_CDN_HOST inválido (solo el dominio, sin https:// ni barra final)' }, { status: 500 });
     }
 
     // Decodificar base64 a bytes
@@ -44,7 +52,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: `Error subiendo a Bunny (${res.status}): ${errText}` }, { status: 502 });
     }
 
-    const publicUrl = `https://${cdnHost.replace(/^https?:\/\//, '')}/${path}`;
+    const publicUrl = `https://${cdnHost}/${path}`;
+    // Validar la URL antes de entregarla: si queda mal formada, el paquete se
+    // guardaría con una foto que nunca carga.
+    try {
+      const parsed = new URL(publicUrl);
+      if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.pathname.startsWith('//')) {
+        return Response.json({ error: 'URL de foto inválida' }, { status: 500 });
+      }
+    } catch (_) {
+      return Response.json({ error: 'URL de foto inválida' }, { status: 500 });
+    }
     return Response.json({ url: publicUrl });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

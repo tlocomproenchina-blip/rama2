@@ -60,23 +60,23 @@ export default function AdminOrphanPackages({ user }) {
     try {
       setLoading(true);
       const s = reset ? 0 : skip;
-      // En carga inicial, servir del cache de IndexedDB primero
-      if (reset) {
+      // Sin conexión: servir del cache de IndexedDB (no hay servidor disponible).
+      // Con conexión: se espera siempre la lista del servidor, para no pintar primero
+      // la copia guardada en el dispositivo (las fotos aparecían y desaparecían).
+      if (reset && !navigator.onLine) {
         try {
           const cached = await getAll('packages');
           const cachedOrphans = cached
             .filter(p => p.is_orphan === true)
             .sort((a, b) => new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime())
             .slice(0, PAGE_SIZE);
-          if (cachedOrphans.length > 0) {
-            setOrphans(cachedOrphans);
-            setHasMore(false);
-            setSkip(cachedOrphans.length);
-            setLoading(false);
-          }
+          setOrphans(cachedOrphans);
+          setHasMore(false);
+          setSkip(cachedOrphans.length);
         } catch (_) {}
+        setLoading(false);
+        return;
       }
-      if (!navigator.onLine && reset) return;
       const rows = await base44.entities.Package.filter({ is_orphan: true }, '-created_date', PAGE_SIZE, s);
       setOrphans(reset ? rows : [...orphans, ...rows]);
       setHasMore(rows.length === PAGE_SIZE);

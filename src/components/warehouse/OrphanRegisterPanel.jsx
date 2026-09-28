@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Sparkles, Upload, Loader2, UserX } from 'lucide-react';
+import { AlertTriangle, Package, RefreshCw, Sparkles, Upload, Loader2, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
@@ -27,27 +27,36 @@ export default function OrphanRegisterPanel({ tracking, warehouses, locations, o
   });
   const [photoFile, setPhotoFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const [confirmSkip, setConfirmSkip] = useState(false);
 
   const filteredLocations = locations.filter((l) => !form.warehouse_id || l.warehouse_id === form.warehouse_id);
 
-  const handlePhoto = async () => {
-    if (!photoFile) return null;
-    try {
-      return await uploadImageNoCredits(photoFile);
-    } catch {
-      toast.error('No se pudo subir la foto del paquete');
-      return null;
-    }
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = async ({ skipPhoto = false } = {}) => {
     if (!form.warehouse_id || !form.location_id) {
       toast.error('Selecciona almacén y ubicación');
       return;
     }
     setSubmitting(true);
+    setPhotoFailed(false);
     try {
-      const photoUrl = await handlePhoto();
+      // La foto se sube y se espera el resultado real antes de guardar el paquete.
+      // Si falla, el paquete no se guarda sin avisar: se marca en rojo y se ofrece
+      // reintentar la foto o confirmar el registro sin foto.
+      let photoUrl = null;
+      if (photoFile && !skipPhoto) {
+        try {
+          photoUrl = await uploadImageNoCredits(photoFile);
+        } catch {
+          photoUrl = null;
+        }
+        if (!photoUrl) {
+          setPhotoFailed(true);
+          toast.error('No se pudo subir la foto del paquete');
+          setSubmitting(false);
+          return;
+        }
+      }
       const payload = {
         tracking_number: tracking,
         warehouse_id: form.warehouse_id,
@@ -68,6 +77,8 @@ export default function OrphanRegisterPanel({ tracking, warehouses, locations, o
       if (data?.error) throw new Error(data.error);
       toast.success('Paquete huérfano registrado y ubicado');
       setForm({ warehouse_id: '', location_id: '', shipping_type: 'aereo', risk_category: 'general', shipping_mark: '', actual_weight_kg: '', actual_length_cm: '', actual_width_cm: '', actual_height_cm: '', description: '', reception_notes: '' });
+      setPhotoFailed(false);
+      setConfirmSkip(false);
       setPhotoFile(null);
       if (typeof onDone === 'function') onDone(data?.package);
     } catch (e) {
@@ -192,6 +203,35 @@ export default function OrphanRegisterPanel({ tracking, warehouses, locations, o
           </div>
         </div>
 
+        {photoFailed && (
+          <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-rose-700">No se pudo subir la foto del paquete</p>
+                <p className="text-sm text-rose-600">El paquete no se guardó. Reintenta la subida de la foto o confirma registrarlo sin foto.</p>
+              </div>
+            </div>
+            {confirmSkip ? (
+              <div className="space-y-2">
+                <p className="text-sm text-rose-700">¿Confirmas registrar este huérfano <b>sin foto</b>?</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <Button variant="outline" onClick={() => setConfirmSkip(false)} disabled={submitting}>Cancelar</Button>
+                  <Button variant="destructive" onClick={() => { setConfirmSkip(false); handleSubmit({ skipPhoto: true }); }} disabled={submitting}>Sí, registrar sin foto</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button onClick={() => handleSubmit()} disabled={submitting} className="gap-2 bg-rose-600 hover:bg-rose-700">
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  Reintentar foto
+                </Button>
+                <Button variant="outline" onClick={() => setConfirmSkip(true)} disabled={submitting}>Registrar sin foto</Button>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-700">Ubicación sugerida</p>
@@ -203,7 +243,7 @@ export default function OrphanRegisterPanel({ tracking, warehouses, locations, o
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={handleSubmit} disabled={submitting || !form.warehouse_id || !form.location_id} className="bg-amber-600 hover:bg-amber-700">
+          <Button onClick={() => handleSubmit()} disabled={submitting || !form.warehouse_id || !form.location_id} className="bg-amber-600 hover:bg-amber-700">
             {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando...</> : <><UserX className="h-4 w-4 mr-2" /> Registrar huérfano</>}
           </Button>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,10 @@ export default function WarehouseReceive({ user }) {
   const [receiveFailed, setReceiveFailed] = useState(false);
   const [notFoundTracking, setNotFoundTracking] = useState(null);
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseReceive');
-  const { handlePhotoCaptured, waitForPhoto } = useScannedPhotoUploader();
+  const { handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto } = useScannedPhotoUploader();
+  const lastScanCodeRef = useRef('');
+  const [photoError, setPhotoError] = useState(false);
+  const [photoRetrying, setPhotoRetrying] = useState(false);
 
   const { data: warehouses, loading: loadingWarehouses } = useOfflineEntityCache({
     storeName: 'warehouses',
@@ -137,7 +140,11 @@ export default function WarehouseReceive({ user }) {
     }
   };
 
-  const handleReceive = async () => {
+  // Código con el que se capturó la foto: el escáner puede leer un sub-tracking
+  // distinto al tracking master del paquete.
+  const photoCodeFor = (target) => lastScanCodeRef.current || target?.tracking_number || '';
+
+  const handleReceive = async ({ skipPhoto = false } = {}) => {
     if (!pkg?.id || !form.location_id) return;
     const previousPkg = pkg;
     const selectedLocation = locations.find((location) => location.id === form.location_id);
@@ -153,8 +160,30 @@ export default function WarehouseReceive({ user }) {
         warehouse_location_name: selectedLocation?.name || currentPkg.warehouse_location_name,
         reception_notes: form.reception_notes,
       } : currentPkg);
-      // Esperar a que la foto del escaneo termine de subirse
-      const photoUrl = await waitForPhoto(pkg.tracking_number);
+      // Foto del escaneo: se espera el resultado real de la subida antes de guardar.
+      // Si la subida falla, el paquete NO se guarda sin foto: se marca en rojo y se
+      // ofrece reintentar la foto o confirmar el recibido sin foto.
+      let photoUrl = null;
+      const photoCode = photoCodeFor(pkg);
+      if (skipPhoto) {
+        photoUrl = null;
+      } else if (!navigator.onLine) {
+        if (getPhotoStatus(photoCode)) toast.info('Sin conexión: el paquete se recibirá sin foto');
+      } else if (photoCode) {
+        const photoStatus = getPhotoStatus(photoCode);
+        if (photoStatus === 'uploading' || photoStatus === 'ready') {
+          setPhotoRetrying(true);
+          photoUrl = await waitForPhoto(photoCode);
+          setPhotoRetrying(false);
+        }
+        if (!photoUrl && getPhotoStatus(photoCode) === 'failed') {
+          setPhotoError(true);
+          setPkg(previousPkg);
+          toast.error('No se pudo subir la foto del paquete');
+          setSubmitting(false);
+          return;
+        }
+      }
       const assignPayload = {
         package_id: pkg.id,
         location_id: form.location_id,
@@ -177,6 +206,8 @@ export default function WarehouseReceive({ user }) {
         await enqueueReceive({ payload: assignPayload });
         toast.info('Paquete recibido offline — se sincronizará al recuperar conexión');
       }
+      setPhotoError(false);
+      lastScanCodeRef.current = '';
       setTracking('');
       setPkg(null);
       setForm({ ...emptyForm, warehouse_id: '' });
@@ -187,6 +218,25 @@ export default function WarehouseReceive({ user }) {
       toast.error(error?.response?.data?.error || 'No se pudo recibir el paquete');
     }
     setSubmitting(false);
+  };
+
+  const handleRetryPhoto = async () => {
+    const code = photoCodeFor(pkg);
+    if (!code) return;
+    setPhotoRetrying(true);
+    const url = await retryPhoto(code);
+    setPhotoRetrying(false);
+    if (url) {
+      setPhotoError(false);
+      await handleReceive();
+    } else {
+      toast.error('La foto sigue sin subir. Revisa tu conexión e intenta de nuevo.');
+    }
+  };
+
+  const handleConfirmSkipPhoto = () => {
+    setPhotoError(false);
+    handleReceive({ skipPhoto: true });
   };
 
   if (loadingAccess) {
@@ -224,7 +274,7 @@ export default function WarehouseReceive({ user }) {
         description="Busca un tracking usando la cámara del dispositivo o una lectora de códigos de barras. La cámara captura una foto automática del paquete al detectar el código."
         placeholder="Escanea el tracking del paquete"
         actionLabel="Buscar tracking"
-        onDetected={(code) => handleSearch(code)}
+        onDetected={(code) => { lastScanCodeRef.current = code; handleSearch(code); }}
         onPhotoCaptured={handlePhotoCaptured}
       />
 
@@ -242,6 +292,10 @@ export default function WarehouseReceive({ user }) {
           onSubmit={handleReceive}
           submitting={submitting}
           failed={receiveFailed}
+          photoError={photoError}
+          photoRetrying={photoRetrying}
+          onRetryPhoto={handleRetryPhoto}
+          onConfirmSkipPhoto={handleConfirmSkipPhoto}
         />
       )}
 

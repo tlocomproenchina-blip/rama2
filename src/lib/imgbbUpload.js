@@ -49,11 +49,19 @@ const compressImage = (file) => new Promise((resolve) => {
   img.src = url;
 });
 
-// Sube una imagen a ImgBB vía backend (0 créditos de integraciones). Devuelve la URL pública.
-export async function uploadImageNoCredits(file) {
-  const base64 = await compressImage(file);
-  if (!base64) throw new Error('No se pudo procesar la imagen');
+// Valida que la URL devuelta sea usable: si viene mal formada (por ejemplo con
+// doble barra), el paquete quedaría con una foto que nunca carga.
+const isValidPhotoUrl = (url) => {
+  if (typeof url !== 'string' || !url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && !!parsed.hostname && !parsed.pathname.startsWith('//');
+  } catch (_) {
+    return false;
+  }
+};
 
+const uploadBase64 = async (base64) => {
   // Timeout de red: si el backend no responde en 30s, cortar para no quedar colgado
   const invokePromise = base44.functions.invoke('uploadImageToBunny', { image_base64: base64 });
   const timeoutPromise = new Promise((_, reject) =>
@@ -61,6 +69,23 @@ export async function uploadImageNoCredits(file) {
   );
 
   const { data } = await Promise.race([invokePromise, timeoutPromise]);
-  if (!data?.url) throw new Error(data?.error || 'No se pudo subir la imagen');
+  if (!isValidPhotoUrl(data?.url)) throw new Error(data?.error || 'No se pudo subir la imagen');
   return data.url;
+};
+
+// Sube una imagen a Bunny vía backend (0 créditos de integraciones). Devuelve la URL pública.
+// Reintenta una vez antes de fallar: la foto nunca se descarta en silencio.
+export async function uploadImageNoCredits(file) {
+  const base64 = await compressImage(file);
+  if (!base64) throw new Error('No se pudo procesar la imagen');
+
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await uploadBase64(base64);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('No se pudo subir la imagen');
 }

@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Sparkles } from 'lucide-react';
+import { AlertTriangle, Loader2, Package, RefreshCw, Sparkles } from 'lucide-react';
 
-export default function ReceivePackagePanel({ pkg, form, setForm, warehouses, locations, suggestedLocation, onSuggest, onSubmit, submitting, failed = false }) {
+export default function ReceivePackagePanel({ pkg, form, setForm, warehouses, locations, suggestedLocation, onSuggest, onSubmit, submitting, failed = false, photoError = false, photoRetrying = false, onRetryPhoto, onConfirmSkipPhoto }) {
+  const [confirmSkip, setConfirmSkip] = React.useState(false);
   return (
     <Card className={`shadow-lg transition-all ${submitting ? 'opacity-80' : ''} ${failed ? 'border-rose-200 bg-rose-50/40' : ''}`}>
       <CardHeader>
@@ -67,6 +68,35 @@ export default function ReceivePackagePanel({ pkg, form, setForm, warehouses, lo
           <Textarea value={form.reception_notes} onChange={(e) => setForm({ ...form, reception_notes: e.target.value })} />
         </div>
 
+        {photoError && (
+          <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-rose-700">No se pudo subir la foto del paquete</p>
+                <p className="text-sm text-rose-600">El paquete no se guardó. Reintenta la subida de la foto o confirma recibirlo sin foto.</p>
+              </div>
+            </div>
+            {confirmSkip ? (
+              <div className="space-y-2">
+                <p className="text-sm text-rose-700">¿Confirmas recibir este paquete <b>sin foto</b>? Podrás agregarla después editando el paquete.</p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <Button variant="outline" onClick={() => setConfirmSkip(false)} disabled={submitting}>Cancelar</Button>
+                  <Button variant="destructive" onClick={() => { setConfirmSkip(false); onConfirmSkipPhoto?.(); }} disabled={submitting}>Sí, recibir sin foto</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <Button onClick={onRetryPhoto} disabled={photoRetrying || submitting} className="gap-2 bg-rose-600 hover:bg-rose-700">
+                  {photoRetrying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  Reintentar foto
+                </Button>
+                <Button variant="outline" onClick={() => setConfirmSkip(true)} disabled={photoRetrying || submitting}>Recibir sin foto</Button>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-700">Ubicación sugerida</p>
@@ -78,8 +108,8 @@ export default function ReceivePackagePanel({ pkg, form, setForm, warehouses, lo
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={onSubmit} disabled={submitting || !form.location_id} className="bg-blue-600 hover:bg-blue-700">
-            {submitting ? 'Procesando...' : 'Recibir y ubicar'}
+          <Button onClick={() => onSubmit()} disabled={submitting || !form.location_id} className="bg-blue-600 hover:bg-blue-700">
+            {photoRetrying ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Subiendo foto...</> : submitting ? 'Procesando...' : 'Recibir y ubicar'}
           </Button>
         </div>
       </CardContent>
