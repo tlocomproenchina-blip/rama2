@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
+import { buildClientSnapshot, latestInvoiceSnapshot, syncClientBultoTotals } from '../../shared/bultoScan.ts';
 
 // Crea un bulto (caja física) que agrupa varios paquetes recibidos de un mismo cliente.
 // Recibe: { package_ids: string[] }
@@ -52,28 +53,14 @@ export default async function(req: Request): Promise<Response> {
     const bultoNumber = (existingBultos.length || 0) + 1;
     const labelCode = `${shippingMark}-B${bultoNumber}`;
 
-    // Fetch client data for the label snapshot
+    // Datos del cliente y de su factura más reciente (snapshot de la etiqueta).
     const clients = await base44.asServiceRole.entities.User.filter({ email: clientEmail }, '-created_date', 1);
     const client = clients?.[0] || ({} as any);
-    const clientSnapshot = {
-      full_name: client.full_name || '',
-      email: client.email || clientEmail,
-      cedula: client.cedula || '',
-      whatsapp: client.whatsapp || '',
-      address: client.address || '',
-      city: client.city || '',
-      state: client.state || '',
-      shipping_mark: client.shipping_mark || shippingMark,
-    };
-
-    // Fetch latest invoice for the client to snapshot payment status
-    const invoices = await base44.asServiceRole.entities.Invoice.filter(
-      { client_email: clientEmail }, '-invoice_date', 1
-    );
-    const latestInvoice = invoices?.[0] || null;
-    const invoicePaid = latestInvoice?.status === 'pagada';
-    const invoiceStatus = latestInvoice?.status || 'sin_factura';
-    const invoiceNumber = latestInvoice?.invoice_number || '';
+    const clientSnapshot = buildClientSnapshot(client, shippingMark, clientEmail);
+    const invoice = await latestInvoiceSnapshot(base44, clientEmail);
+    const invoicePaid = invoice.invoicePaid;
+    const invoiceStatus = invoice.invoiceStatus;
+    const invoiceNumber = invoice.invoiceNumber;
 
     // Auto-lookup CbmIngreso order numbers by tracking intersection
     const packageTrackings = selectedPackages.map((p) => p.tracking_number || '').filter(Boolean);
@@ -113,13 +100,7 @@ export default async function(req: Request): Promise<Response> {
     });
 
     // Update all previous bultos of this client to reflect the new total
-    if (existingBultos.length > 0) {
-      try {
-        await base44.asServiceRole.entities.Bulto.bulkUpdate(
-          existingBultos.map((b) => ({ id: b.id, total_bultos: bultoNumber }))
-        );
-      } catch (_) {}
-    }
+    await syncClientBultoTotals(base44, clientEmail, bultoNumber, existingBultos);
 
     return Response.json({
       bulto: newBulto,

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
+import { markPackagesRecognized } from '../../shared/bultoScan.ts';
 
 // Asigna el/los N° de orden CbmIngreso a un bulto desde la pantalla de escaneo
 // (/BultoOrderScan), que se comparte como enlace directo de trabajo y abre sin sesión.
@@ -71,21 +72,12 @@ export default async function(req: Request): Promise<Response> {
     // Los paquetes del bulto quedan reconocidos en Venezuela: salen del resumen
     // diario de recepción de China y entran al aviso de carga en Venezuela.
     if (firstRecognition) {
-      const packageIds = (Array.isArray(bulto.package_ids) ? bulto.package_ids : [])
-        .filter((id: any) => id && !String(id).startsWith('local_'));
-      if (packageIds.length) {
-        try {
-          await base44.asServiceRole.entities.Package.bulkUpdate(
-            packageIds.map((id: string) => ({ id, ve_recognized_date: now, ve_recognized_by: assignedBy }))
-          );
-        } catch (_) {
-          for (const id of packageIds) {
-            try {
-              await base44.asServiceRole.entities.Package.update(id, { ve_recognized_date: now, ve_recognized_by: assignedBy });
-            } catch (_) {}
-          }
-        }
-      }
+      await markPackagesRecognized(
+        base44,
+        Array.isArray(bulto.package_ids) ? bulto.package_ids : [],
+        now,
+        assignedBy
+      );
     }
 
     return Response.json({ bulto: updated, ve_recognized: firstRecognition });

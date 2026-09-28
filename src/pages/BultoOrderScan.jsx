@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
+import BultoCreateFromScanPanel from '@/components/warehouse/BultoCreateFromScanPanel';
 import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import { Loader2, Save, Lock, Package, ScanLine, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -22,6 +23,9 @@ export default function BultoOrderScan({ user }) {
   const [saving, setSaving] = useState(false);
   const [orderNumbers, setOrderNumbers] = useState('');
   const [error, setError] = useState('');
+  // Etiqueta escaneada que no existe en el sistema: se conserva el código y su foto
+  // para crear el bulto en el momento, sin generar una etiqueta nueva.
+  const [createState, setCreateState] = useState(null);
   // Código escaneado y estado de la foto que la cámara toma automáticamente.
   const [scannedCode, setScannedCode] = useState('');
   const [photoErrors, setPhotoErrors] = useState([]);
@@ -48,6 +52,7 @@ export default function BultoOrderScan({ user }) {
     setOrderNumbers('');
     setScanValue('');
     setError('');
+    setCreateState(null);
     setScannedCode('');
     setPhotoErrors([]);
   }, []);
@@ -62,32 +67,59 @@ export default function BultoOrderScan({ user }) {
     setBulto(null);
     setInvoiceInfo(null);
     setOrderNumbers('');
+    setCreateState(null);
+
+    let res = null;
+    let found = null;
+    let notFound = false;
     try {
-      const res = await base44.functions.invoke('getBultoByLabelCode', { label_code: labelCode });
-      if (res?.data?.error) {
-        setError(res.data.error);
-        toast.error(res.data.error);
+      res = await base44.functions.invoke('getBultoByLabelCode', { label_code: labelCode });
+      found = res?.data?.bulto || null;
+      notFound = !found;
+    } catch (e) {
+      // 404 = la etiqueta todavía no existe en el sistema (no es un fallo de la pantalla).
+      notFound = e?.response?.status === 404;
+      if (!notFound) {
+        setError('Error al buscar el bulto');
+        toast.error('Error al buscar el bulto');
+        setLoading(false);
         return;
       }
-      const found = res?.data?.bulto;
-      if (!found) {
-        setError('Bulto no encontrado');
-        toast.error('Bulto no encontrado');
-        return;
-      }
+    }
+
+    if (found) {
       setBulto(found);
       setInvoiceInfo({
-        invoice_paid: res.data.invoice_paid,
-        invoice_status: res.data.invoice_status,
-        invoice_number: res.data.invoice_number,
+        invoice_paid: res?.data?.invoice_paid,
+        invoice_status: res?.data?.invoice_status,
+        invoice_number: res?.data?.invoice_number,
       });
       // Si ya tiene ordenes asignadas, precargarlas para mostrarlas (solo lectura si locked)
       const existing = Array.isArray(found.cbm_order_numbers) ? found.cbm_order_numbers : [];
       if (existing.length) setOrderNumbers(existing.join(', '));
       toast.success(`Bulto ${found.label_code} encontrado`);
+      setLoading(false);
+      return;
+    }
+
+    // Etiqueta no registrada: se conserva el código escaneado (y la foto capturada) y se
+    // ofrece crear el bulto con esa misma etiqueta impresa, sin generar una nueva.
+    try {
+      const lookup = await base44.functions.invoke('bultoScanLookup', {
+        action: 'label',
+        label_code: labelCode,
+        device_id: deviceIdRef.current,
+      });
+      setCreateState({
+        label_code: labelCode,
+        shipping_mark: lookup?.data?.shipping_mark || '',
+        bulto_number: lookup?.data?.bulto_number || null,
+        client: lookup?.data?.client || null,
+      });
+      toast.info('Etiqueta no registrada: puedes crear el bulto ahora');
     } catch (e) {
-      setError('Error al buscar el bulto');
-      toast.error('Error al buscar el bulto');
+      setError('Bulto no encontrado');
+      toast.error('Bulto no encontrado');
     } finally {
       setLoading(false);
     }
@@ -153,6 +185,17 @@ export default function BultoOrderScan({ user }) {
     await handleSave();
   };
 
+  // El bulto se creó desde esta pantalla: se muestra ya bloqueado con su N° de orden.
+  const handleCreated = useCallback((data) => {
+    setBulto(data?.bulto || null);
+    setInvoiceInfo({
+      invoice_paid: data?.invoice_paid,
+      invoice_status: data?.invoice_status,
+      invoice_number: data?.invoice_number,
+    });
+    setCreateState(null);
+  }, []);
+
   const isLocked = !!bulto?.order_locked;
   const isAdmin = user?.role === 'admin';
   // Empleado no puede editar si está locked. Admin sí puede (para corregir).
@@ -170,19 +213,21 @@ export default function BultoOrderScan({ user }) {
         </div>
       </div>
 
-      <BarcodeScannerModule
-        title="Escanear etiqueta de bulto"
-        description="Apunta la cámara al código de barras de la etiqueta o usa la lectora USB. La cámara toma una foto automática del bulto al leer la etiqueta."
-        placeholder="Código de etiqueta (label_code)"
-        actionLabel="Buscar bulto"
-        cameraLabel="Usar cámara"
-        autoStartCamera
-        continuous={false}
-        value={scanValue}
-        onValueChange={setScanValue}
-        onDetected={handleDetected}
-        onPhotoCaptured={handlePhotoCaptured}
-      />
+      {!createState && (
+        <BarcodeScannerModule
+          title="Escanear etiqueta de bulto"
+          description="Apunta la cámara al código de barras de la etiqueta o usa la lectora USB. La cámara toma una foto automática del bulto al leer la etiqueta."
+          placeholder="Código de etiqueta (label_code)"
+          actionLabel="Buscar bulto"
+          cameraLabel="Usar cámara"
+          autoStartCamera
+          continuous={false}
+          value={scanValue}
+          onValueChange={setScanValue}
+          onDetected={handleDetected}
+          onPhotoCaptured={handlePhotoCaptured}
+        />
+      )}
 
       {photoErrors.length > 0 && (
         <ScanPhotoFailureNotice
@@ -190,6 +235,19 @@ export default function BultoOrderScan({ user }) {
           retrying={photoRetrying}
           onRetry={handleRetryPhoto}
           description="El N° de orden no se guardó. Reintenta la subida de la foto para poder asignarlo."
+        />
+      )}
+
+      {createState && !loading && (
+        <BultoCreateFromScanPanel
+          scannedCode={createState.label_code}
+          shippingMark={createState.shipping_mark}
+          bultoNumber={createState.bulto_number}
+          candidateClient={createState.client}
+          deviceId={deviceIdRef.current}
+          photoApi={{ getPhotoStatus, waitForPhoto, retryPhoto }}
+          onCancel={reset}
+          onCreated={handleCreated}
         />
       )}
 
@@ -205,7 +263,7 @@ export default function BultoOrderScan({ user }) {
         </Card>
       )}
 
-      {bulto && !loading && (
+      {bulto && !loading && !createState && (
         <Card className="shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between gap-2 flex-wrap">
@@ -341,7 +399,7 @@ export default function BultoOrderScan({ user }) {
         </Card>
       )}
 
-      {!bulto && !loading && !error && (
+      {!bulto && !loading && !error && !createState && (
         <div className="text-center text-sm text-slate-400 py-8 flex flex-col items-center gap-2">
           <CheckCircle2 className="h-8 w-8 text-slate-300" />
           Escanea una etiqueta de bulto para comenzar.

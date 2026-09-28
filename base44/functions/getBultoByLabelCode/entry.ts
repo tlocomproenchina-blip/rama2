@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
+import { bultoScanProjection } from '../../shared/bultoScan.ts';
 
 // Busca un bulto por su label_code (escaneado desde la etiqueta térmica).
 // Recibe: { label_code: string }
@@ -30,30 +31,8 @@ export default async function(req: Request): Promise<Response> {
     );
     const latestInvoice = invoices?.[0] || null;
 
-    // Proyección: solo lo que muestran las pantallas de escaneo/verificación.
-    const snap = found.client_snapshot || {};
-    const bulto = {
-      id: found.id,
-      label_code: found.label_code,
-      shipping_mark: found.shipping_mark,
-      client_email: found.client_email,
-      client_snapshot: {
-        full_name: snap.full_name || '',
-        cedula: snap.cedula || '',
-        whatsapp: snap.whatsapp || '',
-        address: snap.address || '',
-        city: snap.city || '',
-        state: snap.state || '',
-      },
-      bulto_number: found.bulto_number,
-      total_bultos: found.total_bultos,
-      status: found.status,
-      package_count: (found.package_ids || []).length,
-      package_trackings: found.package_trackings || [],
-      cbm_order_numbers: found.cbm_order_numbers || [],
-      order_locked: !!found.order_locked,
-      order_assigned_by: found.order_assigned_by || '',
-    };
+    // Proyección compartida: solo lo que muestran las pantallas de escaneo.
+    const bulto = bultoScanProjection(found);
 
     return Response.json({
       bulto,
