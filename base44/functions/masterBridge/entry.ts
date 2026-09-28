@@ -14,6 +14,7 @@ const TIMEOUT_MS = 15000;
 const RETRY_LIMIT = 20;
 const REPORT_LIMIT = 200;
 const SCAN_LIMIT = 10;
+const LEDGER_SCAN_LIMIT = 25;
 const SCAN_WINDOW_MS = 24 * 60 * 60 * 1000;
 const OUTBOX = 'MasterSyncOutbox';
 const TEST_KEY = 'connection_test';
@@ -83,6 +84,113 @@ function prealertPayload(pkg) {
   };
 }
 
+// ---------- facturas y cobros ----------
+
+function invoicePayload(invoice) {
+  return {
+    resource: 'invoices',
+    operation: 'create',
+    client_email: String(invoice.client_email || '').trim().toLowerCase(),
+    invoice_number: String(invoice.invoice_number || '').trim(),
+    invoice_date: invoice.invoice_date || '',
+    due_date: invoice.due_date || '',
+    items: Array.isArray(invoice.items) ? invoice.items : [],
+    subtotal: Number(invoice.subtotal) || 0,
+    tax: Number(invoice.tax) || 0,
+    total: Number(invoice.total) || 0,
+    status: invoice.status || 'pendiente',
+    notes: invoice.notes || '',
+    consolidation_tracking: invoice.consolidation_tracking || '',
+    billed_cbm: Number(invoice.billed_cbm) || 0,
+    total_cbm: Number(invoice.total_cbm) || 0
+  };
+}
+
+// Una factura que ya existe en TLEC CARGO solo se actualiza: nunca se duplica.
+function invoiceChanges(invoice) {
+  return {
+    status: invoice.status || 'pendiente',
+    items: Array.isArray(invoice.items) ? invoice.items : [],
+    subtotal: Number(invoice.subtotal) || 0,
+    tax: Number(invoice.tax) || 0,
+    total: Number(invoice.total) || 0,
+    due_date: invoice.due_date || '',
+    notes: invoice.notes || '',
+    billed_cbm: Number(invoice.billed_cbm) || 0,
+    total_cbm: Number(invoice.total_cbm) || 0
+  };
+}
+
+function paymentPayload(payment, invoiceNumber) {
+  return {
+    resource: 'payments',
+    operation: 'create',
+    client_email: String(payment.client_email || '').trim().toLowerCase(),
+    invoice_number: String(invoiceNumber || '').trim(),
+    amount: Number(payment.amount) || 0,
+    method: payment.method || 'otro',
+    reference: payment.reference || '',
+    proof_url: payment.proof_url || '',
+    status: payment.status || 'pendiente',
+    reported_date: payment.reported_date || payment.created_date || '',
+    description: payment.description || ''
+  };
+}
+
+// Un cobro que ya existe en TLEC CARGO solo se actualiza (su validación cambia de estado).
+function paymentChanges(payment) {
+  return {
+    status: payment.status || 'pendiente',
+    method: payment.method || 'otro',
+    reference: payment.reference || '',
+    proof_url: payment.proof_url || '',
+    reported_date: payment.reported_date || '',
+    description: payment.description || ''
+  };
+}
+
+function dayOf(value) {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : '';
+}
+
+// El mismo abono se reconoce por factura, monto, referencia y día de reporte.
+function isSamePayment(record, payment, invoiceNumber) {
+  if (String(record.invoice_number || '').trim() !== String(invoiceNumber || '').trim()) return false;
+  if ((Number(record.amount) || 0) !== (Number(payment.amount) || 0)) return false;
+  if (String(record.reference || '').trim().toLowerCase() !== String(payment.reference || '').trim().toLowerCase()) return false;
+  return dayOf(record.reported_date) === dayOf(payment.reported_date || payment.created_date);
+}
+
+async function masterList(cfg, resource, clientEmail) {
+  const res = await callMaster(cfg, { resource, operation: 'list', client_email: clientEmail, limit: 200 });
+  if (!res.ok) return null;
+  const rows = res.data?.records;
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function findInvoiceOnMaster(cfg, invoice) {
+  const rows = await masterList(cfg, 'invoices', invoice.client_email);
+  if (!rows) return null;
+  const number = String(invoice.invoice_number || '').trim().toLowerCase();
+  return rows.find((row) => String(row.invoice_number || '').trim().toLowerCase() === number) || null;
+}
+
+async function findPaymentOnMaster(cfg, payment, invoiceNumber) {
+  const rows = await masterList(cfg, 'payments', payment.client_email);
+  if (!rows) return null;
+  return rows.find((row) => isSamePayment(row, payment, invoiceNumber)) || null;
+}
+
+// ¿Ya viajó esta versión del registro? Si cambió después del envío, se manda de nuevo.
+async function alreadySent(svc, idempotencyKey, recordDate) {
+  const row = await findRow(svc, idempotencyKey);
+  if (!row || row.status !== 'enviado') return false;
+  const sent = row.sent_date ? new Date(row.sent_date).getTime() : 0;
+  const changed = recordDate ? new Date(recordDate).getTime() : 0;
+  return sent > 0 && (!changed || sent >= changed);
+}
+
 function responseNote(data) {
   const action = data?.action;
   if (action === 'created') return 'Registrado en TLEC CARGO';
@@ -124,12 +232,12 @@ async function findRow(svc, idempotencyKey) {
   return rows?.[0] || null;
 }
 
-// Crea o reactiva la fila de la cola. Devuelve null cuando ya viajó antes.
-async function enqueue(svc, data) {
+// Deja la fila lista para enviarse: la crea o la reactiva con el cuerpo nuevo.
+async function stage(svc, data) {
   const row = await findRow(svc, data.idempotency_key);
-  if (row && row.status === 'enviado') return null;
   if (row) {
     return await svc.entities[OUTBOX].update(row.id, {
+      resource: data.resource,
       payload: data.payload,
       label: data.label,
       record_id: data.record_id,
@@ -145,6 +253,13 @@ async function enqueue(svc, data) {
     status: 'pendiente',
     attempts: 0
   });
+}
+
+// Crea o reactiva la fila de la cola. Devuelve null cuando ya viajó antes.
+async function enqueue(svc, data) {
+  const row = await findRow(svc, data.idempotency_key);
+  if (row && row.status === 'enviado') return null;
+  return await stage(svc, data);
 }
 
 async function attempt(svc, cfg, row) {
@@ -205,7 +320,9 @@ async function syncClient(svc, cfg, email) {
   if (!client) return { ok: false, message: `No existe el cliente ${clean} en esta app` };
   if (client.role && client.role !== 'user') return { ok: true, already: true, message: 'Es un usuario interno, no se envía' };
 
-  // En la maestra el cliente ya vive aquí: no hay nada que enviar ni que encolar.
+  // Sin conexión guardada no hay nada que encolar: la maestra (y cualquier copia
+  // que todavía no esté configurada) no llena la cola con sus propios registros.
+  if (!cfg.configured) return { ok: false, message: 'Falta configurar la conexión con TLEC CARGO' };
   if (await isMasterApp(svc)) return { ok: true, already: true, message: 'Es la app maestra: no se envía' };
 
   const row = await enqueue(svc, {
@@ -216,7 +333,6 @@ async function syncClient(svc, cfg, email) {
     payload: clientPayload(client)
   });
   if (!row) return { ok: true, already: true, message: 'El cliente ya fue enviado' };
-  if (!cfg.configured) return { ok: false, message: 'Falta configurar la conexión con TLEC CARGO' };
   return await attempt(svc, cfg, row);
 }
 
@@ -234,6 +350,8 @@ async function syncPrealert(svc, cfg, packageId) {
   if (!pkg.client_email) return { ok: false, message: 'El paquete no tiene cliente asignado' };
   if (!pkg.tracking_number) return { ok: false, message: 'El paquete no tiene número de tracking' };
 
+  // Sin conexión guardada no hay nada que encolar (ver syncClient).
+  if (!cfg.configured) return { ok: false, message: 'Falta configurar la conexión con TLEC CARGO' };
   // En la maestra la pre-alerta ya vive aquí: no hay nada que enviar ni que encolar.
   if (await isMasterApp(svc)) return { ok: true, already: true, message: 'Es la app maestra: no se envía' };
 
@@ -249,10 +367,103 @@ async function syncPrealert(svc, cfg, packageId) {
     payload: prealertPayload(pkg)
   });
   if (!row) return { ok: true, already: true, message: 'La pre-alerta ya fue enviada', client: clientResult };
-  if (!cfg.configured) return { ok: false, message: 'Falta configurar la conexión con TLEC CARGO', client: clientResult };
 
   const result = await attempt(svc, cfg, row);
   return { ...result, client: clientResult };
+}
+
+// Envía la factura de la copia. Si ya existe en TLEC CARGO se actualiza, así el
+// reintento de un envío dudoso nunca deja la factura repetida.
+async function pushInvoice(svc, cfg, invoice) {
+  const key = `invoices:${invoice.invoice_number}`;
+  if (await alreadySent(svc, key, invoice.updated_date)) {
+    return { ok: true, already: true, message: 'La factura ya estaba enviada' };
+  }
+
+  const existing = await findInvoiceOnMaster(cfg, invoice);
+  const payload = existing
+    ? { resource: 'invoices', operation: 'update', id: existing.id, data: invoiceChanges(invoice) }
+    : invoicePayload(invoice);
+
+  const row = await stage(svc, {
+    resource: 'invoices',
+    record_id: invoice.id,
+    idempotency_key: key,
+    label: invoice.invoice_number,
+    payload
+  });
+  return await attempt(svc, cfg, row);
+}
+
+async function syncInvoice(svc, cfg, invoiceId) {
+  const id = String(invoiceId || '').trim();
+  if (!id) return { ok: false, message: 'Falta el id de la factura' };
+
+  let invoice = null;
+  try {
+    invoice = await svc.entities.Invoice.get(id);
+  } catch (_) {
+    invoice = null;
+  }
+  if (!invoice) return { ok: false, message: 'No existe esa factura en esta app' };
+  if (!invoice.invoice_number || !invoice.client_email) {
+    return { ok: true, already: true, message: 'La factura está incompleta: no se envía' };
+  }
+  if (await isMasterApp(svc)) return { ok: true, already: true, message: 'Es la app maestra: no se envía' };
+  if (!cfg.configured) return { ok: false, message: 'Falta configurar la conexión con TLEC CARGO' };
+  return await pushInvoice(svc, cfg, invoice);
+}
+
+// Envía el cobro de la copia. La factura va primero y el cobro se reconoce por
+// su factura, monto, referencia y día: el reenvío actualiza, no duplica.
+async function pushPayment(svc, cfg, payment, invoice) {
+  const key = `payments:${payment.id}`;
+  if (await alreadySent(svc, key, payment.updated_date)) {
+    return { ok: true, already: true, message: 'El cobro ya estaba enviado' };
+  }
+
+  await pushInvoice(svc, cfg, invoice);
+
+  const existing = await findPaymentOnMaster(cfg, payment, invoice.invoice_number);
+  const payload = existing
+    ? { resource: 'payments', operation: 'update', id: existing.id, data: paymentChanges(payment) }
+    : paymentPayload(payment, invoice.invoice_number);
+
+  const row = await stage(svc, {
+    resource: 'payments',
+    record_id: payment.id,
+    idempotency_key: key,
+    label: `${invoice.invoice_number} · $${Number(payment.amount) || 0}`,
+    payload
+  });
+  return await attempt(svc, cfg, row);
+}
+
+async function syncPayment(svc, cfg, paymentId) {
+  const id = String(paymentId || '').trim();
+  if (!id) return { ok: false, message: 'Falta el id del cobro' };
+
+  let payment = null;
+  try {
+    payment = await svc.entities.InvoicePayment.get(id);
+  } catch (_) {
+    payment = null;
+  }
+  if (!payment) return { ok: false, message: 'No existe ese cobro en esta app' };
+  if (!(Number(payment.amount) > 0)) return { ok: true, already: true, message: 'El cobro no tiene monto: no se envía' };
+
+  let invoice = null;
+  try {
+    invoice = payment.invoice_id ? await svc.entities.Invoice.get(payment.invoice_id) : null;
+  } catch (_) {
+    invoice = null;
+  }
+  if (!invoice || !invoice.invoice_number) {
+    return { ok: false, message: 'El cobro no tiene una factura válida en esta app' };
+  }
+  if (await isMasterApp(svc)) return { ok: true, already: true, message: 'Es la app maestra: no se envía' };
+  if (!cfg.configured) return { ok: false, message: 'Falta configurar la conexión con TLEC CARGO' };
+  return await pushPayment(svc, cfg, payment, invoice);
 }
 
 function failureText(result) {
@@ -510,7 +721,11 @@ async function flushOutbox(svc, cfg) {
   for (const row of errors || []) {
     if (row.resource === 'health') continue;
     summary.retried += 1;
-    const res = await attempt(svc, cfg, row);
+    // Facturas y cobros se reintentan releyendo el registro: su estado pudo
+    // cambiar desde el intento anterior y el cuerpo viejo duplicaría el registro.
+    const res = row.resource === 'invoices' ? await syncInvoice(svc, cfg, row.record_id)
+      : row.resource === 'payments' ? await syncPayment(svc, cfg, row.record_id)
+        : await attempt(svc, cfg, row);
     if (res.ok) summary.sent += 1;
     else summary.failed += 1;
   }
@@ -529,6 +744,28 @@ async function flushOutbox(svc, cfg) {
     summary.scanned += 1;
     const res = await syncPrealert(svc, cfg, pkg.id);
     if (res.ok && !res.already) summary.sent += 1;
+  }
+
+  // Facturas y cobros: se recogen los que se crearon o cambiaron en las últimas
+  // 24 horas. Los que ya viajaron sin cambios se saltan sin llamar a la maestra.
+  if (!(await isMasterApp(svc))) {
+    const invoices = await svc.entities.Invoice.list('-updated_date', LEDGER_SCAN_LIMIT);
+    for (const invoice of invoices || []) {
+      if (!invoice.invoice_number || !invoice.client_email) continue;
+      if (!isRecent(invoice.updated_date || invoice.created_date)) continue;
+      summary.scanned += 1;
+      const res = await syncInvoice(svc, cfg, invoice.id);
+      if (res.ok && !res.already) summary.sent += 1;
+    }
+
+    const payments = await svc.entities.InvoicePayment.list('-updated_date', LEDGER_SCAN_LIMIT);
+    for (const payment of payments || []) {
+      if (!payment.invoice_id) continue;
+      if (!isRecent(payment.updated_date || payment.created_date)) continue;
+      summary.scanned += 1;
+      const res = await syncPayment(svc, cfg, payment.id);
+      if (res.ok && !res.already) summary.sent += 1;
+    }
   }
 
   // La copia reporta su estado a la maestra al cerrar el ciclo, aunque no tenga pendientes.
