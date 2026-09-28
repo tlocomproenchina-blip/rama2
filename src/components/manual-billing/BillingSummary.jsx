@@ -124,7 +124,6 @@ export default function BillingSummary({
           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
             <SelectTrigger><SelectValue placeholder="Selecciona método" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="stripe_invoice">Stripe (tarjeta)</SelectItem>
               {appConfig?.payments_enable_binance !== false && <SelectItem value="binance">Binance</SelectItem>}
               {appConfig?.payments_enable_usdt_trc20 !== false && <SelectItem value="usdt_trc20">USDT TRC20</SelectItem>}
               {appConfig?.payments_enable_paypal !== false && <SelectItem value="paypal">PayPal</SelectItem>}

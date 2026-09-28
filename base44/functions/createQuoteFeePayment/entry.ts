@@ -1,14 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import Stripe from 'npm:stripe@14.25.0';
-
-function getStripeSecretKey() {
-  return (
-    Deno.env.get('STRIPE_SECRET_KEY') ||
-    Deno.env.get('CLAVESECRETA') ||
-    Deno.env.get('STRIPEAPI') ||
-    null
-  );
-}
 
 async function getPayPalAccessToken() {
   const clientId = Deno.env.get('PAYPAL_CLIENT_ID');
@@ -54,9 +44,9 @@ export default async function(req) {
     const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
     const config = (configs && configs[0]) || {};
     const amount = Number(config.quote_fee_amount) || 20;
-    const enabledMethods = Array.isArray(config.quote_fee_enabled_methods) && config.quote_fee_enabled_methods.length
+    const enabledMethods = (Array.isArray(config.quote_fee_enabled_methods) && config.quote_fee_enabled_methods.length
       ? config.quote_fee_enabled_methods
-      : ['stripe', 'paypal'];
+      : ['paypal']).filter((m) => m !== 'stripe');
 
     if (!enabledMethods.includes(method)) {
       return Response.json({ error: 'Método de pago no habilitado' }, { status: 400 });
@@ -88,30 +78,6 @@ export default async function(req) {
     });
 
     const result = { payment_id: payment.id, amount, method };
-
-    // Para Stripe: crear PaymentIntent
-    if (method === 'stripe') {
-      const stripeSecret = getStripeSecretKey();
-      if (!stripeSecret) {
-        return Response.json({ error: 'Stripe no configurado' }, { status: 500 });
-      }
-      const stripe = new Stripe(stripeSecret, { apiVersion: '2023-10-16' });
-      const pi = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100),
-        currency: 'usd',
-        automatic_payment_methods: { enabled: true },
-        receipt_email: client_email,
-        description: `Tarifa de presupuesto - TLEC CARGO`,
-        metadata: {
-          quote_fee_payment_id: payment.id,
-          client_email: client_email.toLowerCase(),
-        },
-      });
-      await base44.asServiceRole.entities.QuoteFeePayment.update(payment.id, {
-        stripe_payment_intent_id: pi.id,
-      });
-      result.stripe_client_secret = pi.client_secret;
-    }
 
     // Para PayPal: crear orden
     if (method === 'paypal') {

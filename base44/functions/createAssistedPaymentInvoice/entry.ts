@@ -101,8 +101,8 @@ Deno.serve(async (req) => {
       invoice_id: invoice.id
     });
 
-    // Notificar al cliente que su factura está lista (Stripe descontinuado:
-    // el cliente paga con los métodos habilitados desde su portal).
+    // Notificar al cliente que su factura está lista: el cliente paga
+    // con los métodos habilitados desde su portal.
     try {
       await base44.asServiceRole.entities.Notification.create({
         user_email: apReq.client_email,

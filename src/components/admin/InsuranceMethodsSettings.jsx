@@ -1,10 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { ShieldCheck } from 'lucide-react';
 
 const ALL_METHODS = [
-  { key: 'stripe', label: 'Tarjeta (Stripe)' },
   { key: 'paypal', label: 'PayPal' },
   { key: 'binance', label: 'Binance Pay' },
   { key: 'usdt_trc20', label: 'USDT TRC20' },
@@ -20,15 +19,26 @@ const ALL_METHODS = [
 
 export default function InsuranceMethodsSettings({ config, setConfig }) {
   const selected = useMemo(
-    () => (Array.isArray(config?.insurance_enabled_methods) ? config.insurance_enabled_methods : []),
+    () => (Array.isArray(config?.insurance_enabled_methods)
+      ? config.insurance_enabled_methods.filter((m) => m !== 'stripe')
+      : []),
     [config?.insurance_enabled_methods]
   );
 
   const toggleMethod = (key) => {
-    const current = Array.isArray(config?.insurance_enabled_methods) ? config.insurance_enabled_methods : [];
+    const current = Array.isArray(config?.insurance_enabled_methods)
+      ? config.insurance_enabled_methods.filter((m) => m !== 'stripe')
+      : [];
     const next = current.includes(key) ? current.filter((m) => m !== key) : [...current, key];
     setConfig((prev) => ({ ...prev, insurance_enabled_methods: next }));
   };
+
+  // Limpia selecciones antiguas que apuntaban a la pasarela retirada
+  useEffect(() => {
+    if (Array.isArray(config?.insurance_enabled_methods) && config.insurance_enabled_methods.includes('stripe')) {
+      setConfig((prev) => ({ ...prev, insurance_enabled_methods: prev.insurance_enabled_methods.filter((m) => m !== 'stripe') }));
+    }
+  }, [config?.insurance_enabled_methods, setConfig]);
 
   return (
     <Card className="rounded-2xl border-0 shadow-lg">

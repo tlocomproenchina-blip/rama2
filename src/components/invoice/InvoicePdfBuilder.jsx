@@ -24,7 +24,7 @@ async function loadImageData(url) {
 }
 
 /**
- * Genera un PDF de factura con estructura tipo Stripe.
+ * Genera un PDF de factura de TLEC CARGO.
  * @param {object} invoice - registro de factura
  * @param {object} appConfig - configuración de la app (datos de empresa)
  * @param {object|null} clientUser - usuario cliente (para nombre, dirección, teléfono)

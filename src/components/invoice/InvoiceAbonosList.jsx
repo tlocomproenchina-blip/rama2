@@ -18,7 +18,7 @@ const METHOD_LABELS = {
   wise: 'Wise',
   skrill: 'Skrill',
   pago_movil_usdt: 'Pago Móvil → USDT',
-  stripe: 'Stripe',
+  stripe: 'Tarjeta',
   otro: 'Otro'
 };
 

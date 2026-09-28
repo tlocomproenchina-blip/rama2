@@ -53,7 +53,7 @@ export default function InsurancePaymentModal({
         if (c.payments_enable_pago_movil_usdt === true && (c.pago_movil_phone || c.wallet_pago_movil_usdt)) allMethods.push({ id: 'pago_movil_usdt', name: 'Pago Móvil → BCV', color: 'orange' });
         if (c.payments_enable_transferencia === true) allMethods.push({ id: 'transferencia', name: 'Transferencia', color: 'slate' });
         // Filtrar por métodos específicos del seguro si están definidos
-        const insuranceMethods = Array.isArray(c.insurance_enabled_methods) ? c.insurance_enabled_methods : [];
+        const insuranceMethods = Array.isArray(c.insurance_enabled_methods) ? c.insurance_enabled_methods.filter((m) => m !== 'stripe') : [];
         const methods = insuranceMethods.length
           ? allMethods.filter((m) => insuranceMethods.includes(m.id))
           : allMethods;

@@ -17,7 +17,7 @@ const methodLabels = {
   skrill: 'Skrill',
   pago_movil_usdt: 'Pago Móvil → USDT',
   transferencia: 'Transferencia',
-  stripe: 'Stripe',
+  stripe: 'Tarjeta',
   otro: 'Otro'
 };
 

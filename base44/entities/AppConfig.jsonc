@@ -115,7 +115,6 @@
       "items": {
         "type": "string",
         "enum": [
-          "stripe",
           "paypal",
           "binance",
           "usdt_trc20",
@@ -130,7 +129,6 @@
         ]
       },
       "default": [
-        "stripe",
         "paypal"
       ]
     },
@@ -183,7 +181,6 @@
       "items": {
         "type": "string",
         "enum": [
-          "stripe",
           "paypal",
           "binance",
           "usdt_trc20",
@@ -581,10 +578,6 @@
       "default": true,
       "description": "Permitir que los clientes actualicen sus datos de perfil"
     },
-    "payments_enable_stripe": {
-      "type": "boolean",
-      "default": true
-    },
     "payments_enable_binance": {
       "type": "boolean",
       "default": true
@@ -625,36 +618,6 @@
       "type": "boolean",
       "default": true,
       "description": "Habilitar Transferencia bancaria como m\u00e9todo de pago"
-    },
-    "payments_stripe_sync_mode": {
-      "type": "string",
-      "enum": [
-        "auto",
-        "confirm",
-        "button"
-      ],
-      "default": "auto",
-      "description": "C\u00f3mo sincronizar con Stripe al marcar como pagada: auto, pedir confirmaci\u00f3n o bot\u00f3n separado"
-    },
-    "payments_stripe_details_mode": {
-      "type": "string",
-      "enum": [
-        "none",
-        "metadata",
-        "description"
-      ],
-      "default": "none",
-      "description": "Qu\u00e9 detalles guardar en Stripe al marcar pagada fuera de banda"
-    },
-    "payments_stripe_error_mode": {
-      "type": "string",
-      "enum": [
-        "revert",
-        "keep_and_alert",
-        "retry_then_revert"
-      ],
-      "default": "keep_and_alert",
-      "description": "Comportamiento ante errores de Stripe al sincronizar"
     },
     "maintenance_mode": {
       "type": "boolean",
@@ -710,7 +673,7 @@
     "demo_mode": {
       "type": "boolean",
       "default": false,
-      "description": "Modo demo: desactiva integraciones externas (Stripe, PayPal, emails, push, webhooks)"
+      "description": "Modo demo: desactiva integraciones externas (PayPal, emails, push, webhooks)"
     },
     "demo_mode_message": {
       "type": "string",

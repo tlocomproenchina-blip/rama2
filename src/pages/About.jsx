@@ -33,7 +33,7 @@ export default function About() {
             Nuestro sistema permite a cada cliente registrar sus paquetes por adelantado mediante
             un Shipping Mark único, recibirlos en nuestro almacén, consolidarlos por vía aérea o
             marítima, calcular tarifas con total claridad, gestionar seguros opcionales, generar
-            facturas, pagar con múltiples métodos (incluyendo Stripe, PayPal, USDT, Zelle y pago
+            facturas, pagar con múltiples métodos (incluyendo PayPal, USDT, Zelle y pago
             móvil) y hacer seguimiento en tiempo real de cada envío con notificaciones push y por
             correo electrónico.
           </p>
