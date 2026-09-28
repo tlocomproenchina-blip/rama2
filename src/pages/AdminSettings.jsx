@@ -1283,7 +1283,7 @@ export default function AdminSettings({ user }) {
                     </div>
                     <div>
                       <h3 className="font-semibold text-slate-800 text-lg">Modo Demo / APIs externas</h3>
-                      <p className="text-sm text-slate-600">Desactiva integraciones externas como PayPal, envío de emails, notificaciones push y webhooks sin afectar la funcionalidad principal.</p>
+                      <p className="text-sm text-slate-600">Desactiva integraciones externas como Stripe, PayPal, envío de emails, notificaciones push y webhooks sin afectar la funcionalidad principal.</p>
                     </div>
                   </div>
                   <Switch
@@ -1295,7 +1295,7 @@ export default function AdminSettings({ user }) {
                   <div className="space-y-3">
                     <div className="p-3 bg-white rounded-lg border border-amber-200">
                       <p className="text-sm text-amber-800">
-                        <strong>Cuando está activo:</strong> Se muestra un banner en toda la app. Las llamadas a PayPal, envío de correos, notificaciones push y webhooks se bloquean o simulan.
+                        <strong>Cuando está activo:</strong> Se muestra un banner en toda la app. Las llamadas a Stripe, PayPal, envío de correos, notificaciones push y webhooks se bloquean o simulan.
                       </p>
                     </div>
                     <div className="space-y-2">

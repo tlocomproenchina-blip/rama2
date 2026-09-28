@@ -154,11 +154,7 @@ export default function WarehouseBillingItemRow({ item, amount, checked, onToggl
                   ? 'tarifa especial por volumen'
                   : `${money(item.registered_rate_per_cbm)}/CBM`}
               </p>
-              {item.origin_app_id ? (
-                <p className="text-xs text-indigo-600">
-                  Tarifa propia de {item.origin_app_label || 'la copia'} (sin recargo de estado)
-                </p>
-              ) : stateLabel ? (
+              {stateLabel ? (
                 <p className="text-xs text-slate-500">Estado del cliente usado: {stateLabel}</p>
               ) : (
                 <p className="text-xs text-amber-600">
@@ -168,11 +164,6 @@ export default function WarehouseBillingItemRow({ item, amount, checked, onToggl
             </div>
           )}
 
-          {item.origin_app_label && (
-            <Badge className="mt-2 mr-1 bg-indigo-100 text-indigo-700 border border-indigo-200">
-              De la copia {item.origin_app_label}
-            </Badge>
-          )}
           {hasTariff && rateLabel === 'anterior' && (
             <Badge className="mt-2 mr-1 bg-sky-100 text-sky-700 border border-sky-200">Tarifa anterior</Badge>
           )}

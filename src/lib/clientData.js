@@ -34,6 +34,7 @@ export function normalizeClient(user) {
     address: u.address || null,
     is_active: u.is_active !== false,
     profile_completed: !!u.profile_completed,
+    stripe_customer_id: u.stripe_customer_id || null,
     role: u.role || 'user',
     custom_role: u.custom_role || null,
   };

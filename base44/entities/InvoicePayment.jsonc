@@ -85,14 +85,6 @@
       "format": "date-time",
       "description": "Fecha en que el admin rechaz\u00f3 el abono"
     },
-    "origin_app_id": {
-      "type": "string",
-      "description": "ID de la app integrada (IntegratedApp) que registr\u00f3 este abono desde una copia. Vac\u00edo = registrado directamente en TLEC CARGO."
-    },
-    "origin_app_label": {
-      "type": "string",
-      "description": "Nombre de la app integrada que origin\u00f3 el registro (cache para mostrar)"
-    },
     "description": {
       "type": "string",
       "maxLength": 1000,

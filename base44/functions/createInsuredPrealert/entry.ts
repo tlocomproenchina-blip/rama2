@@ -125,9 +125,6 @@ export default async function(req: Request): Promise<Response> {
       });
     }
 
-    // Copia conectada: enviar la pre-alerta a TLEC CARGO sin bloquear la respuesta
-    base44.functions.invoke('masterBridge', { action: 'sync_prealert', package_id: pkgRecord.id }).catch(() => {});
-
     // 2) Crear el registro de pago del seguro (pendiente de validación)
     const insurancePayment = await base44.asServiceRole.entities.InsurancePayment.create({
       client_email: user.email,

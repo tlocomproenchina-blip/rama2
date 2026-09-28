@@ -26,6 +26,7 @@ function ClientCard({
   onView,
   onEdit,
   onDelete,
+  onDeleteStripeCustomer,
   onToggleActive,
   onChangeRole,
 }) {
@@ -181,6 +182,16 @@ function ClientCard({
             <Edit2 className="h-4 w-4 mr-1" />
             Editar
           </Button>
+          {client.stripe_customer_id && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDeleteStripeCustomer(client)}
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+            >
+              <Trash2 className="h-4 w-4 mr-1" /> Stripe
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"

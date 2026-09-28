@@ -52,11 +52,6 @@ export default function WarehouseBillingList({ clients, onOpen }) {
                       <div className="text-xs text-slate-500 mt-0.5">
                         {[c.shipping_mark, c.city, c.state].filter(Boolean).join(' · ')}
                       </div>
-                      {c.copies?.length > 0 && (
-                        <Badge className="mt-1 bg-indigo-100 text-indigo-700 border border-indigo-200">
-                          Carga de {c.copies.join(', ')}
-                        </Badge>
-                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Badge variant="secondary">{c.totals.bultos}</Badge>
@@ -121,11 +116,6 @@ export default function WarehouseBillingList({ clients, onOpen }) {
                       <span key={o} className="rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-mono text-primary">{o}</span>
                     ))}
                   </div>
-                )}
-                {c.copies?.length > 0 && (
-                  <Badge className="bg-indigo-100 text-indigo-700 border border-indigo-200">
-                    Carga de {c.copies.join(', ')}
-                  </Badge>
                 )}
                 <Button size="sm" variant="outline" className="w-full" onClick={() => onOpen(c)}>
                   Abrir cliente <ChevronRight className="h-3.5 w-3.5 ml-1" />

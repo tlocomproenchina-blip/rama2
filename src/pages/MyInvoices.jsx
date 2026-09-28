@@ -9,6 +9,7 @@ import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { createPageUrl } from '@/utils';
 import PayPalInline from '@/components/payments/PayPalInline';
 import PaymentModal from '@/components/PaymentModal';
+import StripeCheckout from '@/components/payments/StripeCheckout';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
@@ -21,8 +22,12 @@ export default function MyInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedConsolidation, setSelectedConsolidation] = useState(null);
+  const [stripeClientSecret, setStripeClientSecret] = useState('');
+  const [stripePublishableKey, setStripePublishableKey] = useState('');
+  const [stripeOpen, setStripeOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [config, setConfig] = useState(null);
   const [paypalOpen, setPaypalOpen] = useState(false);
@@ -66,6 +71,19 @@ export default function MyInvoices({ user }) {
       }
     });
 
+    // Permite abrir Stripe desde otros componentes (ej: modal de consolidación)
+    const handler = (e) => {
+      const { clientSecret, publishableKey, invoiceId } = e.detail || {};
+      if (clientSecret && publishableKey) {
+        setStripeClientSecret(clientSecret);
+        setStripePublishableKey(publishableKey);
+        const inv = invoices.find(i => i.id === invoiceId);
+        if (inv) setSelectedInvoice(inv);
+        setStripeOpen(true);
+      }
+    };
+    window.addEventListener('openStripeForInvoice', handler);
+    return () => window.removeEventListener('openStripeForInvoice', handler);
   }, []);
 
   // Tiempo real: refrescar facturas cuando cambian (abono aprobado, estado, etc.)
@@ -87,6 +105,32 @@ export default function MyInvoices({ user }) {
     }
     setHasMore(data.length === PAGE_SIZE);
     if (append) setLoadingMore(false); else setLoading(false);
+  };
+
+  const handlePayOnline = async (invoice) => {
+    setProcessingPayment(true);
+    try {
+      // 1) Clave publicable de Stripe
+      const cfg = await base44.functions.invoke('getStripeConfig');
+      if (cfg.status !== 200 || !cfg.data?.publishableKey) {
+        throw new Error('Stripe no está configurado correctamente');
+      }
+      setStripePublishableKey(cfg.data.publishableKey);
+
+      // 2) Crear/reusar PaymentIntent para esta factura
+      const res = await base44.functions.invoke('createStripePaymentIntent', { invoice_id: invoice.id });
+      if (res.status !== 200 || !res.data?.client_secret) {
+        throw new Error(res.data?.error || 'No se pudo iniciar el pago');
+      }
+      setStripeClientSecret(res.data.client_secret);
+      setSelectedInvoice(invoice);
+      setStripeOpen(true);
+    } catch (error) {
+      toast.error(error.message || 'No se pudo abrir Stripe');
+      console.error(error);
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
   const handlePayPal = async (invoice) => {
@@ -176,7 +220,7 @@ export default function MyInvoices({ user }) {
     return stats;
   }, [invoices]);
 
-  // Mostrar facturas "pendiente" solo si hay métodos de pago habilitados
+  // Mostrar facturas "pendiente" si tienen link de Stripe O si hay otros métodos de pago habilitados
   const hasOtherMethodsConfigured = useMemo(() => {
     const c = config || {};
     return (
@@ -193,7 +237,7 @@ export default function MyInvoices({ user }) {
 
   const visibleInvoices = useMemo(() => filteredInvoices.filter(inv => {
     if (inv.status !== 'pendiente') return true;
-    return hasOtherMethodsConfigured;
+    return !!inv.stripe_hosted_invoice_url || hasOtherMethodsConfigured;
   }), [filteredInvoices, hasOtherMethodsConfigured]);
 
   // Scroll automático a la factura resaltada (viene de "Ir a pagar")
@@ -222,7 +266,7 @@ export default function MyInvoices({ user }) {
         eyebrow="Finanzas y ayuda"
         title="Mis Facturas"
         description="Gestiona, busca y descarga tus facturas con una vista más clara y premium."
-        badges={[`${visibleInvoices.length} visibles`, hasOtherMethodsConfigured ? 'Pago disponible' : 'Pago en configuración']}
+        badges={[`${visibleInvoices.length} visibles`, config?.payments_enable_stripe === true ? 'Stripe activo' : 'Stripe inactivo']}
         aside={
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Resumen financiero</p>
@@ -281,7 +325,9 @@ export default function MyInvoices({ user }) {
               <InvoiceCard
                 invoice={invoice}
                 user={user}
+                onPay={handlePayOnline}
                 onDownload={handleDownloadPDF}
+                showPayButton={config?.payments_enable_stripe === true}
                 onPayPal={handlePayPal}
                 showPayPalButton={config?.payments_enable_paypal === true}
                 onAbono={(inv) => {
@@ -303,6 +349,56 @@ export default function MyInvoices({ user }) {
             ))}
           </div>
         </>
+      )}
+
+      {processingPayment && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="p-8">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+              <p className="text-slate-600">Procesando pago...</p>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal Stripe */}
+      {stripeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-slate-800">Pagar factura</h3>
+              <Button variant="ghost" onClick={() => setStripeOpen(false)}>Cerrar</Button>
+            </div>
+            <div className="mb-4 text-sm text-slate-600">
+              {selectedInvoice && (
+                <div className="flex justify-between">
+                  <span>Factura #{selectedInvoice.invoice_number}</span>
+                  <span className="font-medium">${selectedInvoice.total.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+            <StripeCheckout 
+              clientSecret={stripeClientSecret} 
+              publishableKey={stripePublishableKey}
+              onSuccess={async (pi) => {
+                try {
+                  const res = await base44.functions.invoke('verifyStripePayment', { payment_intent_id: pi?.id });
+                  if (res.status === 200 && res.data?.success) {
+                    toast.success('Pago confirmado y factura actualizada');
+                  } else {
+                    toast.success('Pago confirmado; sincronizando...');
+                  }
+                } catch (e) {
+                  console.error('Sync error:', e);
+                  toast.success('Pago confirmado');
+                }
+                setStripeOpen(false);
+                await loadInvoices();
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {/* Modal PayPal */}

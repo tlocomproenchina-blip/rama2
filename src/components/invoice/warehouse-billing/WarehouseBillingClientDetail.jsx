@@ -114,7 +114,7 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
 
     let tariff = null;
     if (shouldRegister) {
-      const calc = ctx.calcTariff(cbm, item.fecha, risk, item.origin_app_id);
+      const calc = ctx.calcTariff(cbm, item.fecha, risk);
       if (calc.amount <= 0) {
         toast.error('No se pudo calcular la tarifa: revisa el CBM y las tarifas vigentes');
         return false;
@@ -206,11 +206,6 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
           <div className="flex flex-wrap gap-2 mt-1 text-xs text-slate-500">
             {client.shipping_mark && <span className="font-mono">{client.shipping_mark}</span>}
             {client.state && <span>· {client.state}</span>}
-            {client.copies?.length > 0 && (
-              <Badge className="bg-indigo-100 text-indigo-700 border border-indigo-200">
-                Carga de {client.copies.join(', ')}
-              </Badge>
-            )}
             {!client.registered && <Badge variant="secondary">Cliente sin cuenta registrada</Badge>}
           </div>
         </div>
@@ -239,7 +234,7 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
                   item={item}
                   amount={amounts[item.id] || 0}
                   stateLabel={stateLabel}
-                  rateLabel={ctx.getRateLabel(item.fecha, item.origin_app_id)}
+                  rateLabel={ctx.getRateLabel(item.fecha)}
                   checked={!!selectedBultos[item.id]}
                   onToggle={() => setSelectedBultos((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
                   onSave={handleSaveCargo}

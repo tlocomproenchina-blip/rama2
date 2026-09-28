@@ -95,7 +95,6 @@ export const PAGE_LABELS = {
   AdminSupportTickets: 'Tickets Soporte',
   AdminFAQ: 'Gestionar FAQ',
   AdminClients: 'Clientes',
-  AdminIntegratedApps: 'Apps Integradas',
   AdminEmployees: 'Empleados',
   AdminEmployeeAudit: 'Auditoría de Acciones',
   AdminEmployeePerformance: 'Rendimiento Empleados',

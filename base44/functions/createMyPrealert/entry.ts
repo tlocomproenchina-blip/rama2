@@ -34,13 +34,6 @@ Deno.serve(async (req) => {
       } catch (_) {}
     };
 
-    // Copia conectada: enviar la pre-alerta a TLEC CARGO sin bloquear la respuesta al
-    // cliente. Si la llamada se pierde, la cola del puente la recoge en los siguientes 15 min.
-    const syncToMaster = (pkgId) => {
-      if (!pkgId) return;
-      base44.functions.invoke('masterBridge', { action: 'sync_prealert', package_id: pkgId }).catch(() => {});
-    };
-
     // 1) Reclamo automático: si existe un huérfano con el mismo tracking, reclamarlo
     const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
     const orphan = existing.find((p) => p.is_orphan);
@@ -65,7 +58,6 @@ Deno.serve(async (req) => {
         ...(labelCode ? { label_code: labelCode } : {}),
       });
       await linkLabel(claimed.id);
-      syncToMaster(claimed.id);
       return Response.json({ package: claimed, claimed_orphan: true });
     }
 
@@ -94,7 +86,6 @@ Deno.serve(async (req) => {
           reported: true,
         });
         await linkLabel(updated.id);
-        syncToMaster(updated.id);
         return Response.json({ package: updated, linked_from_label: true });
       }
     }
@@ -117,7 +108,6 @@ Deno.serve(async (req) => {
       ...(labelCode ? { label_code: labelCode } : {}),
     });
     await linkLabel(newPackage.id);
-    syncToMaster(newPackage.id);
     return Response.json({ package: newPackage });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

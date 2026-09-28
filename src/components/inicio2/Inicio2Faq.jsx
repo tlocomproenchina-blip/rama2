@@ -17,7 +17,7 @@ const faqs = [
   },
   {
     q: '¿Cuáles son las formas de pago aceptadas?',
-    a: 'Aceptamos múltiples métodos de pago: Zelle, Binance Pay, USDT (TRC20), PayPal, Zinli, Wally, Wise, Skrill y Pago Móvil. El pago se realiza al momento de facturar tu carga, antes del despacho en Venezuela.',
+    a: 'Aceptamos múltiples métodos de pago: Zelle, Binance Pay, USDT (TRC20), PayPal, tarjetas internacionales vía Stripe, Zinli, Wally, Wise, Skrill y Pago Móvil. El pago se realiza al momento de facturar tu carga, antes del despacho en Venezuela.',
   },
   {
     q: '¿Qué artículos están prohibidos enviar por aduana?',

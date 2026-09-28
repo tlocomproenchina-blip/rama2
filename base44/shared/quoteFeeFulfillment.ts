@@ -1,5 +1,5 @@
 // Lógica compartida para fulfill de pagos de tarifa de presupuesto.
-// Usado por confirmQuoteFeePayment (PayPal y métodos manuales).
+// Usado por confirmQuoteFeePayment (PayPal/manuales) y por stripeWebhook (Stripe).
 
 export function generateQuoteToken() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

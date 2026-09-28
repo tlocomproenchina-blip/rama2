@@ -180,9 +180,44 @@ export default function AdminInvoices({ user }) {
       if (editingInvoice.status === 'pagada' && !editingInvoice.payment_date) updatePayload.payment_date = new Date().toISOString();
       await base44.entities.Invoice.update(editingInvoice.id, updatePayload);
 
+      // Stripe sync behavior (configurable)
+      let stripeReverted = false;
       if (editingInvoice.status === 'pagada') {
+        const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+        const cfg = cfgs?.[0] || {};
+        const mode = cfg.payments_stripe_sync_mode || 'auto';
+        const errMode = cfg.payments_stripe_error_mode || 'keep_and_alert';
+
+        const shouldInvoke = mode === 'auto' || (mode === 'confirm' && window.confirm('¿También notificar a Stripe como pagada?'));
+        if (shouldInvoke) {
+          try {
+            const res = await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: editingInvoice.id });
+            if (res?.data && res.data.ok === false) {
+              if (errMode === 'revert' || errMode === 'retry_then_revert') {
+                await base44.entities.Invoice.update(editingInvoice.id, { status: 'pendiente' });
+                stripeReverted = true;
+                toast.error('Stripe no se actualizó; se revirtió la factura a pendiente.');
+              } else {
+                toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
+              }
+            }
+          } catch (e) {
+            if (errMode === 'revert' || errMode === 'retry_then_revert') {
+              await base44.entities.Invoice.update(editingInvoice.id, { status: 'pendiente' });
+              stripeReverted = true;
+              toast.error('Stripe no se actualizó; se revirtió la factura a pendiente.');
+            } else {
+              toast.warning('Se marcó pagada en la app, pero Stripe no se actualizó.');
+            }
+          }
+        } else if (mode === 'button') {
+          toast.info('Modo botón: usa "Marcar pagada en Stripe" en las acciones de la factura.');
+        }
+
         // Sincronizar InvoicePayment para que aparezca en el Historial de AdminPayments
-        await ensureInvoicePaymentForPaidInvoice(base44, editingInvoice, user?.email);
+        if (!stripeReverted) {
+          await ensureInvoicePaymentForPaidInvoice(base44, editingInvoice, user?.email);
+        }
       }
 
       toast.success('Factura actualizada');
@@ -320,11 +355,38 @@ export default function AdminInvoices({ user }) {
           return base44.entities.Invoice.update(inv.id, payload);
         }));
 
+        let revertedIds = [];
         if (bulkStatus === 'pagada') {
+          const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
+          const cfg = cfgs?.[0] || {};
+          const mode = cfg.payments_stripe_sync_mode || 'auto';
+          const errMode = cfg.payments_stripe_error_mode || 'keep_and_alert';
+
+          const proceed = mode === 'auto' || (mode === 'confirm' && window.confirm('¿También notificar a Stripe las facturas seleccionadas como pagadas?'));
+          if (proceed) {
+            const results = await Promise.allSettled(
+              selectedInvs.map(inv => base44.functions.invoke('markStripeInvoicePaid', { invoiceId: inv.id }))
+            );
+            const failedIds = results.map((r, idx) => ({ r, id: selectedInvs[idx].id }))
+              .filter(x => x.r.status === 'rejected' || (x.r.status === 'fulfilled' && x.r.r?.data && x.r.r.data.ok === false))
+              .map(x => x.id);
+            if ((errMode === 'revert' || errMode === 'retry_then_revert') && failedIds.length) {
+              await Promise.all(failedIds.map(id => base44.entities.Invoice.update(id, { status: 'pendiente' })));
+              revertedIds = failedIds;
+              toast.error(`Stripe no se actualizó para ${failedIds.length} factura(s); se revirtieron a pendiente.`);
+            } else if (failedIds.length) {
+              toast.warning(`Stripe no se actualizó para ${failedIds.length} factura(s).`);
+            }
+          } else if (mode === 'button') {
+            toast.info('Modo botón: usa la acción "Marcar en Stripe" por factura.');
+          }
+
           // Sincronizar InvoicePayment para que aparezcan en el Historial de AdminPayments
-          await Promise.all(selectedInvs.map(inv =>
-            ensureInvoicePaymentForPaidInvoice(base44, { ...inv, status: 'pagada', payment_date: inv.payment_date || now }, user?.email)
-          ));
+          const revertedSet = new Set(revertedIds);
+          await Promise.all(selectedInvs
+            .filter(inv => !revertedSet.has(inv.id))
+            .map(inv => ensureInvoicePaymentForPaidInvoice(base44, { ...inv, status: 'pagada', payment_date: inv.payment_date || now }, user?.email))
+          );
         }
 
         toast.success(`${selectedInvoices.length} factura(s) actualizada(s)`);
@@ -919,6 +981,21 @@ export default function AdminInvoices({ user }) {
                   <Edit className="h-4 w-4 mr-1" />
                   Editar
                 </Button>
+                {invoice.status === 'pagada' && (invoice.stripe_invoice_id || invoice.stripe_hosted_invoice_url) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start"
+                    onClick={async () => {
+                      const res = await base44.functions.invoke('markStripeInvoicePaid', { invoiceId: invoice.id });
+                      if (res?.data?.ok) toast.success('Stripe actualizado');
+                      else if (res?.data?.skipped) toast.info('No hay factura de Stripe vinculada para esta factura.');
+                      else toast.warning('No se pudo actualizar Stripe');
+                    }}
+                  >
+                    Forzar pagada en Stripe
+                  </Button>
+                )}
                 {invoice.provider_paid && (
                   <Button
                     variant="outline"
@@ -1043,6 +1120,7 @@ export default function AdminInvoices({ user }) {
                     <SelectValue placeholder="Selecciona método" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="stripe_invoice">Stripe (tarjeta)</SelectItem>
                     {appConfig?.payments_enable_binance !== false && <SelectItem value="binance">Binance</SelectItem>}
                     {appConfig?.payments_enable_usdt_trc20 !== false && <SelectItem value="usdt_trc20">USDT TRC20</SelectItem>}
                     {appConfig?.payments_enable_paypal !== false && <SelectItem value="paypal">PayPal</SelectItem>}

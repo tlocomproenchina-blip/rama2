@@ -61,7 +61,7 @@ export const clientTourSteps = [
   {
     id: 'invoices',
     title: 'Mis Facturas',
-    description: 'Consulta y paga tus facturas. Cada factura muestra el desglose de costos (flete, seguro, puerta a puerta). Puedes pagar con Binance, PayPal, Zelle y más.',
+    description: 'Consulta y paga tus facturas. Cada factura muestra el desglose de costos (flete, seguro, puerta a puerta). Puedes pagar con Stripe, Binance, PayPal y más.',
     icon: CreditCard,
     color: 'green',
     page: 'MyInvoices',

@@ -42,6 +42,10 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
         payment_method: invoice.payment_method || 'transferencia'
       });
 
+      // Sincronización con Stripe en segundo plano (no bloquea la validación)
+      base44.functions.invoke('markStripeInvoicePaid', { invoiceId: invoice.id })
+        .catch((e) => console.error('No se pudo marcar la factura de Stripe como pagada:', e));
+
       setValidatedIds((prev) => [...prev, invoice.id]);
 
       base44.entities.Notification.create({

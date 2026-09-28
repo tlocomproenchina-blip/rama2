@@ -3,8 +3,6 @@
   "tools": {
     "entity_overrides": {
       "AppConfig": { "operations": [] },
-      "IntegratedApp": { "operations": [] },
-      "IntegratedClient": { "operations": [] },
       "User": { "operations": [] },
       "Package": { "operations": [] },
       "Invoice": { "operations": [] },

@@ -5,7 +5,7 @@
     "config_key": {
       "type": "string",
       "default": "main",
-      "description": "Clave del cursor de reportes TXT: 'main' para el reporte global de TLEC CARGO, o 'app:<slug>' para el reporte de una app integrada (copia)"
+      "description": "Clave \u00fanica del cursor global de reportes TXT (siempre 'main')"
     },
     "last_shipping_mark_number": {
       "type": "number",

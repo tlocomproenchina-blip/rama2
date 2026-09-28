@@ -30,6 +30,7 @@ function sanitize(u) {
     shipping_mark: u.shipping_mark || null,
     profile_completed: !!u.profile_completed,
     is_active: u.is_active !== false,
+    stripe_customer_id: u.stripe_customer_id || null,
     created_date: u.created_date,
     role: u.role || 'user',
     custom_role: u.custom_role || null,

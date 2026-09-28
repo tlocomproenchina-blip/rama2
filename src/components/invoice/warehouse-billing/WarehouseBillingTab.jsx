@@ -28,7 +28,7 @@ function MetricCard({ icon: Icon, label, value, tone }) {
 
 export default function WarehouseBillingTab({ search = '' }) {
   const [clients, setClients] = useState([]);
-  const [config, setConfig] = useState({ appConfig: null, pricing: null, stateConfigs: [], rateHistory: [], copyRates: {} });
+  const [config, setConfig] = useState({ appConfig: null, pricing: null, stateConfigs: [], rateHistory: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [localSearch, setLocalSearch] = useState('');
@@ -72,7 +72,6 @@ export default function WarehouseBillingTab({ search = '' }) {
         pricing: prc?.[0] || null,
         stateConfigs: states || [],
         rateHistory: history || [],
-        copyRates: res?.data?.copy_rates || {},
       });
     } catch (e) {
       setError(e?.message || 'No se pudo cargar la carga en almacén');
@@ -90,7 +89,6 @@ export default function WarehouseBillingTab({ search = '' }) {
       stateConfigs: config.stateConfigs,
       rateHistory: config.rateHistory,
       clientState: c.state,
-      copyRates: config.copyRates,
     });
     return { ...c, ctx, estimate: computeClientEstimate(c, ctx) };
   }), [clients, config]);

@@ -97,6 +97,7 @@ export async function markInvoiceAsPaid(invoiceId, paymentData) {
     status: 'pagada',
     payment_date: new Date().toISOString(),
     payment_method: paymentData.method,
-    payment_reference: paymentData.reference
+    payment_reference: paymentData.reference,
+    stripe_payment_intent_id: paymentData.stripe_payment_intent_id
   });
 }

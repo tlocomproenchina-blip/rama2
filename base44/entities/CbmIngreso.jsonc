@@ -79,14 +79,6 @@
       "default": false,
       "description": "Carga disponible para entrega (visible para el cliente)"
     },
-    "origin_app_id": {
-      "type": "string",
-      "description": "ID de la app integrada (IntegratedApp) que gener\u00f3 este recibo desde una copia. Vac\u00edo = generado directamente en TLEC CARGO."
-    },
-    "origin_app_label": {
-      "type": "string",
-      "description": "Nombre de la app integrada que origin\u00f3 el recibo (cache para mostrar)"
-    },
     "description": {
       "type": "string",
       "maxLength": 1000,

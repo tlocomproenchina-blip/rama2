@@ -1,4 +1,4 @@
-// AdminClients — gestión de clientes
+// AdminClients — gestión de clientes (force re-transform)
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from "@/components/ui/input";
@@ -272,9 +272,18 @@ Email: ${client.email}`;
     setDeleting(true);
 
     try {
+      // Primero intentamos eliminar en Stripe (si existe), pero no bloquea el borrado local
+      if (deleteClient?.stripe_customer_id) {
+        try {
+          await base44.functions.invoke('deleteStripeCustomer', { user_id: deleteClient.id });
+        } catch (_) {
+          // Continuar aunque falle la eliminación en Stripe
+        }
+      }
+
       const res = await base44.functions.invoke('deleteUserCascade', { email: deleteClient.email });
       if (res?.data?.success) {
-        toast.success('Cliente y datos asociados eliminados');
+        toast.success('Cliente, datos asociados y (si aplica) cliente Stripe eliminados');
       } else {
         toast.error(res?.data?.error || 'No se pudo eliminar');
       }
@@ -286,6 +295,27 @@ Email: ${client.email}`;
       toast.error('Error al eliminar el cliente');
     }
     setDeleting(false);
+  };
+
+  const handleDeleteStripeCustomer = async (client) => {
+    if (!client?.stripe_customer_id) {
+      toast.error('El cliente no tiene cliente Stripe');
+      return;
+    }
+    const ok = window.confirm('¿Borrar cliente en Stripe? Esto no afecta su cuenta en el sistema.');
+    if (!ok) return;
+    try {
+      const res = await base44.functions.invoke('deleteStripeCustomer', { user_id: client.id });
+      if (res?.data?.success) {
+        toast.success('Cliente Stripe eliminado');
+        // Optimistic: limpiar stripe_customer_id localmente sin recargar
+        setClients((prev) => prev.map((c) => c.id === client.id ? { ...c, stripe_customer_id: null } : c));
+      } else {
+        toast.error(res?.data?.error || 'No se pudo eliminar en Stripe');
+      }
+    } catch (e) {
+      toast.error('Error al eliminar en Stripe');
+    }
   };
 
   const handleToggleActive = async (client, nextActive) => {
@@ -458,6 +488,7 @@ Email: ${client.email}`;
         onView={(client) => setViewClient(client)}
         onEdit={handleEdit}
         onDelete={(client) => setDeleteClient(client)}
+        onDeleteStripeCustomer={handleDeleteStripeCustomer}
         onToggleActive={handleToggleActive}
         onChangeRole={handleChangeRegisteredUserRole}
       />

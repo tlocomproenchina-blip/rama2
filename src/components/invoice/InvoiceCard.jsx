@@ -211,7 +211,16 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
           </div>
         )}
 
-        <div className="flex gap-2 flex-wrap">
+         <div className="flex gap-2 flex-wrap">
+          {showPayButton && invoice.status === 'pendiente' && invoice.stripe_hosted_invoice_url && (
+            <Button asChild className="flex-1 bg-emerald-600 hover:bg-emerald-700">
+              <a href={invoice.stripe_hosted_invoice_url} target="_blank" rel="noopener noreferrer">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Pagar en Stripe
+              </a>
+            </Button>
+          )}
+
           {showPayPalButton && invoice.status === 'pendiente' && (
             <Button 
               onClick={() => onPayPal?.(invoice)}
@@ -223,7 +232,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
             </Button>
           )}
 
-          {/* Si está pagada o en revisión, no mostrar acciones de pago */}
+          {/* Si está pagada o en revisión, nunca mostrar botón de Stripe */}
           {showOtherMethodsButton && invoice.status === 'pendiente' && (
             <Button
               onClick={() => onOtherPay?.(invoice)}

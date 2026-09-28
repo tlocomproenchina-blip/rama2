@@ -196,6 +196,7 @@ export default function AdminPayments({ user }) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Nota: Stripe está disponible para clientes en Mis Facturas; admin puede habilitar/deshabilitar métodos en Admin Invoices → Métodos de Pago */}
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Validación de Pagos</h1>

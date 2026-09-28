@@ -25,6 +25,7 @@ export default function DeleteClientDialog({ deleteClient, deleting, onClose, on
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-800 text-sm font-medium">
                 ⚠️ Se eliminarán en cascada TODOS los datos asociados (paquetes, consolidaciones, facturas, tickets, notificaciones, notas, etc.).
+                Además, si existe un cliente en Stripe vinculado, también se eliminará.
               </p>
             </div>
           </AlertDialogDescription>
