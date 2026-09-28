@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, Package as PackageIcon, Boxes, Ship, CalendarClock, BadgeCheck } from 'lucide-react';
+import { ShieldCheck, Package as PackageIcon, Boxes, Ship, CalendarClock, BadgeCheck, AlertTriangle } from 'lucide-react';
+import CargoTypeSelector from '@/components/manual-billing/CargoTypeSelector';
 
 const fmtDate = (d) => {
   if (!d) return null;
@@ -15,8 +16,11 @@ const fmtDate = (d) => {
   return `${dd}-${mm}-${yy}`;
 };
 
-export default function BillingInvoiceRow({ row, onChange }) {
+export default function BillingInvoiceRow({ row, onChange, cargoType = 'general' }) {
   const update = (patch) => onChange({ ...row, ...patch });
+  // Tipo de carga del recibo: el elegido en su tarjeta o, si no se ha elegido, el de la factura
+  const effectiveCargoType = row.cargo_type || cargoType;
+  const isHighRisk = effectiveCargoType === 'alto_riesgo';
 
   return (
     <Card className={`border ${row.selected ? 'border-blue-300 bg-blue-50/40' : 'border-slate-200'} transition-colors`}>
@@ -42,6 +46,10 @@ export default function BillingInvoiceRow({ row, onChange }) {
               {row.rate_label === 'actual' && row.fecha && (
                 <span className="text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">Tarifa actual</span>
               )}
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${isHighRisk ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-slate-600 bg-slate-50 border-slate-200'}`}>
+                {isHighRisk && <AlertTriangle className="h-3 w-3" />}
+                {isHighRisk ? 'Carga alto riesgo' : 'Carga común'}
+              </span>
             </div>
             <p className="text-xs text-slate-500 break-all line-clamp-2">
               {row.consolidation_tracking || 'Sin tracking'}
@@ -68,6 +76,14 @@ export default function BillingInvoiceRow({ row, onChange }) {
                   <CalendarClock className="h-3 w-3" /> Llegada est.: {fmtDate(row.fecha_estimada_llegada)}
                 </span>
               )}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tipo de carga de este recibo</span>
+              <CargoTypeSelector
+                compact
+                value={effectiveCargoType}
+                onChange={(type) => update({ cargo_type: type })}
+              />
             </div>
           </div>
         </div>

@@ -2,10 +2,11 @@ import React, { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, TrendingUp, Layers } from 'lucide-react';
 import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
+import CargoTypeSelector from '@/components/manual-billing/CargoTypeSelector';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-export default function ClientStateRatesCard({ client, stateConfigs, appConfig, pricing }) {
+export default function ClientStateRatesCard({ client, stateConfigs, appConfig, pricing, cargoType = 'general', onCargoTypeChange }) {
   const stateInfo = useMemo(() => {
     const code = String(client?.state || '').trim().toLowerCase();
     if (!code) return null;
@@ -40,6 +41,8 @@ export default function ClientStateRatesCard({ client, stateConfigs, appConfig, 
           <h3 className="font-semibold">Estado registrado del cliente</h3>
         </div>
 
+        <CargoTypeSelector value={cargoType} onChange={onCargoTypeChange} />
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
             <p className="text-xs text-slate-500">Estado</p>
@@ -48,13 +51,23 @@ export default function ClientStateRatesCard({ client, stateConfigs, appConfig, 
               <p className="text-[11px] text-amber-600 mt-1">Sin tarifa configurada en StateConfig</p>
             )}
           </div>
-          <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
-            <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Regular (≥ 0.130)</p>
+          <div className={`rounded-lg bg-blue-50 border p-3 ${cargoType === 'general' ? 'border-blue-400 ring-1 ring-blue-200' : 'border-blue-100'}`}>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Regular (≥ 0.130)</p>
+              {cargoType === 'general' && (
+                <span className="shrink-0 rounded bg-white/80 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">Aplicada</span>
+              )}
+            </div>
             <p className="font-semibold text-blue-700">${num(stateInfo?.final_regular).toFixed(2)} / CBM</p>
             <p className="text-[11px] text-slate-500 mt-1">0.130 CBM: ${(num(stateInfo?.final_regular) * 0.130).toFixed(2)}</p>
           </div>
-          <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
-            <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Alto riesgo (≥ 0.130)</p>
+          <div className={`rounded-lg bg-blue-50 border p-3 ${cargoType === 'alto_riesgo' ? 'border-amber-400 ring-1 ring-amber-200' : 'border-blue-100'}`}>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Alto riesgo (≥ 0.130)</p>
+              {cargoType === 'alto_riesgo' && (
+                <span className="shrink-0 rounded bg-white/80 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Aplicada</span>
+              )}
+            </div>
             <p className="font-semibold text-blue-700">${num(stateInfo?.final_high).toFixed(2)} / CBM</p>
             <p className="text-[11px] text-slate-500 mt-1">0.130 CBM: ${(num(stateInfo?.final_high) * 0.130).toFixed(2)}</p>
           </div>

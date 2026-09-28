@@ -13,6 +13,9 @@ import PackagesWithoutReceiptSection from '@/components/manual-billing/PackagesW
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
+// Tipo de carga con el que arranca la factura; cada recibo puede tener el suyo
+const INITIAL_CARGO_TYPE = 'general';
+
 export default function AdminManualBilling() {
   const [appConfig, setAppConfig] = useState(null);
   const [pricing, setPricing] = useState(null);
@@ -21,6 +24,8 @@ export default function AdminManualBilling() {
   const [rows, setRows] = useState([]);
   const [loadingRows, setLoadingRows] = useState(false);
   const [consolidationMode, setConsolidationMode] = useState('auto');
+  // Tipo de carga de la factura: 'general' (regular, predeterminado) o 'alto_riesgo'
+  const [cargoType, setCargoType] = useState('general');
   const [manualConsolidationFee, setManualConsolidationFee] = useState('');
   const [billedCbm, setBilledCbm] = useState('');
   const [manualInsurance, setManualInsurance] = useState('');
@@ -110,25 +115,33 @@ export default function AdminManualBilling() {
     };
   }, [rateHistory, currentRateSet]);
 
-  // Tarifa por CBM (>= 0.130) para un set de tarifas dado
-  const computeRatePerCbm = useCallback((rateSet) => {
+  // Tarifa por CBM (>= 0.130) para un set de tarifas dado,
+  // usando la tarifa base regular o de alto riesgo según el tipo de carga elegido
+  const computeRatePerCbm = useCallback((rateSet, type = cargoType) => {
     const factor = 1 + num(rateSet.profit_percentage) / 100;
-    return num(rateSet.base_rate_regular) * factor + stateShippingRate + num(rateSet.door_to_door_cost);
-  }, [stateShippingRate]);
+    const baseRate = type === 'alto_riesgo' ? rateSet.base_rate_high_risk : rateSet.base_rate_regular;
+    return num(baseRate) * factor + stateShippingRate + num(rateSet.door_to_door_cost);
+  }, [stateShippingRate, cargoType]);
+
+  // Tarifa de la tabla de mínimos (< 0.130 CBM) según el tipo de carga elegido
+  const specialRateFor = useCallback((range, type = cargoType) => (
+    type === 'alto_riesgo' ? num(range?.rate_high_risk) : num(range?.rate_regular)
+  ), [cargoType]);
 
   // Calcula el monto de envío de un recibo individual según su fecha de llegada
-  const calcShippingForRow = useCallback((cbm, fecha) => {
+  // y su tipo de carga (el propio del recibo o el de la factura si no tiene)
+  const calcShippingForRow = useCallback((cbm, fecha, type = cargoType) => {
     const c = num(cbm);
     if (c <= 0) return 0;
     const rateSet = getRateSetForDate(fecha);
     if (c >= DOOR_TO_DOOR_THRESHOLD) {
-      return c * computeRatePerCbm(rateSet);
+      return c * computeRatePerCbm(rateSet, type);
     }
     const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
     const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
     const found = sorted.find((r) => c <= num(r.max_cbm));
-    return found ? num(found.rate_regular) : c * computeRatePerCbm(rateSet);
-  }, [getRateSetForDate, computeRatePerCbm]);
+    return found ? specialRateFor(found, type) : c * computeRatePerCbm(rateSet, type);
+  }, [getRateSetForDate, computeRatePerCbm, specialRateFor, cargoType]);
 
   // Determina si un recibo usa tarifa anterior o actual (para el badge)
   const getRateLabel = useCallback((fecha) => {
@@ -144,47 +157,57 @@ export default function AdminManualBilling() {
   // Cálculo consolidado de envío para la factura:
   // - CBM total >= 0.130 (lineal): divide el CBM por período de tarifa y suma
   // - CBM total < 0.130 (tarifa especial fija): usa la tarifa del recibo más reciente
-  const calcConsolidatedShipping = useCallback((billedCbm, selected) => {
+  const calcConsolidatedShipping = useCallback((billedCbm, selected, fallbackType = cargoType) => {
     const c = num(billedCbm);
     if (c <= 0) return 0;
+    // Tipo de carga de cada recibo: el suyo propio o el elegido a nivel de factura
+    const typeOf = (r) => r.cargo_type || fallbackType;
     if (c >= DOOR_TO_DOOR_THRESHOLD) {
       const totalReceiptCbm = selected.reduce((s, r) => s + num(r.cbm), 0);
       if (totalReceiptCbm <= 0) {
-        return c * computeRatePerCbm(currentRateSet);
+        return c * computeRatePerCbm(currentRateSet, fallbackType);
       }
-      // Agrupar CBM por set de tarifa (resuelto por fecha del recibo)
+      // Agrupar CBM por set de tarifa (resuelto por fecha del recibo) y tipo de carga
       const groups = {};
       selected.forEach((r) => {
         if (num(r.cbm) <= 0) return;
+        const type = typeOf(r);
         const rs = getRateSetForDate(r.fecha);
-        const key = rs.effective_date || 'current';
-        if (!groups[key]) groups[key] = { rateSet: rs, cbm: 0 };
+        const key = `${rs.effective_date || 'current'}|${type}`;
+        if (!groups[key]) groups[key] = { rateSet: rs, type, cbm: 0 };
         groups[key].cbm += num(r.cbm);
       });
       // Escalar al CBM facturado si difiere del total de recibos
       const scale = totalReceiptCbm > 0 ? c / totalReceiptCbm : 1;
-      return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet), 0);
+      return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet, g.type), 0);
     }
     // Tarifa especial fija: usar la tarifa del recibo más reciente con fecha
     const withDates = selected.filter((r) => r.fecha);
-    const rateSet = withDates.length > 0
-      ? getRateSetForDate(withDates.reduce((max, r) => new Date(r.fecha) > new Date(max.fecha) ? r : max).fecha)
-      : currentRateSet;
+    const ref = withDates.length > 0
+      ? withDates.reduce((max, r) => new Date(r.fecha) > new Date(max.fecha) ? r : max)
+      : null;
+    const rateSet = ref ? getRateSetForDate(ref.fecha) : currentRateSet;
+    const type = ref ? typeOf(ref) : fallbackType;
     const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
     const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
     const found = sorted.find((r) => c <= num(r.max_cbm));
-    return found ? num(found.rate_regular) : 0;
-  }, [getRateSetForDate, computeRatePerCbm, currentRateSet]);
+    return found ? specialRateFor(found, type) : 0;
+  }, [getRateSetForDate, computeRatePerCbm, currentRateSet, specialRateFor, cargoType]);
 
   // Recalcular envío de las filas cuando cambian las tarifas o el historial
   useEffect(() => {
-    setRows((prev) => prev.map((r) => ({ ...r, shipping_amount: calcShippingForRow(r.cbm, r.fecha).toFixed(2), rate_label: getRateLabel(r.fecha) })));
+    setRows((prev) => prev.map((r) => ({
+      ...r,
+      shipping_amount: calcShippingForRow(r.cbm, r.fecha, r.cargo_type || cargoType).toFixed(2),
+      rate_label: getRateLabel(r.fecha)
+    })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalRatePerCbm, specialRates, rateHistory, stateShippingRate]);
+  }, [finalRatePerCbm, specialRates, rateHistory, stateShippingRate, cargoType]);
 
   const loadClientInvoices = async (selectedClient) => {
     setClient(selectedClient);
     setRows([]);
+    setCargoType(INITIAL_CARGO_TYPE);
     setCreditBalance(0);
     setOrphanPackages([]);
     setLoadingRows(true);
@@ -292,9 +315,11 @@ export default function AdminManualBilling() {
           insured_count: insuredCount > 0 ? insuredCount : (totalFob > 0 ? trackings.length : 0),
           total_fob: totalFob,
           selected: false,
+          // null = hereda el tipo de carga elegido en la factura
+          cargo_type: null,
           cbm_original: cbm,
           cbm: cbm ? cbm.toFixed(4) : '',
-          shipping_amount: calcShippingForRow(cbm, ing.fecha).toFixed(2),
+          shipping_amount: calcShippingForRow(cbm, ing.fecha, INITIAL_CARGO_TYPE).toFixed(2),
           rate_label: getRateLabel(ing.fecha),
           insurance_amount: (totalFob * 0.05).toFixed(2),
           paid_insurance_amount: paidInsurance,
@@ -310,9 +335,9 @@ export default function AdminManualBilling() {
   const updateRow = (updated) => {
     setRows((prev) => prev.map((r) => {
       if (r.id !== updated.id) return r;
-      // Recalculate shipping when CBM changes
-      if (updated.cbm !== r.cbm) {
-        updated.shipping_amount = calcShippingForRow(updated.cbm, updated.fecha).toFixed(2);
+      // Recalculate shipping when CBM or the receipt's cargo type changes
+      if (updated.cbm !== r.cbm || updated.cargo_type !== r.cargo_type) {
+        updated.shipping_amount = calcShippingForRow(updated.cbm, updated.fecha, updated.cargo_type || cargoType).toFixed(2);
       }
       return updated;
     }));
@@ -376,27 +401,40 @@ export default function AdminManualBilling() {
       ];
       // Detalle por recibo: número + CBM individual
       const manualReceiptCbm = Math.max(billedCbmValue - totalCbmWithOrphans, 0);
-      const ratePerCbm = billedCbmValue > 0 ? consolidatedShipping / billedCbmValue : 0;
-      // Cada recibo (envío) se muestra como su propia línea con su CBM y precio individual
-      selectedRows
+      const flatRatePerCbm = billedCbmValue > 0 ? consolidatedShipping / billedCbmValue : 0;
+      // Tipo de carga efectivo de cada recibo (el suyo o el de la factura)
+      const rowTypeOf = (r) => r.cargo_type || cargoType;
+      const isLinearShipping = billedCbmValue >= DOOR_TO_DOOR_THRESHOLD;
+      // Cada recibo (envío) se muestra como su propia línea con su CBM y la tarifa de su tipo de carga.
+      // Para >= 0.130 CBM se escalan las tarifas por tipo para que el detalle sume el envío consolidado.
+      const rowLines = selectedRows
         .filter((r) => r.invoice_number && r.invoice_number !== '—')
-        .forEach((r) => {
-          const cbm = num(r.cbm);
-          items.push({
-            description: `Envío ${r.invoice_number}`,
-            quantity: cbm,
-            unit_price: ratePerCbm,
-            total: cbm * ratePerCbm,
-            details: { cbm, invoice_number: r.invoice_number, source_invoices: [r.invoice_number] },
-          });
+        .map((r) => ({ row: r, cbm: num(r.cbm), rate: computeRatePerCbm(getRateSetForDate(r.fecha), rowTypeOf(r)) }));
+      const manualLine = manualReceipt
+        ? { cbm: manualReceiptCbm, rate: computeRatePerCbm(currentRateSet, cargoType) }
+        : null;
+      const baseLinesSum = rowLines.reduce((s, l) => s + l.cbm * l.rate, 0) + (manualLine ? manualLine.cbm * manualLine.rate : 0);
+      const typeScale = isLinearShipping && baseLinesSum > 0 ? consolidatedShipping / baseLinesSum : null;
+      const lineRate = (rate) => (typeScale !== null ? rate * typeScale : flatRatePerCbm);
+
+      rowLines.forEach(({ row: r, cbm, rate }) => {
+        const unit = lineRate(rate);
+        items.push({
+          description: `Envío ${r.invoice_number}`,
+          quantity: cbm,
+          unit_price: unit,
+          total: cbm * unit,
+          details: { cbm, invoice_number: r.invoice_number, source_invoices: [r.invoice_number], cargo_type: rowTypeOf(r) },
         });
-      if (manualReceipt) {
+      });
+      if (manualLine) {
+        const manualUnit = lineRate(manualLine.rate);
         items.push({
           description: `Envío ${manualReceipt}`,
-          quantity: manualReceiptCbm,
-          unit_price: ratePerCbm,
-          total: manualReceiptCbm * ratePerCbm,
-          details: { cbm: manualReceiptCbm, invoice_number: manualReceipt, source_invoices: [manualReceipt] },
+          quantity: manualLine.cbm,
+          unit_price: manualUnit,
+          total: manualLine.cbm * manualUnit,
+          details: { cbm: manualLine.cbm, invoice_number: manualReceipt, source_invoices: [manualReceipt], cargo_type: cargoType },
         });
       }
       if (!useManualInsurance) {
@@ -502,9 +540,10 @@ export default function AdminManualBilling() {
             cbm_ingreso_id: r.id,
             invoice_number: String(r.invoice_number),
             cbm: num(r.cbm),
+            cargo_type: rowTypeOf(r),
             tracking_numbers: [...(r.tracking_numbers || []), ...(orphansByReceipt[r.id] || [])],
           })),
-        ...(manualReceipt ? [{ cbm_ingreso_id: null, invoice_number: manualReceipt, cbm: manualReceiptCbm, tracking_numbers: [] }] : []),
+        ...(manualReceipt ? [{ cbm_ingreso_id: null, invoice_number: manualReceipt, cbm: manualReceiptCbm, cargo_type: cargoType, tracking_numbers: [] }] : []),
       ];
       const costBreakdown = {
         total_cbm: totalCbmWithOrphans,
@@ -516,7 +555,12 @@ export default function AdminManualBilling() {
         door_to_door_fee: doorToDoorValue,
         extra_amount: extraAmountValue,
         extra_concept: String(extraConcept || '').trim(),
-        rate_per_cbm: ratePerCbm,
+        rate_per_cbm: flatRatePerCbm,
+        cargo_type: cargoType,
+        cargo_type_per_receipt: Object.fromEntries(
+          rowLines.map(({ row: r }) => [String(r.invoice_number), rowTypeOf(r)])
+        ),
+        mixed_cargo_types: rowLines.some(({ row: r }) => rowTypeOf(r) !== cargoType),
         orphan_packages_count: selOrphans.length,
       };
 
@@ -650,6 +694,7 @@ export default function AdminManualBilling() {
       setExtraAmount('');
       setExtraConcept('');
       setDoorToDoorFee('');
+      setCargoType(INITIAL_CARGO_TYPE);
     } catch {
       toast.error('Error al generar la factura');
     }
@@ -714,7 +759,14 @@ export default function AdminManualBilling() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4 min-w-0">
             <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); }} />
-            <ClientStateRatesCard client={client} stateConfigs={stateConfigs} appConfig={appConfig} pricing={pricing} />
+            <ClientStateRatesCard
+              client={client}
+              stateConfigs={stateConfigs}
+              appConfig={appConfig}
+              pricing={pricing}
+              cargoType={cargoType}
+              onCargoTypeChange={setCargoType}
+            />
 
             {loadingRows ? (
               <div className="flex items-center justify-center py-12">
@@ -729,7 +781,7 @@ export default function AdminManualBilling() {
             ) : (
               <div className="space-y-3">
                 {rows.map((row) => (
-                  <BillingInvoiceRow key={row.id} row={row} onChange={updateRow} />
+                  <BillingInvoiceRow key={row.id} row={row} onChange={updateRow} cargoType={cargoType} />
                 ))}
               </div>
             )}
