@@ -330,6 +330,15 @@ export default function WarehouseScanPack({ user }) {
     }
   }, [updateBultosState]);
 
+  // --- Guardar el N° de orden del bulto activo (local, antes de cerrarlo) ---
+  const handleOrderChange = useCallback(async (orders) => {
+    const bulto = openBultosRef.current.find((b) => b.id === activeBultoId);
+    if (!bulto) return;
+    const updated = { ...bulto, cbm_order_numbers: orders };
+    await put('bultos', updated);
+    updateBultosState((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+  }, [activeBultoId, updateBultosState]);
+
   // --- Asignación manual de huérfano (local) ---
   const handleManualAssign = useCallback(async (client) => {
     if (!manualAssign) return;
@@ -541,6 +550,7 @@ export default function WarehouseScanPack({ user }) {
           bulto={activeBulto}
           onClose={(orders) => handleCloseBulto(activeBulto, orders)}
           onRemoveLast={() => handleRemoveLast(activeBulto)}
+          onOrderChange={handleOrderChange}
         />
       ) : (
         !pendingBultos.length && (
