@@ -7,12 +7,16 @@ import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight, Prin
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { getAll } from '@/lib/offlineDb';
+import { base44 as apiQueue } from '@/components/api/ApiQueueManager';
 import BultoEditModal from './BultoEditModal';
 import BluetoothPrinter from './BluetoothPrinter';
 import PrintCountBadge from './PrintCountBadge';
 import ReprintDialog from './ReprintDialog';
 
 const PAGE_SIZE = 50;
+
+// Solo esta cuenta puede eliminar bultos (el servidor lo valida también).
+const DELETE_AUTHORIZED_EMAILS = ['genel.agonzalez@gmail.com'];
 
 export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [bultos, setBultos] = useState([]);
@@ -21,8 +25,9 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteTargets, setDeleteTargets] = useState([]);
   const [deleting, setDeleting] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [printTarget, setPrintTarget] = useState(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -49,6 +54,12 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
     const selected = bultos.filter((b) => selectedIds.has(b.id));
     if (!selected.length) return;
     setBulkPrintTarget(selected);
+  }, [bultos, selectedIds]);
+
+  const handleBulkDelete = useCallback(() => {
+    const selected = bultos.filter((b) => selectedIds.has(b.id));
+    if (!selected.length) return;
+    setDeleteTargets(selected);
   }, [bultos, selectedIds]);
 
   const exitSelectMode = useCallback(() => {
@@ -109,22 +120,38 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
     }
   }, [search, statusFilter, page, refreshKey]);
 
+  // Permiso de borrado: solo la cuenta autorizada ve las acciones de eliminar
+  useEffect(() => {
+    base44.auth.me()
+      .then((u) => setCanDelete(DELETE_AUTHORIZED_EMAILS.includes((u?.email || '').toLowerCase())))
+      .catch(() => setCanDelete(false));
+  }, []);
+
   useEffect(() => { load(); }, [load]);
 
   // Reset page al cambiar filtros
   useEffect(() => { setPage(0); }, [search, statusFilter]);
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTargets.length) return;
     setDeleting(true);
     try {
-      const res = await base44.functions.invoke('deleteBulto', { bulto_id: deleteTarget.id });
-      if (res?.data?.error) {
-        toast.error(res.data.error);
+      const res = await base44.functions.invoke('deleteBulto', { bulto_ids: deleteTargets.map((b) => b.id) });
+      const data = res?.data;
+      if (data?.error) {
+        toast.error(data.error);
         return;
       }
-      toast.success('Bulto eliminado');
-      setDeleteTarget(null);
+      const okCount = data?.deleted_count ?? 0;
+      const failedCount = (data?.failed || []).length;
+      if (failedCount > 0) {
+        toast.warning(`${okCount} bulto(s) eliminado(s), ${failedCount} con error`);
+      } else {
+        toast.success(okCount === 1 ? 'Bulto eliminado' : `${okCount} bultos eliminados`);
+      }
+      setDeleteTargets([]);
+      exitSelectMode();
+      try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
       load();
     } catch (_) {
       toast.error('Error al eliminar bulto');
@@ -188,14 +215,26 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
             {selectedIds.size === bultos.length && bultos.length > 0 ? 'Quitar todos' : 'Todos'}
           </Button>
           <span className="text-sm text-blue-700 font-medium">{selectedIds.size} seleccionado(s)</span>
-          <Button
-            size="sm"
-            onClick={handleBulkPrint}
-            disabled={!selectedIds.size}
-            className="ml-auto bg-blue-600 hover:bg-blue-700"
-          >
-            <PrinterIcon className="h-3.5 w-3.5" /> Imprimir ({selectedIds.size})
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handleBulkPrint}
+              disabled={!selectedIds.size}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <PrinterIcon className="h-3.5 w-3.5" /> Imprimir ({selectedIds.size})
+            </Button>
+            {canDelete && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleBulkDelete}
+                disabled={!selectedIds.size}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Eliminar ({selectedIds.size})
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
@@ -273,9 +312,11 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                       <Button variant="outline" size="sm" onClick={() => setEditTarget(b)}>
                         <Pencil className="h-3.5 w-3.5" /> Editar
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => setDeleteTarget(b)} className="text-red-600 hover:bg-red-50 hover:border-red-200">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {canDelete && (
+                        <Button variant="outline" size="sm" onClick={() => setDeleteTargets([b])} className="text-red-600 hover:bg-red-50 hover:border-red-200">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -346,19 +387,30 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       )}
 
       {/* Confirmación de eliminación */}
-      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+      <Dialog open={deleteTargets.length > 0} onOpenChange={(o) => !o && setDeleteTargets([])}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash2 className="h-5 w-5" /> Eliminar bulto
+              <Trash2 className="h-5 w-5" /> {deleteTargets.length === 1 ? 'Eliminar bulto' : `Eliminar ${deleteTargets.length} bultos`}
             </DialogTitle>
           </DialogHeader>
           <div className="text-sm text-slate-600 space-y-2">
-            <p>¿Seguro que deseas eliminar el <strong>Bulto {deleteTarget?.bulto_number}/{deleteTarget?.total_bultos}</strong> ({deleteTarget?.label_code})?</p>
-            <p>Los paquetes quedarán libres para re-empacar. Los bultos restantes del cliente se renumerarán automáticamente.</p>
+            {deleteTargets.length === 1 ? (
+              <p>¿Seguro que deseas eliminar el <strong>Bulto {deleteTargets[0].bulto_number}/{deleteTargets[0].total_bultos}</strong> ({deleteTargets[0].label_code})?</p>
+            ) : (
+              <>
+                <p>¿Seguro que deseas eliminar <strong>{deleteTargets.length} bultos</strong>?</p>
+                <div className="max-h-40 overflow-y-auto rounded-md border border-border bg-muted/40 p-2 space-y-0.5">
+                  {deleteTargets.map((b) => (
+                    <p key={b.id} className="font-mono text-xs break-all">{b.label_code}</p>
+                  ))}
+                </div>
+              </>
+            )}
+            <p>Los paquetes quedarán libres para re-empacar. Los bultos restantes de cada cliente se renumerarán automáticamente.</p>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDeleteTargets([])} disabled={deleting}>Cancelar</Button>
             <Button onClick={confirmDelete} disabled={deleting} className="bg-red-600 hover:bg-red-700">
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               Eliminar
