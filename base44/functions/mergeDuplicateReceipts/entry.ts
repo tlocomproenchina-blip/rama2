@@ -135,7 +135,11 @@ export default async function (req: Request): Promise<Response> {
       }
 
       const result = await applyMerge(base44, plan, ctxFor(String(plan.keep.client_email || '')), user);
-      merged.push(result);
+      if (result?.skipped) {
+        skipped.push({ order: result.order || plan.order, reason: result.reason || 'No se pudo ajustar la factura afectada' });
+      } else {
+        merged.push(result);
+      }
     }
 
     return Response.json({
