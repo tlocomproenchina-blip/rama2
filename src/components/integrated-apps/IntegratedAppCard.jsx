@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plug, RefreshCw, Power, Trash2, Mail, Clock, Activity, DollarSign } from 'lucide-react';
 import IntegratedAppStats from './IntegratedAppStats';
 import IntegratedAppDiagnosticDialog from './IntegratedAppDiagnosticDialog';
+import CopyClientTxtReportButton from './CopyClientTxtReportButton';
 import { appState, timeAgo } from '@/lib/integratedApps';
 
 const money = (v) => `$${Number(v || 0).toFixed(2)}`;
@@ -11,6 +12,7 @@ const money = (v) => `$${Number(v || 0).toFixed(2)}`;
 export default function IntegratedAppCard({ app, onRotate, onToggle, onDelete, onRefresh, onTariff }) {
   const state = appState(app);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [statsKey, setStatsKey] = useState(0);
   const hasTariff = Number(app.rate_cbm_regular) > 0 || Number(app.rate_cbm_high_risk) > 0;
 
   return (
@@ -32,7 +34,7 @@ export default function IntegratedAppCard({ app, onRotate, onToggle, onDelete, o
         <Badge variant="outline" className={`shrink-0 ${state.tone}`}>{state.label}</Badge>
       </div>
 
-      <IntegratedAppStats appId={app.id} />
+      <IntegratedAppStats appId={app.id} refreshKey={statsKey} />
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
         <span className="flex items-center gap-1">
@@ -74,6 +76,8 @@ export default function IntegratedAppCard({ app, onRotate, onToggle, onDelete, o
           <Trash2 className="h-3.5 w-3.5" /> Eliminar
         </Button>
       </div>
+
+      <CopyClientTxtReportButton app={app} onReportChanged={() => setStatsKey((k) => k + 1)} />
 
       <IntegratedAppDiagnosticDialog app={app} open={showDiagnostic} onOpenChange={setShowDiagnostic} onRefresh={onRefresh} />
     </div>

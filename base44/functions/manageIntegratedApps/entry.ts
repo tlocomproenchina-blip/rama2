@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { generateAppKey, hashAppKey, keyLabel, slugify, isTestEmail } from '../../shared/integratedApps.ts';
+import { copyPending, cursorSummary, loadCopyCursor, saveCopyCursor } from '../../shared/copyClientReport.ts';
 
 const COUNT_LIMIT = 201;
 const COUNT_CAP = 200;
@@ -58,6 +59,12 @@ async function countByScope(base44, entity, appId) {
   return { count: Math.min(list.length, COUNT_CAP), exceeded: list.length > COUNT_CAP };
 }
 
+// Clientes de la copia pendientes por reportar, según su propio punto de inicio.
+async function pendingByApp(base44, app) {
+  const info = await copyPending(base44, app);
+  return { count: Math.min(info.pending.length, COUNT_CAP), exceeded: info.exceeded };
+}
+
 // Borra los datos de prueba que hayan quedado sin limpiar en TLEC CARGO.
 const TEST_TARGETS = [
   ['IntegratedClient', 'client_email'],
@@ -101,13 +108,15 @@ export default async function (req) {
     if (action === 'stats') {
       const appId = String(body?.app_id || '').trim();
       if (!appId) return Response.json({ ok: false, error: 'Falta app_id' }, { status: 400 });
-      const [clients, accountless, prealerts, invoices, payments] = await Promise.all([
+      const [appRows, clients, accountless, prealerts, invoices, payments] = await Promise.all([
+        base44.asServiceRole.entities.IntegratedApp.filter({ id: appId }, '-created_date', 1),
         countByScope(base44, 'User', appId),
         countByScope(base44, 'IntegratedClient', appId),
         countByScope(base44, 'Package', appId),
         countByScope(base44, 'Invoice', appId),
         countByScope(base44, 'InvoicePayment', appId)
       ]);
+      const pending = appRows?.[0] ? await pendingByApp(base44, appRows[0]) : { count: 0, exceeded: false };
       return Response.json({
         ok: true,
         stats: {
@@ -115,6 +124,7 @@ export default async function (req) {
           prealerts,
           invoices,
           payments,
+          pending,
           total: clients.count + accountless.count + prealerts.count + invoices.count + payments.count
         }
       });
@@ -146,6 +156,28 @@ export default async function (req) {
     const apps = await base44.asServiceRole.entities.IntegratedApp.filter({ id: appId }, '-created_date', 1);
     const existing = apps?.[0];
     if (!existing) return Response.json({ ok: false, error: 'La app integrada no existe' }, { status: 404 });
+
+    if (action === 'get_cursor') {
+      const cursor = await loadCopyCursor(base44, existing);
+      return Response.json({ ok: true, cursor: cursorSummary(cursor) });
+    }
+
+    if (action === 'set_cursor') {
+      const raw = body?.number;
+      const number = Number(raw);
+      if (raw == null || Number.isNaN(number) || number < 0 || !Number.isInteger(number)) {
+        return Response.json({ ok: false, error: 'Debe indicar un número entero válido mayor o igual a 0.' }, { status: 400 });
+      }
+      const current = cursorSummary(await loadCopyCursor(base44, existing)) || {
+        cursor_number: 0,
+        last_mark: '',
+        last_report_date: null,
+        last_report_count: 0
+      };
+      await saveCopyCursor(base44, existing, { ...current, cursor_number: number });
+      const info = await pendingByApp(base44, existing);
+      return Response.json({ ok: true, cursor: { ...current, cursor_number: number }, pending: info.count });
+    }
 
     if (action === 'rotate') {
       const rawKey = generateAppKey();
