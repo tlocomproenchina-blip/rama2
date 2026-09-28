@@ -189,6 +189,13 @@ async function attempt(svc, cfg, row) {
   return { ok: false, message, code: result.data?.error?.code || '' };
 }
 
+// La app maestra recibe de las copias y nunca envía: se reconoce por tener
+// conexiones de apps integradas. Cuando lo es, no se encola nada.
+async function isMasterApp(svc) {
+  const apps = await svc.entities.IntegratedApp.list('-created_date', 1);
+  return (apps || []).length > 0;
+}
+
 async function syncClient(svc, cfg, email) {
   const clean = String(email || '').trim().toLowerCase();
   if (!clean) return { ok: false, message: 'Falta el email del cliente' };
@@ -197,6 +204,9 @@ async function syncClient(svc, cfg, email) {
   const client = rows?.[0];
   if (!client) return { ok: false, message: `No existe el cliente ${clean} en esta app` };
   if (client.role && client.role !== 'user') return { ok: true, already: true, message: 'Es un usuario interno, no se envía' };
+
+  // En la maestra el cliente ya vive aquí: no hay nada que enviar ni que encolar.
+  if (await isMasterApp(svc)) return { ok: true, already: true, message: 'Es la app maestra: no se envía' };
 
   const row = await enqueue(svc, {
     resource: 'clients',
@@ -223,6 +233,9 @@ async function syncPrealert(svc, cfg, packageId) {
   if (!pkg) return { ok: false, message: 'No existe ese paquete en esta app' };
   if (!pkg.client_email) return { ok: false, message: 'El paquete no tiene cliente asignado' };
   if (!pkg.tracking_number) return { ok: false, message: 'El paquete no tiene número de tracking' };
+
+  // En la maestra la pre-alerta ya vive aquí: no hay nada que enviar ni que encolar.
+  if (await isMasterApp(svc)) return { ok: true, already: true, message: 'Es la app maestra: no se envía' };
 
   // El cliente debe existir en la maestra antes que su pre-alerta.
   const clientResult = await syncClient(svc, cfg, pkg.client_email);
