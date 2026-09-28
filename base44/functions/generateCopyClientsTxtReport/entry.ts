@@ -19,7 +19,10 @@ export default async function (req) {
       return Response.json({ error: 'Falta el identificador de la app integrada.' }, { status: 400 });
     }
 
-    const rows = await base44.asServiceRole.entities.IntegratedApp.filter({ id: appId }, '-created_date', 1);
+    // Un id con formato inválido (copia borrada) debe responder 404, no reventar.
+    const rows = await base44.asServiceRole.entities.IntegratedApp
+      .filter({ id: appId }, '-created_date', 1)
+      .catch(() => []);
     const app = rows?.[0];
     if (!app) {
       return Response.json({ error: 'La app integrada no existe.' }, { status: 404 });
