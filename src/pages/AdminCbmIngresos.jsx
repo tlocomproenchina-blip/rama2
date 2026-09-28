@@ -589,6 +589,11 @@ export default function AdminCbmIngresos({ user }) {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-blue-700">{Number(item.cbm).toFixed(5)} CBM</span>
                             {item.proveedor && <Badge variant="outline" className="text-xs">{item.proveedor}</Badge>}
+                            {item.origin_app_id && (
+                              <Badge className="text-xs bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                De la copia {item.origin_app_label || 'integrada'}
+                              </Badge>
+                            )}
                           </div>
                           {item.client_name && (
                             <p className="text-sm text-slate-700 font-medium">

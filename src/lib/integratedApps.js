@@ -20,6 +20,16 @@ export const RESOURCE_DOCS = [
     key: 'payments',
     label: 'Cobros',
     detail: 'Abonos sobre las facturas de esa misma copia; actualizan monto pagado y estado.'
+  },
+  {
+    key: 'bultos',
+    label: 'Bultos',
+    detail: 'Bulto armado en la copia, con sus paquetes (por tracking) y el shipping mark de su cliente.'
+  },
+  {
+    key: 'recibos',
+    label: 'Recibos de CBM',
+    detail: 'Número de envío (orden) con su CBM, fecha y tracking del cliente.'
   }
 ];
 

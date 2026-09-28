@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import IntegratedAppCard from '@/components/integrated-apps/IntegratedAppCard';
 import IntegratedAppFormDialog from '@/components/integrated-apps/IntegratedAppFormDialog';
 import IntegratedAppKeyDialog from '@/components/integrated-apps/IntegratedAppKeyDialog';
+import CopyTariffDialog from '@/components/integrated-apps/CopyTariffDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ export default function AdminIntegratedApps() {
   const [showForm, setShowForm] = useState(false);
   const [keyInfo, setKeyInfo] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [tariffApp, setTariffApp] = useState(null);
 
   const loadApps = useCallback(async () => {
     setLoading(true);
@@ -80,6 +82,26 @@ export default function AdminIntegratedApps() {
     }
   };
 
+  const handleSaveTariff = async (payload) => {
+    if (!tariffApp) return;
+    setSaving(true);
+    try {
+      const { data } = await base44.functions.invoke('manageIntegratedApps', {
+        action: 'set_tariff',
+        app_id: tariffApp.id,
+        ...payload
+      });
+      if (!data?.ok) throw new Error(data?.error || 'No se pudo guardar la tarifa');
+      toast.success('Tarifa de la copia guardada');
+      setTariffApp(null);
+      await loadApps();
+    } catch (error) {
+      toast.error(error?.message || 'No se pudo guardar la tarifa');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!pendingDelete) return;
     try {
@@ -102,7 +124,7 @@ export default function AdminIntegratedApps() {
             <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Apps Integradas</h1>
           </div>
           <p className="text-sm text-slate-500">
-            Conexiones de las copias de TLEC CARGO que guardan sus clientes, pre-alertas, facturas y cobros en esta base de datos. Cada copia solo ve y edita lo que ella misma registró.
+            Conexiones de las copias de TLEC CARGO que guardan sus clientes, pre-alertas, facturas, cobros, bultos y recibos de CBM en esta base de datos. Cada copia solo ve y edita lo que ella misma registró.
           </p>
         </div>
         <Button onClick={() => setShowForm(true)} className="gap-2 shrink-0">
@@ -132,6 +154,7 @@ export default function AdminIntegratedApps() {
               onToggle={handleToggle}
               onDelete={setPendingDelete}
               onRefresh={loadApps}
+              onTariff={setTariffApp}
             />
           ))}
         </div>
@@ -151,12 +174,20 @@ export default function AdminIntegratedApps() {
         onClose={() => setKeyInfo(null)}
       />
 
+      <CopyTariffDialog
+        open={!!tariffApp}
+        app={tariffApp}
+        saving={saving}
+        onClose={() => setTariffApp(null)}
+        onSave={handleSaveTariff}
+      />
+
       <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar la conexión de {pendingDelete?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              La copia pierde el acceso al instante y su clave deja de funcionar. Los registros que ya guardó (clientes, pre-alertas, facturas y cobros) siguen en TLEC CARGO.
+              La copia pierde el acceso al instante y su clave deja de funcionar. Los registros que ya guardó (clientes, pre-alertas, facturas, cobros, bultos y recibos) siguen en TLEC CARGO.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
