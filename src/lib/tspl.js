@@ -56,11 +56,80 @@ const wrapText = (text, maxChars) => {
 export const buildBultoLabelPayload = (bulto) => {
   const cs = bulto.client_snapshot || {};
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
-  const shippingMark = bulto.shipping_mark || '';
   const labelCode = bulto.label_code || '';
   const bultoNum = `BULTO ${bulto.bulto_number || 1}/${bulto.total_bultos || 1}`;
   const pkgCount = (bulto.package_ids?.length || bulto.package_trackings?.length || 0);
-  const pkgStr = `${pkgCount} PAQUETES`;
+  const bultoPkg = `${bultoNum} - ${pkgCount} PAQUETES`;
+  const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
+
+  // Métricas verticales (dots @203dpi). Altura real de cada texto + respiro.
+  const MARGIN = 20;
+  const PRINTABLE_H = LABEL_W - MARGIN * 2; // 760 dots de alto útil
+  const CONTENT_LINE_H = 16;
+  const CONTENT_TITLE_H = 28; // separador + título CONTENIDO
+
+  const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
+  const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
+  const addrLines = cs.address ? wrapText(cs.address, 40).slice(0, 2) : [];
+  const orderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
+  const ordenStr = orderNumbers.length ? `ORDEN: ${orderNumbers.join(', ')}` : '';
+
+  // Cada bloque conoce su alto y se dibuja en la Y que se le asigna
+  const blocks = [];
+  const addBlock = (h, render) => blocks.push({ h, render });
+
+  // 1. Código de barras + código de etiqueta
+  const codeLen = labelCode.length;
+  const narrow = codeLen > 16 ? 3 : 4;
+  const wide = narrow * 2;
+  const barcodeW = (11 * (codeLen + 2) + 2) * narrow;
+  const barcodeX = Math.max(20, Math.floor((LABEL_W - barcodeW) / 2));
+  addBlock(238, (y) => [
+    `BARCODE ${barcodeX},${y},${q('128')},180,2,0,${narrow},${wide},${q(labelCode)}`,
+    `TEXT ${centerX(labelCode, '2', 2)},${y + 192},${q('2')},0,2,2,${q(labelCode)}`,
+  ]);
+
+  // 2. Separador
+  addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
+
+  // 3. Estado en grande (prioridad para clasificar a distancia)
+  addBlock(78, (y) => [`TEXT ${centerX(estado, '3', 3)},${y},${q('3')},0,3,3,${q(estado)}`]);
+
+  // 4. N° de orden (si ya fue asignado)
+  if (ordenStr) {
+    addBlock(26, (y) => [`TEXT ${centerX(ordenStr, '2', 1)},${y},${q('2')},0,2,1,${q(ordenStr)}`]);
+  }
+
+  // 5. Separador
+  addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
+
+  // 6. Bulto X/Y + cantidad de paquetes
+  addBlock(48, (y) => [`TEXT ${centerX(bultoPkg, '2', 2)},${y},${q('2')},0,2,2,${q(bultoPkg)}`]);
+
+  // 7. Separador
+  addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
+
+  // 8. Datos del cliente
+  if (nameCedula) addBlock(48, (y) => [`TEXT 50,${y},${q('2')},0,2,2,${q(nameCedula)}`]);
+  if (cs.whatsapp) addBlock(26, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q('Tel: ' + cs.whatsapp)}`]);
+  for (const ln of addrLines) addBlock(24, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q(ln)}`]);
+  if (cityState) addBlock(26, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q(cityState)}`]);
+
+  const fixedH = blocks.reduce((sum, b) => sum + b.h, 0);
+
+  // 9. Trackings contenidos: usan el espacio que sobra tras centrar el resto.
+  //    Si no caben todos, la última línea resume cuántos faltan ("+N más") y
+  //    nunca se invade el borde inferior de la etiqueta.
+  const hasContent = trackings.length > 0 && PRINTABLE_H - fixedH >= CONTENT_TITLE_H + CONTENT_LINE_H;
+  const maxLines = hasContent ? Math.max(1, Math.floor((PRINTABLE_H - fixedH - CONTENT_TITLE_H) / CONTENT_LINE_H)) : 0;
+  const drawnLines = hasContent ? Math.min(trackings.length, maxLines) : 0;
+  const truncated = hasContent && trackings.length > drawnLines;
+  const shown = truncated ? drawnLines - 1 : drawnLines;
+
+  // Centrado vertical: el contenido queda con márgenes parejos arriba y abajo
+  const contentH = hasContent ? CONTENT_TITLE_H : 0;
+  const totalH = fixedH + contentH + drawnLines * CONTENT_LINE_H;
+  const offsetY = MARGIN + Math.max(0, Math.round((PRINTABLE_H - totalH) / 2));
 
   const lines = [];
   lines.push('SIZE 100 mm,100 mm');
@@ -68,91 +137,22 @@ export const buildBultoLabelPayload = (bulto) => {
   lines.push('DIRECTION 1');
   lines.push('CLS');
 
-  // 1. Barcode CODE128 centered top (height 180 dots ~22.5mm, wider modules for distance reading)
-  // Dynamic narrow/wide: use 4/8 for typical codes (≤16 chars), fall back to 3/6 for longer to avoid overflow
-  const codeLen = labelCode.length;
-  const narrow = codeLen > 16 ? 3 : 4;
-  const wide = narrow * 2;
-  const barcodeW = (11 * (codeLen + 2) + 2) * narrow;
-  const barcodeX = Math.max(20, Math.floor((LABEL_W - barcodeW) / 2));
-  lines.push(`BARCODE ${barcodeX},15,${q('128')},180,2,0,${narrow},${wide},${q(labelCode)}`);
-
-  // 2. Label code text centered below barcode (font 2, 2x2 — bigger for distance)
-  lines.push(`TEXT ${centerX(labelCode, '2', 2)},205,${q('2')},0,2,2,${q(labelCode)}`);
-
-  // 3. Separator line
-  lines.push('BAR 50,265,700,3');
-
-  // 4. Estado large centered (font 3, 3x3) — priority for sorting
-  lines.push(`TEXT ${centerX(estado, '3', 3)},280,${q('3')},0,3,3,${q(estado)}`);
-
-  // 4b. Orden (CbmIngreso invoice_number) — si hay, línea centrada entre estado y bulto
-  const orderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
-  let ordenY = 390;
-  if (orderNumbers.length > 0) {
-    const ordenStr = `ORDEN: ${orderNumbers.join(', ')}`;
-    lines.push(`TEXT ${centerX(ordenStr, '2', 1)},360,${q('2')},0,2,1,${q(ordenStr)}`);
-    ordenY = 390;
-  } else {
-    ordenY = 390;
+  let y = offsetY;
+  for (const b of blocks) {
+    lines.push(...b.render(y));
+    y += b.h;
   }
 
-  // 5. Separator line
-  lines.push(`BAR 50,${ordenY},700,3`);
-
-  // 6. Bulto number + package count in one line centered (font 2, 2x2)
-  const bultoPkg = `${bultoNum} - ${pkgStr}`;
-  lines.push(`TEXT ${centerX(bultoPkg, '2', 2)},${ordenY + 15},${q('2')},0,2,2,${q(bultoPkg)}`);
-
-  // 7. Separator line
-  lines.push('BAR 50,465,700,3');
-
-  // 8. Client block — name + cédula in one line, then phone, address, city
-  let cy = 480;
-  const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
-  if (nameCedula) {
-    lines.push(`TEXT 50,${cy},${q('2')},0,2,2,${q(nameCedula)}`);
-    cy += 52;
-  }
-  if (cs.whatsapp) {
-    lines.push(`TEXT 50,${cy},${q('2')},0,1,1,${q('Tel: ' + cs.whatsapp)}`);
-    cy += 26;
-  }
-  if (cs.address) {
-    const addrLines = wrapText(cs.address, 40);
-    for (const ln of addrLines.slice(0, 2)) {
-      lines.push(`TEXT 50,${cy},${q('2')},0,1,1,${q(ln)}`);
-      cy += 24;
+  if (hasContent) {
+    lines.push(`BAR 50,${y + 4},700,3`);
+    lines.push(`TEXT 50,${y + 16},${q('1')},0,1,1,${q(`CONTENIDO (${trackings.length})`)}`);
+    y += contentH;
+    for (const t of trackings.slice(0, shown)) {
+      lines.push(`TEXT 50,${y},${q('1')},0,1,1,${q(String(t).slice(0, 45))}`);
+      y += CONTENT_LINE_H;
     }
-  }
-  const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-  if (cityState) {
-    lines.push(`TEXT 50,${cy},${q('2')},0,1,1,${q(cityState)}`);
-    cy += 24;
-  }
-
-  // 9. Trackings contenidos — fuente pequeña, en el espacio libre restante.
-  //    Si no caben todos, la última línea resume cuántos faltan ("+N más").
-  const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
-  if (trackings.length > 0) {
-    const LIMIT_Y = 782;
-    const LINE_H = 18;
-    lines.push(`BAR 50,${cy + 4},700,3`);
-    const titleY = cy + 14;
-    lines.push(`TEXT 50,${titleY},${q('1')},0,1,1,${q(`CONTENIDO (${trackings.length})`)}`);
-    const firstY = titleY + LINE_H;
-    const maxLines = Math.floor((LIMIT_Y - firstY) / LINE_H) + 1;
-    if (maxLines > 0) {
-      const truncated = trackings.length > maxLines;
-      const shown = truncated ? maxLines - 1 : trackings.length;
-      let ty = firstY;
-      for (const t of trackings.slice(0, shown)) {
-        lines.push(`TEXT 50,${ty},${q('1')},0,1,1,${q(String(t).slice(0, 45))}`);
-        ty += LINE_H;
-      }
-      if (truncated) {
-        lines.push(`TEXT 50,${ty},${q('1')},0,1,1,${q(`+${trackings.length - shown} más`)}`);
-      }
+    if (truncated) {
+      lines.push(`TEXT 50,${y},${q('1')},0,1,1,${q(`+${trackings.length - shown} más`)}`);
     }
   }
 

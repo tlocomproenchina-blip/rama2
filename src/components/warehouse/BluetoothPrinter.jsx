@@ -154,86 +154,113 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
         const cs = bulto.client_snapshot || {};
         const pkgCount = bulto.package_ids?.length || bulto.package_trackings?.length || 0;
-        let y = 5;
+        const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
+        const estado = (cs.state || 'SIN ESTADO').toUpperCase();
+        const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
+        const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
+        const addrLines = cs.address ? doc.splitTextToSize(cs.address, 90).slice(0, 2) : [];
 
-        // 1. Barcode (top, centered, bigger) with label code
+        // Código de barras como imagen (centrado, ancho)
+        let barcode = null;
         try {
           const canvas = document.createElement('canvas');
           JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 4, height: 80, displayValue: true, fontSize: 18, margin: 0 });
-          const imgData = canvas.toDataURL('image/png');
-          const imgWidth = 85;
-          const imgHeight = (canvas.height / canvas.width) * imgWidth;
-          doc.addImage(imgData, 'PNG', (100 - imgWidth) / 2, y, imgWidth, imgHeight);
-          y += imgHeight + 3;
+          barcode = { data: canvas.toDataURL('image/png'), ratio: canvas.height / canvas.width };
         } catch (_) {}
 
-        // Separator line
-        doc.setLineWidth(0.3);
-        doc.line(5, y, 95, y);
-        y += 4;
+        // Métricas verticales (mm). Cada bloque conoce su alto y se dibuja centrado.
+        const MARGIN = 5;
+        const PRINTABLE_H = 90; // 100 mm menos márgenes
+        const CONTENT_LINE_H = 3;
+        const CONTENT_TITLE_H = 7; // separador + título CONTENIDO
+        const sep = (yy) => { doc.setLineWidth(0.3); doc.line(5, yy, 95, yy); };
 
-        // 2. Estado (very large, centered, bold) — priority for sorting
-        doc.setFontSize(28);
-        doc.setTextColor(0);
-        doc.setFont(undefined, 'bold');
-        doc.text((cs.state || 'SIN ESTADO').toUpperCase(), 50, y + 5, { align: 'center' });
-        y += 12;
+        const blocks = [];
+        const addBlock = (h, render) => blocks.push({ h, render });
 
-        // Separator line
-        doc.setLineWidth(0.3);
-        doc.line(5, y, 95, y);
-        y += 5;
-
-        // 3. Bulto number + package count in one line (centered, large)
-        doc.setFontSize(18);
-        doc.setFont(undefined, 'bold');
-        doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos} - ${pkgCount} PAQUETES`, 50, y, { align: 'center' });
-        y += 7;
-
-        // Separator line
-        doc.setLineWidth(0.3);
-        doc.line(5, y, 95, y);
-        y += 5;
-
-        // 4. Client data — name + cédula in one line
-        doc.setFontSize(13);
-        const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
-        if (nameCedula) { doc.text(nameCedula, 5, y); y += 6; }
-        doc.setFontSize(11);
-        if (cs.whatsapp) { doc.text(`Tel: ${cs.whatsapp}`, 5, y); y += 5; }
-        doc.setFontSize(10);
-        if (cs.address) {
-          const addrLines = doc.splitTextToSize(cs.address, 90);
-          doc.text(addrLines.slice(0, 2), 5, y);
-          y += addrLines.slice(0, 2).length * 4.5;
+        // 1. Código de barras + código de etiqueta (la imagen ya lo incluye)
+        if (barcode) {
+          const imgWidth = 85;
+          const imgHeight = barcode.ratio * imgWidth;
+          addBlock(imgHeight + 2, (yy) => doc.addImage(barcode.data, 'PNG', (100 - imgWidth) / 2, yy, imgWidth, imgHeight));
         }
-        const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-        if (cityState) { doc.text(cityState, 5, y); y += 5; }
 
-        // 5. Trackings contenidos — letra pequeña al final de la etiqueta.
+        // 2. Separador
+        addBlock(4, (yy) => sep(yy + 2));
+
+        // 3. Estado en grande (prioridad para clasificar)
+        addBlock(12, (yy) => {
+          doc.setFontSize(28);
+          doc.setTextColor(0);
+          doc.setFont(undefined, 'bold');
+          doc.text(estado, 50, yy + 11, { align: 'center' });
+        });
+
+        // 4. Separador
+        addBlock(4, (yy) => sep(yy + 2));
+
+        // 5. Bulto X/Y + cantidad de paquetes
+        addBlock(8.5, (yy) => {
+          doc.setFontSize(18);
+          doc.setFont(undefined, 'bold');
+          doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos} - ${pkgCount} PAQUETES`, 50, yy + 7, { align: 'center' });
+        });
+
+        // 6. Separador
+        addBlock(4, (yy) => sep(yy + 2));
+
+        // 7. Datos del cliente
+        if (nameCedula) addBlock(6.5, (yy) => {
+          doc.setFontSize(13);
+          doc.setFont(undefined, 'bold');
+          doc.text(nameCedula, 5, yy + 5);
+        });
+        if (cs.whatsapp) addBlock(5.5, (yy) => {
+          doc.setFontSize(11);
+          doc.setFont(undefined, 'bold');
+          doc.text(`Tel: ${cs.whatsapp}`, 5, yy + 4.5);
+        });
+        if (addrLines.length) addBlock(addrLines.length * 4.5, (yy) => {
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'bold');
+          addrLines.forEach((ln, i) => doc.text(ln, 5, yy + 4 + i * 4.5));
+        });
+        if (cityState) addBlock(5.5, (yy) => {
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'bold');
+          doc.text(cityState, 5, yy + 4.5);
+        });
+
+        const fixedH = blocks.reduce((sum, b) => sum + b.h, 0);
+
+        // 8. Trackings contenidos: usan el espacio que sobra tras centrar el resto.
         //    Si no caben todos, la última línea resume cuántos faltan ("+N más").
-        const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
-        if (trackings.length > 0) {
-          doc.setLineWidth(0.3);
-          doc.line(5, y, 95, y);
-          y += 4;
+        const hasContent = trackings.length > 0 && PRINTABLE_H - fixedH >= CONTENT_TITLE_H + CONTENT_LINE_H;
+        const maxLines = hasContent ? Math.max(1, Math.floor((PRINTABLE_H - fixedH - CONTENT_TITLE_H) / CONTENT_LINE_H)) : 0;
+        const drawnLines = hasContent ? Math.min(trackings.length, maxLines) : 0;
+        const truncated = hasContent && trackings.length > drawnLines;
+        const shown = truncated ? drawnLines - 1 : drawnLines;
+
+        // Centrado vertical: márgenes parejos arriba y abajo
+        const contentH = hasContent ? CONTENT_TITLE_H : 0;
+        const totalH = fixedH + contentH + drawnLines * CONTENT_LINE_H;
+        let y = MARGIN + Math.max(0, (PRINTABLE_H - totalH) / 2);
+
+        for (const b of blocks) { b.render(y); y += b.h; }
+
+        if (hasContent) {
+          sep(y + 2);
           doc.setFont(undefined, 'bold');
           doc.setFontSize(8);
-          doc.text(`CONTENIDO (${trackings.length})`, 5, y);
-          y += 3.5;
+          doc.text(`CONTENIDO (${trackings.length})`, 5, y + 5.5);
           doc.setFont('courier', 'normal');
           doc.setFontSize(7);
-          const lineH = 3;
-          const maxLines = Math.floor((96 - y) / lineH) + 1;
-          if (maxLines > 0) {
-            const truncated = trackings.length > maxLines;
-            const shown = truncated ? maxLines - 1 : trackings.length;
-            trackings.slice(0, shown).forEach((t) => {
-              doc.text(String(t).slice(0, 48), 5, y);
-              y += lineH;
-            });
-            if (truncated) doc.text(`+${trackings.length - shown} más`, 5, y);
-          }
+          y += contentH;
+          trackings.slice(0, shown).forEach((t) => {
+            doc.text(String(t).slice(0, 48), 5, y + 2.2);
+            y += CONTENT_LINE_H;
+          });
+          if (truncated) doc.text(`+${trackings.length - shown} más`, 5, y + 2.2);
         }
 
         doc.save(`etiqueta-${bulto.label_code}.pdf`);
