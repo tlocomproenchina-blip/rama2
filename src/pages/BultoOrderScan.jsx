@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
 import BultoCreateFromScanPanel from '@/components/warehouse/BultoCreateFromScanPanel';
+import ReprintDialog from '@/components/warehouse/ReprintDialog';
 import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
-import { Loader2, Save, Lock, Package, ScanLine, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Loader2, Save, Lock, Package, ScanLine, RotateCcw, CheckCircle2, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Página standalone de escaneo de etiquetas de bultos para empleados.
@@ -28,6 +29,8 @@ export default function BultoOrderScan({ user }) {
   const [createState, setCreateState] = useState(null);
   // Código escaneado y estado de la foto que la cámara toma automáticamente.
   const [scannedCode, setScannedCode] = useState('');
+  // Impresión de la etiqueta del bulto escaneado desde esta misma pantalla.
+  const [showPrint, setShowPrint] = useState(false);
   const [photoErrors, setPhotoErrors] = useState([]);
   const [photoRetrying, setPhotoRetrying] = useState(false);
   const { handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto } = useScannedPhotoUploader();
@@ -330,6 +333,13 @@ export default function BultoOrderScan({ user }) {
               </div>
             )}
 
+            {/* Impresión de la etiqueta del bulto escaneado */}
+            <div className="pt-2 border-t border-border">
+              <Button variant="outline" onClick={() => setShowPrint(true)}>
+                <Printer className="h-4 w-4" /> Imprimir etiqueta del bulto
+              </Button>
+            </div>
+
             {/* Campo de N° de orden */}
             <div className="pt-2 border-t border-border">
               {readOnly ? (
@@ -404,6 +414,21 @@ export default function BultoOrderScan({ user }) {
           <CheckCircle2 className="h-8 w-8 text-slate-300" />
           Escanea una etiqueta de bulto para comenzar.
         </div>
+      )}
+
+      {bulto && (
+        <ReprintDialog
+          bulto={bulto}
+          open={showPrint}
+          onClose={() => setShowPrint(false)}
+          deviceId={deviceIdRef.current}
+          onRegistered={(updated) => {
+            if (!updated) return;
+            setBulto((prev) => (prev
+              ? { ...prev, print_count: Number(updated.print_count || 0), reprint_unlocked: !!updated.reprint_unlocked }
+              : prev));
+          }}
+        />
       )}
     </div>
   );

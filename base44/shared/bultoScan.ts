@@ -187,5 +187,8 @@ export function bultoScanProjection(bulto: any) {
     cbm_order_numbers: bulto.cbm_order_numbers || [],
     order_locked: !!bulto.order_locked,
     order_assigned_by: bulto.order_assigned_by || "",
+    // Control de impresiones de etiqueta (la pantalla de escaneo puede imprimir).
+    print_count: Number(bulto.print_count || 0),
+    reprint_unlocked: !!bulto.reprint_unlocked,
   };
 }

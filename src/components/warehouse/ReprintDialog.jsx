@@ -15,7 +15,9 @@ const REASONS = ['Etiqueta dañada', 'Se perdió', 'Error de impresión', 'Otra'
 // 1-2 → reimpresión con motivo
 // 3 sin unlock → solicitar aprobación de admin
 // 3 con unlock → reimpresión aprobada (una vez)
-export default function ReprintDialog({ bulto, open, onClose, onRegistered }) {
+// deviceId: la pantalla /BultoOrderScan abre sin sesión; en ese caso el backend
+// registra la impresión a nombre del dispositivo.
+export default function ReprintDialog({ bulto, open, onClose, onRegistered, deviceId }) {
   const count = Number(bulto?.print_count || 0);
   const unlocked = !!bulto?.reprint_unlocked;
   const isBlocked = count >= 3 && !unlocked;
@@ -33,7 +35,8 @@ export default function ReprintDialog({ bulto, open, onClose, onRegistered }) {
       const res = await base44.functions.invoke('registerBultoPrint', {
         bulto_id: bulto.id,
         reason: count > 0 ? reason : null,
-        reason_detail: reason === 'Otra' ? reasonDetail : null
+        reason_detail: reason === 'Otra' ? reasonDetail : null,
+        device_id: deviceId || undefined
       });
       if (res?.data?.error) {
         toast.error(res.data.error);
@@ -47,7 +50,7 @@ export default function ReprintDialog({ bulto, open, onClose, onRegistered }) {
       setSubmitting(false);
       onClose();
     }
-  }, [bulto, count, reason, reasonDetail, onRegistered, onClose]);
+  }, [bulto, count, reason, reasonDetail, onRegistered, onClose, deviceId]);
 
   const handleRequestApproval = useCallback(async () => {
     if (!reason) { toast.error('Selecciona un motivo'); return; }
@@ -56,7 +59,8 @@ export default function ReprintDialog({ bulto, open, onClose, onRegistered }) {
       const res = await base44.functions.invoke('requestBultoReprintApproval', {
         bulto_id: bulto.id,
         reason,
-        reason_detail: reason === 'Otra' ? reasonDetail : null
+        reason_detail: reason === 'Otra' ? reasonDetail : null,
+        device_id: deviceId || undefined
       });
       if (res?.data?.error) {
         toast.error(res.data.error);
@@ -69,7 +73,7 @@ export default function ReprintDialog({ bulto, open, onClose, onRegistered }) {
     } finally {
       setSubmitting(false);
     }
-  }, [bulto, reason, reasonDetail]);
+  }, [bulto, reason, reasonDetail, deviceId]);
 
   const handleClose = () => {
     setReason('');

@@ -8,13 +8,28 @@ import { waitUntil } from 'base44:runtime';
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Solo administradores' }, { status: 403 });
+
+    let sessionUser: any = null;
+    try {
+      sessionUser = await base44.auth.me();
+    } catch (_) {
+      sessionUser = null;
+    }
+    if (sessionUser && sessionUser.role !== 'admin') {
+      return Response.json({ error: 'Solo administradores' }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({}));
     const bultoId: string = body.bulto_id || '';
     if (!bultoId) return Response.json({ error: 'Falta bulto_id' }, { status: 400 });
+
+    // La pantalla /BultoOrderScan abre sin sesión (enlace de trabajo del almacén):
+    // en ese caso se identifica el dispositivo que solicita la reimpresión.
+    const deviceId = String(body.device_id || '').trim();
+    if (!sessionUser && !deviceId) {
+      return Response.json({ error: 'device_id requerido' }, { status: 400 });
+    }
+    const requestedBy = sessionUser?.email || `Dispositivo ${deviceId.slice(0, 8).toUpperCase()}`;
 
     const bulto = await base44.asServiceRole.entities.Bulto.get(bultoId).catch(() => null);
     if (!bulto) return Response.json({ error: 'Bulto no encontrado' }, { status: 404 });
@@ -32,7 +47,7 @@ export default async function(req: Request): Promise<Response> {
       print_type: 'solicitud_reimpresion',
       reason: body.reason || null,
       reason_detail: body.reason_detail || null,
-      printed_by: user.email || '',
+      printed_by: requestedBy,
       print_date: new Date().toISOString(),
       approval_status: 'pendiente'
     });
