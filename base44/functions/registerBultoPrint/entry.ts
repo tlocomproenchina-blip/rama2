@@ -37,8 +37,11 @@ export default async function(req: Request): Promise<Response> {
     const currentCount: number = Number(bulto.print_count || 0);
     const unlocked: boolean = !!bulto.reprint_unlocked;
 
-    // Validar límite
-    if (currentCount >= 3 && !unlocked) {
+    // Los administradores imprimen sin límite.
+    const isAdmin = !!sessionUser && sessionUser.role === 'admin';
+
+    // Validar límite (solo para el personal que imprime desde el enlace público)
+    if (currentCount >= 3 && !unlocked && !isAdmin) {
       return Response.json({ error: 'Límite de reimpresiones alcanzado (3). Solicita aprobación de admin.' }, { status: 400 });
     }
 

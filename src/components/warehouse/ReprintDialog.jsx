@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,18 +15,32 @@ const REASONS = ['Etiqueta dañada', 'Se perdió', 'Error de impresión', 'Otra'
 // 1-2 → reimpresión con motivo
 // 3 sin unlock → solicitar aprobación de admin
 // 3 con unlock → reimpresión aprobada (una vez)
+// Administradores: imprimen sin límite ni motivo.
 // deviceId: la pantalla /BultoOrderScan abre sin sesión; en ese caso el backend
 // registra la impresión a nombre del dispositivo.
 export default function ReprintDialog({ bulto, open, onClose, onRegistered, deviceId }) {
   const count = Number(bulto?.print_count || 0);
   const unlocked = !!bulto?.reprint_unlocked;
-  const isBlocked = count >= 3 && !unlocked;
+  // Los administradores tienen impresiones ilimitadas: no eligen motivo ni piden aprobación.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const isBlocked = count >= 3 && !unlocked && !isAdmin;
 
   const [reason, setReason] = useState('');
   const [reasonDetail, setReasonDetail] = useState('');
   const [step, setStep] = useState(count === 0 || (count >= 3 && unlocked) ? 'print' : 'select');
   const [submitting, setSubmitting] = useState(false);
   const [requested, setRequested] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    // Sin sesión (enlace público /BultoOrderScan) se mantiene el flujo con límite.
+    base44.auth.me()
+      .then((u) => { if (alive) setIsAdmin(u?.role === 'admin'); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const effectiveStep = isAdmin ? 'print' : step;
 
   const handlePrinted = useCallback(async () => {
     if (!bulto?.id) { onClose(); return; }
@@ -142,7 +156,7 @@ export default function ReprintDialog({ bulto, open, onClose, onRegistered, devi
               </Button>
             </DialogFooter>
           </div>
-        ) : step === 'select' ? (
+        ) : effectiveStep === 'select' ? (
           <div className="space-y-4">
             <div className="text-sm text-slate-600 space-y-1">
               <p>Etiqueta: <span className="font-mono">{bulto.label_code}</span></p>
