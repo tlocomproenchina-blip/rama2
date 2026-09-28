@@ -16,7 +16,6 @@ export default function ClientsList({
   onView,
   onEdit,
   onDelete,
-  onDeleteStripeCustomer,
   onToggleActive,
   onChangeRole,
 }) {
@@ -46,7 +45,6 @@ export default function ClientsList({
             onView={onView}
             onEdit={onEdit}
             onDelete={onDelete}
-            onDeleteStripeCustomer={onDeleteStripeCustomer}
             onToggleActive={onToggleActive}
             onChangeRole={onChangeRole}
           />

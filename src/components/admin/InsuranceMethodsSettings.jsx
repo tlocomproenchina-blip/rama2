@@ -4,7 +4,6 @@ import { Label } from '@/components/ui/label';
 import { ShieldCheck } from 'lucide-react';
 
 const ALL_METHODS = [
-  { key: 'stripe', label: 'Tarjeta (Stripe)' },
   { key: 'paypal', label: 'PayPal' },
   { key: 'binance', label: 'Binance Pay' },
   { key: 'usdt_trc20', label: 'USDT TRC20' },

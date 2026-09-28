@@ -83,7 +83,7 @@ export default function MyConsolidations({ user }) {
   const hasActivePaymentMethods = React.useMemo(() => {
     const c = config;
     if (!c) return false;
-    // Considera solo métodos distintos a Stripe
+    // Considera solo métodos de pago manuales
     return (
       (c.payments_enable_binance === true && c.wallet_binance) ||
       (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) ||

@@ -6,13 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Check, Package, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import StripeCheckout from '@/components/payments/StripeCheckout';
 import PagoMovilBsDisplay from '@/components/payments/PagoMovilBsDisplay';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { normalizeStates } from '@/components/utils/states';
 
 const METHOD_LABELS = {
-  stripe: { label: 'Tarjeta (Stripe)', icon: '💳' },
   paypal: { label: 'PayPal', icon: '🅿️' },
   binance: { label: 'Binance Pay', icon: '🅱️' },
   usdt_trc20: { label: 'USDT TRC20', icon: '₮' },
@@ -51,7 +49,6 @@ export default function QuoteFeePayment() {
   // Payment state
   const [selectedMethod, setSelectedMethod] = useState('');
   const [paymentId, setPaymentId] = useState(null);
-  const [stripeClientSecret, setStripeClientSecret] = useState(null);
   const [paypalApprovalUrl, setPaypalApprovalUrl] = useState(null);
   const [manualReference, setManualReference] = useState('');
   const [confirmingManual, setConfirmingManual] = useState(false);
@@ -170,9 +167,7 @@ export default function QuoteFeePayment() {
 
       setPaymentId(data.payment_id);
 
-      if (selectedMethod === 'stripe' && data.stripe_client_secret) {
-        setStripeClientSecret(data.stripe_client_secret);
-      } else if (selectedMethod === 'paypal' && data.paypal_approval_url) {
+      if (selectedMethod === 'paypal' && data.paypal_approval_url) {
         setPaypalApprovalUrl(data.paypal_approval_url);
       }
       // For manual methods, stay on the form and show the manual confirmation section
@@ -181,11 +176,6 @@ export default function QuoteFeePayment() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleStripeSuccess = async (paymentIntent) => {
-    // El webhook de Stripe maneja el fulfill. Mostramos pantalla de éxito.
-    setSuccess({ quote_number: null, quote_token: null, stripe_pending: true });
   };
 
   const handleManualConfirm = async () => {
@@ -245,12 +235,7 @@ export default function QuoteFeePayment() {
             <Check className="h-8 w-8 text-green-600" />
           </div>
           <h1 className="text-xl font-bold text-gray-800 mb-2">Su pago ha sido verificado</h1>
-          {success.stripe_pending ? (
-            <p className="text-sm text-gray-600">
-              Tu pago está siendo procesado. Te enviaremos un correo a <strong>{email}</strong> con tu enlace de presupuesto en unos momentos.
-            </p>
-          ) : (
-            <>
+          <>
               <p className="text-sm text-gray-600 mb-4">
                 Te enviamos un correo a <strong>{email}</strong> con tu enlace de presupuesto.
               </p>
@@ -271,8 +256,7 @@ export default function QuoteFeePayment() {
                   </Button>
                 </a>
               )}
-            </>
-          )}
+          </>
         </div>
       </div>
     );
@@ -433,18 +417,6 @@ export default function QuoteFeePayment() {
             <span className="text-lg font-bold" style={{ color: '#800080' }}>${(config?.amount || 20).toFixed(2)}</span>
           </div>
         </div>
-
-        {/* Stripe checkout inline */}
-        {selectedMethod === 'stripe' && stripeClientSecret && config?.stripe_publishable_key && (
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <h3 className="mb-4 text-sm font-bold" style={{ color: '#800080' }}>Pagar con Tarjeta</h3>
-            <StripeCheckout
-              clientSecret={stripeClientSecret}
-              publishableKey={config.stripe_publishable_key}
-              onSuccess={handleStripeSuccess}
-            />
-          </div>
-        )}
 
         {/* Manual confirmation form */}
         {showManualForm && (

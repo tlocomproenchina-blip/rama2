@@ -10,7 +10,7 @@ export default async function(req) {
     const amount = Number(config.quote_fee_amount) || 20;
     const enabledMethods = Array.isArray(config.quote_fee_enabled_methods) && config.quote_fee_enabled_methods.length
       ? config.quote_fee_enabled_methods
-      : ['stripe', 'paypal'];
+      : ['paypal'];
 
     // Devolver datos de wallets/instrucciones para los métodos habilitados
     const methodDetails = {};
@@ -48,12 +48,6 @@ export default async function(req) {
       };
     }
 
-    // Publishable key de Stripe si stripe está habilitado
-    let stripePublishableKey = null;
-    if (enabledMethods.includes('stripe')) {
-      stripePublishableKey = Deno.env.get('stripepublicable') || null;
-    }
-
     // Client ID de PayPal si paypal está habilitado
     let paypalClientId = null;
     if (enabledMethods.includes('paypal')) {
@@ -64,7 +58,6 @@ export default async function(req) {
       amount,
       enabled_methods: enabledMethods,
       method_details: methodDetails,
-      stripe_publishable_key: stripePublishableKey,
       paypal_client_id: paypalClientId,
       app_name: config.app_name || 'TLEC CARGO',
       bcv_eur_rate: Number(config.bcv_eur_rate) || 0,

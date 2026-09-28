@@ -34,7 +34,6 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
         // Filter available payment methods based on configuration (with enable flags)
         const c = configs[0];
         const methods = [];
-        // Stripe se maneja con botón externo en facturas
         if (c.payments_enable_binance === true && c.wallet_binance) methods.push({ id: 'binance', name: 'Binance', color: 'amber' });
         if (c.payments_enable_usdt_trc20 === true && c.wallet_usdt_trc20) methods.push({ id: 'usdt_trc20', name: 'USDT TRC20', color: 'blue' });
         if (c.payments_enable_paypal === true && c.wallet_paypal) methods.push({ id: 'paypal', name: 'PayPal', color: 'blue' });
@@ -263,7 +262,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
           </div>
 
           <div className="space-y-2">
-            {paymentMethod !== 'stripe' && paymentMethod !== 'pago_movil_usdt' && (
+            {paymentMethod !== 'pago_movil_usdt' && (
               <>
                 <Label className="text-slate-700 font-medium">
                   {['paypal', 'wally', 'zinli', 'wise', 'skrill'].includes(paymentMethod)
@@ -295,9 +294,7 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
             </div>
           )}
 
-          {/* Monto pagado (ocultar en Stripe, se toma del total) */}
-          {paymentMethod !== 'stripe' && (
-            <div className="space-y-2">
+          <div className="space-y-2">
               <Label htmlFor="amount" className="text-slate-700 font-medium flex items-center gap-2">
                 <DollarSign className="h-4 w-4" /> Monto Pagado
               </Label>
@@ -310,12 +307,9 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
                 className="bg-slate-100 cursor-not-allowed"
               />
               <p className="text-xs text-slate-500">El monto corresponde al saldo pendiente. Para pagar en partes, usa "Registrar Abono".</p>
-            </div>
-          )}
+          </div>
 
-          {/* Comprobante: no aplica para Stripe */}
-          {paymentMethod !== 'stripe' && (
-            <div className="space-y-2">
+          <div className="space-y-2">
               <Label className="text-slate-700 font-medium flex items-center gap-2">
                 <Upload className="h-4 w-4" /> Comprobante de Pago
               </Label>
@@ -342,50 +336,23 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
                 </label>
               </div>
             </div>
-          )}
         </div>
 
         <DialogFooter className="flex gap-3">
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancelar
           </Button>
-          {paymentMethod === 'stripe' ? (
-            <Button
-              onClick={async () => {
-                try {
-                  const invs = await base44.entities.Invoice.filter({ consolidation_id: consolidation.id });
-                  if (!invs || invs.length === 0) throw new Error('No se encontró la factura de esta consolidación');
-                  const inv = invs[0];
-                  if (inv.status === 'pagada' || inv.status === 'revision') throw new Error('Esta factura no admite pago con tarjeta en este momento');
-                  const cfg = await base44.functions.invoke('getStripeConfig');
-                  if (cfg.status !== 200 || !cfg.data?.publishableKey) throw new Error('Stripe no está configurado');
-                  const res = await base44.functions.invoke('createStripePaymentIntent', { invoice_id: inv.id });
-                  if (res.status !== 200 || !res.data?.client_secret) throw new Error(res.data?.error || 'No se pudo iniciar el pago');
-                  // Abrimos el modal de Stripe de la página de facturas vía evento
-                  window.dispatchEvent(new CustomEvent('openStripeForInvoice', { detail: { clientSecret: res.data.client_secret, publishableKey: cfg.data.publishableKey, invoiceId: inv.id } }));
-                  onClose();
-                } catch (e) {
-                  console.error(e);
-                  toast.error(e.message || 'No se pudo abrir Stripe');
-                }
-              }}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              Pagar con Tarjeta (Stripe)
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={uploading}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              {uploading ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
-              ) : (
-                'Confirmar Pago'
-              )}
-            </Button>
-          )}
+          <Button
+            onClick={handleSubmit}
+            disabled={uploading}
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            {uploading ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+            ) : (
+              'Confirmar Pago'
+            )}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

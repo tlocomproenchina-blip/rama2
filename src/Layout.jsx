@@ -234,12 +234,6 @@ export default function Layout({ children, currentPageName }) {
         try { await base44.auth.updateMe({ referral_code: code }); } catch (_) {}
       }
 
-      // Auto-create Stripe customer if missing
-      if (currentUser && !currentUser.stripe_customer_id) {
-        // Non-blocking call
-        base44.functions.invoke('createStripeCustomer', {});
-      }
-
       // Block access for inactive clients
       if (currentUser.role === 'user' && currentUser.is_active === false) {
         navigate(createPageUrl('AccountDisabled'));

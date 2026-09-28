@@ -38,8 +38,6 @@ export default defineConfig({
       '@hello-pangea/dnd',
       'react-markdown',
       'react-quill-new',
-      '@stripe/react-stripe-js',
-      '@stripe/stripe-js',
       '@radix-ui/react-accordion',
       '@radix-ui/react-alert-dialog',
       '@radix-ui/react-aspect-ratio',

@@ -18,7 +18,6 @@ export function sanitizeUser(u: any) {
     shipping_mark: u.shipping_mark || null,
     profile_completed: !!u.profile_completed,
     is_active: u.is_active !== false,
-    stripe_customer_id: u.stripe_customer_id || null,
     referral_code: u.referral_code || null,
     referred_by_code: u.referred_by_code || null,
     referred_by_user_id: u.referred_by_user_id || null,

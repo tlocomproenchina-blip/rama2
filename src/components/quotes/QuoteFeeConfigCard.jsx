@@ -8,7 +8,6 @@ import { Loader2, Copy, Check, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const ALL_METHODS = [
-  { key: 'stripe', label: 'Tarjeta (Stripe)' },
   { key: 'paypal', label: 'PayPal' },
   { key: 'binance', label: 'Binance Pay' },
   { key: 'usdt_trc20', label: 'USDT TRC20' },
@@ -28,7 +27,7 @@ export default function QuoteFeeConfigCard({ config, onSaved }) {
   const [enabledMethods, setEnabledMethods] = useState(
     Array.isArray(config?.quote_fee_enabled_methods) && config.quote_fee_enabled_methods.length
       ? config.quote_fee_enabled_methods
-      : ['stripe', 'paypal']
+      : ['paypal']
   );
   const [emailSubject, setEmailSubject] = useState(config?.quote_fee_email_subject || '🎉 Tu enlace de presupuesto está listo');
   const [emailBody, setEmailBody] = useState(

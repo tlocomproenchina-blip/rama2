@@ -19,18 +19,17 @@ import {
   ShieldCheck,
   Wallet,
 } from 'lucide-react';
-import { toast } from 'sonner';
 
 const methodGroups = [
   {
-    title: 'Cobro online y tarjetas',
+    title: 'Cobro online',
     description: 'Métodos digitales listos para clientes que pagan desde web o con soporte manual.',
     methods: [
       {
-        key: 'stripe',
-        title: 'Stripe (Tarjeta)',
-        description: 'Cobro con tarjeta y validación de configuración de Stripe.',
-        enabledKey: 'payments_enable_stripe',
+        key: 'debito_internacional',
+        title: 'Débito internacional',
+        description: 'Publica tus datos para que el cliente pague por transferencia internacional.',
+        enabledKey: 'payments_enable_debito_internacional',
         tone: 'purple',
         icon: CreditCard,
         instructionsKey: 'debito_internacional_instructions',
@@ -38,7 +37,6 @@ const methodGroups = [
         identityLabel: 'Datos visibles al cliente',
         identityPlaceholder: 'Datos para débito internacional o referencia adicional',
         instructionsPlaceholder: 'Indicaciones para pagos manuales o soporte adicional',
-        stripe: true,
       },
       {
         key: 'paypal',
@@ -184,35 +182,13 @@ const methodGroups = [
 ];
 
 export default function PaymentMethodsSettings({ config, setConfig, saving, onSave }) {
-  const [openCards, setOpenCards] = useState({ stripe: true, binance: true, paypal: true });
-  const [checkingStripe, setCheckingStripe] = useState(false);
-  const [stripeCheckResult, setStripeCheckResult] = useState(null);
+  const [openCards, setOpenCards] = useState({ debito_internacional: true, binance: true, paypal: true });
 
   const visibleMethods = useMemo(() => methodGroups.flatMap((group) => group.methods), []);
   const activeCount = visibleMethods.filter((method) => !!config?.[method.enabledKey]).length;
 
   const updateField = (key, value) => setConfig((prev) => ({ ...prev, [key]: value }));
   const toggleCard = (key) => setOpenCards((prev) => ({ ...prev, [key]: !prev[key] }));
-
-  const handleStripeCheck = async () => {
-    setCheckingStripe(true);
-    setStripeCheckResult(null);
-    try {
-      const res = await base44.functions.invoke('getStripeConfig');
-      if (res.status === 200 && res.data?.publishableKey) {
-        setStripeCheckResult({ type: 'success', message: 'Stripe está configurado correctamente.' });
-        toast.success('Stripe está configurado correctamente');
-      } else {
-        setStripeCheckResult({ type: 'error', message: 'Falta configurar la clave pública de Stripe.' });
-        toast.error('Falta configurar la clave pública de Stripe');
-      }
-    } catch (_) {
-      setStripeCheckResult({ type: 'error', message: 'No se pudo verificar Stripe en este momento.' });
-      toast.error('No se pudo verificar Stripe');
-    } finally {
-      setCheckingStripe(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -234,56 +210,12 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
             <p className="mt-2 text-3xl font-semibold">{activeCount}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm text-slate-300">Tarjetas y online</p>
-            <p className="mt-2 text-base font-medium">Stripe y PayPal</p>
+            <p className="text-sm text-slate-300">Cobro online</p>
+            <p className="mt-2 text-base font-medium">PayPal y débito internacional</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-sm text-slate-300">Recomendación</p>
             <p className="mt-2 text-base font-medium">Mantén visibles solo los métodos realmente operativos.</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="rounded-2xl border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-lg">Reglas de sincronización con Stripe</CardTitle>
-          <CardDescription>
-            Define cómo se comporta el sistema cuando marcas facturas como pagadas o sincronizas datos con Stripe.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Sincronización al marcar pagada</Label>
-            <Select value={config?.payments_stripe_sync_mode || 'auto'} onValueChange={(value) => updateField('payments_stripe_sync_mode', value)}>
-              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">Automático</SelectItem>
-                <SelectItem value="confirm">Pedir confirmación</SelectItem>
-                <SelectItem value="button">Botón separado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Detalles guardados en Stripe</Label>
-            <Select value={config?.payments_stripe_details_mode || 'none'} onValueChange={(value) => updateField('payments_stripe_details_mode', value)}>
-              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Ninguno</SelectItem>
-                <SelectItem value="metadata">Metadata</SelectItem>
-                <SelectItem value="description">Descripción</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Si Stripe falla</Label>
-            <Select value={config?.payments_stripe_error_mode || 'keep_and_alert'} onValueChange={(value) => updateField('payments_stripe_error_mode', value)}>
-              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="keep_and_alert">Mantener y alertar</SelectItem>
-                <SelectItem value="revert">Revertir</SelectItem>
-                <SelectItem value="retry_then_revert">Reintentar y revertir</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
@@ -324,26 +256,7 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
                 instructionsValue={config?.[method.instructionsKey]}
                 onInstructionsChange={method.instructionsKey ? (value) => updateField(method.instructionsKey, value) : undefined}
                 instructionsPlaceholder={method.instructionsPlaceholder}
-              >
-                {method.stripe && (
-                  <div className="rounded-2xl border border-dashed border-purple-200 bg-purple-50/70 p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="font-medium text-slate-900">Estado de Stripe</p>
-                        <p className="text-sm text-slate-600">Las claves viven en el servidor. Desde aquí puedes comprobar si todo está listo.</p>
-                      </div>
-                      <Button type="button" variant="outline" onClick={handleStripeCheck} className="bg-white" disabled={checkingStripe}>
-                        {checkingStripe ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando...</> : 'Probar Stripe'}
-                      </Button>
-                    </div>
-                    {stripeCheckResult && (
-                      <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${stripeCheckResult.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
-                        {stripeCheckResult.message}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </PaymentMethodCard>
+              />
             ))}
           </div>
         </div>

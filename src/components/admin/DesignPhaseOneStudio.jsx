@@ -107,7 +107,7 @@ export default function DesignPhaseOneStudio() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Apps o marcas de referencia</Label>
-              <Textarea value={form.benchmarkApps} onChange={(e) => updateField('benchmarkApps', e.target.value)} rows={5} placeholder="Ej: Stripe Dashboard, Linear, Notion, Ramp, Apple Wallet..." />
+              <Textarea value={form.benchmarkApps} onChange={(e) => updateField('benchmarkApps', e.target.value)} rows={5} placeholder="Ej: Linear, Notion, Ramp, Apple Wallet..." />
             </div>
             <div className="space-y-2">
               <Label>Mejoras rápidas para fase 2</Label>
