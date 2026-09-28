@@ -10,6 +10,7 @@ import BluetoothPrinter from '@/components/warehouse/BluetoothPrinter';
 import BultoVerifier from '@/components/warehouse/BultoVerifier';
 import UniversalClientSearch from '@/components/warehouse/UniversalClientSearch';
 import BultoHistory from '@/components/warehouse/BultoHistory';
+import BultoStatusAuditPanel from '@/components/warehouse/BultoStatusAuditPanel';
 
 export default function WarehouseBultos({ user }) {
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseBultos');
@@ -207,6 +208,9 @@ export default function WarehouseBultos({ user }) {
           </div>
         )}
       </Card>
+
+      {/* Verificación de bultos marcados como Despachado sin despacho real */}
+      <BultoStatusAuditPanel onApplied={() => setHistoryRefreshKey((k) => k + 1)} />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>

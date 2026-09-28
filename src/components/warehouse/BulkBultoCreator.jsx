@@ -14,7 +14,8 @@ import { bulkPut } from '@/lib/offlineDb';
 
 // Crea N bultos vacíos en secuencia para un cliente (offline-first).
 // Reutiliza el bloque de números global (getNextNumber) para asignar bulto_number únicos.
-// Crea los bultos en IndexedDB con status 'activo' para que el operador pueda escanear paquetes en ellos después.
+// Crea los bultos en IndexedDB con status 'en_almacen_ve' (sellados en almacén, sin despachar) para que el
+// operador pueda escanear paquetes en ellos después y el bulto no aparezca como entregado.
 // Ofrece imprimir todas las etiquetas vía Bluetooth o descargar un PDF combinado.
 export default function BulkBultoCreator({ getNextNumber, user, onCreated, enqueueClosedBulto }) {
   const [open, setOpen] = useState(false);
@@ -84,7 +85,7 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated, enque
         invoice_status: '',
         invoice_number: '',
         warehouse_id: '',
-        status: 'despachado',
+        status: 'en_almacen_ve',
         closed_at: closedAt,
         created_by: user?.email || '',
         is_local: true,

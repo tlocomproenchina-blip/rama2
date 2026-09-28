@@ -62,10 +62,10 @@ export default async function(req: Request): Promise<Response> {
       .map((id, i) => (String(id).startsWith('local_') ? rawTrackings[i] || '' : ''))
       .filter(Boolean);
 
-    // Bultos con contenido: status 'en_almacen_ve' (en almacén de Venezuela, esperando despacho al cliente).
-    // Bultos vacíos (bulk/etiquetas): status 'despachado' (cajas pre-armadas sin contenido).
-    const hasContent = validPackageIds.length > 0 || unregisteredFromLocal.length > 0 || validTrackings.length > 0;
-    const bultoStatus = hasContent ? 'en_almacen_ve' : 'despachado';
+    // Todos los bultos nacen 'en_almacen_ve' (sellados en el almacén, esperando despacho al cliente).
+    // Las etiquetas vacías creadas en lote también: antes nacían como 'despachado' y aparecían
+    // como entregadas sin haber salido del almacén. El paso a 'despachado' es manual en WarehouseDispatch.
+    const bultoStatus = 'en_almacen_ve';
 
     // Auto-lookup CbmIngreso order numbers if not provided manually
     let finalOrderNumbers: string[] = Array.isArray(cbm_order_numbers) ? cbm_order_numbers.filter(Boolean) : [];

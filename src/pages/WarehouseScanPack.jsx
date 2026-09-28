@@ -394,8 +394,8 @@ export default function WarehouseScanPack({ user }) {
     [openBultos, activeBultoId]
   );
 
-  // --- Registrar bultos creados en lote (ya despachados) ---
-  // Los bultos del lote se crean con status 'despachado', así que no van a
+  // --- Registrar bultos creados en lote (sellados en almacén) ---
+  // Los bultos del lote se crean sellados con status 'en_almacen_ve', así que no van a
   // openBultos. Se muestran en la zona de impresión y se reflejan en historial.
   const handleBulkCreated = useCallback(async (newBultos) => {
     if (!newBultos?.length) return;
