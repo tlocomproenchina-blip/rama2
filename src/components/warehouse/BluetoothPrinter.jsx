@@ -208,7 +208,33 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
           y += addrLines.slice(0, 2).length * 4.5;
         }
         const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-        if (cityState) { doc.text(cityState, 5, y); }
+        if (cityState) { doc.text(cityState, 5, y); y += 5; }
+
+        // 5. Trackings contenidos — letra pequeña al final de la etiqueta.
+        //    Si no caben todos, la última línea resume cuántos faltan ("+N más").
+        const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
+        if (trackings.length > 0) {
+          doc.setLineWidth(0.3);
+          doc.line(5, y, 95, y);
+          y += 4;
+          doc.setFont(undefined, 'bold');
+          doc.setFontSize(8);
+          doc.text(`CONTENIDO (${trackings.length})`, 5, y);
+          y += 3.5;
+          doc.setFont('courier', 'normal');
+          doc.setFontSize(7);
+          const lineH = 3;
+          const maxLines = Math.floor((96 - y) / lineH) + 1;
+          if (maxLines > 0) {
+            const truncated = trackings.length > maxLines;
+            const shown = truncated ? maxLines - 1 : trackings.length;
+            trackings.slice(0, shown).forEach((t) => {
+              doc.text(String(t).slice(0, 48), 5, y);
+              y += lineH;
+            });
+            if (truncated) doc.text(`+${trackings.length - shown} más`, 5, y);
+          }
+        }
 
         doc.save(`etiqueta-${bulto.label_code}.pdf`);
       }

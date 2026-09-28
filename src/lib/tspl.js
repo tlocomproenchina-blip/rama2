@@ -128,6 +128,32 @@ export const buildBultoLabelPayload = (bulto) => {
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
   if (cityState) {
     lines.push(`TEXT 50,${cy},${q('2')},0,1,1,${q(cityState)}`);
+    cy += 24;
+  }
+
+  // 9. Trackings contenidos — fuente pequeña, en el espacio libre restante.
+  //    Si no caben todos, la última línea resume cuántos faltan ("+N más").
+  const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
+  if (trackings.length > 0) {
+    const LIMIT_Y = 782;
+    const LINE_H = 18;
+    lines.push(`BAR 50,${cy + 4},700,3`);
+    const titleY = cy + 14;
+    lines.push(`TEXT 50,${titleY},${q('1')},0,1,1,${q(`CONTENIDO (${trackings.length})`)}`);
+    const firstY = titleY + LINE_H;
+    const maxLines = Math.floor((LIMIT_Y - firstY) / LINE_H) + 1;
+    if (maxLines > 0) {
+      const truncated = trackings.length > maxLines;
+      const shown = truncated ? maxLines - 1 : trackings.length;
+      let ty = firstY;
+      for (const t of trackings.slice(0, shown)) {
+        lines.push(`TEXT 50,${ty},${q('1')},0,1,1,${q(String(t).slice(0, 45))}`);
+        ty += LINE_H;
+      }
+      if (truncated) {
+        lines.push(`TEXT 50,${ty},${q('1')},0,1,1,${q(`+${trackings.length - shown} más`)}`);
+      }
+    }
   }
 
   lines.push('PRINT 1');
