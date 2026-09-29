@@ -15,6 +15,10 @@ import {
 // mode: 'merge' → ejecuta la fusión de los grupos indicados (CBM y paquetes
 //                 sumados, trackings unidos, duplicados eliminados, facturas
 //                 recalculadas y rastro en la auditoría de actividad).
+// mode: 'auto'  → fusiona sin confirmación los repetidos del mismo cliente con
+//                 el mismo N° de orden y el mismo CBM que no estén dentro de
+//                 ninguna factura; el resto de grupos vuelven en `review` para
+//                 revisión manual. Con dry_run solo informa, no toca nada.
 //
 // Solo administradores.
 export default async function (req: Request): Promise<Response> {
@@ -25,7 +29,7 @@ export default async function (req: Request): Promise<Response> {
     if (user.role !== 'admin') return Response.json({ error: 'Solo administradores' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const mode = body.mode === 'merge' ? 'merge' : 'scan';
+    const mode = body.mode === 'merge' ? 'merge' : (body.mode === 'auto' ? 'auto' : 'scan');
 
     // ---------- Escaneo: solo lectura ----------
     if (mode === 'scan') {
@@ -77,6 +81,82 @@ export default async function (req: Request): Promise<Response> {
         groups,
         exact_groups: groups.filter((g: any) => g.same_cbm).length,
         possible_groups: groups.filter((g: any) => !g.same_cbm).length,
+      });
+    }
+
+    // ---------- Detección y fusión automática ----------
+    // Solo grupos del mismo cliente con el mismo N° de orden y el mismo CBM, y
+    // únicamente cuando ninguno de sus recibos está en una factura. Lo demás
+    // (CBM distinto o ya facturado) se devuelve en `review` sin tocar nada.
+    if (mode === 'auto') {
+      const clientEmail = String(body.client_email || '').trim();
+      const dryRun = !!body.dry_run;
+      const receipts = await fetchAllFilter(
+        base44.asServiceRole.entities.CbmIngreso,
+        clientEmail ? { client_email: clientEmail } : {},
+        '-fecha'
+      );
+      const found = detectGroups(receipts);
+
+      const invoiceIds = [...new Set(found.flatMap((g) => g.list.map((r: any) => r.billed_invoice_id)).filter(Boolean))];
+      const invoicesById = await loadInvoicesById(base44, invoiceIds as string[]);
+      const existingInvoiceIds = new Set(Object.keys(invoicesById));
+
+      const rateBase = await loadRateBase(base44);
+      const emails = [...new Set(found.map((g) => String(g.list[0]?.client_email || '')).filter(Boolean))];
+      const states = await loadClientStates(base44, emails);
+      const ctxCache: Record<string, any> = {};
+      const ctxFor = (email: string) => {
+        if (!ctxCache[email]) {
+          ctxCache[email] = buildRateContext({
+            appConfig: rateBase.appConfig,
+            pricing: rateBase.pricing,
+            rateHistory: rateBase.rateHistory,
+            stateShippingRate: stateShippingRateFor(rateBase, states[email]),
+          });
+        }
+        return ctxCache[email];
+      };
+
+      const merged: any[] = [];
+      const skipped: any[] = [];
+      const review: any[] = [];
+
+      for (const group of found) {
+        const plan = buildPlan(group.list, existingInvoiceIds);
+        if (!plan) continue;
+        const email = String(plan.keep.client_email || '');
+        const invoiced = [plan.keep, ...plan.absorbed].some(
+          (r: any) => r.billed_invoice_id && existingInvoiceIds.has(String(r.billed_invoice_id))
+        );
+        if (!group.same_cbm || invoiced) {
+          review.push(groupPreview({
+            group, plan, invoicesById, receiptsOfClient: receipts, ctx: ctxFor(email),
+            clientName: plan.keep.client_name,
+          }));
+          continue;
+        }
+        if (dryRun) continue;
+        const result = await applyMerge(base44, plan, ctxFor(email), user);
+        if (result?.skipped) {
+          skipped.push({ order: result.order || plan.order, reason: result.reason || 'No se pudo fusionar el grupo' });
+        } else {
+          merged.push(result);
+        }
+      }
+
+      return Response.json({
+        ok: true,
+        mode,
+        merged,
+        skipped,
+        review,
+        summary: {
+          merged_groups: merged.length,
+          merged_receipts: merged.reduce((s, m: any) => s + (m.absorbed_ids?.length || 0), 0),
+          skipped_groups: skipped.length,
+          review_groups: review.length,
+        },
       });
     }
 

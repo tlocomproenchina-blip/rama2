@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import BillingSummary from '@/components/manual-billing/BillingSummary';
 import PackagesWithoutReceiptSection from '@/components/manual-billing/PackagesWithoutReceiptSection';
 import DuplicateReceiptsBanner from '@/components/manual-billing/DuplicateReceiptsBanner';
 import DuplicateMergeDialog from '@/components/manual-billing/DuplicateMergeDialog';
+import ReceiptsAutoMergeNotice from '@/components/manual-billing/ReceiptsAutoMergeNotice';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -47,6 +48,11 @@ export default function AdminManualBilling() {
   const [dupGlobal, setDupGlobal] = useState(false);
   const [scanningDups, setScanningDups] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [autoMerging, setAutoMerging] = useState(false);
+  const [autoSummary, setAutoSummary] = useState(null);
+  // Cliente ya revisado automáticamente (evita repetir la fusión en cada recarga)
+  const autoRanRef = useRef(null);
+  const clientEmailRef = useRef('');
 
   useEffect(() => {
     (async () => {
@@ -61,6 +67,12 @@ export default function AdminManualBilling() {
       setStateConfigs(states || []);
       setRateHistory(history || []);
     })();
+  }, []);
+
+  // Al entrar a la pantalla se avisan los repetidos que no se pueden resolver solos
+  // (CBM distinto o ya facturados) en cualquier cliente. No modifica nada.
+  useEffect(() => {
+    checkPendingDuplicates();
   }, []);
 
   const DOOR_TO_DOOR_THRESHOLD = 0.130;
@@ -210,12 +222,16 @@ export default function AdminManualBilling() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finalRatePerCbm, specialRates, rateHistory, stateShippingRate, cargoType]);
 
-  const loadClientInvoices = async (selectedClient) => {
+  const loadClientInvoices = async (selectedClient, options = {}) => {
+    const skipAuto = options?.skipAuto === true;
     setClient(selectedClient);
     setRows([]);
     setCargoType(INITIAL_CARGO_TYPE);
     setCreditBalance(0);
     setOrphanPackages([]);
+    setDupGroups([]);
+    setAutoSummary(null);
+    clientEmailRef.current = String(selectedClient?.email || '').trim();
     setLoadingRows(true);
     try {
       const [ingresos, pkgs, credits, dispatchOrders, insurancePayments] = await Promise.all([
@@ -332,8 +348,9 @@ export default function AdminManualBilling() {
         };
       });
       setRows(built);
-      // Con los recibos ya cargados, se revisan duplicados del cliente en segundo plano.
-      scanDuplicates(selectedClient.email);
+      // Con los recibos ya cargados, se revisan y fusionan los repetidos del
+      // cliente en segundo plano, sin bloquear la pantalla.
+      if (!skipAuto) autoMergeDuplicates(selectedClient);
     } catch {
       toast.error('Error al cargar registros del cliente');
     }
@@ -709,29 +726,67 @@ export default function AdminManualBilling() {
     setCreating(false);
   };
 
-  // Revisa recibos repetidos (mismo cliente y mismo N° de orden). Sin email,
-  // revisa a todos los clientes.
-  const scanDuplicates = async (email) => {
+  // Repetidos que no se pueden fusionar solos (CBM distinto o ya facturados).
+  const checkPendingDuplicates = async (email) => {
     setScanningDups(true);
     try {
       const res = await base44.functions.invoke('mergeDuplicateReceipts', {
-        mode: 'scan',
+        mode: 'auto',
+        dry_run: true,
         ...(email ? { client_email: email } : {}),
       });
       const data = res?.data || {};
-      setDupGroups(data.groups || []);
+      setDupGroups(data.review || []);
       setDupGlobal(!email);
-      return data.groups || [];
+      return data.review || [];
     } catch {
-      setDupGroups([]);
       return [];
     } finally {
       setScanningDups(false);
     }
   };
 
+  // Fusiona solos los repetidos del mismo cliente con igual N° de orden y CBM.
+  const autoMergeDuplicates = async (selectedClient, force = false) => {
+    const email = String(selectedClient?.email || '').trim();
+    if (!email) return;
+    if (!force && autoRanRef.current === email) return;
+    autoRanRef.current = email;
+    setAutoMerging(true);
+    try {
+      const res = await base44.functions.invoke('mergeDuplicateReceipts', { mode: 'auto', client_email: email });
+      const data = res?.data || {};
+      const merged = data.merged || [];
+      if (merged.length && clientEmailRef.current === email) {
+        await loadClientInvoices(selectedClient, { skipAuto: true });
+      }
+      setDupGroups(data.review || []);
+      if (merged.length) {
+        setAutoSummary({
+          receipts: data.summary?.merged_receipts || 0,
+          groups: merged.map((m) => ({ order: m.order, cbm: m.cbm_after })),
+        });
+      }
+    } catch {
+      // Silencioso: la revisión manual sigue disponible en el botón superior.
+    } finally {
+      setAutoMerging(false);
+    }
+  };
+
+  // Revisión manual de todos los clientes: muestra los grupos y los fusiona con confirmación.
   const handleReviewAllDuplicates = async () => {
-    const found = await scanDuplicates();
+    setScanningDups(true);
+    let found = [];
+    try {
+      const res = await base44.functions.invoke('mergeDuplicateReceipts', { mode: 'scan' });
+      found = res?.data?.groups || [];
+      setDupGroups(found);
+      setDupGlobal(true);
+    } catch {
+      found = [];
+    }
+    setScanningDups(false);
     if (!found.length) {
       toast.success('No hay recibos repetidos');
       return;
@@ -804,13 +859,19 @@ export default function AdminManualBilling() {
         scanning={scanningDups}
         hasClient={!!client}
         onOpen={() => setShowMergeDialog(true)}
-        onRescan={() => (client ? scanDuplicates(client.email) : scanDuplicates())}
+        onRescan={() => (client ? autoMergeDuplicates(client, true) : checkPendingDuplicates())}
+      />
+
+      <ReceiptsAutoMergeNotice
+        merging={autoMerging}
+        summary={autoSummary}
+        onDismiss={() => setAutoSummary(null)}
       />
 
       {client && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4 min-w-0">
-            <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); setDupGroups([]); }} />
+            <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); setDupGroups([]); setAutoSummary(null); }} />
             <ClientStateRatesCard
               client={client}
               stateConfigs={stateConfigs}
@@ -893,8 +954,8 @@ export default function AdminManualBilling() {
         groups={dupGroups}
         showClient={dupGlobal}
         onDone={() => {
-          if (client) loadClientInvoices(client);
-          else scanDuplicates();
+          if (client) loadClientInvoices(client, { skipAuto: true });
+          else checkPendingDuplicates();
         }}
       />
     </div>
