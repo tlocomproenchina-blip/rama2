@@ -144,7 +144,7 @@ export default function DuplicateMergeDialog({ open, onOpenChange, groups, onDon
                         )}
                       </div>
                       <p className="mt-1 text-sm text-slate-600">
-                        {g.absorbed.length + 1} recibos → 1 · CBM {cbms} → {fmtCbm(g.merged_cbm)} · {g.merged_trackings_count} tracking(s) unidos
+                        {g.absorbed.length + 1} recibos del mismo cliente con el mismo N° de orden → 1 · CBM {cbms} → {fmtCbm(g.merged_cbm)} · {g.merged_trackings_count} tracking(s) unidos
                       </p>
                       {g.invoices.length > 0 && (
                         <div className="mt-2 space-y-1">
