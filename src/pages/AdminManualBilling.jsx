@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ReceiptText, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Loader2, ReceiptText, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 import ClientInfoCard from '@/components/manual-billing/ClientInfoCard';
@@ -10,8 +10,6 @@ import ClientStateRatesCard from '@/components/manual-billing/ClientStateRatesCa
 import BillingInvoiceRow from '@/components/manual-billing/BillingInvoiceRow';
 import BillingSummary from '@/components/manual-billing/BillingSummary';
 import PackagesWithoutReceiptSection from '@/components/manual-billing/PackagesWithoutReceiptSection';
-import DuplicateReceiptsBanner from '@/components/manual-billing/DuplicateReceiptsBanner';
-import DuplicateMergeDialog from '@/components/manual-billing/DuplicateMergeDialog';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -43,10 +41,6 @@ export default function AdminManualBilling() {
   const [rateHistory, setRateHistory] = useState([]);
   const [orphanPackages, setOrphanPackages] = useState([]);
   const [approvedInsuranceByTracking, setApprovedInsuranceByTracking] = useState({});
-  const [dupGroups, setDupGroups] = useState([]);
-  const [dupGlobal, setDupGlobal] = useState(false);
-  const [scanningDups, setScanningDups] = useState(false);
-  const [showMergeDialog, setShowMergeDialog] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -332,8 +326,6 @@ export default function AdminManualBilling() {
         };
       });
       setRows(built);
-      // Con los recibos ya cargados, se revisan duplicados del cliente en segundo plano.
-      scanDuplicates(selectedClient.email);
     } catch {
       toast.error('Error al cargar registros del cliente');
     }
@@ -709,36 +701,6 @@ export default function AdminManualBilling() {
     setCreating(false);
   };
 
-  // Revisa recibos repetidos (mismo cliente y mismo N° de orden). Sin email,
-  // revisa a todos los clientes.
-  const scanDuplicates = async (email) => {
-    setScanningDups(true);
-    try {
-      const res = await base44.functions.invoke('mergeDuplicateReceipts', {
-        mode: 'scan',
-        ...(email ? { client_email: email } : {}),
-      });
-      const data = res?.data || {};
-      setDupGroups(data.groups || []);
-      setDupGlobal(!email);
-      return data.groups || [];
-    } catch {
-      setDupGroups([]);
-      return [];
-    } finally {
-      setScanningDups(false);
-    }
-  };
-
-  const handleReviewAllDuplicates = async () => {
-    const found = await scanDuplicates();
-    if (!found.length) {
-      toast.success('No hay recibos repetidos');
-      return;
-    }
-    setShowMergeDialog(true);
-  };
-
   // Recupera registros marcados como facturados cuya factura ya no existe (huérfanos)
   const handleRecoverOrphans = async () => {
     setRecovering(true);
@@ -781,16 +743,10 @@ export default function AdminManualBilling() {
           </h1>
           <p className="text-slate-500">Busca un cliente, selecciona facturas registradas y genera una factura combinada</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleReviewAllDuplicates} disabled={scanningDups}>
-            {scanningDups ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <AlertTriangle className="h-4 w-4 mr-2" />}
-            Revisar duplicados
-          </Button>
-          <Button variant="outline" onClick={handleRecoverOrphans} disabled={recovering}>
-            {recovering ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
-            Recuperar registros huérfanos
-          </Button>
-        </div>
+        <Button variant="outline" onClick={handleRecoverOrphans} disabled={recovering}>
+          {recovering ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+          Recuperar registros huérfanos
+        </Button>
       </div>
 
       <Card className="border-0 shadow-lg">
@@ -799,18 +755,10 @@ export default function AdminManualBilling() {
         </CardContent>
       </Card>
 
-      <DuplicateReceiptsBanner
-        groups={dupGroups}
-        scanning={scanningDups}
-        hasClient={!!client}
-        onOpen={() => setShowMergeDialog(true)}
-        onRescan={() => (client ? scanDuplicates(client.email) : scanDuplicates())}
-      />
-
       {client && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4 min-w-0">
-            <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); setDupGroups([]); }} />
+            <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); }} />
             <ClientStateRatesCard
               client={client}
               stateConfigs={stateConfigs}
@@ -886,17 +834,6 @@ export default function AdminManualBilling() {
           </div>
         </div>
       )}
-
-      <DuplicateMergeDialog
-        open={showMergeDialog}
-        onOpenChange={setShowMergeDialog}
-        groups={dupGroups}
-        showClient={dupGlobal}
-        onDone={() => {
-          if (client) loadClientInvoices(client);
-          else scanDuplicates();
-        }}
-      />
     </div>
   );
 }
