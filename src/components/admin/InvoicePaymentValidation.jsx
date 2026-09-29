@@ -36,30 +36,15 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
   const handleValidate = async (invoice) => {
     setProcessing(invoice.id);
     try {
-      await base44.entities.Invoice.update(invoice.id, {
-        status: 'pagada',
-        payment_date: new Date().toISOString(),
-        payment_method: invoice.payment_method || 'transferencia'
-      });
-
-      setValidatedIds((prev) => [...prev, invoice.id]);
-
-      base44.entities.Notification.create({
-        user_email: invoice.client_email,
-        title: '✅ Pago Validado',
-        message: `Tu pago de la factura ${invoice.invoice_number} ha sido validado.`,
-        type: 'payment',
-        icon: 'check',
-        reference_id: invoice.id
-      }).catch(err => console.error('Notification error:', err));
-
-      base44.integrations.Core.SendEmail({
-        to: invoice.client_email,
-        subject: '✅ Pago validado',
-        body: `¡Excelente! Tu pago de la factura ${invoice.invoice_number} por $${Number(invoice.total).toFixed(2)} ha sido validado.`
-      }).catch(err => console.error('Email error:', err));
-
-      toast.success('Pago validado correctamente');
+      // Misma lógica de servidor que la aprobación en bloque (bulkApprovePayments)
+      const res = await base44.functions.invoke('bulkApprovePayments', { type: 'facturas', ids: [invoice.id] });
+      const data = res?.data || {};
+      if (data.success && data.approved_count > 0) {
+        setValidatedIds((prev) => [...prev, invoice.id]);
+        toast.success('Pago validado correctamente');
+      } else {
+        toast.error(data.failed?.[0]?.error || data.error || 'Error al validar el pago');
+      }
     } catch (error) {
       console.error(error);
       toast.error('Error al validar el pago');

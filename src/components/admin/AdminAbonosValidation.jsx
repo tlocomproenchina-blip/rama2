@@ -9,6 +9,7 @@ import { FileText, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Loader
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import useFileViewer from '@/hooks/useFileViewer';
+import BulkApproveButton from '@/components/admin/bulk-approval/BulkApproveButton';
 
 const METHOD_LABELS = {
   transferencia: 'Transferencia',
@@ -24,7 +25,7 @@ const METHOD_LABELS = {
   otro: 'Otro'
 };
 
-export default function AdminAbonosValidation({ onRefresh }) {
+export default function AdminAbonosValidation({ onRefresh, search = '' }) {
   const [payments, setPayments] = useState([]);
   const [invoices, setInvoices] = useState({});
   const [clients, setClients] = useState({});
@@ -75,6 +76,26 @@ export default function AdminAbonosValidation({ onRefresh }) {
   useEffect(() => {
     loadPendingAbonos();
   }, [loadPendingAbonos]);
+
+  // Lo visible en pantalla según el buscador: es lo que se aprueba en bloque.
+  const term = (search || '').trim().toLowerCase();
+  const visiblePayments = term
+    ? payments.filter((p) => {
+        const client = clients[p.client_email] || {};
+        const name = `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.full_name || '';
+        const invoiceNumber = p.invoice_number || invoices[p.invoice_id]?.invoice_number || '';
+        return (p.client_email || '').toLowerCase().includes(term)
+          || name.toLowerCase().includes(term)
+          || (client.shipping_mark || '').toLowerCase().includes(term)
+          || String(invoiceNumber).toLowerCase().includes(term);
+      })
+    : payments;
+
+  const handleBulkDone = (approvedIds) => {
+    (approvedIds || []).forEach((id) => processedIds.current.add(id));
+    setPayments((prev) => prev.filter((p) => !(approvedIds || []).includes(p.id)));
+    onRefresh?.();
+  };
 
   const handleApprove = async (payment) => {
     setProcessing(payment.id);
@@ -129,16 +150,26 @@ export default function AdminAbonosValidation({ onRefresh }) {
     );
   }
 
-  if (payments.length === 0) return null;
+  if (visiblePayments.length === 0) return null;
 
   return (
     <>
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-slate-600 flex items-center gap-2">
-          <Wallet className="h-4 w-4" /> Abonos pendientes de validación
-          <Badge variant="secondary" className="ml-1">{payments.length}</Badge>
-        </h2>
-        {payments.map((p) => {
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-sm font-semibold text-slate-600 flex items-center gap-2">
+            <Wallet className="h-4 w-4" /> Abonos pendientes de validación
+            <Badge variant="secondary" className="ml-1">{visiblePayments.length}</Badge>
+          </h2>
+          <BulkApproveButton
+            ids={visiblePayments.map((p) => p.id)}
+            type="abonos"
+            label="Aprobar todos los abonos"
+            amount={visiblePayments.reduce((sum, p) => sum + Number(p.amount || 0), 0)}
+            amountLabel="Total de abonos"
+            onDone={handleBulkDone}
+          />
+        </div>
+        {visiblePayments.map((p) => {
           const inv = invoices[p.invoice_id] || {};
           const client = clients[p.client_email] || {};
           const total = Number(inv.total || 0);

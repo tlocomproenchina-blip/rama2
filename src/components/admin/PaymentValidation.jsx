@@ -27,46 +27,15 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
   const handleValidate = async (consolidation) => {
     setProcessing(consolidation.id);
     try {
-      await base44.entities.Consolidation.update(consolidation.id, {
-        payment_validated: true,
-        payment_validated_by: currentUser.email,
-        payment_validation_date: new Date().toISOString(),
-        status: 'en_transito'
-      });
-
-      // Update package statuses
-      for (const pkgId of (consolidation.package_ids || [])) {
-        await base44.entities.Package.update(pkgId, { status: 'en_transito' });
+      // Misma lógica de servidor que la aprobación en bloque (bulkApprovePayments)
+      const res = await base44.functions.invoke('bulkApprovePayments', { type: 'consolidaciones', ids: [consolidation.id] });
+      const data = res?.data || {};
+      if (data.success && data.approved_count > 0) {
+        setHiddenIds((prev) => [...prev, consolidation.id]);
+        toast.success('Pago validado correctamente');
+      } else {
+        toast.error(data.failed?.[0]?.error || data.error || 'Error al validar el pago');
       }
-
-      // Update related invoice to 'pagada'
-      const relatedInvoices = await base44.entities.Invoice.filter({ consolidation_id: consolidation.id });
-      if (relatedInvoices && relatedInvoices.length > 0) {
-        await base44.entities.Invoice.update(relatedInvoices[0].id, {
-          status: 'pagada',
-          payment_date: new Date().toISOString(),
-          payment_method: consolidation.payment_method || relatedInvoices[0].payment_method || 'transferencia'
-        });
-      }
-
-      // Notify client (async, don't wait)
-      base44.integrations.Core.SendEmail({
-        to: consolidation.client_email,
-        subject: '✅ Pago validado - Tu carga está en camino',
-        body: `¡Excelente! Tu pago ha sido validado.\n\nTracking: ${consolidation.consolidation_tracking}\nMonto: $${consolidation.payment_amount}\n\nTu carga está ahora en tránsito.`
-      }).catch(err => console.error('Email error:', err));
-
-      base44.entities.Notification.create({
-        user_email: consolidation.client_email,
-        title: '✅ Pago Validado',
-        message: `Tu pago de $${consolidation.payment_amount} para ${consolidation.consolidation_tracking} ha sido validado.`,
-        type: 'payment',
-        icon: 'check',
-        reference_id: consolidation.id
-      }).catch(err => console.error('Notification error:', err));
-
-      setHiddenIds((prev) => [...prev, consolidation.id]);
-      toast.success('Pago validado correctamente');
     } catch (error) {
       toast.error('Error al validar el pago');
     } finally {

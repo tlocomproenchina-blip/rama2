@@ -19,6 +19,7 @@ import InvoicePaymentValidation from '@/components/admin/InvoicePaymentValidatio
 import AdminAbonosValidation from '@/components/admin/AdminAbonosValidation';
 import PaymentHistory from '@/components/admin/PaymentHistory';
 import InsuranceValidation from '@/components/admin/InsuranceValidation';
+import BulkApproveButton from '@/components/admin/bulk-approval/BulkApproveButton';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -186,6 +187,11 @@ export default function AdminPayments({ user }) {
     );
   });
 
+  // Registros visibles en pantalla: es exactamente lo que se aprueba en bloque.
+  const pendingCons = filteredCons.filter(c => c.status === 'pago_pendiente_validacion');
+  const invoicesTotal = filteredReviewInvoices.reduce((sum, i) => sum + Number(i.total || 0), 0);
+  const consTotal = pendingCons.reduce((sum, c) => sum + Number(c.payment_amount || 0), 0);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -286,10 +292,20 @@ export default function AdminPayments({ user }) {
         <InsuranceValidation onRefresh={loadData} currentUser={user} />
       ) : statusFilter === 'pending' ? (
         <div className="space-y-6">
-          <AdminAbonosValidation onRefresh={loadData} />
+          <AdminAbonosValidation onRefresh={loadData} search={search} />
           {filteredReviewInvoices.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold text-slate-600 mb-3">Pagos reportados en facturas</h2>
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-sm font-semibold text-slate-600">Pagos reportados en facturas</h2>
+                <BulkApproveButton
+                  ids={filteredReviewInvoices.map((i) => i.id)}
+                  type="facturas"
+                  label="Aprobar todos los pagos de facturas"
+                  amount={invoicesTotal}
+                  amountLabel="Total de las facturas"
+                  onDone={loadData}
+                />
+              </div>
               <InvoicePaymentValidation
                 invoices={filteredReviewInvoices}
                 clients={clients}
@@ -298,9 +314,19 @@ export default function AdminPayments({ user }) {
               />
             </div>
           )}
-          {filteredCons.filter(c => c.status === 'pago_pendiente_validacion').length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold text-slate-600 mb-3">Pagos reportados en consolidaciones</h2>
+          {pendingCons.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-sm font-semibold text-slate-600">Pagos reportados en consolidaciones</h2>
+                <BulkApproveButton
+                  ids={pendingCons.map((c) => c.id)}
+                  type="consolidaciones"
+                  label="Aprobar todos los pagos de consolidaciones"
+                  amount={consTotal}
+                  amountLabel="Total reportado"
+                  onDone={loadData}
+                />
+              </div>
               <PaymentValidation
                 consolidations={filteredCons}
                 clients={clients}

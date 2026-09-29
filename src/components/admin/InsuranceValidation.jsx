@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Shield, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
+import BulkApproveButton from '@/components/admin/bulk-approval/BulkApproveButton';
 
 const methodLabels = {
   binance: 'Binance',
@@ -101,10 +102,23 @@ export default function InsuranceValidation({ onRefresh, currentUser }) {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-sm font-semibold text-slate-600 flex items-center gap-2">
-        <Shield className="h-4 w-4 text-emerald-600" />
-        Pagos de Seguro Pendientes ({payments.length})
-      </h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 className="text-sm font-semibold text-slate-600 flex items-center gap-2">
+          <Shield className="h-4 w-4 text-emerald-600" />
+          Pagos de Seguro Pendientes ({payments.length})
+        </h2>
+        <BulkApproveButton
+          ids={payments.map((p) => p.id)}
+          type="seguros"
+          label="Aprobar todos los seguros"
+          amount={payments.reduce((sum, p) => sum + Number(p.amount || 0), 0)}
+          amountLabel="Total de seguros"
+          onDone={(approvedIds) => {
+            setPayments((prev) => prev.filter((p) => !(approvedIds || []).includes(p.id)));
+            onRefresh?.();
+          }}
+        />
+      </div>
       {payments.map((p) => (
         <Card key={p.id} className="border-emerald-200 shadow-md">
           <CardContent className="p-4">
