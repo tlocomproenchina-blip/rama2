@@ -1,0 +1,46 @@
+{
+  "name": "BultoNumberCounter",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica del contador de n\u00fameros de bulto (siempre 'main')"
+    },
+    "last_number": {
+      "type": "number",
+      "default": 49999,
+      "description": "\u00daltimo n\u00famero de bulto entregado en un bloque reservado. El almac\u00e9n reserva bloques de 50 n\u00fameros para trabajar sin conexi\u00f3n; este contador es independiente del Shipping Mark de los clientes."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
