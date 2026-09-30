@@ -23,6 +23,20 @@
       "type": "string",
       "description": "Nombre del usuario que emiti\u00f3 la gu\u00eda"
     },
+    "auto_generated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que la gu\u00eda se arm\u00f3 sola al escanear los bultos en Despacho por Escaneo (una gu\u00eda abierta por cliente) y no desde la emisi\u00f3n manual."
+    },
+    "last_updated_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del \u00faltimo bulto sumado a la gu\u00eda. En una gu\u00eda autom\u00e1tica se actualiza con cada bulto escaneado del mismo cliente."
+    },
+    "last_updated_by": {
+      "type": "string",
+      "description": "Email del usuario o dispositivo que sum\u00f3 el \u00faltimo bulto a la gu\u00eda"
+    },
     "filter_from": {
       "type": "string",
       "description": "Fecha inicial del rango de escaneos usado al armar la gu\u00eda"
@@ -139,7 +153,7 @@
     "client_emails": {
       "type": "array",
       "default": [],
-      "description": "Emails de los clientes incluidos (para buscar en el historial)",
+      "description": "Emails de los clientes incluidos (para buscar en el historial y para encontrar la gu\u00eda abierta del cliente)",
       "items": {
         "type": "string"
       }
@@ -147,7 +161,7 @@
     "shipping_marks": {
       "type": "array",
       "default": [],
-      "description": "Shipping marks incluidos (para buscar en el historial)",
+      "description": "Shipping marks incluidos (para buscar en el historial y para encontrar la gu\u00eda abierta del cliente cuando el escaneo no trae email)",
       "items": {
         "type": "string"
       }
@@ -185,7 +199,7 @@
         "entregada"
       ],
       "default": "emitida",
-      "description": "Estado de entrega de la gu\u00eda: emitida (impresa, pendiente de entrega) o entregada (entrega anotada)"
+      "description": "Estado de entrega de la gu\u00eda: emitida (impresa, pendiente de entrega) o entregada (entrega anotada). Una gu\u00eda emitida sigue abierta: los bultos que se escaneen despu\u00e9s para ese cliente se suman a ella."
     },
     "delivered_date": {
       "type": "string",

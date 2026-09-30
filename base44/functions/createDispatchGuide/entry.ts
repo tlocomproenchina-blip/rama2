@@ -1,4 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import {
+  allocateGuideSequence,
+  markScansWithGuide,
+  nextGuideNumber,
+  normCode,
+  unique,
+} from '../../shared/dispatchGuideAppend.ts';
 
 // Emite una guía de despacho: arma el snapshot definitivo con los bultos
 // escaneados que siguen pendientes (getDispatchGuides ya excluye los bultos de
@@ -6,12 +13,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 // DispatchGuideCounter y marca esos escaneos para que no vuelvan a ofrecerse
 // como pendientes. Devuelve la guía creada y los códigos que ya no estaban
 // pendientes (consumidos por otra guía en el mientras).
-
-const COUNTER_KEY = 'main';
-const MAX_ATTEMPTS = 6;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const normCode = (raw: any) => String(raw || '').trim().toUpperCase();
-const unique = (list: any[]) => [...new Set((list || []).filter(Boolean))];
 
 // Fusiona los grupos devueltos por getDispatchGuides (clientes con email y
 // códigos de clientes sin email) sin duplicar bultos.
@@ -126,40 +127,13 @@ export default async function (req: Request): Promise<Response> {
     };
 
     // Número correlativo con bloqueo optimista sobre el contador dedicado.
-    let sequence: number | null = null;
-    for (let attempt = 0; attempt < MAX_ATTEMPTS && sequence === null; attempt += 1) {
-      const rows = await base44.asServiceRole.entities.DispatchGuideCounter
-        .filter({ config_key: COUNTER_KEY }, '-updated_date', 1)
-        .catch(() => []);
-      let counter: any = rows?.[0] || null;
-
-      if (!counter) {
-        try {
-          counter = await base44.asServiceRole.entities.DispatchGuideCounter.create({
-            config_key: COUNTER_KEY,
-            last_number: 0,
-          });
-        } catch (_) {
-          await sleep(80);
-          continue;
-        }
-      }
-
-      const oldValue = Number(counter.last_number) || 0;
-      const result: any = await base44.asServiceRole.entities.DispatchGuideCounter.updateMany(
-        { config_key: COUNTER_KEY, last_number: oldValue },
-        { $inc: { last_number: 1 } }
-      );
-
-      if (result?.updated >= 1) sequence = oldValue + 1;
-      else await sleep(60);
-    }
+    const sequence = await allocateGuideSequence(base44);
 
     if (sequence === null) {
       return Response.json({ error: 'No se pudo asignar el número de guía, intenta de nuevo' }, { status: 500 });
     }
 
-    const guideNumber = `GD-${String(sequence).padStart(5, '0')}`;
+    const guideNumber = nextGuideNumber(sequence);
     const emittedDate = new Date().toISOString();
 
     const guide = await base44.asServiceRole.entities.DispatchGuide.create({
@@ -168,6 +142,9 @@ export default async function (req: Request): Promise<Response> {
       emitted_date: emittedDate,
       emitted_by: user.email || '',
       emitted_by_name: user.full_name || '',
+      auto_generated: false,
+      last_updated_date: emittedDate,
+      last_updated_by: user.email || '',
       filter_from: from,
       filter_to: to,
       clients,
@@ -181,24 +158,12 @@ export default async function (req: Request): Promise<Response> {
 
     // Los escaneos de esos bultos quedan marcados con la guía: salen de la lista
     // de pendientes y no vuelven a ofrecerse para una guía nueva.
-    let marked = true;
-    try {
-      let remaining = true;
-      let guard = 0;
-      while (remaining && guard < 20) {
-        guard += 1;
-        const result: any = await base44.asServiceRole.entities.DispatchScanLog.updateMany(
-          {
-            $or: [{ bulto_label_code: { $in: bultoCodes } }, { scanned_code: { $in: bultoCodes } }],
-            guide_id: { $exists: false },
-          },
-          { $set: { guide_id: guide.id, guide_number: guideNumber, guide_emitted_date: emittedDate } }
-        );
-        remaining = !!result?.has_more;
-      }
-    } catch (_) {
-      marked = false;
-    }
+    const marked = await markScansWithGuide(base44, {
+      codes: bultoCodes,
+      guideId: guide.id,
+      guideNumber,
+      emittedDate,
+    });
 
     return Response.json({ guide, skipped, marked });
   } catch (error) {

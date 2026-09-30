@@ -7,6 +7,8 @@ import { put, getAll } from '@/lib/offlineDb';
 // falla, el escaneo queda pendiente y se reintenta al recuperar la conexión.
 // La fecha real del escaneo (scanned_at) se registra desde el dispositivo, así
 // que la guía conserva el día correcto aunque se suba después.
+// Al registrar un bulto despachado se arma o se completa sola la guía de
+// despacho de su cliente (attachScanToDispatchGuide).
 
 const newLocalId = () => `scan_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -25,6 +27,31 @@ const toServerPayload = (item) => ({
   scanned_by: item.scanned_by || '',
   offline: item.offline ?? false,
 });
+
+// Bulto despachado: la guía del cliente se crea si no existe o se completa con
+// este bulto. Si falla (por ejemplo sin conexión) el escaneo queda registrado
+// igual y la guía se arma al reenviarlo o desde la emisión manual.
+async function attachBultoToGuide(item, user) {
+  if (item.scan_type !== 'bulto') return null;
+  if (item.result !== 'dispatched' && item.result !== 'already_dispatched') return null;
+  try {
+    const res = await base44.functions.invoke('attachScanToDispatchGuide', {
+      label_code: item.bulto_label_code || item.scanned_code || '',
+      client_email: item.client_email || '',
+      client_name: item.client_name || '',
+      shipping_mark: item.shipping_mark || '',
+      package_count: item.package_count || 0,
+      scanned_at: item.scanned_at,
+      scanned_by: item.scanned_by || user?.email || '',
+    });
+    const data = res?.data || res || {};
+    if (!data?.guide_number) return null;
+    return { guide_number: data.guide_number, guide_created: !!data.created };
+  } catch (e) {
+    console.warn('La guía del bulto se armará al reintentar el envío:', e?.message || e);
+    return null;
+  }
+}
 
 export async function recordScanLog(entry, user) {
   const scannedAt = entry.scanned_at || new Date().toISOString();
@@ -50,9 +77,16 @@ export async function recordScanLog(entry, user) {
   await put('scan_logs', item).catch(() => {});
 
   try {
-    await base44.entities.DispatchScanLog.create(toServerPayload(item));
+    const created = await base44.entities.DispatchScanLog.create(toServerPayload(item));
     item.pending = false;
+    item.server_id = created?.id || '';
     await put('scan_logs', item).catch(() => {});
+
+    const guide = await attachBultoToGuide(item, user);
+    if (guide) {
+      Object.assign(item, guide);
+      await put('scan_logs', item).catch(() => {});
+    }
   } catch (e) {
     // Sin conexión: queda guardado en el dispositivo y se reenvía al reconectar.
     console.warn('Escaneo guardado en el dispositivo; se enviará al reconectar:', e?.message || e);
@@ -73,9 +107,13 @@ export async function flushPendingScanLogs() {
   let sent = 0;
   for (const item of pending) {
     try {
-      await base44.entities.DispatchScanLog.create(toServerPayload(item));
-      await put('scan_logs', { ...item, pending: false }).catch(() => {});
+      const created = await base44.entities.DispatchScanLog.create(toServerPayload(item));
+      const saved = { ...item, pending: false, server_id: created?.id || '' };
+      await put('scan_logs', saved).catch(() => {});
       sent += 1;
+
+      const guide = await attachBultoToGuide(saved);
+      if (guide) await put('scan_logs', { ...saved, ...guide }).catch(() => {});
     } catch (e) {
       break; // sigue sin conexión: se reintenta en el próximo intento
     }

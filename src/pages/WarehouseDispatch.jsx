@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Loader2, ScanLine, Truck, DoorOpen, User, Package as PackageIcon, Boxes,
-  CheckCircle2, AlertTriangle, CloudOff, Cloud, RefreshCw, Clock, WifiOff,
+  CheckCircle2, AlertTriangle, CloudOff, Cloud, RefreshCw, Clock, WifiOff, ClipboardList,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
@@ -133,7 +133,8 @@ export default function WarehouseDispatch({ user }) {
     });
 
     toast.success(`Bulto ${bulto.label_code} despachado (${packageIds.length} paquetes). Notificando al cliente…`, { duration: 3000 });
-    logScan({
+    // 5. La guía de despacho del cliente se arma o se completa sola con este bulto.
+    const scanLog = await logScan({
       scanned_code: bulto.label_code,
       scan_type: 'bulto',
       result: 'dispatched',
@@ -144,6 +145,11 @@ export default function WarehouseDispatch({ user }) {
       package_count: packageIds.length,
       offline: true,
     });
+    if (scanLog?.guide_number) {
+      setLastResult((prev) => (prev?.bulto?.label_code === bulto.label_code
+        ? { ...prev, guide_number: scanLog.guide_number, guide_created: scanLog.guide_created }
+        : prev));
+    }
   }, [user, enqueueBultoDispatch, logScan]);
 
   // --- Escaneo: lookup local instantáneo (IndexedDB) ---
@@ -200,7 +206,7 @@ export default function WarehouseDispatch({ user }) {
               offline: false,
             });
             toast.success(`Bulto ${cleaned} despachado (${data.dispatched_packages || 0} paquetes)`, { duration: 3000 });
-            logScan({
+            const scanLog = await logScan({
               scanned_code: cleaned,
               scan_type: 'bulto',
               result: data.already_dispatched ? 'already_dispatched' : 'dispatched',
@@ -211,6 +217,11 @@ export default function WarehouseDispatch({ user }) {
               package_count: data.dispatched_packages || 0,
               offline: false,
             });
+            if (scanLog?.guide_number) {
+              setLastResult((prev) => (prev?.bulto?.label_code === cleaned
+                ? { ...prev, guide_number: scanLog.guide_number, guide_created: scanLog.guide_created }
+                : prev));
+            }
             return;
           }
         } catch (_) {}
@@ -592,6 +603,15 @@ function BultoDispatchResultCard({ result }) {
             </ul>
           </div>
         )}
+        {result.guide_number ? (
+          <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+            <ClipboardList className="h-4 w-4 shrink-0 text-blue-600" />
+            <p className="text-sm text-blue-800">
+              Guía de despacho <span className="font-mono font-semibold">{result.guide_number}</span>
+              {result.guide_created ? ' · nueva, con este bulto' : ' · este bulto se sumó a la guía del cliente'}
+            </p>
+          </div>
+        ) : null}
         <div className="flex items-center gap-2 rounded-lg bg-emerald-100 border border-emerald-300 px-3 py-2">
           <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
           <p className="text-sm text-emerald-800">

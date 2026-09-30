@@ -67,8 +67,20 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
       <CardContent className="space-y-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="font-mono text-sm font-bold text-slate-800">{guide.guide_number}</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="font-mono text-sm font-bold text-slate-800">{guide.guide_number}</p>
+              {guide.auto_generated && (
+                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+                  Automática
+                </Badge>
+              )}
+            </div>
             <p className="text-[11px] text-slate-500">Emitida: {fmtDateTime(guide.emitted_date)}</p>
+            {guide.auto_generated && guide.last_updated_date ? (
+              <p className="text-[11px] text-slate-500">
+                Actualizada: {fmtDateTime(guide.last_updated_date)}
+              </p>
+            ) : null}
             {guide.emitted_by_name || guide.emitted_by ? (
               <p className="flex items-center gap-1 text-[11px] text-slate-500">
                 <User className="h-3 w-3 shrink-0 text-slate-400" />
