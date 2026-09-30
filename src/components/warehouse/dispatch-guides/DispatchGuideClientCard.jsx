@@ -46,25 +46,26 @@ export default function DispatchGuideClientCard({ client, selected, onToggle }) 
               <span
                 key={`${bulto.label_code}-${bulto.order_number}`}
                 className={`rounded-lg border px-2 py-0.5 font-mono text-[11px] ${
-                  bulto.label_code
+                  bulto.registered
                     ? 'border-slate-200 bg-white/80 text-slate-700'
                     : 'border-amber-300 bg-amber-50 text-amber-700'
                 }`}
               >
-                {bulto.label_code || 'sin código'} · {bulto.package_count || 0} paq.
+                {bulto.label_code} · {bulto.package_count || 0} paq.
+                {!bulto.registered && ' · verificar'}
               </span>
             ))}
           </div>
 
-          {client.totals?.unconfirmed > 0 && (
+          {client.totals?.unregistered > 0 && (
             <p className="mt-2 flex items-center gap-1 text-[11px] text-amber-700">
               <AlertTriangle className="h-3 w-3 shrink-0" />
-              {client.totals.unconfirmed} sin confirmar contra el servidor
+              {client.totals.unregistered} código(s) escaneado(s) sin bulto registrado: verificar antes de entregar
             </p>
           )}
-          {client.orders_count > 0 && (
-            <p className="mt-1 text-[11px] text-slate-400">{client.orders_count} despacho(s) en el rango</p>
-          )}
+          <p className="mt-1 text-[11px] text-slate-400">
+            {client.totals?.scanned || client.totals?.bultos || 0} escaneo(s) para despacho en el rango
+          </p>
         </div>
       </div>
     </div>

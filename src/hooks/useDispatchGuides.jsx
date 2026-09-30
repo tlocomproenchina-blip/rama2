@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { getAll } from '@/lib/offlineDb';
-import { filterOrdersLocally, groupOrdersIntoGuideClients, mergeGuideClients } from '@/lib/dispatchGuides';
+import { getLocalScanLogs } from '@/lib/scanLogs';
+import { buildGuideFromScanLogs, filterGuideScanLogsLocally, mergeGuideClients } from '@/lib/dispatchGuides';
 
-// Datos de la guía de despacho: el filtrado y los conteos se resuelven en el
-// servidor (getDispatchGuides) y aquí solo se acumulan las páginas. Si no hay
-// conexión, la guía se arma con los despachos guardados en el dispositivo.
+// Datos de la guía de despacho: la guía se arma con los bultos escaneados para
+// despacho. El filtrado y los conteos se resuelven en el servidor
+// (getDispatchGuides) y aquí solo se acumulan las páginas. Si no hay conexión,
+// la guía se arma con los escaneos guardados en el dispositivo.
 const PAGE_SIZE = 60;
 
 const startOfDayISO = (date) => (date ? `${date}T00:00:00.000Z` : '');
@@ -28,16 +30,16 @@ export function useDispatchGuides({ enabled = true } = {}) {
     return () => clearTimeout(timer);
   }, [filters.search]);
 
-  // Ruta sin conexión: arma la guía con la caché local del almacén
+  // Ruta sin conexión: arma la guía con los escaneos y los bultos del dispositivo
   const loadFromCache = useCallback(async () => {
-    const [orders, bultos, cachedClients] = await Promise.all([
-      getAll('dispatch_orders').catch(() => []),
+    const [logs, bultos, cachedClients, orders] = await Promise.all([
+      getLocalScanLogs(),
       getAll('bultos').catch(() => []),
       getAll('clients').catch(() => []),
+      getAll('dispatch_orders').catch(() => []),
     ]);
-    const localOrders = filterOrdersLocally(orders, { from: filters.from, to: filters.to, search: searchTerm });
-    const grouped = groupOrdersIntoGuideClients({ orders: localOrders, bultos, clients: cachedClients });
-    setClients(grouped);
+    const scoped = filterGuideScanLogsLocally(logs, { from: filters.from, to: filters.to, search: searchTerm });
+    setClients(buildGuideFromScanLogs({ logs: scoped, bultos, clients: cachedClients, orders }));
     setHasMore(false);
     setOffline(true);
   }, [filters.from, filters.to, searchTerm]);
@@ -68,7 +70,7 @@ export function useDispatchGuides({ enabled = true } = {}) {
       } catch (_) {
         setClients([]);
       }
-      setError('Sin conexión: guía armada con los despachos guardados en el dispositivo.');
+      setError('Sin conexión: guía armada con los escaneos guardados en el dispositivo.');
     } finally {
       if (requestRef.current === requestId) setLoading(false);
     }
@@ -96,15 +98,19 @@ export function useDispatchGuides({ enabled = true } = {}) {
     }
   }, [loadingMore, hasMore, filters.from, filters.to, searchTerm]);
 
-  // Grupos completos de los clientes marcados, para emitir la guía sin que
-  // falte ningún bulto aunque la lista en pantalla esté paginada.
+  // Grupos completos de los clientes marcados, para emitir la guía sin que falte
+  // ningún bulto escaneado aunque la lista en pantalla esté paginada.
   const fetchGuideForClients = useCallback(
-    async (emails) => {
-      if (!Array.isArray(emails) || !emails.length) return [];
+    async (selectedClients) => {
+      const list = Array.isArray(selectedClients) ? selectedClients : [];
+      const emails = [...new Set(list.map((c) => c?.client_email).filter(Boolean))];
+      const codes = [...new Set(list.flatMap((c) => (c?.bultos || []).map((b) => b?.label_code)).filter(Boolean))];
+      if (!emails.length && !codes.length) return [];
       const res = await base44.functions.invoke('getDispatchGuides', {
         from: startOfDayISO(filters.from),
         to: endOfDayISO(filters.to),
         client_emails: emails,
+        codes,
         skip: 0,
       });
       const data = res?.data || res || {};

@@ -25,16 +25,16 @@ export default function DispatchGuideSummary({ summary, selectedClients, generat
         ))}
       </div>
 
-      {summary.unconfirmed > 0 && (
+      {summary.unregistered > 0 && (
         <p className="text-[11px] text-amber-700">
-          {summary.unconfirmed} bulto(s) sin confirmar contra el servidor.
+          {summary.unregistered} código(s) escaneado(s) sin bulto registrado: verificar antes de entregar.
         </p>
       )}
 
       {selectedClients.length > 0 && (
         <div className="max-h-32 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/60 p-2">
           {selectedClients.map((client) => (
-            <p key={client.client_email} className="text-[11px] text-slate-600 break-all">
+            <p key={client.client_key} className="text-[11px] text-slate-600 break-all">
               {client.client_name || client.client_email} · {client.totals?.bultos || 0} bulto(s)
             </p>
           ))}

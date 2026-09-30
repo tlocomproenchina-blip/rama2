@@ -55,6 +55,11 @@
       "default": 0,
       "description": "Cantidad de paquetes despachados (para bultos)"
     },
+    "scanned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento real del escaneo en el almacen. Se registra desde el dispositivo, asi que se conserva la fecha correcta aunque el escaneo se haya hecho sin conexion y se suba despues al reconectar. Es la fecha que usa la guia de despacho."
+    },
     "scanned_by": {
       "type": "string",
       "description": "Email del usuario que escaneo"

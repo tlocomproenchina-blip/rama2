@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 import DispatchScanHistoryPanel from '@/components/warehouse/DispatchScanHistoryPanel';
 import DispatchApprovalModal from '@/components/warehouse/DispatchApprovalModal';
 import DispatchGuidePanel from '@/components/warehouse/dispatch-guides/DispatchGuidePanel';
+import { recordScanLog, flushPendingScanLogs } from '@/lib/scanLogs';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
 import { useOfflineDispatchQueue } from '@/hooks/useOfflineDispatchQueue';
 import { put as idbPut, getAll as idbGetAll, bulkPut as idbBulkPut } from '@/lib/offlineDb';
@@ -47,27 +48,21 @@ export default function WarehouseDispatch({ user }) {
     pendingDispatches, isSyncing, isOnline, enqueueDispatch, enqueueBultoDispatch, retrySync,
   } = useOfflineDispatchQueue();
 
-  // --- Registrar cada escaneo en el historial de despacho (no bloquea el flujo) ---
+  // --- Registrar cada escaneo en el historial de despacho (no bloquea el flujo):
+  // se guarda en el dispositivo y se envía al servidor. Si no hay conexión queda
+  // pendiente y se reenvía al reconectar, para que la guía de despacho no pierda
+  // ningún bulto escaneado. ---
   const logScan = useCallback(async (entry) => {
-    try {
-      await base44.entities.DispatchScanLog.create({
-        scanned_code: entry.scanned_code || '',
-        scan_type: entry.scan_type || 'package',
-        result: entry.result || 'found',
-        client_email: entry.client_email || '',
-        client_name: entry.client_name || '',
-        shipping_mark: entry.shipping_mark || '',
-        tracking_number: entry.tracking_number || '',
-        package_id: entry.package_id || '',
-        bulto_label_code: entry.bulto_label_code || '',
-        package_count: entry.package_count || 0,
-        scanned_by: user?.email || '',
-        offline: entry.offline ?? false,
-      });
-    } catch (e) {
-      console.warn('No se pudo registrar el escaneo en el historial:', e);
-    }
+    await recordScanLog(entry, user);
   }, [user]);
+
+  // Reenvía al servidor los escaneos hechos sin conexión.
+  useEffect(() => {
+    flushPendingScanLogs();
+    const handleOnline = () => flushPendingScanLogs();
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
 
   // --- Despachar bulto completo: marcar todos los paquetes como despachado ---
   const handleBultoDispatch = useCallback(async (bulto, photoUrl = null) => {
@@ -210,6 +205,9 @@ export default function WarehouseDispatch({ user }) {
               scanned_code: cleaned,
               scan_type: 'bulto',
               result: data.already_dispatched ? 'already_dispatched' : 'dispatched',
+              client_email: data.bulto.client_email || '',
+              client_name: data.bulto.client_snapshot?.full_name || '',
+              shipping_mark: data.bulto.shipping_mark || '',
               bulto_label_code: cleaned,
               package_count: data.dispatched_packages || 0,
               offline: false,

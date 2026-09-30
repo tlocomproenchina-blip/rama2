@@ -34,17 +34,17 @@ export default function DispatchGuidePanel() {
 
   // La selección se mantiene solo con los clientes que siguen en pantalla
   useEffect(() => {
-    setSelected((prev) => prev.filter((email) => clients.some((c) => c.client_email === email)));
+    setSelected((prev) => prev.filter((key) => clients.some((c) => c.client_key === key)));
   }, [clients]);
 
   const summary = useMemo(() => summarizeGuide(clients, selected), [clients, selected]);
   const selectedClients = useMemo(
-    () => clients.filter((c) => selected.includes(c.client_email)),
+    () => clients.filter((c) => selected.includes(c.client_key)),
     [clients, selected]
   );
 
-  const toggleClient = (email) =>
-    setSelected((prev) => (prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]));
+  const toggleClient = (key) =>
+    setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
 
   const handleGenerate = async (mode) => {
     if (!selectedClients.length) {
@@ -57,7 +57,7 @@ export default function DispatchGuidePanel() {
       // no solo con la página visible en pantalla.
       let guideClients = selectedClients;
       try {
-        const complete = await fetchGuideForClients(selected);
+        const complete = await fetchGuideForClients(selectedClients);
         if (complete.length) guideClients = complete;
       } catch (_) {}
       await generateDispatchGuidePdf({ clients: guideClients, appName, mode, offline });
@@ -81,7 +81,7 @@ export default function DispatchGuidePanel() {
             <div className="min-w-0">
               <p className="font-semibold text-slate-800">Guías de despacho</p>
               <p className="text-xs text-slate-500">
-                Reúne los despachos de cada cliente con la cantidad y el código de cada bulto para verificar la entrega.
+                Solo los bultos escaneados para despacho, agrupados por cliente, con la cantidad de paquetes de cada uno para verificar la entrega.
               </p>
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function DispatchGuidePanel() {
             {(offline || error) && (
               <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-800">
                 <WifiOff className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{error || 'Sin conexión: guía armada con los despachos guardados en el dispositivo.'}</span>
+                <span>{error || 'Sin conexión: guía armada con los escaneos guardados en el dispositivo.'}</span>
               </div>
             )}
 
@@ -108,22 +108,22 @@ export default function DispatchGuidePanel() {
                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
               </div>
             ) : clients.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">No hay despachos en el rango elegido.</p>
+              <p className="py-8 text-center text-sm text-slate-400">No hay bultos escaneados para despacho en el rango elegido.</p>
             ) : (
               <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
                 <div className="space-y-3">
                   {clients.map((client) => (
                     <DispatchGuideClientCard
-                      key={client.client_email || client.client_name}
+                      key={client.client_key}
                       client={client}
-                      selected={selected.includes(client.client_email)}
-                      onToggle={() => toggleClient(client.client_email)}
+                      selected={selected.includes(client.client_key)}
+                      onToggle={() => toggleClient(client.client_key)}
                     />
                   ))}
                   {hasMore && (
                     <Button variant="outline" className="w-full" onClick={loadMore} disabled={loadingMore}>
                       {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
-                      Cargar más despachos
+                      Cargar más escaneos
                     </Button>
                   )}
                 </div>

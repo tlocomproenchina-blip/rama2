@@ -14,7 +14,7 @@ export async function generateDispatchGuidePdf({ clients, appName = 'TLEC CARGO'
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const list = Array.isArray(clients) ? clients : [];
-  const totals = summarizeGuide(list, list.map((c) => c.client_email));
+  const totals = summarizeGuide(list, list.map((c) => c.client_key || c.client_email));
   const now = new Date();
   const left = 14;
   const right = 196;
@@ -50,7 +50,12 @@ export async function generateDispatchGuidePdf({ clients, appName = 'TLEC CARGO'
       doc.setFontSize(9);
       doc.text(`Emitida: ${now.toLocaleString('es-VE')}`, right, 12, { align: 'right' });
       doc.text(`${totals.clients} cliente(s) · ${totals.bultos} bulto(s) · ${totals.packages} paquete(s)`, right, 18, { align: 'right' });
-      doc.text('Verificación de entrega bulto por bulto', right, 24, { align: 'right' });
+      doc.text('Bultos escaneados para despacho · verificación de entrega bulto por bulto', right, 24, { align: 'right' });
+      if (totals.unregistered > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${totals.unregistered} código(s) sin bulto registrado: verificar`, right, 30, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+      }
       if (offline) {
         doc.setTextColor(185, 28, 28);
         doc.setFont('helvetica', 'bold');
@@ -132,7 +137,14 @@ export async function generateDispatchGuidePdf({ clients, appName = 'TLEC CARGO'
       doc.setFontSize(10);
       doc.text(String(index), 16, y);
       doc.setFont('courier', 'bold');
-      doc.text(String(bulto.label_code || 'sin código'), 26, y);
+      doc.text(String(bulto.label_code || 'sin registrar'), 26, y);
+      if (bulto.label_code && !bulto.registered) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.text('(sin registrar · verificar)', 98, y + 0.4);
+        doc.setFontSize(10);
+        doc.setFont('courier', 'bold');
+      }
       doc.setFont('helvetica', 'normal');
       doc.text(String(bulto.package_count ?? 0), 120, y);
       doc.text(fmtDate(bulto.date), 134, y);

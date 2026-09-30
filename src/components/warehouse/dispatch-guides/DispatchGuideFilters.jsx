@@ -25,7 +25,7 @@ export default function DispatchGuideFilters({ filters, onChange, onRefresh, loa
             className="pl-10"
             value={filters.search}
             onChange={(e) => onChange({ ...filters, search: e.target.value })}
-            placeholder="Buscar despachos…"
+            placeholder="Buscar escaneos…"
           />
         </div>
       </div>
