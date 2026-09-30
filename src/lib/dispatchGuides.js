@@ -160,14 +160,13 @@ export function buildGuideFromScanLogs({ logs, bultos, clients, orders } = {}) {
     result.push({
       client_key: group.key,
       client_email: group.email,
-      client_name: clientData.full_name || group.email || `Sin registrar — ${mark || 'sin mark'}`,
+      client_name: clientData.full_name || group.email || `Cliente — ${mark || 'sin mark'}`,
       shipping_mark: mark,
       client: clientData,
       bultos: bultosRows,
       totals: {
         bultos: bultosRows.length,
         packages: bultosRows.reduce((sum, b) => sum + (Number(b.package_count) || 0), 0),
-        unregistered: bultosRows.filter((b) => !b.registered).length,
         scanned: group.rows.reduce((sum, r) => sum + (Number(r.scans) || 1), 0),
       },
     });
@@ -202,7 +201,6 @@ export function mergeGuideClients(current, incoming) {
     existing.totals = {
       bultos: bultos.length,
       packages: bultos.reduce((sum, b) => sum + (Number(b.package_count) || 0), 0),
-      unregistered: bultos.filter((b) => !b.registered).length,
       scanned: existing.totals?.scanned || bultos.length,
     };
   });
@@ -217,8 +215,7 @@ export function summarizeGuide(clients, selectedKeys) {
       clients: acc.clients + 1,
       bultos: acc.bultos + (c.totals?.bultos || 0),
       packages: acc.packages + (c.totals?.packages || 0),
-      unregistered: acc.unregistered + (c.totals?.unregistered || 0),
     }),
-    { clients: 0, bultos: 0, packages: 0, unregistered: 0 }
+    { clients: 0, bultos: 0, packages: 0 }
   );
 }

@@ -62,13 +62,6 @@ export async function generateDispatchGuidePdf({
       doc.setFontSize(9);
       doc.text(`Emitida: ${now.toLocaleString('es-VE')}`, right, 17, { align: 'right' });
       doc.text(`${totals.clients} cliente(s) · ${totals.bultos} bulto(s) · ${totals.packages} paquete(s)`, right, 22, { align: 'right' });
-      if (totals.unregistered > 0) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.text(`${totals.unregistered} código(s) sin bulto registrado: verificar`, right, 27, { align: 'right' });
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-      }
       doc.text('Bultos escaneados para despacho · verificación de entrega bulto por bulto', left, 29);
       if (offline) {
         doc.setTextColor(185, 28, 28);
@@ -96,7 +89,7 @@ export async function generateDispatchGuidePdf({
   list.forEach((entry) => {
     const bultos = Array.isArray(entry.bultos) ? entry.bultos : [];
     const info = entry.client || {};
-    const clientName = entry.client_name || info.full_name || entry.client_email || 'Cliente';
+    const clientName = String(entry.client_name || info.full_name || entry.client_email || 'Cliente').replace(/^Sin registrar(?= —|$)/i, 'Cliente');
 
     if (y > 235) startPage(false);
 
@@ -151,14 +144,7 @@ export async function generateDispatchGuidePdf({
       doc.setFontSize(10);
       doc.text(String(index), 16, y);
       doc.setFont('courier', 'bold');
-      doc.text(String(bulto.label_code || 'sin registrar'), 26, y);
-      if (bulto.label_code && !bulto.registered) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.text('(sin registrar · verificar)', 98, y + 0.4);
-        doc.setFontSize(10);
-        doc.setFont('courier', 'bold');
-      }
+      doc.text(String(bulto.label_code || '—'), 26, y);
       doc.setFont('helvetica', 'normal');
       doc.text(String(bulto.package_count ?? 0), 120, y);
       doc.text(fmtDate(bulto.date), 134, y);

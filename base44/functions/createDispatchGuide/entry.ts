@@ -45,7 +45,6 @@ const mergeClients = (groups: any[]) => {
         totals: {
           bultos: bultos.length,
           packages: bultos.reduce((sum: number, b: any) => sum + (Number(b.package_count) || 0), 0),
-          unregistered: bultos.filter((b: any) => !b.registered).length,
           scanned: client.totals?.scanned || bultos.length,
         },
       };
@@ -104,7 +103,7 @@ export default async function (req: Request): Promise<Response> {
       orders_count: Number(client.orders_count) || 0,
       client: client.client || {},
       bultos: client.bultos || [],
-      totals: client.totals || { bultos: 0, packages: 0, unregistered: 0, scanned: 0 },
+      totals: client.totals || { bultos: 0, packages: 0, scanned: 0 },
     }));
 
     const bultoCodes = unique(clients.flatMap((client: any) => client.bultos.map((b: any) => normCode(b.label_code))));
@@ -124,7 +123,6 @@ export default async function (req: Request): Promise<Response> {
       clients: clients.length,
       bultos: bultoCodes.length,
       packages: clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.packages) || 0), 0),
-      unregistered: clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.unregistered) || 0), 0),
     };
 
     // Número correlativo con bloqueo optimista sobre el contador dedicado.

@@ -31,12 +31,6 @@ export default function DispatchGuideSummary({ summary, selectedClients, generat
         ))}
       </div>
 
-      {summary.unregistered > 0 && (
-        <p className="text-[11px] text-amber-700">
-          {summary.unregistered} código(s) escaneado(s) sin bulto registrado: verificar antes de entregar.
-        </p>
-      )}
-
       {selectedClients.length > 0 && (
         <div className="max-h-32 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/60 p-2">
           {selectedClients.map((client) => (

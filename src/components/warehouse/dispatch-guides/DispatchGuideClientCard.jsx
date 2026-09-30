@@ -1,6 +1,5 @@
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertTriangle } from 'lucide-react';
 
 // Un cliente con los códigos de todos sus bultos del rango filtrado. Al marcarlo,
 // la guía incluye todos sus bultos, sin dejar ninguno fuera.
@@ -45,24 +44,13 @@ export default function DispatchGuideClientCard({ client, selected, onToggle }) 
             {bultos.map((bulto) => (
               <span
                 key={`${bulto.label_code}-${bulto.order_number}`}
-                className={`rounded-lg border px-2 py-0.5 font-mono text-[11px] ${
-                  bulto.registered
-                    ? 'border-slate-200 bg-white/80 text-slate-700'
-                    : 'border-amber-300 bg-amber-50 text-amber-700'
-                }`}
+                className="rounded-lg border border-border bg-card/80 px-2 py-0.5 font-mono text-[11px] text-foreground"
               >
                 {bulto.label_code} · {bulto.package_count || 0} paq.
-                {!bulto.registered && ' · verificar'}
               </span>
             ))}
           </div>
 
-          {client.totals?.unregistered > 0 && (
-            <p className="mt-2 flex items-center gap-1 text-[11px] text-amber-700">
-              <AlertTriangle className="h-3 w-3 shrink-0" />
-              {client.totals.unregistered} código(s) escaneado(s) sin bulto registrado: verificar antes de entregar
-            </p>
-          )}
           <p className="mt-1 text-[11px] text-slate-400">
             {client.totals?.scanned || client.totals?.bultos || 0} escaneo(s) para despacho en el rango
           </p>

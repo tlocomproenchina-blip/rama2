@@ -308,7 +308,7 @@ export default async function (req: Request): Promise<Response> {
       clients.push({
         client_key: group.key,
         client_email: group.email,
-        client_name: clientData.full_name || group.email || `Sin registrar — ${mark || 'sin mark'}`,
+        client_name: clientData.full_name || group.email || `Cliente — ${mark || 'sin mark'}`,
         shipping_mark: mark,
         client: clientData,
         bultos,
@@ -316,7 +316,6 @@ export default async function (req: Request): Promise<Response> {
         totals: {
           bultos: bultos.length,
           packages: bultos.reduce((sum: number, b: any) => sum + (Number(b.package_count) || 0), 0),
-          unregistered: bultos.filter((b: any) => !b.registered).length,
           scanned: group.rows.reduce((sum: number, r: any) => sum + (Number(r.scans) || 1), 0),
         },
       });
@@ -331,10 +330,9 @@ export default async function (req: Request): Promise<Response> {
         clients: acc.clients + 1,
         bultos: acc.bultos + c.totals.bultos,
         packages: acc.packages + c.totals.packages,
-        unregistered: acc.unregistered + c.totals.unregistered,
         scanned: acc.scanned + c.totals.scanned,
       }),
-      { clients: 0, bultos: 0, packages: 0, unregistered: 0, scanned: 0 }
+      { clients: 0, bultos: 0, packages: 0, scanned: 0 }
     );
 
     return Response.json({

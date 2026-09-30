@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  AlertTriangle,
   CalendarCheck2,
   ChevronDown,
   ChevronUp,
@@ -95,13 +94,6 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
           <span>{guide.totals?.packages || 0} paquete(s)</span>
         </div>
 
-        {guide.totals?.unregistered > 0 && (
-          <p className="flex items-center gap-1 text-[11px] text-amber-700">
-            <AlertTriangle className="h-3 w-3 shrink-0" />
-            {guide.totals.unregistered} código(s) sin bulto registrado: verificar antes de entregar.
-          </p>
-        )}
-
         {delivered && (
           <p className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50/70 px-2 py-1.5 text-[11px] text-emerald-800">
             <CalendarCheck2 className="h-3.5 w-3.5 shrink-0" />
@@ -147,7 +139,7 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                 <div key={client.client_key || client.client_email || client.client_name} className="rounded-xl border border-border/70 p-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <p className="text-sm font-semibold text-slate-800 break-all">
-                      {client.client_name || client.client_email || 'Sin registrar'}
+                      {String(client.client_name || client.client_email || 'Cliente').replace(/^Sin registrar(?= —|$)/i, 'Cliente')}
                     </p>
                     <span className="text-[11px] text-slate-500">
                       {client.totals?.bultos || (client.bultos || []).length} bulto(s) ·{' '}
@@ -161,15 +153,10 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                     {(client.bultos || []).map((bulto) => (
                       <span
                         key={`${client.client_key}-${bulto.label_code}`}
-                        className={`rounded-lg border px-2 py-0.5 font-mono text-[11px] ${
-                          bulto.registered
-                            ? 'border-slate-200 bg-white/80 text-slate-700'
-                            : 'border-amber-300 bg-amber-50 text-amber-700'
-                        }`}
+                        className="rounded-lg border border-border bg-card/80 px-2 py-0.5 font-mono text-[11px] text-foreground"
                       >
                         {bulto.label_code} · {bulto.package_count || 0} paq.
                         {bulto.date ? ` · ${fmtDate(bulto.date)}` : ''}
-                        {!bulto.registered && ' · verificar'}
                       </span>
                     ))}
                   </div>
