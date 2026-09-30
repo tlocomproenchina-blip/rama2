@@ -18,6 +18,10 @@
       "type": "string",
       "description": "Shipping mark del cliente"
     },
+    "bulto_label_code": {
+      "type": "string",
+      "description": "C\u00f3digo de etiqueta del bulto despachado (shipping_mark-B##). Se guarda al despachar un bulto desde el esc\u00e1ner y es la base de la gu\u00eda de despacho consolidada."
+    },
     "client_snapshot": {
       "type": "object",
       "description": "Datos del cliente al momento del despacho",
@@ -64,6 +68,10 @@
           "consolidation_tracking": {
             "type": "string",
             "description": "Recibo / tracking de la consolidaci\u00f3n a la que pertenece el paquete"
+          },
+          "bulto_label_code": {
+            "type": "string",
+            "description": "C\u00f3digo de etiqueta del bulto que conten\u00eda este paquete al momento del despacho"
           }
         }
       }

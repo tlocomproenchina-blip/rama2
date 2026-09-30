@@ -13,7 +13,7 @@ export default async function (req) {
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const { client_email, client_name, shipping_mark, client_snapshot, items, notes } = body;
+    const { client_email, client_name, shipping_mark, client_snapshot, items, notes, bulto_label_code } = body;
     if (!client_email) return Response.json({ error: 'client_email es requerido' }, { status: 400 });
 
     const newItems = Array.isArray(items) ? items : [];
@@ -157,6 +157,7 @@ export default async function (req) {
       items: newItems,
       status: 'emitida',
       dispatched_date: now.toISOString(),
+      bulto_label_code: bulto_label_code || '',
       created_by_email: user.email,
       notes: notes || '',
     };

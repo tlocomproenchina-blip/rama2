@@ -70,7 +70,7 @@ export default async function(req: Request): Promise<Response> {
 
     // Crear la orden de despacho
     try {
-      const items = packageTrackings.map((t) => ({ tracking_number: t }));
+      const items = packageTrackings.map((t) => ({ tracking_number: t, bulto_label_code: bulto.label_code || '' }));
       const orderNotes = (!packageTrackings.length && !packageIds.length)
         ? 'Bulto vacío despachado intencionalmente (sin paquetes)'
         : '';
@@ -79,6 +79,7 @@ export default async function(req: Request): Promise<Response> {
         client_name: client?.full_name || bulto.client_email,
         shipping_mark: bulto.shipping_mark || '',
         client_snapshot: bulto.client_snapshot || {},
+        bulto_label_code: bulto.label_code || '',
         items,
         created_by_email: user.email,
         notes: orderNotes,
