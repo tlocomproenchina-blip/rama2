@@ -7,7 +7,7 @@ import PendingBillingMarkedBultos from './PendingBillingMarkedBultos';
 
 // Un cliente del panel: sus datos, el resumen de su carga y una pestaña por
 // N° de orden/envío con todos sus bultos juntos, porque se facturan y se despachan juntos.
-export default function PendingBillingClientCard({ client, selected, markingId, onSelect, onMarkBulto }) {
+export default function PendingBillingClientCard({ client, selected, markingId, onSelect, onMarkBulto, onMarkOrderBultos }) {
   const bultos = client.bultos || [];
   const receipts = client.receipts || [];
 
@@ -22,7 +22,7 @@ export default function PendingBillingClientCard({ client, selected, markingId, 
     const map = new Map();
     const ensure = (key) => {
       const clean = String(key || '').trim();
-      if (!map.has(clean)) map.set(clean, { order: clean, bultos: [], receipts: [] });
+      if (!map.has(clean)) map.set(clean, { order: clean, bultos: [], receipts: [], markedBultos: [] });
       return map.get(clean);
     };
 
@@ -39,6 +39,16 @@ export default function PendingBillingClientCard({ client, selected, markingId, 
 
     for (const r of receipts) ensure(r.label).receipts.push(r);
 
+    // Los ya marcados de cada N° de orden: con ellos la pestaña sabe si el envío está
+    // completo o solo parcial, y su casilla maestra marca lo que falta.
+    const ordersOf = (bulto) => {
+      const orders = [...new Set((bulto.order_numbers || []).filter(Boolean).map((o) => String(o).trim()))];
+      return orders.length ? orders : [''];
+    };
+    for (const bulto of markedBultos) {
+      for (const order of ordersOf(bulto)) ensure(order).markedBultos.push(bulto);
+    }
+
     const cbmOf = (g) => g.bultos.reduce((sum, item) => sum + Number(item.bulto.cbm || 0), 0);
     return [...map.values()].sort((a, b) => {
       if (!a.order) return 1;
@@ -46,7 +56,7 @@ export default function PendingBillingClientCard({ client, selected, markingId, 
       if (cbmOf(b) !== cbmOf(a)) return cbmOf(b) - cbmOf(a);
       return a.order.localeCompare(b.order);
     });
-  }, [pendingBultos, receipts]);
+  }, [pendingBultos, receipts, markedBultos]);
 
   return (
     <div className={`rounded-xl border p-3 space-y-2 transition-colors ${
@@ -89,6 +99,7 @@ export default function PendingBillingClientCard({ client, selected, markingId, 
               group={group}
               markingId={markingId}
               onMarkBulto={onMarkBulto}
+              onMarkOrderBultos={onMarkOrderBultos}
             />
           ))}
         </div>
@@ -98,6 +109,7 @@ export default function PendingBillingClientCard({ client, selected, markingId, 
         bultos={markedBultos}
         markingId={markingId}
         onMarkBulto={onMarkBulto}
+        onMarkOrderBultos={onMarkOrderBultos}
       />
 
       <Button

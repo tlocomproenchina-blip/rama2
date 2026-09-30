@@ -18,6 +18,7 @@ export default function PendingBillingPanel({
   onRetry,
   onSelectClient,
   onMarkBulto,
+  onMarkOrderBultos,
 }) {
   const [term, setTerm] = useState('');
 
@@ -109,6 +110,7 @@ export default function PendingBillingPanel({
                   markingId={markingId}
                   onSelect={onSelectClient}
                   onMarkBulto={onMarkBulto}
+                  onMarkOrderBultos={onMarkOrderBultos}
                 />
               ))}
             </div>

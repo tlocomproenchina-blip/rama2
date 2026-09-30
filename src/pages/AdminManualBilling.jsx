@@ -409,6 +409,19 @@ export default function AdminManualBilling({ user }) {
     }
   };
 
+  // Marca de una vez todo el envío: todos los bultos de un N° de orden se guardan en
+  // secuencia (avance visible en la pestaña) y deja el envío completo como facturado.
+  const handleMarkOrderBultos = async (bultos, marked, onProgress) => {
+    const res = await pending.markBultos(bultos, marked, onProgress);
+    if (res.count > 0) {
+      toast.success(marked
+        ? `${res.count} bulto(s) del envío marcados como facturados`
+        : `${res.count} bulto(s) del envío vuelven a pendientes`);
+    }
+    if (res.failed > 0) toast.error(`No se pudieron guardar ${res.failed} bulto(s) del envío`);
+    return res;
+  };
+
   // Marca manual de un envío/recibo: se guarda como ya facturado (usuario y fecha)
   // sin borrarlo ni tocar su CBM, sus trackings o su estado billed.
   const handleMarkReceipt = async (receipt, marked) => {
@@ -974,6 +987,7 @@ export default function AdminManualBilling({ user }) {
             onRetry={pending.reload}
             onSelectClient={selectPendingClient}
             onMarkBulto={handleMarkBulto}
+            onMarkOrderBultos={handleMarkOrderBultos}
           />
         </aside>
 
