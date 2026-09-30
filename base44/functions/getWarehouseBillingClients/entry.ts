@@ -27,10 +27,25 @@ Deno.serve(async (req) => {
     // Regla única de carga en almacén (Venezuela): todo bulto con paquetes que
     // todavía no fue despachado y no tiene factura viva. El estado solo se usa para
     // excluir lo ya despachado, así ningún bulto del almacén queda invisible.
-    const [bultosCandidatos, receiptsPending] = await Promise.all([
+    const [bultosCandidatos, receiptsBilledPending] = await Promise.all([
       fetchAllFilter(svc.Bulto, { status: { $ne: 'despachado' } }, '-created_date'),
       fetchAllFilter(svc.CbmIngreso, { billed: false }, '-fecha'),
     ]);
+
+    // Marca manual desde el panel de Facturación Manual: ese bulto (y su N° de
+    // orden/envío) ya se facturó por fuera, así que deja de ofrecerse como pendiente
+    // aquí y su recibo de CBM tampoco se ofrece.
+    const markedOrders = new Set<string>();
+    for (const b of bultosCandidatos) {
+      if ((b as any).billing_marked !== true) continue;
+      for (const o of ((b as any).cbm_order_numbers || [])) {
+        const key = String(o).trim();
+        if (key) markedOrders.add(key);
+      }
+    }
+    const receiptsPending = receiptsBilledPending.filter(
+      (r: any) => !markedOrders.has(String(r.invoice_number || '').trim())
+    );
 
     // Auto-sanación: si la factura que marcó el bulto ya no existe, vuelve a ofrecerse.
     const invoiceIds = [...new Set(bultosCandidatos.map((b: any) => b.billed_invoice_id).filter(Boolean))] as string[];
@@ -39,7 +54,9 @@ Deno.serve(async (req) => {
       const found = await svc.Invoice.filter({ id: { $in: invoiceIds.slice(i, i + BATCH) } }, undefined, BATCH + 10).catch(() => []);
       for (const inv of found || []) aliveInvoiceIds.add(inv.id);
     }
-    let bultos = bultosCandidatos.filter((b: any) => !b.billed_invoice_id || !aliveInvoiceIds.has(b.billed_invoice_id));
+    let bultos = bultosCandidatos.filter((b: any) =>
+      b.billing_marked !== true && (!b.billed_invoice_id || !aliveInvoiceIds.has(b.billed_invoice_id))
+    );
 
     const clientEmails = [...new Set([
       ...bultos.map((b: any) => b.client_email),

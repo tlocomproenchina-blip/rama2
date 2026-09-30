@@ -156,6 +156,16 @@ export default async function(req: Request): Promise<Response> {
       update.cargo_updated_date = new Date().toISOString();
     }
 
+    // --- Marca manual de facturación (panel de Facturación Manual) ---
+    // El admin confirma que el bulto y su N° de orden/envío ya se facturaron, aunque
+    // la factura no se haya generado desde el sistema. Queda registrado quién y cuándo.
+    if (body.billing_marked !== undefined && body.billing_marked !== null) {
+      const marked = body.billing_marked === true || body.billing_marked === 'true';
+      update.billing_marked = marked;
+      update.billing_marked_by = marked ? user.email : '';
+      update.billing_marked_date = marked ? new Date().toISOString() : null;
+    }
+
     const updated = await base44.asServiceRole.entities.Bulto.update(bultoId, update);
 
     // El bulto viejo se elimina (o se le quita el paquete movido) cuando su contenido ya

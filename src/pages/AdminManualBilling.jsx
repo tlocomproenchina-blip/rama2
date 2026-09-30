@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ReceiptText, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Loader2, ReceiptText, RotateCcw, AlertTriangle, Package, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 import ClientInfoCard from '@/components/manual-billing/ClientInfoCard';
@@ -13,6 +13,8 @@ import PackagesWithoutReceiptSection from '@/components/manual-billing/PackagesW
 import DuplicateReceiptsBanner from '@/components/manual-billing/DuplicateReceiptsBanner';
 import DuplicateMergeDialog from '@/components/manual-billing/DuplicateMergeDialog';
 import ReceiptsAutoMergeNotice from '@/components/manual-billing/ReceiptsAutoMergeNotice';
+import PendingBillingPanel from '@/components/manual-billing/PendingBillingPanel';
+import usePendingBillingClients from '@/hooks/usePendingBillingClients';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -53,6 +55,10 @@ export default function AdminManualBilling() {
   // Cliente ya revisado automáticamente (evita repetir la fusión en cada recarga)
   const autoRanRef = useRef(null);
   const clientEmailRef = useRef('');
+  // Panel de carga pendiente: clientes con bultos sin factura vigente
+  const pending = usePendingBillingClients();
+  // En móvil el panel arranca plegado para no empujar la facturación fuera de pantalla
+  const [showPending, setShowPending] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -355,6 +361,32 @@ export default function AdminManualBilling() {
       toast.error('Error al cargar registros del cliente');
     }
     setLoadingRows(false);
+  };
+
+  // Cliente elegido en el panel: se cargan sus registros igual que con el buscador
+  const selectPendingClient = (pendingClient) => {
+    loadClientInvoices({
+      email: pendingClient.client_email,
+      full_name: pendingClient.client_name,
+      shipping_mark: pendingClient.shipping_mark || '',
+      whatsapp: pendingClient.whatsapp || '',
+      cedula: pendingClient.cedula || '',
+      address: pendingClient.address || '',
+      city: pendingClient.city || '',
+      state: pendingClient.state || '',
+    });
+  };
+
+  // Marca manual de un N° de orden/envío: deja de ofrecerse como pendiente sin facturar
+  const handleMarkBulto = async (bulto, marked) => {
+    const res = await pending.markBulto(bulto, marked);
+    if (res.ok) {
+      toast.success(marked
+        ? `Bulto ${bulto.label} marcado como facturado`
+        : `Bulto ${bulto.label} vuelve a pendientes`);
+    } else {
+      toast.error(res.error);
+    }
   };
 
   const updateRow = (updated) => {
@@ -720,6 +752,8 @@ export default function AdminManualBilling() {
       setExtraConcept('');
       setDoorToDoorFee('');
       setCargoType(INITIAL_CARGO_TYPE);
+      // La carga facturada sale de la lista de pendientes del panel
+      pending.reload();
     } catch {
       toast.error('Error al generar la factura');
     }
@@ -828,7 +862,7 @@ export default function AdminManualBilling() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto overflow-x-hidden">
+    <div className="space-y-6 max-w-screen-2xl mx-auto overflow-x-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -848,11 +882,38 @@ export default function AdminManualBilling() {
         </div>
       </div>
 
-      <Card className="border-0 shadow-lg">
-        <CardContent className="p-5">
-          <ClientSearchBox onSelect={loadClientInvoices} />
-        </CardContent>
-      </Card>
+      {/* Móvil: el panel se pliega para no empujar la facturación fuera de pantalla */}
+      <Button
+        variant="outline"
+        className="w-full justify-between lg:hidden"
+        onClick={() => setShowPending((v) => !v)}
+      >
+        <span className="inline-flex items-center gap-2">
+          <Package className="h-4 w-4" /> Carga pendiente ({pending.clients.length} cliente(s))
+        </span>
+        <ChevronDown className={`h-4 w-4 transition-transform ${showPending ? 'rotate-180' : ''}`} />
+      </Button>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] gap-6 items-start">
+        <aside className={showPending ? 'block' : 'hidden lg:block lg:sticky lg:top-6'}>
+          <PendingBillingPanel
+            clients={pending.clients}
+            loading={pending.loading}
+            error={pending.error}
+            selectedEmail={client?.email}
+            markingId={pending.markingId}
+            onRetry={pending.reload}
+            onSelectClient={selectPendingClient}
+            onMarkBulto={handleMarkBulto}
+          />
+        </aside>
+
+        <div className="space-y-6 min-w-0">
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-5">
+              <ClientSearchBox onSelect={loadClientInvoices} />
+            </CardContent>
+          </Card>
 
       <DuplicateReceiptsBanner
         groups={dupGroups}
@@ -947,6 +1008,9 @@ export default function AdminManualBilling() {
           </div>
         </div>
       )}
+
+        </div>
+      </div>
 
       <DuplicateMergeDialog
         open={showMergeDialog}

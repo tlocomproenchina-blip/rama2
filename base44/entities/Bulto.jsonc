@@ -247,12 +247,26 @@
     },
     "billed_invoice_id": {
       "type": "string",
-      "description": "ID de la factura generada desde la pesta\u00f1a 'Carga en almac\u00e9n' de Gesti\u00f3n de Facturas. Mientras esa factura exista, el bulto no vuelve a ofrecerse para facturar."
+      "description": "ID de la factura generada desde la pesta\u00f1a 'Carga en almac\u00e9n' de Gesti\u00f3n de Facturas o desde Facturaci\u00f3n Manual. Mientras esa factura exista, el bulto no vuelve a ofrecerse para facturar."
     },
     "billed_date": {
       "type": "string",
       "format": "date-time",
       "description": "Fecha en que el bulto fue incluido en una factura desde la pesta\u00f1a 'Carga en almac\u00e9n'"
+    },
+    "billing_marked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marca manual desde el panel de Facturaci\u00f3n Manual: el bulto y su N\u00b0 de orden/env\u00edo ya se facturaron (por fuera del sistema), as\u00ed que dejan de ofrecerse como carga pendiente de facturar."
+    },
+    "billing_marked_by": {
+      "type": "string",
+      "description": "Email del admin que marc\u00f3 a mano el bulto como ya facturado"
+    },
+    "billing_marked_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la marca manual de facturaci\u00f3n"
     },
     "warehouse_id": {
       "type": "string",
