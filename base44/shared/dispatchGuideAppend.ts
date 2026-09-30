@@ -174,7 +174,7 @@ async function appendBultoToGuide(base44: any, guideRef: any, clientGroup: any, 
       : [];
 
     const already = clients.some((c: any) => (c.bultos || []).some((b: any) => normCode(b?.label_code) === code));
-    if (already) return current;
+    if (already) return { guide: current, already: true };
 
     const emailKey = String(clientGroup.client_email || '').toLowerCase();
     const markKey = String(clientGroup.shipping_mark || '').toUpperCase();
@@ -215,10 +215,10 @@ async function appendBultoToGuide(base44: any, guideRef: any, clientGroup: any, 
     const saved = await base44.asServiceRole.entities.DispatchGuide.get(current.id).catch(() => null);
     if (saved) {
       current = saved;
-      if ((saved.bulto_codes || []).some((c: any) => normCode(c) === code)) return saved;
+      if ((saved.bulto_codes || []).some((c: any) => normCode(c) === code)) return { guide: saved, already: false };
     }
   }
-  return current;
+  return { guide: current, already: false };
 }
 
 // Escaneo de un bulto ya despachado: arma o completa la guía de su cliente. Si no
@@ -289,9 +289,12 @@ export async function appendScanToDispatchGuide(base44: any, entry: any) {
 
   let guide: any = await findOpenGuide(base44, { email: clientEmail, mark });
   let created = false;
+  let already = false;
 
   if (guide) {
-    guide = await appendBultoToGuide(base44, guide, clientGroup, bultoRow, code, scannedAt, scannedBy);
+    const appended = await appendBultoToGuide(base44, guide, clientGroup, bultoRow, code, scannedAt, scannedBy);
+    guide = appended.guide;
+    already = appended.already;
   } else {
     const sequence = await allocateGuideSequence(base44);
     if (sequence === null) return { error: 'No se pudo asignar el número de guía' };
@@ -300,7 +303,9 @@ export async function appendScanToDispatchGuide(base44: any, entry: any) {
     // este bulto se suma a esa guía en lugar de abrir una paralela.
     const opened = await findOpenGuide(base44, { email: clientEmail, mark });
     if (opened) {
-      guide = await appendBultoToGuide(base44, opened, clientGroup, bultoRow, code, scannedAt, scannedBy);
+      const appended = await appendBultoToGuide(base44, opened, clientGroup, bultoRow, code, scannedAt, scannedBy);
+      guide = appended.guide;
+      already = appended.already;
     } else {
       const guideNumber = nextGuideNumber(sequence);
       if (!mark) mark = clientGroup.shipping_mark || markOfCode(code);
@@ -335,6 +340,7 @@ export async function appendScanToDispatchGuide(base44: any, entry: any) {
   return {
     ok: true,
     created,
+    already,
     guide_id: guide.id,
     guide_number: guide.guide_number,
     bultos_count: (guide.bulto_codes || []).length,

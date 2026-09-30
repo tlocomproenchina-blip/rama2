@@ -6,6 +6,7 @@ import { ClipboardList, Clock3, History } from 'lucide-react';
 import DispatchGuideEmitPanel from '@/components/warehouse/dispatch-guides/DispatchGuideEmitPanel';
 import DispatchGuideEmittedNotice from '@/components/warehouse/dispatch-guides/DispatchGuideEmittedNotice';
 import DispatchGuideHistoryPanel from '@/components/warehouse/dispatch-guides/DispatchGuideHistoryPanel';
+import DispatchGuideSyncCard from '@/components/warehouse/dispatch-guides/DispatchGuideSyncCard';
 
 // Módulo de guías de despacho: emisión desde los bultos escaneados pendientes e
 // historial de guías emitidas, con reimpresión y anotación de entrega.
@@ -15,6 +16,7 @@ export default function DispatchGuides() {
   const [highlightId, setHighlightId] = useState('');
   const [historyKey, setHistoryKey] = useState(0);
   const [pendingCount, setPendingCount] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const loadPendingCount = useCallback(async () => {
     try {
@@ -34,6 +36,7 @@ export default function DispatchGuides() {
     setHistoryKey((key) => key + 1);
     setTab('historial');
     loadPendingCount();
+    setReloadKey((key) => key + 1);
   };
 
   return (
@@ -65,8 +68,12 @@ export default function DispatchGuides() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="emitir" className="mt-4">
-          <DispatchGuideEmitPanel onEmitted={handleEmitted} />
+        <TabsContent value="emitir" className="mt-4 space-y-4">
+          <DispatchGuideSyncCard
+            reloadSignal={reloadKey}
+            onSynced={() => setReloadKey((key) => key + 1)}
+          />
+          <DispatchGuideEmitPanel key={`emit-${reloadKey}`} onEmitted={handleEmitted} />
         </TabsContent>
 
         <TabsContent value="historial" className="mt-4 space-y-4">
