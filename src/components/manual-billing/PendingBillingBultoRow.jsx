@@ -3,29 +3,27 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Package } from 'lucide-react';
 
-const formatDate = (v) => {
-  if (!v) return '—';
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('es-VE');
+const fmtDate = (v) => {
+  if (!v) return null;
+  const d = new Date(String(v).includes('T') ? v : `${v}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('es-VE');
 };
 
-// Un bulto pendiente dentro de la tarjeta del cliente: su N° de orden/envío al frente
-// y la casilla para marcarlo a mano como ya facturado (sin generar factura).
-// Marcado no se oculta: el bulto se pinta en verde y la casilla permite deshacer.
+// Un bulto dentro de la pestaña de su N° de orden: su código, su CBM y su conteo,
+// con la casilla para marcarlo como ya facturado. Marcado se conserva en verde,
+// agrupado abajo, y la misma casilla lo devuelve a su pestaña.
 export default function PendingBillingBultoRow({ bulto, marking, onMark }) {
-  const orders = (bulto.order_numbers || []).filter(Boolean);
   const marked = !!bulto.billing_marked;
+  const markedDate = fmtDate(bulto.billing_marked_date);
+  const veDate = fmtDate(bulto.ve_recognized_date);
 
   return (
     <div className={`rounded-lg border p-2.5 transition-colors ${
-      marked ? 'border-emerald-300 bg-emerald-50/60' : 'border-border/70'
+      marked ? 'border-emerald-300 bg-emerald-50/60' : 'border-border/70 bg-card'
     }`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className={`font-mono text-sm font-semibold break-all ${marked ? 'text-emerald-800' : 'text-slate-800'}`}>
-            {orders.length > 0 ? orders.join(', ') : 'Sin N° de orden'}
-          </p>
-          <p className="text-[11px] text-slate-500 break-all">
             Bulto {bulto.label}{bulto.bulto_number ? ` · #${bulto.bulto_number}` : ''}
           </p>
         </div>
@@ -36,7 +34,7 @@ export default function PendingBillingBultoRow({ bulto, marking, onMark }) {
             <Checkbox
               checked={marked}
               onCheckedChange={(value) => onMark(bulto, !!value)}
-              title={marked ? 'Quitar la marca de facturado' : 'Marcar como ya facturado'}
+              title={marked ? 'Quitar la marca: el bulto vuelve a su N° de orden' : 'Marcar como ya facturado'}
               aria-label="Marcar como ya facturado"
               className={marked ? 'border-emerald-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white' : ''}
             />
@@ -51,24 +49,23 @@ export default function PendingBillingBultoRow({ bulto, marking, onMark }) {
         </span>
         <span className="text-slate-400">·</span>
         <span>{bulto.package_count || 0} paquete(s)</span>
-        {bulto.ve_recognized_date && (
+        {veDate && (
           <>
             <span className="text-slate-400">·</span>
-            <span>En almacén VE: {formatDate(bulto.ve_recognized_date)}</span>
+            <span>En almacén VE: {veDate}</span>
           </>
         )}
       </div>
 
       {marked && (
-        <Badge className="mt-1.5 bg-emerald-100 text-emerald-700 border border-emerald-200">
-          Facturado{bulto.billing_marked_date ? ` · ${formatDate(bulto.billing_marked_date)}` : ''}
-        </Badge>
-      )}
-
-      {orders.length === 0 && (
-        <Badge className="mt-1.5 bg-amber-100 text-amber-700 border border-amber-200">
-          Sin N° de orden asignado
-        </Badge>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200">
+            Facturado{markedDate ? ` · ${markedDate}` : ''}
+          </Badge>
+          {bulto.billing_marked_by && (
+            <span className="text-[10px] text-emerald-800/80">por {bulto.billing_marked_by}</span>
+          )}
+        </div>
       )}
     </div>
   );

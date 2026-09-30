@@ -49,7 +49,7 @@ export default function PendingBillingPanel({
       <CardContent className="p-4 flex flex-col min-h-0 gap-3">
         <div>
           <h2 className="text-base font-semibold text-slate-800">Carga pendiente de facturar</h2>
-          <p className="text-xs text-slate-500">Bultos con mercancía sin factura, agrupados por cliente.</p>
+          <p className="text-xs text-slate-500">Bultos con mercancía sin factura, agrupados por cliente y N° de orden/envío.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">

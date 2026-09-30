@@ -1,14 +1,52 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, Mail, MapPin, Phone } from 'lucide-react';
-import PendingBillingBultoRow from './PendingBillingBultoRow';
+import PendingBillingOrderGroup from './PendingBillingOrderGroup';
+import PendingBillingMarkedBultos from './PendingBillingMarkedBultos';
 
-// Un cliente del panel: sus datos, el resumen de su carga y sus bultos con el
-// N° de orden/envío al frente, cada uno con su casilla de marcado manual.
+// Un cliente del panel: sus datos, el resumen de su carga y una pestaña por
+// N° de orden/envío con todos sus bultos juntos, porque se facturan y se despachan juntos.
 export default function PendingBillingClientCard({ client, selected, markingId, onSelect, onMarkBulto }) {
   const bultos = client.bultos || [];
   const receipts = client.receipts || [];
+
+  // Los bultos marcados como ya facturados salen de las pestañas: se conservan abajo,
+  // en verde y agrupados por su N° de orden, con la casilla para devolverlos.
+  const pendingBultos = useMemo(() => bultos.filter((b) => !b.billing_marked), [bultos]);
+  const markedBultos = useMemo(() => bultos.filter((b) => b.billing_marked), [bultos]);
+
+  // Pestañas: una por N° de orden/envío con sus bultos y su recibo de referencia.
+  // Los bultos sin N° de orden quedan en su propia pestaña para no perderlos de vista.
+  const groups = useMemo(() => {
+    const map = new Map();
+    const ensure = (key) => {
+      const clean = String(key || '').trim();
+      if (!map.has(clean)) map.set(clean, { order: clean, bultos: [], receipts: [] });
+      return map.get(clean);
+    };
+
+    for (const bulto of pendingBultos) {
+      const orders = [...new Set((bulto.order_numbers || []).filter(Boolean).map((o) => String(o).trim()))];
+      if (orders.length === 0) {
+        ensure('').bultos.push({ bulto, shared: false });
+        continue;
+      }
+      // Si el bulto trae más de un N° de orden, aparece en cada uno para que ningún
+      // envío quede incompleto al facturarlo.
+      for (const order of orders) ensure(order).bultos.push({ bulto, shared: orders.length > 1 });
+    }
+
+    for (const r of receipts) ensure(r.label).receipts.push(r);
+
+    const cbmOf = (g) => g.bultos.reduce((sum, item) => sum + Number(item.bulto.cbm || 0), 0);
+    return [...map.values()].sort((a, b) => {
+      if (!a.order) return 1;
+      if (!b.order) return -1;
+      if (cbmOf(b) !== cbmOf(a)) return cbmOf(b) - cbmOf(a);
+      return a.order.localeCompare(b.order);
+    });
+  }, [pendingBultos, receipts]);
 
   return (
     <div className={`rounded-xl border p-3 space-y-2 transition-colors ${
@@ -41,28 +79,26 @@ export default function PendingBillingClientCard({ client, selected, markingId, 
         {receipts.length > 0 && <Badge variant="secondary">{receipts.length} envío(s)</Badge>}
       </div>
 
-      <div className="space-y-2">
-        {bultos.map((bulto) => (
-          <PendingBillingBultoRow
-            key={bulto.id}
-            bulto={bulto}
-            marking={markingId === bulto.id}
-            onMark={onMarkBulto}
-          />
-        ))}
-      </div>
-
-      {receipts.length > 0 && (
-        <div className="rounded-lg bg-muted/60 p-2 space-y-1">
-          <p className="text-[11px] font-medium text-slate-600">Envíos / recibos CBM pendientes</p>
-          {receipts.map((r) => (
-            <p key={r.id} className="text-[11px] text-slate-600 break-all">
-              <span className="font-mono font-semibold text-slate-800">{r.label}</span>
-              {' · '}{Number(r.cbm || 0).toFixed(4)} CBM · {r.package_count || 0} paquete(s)
-            </p>
+      {groups.length === 0 ? (
+        <p className="py-2 text-[11px] text-slate-500">Sin carga pendiente de facturar.</p>
+      ) : (
+        <div className="space-y-2">
+          {groups.map((group) => (
+            <PendingBillingOrderGroup
+              key={group.order || 'sin-orden'}
+              group={group}
+              markingId={markingId}
+              onMarkBulto={onMarkBulto}
+            />
           ))}
         </div>
       )}
+
+      <PendingBillingMarkedBultos
+        bultos={markedBultos}
+        markingId={markingId}
+        onMarkBulto={onMarkBulto}
+      />
 
       <Button
         size="sm"
