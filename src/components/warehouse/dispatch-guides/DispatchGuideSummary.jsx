@@ -2,7 +2,11 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, Printer } from 'lucide-react';
 
-export default function DispatchGuideSummary({ summary, selectedClients, generating, onGenerate, disabled = false }) {
+// variant 'card': tarjeta lateral de escritorio (en móvil no se muestra: ahí el
+// resumen vive en la ventana flotante que abre el botón compacto).
+// variant 'sheet': contenido de esa ventana flotante, donde el título lo pone el Sheet.
+export default function DispatchGuideSummary({ summary, selectedClients, generating, onGenerate, disabled = false, variant = 'card' }) {
+  const isSheet = variant === 'sheet';
   const counts = [
     ['Clientes', summary.clients],
     ['Bultos', summary.bultos],
@@ -10,11 +14,13 @@ export default function DispatchGuideSummary({ summary, selectedClients, generat
   ];
 
   return (
-    <div className="sticky bottom-2 z-10 space-y-3 rounded-2xl border border-border/70 bg-card/95 p-4 shadow-card lg:bottom-auto lg:top-4">
-      <div>
-        <p className="text-sm font-semibold text-slate-800">Resumen de la guía</p>
-        <p className="text-xs text-slate-500">Un solo PDF continuo con los clientes marcados.</p>
-      </div>
+    <div className={isSheet ? 'space-y-3' : 'sticky bottom-2 z-10 hidden space-y-3 rounded-2xl border border-border/70 bg-card/95 p-4 shadow-card lg:bottom-auto lg:top-4 lg:block'}>
+      {!isSheet && (
+        <div>
+          <p className="text-sm font-semibold text-slate-800">Resumen de la guía</p>
+          <p className="text-xs text-slate-500">Un solo PDF continuo con los clientes marcados.</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2 text-center">
         {counts.map(([label, value]) => (

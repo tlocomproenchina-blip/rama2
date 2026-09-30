@@ -10,6 +10,7 @@ import { generateDispatchGuidePdf } from '@/lib/dispatchGuidePdf';
 import DispatchGuideFilters from './DispatchGuideFilters';
 import DispatchGuideClientCard from './DispatchGuideClientCard';
 import DispatchGuideSummary from './DispatchGuideSummary';
+import DispatchGuideMobileSummary from './DispatchGuideMobileSummary';
 
 const startOfDayISO = (date) => (date ? `${date}T00:00:00.000Z` : '');
 const endOfDayISO = (date) => (date ? `${date}T23:59:59.999Z` : '');
@@ -152,6 +153,14 @@ export default function DispatchGuideEmitPanel({ onEmitted }) {
             />
           </div>
         )}
+
+        <DispatchGuideMobileSummary
+          summary={summary}
+          selectedClients={selectedClients}
+          generating={generating}
+          onGenerate={handleGenerate}
+          disabled={offline}
+        />
       </CardContent>
     </Card>
   );
