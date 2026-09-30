@@ -30,9 +30,13 @@ export default function ContinuousLabelPreview({ client, rangeStart = 1, rangeEn
         </p>
         {client?.whatsapp ? <p className="text-xs text-muted-foreground">Tel: {client.whatsapp}</p> : null}
         {client?.address ? <p className="text-xs text-muted-foreground break-words">{client.address}</p> : null}
-        {cityState ? <p className="text-xs text-muted-foreground">{cityState}</p> : null}
+        {cityState ? (
+          <p className="text-sm font-semibold text-foreground break-words">{cityState}</p>
+        ) : null}
         {client?.shipping_mark ? (
-          <p className="mt-1 font-mono text-[11px] text-blue-700 break-all">MARK: {client.shipping_mark}</p>
+          <p className="mt-1 font-mono text-base font-semibold text-blue-700 break-all">
+            MARK: {client.shipping_mark}
+          </p>
         ) : null}
         {guideNumber ? (
           <p className="mt-1.5 border-t border-border/70 pt-1 text-[10px] text-muted-foreground">

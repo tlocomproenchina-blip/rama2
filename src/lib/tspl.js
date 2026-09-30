@@ -230,10 +230,25 @@ export const buildContinuousLabelPayload = ({
   // 4. Datos de entrega del cliente
   if (cs.whatsapp) addBlock(34, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q('Tel: ' + cs.whatsapp)}`]);
   for (const ln of addrLines) addBlock(30, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q(ln)}`]);
-  if (cityState) addBlock(34, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q(cityState)}`]);
-  if (mark) addBlock(34, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q('MARK: ' + mark)}`]);
 
-  // 5. Pie: guía emitida y su fecha
+  // 5. Estado donde quedó registrado el cliente y su shipping mark: centrados y en
+  //    grande hasta donde el ancho de la etiqueta lo permita, porque son los datos
+  //    que se leen de un vistazo al recibir el paquete.
+  const bigRow = (y, row, scale) => [
+    `TEXT ${centerX(row, '2', scale)},${y},${q('2')},0,${scale},${scale},${q(row)}`,
+  ];
+  const addBigText = (text) => {
+    const rows = wrapText(text, 40).slice(0, 2);
+    const longest = rows.reduce((m, r) => Math.max(m, r.length), 1);
+    const scale = Math.max(1, Math.min(2, Math.floor((LABEL_W - 60) / (longest * FONT_WIDTH['2']))));
+    for (const row of rows) {
+      addBlock(FONT_WIDTH['2'] * scale + 16, (y) => bigRow(y, row, scale));
+    }
+  };
+  if (cityState) addBigText(cityState);
+  if (mark) addBigText(`MARK: ${mark}`);
+
+  // 6. Pie: guía emitida y su fecha
   if (footer) {
     addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
     addBlock(24, (y) => [`TEXT 50,${y},${q('1')},0,1,1,${q(footer)}`]);
