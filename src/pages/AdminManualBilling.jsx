@@ -14,6 +14,7 @@ import DuplicateReceiptsBanner from '@/components/manual-billing/DuplicateReceip
 import DuplicateMergeDialog from '@/components/manual-billing/DuplicateMergeDialog';
 import ReceiptsAutoMergeNotice from '@/components/manual-billing/ReceiptsAutoMergeNotice';
 import PendingBillingPanel from '@/components/manual-billing/PendingBillingPanel';
+import BilledReceiptsSection from '@/components/manual-billing/BilledReceiptsSection';
 import usePendingBillingClients from '@/hooks/usePendingBillingClients';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -21,7 +22,7 @@ const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 // Tipo de carga con el que arranca la factura; cada recibo puede tener el suyo
 const INITIAL_CARGO_TYPE = 'general';
 
-export default function AdminManualBilling() {
+export default function AdminManualBilling({ user }) {
   const [appConfig, setAppConfig] = useState(null);
   const [pricing, setPricing] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
@@ -59,6 +60,9 @@ export default function AdminManualBilling() {
   const pending = usePendingBillingClients();
   // En móvil el panel arranca plegado para no empujar la facturación fuera de pantalla
   const [showPending, setShowPending] = useState(false);
+  // Envíos marcados a mano como ya facturados: no se borran, se agrupan aparte
+  const [markedReceipts, setMarkedReceipts] = useState([]);
+  const [markingReceiptId, setMarkingReceiptId] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -232,6 +236,7 @@ export default function AdminManualBilling() {
     const skipAuto = options?.skipAuto === true;
     setClient(selectedClient);
     setRows([]);
+    setMarkedReceipts([]);
     setCargoType(INITIAL_CARGO_TYPE);
     setCreditBalance(0);
     setOrphanPackages([]);
@@ -288,7 +293,8 @@ export default function AdminManualBilling() {
       });
 
       // Excluir registros que ya fueron facturados (solo se liberan al desconsolidar)
-      const available = (ingresos || []).filter((ing) => !ing.billed);
+      // y los marcados a mano como ya facturados por fuera (siguen visibles aparte)
+      const available = (ingresos || []).filter((ing) => !ing.billed && ing.billing_marked !== true);
 
       // Construir set de trackings que ya tienen recibo (CbmIngreso)
       const trackingsWithReceipt = new Set();
@@ -354,6 +360,20 @@ export default function AdminManualBilling() {
         };
       });
       setRows(built);
+      // Envíos marcados a mano como ya facturados: se conservan (con su CBM y
+      // trackings intactos) agrupados en su propia sección, fuera de la facturable.
+      setMarkedReceipts((ingresos || [])
+        .filter((ing) => ing.billing_marked === true)
+        .map((ing) => ({
+          id: ing.id,
+          order: ing.invoice_number || ing.descripcion || '—',
+          cbm: num(ing.cbm),
+          package_count: num(ing.package_count) || (ing.tracking_numbers || []).length,
+          trackings: ing.tracking_numbers || [],
+          fecha: ing.fecha || null,
+          billing_marked_by: ing.billing_marked_by || '',
+          billing_marked_date: ing.billing_marked_date || null,
+        })));
       // Con los recibos ya cargados, se revisan y fusionan los repetidos del
       // cliente en segundo plano, sin bloquear la pantalla.
       if (!skipAuto) autoMergeDuplicates(selectedClient);
@@ -387,6 +407,55 @@ export default function AdminManualBilling() {
     } else {
       toast.error(res.error);
     }
+  };
+
+  // Marca manual de un envío/recibo: se guarda como ya facturado (usuario y fecha)
+  // sin borrarlo ni tocar su CBM, sus trackings o su estado billed.
+  const handleMarkReceipt = async (receipt, marked) => {
+    const order = receipt.order || receipt.invoice_number || receipt.label || '';
+    setMarkingReceiptId(receipt.id);
+    try {
+      const markDate = new Date().toISOString();
+      await base44.entities.CbmIngreso.update(receipt.id, marked
+        ? { billing_marked: true, billing_marked_by: user?.email || '', billing_marked_date: markDate }
+        : { billing_marked: false, billing_marked_by: '', billing_marked_date: null });
+
+      if (marked) {
+        // Sale de la lista facturable y pasa a la sección de ya facturados
+        const snapshot = rows.find((r) => r.id === receipt.id);
+        setRows((prev) => prev.filter((r) => r.id !== receipt.id));
+        if (snapshot) {
+          setMarkedReceipts((prev) => [{
+            id: snapshot.id,
+            order: snapshot.invoice_number,
+            cbm: num(snapshot.cbm_original),
+            package_count: snapshot.package_count || 0,
+            trackings: snapshot.tracking_numbers || [],
+            fecha: snapshot.fecha || null,
+            billing_marked_by: user?.email || '',
+            billing_marked_date: markDate,
+            // Copia del recibo tal como estaba: permite devolverlo al instante
+            snapshot: { ...snapshot, selected: false },
+          }, ...prev]);
+        } else if (client) {
+          await loadClientInvoices(client, { skipAuto: true });
+        }
+      } else {
+        // Vuelve de inmediato a la lista facturable
+        const entry = markedReceipts.find((m) => m.id === receipt.id);
+        setMarkedReceipts((prev) => prev.filter((m) => m.id !== receipt.id));
+        if (entry?.snapshot) setRows((prev) => [{ ...entry.snapshot, selected: false }, ...prev]);
+        else if (client) await loadClientInvoices(client, { skipAuto: true });
+      }
+
+      toast.success(marked
+        ? `Envío ${order} marcado como ya facturado`
+        : `Envío ${order} vuelve a la lista facturable`);
+      pending.reload();
+    } catch {
+      toast.error('No se pudo guardar la marca del envío');
+    }
+    setMarkingReceiptId(null);
   };
 
   const updateRow = (updated) => {
@@ -946,7 +1015,7 @@ export default function AdminManualBilling() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
-            ) : rows.length === 0 ? (
+            ) : rows.length === 0 && markedReceipts.length === 0 ? (
               <Card className="border-0 shadow-lg">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-slate-500">
                   Este cliente no tiene registros de CBM.
@@ -955,7 +1024,14 @@ export default function AdminManualBilling() {
             ) : (
               <div className="space-y-3">
                 {rows.map((row) => (
-                  <BillingInvoiceRow key={row.id} row={row} onChange={updateRow} cargoType={cargoType} />
+                  <BillingInvoiceRow
+                    key={row.id}
+                    row={row}
+                    onChange={updateRow}
+                    cargoType={cargoType}
+                    marking={markingReceiptId === row.id}
+                    onMarkReceipt={(r) => handleMarkReceipt(r, true)}
+                  />
                 ))}
               </div>
             )}
@@ -968,6 +1044,12 @@ export default function AdminManualBilling() {
                 onAssignReceipt={(receiptId) => setRows((prev) => prev.map((r) => r.id === receiptId ? { ...r, selected: true } : r))}
               />
             )}
+
+            <BilledReceiptsSection
+              receipts={markedReceipts}
+              markingId={markingReceiptId}
+              onUnmark={(r) => handleMarkReceipt(r, false)}
+            />
           </div>
 
           <div className="lg:col-span-1 min-w-0">

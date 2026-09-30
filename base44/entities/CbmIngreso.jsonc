@@ -64,6 +64,20 @@
       "type": "string",
       "description": "ID de la factura manual combinada que incluye este registro"
     },
+    "billing_marked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marca manual desde Facturaci\u00f3n Manual: este env\u00edo/recibo ya se factur\u00f3 por fuera del sistema, as\u00ed que sale de la lista facturable y se conserva agrupado en la secci\u00f3n 'Env\u00edos ya facturados', sin borrarse ni alterar su CBM, sus trackings ni su estado billed/billed_invoice_id."
+    },
+    "billing_marked_by": {
+      "type": "string",
+      "description": "Email del admin que marc\u00f3 a mano el env\u00edo como ya facturado"
+    },
+    "billing_marked_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la marca manual de facturaci\u00f3n"
+    },
     "fecha_salida": {
       "type": "string",
       "format": "date",

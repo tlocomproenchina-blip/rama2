@@ -43,8 +43,10 @@ Deno.serve(async (req) => {
         if (key) markedOrders.add(key);
       }
     }
+    // Un envío/recibo marcado a mano como ya facturado (Facturación Manual) tampoco
+    // se ofrece aquí como pendiente: se conserva, pero ya no está por facturar.
     const receiptsPending = receiptsBilledPending.filter(
-      (r: any) => !markedOrders.has(String(r.invoice_number || '').trim())
+      (r: any) => (r as any).billing_marked !== true && !markedOrders.has(String(r.invoice_number || '').trim())
     );
 
     // Auto-sanación: si la factura que marcó el bulto ya no existe, vuelve a ofrecerse.

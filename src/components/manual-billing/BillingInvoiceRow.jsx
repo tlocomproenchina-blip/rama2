@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, Package as PackageIcon, Boxes, Ship, CalendarClock, BadgeCheck, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Package as PackageIcon, Boxes, Ship, CalendarClock, BadgeCheck, AlertTriangle, Loader2 } from 'lucide-react';
 import CargoTypeSelector from '@/components/manual-billing/CargoTypeSelector';
 
 const fmtDate = (d) => {
@@ -16,7 +16,7 @@ const fmtDate = (d) => {
   return `${dd}-${mm}-${yy}`;
 };
 
-export default function BillingInvoiceRow({ row, onChange, cargoType = 'general' }) {
+export default function BillingInvoiceRow({ row, onChange, cargoType = 'general', marking = false, onMarkReceipt }) {
   const update = (patch) => onChange({ ...row, ...patch });
   // Tipo de carga del recibo: el elegido en su tarjeta o, si no se ha elegido, el de la factura
   const effectiveCargoType = row.cargo_type || cargoType;
@@ -85,6 +85,19 @@ export default function BillingInvoiceRow({ row, onChange, cargoType = 'general'
                 onChange={(type) => update({ cargo_type: type })}
               />
             </div>
+          </div>
+          <div className="shrink-0 flex flex-col items-center gap-0.5">
+            {marking ? (
+              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            ) : (
+              <Checkbox
+                checked={false}
+                onCheckedChange={(value) => { if (value) onMarkReceipt?.(row); }}
+                title="Marcar como ya facturado (se conserva en 'Envíos ya facturados')"
+                aria-label="Marcar como ya facturado"
+              />
+            )}
+            <span className="text-[10px] text-slate-500">Facturado</span>
           </div>
         </div>
 
