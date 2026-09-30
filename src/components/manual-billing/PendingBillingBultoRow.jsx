@@ -11,14 +11,18 @@ const formatDate = (v) => {
 
 // Un bulto pendiente dentro de la tarjeta del cliente: su N° de orden/envío al frente
 // y la casilla para marcarlo a mano como ya facturado (sin generar factura).
+// Marcado no se oculta: el bulto se pinta en verde y la casilla permite deshacer.
 export default function PendingBillingBultoRow({ bulto, marking, onMark }) {
   const orders = (bulto.order_numbers || []).filter(Boolean);
+  const marked = !!bulto.billing_marked;
 
   return (
-    <div className="rounded-lg border border-border/70 p-2.5">
+    <div className={`rounded-lg border p-2.5 transition-colors ${
+      marked ? 'border-emerald-300 bg-emerald-50/60' : 'border-border/70'
+    }`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-mono text-sm font-semibold text-slate-800 break-all">
+          <p className={`font-mono text-sm font-semibold break-all ${marked ? 'text-emerald-800' : 'text-slate-800'}`}>
             {orders.length > 0 ? orders.join(', ') : 'Sin N° de orden'}
           </p>
           <p className="text-[11px] text-slate-500 break-all">
@@ -30,13 +34,14 @@ export default function PendingBillingBultoRow({ bulto, marking, onMark }) {
             <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
           ) : (
             <Checkbox
-              checked={false}
+              checked={marked}
               onCheckedChange={(value) => onMark(bulto, !!value)}
-              title="Marcar como ya facturado"
+              title={marked ? 'Quitar la marca de facturado' : 'Marcar como ya facturado'}
               aria-label="Marcar como ya facturado"
+              className={marked ? 'border-emerald-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white' : ''}
             />
           )}
-          <span className="text-[10px] text-slate-500">Facturado</span>
+          <span className={`text-[10px] ${marked ? 'font-medium text-emerald-700' : 'text-slate-500'}`}>Facturado</span>
         </div>
       </div>
 
@@ -53,6 +58,12 @@ export default function PendingBillingBultoRow({ bulto, marking, onMark }) {
           </>
         )}
       </div>
+
+      {marked && (
+        <Badge className="mt-1.5 bg-emerald-100 text-emerald-700 border border-emerald-200">
+          Facturado{bulto.billing_marked_date ? ` · ${formatDate(bulto.billing_marked_date)}` : ''}
+        </Badge>
+      )}
 
       {orders.length === 0 && (
         <Badge className="mt-1.5 bg-amber-100 text-amber-700 border border-amber-200">

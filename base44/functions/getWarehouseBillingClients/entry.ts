@@ -33,8 +33,8 @@ Deno.serve(async (req) => {
     ]);
 
     // Marca manual desde el panel de Facturación Manual: ese bulto (y su N° de
-    // orden/envío) ya se facturó por fuera, así que deja de ofrecerse como pendiente
-    // aquí y su recibo de CBM tampoco se ofrece.
+    // orden/envío) ya se facturó por fuera, así que su recibo de CBM ya no se
+    // ofrece (para no cobrarlo dos veces). El bulto sí sigue visible, marcado.
     const markedOrders = new Set<string>();
     for (const b of bultosCandidatos) {
       if ((b as any).billing_marked !== true) continue;
@@ -54,8 +54,11 @@ Deno.serve(async (req) => {
       const found = await svc.Invoice.filter({ id: { $in: invoiceIds.slice(i, i + BATCH) } }, undefined, BATCH + 10).catch(() => []);
       for (const inv of found || []) aliveInvoiceIds.add(inv.id);
     }
+    // El bulto marcado a mano como facturado NO se oculta de la lista: sigue visible
+    // (marcado en verde) para poder deshacer la marca. Solo se excluye lo que ya
+    // tiene una factura viva.
     let bultos = bultosCandidatos.filter((b: any) =>
-      b.billing_marked !== true && (!b.billed_invoice_id || !aliveInvoiceIds.has(b.billed_invoice_id))
+      !b.billed_invoice_id || !aliveInvoiceIds.has(b.billed_invoice_id)
     );
 
     const clientEmails = [...new Set([
@@ -198,6 +201,11 @@ Deno.serve(async (req) => {
             : (((b.package_ids || []).length + (b.unregistered_codes || []).length) || trackings.length),
           package_count_manual: registeredCount > 0,
           // Tarifa registrada del bulto desde 'Carga en almacén': la factura la usa tal cual.
+          // Marca manual de facturado: el bulto permanece en la lista, en verde,
+          // y la marca se puede quitar desde la misma casilla.
+          billing_marked: b.billing_marked === true,
+          billing_marked_by: b.billing_marked_by || '',
+          billing_marked_date: b.billing_marked_date || null,
           risk_category: detectedRisk,
           cargo_risk_category: b.cargo_risk_category || null,
           cargo_amount: num(b.cargo_amount),

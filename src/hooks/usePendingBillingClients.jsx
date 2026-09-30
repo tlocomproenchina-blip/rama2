@@ -34,20 +34,27 @@ export default function usePendingBillingClients() {
         billing_marked: !!marked,
       });
       if (res?.data?.error) throw new Error(res.data.error);
-      if (marked) {
-        setClients((prev) => prev
-          .map((c) => ({ ...c, bultos: (c.bultos || []).filter((b) => b.id !== bulto.id) }))
-          .filter((c) => (c.bultos || []).length > 0 || (c.receipts || []).length > 0));
-      } else {
-        load();
-      }
+      // La marca no quita el bulto de la lista: se refleja en verde (o vuelve a su
+      // estado normal al quitarla), sin recargar el panel.
+      const saved = res?.data?.bulto || {};
+      setClients((prev) => prev.map((c) => ({
+        ...c,
+        bultos: (c.bultos || []).map((b) => (b.id === bulto.id
+          ? {
+            ...b,
+            billing_marked: !!marked,
+            billing_marked_by: saved.billing_marked_by || '',
+            billing_marked_date: saved.billing_marked_date || null,
+          }
+          : b)),
+      })));
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e?.message || 'No se pudo guardar la marca' };
     } finally {
       setMarkingId(null);
     }
-  }, [load]);
+  }, []);
 
   return { clients, loading, error, reload: load, markBulto, markingId };
 }
