@@ -14,7 +14,6 @@ import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 import DispatchScanHistoryPanel from '@/components/warehouse/DispatchScanHistoryPanel';
 import DispatchApprovalModal from '@/components/warehouse/DispatchApprovalModal';
-import DispatchGuidePanel from '@/components/warehouse/dispatch-guides/DispatchGuidePanel';
 import { recordScanLog, flushPendingScanLogs } from '@/lib/scanLogs';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
 import { useOfflineDispatchQueue } from '@/hooks/useOfflineDispatchQueue';
@@ -458,8 +457,6 @@ export default function WarehouseDispatch({ user }) {
           </CardContent>
         </Card>
       )}
-
-      <DispatchGuidePanel />
 
       <BarcodeScannerModule
         title="Escaneo de despacho"

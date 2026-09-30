@@ -10,12 +10,19 @@ const fmtDate = (value) => {
   return d.toLocaleDateString('es-VE');
 };
 
-export async function generateDispatchGuidePdf({ clients, appName = 'TLEC CARGO', mode = 'save', offline = false }) {
+export async function generateDispatchGuidePdf({
+  clients,
+  appName = 'TLEC CARGO',
+  mode = 'save',
+  offline = false,
+  guideNumber = '',
+  emittedAt = '',
+}) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const list = Array.isArray(clients) ? clients : [];
   const totals = summarizeGuide(list, list.map((c) => c.client_key || c.client_email));
-  const now = new Date();
+  const now = emittedAt ? new Date(emittedAt) : new Date();
   const left = 14;
   const right = 196;
   let y = 44;
@@ -48,14 +55,21 @@ export async function generateDispatchGuidePdf({ clients, appName = 'TLEC CARGO'
       doc.text('GUÍA DE DESPACHO', left, 22);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.text(`Emitida: ${now.toLocaleString('es-VE')}`, right, 12, { align: 'right' });
-      doc.text(`${totals.clients} cliente(s) · ${totals.bultos} bulto(s) · ${totals.packages} paquete(s)`, right, 18, { align: 'right' });
-      doc.text('Bultos escaneados para despacho · verificación de entrega bulto por bulto', right, 24, { align: 'right' });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(`Guía N° ${guideNumber || 'sin número'}`, right, 11, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Emitida: ${now.toLocaleString('es-VE')}`, right, 17, { align: 'right' });
+      doc.text(`${totals.clients} cliente(s) · ${totals.bultos} bulto(s) · ${totals.packages} paquete(s)`, right, 22, { align: 'right' });
       if (totals.unregistered > 0) {
         doc.setFont('helvetica', 'bold');
-        doc.text(`${totals.unregistered} código(s) sin bulto registrado: verificar`, right, 30, { align: 'right' });
+        doc.setFontSize(8);
+        doc.text(`${totals.unregistered} código(s) sin bulto registrado: verificar`, right, 27, { align: 'right' });
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
       }
+      doc.text('Bultos escaneados para despacho · verificación de entrega bulto por bulto', left, 29);
       if (offline) {
         doc.setTextColor(185, 28, 28);
         doc.setFont('helvetica', 'bold');
@@ -197,5 +211,6 @@ export async function generateDispatchGuidePdf({ clients, appName = 'TLEC CARGO'
     window.open(doc.output('bloburl'), '_blank');
     return;
   }
-  doc.save(`guia-despacho-${now.toISOString().slice(0, 10)}.pdf`);
+  const fileTag = String(guideNumber || '').trim() || now.toISOString().slice(0, 10);
+  doc.save(`guia-despacho-${fileTag}.pdf`);
 }

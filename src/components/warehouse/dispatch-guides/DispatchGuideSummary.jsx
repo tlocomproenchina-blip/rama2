@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, Printer } from 'lucide-react';
 
-export default function DispatchGuideSummary({ summary, selectedClients, generating, onGenerate }) {
+export default function DispatchGuideSummary({ summary, selectedClients, generating, onGenerate, disabled = false }) {
   const counts = [
     ['Clientes', summary.clients],
     ['Bultos', summary.bultos],
@@ -42,7 +42,7 @@ export default function DispatchGuideSummary({ summary, selectedClients, generat
       )}
 
       <div className="space-y-2">
-        <Button className="w-full" onClick={() => onGenerate('save')} disabled={!summary.clients || Boolean(generating)}>
+        <Button className="w-full" onClick={() => onGenerate('save')} disabled={!summary.clients || Boolean(generating) || disabled}>
           {generating === 'save' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
           Generar guía de despacho
         </Button>
@@ -50,14 +50,20 @@ export default function DispatchGuideSummary({ summary, selectedClients, generat
           variant="outline"
           className="w-full"
           onClick={() => onGenerate('print')}
-          disabled={!summary.clients || Boolean(generating)}
+          disabled={!summary.clients || Boolean(generating) || disabled}
         >
           {generating === 'print' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
           Imprimir
         </Button>
       </div>
 
-      {!summary.clients && <p className="text-[11px] text-slate-400">Marca los clientes que van en la guía.</p>}
+      {disabled ? (
+        <p className="text-[11px] text-amber-700">
+          Sin conexión no se emiten guías nuevas. Revisa el historial para reimprimir una guía ya emitida.
+        </p>
+      ) : (
+        !summary.clients && <p className="text-[11px] text-slate-400">Marca los clientes que van en la guía.</p>
+      )}
     </div>
   );
 }

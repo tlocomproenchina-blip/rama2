@@ -1,0 +1,240 @@
+{
+  "name": "DispatchGuide",
+  "type": "object",
+  "properties": {
+    "guide_number": {
+      "type": "string",
+      "description": "N\u00famero correlativo visible de la gu\u00eda de despacho (ej: GD-00001)"
+    },
+    "guide_sequence": {
+      "type": "number",
+      "description": "N\u00famero secuencial interno con el que se asign\u00f3 el consecutivo"
+    },
+    "emitted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que se emiti\u00f3 la gu\u00eda. Es la fecha que se imprime al reimprimirla."
+    },
+    "emitted_by": {
+      "type": "string",
+      "description": "Email del usuario que emiti\u00f3 la gu\u00eda"
+    },
+    "emitted_by_name": {
+      "type": "string",
+      "description": "Nombre del usuario que emiti\u00f3 la gu\u00eda"
+    },
+    "filter_from": {
+      "type": "string",
+      "description": "Fecha inicial del rango de escaneos usado al armar la gu\u00eda"
+    },
+    "filter_to": {
+      "type": "string",
+      "description": "Fecha final del rango de escaneos usado al armar la gu\u00eda"
+    },
+    "clients": {
+      "type": "array",
+      "default": [],
+      "description": "Snapshot completo del contenido de la gu\u00eda, agrupado por cliente, tal como se emiti\u00f3. Se usa para reimprimir la gu\u00eda sin recalcular nada.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "client_key": {
+            "type": "string"
+          },
+          "client_email": {
+            "type": "string"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "shipping_mark": {
+            "type": "string"
+          },
+          "orders_count": {
+            "type": "number"
+          },
+          "client": {
+            "type": "object",
+            "properties": {
+              "full_name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "cedula": {
+                "type": "string"
+              },
+              "whatsapp": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              },
+              "city": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "shipping_mark": {
+                "type": "string"
+              }
+            }
+          },
+          "bultos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label_code": {
+                  "type": "string"
+                },
+                "package_count": {
+                  "type": "number"
+                },
+                "registered": {
+                  "type": "boolean"
+                },
+                "date": {
+                  "type": "string"
+                },
+                "order_number": {
+                  "type": "string"
+                },
+                "scans": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "bultos": {
+                "type": "number"
+              },
+              "packages": {
+                "type": "number"
+              },
+              "unregistered": {
+                "type": "number"
+              },
+              "scanned": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "client_names": {
+      "type": "array",
+      "default": [],
+      "description": "Nombres de los clientes incluidos (para buscar en el historial)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "client_emails": {
+      "type": "array",
+      "default": [],
+      "description": "Emails de los clientes incluidos (para buscar en el historial)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "shipping_marks": {
+      "type": "array",
+      "default": [],
+      "description": "Shipping marks incluidos (para buscar en el historial)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "bulto_codes": {
+      "type": "array",
+      "default": [],
+      "description": "C\u00f3digos de bulto incluidos en la gu\u00eda. Marcan los escaneos que ya no vuelven a ofrecerse como pendientes.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "totals": {
+      "type": "object",
+      "description": "Totales de la gu\u00eda al momento de emitirla",
+      "properties": {
+        "clients": {
+          "type": "number"
+        },
+        "bultos": {
+          "type": "number"
+        },
+        "packages": {
+          "type": "number"
+        },
+        "unregistered": {
+          "type": "number"
+        }
+      }
+    },
+    "dispatch_status": {
+      "type": "string",
+      "enum": [
+        "emitida",
+        "entregada"
+      ],
+      "default": "emitida",
+      "description": "Estado de entrega de la gu\u00eda: emitida (impresa, pendiente de entrega) o entregada (entrega anotada)"
+    },
+    "delivered_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se entreg\u00f3 la carga de esta gu\u00eda"
+    },
+    "received_by": {
+      "type": "string",
+      "description": "Nombre de quien recibi\u00f3 la carga"
+    },
+    "delivery_notes": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Notas de la entrega"
+    },
+    "delivery_updated_by": {
+      "type": "string",
+      "description": "Email del usuario que anot\u00f3 o corrigi\u00f3 la entrega"
+    },
+    "delivery_updated_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la \u00faltima anotaci\u00f3n de entrega"
+    }
+  },
+  "required": [
+    "guide_number",
+    "emitted_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -112,7 +112,9 @@ export default async function (req: Request): Promise<Response> {
       andClauses.push({ $or: or });
     }
 
-    const filter: any = { scan_type: 'bulto', result: { $in: DISPATCH_RESULTS } };
+    // Solo los bultos que todavía no forman parte de una guía emitida: al generar
+    // la guía sus escaneos quedan marcados y salen de la lista de pendientes.
+    const filter: any = { scan_type: 'bulto', result: { $in: DISPATCH_RESULTS }, guide_id: { $exists: false } };
     if (andClauses.length) filter.$and = andClauses;
 
     const effectiveSkip = wide || codes.length ? 0 : skip;

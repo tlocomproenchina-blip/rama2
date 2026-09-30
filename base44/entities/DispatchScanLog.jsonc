@@ -68,6 +68,19 @@
       "type": "boolean",
       "default": false,
       "description": "Si el escaneo fue procesado offline"
+    },
+    "guide_id": {
+      "type": "string",
+      "description": "ID de la gu\u00eda de despacho (DispatchGuide) que incluy\u00f3 este bulto. Mientras est\u00e9 vac\u00edo, el bulto sigue pendiente de gu\u00eda; al generarse la gu\u00eda se marca aqu\u00ed y deja de ofrecerse como pendiente."
+    },
+    "guide_number": {
+      "type": "string",
+      "description": "N\u00famero de la gu\u00eda de despacho que incluy\u00f3 este bulto (cache para mostrar)"
+    },
+    "guide_emitted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que la gu\u00eda que incluy\u00f3 este bulto fue emitida"
     }
   },
   "required": [

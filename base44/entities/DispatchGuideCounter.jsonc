@@ -1,0 +1,46 @@
+{
+  "name": "DispatchGuideCounter",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica del contador de gu\u00edas de despacho (siempre 'main')"
+    },
+    "last_number": {
+      "type": "number",
+      "default": 0,
+      "description": "\u00daltimo n\u00famero secuencial asignado a una gu\u00eda de despacho. La siguiente gu\u00eda usa last_number + 1."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
