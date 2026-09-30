@@ -1,35 +1,75 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Layers, ChevronDown, ChevronUp, Loader2, X, CheckCircle2,
-  FileDown,
-} from 'lucide-react';
+import { Layers, ChevronDown, ChevronUp, Loader2, X, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import UniversalClientSearch from '@/components/warehouse/UniversalClientSearch';
-import BluetoothPrinter from '@/components/warehouse/BluetoothPrinter';
-import { bulkPut } from '@/lib/offlineDb';
+import BulkBultoResultPanel from '@/components/warehouse/BulkBultoResultPanel';
+import { downloadCombinedBultoLabelsPdf } from '@/lib/bulkBultoLabelsPdf';
+import { getAll, bulkPut, put } from '@/lib/offlineDb';
 
 // Crea N bultos vacíos en secuencia para un cliente (offline-first).
 // Reutiliza el bloque de números global (getNextNumber) para asignar bulto_number únicos.
-// Crea los bultos en IndexedDB con status 'en_almacen_ve' (sellados en almacén, sin despachar) para que el
-// operador pueda escanear paquetes en ellos después y el bulto no aparezca como entregado.
-// Ofrece imprimir todas las etiquetas vía Bluetooth o descargar un PDF combinado.
-export default function BulkBultoCreator({ getNextNumber, user, onCreated, enqueueClosedBulto }) {
+// Los bultos se crean sellados ('en_almacen_ve') y encolados para sincronizar como
+// siempre; el panel de resultado muestra etiqueta por etiqueta si quedó registrada en
+// el sistema, pendiente de sincronizar o no registrada por código repetido.
+// El N° de orden escrito aquí se aplica a TODAS las etiquetas del lote.
+const parseOrders = (raw) =>
+  String(raw || '')
+    .split(/[,\n;]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+export default function BulkBultoCreator({
+  getNextNumber,
+  user,
+  onCreated,
+  enqueueClosedBulto,
+  pendingBultos = [],
+  retrySync,
+  onDiscardBulto,
+}) {
   const [open, setOpen] = useState(false);
   const [client, setClient] = useState(null);
   const [count, setCount] = useState(1);
+  const [orders, setOrders] = useState('');
   const [creating, setCreating] = useState(false);
   const [createdBultos, setCreatedBultos] = useState([]);
+  const [statusById, setStatusById] = useState({});
+  const [replacingId, setReplacingId] = useState('');
   const [printing, setPrinting] = useState(false);
+
+  const orderList = useMemo(() => parseOrders(orders), [orders]);
 
   const reset = () => {
     setClient(null);
     setCount(1);
+    setOrders('');
     setCreatedBultos([]);
+    setStatusById({});
   };
+
+  // Objeto que viaja a la cola de sincronización (incluye el N° de orden del lote).
+  const queuePayload = useCallback((b) => ({
+    local_bulto_id: b.id,
+    label_code: b.label_code,
+    client_email: b.client_email,
+    shipping_mark: b.shipping_mark,
+    bulto_number: b.bulto_number,
+    total_bultos: b.total_bultos,
+    package_ids: b.package_ids || [],
+    package_trackings: b.package_trackings || [],
+    client_snapshot: b.client_snapshot || {},
+    invoice_paid: false,
+    invoice_status: '',
+    invoice_number: '',
+    cbm_order_numbers: b.cbm_order_numbers || [],
+    warehouse_id: b.warehouse_id || '',
+    created_by: b.created_by || '',
+    closed_at: b.closed_at,
+  }), []);
 
   const handleCreate = useCallback(async () => {
     if (!client) {
@@ -80,6 +120,7 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated, enque
         total_bultos: totalBultos,
         package_ids: [],
         package_trackings: [],
+        cbm_order_numbers: orderList,
         client_snapshot: clientSnapshot,
         invoice_paid: false,
         invoice_status: '',
@@ -99,23 +140,7 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated, enque
       if (enqueueClosedBulto) {
         for (const b of newBultos) {
           try {
-            await enqueueClosedBulto({
-              local_bulto_id: b.id,
-              label_code: b.label_code,
-              client_email: b.client_email,
-              shipping_mark: b.shipping_mark,
-              bulto_number: b.bulto_number,
-              total_bultos: b.total_bultos,
-              package_ids: [],
-              package_trackings: [],
-              client_snapshot: b.client_snapshot || {},
-              invoice_paid: false,
-              invoice_status: '',
-              invoice_number: '',
-              warehouse_id: '',
-              created_by: b.created_by,
-              closed_at: b.closed_at,
-            });
+            await enqueueClosedBulto(queuePayload(b));
           } catch (e) {
             console.error('Error encolando bulto del lote:', e);
           }
@@ -129,87 +154,85 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated, enque
     } finally {
       setCreating(false);
     }
-  }, [client, count, getNextNumber, user, onCreated, enqueueClosedBulto]);
+  }, [client, count, orderList, getNextNumber, user, onCreated, enqueueClosedBulto, queuePayload]);
 
-  // PDF combinado: todas las etiquetas en un solo archivo multi-página
+  // Estado real de registro de cada etiqueta: se lee del dispositivo cada vez que
+  // cambia la cola de sincronización (al procesarse, el bulto queda enlazado al
+  // servidor o marcado como código repetido).
+  useEffect(() => {
+    if (!createdBultos.length) return undefined;
+    let cancelled = false;
+    (async () => {
+      let records = [];
+      try {
+        records = await getAll('bultos');
+      } catch (_) {}
+      if (cancelled) return;
+      const next = {};
+      createdBultos.forEach((b) => {
+        const rec = records.find((r) => r.id === b.id);
+        const queued = pendingBultos.find((p) => p.id === b.id);
+        if (rec?.sync_duplicate) next[b.id] = 'duplicado';
+        else if (rec?.synced || rec?.server_bulto_id) next[b.id] = 'registrado';
+        else if (queued?.sync_status === 'error') next[b.id] = 'error';
+        else next[b.id] = 'pendiente';
+      });
+      setStatusById(next);
+    })();
+    return () => { cancelled = true; };
+  }, [createdBultos, pendingBultos]);
+
+  const summary = useMemo(() => {
+    const values = createdBultos.map((b) => statusById[b.id] || 'pendiente');
+    return {
+      registrados: values.filter((v) => v === 'registrado').length,
+      pendientes: values.filter((v) => v === 'pendiente' || v === 'error').length,
+      duplicados: values.filter((v) => v === 'duplicado').length,
+    };
+  }, [createdBultos, statusById]);
+
+  // Código repetido: la etiqueta nunca existió en el sistema (ese número ya estaba
+  // usado). Se genera esa etiqueta de nuevo con un número nuevo y se descarta la
+  // que no se registró, para no imprimirla por error.
+  const handleReplaceDuplicate = useCallback(async (bulto) => {
+    setReplacingId(bulto.id);
+    try {
+      const num = await getNextNumber();
+      if (!num) {
+        toast.error('No hay números de bulto disponibles. Revisa tu conexión.');
+        return;
+      }
+      const replacement = {
+        ...bulto,
+        id: `local_bulto_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        label_code: `${bulto.shipping_mark}-B${num}`,
+        bulto_number: num,
+        synced: false,
+        server_bulto_id: '',
+        sync_duplicate: false,
+      };
+      await put('bultos', replacement);
+      await onDiscardBulto?.(bulto);
+      setCreatedBultos((prev) => prev.map((b) => (b.id === bulto.id ? replacement : b)));
+      onCreated?.([replacement]);
+      if (enqueueClosedBulto) await enqueueClosedBulto(queuePayload(replacement));
+      toast.success(`Etiqueta nueva generada: ${replacement.label_code}`);
+    } catch (e) {
+      toast.error('No se pudo generar la etiqueta nueva');
+    } finally {
+      setReplacingId('');
+    }
+  }, [getNextNumber, onDiscardBulto, onCreated, enqueueClosedBulto, queuePayload]);
+
   const downloadCombinedPdf = useCallback(async () => {
     if (!createdBultos.length) return;
     setPrinting(true);
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const JsBarcode = (await import('jsbarcode')).default;
-
-      const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
-
-      createdBultos.forEach((bulto, idx) => {
-        if (idx > 0) doc.addPage();
-        const cs = bulto.client_snapshot || {};
-        const pkgCount = bulto.package_ids?.length || bulto.package_trackings?.length || 0;
-        let y = 5;
-
-        try {
-          const canvas = document.createElement('canvas');
-          JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 4, height: 80, displayValue: true, fontSize: 18, margin: 0 });
-          const imgData = canvas.toDataURL('image/png');
-          const imgWidth = 85;
-          const imgHeight = (canvas.height / canvas.width) * imgWidth;
-          doc.addImage(imgData, 'PNG', (100 - imgWidth) / 2, y, imgWidth, imgHeight);
-          y += imgHeight + 3;
-        } catch (_) {}
-
-        doc.setLineWidth(0.3);
-        doc.line(5, y, 95, y);
-        y += 4;
-
-        doc.setFontSize(28);
-        doc.setTextColor(0);
-        doc.setFont(undefined, 'bold');
-        doc.text((cs.state || 'SIN ESTADO').toUpperCase(), 50, y + 5, { align: 'center' });
-        y += 12;
-
-        doc.setLineWidth(0.3);
-        doc.line(5, y, 95, y);
-        y += 5;
-
-        // Orden (CbmIngreso)
-        const orderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
-        if (orderNumbers.length > 0) {
-          doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
-          doc.text(`ORDEN: ${orderNumbers.join(', ')}`, 50, y, { align: 'center' });
-          y += 5;
-          doc.setLineWidth(0.3);
-          doc.line(5, y, 95, y);
-          y += 5;
-        }
-
-        doc.setFontSize(18);
-        doc.setFont(undefined, 'bold');
-        doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos} - ${pkgCount} PAQUETES`, 50, y, { align: 'center' });
-        y += 7;
-
-        doc.setLineWidth(0.3);
-        doc.line(5, y, 95, y);
-        y += 5;
-
-        doc.setFontSize(13);
-        const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
-        if (nameCedula) { doc.text(nameCedula, 5, y); y += 6; }
-        doc.setFontSize(11);
-        if (cs.whatsapp) { doc.text(`Tel: ${cs.whatsapp}`, 5, y); y += 5; }
-        doc.setFontSize(10);
-        if (cs.address) {
-          const addrLines = doc.splitTextToSize(cs.address, 90);
-          doc.text(addrLines.slice(0, 2), 5, y);
-          y += addrLines.slice(0, 2).length * 4.5;
-        }
-        const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-        if (cityState) { doc.text(cityState, 5, y); }
+      const count = await downloadCombinedBultoLabelsPdf({
+        bultos: createdBultos,
+        nameHint: client?.shipping_mark || 'bultos',
       });
-
-      const firstName = (client?.shipping_mark || 'bultos').replace(/[^a-zA-Z0-9]/g, '');
-      doc.save(`etiquetas-${firstName}-${createdBultos.length}.pdf`);
-      toast.success(`${createdBultos.length} etiquetas en un PDF`);
+      toast.success(`${count} etiquetas en un PDF`);
     } catch (e) {
       toast.error(`Error generando PDF: ${e?.message || ''}`);
     } finally {
@@ -235,9 +258,9 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated, enque
 
       {open && (
         <CardContent className="pt-0 space-y-4">
-          {/* Paso 1: seleccionar cliente */}
-          {!createdBultos.length && (
+          {!createdBultos.length ? (
             <>
+              {/* Paso 1: seleccionar cliente */}
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-slate-600">1. Buscar cliente</Label>
                 {client ? (
@@ -284,7 +307,22 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated, enque
                 </div>
               </div>
 
-              {/* Crear */}
+              {/* Paso 3: número de orden del lote */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-slate-600">3. N° de orden / envío (opcional)</Label>
+                <Input
+                  value={orders}
+                  onChange={(e) => setOrders(e.target.value)}
+                  placeholder="Ej: 12345 o 12345, 67890"
+                  disabled={creating}
+                />
+                <p className="text-xs text-slate-500">
+                  {orderList.length
+                    ? `Se guarda en todas las etiquetas del lote y sale impreso como ORDEN ${orderList.join(', ')}.`
+                    : 'Se aplica a todas las etiquetas del lote (puedes escribir varios separados por coma).'}
+                </p>
+              </div>
+
               <Button
                 onClick={handleCreate}
                 disabled={!client || creating}
@@ -297,54 +335,20 @@ export default function BulkBultoCreator({ getNextNumber, user, onCreated, enque
                 )}
               </Button>
             </>
-          )}
-
-          {/* Resultado: bultos creados */}
-          {createdBultos.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-green-700">
-                <CheckCircle2 className="h-5 w-5" />
-                <p className="font-medium text-sm">
-                  {createdBultos.length} bulto{createdBultos.length !== 1 ? 's' : ''} creado{createdBultos.length !== 1 ? 's' : ''} — {createdBultos[0].shipping_mark}
-                </p>
-              </div>
-
-              {/* Lista de label_codes */}
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  {createdBultos.map((b) => (
-                    <li key={b.id} className="flex items-center gap-2 text-xs">
-                      <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
-                      <span className="font-mono text-slate-700 break-all">{b.label_code}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Impresión y PDF */}
-              <div className="flex flex-wrap gap-2">
-                <BluetoothPrinter bultos={createdBultos} onPrinted={() => {}} />
-                <Button
-                  variant="outline"
-                  onClick={downloadCombinedPdf}
-                  disabled={printing}
-                >
-                  {printing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                  PDF combinado
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={reset}
-                  className="ml-auto"
-                >
-                  Crear otros
-                </Button>
-              </div>
-
-              <p className="text-xs text-slate-500">
-                Los bultos ya están cerrados y encolados para sincronización. Imprime las etiquetas ahora.
-              </p>
-            </div>
+          ) : (
+            <BulkBultoResultPanel
+              createdBultos={createdBultos}
+              statusById={statusById}
+              summary={summary}
+              orderNumbers={orderList}
+              shippingMark={createdBultos[0]?.shipping_mark || ''}
+              replacingId={replacingId}
+              printing={printing}
+              onReplaceDuplicate={handleReplaceDuplicate}
+              onDownloadPdf={downloadCombinedPdf}
+              onReset={reset}
+              retrySync={retrySync}
+            />
           )}
         </CardContent>
       )}

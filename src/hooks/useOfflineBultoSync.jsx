@@ -152,7 +152,14 @@ export function useOfflineBultoSync() {
                 const localBultos = await getAll('bultos');
                 const localBulto = localBultos.find((b) => (b.local_bulto_id || b.id) === item.id);
                 if (localBulto) {
-                  await put('bultos', { ...localBulto, server_bulto_id: serverBultoId, synced: true });
+                  // 'already_exists' significa que ese código ya estaba usado en el
+                  // sistema: la etiqueta nueva no se registró y la pantalla lo avisa.
+                  await put('bultos', {
+                    ...localBulto,
+                    server_bulto_id: serverBultoId,
+                    synced: true,
+                    sync_duplicate: !!res?.data?.already_exists,
+                  });
                 }
               } catch (_) {}
             }

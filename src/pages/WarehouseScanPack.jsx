@@ -406,6 +406,15 @@ export default function WarehouseScanPack({ user }) {
     setHistoryRefreshKey((k) => k + 1);
   }, [enqueuePrint]);
 
+  // Etiqueta del lote que no se registró (su código ya existía en el sistema): se
+  // descarta del dispositivo y de la cola de impresión para no imprimirla por error.
+  const handleDiscardBulto = useCallback(async (bulto) => {
+    if (!bulto?.id) return;
+    try { await del('bultos', bulto.id); } catch (_) {}
+    await removeFromQueue(bulto.id);
+    setHistoryRefreshKey((k) => k + 1);
+  }, [removeFromQueue]);
+
   // --- Estados de carga ---
 
   if (loadingAccess) {
@@ -528,6 +537,9 @@ export default function WarehouseScanPack({ user }) {
         user={user}
         onCreated={handleBulkCreated}
         enqueueClosedBulto={enqueueClosedBulto}
+        pendingBultos={pendingBultos}
+        retrySync={retrySync}
+        onDiscardBulto={handleDiscardBulto}
       />
 
       {/* Resultado del último escaneo (instantáneo, local) */}

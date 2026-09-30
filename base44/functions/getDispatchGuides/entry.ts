@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { codeTailRegex } from '../../shared/bultoCodeQuery.ts';
 
 // Guía de despacho consolidada por cliente: se arma SOLO con los bultos que
 // pasaron por el escáner de despacho (DispatchScanLog con resultado
@@ -102,9 +103,16 @@ export default async function (req: Request): Promise<Response> {
         { shipping_mark: rx },
         { tracking_number: rx },
       ];
+      // Los últimos caracteres del código de etiqueta (con o sin guiones, con o sin
+      // la "B") también encuentran ese bulto escaneado.
+      const tail = codeTailRegex(search);
+      const codeRx = tail ? { $regex: tail, $options: 'i' } : null;
+      if (codeRx) or.push({ scanned_code: codeRx }, { bulto_label_code: codeRx });
       try {
+        const bultoOr: any[] = [{ label_code: rx }, { package_trackings: rx }];
+        if (codeRx) bultoOr.push({ label_code: codeRx });
         const matchedBultos = await base44.asServiceRole.entities.Bulto.filter(
-          { $or: [{ label_code: rx }, { package_trackings: rx }] }, '-created_date', 100
+          { $or: bultoOr }, '-created_date', 100
         );
         const found = unique((matchedBultos || []).map((b: any) => normCode(b?.label_code)));
         if (found.length) or.push({ bulto_label_code: { $in: found } });

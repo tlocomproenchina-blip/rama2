@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import WarehouseBillingList from './WarehouseBillingList';
 import WarehouseBillingClientDetail from './WarehouseBillingClientDetail';
 import { buildBillingContext, computeClientEstimate, num } from '@/lib/warehouseBilling';
+import { matchesBultoCode } from '@/lib/bultoSearch';
 
 const money = (v) => `$${Number(v || 0).toFixed(2)}`;
 
@@ -109,7 +110,10 @@ export default function WarehouseBillingTab({ search = '' }) {
       ...c.bultos.flatMap((b) => b.trackings || []),
       ...c.receipts.map((r) => r.label), ...c.receipts.flatMap((r) => r.trackings || []),
     ].filter(Boolean).join(' ').toLowerCase();
-    return haystack.includes(term);
+    if (haystack.includes(term)) return true;
+    // Los últimos caracteres del código de bulto bastan para encontrar la carga.
+    return [...c.bultos.map((b) => b.label), ...c.receipts.map((r) => r.label)]
+      .some((label) => matchesBultoCode(label, term));
   }), [enriched, term, stateFilter]);
 
   const summary = useMemo(() => ({
@@ -186,7 +190,7 @@ export default function WarehouseBillingTab({ search = '' }) {
             <Input
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              placeholder="Buscar por cliente, email, shipping mark, N° de orden o tracking..."
+              placeholder="Buscar por cliente, email, shipping mark, N° de orden, tracking o últimos caracteres del código..."
               className="pl-9"
             />
           </div>

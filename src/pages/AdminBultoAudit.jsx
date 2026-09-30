@@ -11,6 +11,8 @@ import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 import PageHero from '@/components/common/PageHero';
 import BultoAuditCard from '@/components/admin/bulto-audit/BultoAuditCard';
 import BultoEditModal from '@/components/warehouse/BultoEditModal';
+import { useBultoCodeSearch } from '@/hooks/useBultoCodeSearch';
+import { matchesBultoCode, mergeBultos } from '@/lib/bultoSearch';
 
 const SIN_ESTADO = 'Sin estado';
 
@@ -32,6 +34,10 @@ export default function AdminBultoAudit() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
+
+  // Los bultos que no están entre los cargados se buscan en el servidor por el final
+  // del código de etiqueta (basta con los últimos caracteres).
+  const { matches: codeMatches } = useBultoCodeSearch(search);
 
   const loadBultos = useCallback(async () => {
     try {
@@ -112,7 +118,10 @@ export default function AdminBultoAudit() {
   const filtered = useMemo(() => {
     const term = String(search || '').toLowerCase();
     const now = new Date();
-    return bultos.filter((b) => {
+    // Los bultos que la búsqueda por código encuentra en el servidor se suman a los
+    // cargados, y luego pasan por los mismos filtros de la pantalla.
+    const source = term && codeMatches.length ? mergeBultos(bultos, codeMatches) : bultos;
+    return source.filter((b) => {
       const matchesEmployee = employeeFilter === 'all' || b.created_by === employeeFilter;
       if (!matchesEmployee) return false;
 
@@ -142,9 +151,9 @@ export default function AdminBultoAudit() {
         ...(b.package_trackings || []),
         ...(b.cbm_order_numbers || []),
       ].map((v) => String(v || '').toLowerCase()).join(' ');
-      return haystack.includes(term);
+      return haystack.includes(term) || matchesBultoCode(b.label_code, search);
     });
-  }, [bultos, search, employeeFilter, dateFilter, orderFilter, stateFilter, clientStateMap]);
+  }, [bultos, search, employeeFilter, dateFilter, orderFilter, stateFilter, clientStateMap, codeMatches]);
 
   const stats = useMemo(() => ({
     total: filtered.length,
@@ -290,7 +299,7 @@ export default function AdminBultoAudit() {
           <div className="grid gap-3 md:grid-cols-[1fr,200px,160px,160px,160px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por etiqueta, cliente, shipping mark o tracking" className="pl-10" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por etiqueta (últimos caracteres), cliente, shipping mark o tracking" className="pl-10" />
             </div>
             <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
               <SelectTrigger><SelectValue placeholder="Filtrar empleado" /></SelectTrigger>
@@ -331,7 +340,7 @@ export default function AdminBultoAudit() {
 
           {filtered.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-              No hay bultos que coincidan con los filtros.
+              {search.trim() ? 'Sin bultos con ese código.' : 'No hay bultos que coincidan con los filtros.'}
             </div>
           ) : (
             <div className="space-y-3">

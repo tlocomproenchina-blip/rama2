@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { codeTailRegex } from '../../shared/bultoCodeQuery.ts';
 
 // Historial de guías de despacho emitidas. El filtrado (rango de fechas, estado
 // de entrega y búsqueda por número, cliente, mark o código de bulto), la
@@ -50,14 +51,17 @@ export default async function (req: Request): Promise<Response> {
 
     if (search) {
       const rx = { $regex: search, $options: 'i' };
-      andClauses.push({
-        $or: [
-          { guide_number: rx },
-          { client_names: rx },
-          { shipping_marks: rx },
-          { bulto_codes: rx },
-        ],
-      });
+      const or: any[] = [
+        { guide_number: rx },
+        { client_names: rx },
+        { shipping_marks: rx },
+        { bulto_codes: rx },
+      ];
+      // Los últimos caracteres de un código de bulto (con o sin guiones, con o sin
+      // la "B") encuentran la guía que lo incluyó.
+      const tail = codeTailRegex(search);
+      if (tail) or.push({ bulto_codes: { $regex: tail, $options: 'i' } });
+      andClauses.push({ $or: or });
     }
 
     const filter: any = andClauses.length ? { $and: andClauses } : {};

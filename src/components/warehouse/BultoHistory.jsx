@@ -10,6 +10,9 @@ import { getAll } from '@/lib/offlineDb';
 import { base44 as apiQueue } from '@/components/api/ApiQueueManager';
 import BultoEditModal from './BultoEditModal';
 import BluetoothPrinter from './BluetoothPrinter';
+import BulkOrderAssignDialog from './BulkOrderAssignDialog';
+import { useBultoCodeSearch } from '@/hooks/useBultoCodeSearch';
+import { matchesBultoCode, mergeBultos } from '@/lib/bultoSearch';
 import PrintCountBadge from './PrintCountBadge';
 import ReprintDialog from './ReprintDialog';
 
@@ -33,6 +36,11 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkPrintTarget, setBulkPrintTarget] = useState(null);
+  const [orderAssignOpen, setOrderAssignOpen] = useState(false);
+
+  // Los bultos que no están entre los cargados se buscan en el servidor por el final
+  // del código de etiqueta (basta con los últimos caracteres).
+  const { matches: codeMatches } = useBultoCodeSearch(search);
 
   const toggleSelect = useCallback((id) => {
     setSelectedIds((prev) => {
@@ -106,8 +114,14 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
           const name = (b.client_snapshot?.full_name || '').toLowerCase();
           const cedula = (b.client_snapshot?.cedula || '').toLowerCase();
           const label = (b.label_code || '').toLowerCase();
-          return sm.includes(q) || email.includes(q) || name.includes(q) || cedula.includes(q) || label.includes(q);
+          return sm.includes(q) || email.includes(q) || name.includes(q) || cedula.includes(q)
+            || label.includes(q) || matchesBultoCode(b.label_code, search);
         });
+
+        // La coincidencia por el final del código la resuelve el servidor, así
+        // aparece el bulto aunque no esté entre los últimos cargados.
+        const extra = codeMatches.filter((b) => statusFilter === 'all' || b.status === statusFilter);
+        if (extra.length) filtered = mergeBultos(filtered, extra);
       }
 
       setTotal(filtered.length);
@@ -118,7 +132,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, page, refreshKey]);
+  }, [search, statusFilter, page, refreshKey, codeMatches]);
 
   // Permiso de borrado: solo la cuenta autorizada ve las acciones de eliminar
   useEffect(() => {
@@ -178,7 +192,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por shipping mark, email, nombre, cédula o label…"
+                placeholder="Buscar por shipping mark, email, nombre, cédula o los últimos caracteres del código…"
                 className="pl-10"
               />
             </div>
@@ -218,6 +232,14 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
           <div className="ml-auto flex items-center gap-2">
             <Button
               size="sm"
+              variant="outline"
+              onClick={() => setOrderAssignOpen(true)}
+              disabled={!selectedIds.size}
+            >
+              <Hash className="h-3.5 w-3.5" /> N° de orden ({selectedIds.size})
+            </Button>
+            <Button
+              size="sm"
               onClick={handleBulkPrint}
               disabled={!selectedIds.size}
               className="bg-blue-600 hover:bg-blue-700"
@@ -244,7 +266,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       ) : bultos.length === 0 ? (
         <Card><CardContent className="p-10 text-center text-slate-500">
           <Boxes className="h-10 w-10 mx-auto mb-2 text-slate-300" />
-          No hay bultos que coincidan con los filtros.
+          {search.trim() ? 'Sin bultos con ese código.' : 'No hay bultos que coincidan con los filtros.'}
         </CardContent></Card>
       ) : (
         <div className="space-y-2">
@@ -385,6 +407,18 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* N° de orden para varios bultos a la vez */}
+      <BulkOrderAssignDialog
+        bultos={bultos.filter((b) => selectedIds.has(b.id))}
+        open={orderAssignOpen}
+        onClose={() => setOrderAssignOpen(false)}
+        onDone={() => {
+          try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
+          exitSelectMode();
+          load();
+        }}
+      />
 
       {/* Confirmación de eliminación */}
       <Dialog open={deleteTargets.length > 0} onOpenChange={(o) => !o && setDeleteTargets([])}>

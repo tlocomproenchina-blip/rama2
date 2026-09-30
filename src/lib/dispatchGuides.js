@@ -4,6 +4,8 @@
 // módulo replica en el dispositivo el mismo agrupado que hace el backend, para
 // que la guía se pueda ver y emitir cuando el almacén trabaja sin conexión.
 
+import { matchesBultoCode } from '@/lib/bultoSearch';
+
 export const DISPATCH_SCAN_RESULTS = ['dispatched', 'already_dispatched'];
 
 export const normCode = (raw) => String(raw || '').trim().toUpperCase();
@@ -57,7 +59,9 @@ export function filterGuideScanLogsLocally(logs, { from, to, search } = {}) {
       log?.shipping_mark,
       log?.tracking_number,
     ].filter(Boolean).join(' ').toLowerCase();
-    return haystack.includes(term);
+    if (haystack.includes(term)) return true;
+    // Los últimos caracteres del código de bulto bastan para encontrar el escaneo.
+    return [log?.bulto_label_code, log?.scanned_code].some((c) => matchesBultoCode(c, search));
   });
 }
 
