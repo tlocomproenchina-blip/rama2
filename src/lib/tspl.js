@@ -185,3 +185,73 @@ export const buildBultoLabelPayload = (bulto) => {
   const tspl = lines.join('\r\n') + '\r\n';
   return enc.encode(tspl);
 };
+
+// Etiqueta continua 100×100 mm (rollo continuo, sin separación) para identificar los
+// paquetes de un despacho: número X/N en grande y centrado, datos del cliente tal
+// como quedaron guardados en la guía y, al pie, el número de guía con su fecha.
+// No lleva código de barras y no crea bultos ni códigos en el sistema.
+// client: { full_name, cedula, whatsapp, address, city, state, shipping_mark }
+export const buildContinuousLabelPayload = ({
+  client = {},
+  index = 1,
+  total = 1,
+  guideNumber = '',
+  emittedAt = '',
+}) => {
+  const cs = client || {};
+  const counter = `${index}/${total}`;
+  const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
+  const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
+  const addrLines = cs.address ? wrapText(cs.address, 40).slice(0, 2) : [];
+  const mark = String(cs.shipping_mark || '').trim();
+  const dateStr = emittedAt ? new Date(emittedAt).toLocaleDateString('es-VE') : '';
+  const footer = [guideNumber ? `GUIA ${guideNumber}` : '', dateStr].filter(Boolean).join('  ·  ');
+
+  const blocks = [];
+  const addBlock = (h, render) => blocks.push({ h, render });
+
+  // 1. Número X/N: el protagonista de la etiqueta, en el tamaño más grande que quepa
+  const counterScale = Math.max(1, Math.min(4, Math.floor((LABEL_W - 60) / (counter.length * FONT_WIDTH['4']))));
+  addBlock(FONT_WIDTH['4'] * counterScale + 30, (y) => [
+    `TEXT ${centerX(counter, '4', counterScale)},${y},${q('4')},0,${counterScale},${counterScale},${q(counter)}`,
+  ]);
+
+  // 2. Separador
+  addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
+
+  // 3. Nombre y cédula: se achica solo cuando el nombre es muy largo
+  if (nameCedula) {
+    const nameScale = Math.max(1, Math.min(2, Math.floor((LABEL_W - 60) / (nameCedula.length * FONT_WIDTH['2']))));
+    addBlock(FONT_WIDTH['2'] * nameScale + 18, (y) => [
+      `TEXT ${centerX(nameCedula, '2', nameScale)},${y},${q('2')},0,${nameScale},${nameScale},${q(nameCedula)}`,
+    ]);
+  }
+
+  // 4. Datos de entrega del cliente
+  if (cs.whatsapp) addBlock(34, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q('Tel: ' + cs.whatsapp)}`]);
+  for (const ln of addrLines) addBlock(30, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q(ln)}`]);
+  if (cityState) addBlock(34, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q(cityState)}`]);
+  if (mark) addBlock(34, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q('MARK: ' + mark)}`]);
+
+  // 5. Pie: guía emitida y su fecha
+  if (footer) {
+    addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
+    addBlock(24, (y) => [`TEXT 50,${y},${q('1')},0,1,1,${q(footer)}`]);
+  }
+
+  // Centrado vertical: márgenes parejos arriba y abajo
+  const MARGIN = 20;
+  const PRINTABLE_H = LABEL_W - MARGIN * 2;
+  const totalH = blocks.reduce((sum, b) => sum + b.h, 0);
+  let y = MARGIN + Math.max(0, Math.round((PRINTABLE_H - totalH) / 2));
+
+  const lines = ['SIZE 100 mm,100 mm', 'GAP 0,0', 'DIRECTION 1', 'CLS'];
+  for (const b of blocks) {
+    lines.push(...b.render(y));
+    y += b.h;
+  }
+  lines.push('PRINT 1');
+  lines.push('END');
+
+  return enc.encode(lines.join('\r\n') + '\r\n');
+};

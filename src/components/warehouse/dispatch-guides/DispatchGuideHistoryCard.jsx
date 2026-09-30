@@ -10,11 +10,13 @@ import {
   Loader2,
   PenLine,
   Printer,
+  Tags,
   User,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateDispatchGuidePdf } from '@/lib/dispatchGuidePdf';
 import DispatchGuideDeliveryDialog from './DispatchGuideDeliveryDialog';
+import ContinuousLabelsDialog from './ContinuousLabelsDialog';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -41,6 +43,7 @@ const fmtDateTime = (value) => {
 export default function DispatchGuideHistoryCard({ guide, appName, highlighted = false, onGuideUpdated }) {
   const [expanded, setExpanded] = useState(!!highlighted);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [labelsOpen, setLabelsOpen] = useState(false);
   const [generating, setGenerating] = useState('');
 
   const clients = Array.isArray(guide.clients) ? guide.clients : [];
@@ -127,6 +130,10 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
             {generating === 'save' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             Descargar
           </Button>
+          <Button size="sm" variant="outline" onClick={() => setLabelsOpen(true)}>
+            <Tags className="h-4 w-4" />
+            Etiquetas continuas
+          </Button>
           <Button size="sm" variant={delivered ? 'ghost' : 'default'} onClick={() => setDialogOpen(true)}>
             <PenLine className="h-4 w-4" />
             {delivered ? 'Corregir entrega' : 'Anotar entrega'}
@@ -178,6 +185,8 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
           </div>
         )}
       </CardContent>
+
+      <ContinuousLabelsDialog guide={guide} open={labelsOpen} onOpenChange={setLabelsOpen} />
 
       <DispatchGuideDeliveryDialog
         guide={guide}
