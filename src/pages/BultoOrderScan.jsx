@@ -9,6 +9,8 @@ import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
 import AccountingSyncNotice from '@/components/warehouse/AccountingSyncNotice';
 import BultoCreateFromScanPanel from '@/components/warehouse/BultoCreateFromScanPanel';
+import AbsorbedBultosNotice from '@/components/warehouse/AbsorbedBultosNotice';
+import AbsorbedBultosHistory from '@/components/warehouse/AbsorbedBultosHistory';
 import ReprintDialog from '@/components/warehouse/ReprintDialog';
 import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import { Loader2, Save, Lock, Package, ScanLine, RotateCcw, CheckCircle2, Printer } from 'lucide-react';
@@ -36,6 +38,8 @@ export default function BultoOrderScan({ user }) {
   const [photoRetrying, setPhotoRetrying] = useState(false);
   // Avisos cuando el N° de orden del bulto no pudo aplicarse al recibo de contabilidad.
   const [syncWarnings, setSyncWarnings] = useState([]);
+  // Bultos que este escaneo absorbió: se fusionaron en el bulto nuevo y se eliminaron.
+  const [absorbedInfo, setAbsorbedInfo] = useState(null);
   const { handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto } = useScannedPhotoUploader();
   // Mismo identificador persistente que usa la página del almacén de China.
   // Cuando no hay sesión, con él se audita quién asignó el N° de orden.
@@ -62,6 +66,7 @@ export default function BultoOrderScan({ user }) {
     setScannedCode('');
     setPhotoErrors([]);
     setSyncWarnings([]);
+    setAbsorbedInfo(null);
   }, []);
 
   const handleDetected = useCallback(async (code) => {
@@ -204,6 +209,13 @@ export default function BultoOrderScan({ user }) {
     const warnings = data?.sync?.warnings || [];
     setSyncWarnings(warnings);
     if (warnings.length) toast.warning(warnings[0]);
+    // El bulto nuevo absorbió el trabajo de uno o varios bultos viejos del almacén.
+    setAbsorbedInfo(data?.absorbed || null);
+    const absorbedBultos = data?.absorbed?.bultos || [];
+    if (absorbedBultos.length) {
+      const labels = absorbedBultos.map((b) => b.label_code).filter(Boolean).join(', ');
+      toast.success(`Se absorbió ${labels ? `el bulto ${labels}` : 'el trabajo anterior'}`);
+    }
     setInvoiceInfo({
       invoice_paid: data?.invoice_paid,
       invoice_status: data?.invoice_status,
@@ -255,6 +267,8 @@ export default function BultoOrderScan({ user }) {
       )}
 
       {syncWarnings.length > 0 && <AccountingSyncNotice messages={syncWarnings} />}
+
+      <AbsorbedBultosNotice absorbed={absorbedInfo} />
 
       {createState && !loading && (
         <BultoCreateFromScanPanel
@@ -339,6 +353,8 @@ export default function BultoOrderScan({ user }) {
                 </div>
               </div>
             )}
+
+            <AbsorbedBultosHistory entries={bulto.absorbed_bultos} />
 
             {/* Estado de factura */}
             {invoiceInfo && (

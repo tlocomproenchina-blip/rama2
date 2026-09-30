@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
 import ScanClientPicker from '@/components/warehouse/ScanClientPicker';
-import { AlertTriangle, Camera, Loader2, Package, RotateCcw, Save, Trash2 } from 'lucide-react';
+import AbsorbBultosConfirmDialog from '@/components/warehouse/AbsorbBultosConfirmDialog';
+import { AlertTriangle, ArrowRightLeft, Camera, Loader2, Package, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Registro del bulto cuando la etiqueta escaneada no existe en el sistema.
@@ -31,8 +32,20 @@ export default function BultoCreateFromScanPanel({
   const [error, setError] = useState('');
   const [photoErrors, setPhotoErrors] = useState([]);
   const [photoRetrying, setPhotoRetrying] = useState(false);
+  // Bultos viejos que ya contienen los paquetes escaneados: se absorben al guardar.
+  const [absorbSources, setAbsorbSources] = useState([]);
+  // Confirmación pendiente antes de mover un paquete que ya está en otro bulto.
+  const [pendingAbsorb, setPendingAbsorb] = useState(null);
 
   const photoStatus = photoApi?.getPhotoStatus?.(scannedCode) || null;
+
+  const isSameSource = (a, b) => (a?.label_code || a?.id) === (b?.label_code || b?.id);
+
+  const addPackage = (pkg, code, source = null) => {
+    setPackages((prev) => [...prev, { ...pkg, code, absorb: source }]);
+    setPkgCode('');
+    setPackageError('');
+  };
 
   const handleAddPackage = async (code) => {
     const value = String(code || '').trim();
@@ -70,8 +83,19 @@ export default function BultoCreateFromScanPanel({
         return;
       }
       const pkg = data.package;
-      setPackages((prev) => [...prev, { ...pkg, code: value }]);
-      setPkgCode('');
+      // El paquete ya viene dentro de otro bulto: se confirma una vez por bulto y su
+      // contenido se absorbe al guardar (el escaneo nunca se bloquea).
+      if (data.absorb) {
+        const source = data.absorb;
+        if (absorbSources.some((s) => isSameSource(s, source))) {
+          addPackage(pkg, value, source);
+          toast.info(`Se mueve desde el bulto ${source.label_code || ''}`);
+          return;
+        }
+        setPendingAbsorb({ code: value, pkg, source });
+        return;
+      }
+      addPackage(pkg, value);
       toast.success(`Paquete agregado: ${pkg.tracking_number || value}`);
     } catch (e) {
       setPackageError('Error al validar el paquete');
@@ -91,6 +115,22 @@ export default function BultoCreateFromScanPanel({
     setPkgCode('');
     setPackageError('');
     toast.success(`Paquete agregado sin registrar: ${value}`);
+  };
+
+  const confirmAbsorb = () => {
+    if (!pendingAbsorb) return;
+    const { pkg, code, source } = pendingAbsorb;
+    setAbsorbSources((prev) => (prev.some((s) => isSameSource(s, source)) ? prev : [...prev, source]));
+    addPackage(pkg, code, source);
+    setPendingAbsorb(null);
+    toast.success(`Paquete agregado: ${pkg.tracking_number || code}`);
+  };
+
+  const cancelAbsorb = () => {
+    setPendingAbsorb(null);
+    setPkgCode('');
+    setPackageError('');
+    toast.info('Paquete no agregado');
   };
 
   const handleSave = async () => {
@@ -255,6 +295,24 @@ export default function BultoCreateFromScanPanel({
             </Card>
           )}
 
+          {absorbSources.length > 0 && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="pt-4 space-y-1">
+                <p className="text-sm font-medium text-blue-900 flex items-center gap-2">
+                  <ArrowRightLeft className="h-4 w-4" /> Bultos que se absorberán al guardar
+                </p>
+                {absorbSources.map((s) => (
+                  <p key={s.id || s.label_code} className="font-mono text-xs text-blue-800 break-all">
+                    {s.label_code || 'bulto anterior'} · {s.package_count || 0} paquete(s)
+                  </p>
+                ))}
+                <p className="text-xs text-blue-800">
+                  Su contenido pasa a este bulto y esos bultos se eliminan, sin cambiar las etiquetas de los demás.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between gap-2 flex-wrap text-base">
@@ -276,6 +334,11 @@ export default function BultoCreateFromScanPanel({
                       {p.unregistered && (
                         <Badge variant="outline" className="mt-1 border-amber-300 text-[10px] text-amber-700">
                           sin registrar
+                        </Badge>
+                      )}
+                      {p.absorb && (
+                        <Badge variant="outline" className="mt-1 border-blue-300 text-[10px] text-blue-700">
+                          desde el bulto {p.absorb.label_code || 'anterior'}
                         </Badge>
                       )}
                     </div>
@@ -334,6 +397,14 @@ export default function BultoCreateFromScanPanel({
           </Card>
         </>
       )}
+
+      <AbsorbBultosConfirmDialog
+        open={!!pendingAbsorb}
+        sources={pendingAbsorb ? [pendingAbsorb.source] : []}
+        codes={pendingAbsorb ? [pendingAbsorb.code] : []}
+        onConfirm={confirmAbsorb}
+        onCancel={cancelAbsorb}
+      />
     </div>
   );
 }

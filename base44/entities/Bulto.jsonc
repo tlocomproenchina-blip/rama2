@@ -56,6 +56,75 @@
         "type": "string"
       }
     },
+    "absorbed_bultos": {
+      "type": "array",
+      "default": [],
+      "description": "Historial de bultos absorbidos: cuando un paquete escaneado ya pertenec\u00eda a otro bulto, ese bulto viejo se fusion\u00f3 aqu\u00ed (paquetes, c\u00f3digos sin registrar y N\u00b0 de orden) y se elimin\u00f3. Deja constancia de qu\u00e9 se movi\u00f3, cu\u00e1ndo y qui\u00e9n o qu\u00e9 dispositivo lo hizo.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label_code": {
+            "type": "string",
+            "description": "Etiqueta del bulto absorbido"
+          },
+          "bulto_number": {
+            "type": "number"
+          },
+          "package_count": {
+            "type": "number",
+            "description": "Paquetes que tra\u00eda el bulto absorbido"
+          },
+          "order_numbers": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "description": "N\u00b0 de orden CbmIngreso que tra\u00eda el bulto absorbido"
+          },
+          "status": {
+            "type": "string",
+            "description": "Estado que ten\u00eda el bulto absorbido al momento de la fusi\u00f3n"
+          },
+          "printed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Si su etiqueta ya hab\u00eda sido impresa cuando se absorbi\u00f3"
+          },
+          "invoice_number": {
+            "type": "string",
+            "description": "Factura en la que estaba incluido, si aplica"
+          },
+          "invoice_status": {
+            "type": "string"
+          },
+          "guide_numbers": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gu\u00edas de despacho donde estaba incluido, si aplica"
+          },
+          "trackings": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "description": "Trackings que tra\u00eda el bulto absorbido"
+          },
+          "absorbed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "absorbed_by": {
+            "type": "string",
+            "description": "Usuario o dispositivo del almac\u00e9n que absorbi\u00f3 el bulto"
+          }
+        }
+      }
+    },
     "cargo_cbm": {
       "type": "number",
       "description": "CBM oficial del bulto registrado o editado a mano por un admin desde 'Carga en almac\u00e9n' (Gesti\u00f3n de Facturas). Si est\u00e1 definido y es mayor a 0, manda sobre el CBM calculado y adem\u00e1s se escribi\u00f3 como volumen real (actual_cbm) de los paquetes del bulto."

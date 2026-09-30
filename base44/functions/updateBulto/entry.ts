@@ -1,9 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
 import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
+import {
+  planAbsorption,
+  applyAbsorption,
+  recountClientBultos,
+} from '../../shared/bultoAbsorption.ts';
 
 // Actualiza un bulto existente. Recibe: { bulto_id, package_ids?, client_snapshot?, status? }
 // - Valida que los package_ids sean del mismo cliente del bulto.
-// - Valida que los paquetes no estén ya en otro bulto del mismo cliente.
+// - Los paquetes que ya están en otro bulto del cliente no bloquean: ese bulto viejo se
+//   absorbe (su contenido pasa a este bulto) y se elimina, sin renumerar etiquetas ajenas.
 // - Si cambian los package_ids, recalcula package_trackings cache.
 // - Actualiza client_snapshot y status si vienen.
 // No recalcula bulto_number (el número se mantiene estable; el total_bultos solo cambia con create/delete).
@@ -22,6 +28,7 @@ export default async function(req: Request): Promise<Response> {
     if (!bulto) return Response.json({ error: 'Bulto no encontrado' }, { status: 404 });
 
     const update: any = {};
+    let plan: any = null;
 
     // --- Paquetes ---
     if (Array.isArray(body.package_ids)) {
@@ -34,37 +41,40 @@ export default async function(req: Request): Promise<Response> {
         packageIds.map((id) => base44.asServiceRole.entities.Package.get(id).catch(() => null))
       );
       const pkgs = pkgResults.filter((p) => p) as any[];
-      const resolvedIds: string[] = pkgs.map((p) => p.id);
 
       const clientEmail = bulto.client_email;
       const sameClient = pkgs.every((p) => p.client_email === clientEmail);
       if (!sameClient) return Response.json({ error: 'Todos los paquetes deben ser del mismo cliente del bulto' }, { status: 400 });
 
-      // Validar que los paquetes no estén en OTRO bulto del mismo cliente
-      const otherBultos = await base44.asServiceRole.entities.Bulto.filter(
-        { client_email: clientEmail }, 'bulto_number', 500
-      );
-      const otherPackageIds = new Set<string>();
-      for (const b of otherBultos) {
-        if (b.id === bultoId) continue;
-        for (const pid of b.package_ids || []) otherPackageIds.add(pid);
-      }
-      const conflict = resolvedIds.filter((id) => otherPackageIds.has(id));
-      if (conflict.length) {
-        return Response.json({ error: 'Algunos paquetes ya están en otro bulto del cliente' }, { status: 400 });
-      }
+      // Absorción: los paquetes marcados pueden estar dentro de otro bulto del cliente.
+      // Ese bulto viejo se fusiona con este y se elimina (nunca se bloquea la edición).
+      plan = await planAbsorption(base44, {
+        packageIds: pkgs.map((p) => p.id),
+        excludeBultoId: bultoId,
+        clientEmail,
+        actor: user.email,
+      });
 
       // Los códigos que ya no corresponden a un paquete del sistema se conservan
       // como 'sin registrar': siguen en el contenido del bulto y en su etiqueta.
-      const resolvedTrackings: string[] = pkgs.map((p) => p.tracking_number || '').filter(Boolean);
-      const resolvedTrackingsSet = new Set(resolvedTrackings);
+      const resolvedTrackingsSet = new Set<string>(plan.trackings);
       const keptCodes: string[] = (Array.isArray(bulto.package_trackings) ? bulto.package_trackings : [])
         .filter((c: string) => c && !resolvedTrackingsSet.has(c));
-      const packageTrackings = [...resolvedTrackings, ...keptCodes];
+      const unregistered = [...new Set([...keptCodes, ...plan.unregistered_codes])]
+        .filter((c: string) => !resolvedTrackingsSet.has(c));
 
-      update.package_ids = resolvedIds;
-      update.package_trackings = packageTrackings;
-      update.unregistered_codes = packageTrackings.filter((c) => !resolvedTrackingsSet.has(c));
+      update.package_ids = plan.package_ids;
+      update.package_trackings = [...plan.trackings, ...unregistered];
+      update.unregistered_codes = unregistered;
+      update.absorbed_bultos = [...(bulto.absorbed_bultos || []), ...plan.absorbed];
+
+      // El N° de orden del bulto absorbido pasa a este bulto.
+      if (plan.order_numbers.length) {
+        const currentOrders = Array.isArray(body.cbm_order_numbers)
+          ? body.cbm_order_numbers.filter(Boolean)
+          : (bulto.cbm_order_numbers || []);
+        update.cbm_order_numbers = [...new Set([...currentOrders, ...plan.order_numbers])];
+      }
     }
 
     // --- Snapshot del cliente ---
@@ -147,6 +157,12 @@ export default async function(req: Request): Promise<Response> {
 
     const updated = await base44.asServiceRole.entities.Bulto.update(bultoId, update);
 
+    // El bulto viejo se elimina cuando sus paquetes ya están dentro de este bulto.
+    const absorbed = plan ? await applyAbsorption(base44, plan) : { deleted: [], failed: [], warnings: [] };
+    if (plan && plan.deletable_ids.length) {
+      await recountClientBultos(base44, bulto.client_email);
+    }
+
     // El CBM registrado es el CBM del bulto: se reparte en partes iguales entre sus
     // paquetes como volumen real (actual_cbm) para que sumen el CBM del bulto y el
     // resto del sistema (costos del proveedor, ganancia) use el mismo dato.
@@ -173,15 +189,30 @@ export default async function(req: Request): Promise<Response> {
     // o corrige (N° de orden, CBM y conteo de paquetes) se refleja en el recibo de
     // contabilidad, corrigiendo el recibo vinculado o creando uno si no existe.
     const ordersChanged = Array.isArray(body.cbm_order_numbers);
+    const absorbedOrders: string[] = plan?.order_numbers || [];
     let sync: any = null;
-    if (ordersChanged || cargoCbmProvided || cargoCountProvided) {
+    if (ordersChanged || cargoCbmProvided || cargoCountProvided || absorbedOrders.length) {
       sync = await syncBultoToAccounting(base44, updated, {
         actor: user.email,
-        previous_orders: ordersChanged ? (bulto.cbm_order_numbers || []) : [],
+        previous_orders: [
+          ...(ordersChanged ? (bulto.cbm_order_numbers || []) : []),
+          ...absorbedOrders,
+        ],
       }).catch(() => ({ action: 'skipped', warnings: [] }));
     }
 
-    return Response.json({ bulto: updated, cbm_applied_to: cbmAppliedTo, sync });
+    return Response.json({
+      bulto: updated,
+      cbm_applied_to: cbmAppliedTo,
+      sync,
+      absorbed: {
+        bultos: plan?.absorbed || [],
+        packages_moved: plan?.packages_moved || 0,
+        deleted: absorbed.deleted,
+        failed: absorbed.failed,
+        warnings: absorbed.warnings,
+      },
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

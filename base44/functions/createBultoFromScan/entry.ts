@@ -4,12 +4,15 @@ import {
   getClientByEmail,
   buildClientSnapshot,
   latestInvoiceSnapshot,
-  syncClientBultoTotals,
-  markPackagesRecognized,
   resolvePackageByCode,
-  findBultoContainingPackage,
   bultoScanProjection,
 } from '../../shared/bultoScan.ts';
+import {
+  planAbsorption,
+  applyAbsorption,
+  recountClientBultos,
+  markPackagesRecognizedIfMissing,
+} from '../../shared/bultoAbsorption.ts';
 import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 
 // Registra en el almacén de Venezuela un bulto cuya etiqueta escaneada no existía en el
@@ -18,6 +21,9 @@ import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 //           device_id, recognition_photo_url }
 // - Crea el bulto con el label_code escaneado, el número que trae el código, el snapshot
 //   del cliente y el estado de su factura más reciente.
+// - Absorbe los bultos que ya contenían los paquetes escaneados: su contenido (paquetes,
+//   códigos sin registrar y N° de orden) pasa a este bulto y esos bultos se eliminan. El
+//   escaneo nunca se bloquea por ese motivo.
 // - En la misma acción asigna el N° de orden, bloquea el bulto, guarda la foto capturada
 //   al escanear y marca los paquetes como reconocidos en Venezuela.
 // - Sin sesión exige device_id (el enlace de trabajo abre sin login).
@@ -88,8 +94,9 @@ export default async function(req: Request): Promise<Response> {
     const { shippingMark: deducedMark, bultoNumber: numberFromLabel } = deduceLabelParts(labelCode);
     const shippingMark = client.shipping_mark || deducedMark;
 
-    // Paquetes escaneados: se resuelven por etiqueta o tracking y se valida
-    // que sean del mismo cliente y que no estén ya dentro de otro bulto.
+    // Paquetes escaneados: se resuelven por etiqueta o tracking y se valida que sean del
+    // mismo cliente. Si alguno ya está dentro de otro bulto no se bloquea: ese bulto viejo
+    // se absorbe más abajo, para que el empleado no rehaga el trabajo.
     const uniqueCodes = Array.from(new Set(packageCodes));
     const packages: any[] = [];
     const unregistered: string[] = [];
@@ -102,19 +109,27 @@ export default async function(req: Request): Promise<Response> {
       if ((pkg.client_email || '') && pkg.client_email !== clientEmail) {
         return Response.json({ error: `El paquete ${code} es de otro cliente` });
       }
-      const inBulto = await findBultoContainingPackage(base44, pkg.id);
-      if (inBulto) {
-        return Response.json({ error: `El paquete ${code} ya está en el bulto ${inBulto.label_code || ''}` });
-      }
       if (!packages.some((p) => p.id === pkg.id)) packages.push(pkg);
     }
+
+    // Absorción: el contenido de los bultos que ya tenían los paquetes escaneados entra en
+    // este bulto y esos bultos se eliminan (sin renumerar las etiquetas de los demás).
+    const plan = await planAbsorption(base44, {
+      packageIds: packages.map((p) => p.id),
+      clientEmail,
+      unregisteredCodes: unregistered,
+      actor: assignedBy,
+    });
 
     const existingBultos = await base44.asServiceRole.entities.Bulto
       .filter({ client_email: clientEmail }, 'bulto_number', 500)
       .catch(() => []);
     // El número sale del código impreso; solo si el código no lo trae se usa el consecutivo.
     const bultoNumber = numberFromLabel || (existingBultos.length + 1);
-    const totalBultos = Math.max(existingBultos.length + 1, bultoNumber);
+    const initialTotal = Math.max(existingBultos.length + 1, bultoNumber);
+
+    const mergedOrders = [...new Set([...orderNumbers, ...plan.order_numbers])];
+    const packageTrackings = [...plan.trackings, ...plan.unregistered_codes];
 
     const invoice = await latestInvoiceSnapshot(base44, clientEmail);
     const now = new Date().toISOString();
@@ -124,11 +139,12 @@ export default async function(req: Request): Promise<Response> {
       client_email: clientEmail,
       shipping_mark: shippingMark,
       bulto_number: bultoNumber,
-      total_bultos: totalBultos,
-      package_ids: packages.map((p) => p.id),
-      package_trackings: [...packages.map((p) => p.tracking_number || '').filter(Boolean), ...unregistered],
-      unregistered_codes: unregistered,
-      cbm_order_numbers: orderNumbers,
+      total_bultos: initialTotal,
+      package_ids: plan.package_ids,
+      package_trackings: packageTrackings,
+      unregistered_codes: plan.unregistered_codes,
+      cbm_order_numbers: mergedOrders,
+      absorbed_bultos: plan.absorbed,
       client_snapshot: buildClientSnapshot(client, shippingMark, clientEmail),
       invoice_paid: invoice.invoicePaid,
       invoice_status: invoice.invoiceStatus,
@@ -144,17 +160,41 @@ export default async function(req: Request): Promise<Response> {
       created_by: assignedBy,
     });
 
-    await syncClientBultoTotals(base44, clientEmail, totalBultos, existingBultos);
-    await markPackagesRecognized(base44, packages.map((p) => p.id), now, assignedBy);
+    // El bulto viejo se elimina cuando sus paquetes ya están dentro del bulto nuevo.
+    const absorbed = await applyAbsorption(base44, plan);
+
+    await markPackagesRecognizedIfMissing(base44, plan.package_ids, now, assignedBy);
+    const clientTotal = await recountClientBultos(base44, clientEmail);
+    const totalBultos = clientTotal || initialTotal;
 
     // El recibo de contabilidad queda alineado con lo registrado en el almacén de
-    // Venezuela (N° de orden, CBM y conteo de paquetes del bulto).
-    const sync: any = await syncBultoToAccounting(base44, created, { actor: assignedBy })
-      .catch(() => ({ action: 'skipped', warnings: [] }));
+    // Venezuela (N° de orden, CBM y conteo de paquetes del bulto). Los N° de orden del
+    // bulto absorbido se envían como previous_orders para corregir su recibo en vez de
+    // crear uno nuevo.
+    const sync: any = await syncBultoToAccounting(
+      base44,
+      { ...created, total_bultos: totalBultos, cbm_order_numbers: mergedOrders },
+      { actor: assignedBy, previous_orders: plan.order_numbers }
+    ).catch(() => ({ action: 'skipped', warnings: [] }));
 
     return Response.json({
-      bulto: bultoScanProjection(created),
+      bulto: bultoScanProjection({
+        ...created,
+        total_bultos: totalBultos,
+        package_ids: plan.package_ids,
+        package_trackings: packageTrackings,
+        unregistered_codes: plan.unregistered_codes,
+        cbm_order_numbers: mergedOrders,
+        absorbed_bultos: plan.absorbed,
+      }),
       sync,
+      absorbed: {
+        bultos: plan.absorbed,
+        packages_moved: plan.packages_moved,
+        deleted: absorbed.deleted,
+        failed: absorbed.failed,
+        warnings: absorbed.warnings,
+      },
       invoice_paid: invoice.invoicePaid,
       invoice_status: invoice.invoiceStatus,
       invoice_number: invoice.invoiceNumber,

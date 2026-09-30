@@ -190,5 +190,7 @@ export function bultoScanProjection(bulto: any) {
     // Control de impresiones de etiqueta (la pantalla de escaneo puede imprimir).
     print_count: Number(bulto.print_count || 0),
     reprint_unlocked: !!bulto.reprint_unlocked,
+    // Bultos que este bulto absorbió y se eliminaron (historial visible al escanear).
+    absorbed_bultos: bulto.absorbed_bultos || [],
   };
 }

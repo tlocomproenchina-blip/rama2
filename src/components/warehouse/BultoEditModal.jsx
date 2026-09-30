@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Save, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import AccountingSyncNotice from '@/components/warehouse/AccountingSyncNotice';
+import AbsorbBultosConfirmDialog from '@/components/warehouse/AbsorbBultosConfirmDialog';
+import AbsorbedBultosHistory from '@/components/warehouse/AbsorbedBultosHistory';
 
 // Modal de edición completa de un bulto: paquetes incluidos, snapshot del cliente y estado.
 export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
@@ -16,7 +18,13 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   // Paquetes que ya están dentro del bulto (se listan aunque no estén 'recibidos').
   const [bultoPkgs, setBultoPkgs] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
-  const [otherBoxedIds, setOtherBoxedIds] = useState(new Set());
+  // Paquete → bulto del cliente que lo contiene (al marcarlo, ese bulto se absorbe).
+  const [otherBultoMap, setOtherBultoMap] = useState({});
+  // Paquetes de esos bultos, para poder marcarlos aunque no estén 'recibidos'.
+  const [otherBultoPkgs, setOtherBultoPkgs] = useState([]);
+  // Confirmación pendiente antes de absorber el bulto que contiene el paquete marcado.
+  const [pendingAbsorb, setPendingAbsorb] = useState(null);
+  const [absorbedSources, setAbsorbedSources] = useState([]);
   const [loadingPkgs, setLoadingPkgs] = useState(false);
   const [saving, setSaving] = useState(false);
   const [orderNumbers, setOrderNumbers] = useState('');
@@ -42,7 +50,10 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     setOrderNumbers(Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.join(', ') : '');
     setClientPackages([]);
     setBultoPkgs([]);
-    setOtherBoxedIds(new Set());
+    setOtherBultoMap({});
+    setOtherBultoPkgs([]);
+    setAbsorbedSources([]);
+    setPendingAbsorb(null);
     setSyncWarnings([]);
 
     // Cargar paquetes recibidos del cliente + bultos hermanos para marcar ocupados
@@ -65,12 +76,43 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
         ]);
         const received = (pkgs || []).filter((p) => p.status === 'recibido');
         setClientPackages(received);
-        const boxed = new Set();
+
+        // Bultos hermanos del cliente: los paquetes que estén dentro de ellos se pueden
+        // marcar igual. Al guardar, ese bulto viejo se absorbe y se elimina.
+        const receivedIds = new Set(received.map((p) => p.id));
+        const sourceMap = {};
+        const extraIds = [];
         for (const b of bultos || []) {
           if (b.id === bulto.id) continue;
-          for (const pid of b.package_ids || []) boxed.add(pid);
+          const boxed = (b.package_ids || []).filter((pid) => pid && !String(pid).startsWith('local_'));
+          if (!boxed.length) continue;
+          const usageNote = [
+            Number(b.print_count || 0) > 0 ? 'su etiqueta ya fue impresa' : null,
+            b.billed_invoice_id ? 'ya está en una factura' : null,
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          const source = {
+            id: b.id,
+            label_code: b.label_code || '',
+            bulto_number: b.bulto_number,
+            package_count: boxed.length + ((b.unregistered_codes || []).length || 0),
+            order_numbers: Array.isArray(b.cbm_order_numbers) ? b.cbm_order_numbers : [],
+            status: b.status || '',
+            printed: Number(b.print_count || 0) > 0,
+            usage_note: usageNote,
+          };
+          for (const pid of boxed) {
+            sourceMap[pid] = source;
+            if (!receivedIds.has(pid)) extraIds.push(pid);
+          }
         }
-        setOtherBoxedIds(boxed);
+        setOtherBultoMap(sourceMap);
+        setOtherBultoPkgs(
+          (await Promise.all(
+            extraIds.map((id) => base44.entities.Package.get(id).catch(() => null))
+          )).filter(Boolean)
+        );
       } catch (_) {
       } finally {
         setLoadingPkgs(false);
@@ -78,8 +120,29 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     })();
   }, [bulto]);
 
+  const sameSource = (a, b) => (a?.label_code || a?.id) === (b?.label_code || b?.id);
+
   const togglePackage = (id) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    if (selectedIds.includes(id)) {
+      setSelectedIds((prev) => prev.filter((x) => x !== id));
+      return;
+    }
+    const source = otherBultoMap[id];
+    // Un paquete que está en otro bulto se puede marcar: se pide confirmación porque al
+    // guardar ese bulto viejo se absorbe y se elimina.
+    if (source && !absorbedSources.some((s) => sameSource(s, source))) {
+      setPendingAbsorb({ id, source });
+      return;
+    }
+    setSelectedIds((prev) => [...prev, id]);
+  };
+
+  const confirmAbsorb = () => {
+    if (!pendingAbsorb) return;
+    setAbsorbedSources((prev) => [...prev, pendingAbsorb.source]);
+    setSelectedIds((prev) => [...prev, pendingAbsorb.id]);
+    setPendingAbsorb(null);
+    toast.info(`Se absorbe el bulto ${pendingAbsorb.source.label_code || ''}`);
   };
 
   const handleSave = async () => {
@@ -111,6 +174,13 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
       setSyncWarnings(warnings);
       toast.success('Bulto actualizado');
       if (warnings.length) toast.warning(warnings[0]);
+      // Absorción: el bulto viejo que contenía los paquetes marcados se eliminó.
+      const absorbed = res?.data?.absorbed || null;
+      const absorbedLabels = (absorbed?.bultos || []).map((b) => b.label_code).filter(Boolean);
+      if (absorbedLabels.length) {
+        toast.success(`Se absorbió el bulto ${absorbedLabels.join(', ')}`);
+      }
+      (absorbed?.warnings || []).forEach((message) => toast.warning(message));
       onSaved?.(res.data.bulto);
       onClose();
     } catch (e) {
@@ -124,9 +194,13 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
 
   // Paquetes del cliente + los que ya están en este bulto (aunque no estén recibidos).
   const listedPackages = useMemo(() => {
-    const seen = new Set(clientPackages.map((p) => p.id));
-    return [...clientPackages, ...bultoPkgs.filter((p) => !seen.has(p.id))];
-  }, [clientPackages, bultoPkgs]);
+    const seen = new Set();
+    return [...clientPackages, ...bultoPkgs, ...otherBultoPkgs].filter((p) => {
+      if (!p?.id || seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+  }, [clientPackages, bultoPkgs, otherBultoPkgs]);
 
   const unregisteredCodes = Array.isArray(bulto?.unregistered_codes)
     ? bulto.unregistered_codes.filter(Boolean)
@@ -155,19 +229,18 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
               ) : (
                 <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-lg border border-border p-2">
                   {listedPackages.map((p) => {
-                    const isOtherBoxed = otherBoxedIds.has(p.id);
+                    const source = otherBultoMap[p.id];
                     const isSelected = selectedIds.includes(p.id);
                     return (
                       <label
                         key={p.id}
                         className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 cursor-pointer transition-colors ${
                           isSelected ? 'border-blue-400 bg-blue-50' : 'border-border hover:bg-muted/40'
-                        } ${isOtherBoxed && !isSelected ? 'opacity-40' : ''}`}
+                        }`}
                       >
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          disabled={isOtherBoxed && !isSelected}
                           onChange={() => togglePackage(p.id)}
                           className="h-4 w-4 accent-blue-600"
                         />
@@ -175,10 +248,12 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                           <p className="font-mono text-xs text-slate-800 break-all">{p.tracking_number}</p>
                           {p.description && <p className="text-xs text-slate-500 truncate">{p.description}</p>}
                         </div>
-                        {isOtherBoxed && !isSelected && (
-                          <span className="text-xs text-slate-400 shrink-0">En otro bulto</span>
+                        {source && (
+                          <span className="shrink-0 text-[10px] text-blue-700">
+                            Absorbe bulto {source.label_code || source.bulto_number}
+                          </span>
                         )}
-                        {!isOtherBoxed && p.status && p.status !== 'recibido' && (
+                        {!source && p.status && p.status !== 'recibido' && (
                           <span className="text-xs text-slate-400 shrink-0">{p.status}</span>
                         )}
                       </label>
@@ -256,6 +331,16 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
         )}
 
         {syncWarnings.length > 0 && <AccountingSyncNotice messages={syncWarnings} />}
+
+        <AbsorbedBultosHistory entries={bulto?.absorbed_bultos} />
+
+        <AbsorbBultosConfirmDialog
+          open={!!pendingAbsorb}
+          sources={pendingAbsorb ? [pendingAbsorb.source] : []}
+          codes={[]}
+          onConfirm={confirmAbsorb}
+          onCancel={() => setPendingAbsorb(null)}
+        />
 
         <DialogFooter className="flex-wrap gap-2 min-w-0">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>

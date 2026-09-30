@@ -7,6 +7,7 @@ import {
   resolvePackageByCode,
   findBultoContainingPackage,
 } from '../../shared/bultoScan.ts';
+import { describeBultoForAbsorption } from '../../shared/bultoAbsorption.ts';
 
 // Consultas de apoyo del escaneo de bultos en el almacén de Venezuela.
 // La pantalla /BultoOrderScan se comparte como enlace directo y abre sin sesión:
@@ -69,10 +70,11 @@ export default async function(req: Request): Promise<Response> {
       if ((pkg.client_email || '') && pkg.client_email !== clientEmail) {
         return Response.json({ error: `El paquete ${code} es de otro cliente` });
       }
+      // Si el paquete ya está en otro bulto NO se bloquea: el bulto que se está armando
+      // lo absorbe. Se devuelven los datos del bulto viejo para que la pantalla pida
+      // confirmación antes de moverlo.
       const inBulto = await findBultoContainingPackage(base44, pkg.id);
-      if (inBulto) {
-        return Response.json({ error: `El paquete ${code} ya está en el bulto ${inBulto.label_code || ''}` });
-      }
+      const absorb = inBulto ? await describeBultoForAbsorption(base44, inBulto) : null;
 
       return Response.json({
         package: {
@@ -81,6 +83,7 @@ export default async function(req: Request): Promise<Response> {
           description: pkg.description || '',
           label_code: pkg.label_code || '',
         },
+        absorb,
       });
     }
 
