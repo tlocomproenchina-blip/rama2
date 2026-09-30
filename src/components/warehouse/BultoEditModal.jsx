@@ -18,11 +18,11 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   // Paquetes que ya están dentro del bulto (se listan aunque no estén 'recibidos').
   const [bultoPkgs, setBultoPkgs] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
-  // Paquete → bulto del cliente que lo contiene (al marcarlo, ese bulto se absorbe).
+  // Paquete → bulto del cliente que lo contiene (al marcarlo, ese bulto se fusiona).
   const [otherBultoMap, setOtherBultoMap] = useState({});
   // Paquetes de esos bultos, para poder marcarlos aunque no estén 'recibidos'.
   const [otherBultoPkgs, setOtherBultoPkgs] = useState([]);
-  // Confirmación pendiente antes de absorber el bulto que contiene el paquete marcado.
+  // Confirmación pendiente antes de fusionar el bulto que contiene el paquete marcado.
   const [pendingAbsorb, setPendingAbsorb] = useState(null);
   const [absorbedSources, setAbsorbedSources] = useState([]);
   const [loadingPkgs, setLoadingPkgs] = useState(false);
@@ -78,7 +78,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
         setClientPackages(received);
 
         // Bultos hermanos del cliente: los paquetes que estén dentro de ellos se pueden
-        // marcar igual. Al guardar, ese bulto viejo se absorbe y se elimina.
+        // marcar igual. Al guardar, ese bulto viejo se fusiona y se elimina.
         const receivedIds = new Set(received.map((p) => p.id));
         const sourceMap = {};
         const extraIds = [];
@@ -129,7 +129,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     }
     const source = otherBultoMap[id];
     // Un paquete que está en otro bulto se puede marcar: se pide confirmación porque al
-    // guardar ese bulto viejo se absorbe y se elimina.
+    // guardar ese bulto viejo se fusiona y se elimina.
     if (source && !absorbedSources.some((s) => sameSource(s, source))) {
       setPendingAbsorb({ id, source });
       return;
@@ -142,7 +142,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     setAbsorbedSources((prev) => [...prev, pendingAbsorb.source]);
     setSelectedIds((prev) => [...prev, pendingAbsorb.id]);
     setPendingAbsorb(null);
-    toast.info(`Se absorbe el bulto ${pendingAbsorb.source.label_code || ''}`);
+    toast.info(`Se fusiona el bulto ${pendingAbsorb.source.label_code || ''}`);
   };
 
   const handleSave = async () => {
@@ -174,11 +174,11 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
       setSyncWarnings(warnings);
       toast.success('Bulto actualizado');
       if (warnings.length) toast.warning(warnings[0]);
-      // Absorción: el bulto viejo que contenía los paquetes marcados se eliminó.
+      // Fusión: el bulto viejo que contenía los paquetes marcados se eliminó.
       const absorbed = res?.data?.absorbed || null;
       const absorbedLabels = (absorbed?.bultos || []).map((b) => b.label_code).filter(Boolean);
       if (absorbedLabels.length) {
-        toast.success(`Se absorbió el bulto ${absorbedLabels.join(', ')}`);
+        toast.success(`Se fusionó el bulto ${absorbedLabels.join(', ')}`);
       }
       (absorbed?.warnings || []).forEach((message) => toast.warning(message));
       onSaved?.(res.data.bulto);
@@ -250,7 +250,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                         </div>
                         {source && (
                           <span className="shrink-0 text-[10px] text-blue-700">
-                            Absorbe bulto {source.label_code || source.bulto_number}
+                            Fusiona bulto {source.label_code || source.bulto_number}
                           </span>
                         )}
                         {!source && p.status && p.status !== 'recibido' && (
@@ -338,6 +338,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
           open={!!pendingAbsorb}
           sources={pendingAbsorb ? [pendingAbsorb.source] : []}
           codes={[]}
+          clientEmail={bulto?.client_email || ''}
           onConfirm={confirmAbsorb}
           onCancel={() => setPendingAbsorb(null)}
         />

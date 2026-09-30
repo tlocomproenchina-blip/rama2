@@ -1,4 +1,4 @@
-// Absorción de bultos (almacén de Venezuela).
+// Fusión de bultos (almacén de Venezuela).
 //
 // Cuando un paquete escaneado ya pertenece a otro bulto, ese bulto viejo se fusiona
 // con el que se está registrando —paquetes, códigos sin registrar y N° de orden— y se
@@ -9,13 +9,14 @@
 // pantalla antes de mover el paquete).
 //
 // Reglas del almacén:
-// - Nunca bloquea: la absorción se decide en el servidor, no depende de un flag del cliente.
+// - Nunca bloquea: la fusión se decide en el servidor, no depende de un flag del cliente.
 // - El borrado NO renumera ni regenera label_code de los bultos restantes: las etiquetas ya
 //   impresas deben seguir siendo válidas. Solo se recuadra total_bultos del cliente.
-// - No se toca la contabilidad desde aquí: los N° de orden absorbidos se envían como
+// - No se toca la contabilidad desde aquí: los N° de orden fusionados se envían como
 //   previous_orders al sincronizar, para corregir el recibo vinculado y no duplicarlo.
-// - Un bulto de otro cliente (dato inconsistente) no se elimina: solo se mueve el paquete
-//   escaneado y se avisa en pantalla.
+// - Un bulto de otro cliente (dato inconsistente) NO se elimina: se conserva registrado y
+//   solo se le quita el paquete y el tracking movidos, para que un mismo paquete no quede
+//   dentro de dos bultos. Se avisa en pantalla.
 import { num } from "./paginatedFetch.ts";
 import { syncClientBultoTotals } from "./bultoScan.ts";
 import { bultoPackageCount } from "./veAccountingSync.ts";
@@ -51,6 +52,7 @@ export async function describeBultoForAbsorption(base44: any, bulto: any) {
   return {
     id: bulto?.id || "",
     label_code: label,
+    client_email: text(bulto?.client_email),
     bulto_number: num(bulto?.bulto_number),
     package_count: bultoPackageCount(bulto),
     order_numbers: uniq(bulto?.cbm_order_numbers || []),
@@ -81,7 +83,7 @@ export async function findAbsorbSources(base44: any, packageIds: string[], exclu
   return sources;
 }
 
-// Constancia que queda en el bulto nuevo de lo que se absorbió.
+// Constancia que queda en el bulto nuevo de lo que se fusionó.
 async function buildAbsorptionEntry(base44: any, source: any, now: string, actor: string) {
   const detail = await describeBultoForAbsorption(base44, source);
   return {
@@ -100,7 +102,7 @@ async function buildAbsorptionEntry(base44: any, source: any, now: string, actor
   };
 }
 
-// Plan de absorción: qué bultos se fusionan, qué paquetes, trackings, códigos sin
+// Plan de fusión: qué bultos se fusionan, qué paquetes, trackings, códigos sin
 // registrar y N° de orden entran al bulto nuevo, y los avisos para la pantalla.
 // options: { packageIds, excludeBultoId, clientEmail, unregisteredCodes, actor }
 export async function planAbsorption(base44: any, options: any = {}) {
@@ -113,6 +115,8 @@ export async function planAbsorption(base44: any, options: any = {}) {
   const warnings: string[] = [];
   const absorbed: any[] = [];
   const deletable_ids: string[] = [];
+  // Bultos de otro cliente: se conservan y solo se les quita el contenido movido.
+  const strippable_ids: string[] = [];
   const extraIds: string[] = [];
   const unregistered = uniq(options.unregisteredCodes || []);
   const orderNumbers: string[] = [];
@@ -136,8 +140,9 @@ export async function planAbsorption(base44: any, options: any = {}) {
     if (sameClient) {
       deletable_ids.push(source.id);
     } else {
+      strippable_ids.push(source.id);
       warnings.push(
-        `El bulto ${text(source.label_code) || source.id} no pertenece a este cliente: solo se movió el paquete escaneado y ese bulto se dejó como estaba.`
+        `El bulto ${text(source.label_code) || source.id} no pertenece a este cliente: se dejó registrado y solo se le quitó el paquete movido.`
       );
     }
   }
@@ -163,37 +168,83 @@ export async function planAbsorption(base44: any, options: any = {}) {
     order_numbers: uniq(orderNumbers),
     sources,
     deletable_ids,
+    strippable_ids,
     absorbed,
     warnings,
     packages_moved: extraIds.length,
   };
 }
 
-// Elimina los bultos absorbidos. No renumera ni renombra nada: solo borra el bulto
-// viejo, cuyo contenido ya quedó dentro del bulto nuevo. Si uno falla, el resto sigue.
+// Cierra la fusión. Del mismo cliente: el bulto viejo se elimina (su contenido ya quedó
+// dentro del bulto escaneado). De otro cliente: se conserva y solo se le quitan el paquete,
+// el tracking y los códigos movidos, con su conteo de paquetes recalculado. No renumera ni
+// renombra nada: las etiquetas ya impresas siguen siendo válidas. Si uno falla, el resto sigue.
 export async function applyAbsorption(base44: any, plan: any) {
   const deleted: any[] = [];
+  const stripped: any[] = [];
   const failed: any[] = [];
   const warnings: string[] = [...(plan?.warnings || [])];
 
+  const movedIds = new Set((plan?.package_ids || []).map(text).filter(Boolean));
+  const movedCodes = new Set(
+    [...(plan?.trackings || []), ...(plan?.unregistered_codes || [])].map(text).filter(Boolean)
+  );
+
   for (const source of plan?.sources || []) {
-    if (!(plan?.deletable_ids || []).includes(source.id)) continue;
+    if ((plan?.deletable_ids || []).includes(source.id)) {
+      try {
+        await base44.asServiceRole.entities.Bulto.delete(source.id);
+        deleted.push({ id: source.id, label_code: text(source.label_code) });
+      } catch (e: any) {
+        failed.push({
+          id: source.id,
+          label_code: text(source.label_code),
+          error: e?.message || "Error al eliminar",
+        });
+        warnings.push(
+          `No se pudo eliminar el bulto ${text(source.label_code) || source.id}: sus paquetes ya están en el bulto nuevo, pero el bulto viejo sigue registrado. Elimínalo para no dejarlo duplicado.`
+        );
+      }
+      continue;
+    }
+
+    if (!(plan?.strippable_ids || []).includes(source.id)) continue;
+
     try {
-      await base44.asServiceRole.entities.Bulto.delete(source.id);
-      deleted.push({ id: source.id, label_code: text(source.label_code) });
+      const remainingIds = (source.package_ids || []).filter((id: any) => !movedIds.has(text(id)));
+      const remainingTrackings = (source.package_trackings || []).filter((c: any) => !movedCodes.has(text(c)));
+      const remainingUnregistered = (source.unregistered_codes || []).filter((c: any) => !movedCodes.has(text(c)));
+      const removed =
+        ((source.package_ids || []).length - remainingIds.length) +
+        ((source.unregistered_codes || []).length - remainingUnregistered.length);
+
+      const patch: any = {
+        package_ids: remainingIds,
+        package_trackings: remainingTrackings,
+        unregistered_codes: remainingUnregistered,
+      };
+      const cargoCount = num(source.cargo_package_count);
+      if (cargoCount > 0 && removed > 0) patch.cargo_package_count = Math.max(0, cargoCount - removed);
+
+      await base44.asServiceRole.entities.Bulto.update(source.id, patch);
+      stripped.push({
+        id: source.id,
+        label_code: text(source.label_code),
+        packages_removed: removed,
+      });
     } catch (e: any) {
       failed.push({
         id: source.id,
         label_code: text(source.label_code),
-        error: e?.message || "Error al eliminar",
+        error: e?.message || "Error al quitar el paquete",
       });
       warnings.push(
-        `No se pudo eliminar el bulto ${text(source.label_code) || source.id}: sus paquetes ya están en el bulto nuevo, pero el bulto viejo sigue registrado. Elimínalo para no dejarlo duplicado.`
+        `No se pudo quitar el paquete del bulto ${text(source.label_code) || source.id}: el paquete quedó dentro de los dos bultos. Revísalo.`
       );
     }
   }
 
-  return { deleted, failed, warnings };
+  return { deleted, stripped, failed, warnings };
 }
 
 // Recuadra el total de bultos del cliente con la cantidad real que queda.

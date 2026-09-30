@@ -1,8 +1,8 @@
 import React from 'react';
 import { ArrowRightLeft } from 'lucide-react';
 
-// Historial de bultos que este bulto absorbió y que fueron eliminados: deja ver el
-// trabajo que ya venía hecho sin tener que rehacerlo.
+// Historial de bultos que este bulto fusionó (eliminados o conservados sin el paquete
+// movido): deja ver el trabajo que ya venía hecho sin tener que rehacerlo.
 export default function AbsorbedBultosHistory({ entries = [] }) {
   const list = (entries || []).filter(Boolean);
   if (!list.length) return null;
@@ -10,7 +10,7 @@ export default function AbsorbedBultosHistory({ entries = [] }) {
   return (
     <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
       <p className="flex items-center gap-2 text-xs font-medium text-slate-700">
-        <ArrowRightLeft className="h-3.5 w-3.5" /> Bultos absorbidos ({list.length})
+        <ArrowRightLeft className="h-3.5 w-3.5" /> Bultos fusionados ({list.length})
       </p>
       <ul className="space-y-1 text-[11px] text-slate-600">
         {list.map((entry, index) => (

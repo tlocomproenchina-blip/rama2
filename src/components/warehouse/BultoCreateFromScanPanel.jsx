@@ -32,7 +32,7 @@ export default function BultoCreateFromScanPanel({
   const [error, setError] = useState('');
   const [photoErrors, setPhotoErrors] = useState([]);
   const [photoRetrying, setPhotoRetrying] = useState(false);
-  // Bultos viejos que ya contienen los paquetes escaneados: se absorben al guardar.
+  // Bultos viejos que ya contienen los paquetes escaneados: se fusionan al guardar.
   const [absorbSources, setAbsorbSources] = useState([]);
   // Confirmación pendiente antes de mover un paquete que ya está en otro bulto.
   const [pendingAbsorb, setPendingAbsorb] = useState(null);
@@ -84,12 +84,13 @@ export default function BultoCreateFromScanPanel({
       }
       const pkg = data.package;
       // El paquete ya viene dentro de otro bulto: se confirma una vez por bulto y su
-      // contenido se absorbe al guardar (el escaneo nunca se bloquea).
+      // contenido se fusiona al guardar (el escaneo nunca se bloquea). Si el bulto es de
+      // otro cliente, se conserva sin el paquete movido.
       if (data.absorb) {
         const source = data.absorb;
         if (absorbSources.some((s) => isSameSource(s, source))) {
           addPackage(pkg, value, source);
-          toast.info(`Se mueve desde el bulto ${source.label_code || ''}`);
+          toast.info(`Se fusiona con el bulto ${source.label_code || ''}`);
           return;
         }
         setPendingAbsorb({ code: value, pkg, source });
@@ -299,7 +300,7 @@ export default function BultoCreateFromScanPanel({
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="pt-4 space-y-1">
                 <p className="text-sm font-medium text-blue-900 flex items-center gap-2">
-                  <ArrowRightLeft className="h-4 w-4" /> Bultos que se absorberán al guardar
+                  <ArrowRightLeft className="h-4 w-4" /> Bultos que se fusionarán al guardar
                 </p>
                 {absorbSources.map((s) => (
                   <p key={s.id || s.label_code} className="font-mono text-xs text-blue-800 break-all">
@@ -308,6 +309,7 @@ export default function BultoCreateFromScanPanel({
                 ))}
                 <p className="text-xs text-blue-800">
                   Su contenido pasa a este bulto y esos bultos se eliminan, sin cambiar las etiquetas de los demás.
+                  Los bultos de otro cliente se dejan registrados y solo se les quita el paquete escaneado.
                 </p>
               </CardContent>
             </Card>
@@ -402,6 +404,7 @@ export default function BultoCreateFromScanPanel({
         open={!!pendingAbsorb}
         sources={pendingAbsorb ? [pendingAbsorb.source] : []}
         codes={pendingAbsorb ? [pendingAbsorb.code] : []}
+        clientEmail={client?.email || ''}
         onConfirm={confirmAbsorb}
         onCancel={cancelAbsorb}
       />

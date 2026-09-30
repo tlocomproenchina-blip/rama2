@@ -33,26 +33,38 @@ function SourceUsage({ source }) {
 // eliminar, con su contenido y las señales de uso (impreso, guía, factura) para que
 // el almacén acepte con conocimiento de lo que se mueve.
 export default function AbsorbBultosConfirmDialog({
-  open, sources = [], codes = [], busy = false, onConfirm, onCancel,
+  open, sources = [], codes = [], clientEmail = '', busy = false, onConfirm, onCancel,
 }) {
   const list = (sources || []).filter(Boolean);
   if (!list.length) return null;
+
+  // Un bulto de otro cliente se conserva: solo se le quita el paquete escaneado.
+  const isForeign = (source) =>
+    !!clientEmail && !!source?.client_email &&
+    String(source.client_email).trim().toLowerCase() !== String(clientEmail).trim().toLowerCase();
 
   return (
     <Dialog open={!!open} onOpenChange={(o) => !o && onCancel?.()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <ArrowRightLeft className="h-5 w-5 text-primary" /> Absorber el bulto anterior
+            <ArrowRightLeft className="h-5 w-5 text-primary" /> Fusionar el bulto anterior
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
           <p className="text-sm text-slate-600">
             {codes.length > 1 ? 'Los códigos escaneados ya están' : 'El código escaneado ya está'} dentro de
-            {' '}{list.length > 1 ? 'estos bultos' : 'este bulto'}. Al continuar, todo su contenido pasa a este bulto
-            y {list.length > 1 ? 'los bultos anteriores se eliminan' : 'el bulto anterior se elimina'}, para no repetir el trabajo.
+            {' '}{list.length > 1 ? 'estos bultos' : 'este bulto'}. Al fusionar, todo su contenido pasa al bulto escaneado,
+            que es el que prevalece, y {list.length > 1 ? 'los bultos anteriores se eliminan' : 'el bulto anterior se elimina'},
+            para no repetir el trabajo.
           </p>
+
+          {list.some(isForeign) && (
+            <p className="text-sm text-slate-600">
+              Los bultos de otro cliente se dejan registrados y solo se les quita el paquete escaneado.
+            </p>
+          )}
 
           {codes.length > 0 && (
             <div className="rounded-lg bg-muted/50 px-3 py-2 font-mono text-xs text-slate-700 break-all">
@@ -77,6 +89,11 @@ export default function AbsorbBultosConfirmDialog({
                     {String(source.status).replace(/_/g, ' ')}
                   </Badge>
                 )}
+                {isForeign(source) && (
+                  <Badge variant="outline" className="border-amber-300 text-[10px] text-amber-800">
+                    otro cliente · se deja sin el paquete
+                  </Badge>
+                )}
               </div>
               <p className="text-xs">
                 N° de orden:{' '}
@@ -99,7 +116,7 @@ export default function AbsorbBultosConfirmDialog({
           </Button>
           <Button onClick={onConfirm} disabled={busy} className="bg-blue-600 hover:bg-blue-700">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
-            Absorber y continuar
+            Fusionar y continuar
           </Button>
         </DialogFooter>
       </DialogContent>

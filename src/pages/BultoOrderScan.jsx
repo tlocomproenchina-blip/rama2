@@ -38,7 +38,8 @@ export default function BultoOrderScan({ user }) {
   const [photoRetrying, setPhotoRetrying] = useState(false);
   // Avisos cuando el N° de orden del bulto no pudo aplicarse al recibo de contabilidad.
   const [syncWarnings, setSyncWarnings] = useState([]);
-  // Bultos que este escaneo absorbió: se fusionaron en el bulto nuevo y se eliminaron.
+  // Bultos que este escaneo fusionó: su contenido pasó al bulto escaneado y esos bultos se
+  // eliminaron (o quedaron registrados sin el paquete movido si eran de otro cliente).
   const [absorbedInfo, setAbsorbedInfo] = useState(null);
   const { handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto } = useScannedPhotoUploader();
   // Mismo identificador persistente que usa la página del almacén de China.
@@ -209,12 +210,12 @@ export default function BultoOrderScan({ user }) {
     const warnings = data?.sync?.warnings || [];
     setSyncWarnings(warnings);
     if (warnings.length) toast.warning(warnings[0]);
-    // El bulto nuevo absorbió el trabajo de uno o varios bultos viejos del almacén.
+    // El bulto escaneado fusionó el trabajo de uno o varios bultos viejos del almacén.
     setAbsorbedInfo(data?.absorbed || null);
     const absorbedBultos = data?.absorbed?.bultos || [];
     if (absorbedBultos.length) {
       const labels = absorbedBultos.map((b) => b.label_code).filter(Boolean).join(', ');
-      toast.success(`Se absorbió ${labels ? `el bulto ${labels}` : 'el trabajo anterior'}`);
+      toast.success(`Se fusionó ${labels ? `el bulto ${labels}` : 'el trabajo anterior'}`);
     }
     setInvoiceInfo({
       invoice_paid: data?.invoice_paid,

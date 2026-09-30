@@ -21,9 +21,10 @@ import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 //           device_id, recognition_photo_url }
 // - Crea el bulto con el label_code escaneado, el número que trae el código, el snapshot
 //   del cliente y el estado de su factura más reciente.
-// - Absorbe los bultos que ya contenían los paquetes escaneados: su contenido (paquetes,
-//   códigos sin registrar y N° de orden) pasa a este bulto y esos bultos se eliminan. El
-//   escaneo nunca se bloquea por ese motivo.
+// - Fusiona los bultos que ya contenían los paquetes escaneados: su contenido (paquetes,
+//   códigos sin registrar y N° de orden) pasa a este bulto, que prevalece, y esos bultos se
+//   eliminan; si uno es de otro cliente, se conserva sin el paquete movido. El escaneo
+//   nunca se bloquea por ese motivo.
 // - En la misma acción asigna el N° de orden, bloquea el bulto, guarda la foto capturada
 //   al escanear y marca los paquetes como reconocidos en Venezuela.
 // - Sin sesión exige device_id (el enlace de trabajo abre sin login).
@@ -112,8 +113,9 @@ export default async function(req: Request): Promise<Response> {
       if (!packages.some((p) => p.id === pkg.id)) packages.push(pkg);
     }
 
-    // Absorción: el contenido de los bultos que ya tenían los paquetes escaneados entra en
-    // este bulto y esos bultos se eliminan (sin renumerar las etiquetas de los demás).
+    // Fusión: el contenido de los bultos que ya tenían los paquetes escaneados entra en
+    // este bulto, que prevalece, y esos bultos se eliminan (sin renumerar las etiquetas de
+    // los demás); los bultos de otro cliente se conservan sin el paquete movido.
     const plan = await planAbsorption(base44, {
       packageIds: packages.map((p) => p.id),
       clientEmail,
@@ -160,7 +162,8 @@ export default async function(req: Request): Promise<Response> {
       created_by: assignedBy,
     });
 
-    // El bulto viejo se elimina cuando sus paquetes ya están dentro del bulto nuevo.
+    // El bulto viejo se elimina (o se le quita el paquete movido) cuando su contenido ya
+    // está dentro del bulto escaneado, que es el que prevalece.
     const absorbed = await applyAbsorption(base44, plan);
 
     await markPackagesRecognizedIfMissing(base44, plan.package_ids, now, assignedBy);
@@ -192,6 +195,7 @@ export default async function(req: Request): Promise<Response> {
         bultos: plan.absorbed,
         packages_moved: plan.packages_moved,
         deleted: absorbed.deleted,
+        stripped: absorbed.stripped,
         failed: absorbed.failed,
         warnings: absorbed.warnings,
       },

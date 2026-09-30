@@ -8,8 +8,9 @@ import {
 
 // Actualiza un bulto existente. Recibe: { bulto_id, package_ids?, client_snapshot?, status? }
 // - Valida que los package_ids sean del mismo cliente del bulto.
-// - Los paquetes que ya están en otro bulto del cliente no bloquean: ese bulto viejo se
-//   absorbe (su contenido pasa a este bulto) y se elimina, sin renumerar etiquetas ajenas.
+// - Los paquetes que ya están en otro bulto no bloquean: ese bulto viejo se fusiona (su
+//   contenido pasa a este bulto) y se elimina, sin renumerar etiquetas ajenas. Si es de otro
+//   cliente, se conserva y solo se le quita el paquete movido.
 // - Si cambian los package_ids, recalcula package_trackings cache.
 // - Actualiza client_snapshot y status si vienen.
 // No recalcula bulto_number (el número se mantiene estable; el total_bultos solo cambia con create/delete).
@@ -46,7 +47,7 @@ export default async function(req: Request): Promise<Response> {
       const sameClient = pkgs.every((p) => p.client_email === clientEmail);
       if (!sameClient) return Response.json({ error: 'Todos los paquetes deben ser del mismo cliente del bulto' }, { status: 400 });
 
-      // Absorción: los paquetes marcados pueden estar dentro de otro bulto del cliente.
+      // Fusión: los paquetes marcados pueden estar dentro de otro bulto.
       // Ese bulto viejo se fusiona con este y se elimina (nunca se bloquea la edición).
       plan = await planAbsorption(base44, {
         packageIds: pkgs.map((p) => p.id),
@@ -68,7 +69,7 @@ export default async function(req: Request): Promise<Response> {
       update.unregistered_codes = unregistered;
       update.absorbed_bultos = [...(bulto.absorbed_bultos || []), ...plan.absorbed];
 
-      // El N° de orden del bulto absorbido pasa a este bulto.
+      // El N° de orden del bulto fusionado pasa a este bulto.
       if (plan.order_numbers.length) {
         const currentOrders = Array.isArray(body.cbm_order_numbers)
           ? body.cbm_order_numbers.filter(Boolean)
@@ -157,8 +158,11 @@ export default async function(req: Request): Promise<Response> {
 
     const updated = await base44.asServiceRole.entities.Bulto.update(bultoId, update);
 
-    // El bulto viejo se elimina cuando sus paquetes ya están dentro de este bulto.
-    const absorbed = plan ? await applyAbsorption(base44, plan) : { deleted: [], failed: [], warnings: [] };
+    // El bulto viejo se elimina (o se le quita el paquete movido) cuando su contenido ya
+    // está dentro de este bulto.
+    const absorbed = plan
+      ? await applyAbsorption(base44, plan)
+      : { deleted: [], stripped: [], failed: [], warnings: [] };
     if (plan && plan.deletable_ids.length) {
       await recountClientBultos(base44, bulto.client_email);
     }
@@ -209,6 +213,7 @@ export default async function(req: Request): Promise<Response> {
         bultos: plan?.absorbed || [],
         packages_moved: plan?.packages_moved || 0,
         deleted: absorbed.deleted,
+        stripped: absorbed.stripped,
         failed: absorbed.failed,
         warnings: absorbed.warnings,
       },
