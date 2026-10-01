@@ -253,7 +253,11 @@ Deno.serve(async (req) => {
           };
         });
 
-      if (clientBultos.length === 0 && clientReceipts.length === 0) continue;
+      // El panel es la cola de facturación de la carga que está físicamente en el
+      // almacén: solo se listan clientes con al menos un bulto en almacén. Los recibos
+      // de CBM de quien no tiene bulto aquí no se tocan ni se borran: siguen
+      // facturándose cuando el cliente se carga desde el buscador.
+      if (clientBultos.length === 0) continue;
 
       const snap = myBultosRaw.length > 0 ? (myBultosRaw[0].client_snapshot || {}) : {};
 
