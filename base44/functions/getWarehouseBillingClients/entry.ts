@@ -263,6 +263,11 @@ Deno.serve(async (req) => {
       // facturándose cuando el cliente se carga desde el buscador.
       if (clientBultos.length === 0) continue;
 
+      // Si todos sus bultos de almacén ya se marcaron como facturados a mano, el cliente
+      // no tiene nada seleccionable que ofrecer, así que no se lista (sus bultos y marcas
+      // quedan intactos: se siguen viendo cuando el cliente se carga desde el buscador).
+      if (!clientBultos.some((b: any) => b.billing_marked !== true)) continue;
+
       const snap = myBultosRaw.length > 0 ? (myBultosRaw[0].client_snapshot || {}) : {};
 
       clients.push({
