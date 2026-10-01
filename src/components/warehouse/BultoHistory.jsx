@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Pencil, Trash2, Boxes, ChevronLeft, ChevronRight, Printer, CheckSquare, Square, X, Printer as PrinterIcon, CloudOff, Hash } from 'lucide-react';
+import { Loader2, Search, Trash2, Boxes, ChevronLeft, ChevronRight, Printer, CheckSquare, Square, X, Printer as PrinterIcon, Hash } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { getAll } from '@/lib/offlineDb';
@@ -13,8 +13,9 @@ import BluetoothPrinter from './BluetoothPrinter';
 import BulkOrderAssignDialog from './BulkOrderAssignDialog';
 import { useBultoCodeSearch } from '@/hooks/useBultoCodeSearch';
 import { matchesBultoCode, mergeBultos } from '@/lib/bultoSearch';
-import { realPackageCount } from '@/lib/bultoCounts';
-import PrintCountBadge from './PrintCountBadge';
+import { groupBultosByOrder } from '@/lib/bultoOrderGroups';
+import BultoHistoryRow from './BultoHistoryRow';
+import BultoOrderGroupCard from './BultoOrderGroupCard';
 import ReprintDialog from './ReprintDialog';
 
 const PAGE_SIZE = 50;
@@ -24,6 +25,9 @@ const DELETE_AUTHORIZED_EMAILS = ['genel.agonzalez@gmail.com'];
 
 export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [bultos, setBultos] = useState([]);
+  const [entries, setEntries] = useState([]);
+  const [entriesTotal, setEntriesTotal] = useState(0);
+  const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -58,6 +62,26 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       return new Set(bultos.map((b) => b.id));
     });
   }, [bultos]);
+
+  // Desplegar / colapsar una tarjeta de grupo
+  const toggleGroup = useCallback((key) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  // Marcar / desmarcar de una vez todos los bultos de una tarjeta de grupo
+  const toggleGroupSelection = useCallback((groupBultos) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = groupBultos.every((b) => next.has(b.id));
+      groupBultos.forEach((b) => (allSelected ? next.delete(b.id) : next.add(b.id)));
+      return next;
+    });
+  }, []);
 
   const handleBulkPrint = useCallback(() => {
     const selected = bultos.filter((b) => selectedIds.has(b.id));
@@ -126,8 +150,16 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       }
 
       setTotal(filtered.length);
+
+      // Agrupación por cliente + N° de orden: cada grupo es una tarjeta plegable y los
+      // bultos sin N° de orden cuentan como una tarjeta individual cada uno.
+      const grouped = groupBultosByOrder(filtered);
+      setEntriesTotal(grouped.length);
+
       const start = page * PAGE_SIZE;
-      setBultos(filtered.slice(start, start + PAGE_SIZE));
+      const pageEntries = grouped.slice(start, start + PAGE_SIZE);
+      setEntries(pageEntries);
+      setBultos(pageEntries.flatMap((entry) => entry.bultos));
     } catch (_) {
       toast.error('Error al cargar historial');
     } finally {
@@ -180,7 +212,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
     load();
   };
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = Math.ceil(entriesTotal / PAGE_SIZE);
 
   return (
     <div className="space-y-4">
@@ -264,87 +296,42 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       {/* Lista */}
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-blue-600" /></div>
-      ) : bultos.length === 0 ? (
+      ) : entries.length === 0 ? (
         <Card><CardContent className="p-10 text-center text-slate-500">
           <Boxes className="h-10 w-10 mx-auto mb-2 text-slate-300" />
           {search.trim() ? 'Sin bultos con ese código.' : 'No hay bultos que coincidan con los filtros.'}
         </CardContent></Card>
       ) : (
         <div className="space-y-2">
-          {bultos.map((b) => (
-            <Card key={b.id} className={`shadow-sm transition-all ${selectMode && selectedIds.has(b.id) ? 'ring-2 ring-blue-400 bg-blue-50/30' : ''}`}>
-              <CardContent className="p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div
-                    className={`flex items-start gap-2 min-w-0 flex-1 ${selectMode ? 'cursor-pointer' : ''}`}
-                    onClick={selectMode ? () => toggleSelect(b.id) : undefined}
-                  >
-                    {selectMode && (
-                      <button onClick={(e) => { e.stopPropagation(); toggleSelect(b.id); }} className="mt-0.5 shrink-0">
-                        {selectedIds.has(b.id)
-                          ? <CheckSquare className="h-5 w-5 text-blue-600" />
-                          : <Square className="h-5 w-5 text-slate-300" />}
-                      </button>
-                    )}
-                    <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-slate-800">Bulto {b.bulto_number}/{b.total_bultos}</span>
-                      <span className="text-xs font-mono text-slate-500 bg-muted px-1.5 py-0.5 rounded">{b.label_code}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        b.status === 'despachado' ? 'bg-green-100 text-green-700'
-                        : b.status === 'en_almacen_ve' ? 'bg-amber-100 text-amber-700'
-                        : b.status === 'cerrado' ? 'bg-slate-200 text-slate-600'
-                        : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {b.status === 'despachado' ? 'Despachado' : b.status === 'en_almacen_ve' ? 'En Almacén Venezuela' : b.status === 'cerrado' ? 'Cerrado' : 'Activo'}
-                      </span>
-                      {b.is_local_pending && (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 flex items-center gap-1">
-                          <CloudOff className="h-3 w-3" /> Pendiente de sync
-                        </span>
-                      )}
-                      <PrintCountBadge count={b.print_count} />
-                    </div>
-                    <div className="mt-1 text-sm text-slate-600">
-                      <span className="font-medium">{b.client_snapshot?.full_name || '—'}</span>
-                      {b.client_snapshot?.cedula && <span className="text-slate-400"> · C.I. {b.client_snapshot.cedula}</span>}
-                    </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 mt-0.5">
-                      <span className="font-mono">{b.shipping_mark}</span>
-                      <span>{b.client_email}</span>
-                      {b.client_snapshot?.state && <span>{b.client_snapshot.state}</span>}
-                      <span>{realPackageCount(b)} paq.</span>
-                      {Array.isArray(b.cbm_order_numbers) && b.cbm_order_numbers.length > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-blue-600 font-medium">
-                          <Hash className="h-3 w-3" /> {b.cbm_order_numbers.join(', ')}
-                        </span>
-                      )}
-                      {b.invoice_paid ? (
-                        <span className="text-green-600 font-medium">Factura pagada</span>
-                      ) : (
-                        <span className="text-red-600 font-medium">Factura pendiente</span>
-                      )}
-                    </div>
-                  </div>
-                  </div>
-                  {!selectMode && (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Button variant="outline" size="sm" onClick={() => setPrintTarget(b)}>
-                        <Printer className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => setEditTarget(b)}>
-                        <Pencil className="h-3.5 w-3.5" /> Editar
-                      </Button>
-                      {canDelete && (
-                        <Button variant="outline" size="sm" onClick={() => setDeleteTargets([b])} className="text-red-600 hover:bg-red-50 hover:border-red-200">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          {entries.map((entry) => (
+            entry.order ? (
+              <BultoOrderGroupCard
+                key={entry.key}
+                entry={entry}
+                expanded={selectMode || expandedKeys.has(entry.key)}
+                onToggle={() => toggleGroup(entry.key)}
+                selectMode={selectMode}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onToggleGroup={toggleSelectionForGroup}
+                canDelete={canDelete}
+                onPrint={setPrintTarget}
+                onEdit={setEditTarget}
+                onDelete={(bulto) => setDeleteTargets([bulto])}
+              />
+            ) : (
+              <BultoHistoryRow
+                key={entry.bultos[0].id}
+                bulto={entry.bultos[0]}
+                selectMode={selectMode}
+                selected={selectedIds.has(entry.bultos[0].id)}
+                onToggleSelect={toggleSelect}
+                canDelete={canDelete}
+                onPrint={setPrintTarget}
+                onEdit={setEditTarget}
+                onDelete={(bulto) => setDeleteTargets([bulto])}
+              />
+            )
           ))}
         </div>
       )}
