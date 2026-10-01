@@ -77,7 +77,7 @@ export const adminMenuItems = [
   { name: 'Recepción Almacén', page: 'WarehouseReceive', icon: Package },
   { name: 'Ubicaciones y Sedes', page: 'WarehouseLocations', icon: Layers },
   { name: 'Picking y Packing', page: 'WarehousePickPackShip', icon: Truck },
-  { name: 'Escanear y Armar', page: 'WarehouseScanPack', icon: Boxes },
+  { name: 'Mesa de Empaque', page: 'WarehouseScanPack', icon: Boxes },
   { name: 'Empacar Bultos', page: 'WarehouseBultos', icon: Boxes },
   { name: 'Despacho Escáner', page: 'WarehouseDispatch', icon: Truck },
   { name: 'Historial de Despachos', page: 'WarehouseDispatchHistory', icon: History },
