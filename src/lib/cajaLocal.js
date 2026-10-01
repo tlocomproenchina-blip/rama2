@@ -174,4 +174,20 @@ export async function dropLocalBulto(id) {
   await del('bultos', id).catch(() => null);
 }
 
+// Un bulto del dispositivo que todavía no subió al servidor: al absorberlo dentro de una
+// caja su contenido ya viaja dentro de ella, así que se quita de la cola de sincronización
+// para que no se registre dos veces cuando reconecte.
+export async function dropLocalBultoFromQueue(source) {
+  if (!source) return;
+  if (!(source.is_local || String(source.id || '').startsWith('local_'))) return;
+  const ids = new Set([text(source.id), text(source.local_bulto_id)].filter(Boolean));
+  const queue = await getAll('sync_queue').catch(() => []);
+  for (const item of queue) {
+    if (ids.has(text(item.id)) || ids.has(text(item.local_bulto_id))) {
+      await del('sync_queue', item.id).catch(() => null);
+    }
+  }
+  await del('bultos', source.id).catch(() => null);
+}
+
 export { isCajaCode };

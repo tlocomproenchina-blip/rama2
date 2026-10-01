@@ -14,7 +14,8 @@ import {
 } from '@/lib/cajaCodes';
 import {
   absorbBultoIntoLocalCaja, addPackageToLocalCaja, cajaContents, createLocalCaja,
-  findLocalBultoByCode, findLocalClientByMark, findLocalPackage, localCajasOfClient, saveLocalCaja,
+  dropLocalBultoFromQueue, findLocalBultoByCode, findLocalClientByMark, findLocalPackage,
+  localCajasOfClient, saveLocalCaja,
 } from '@/lib/cajaLocal';
 
 // Armado de la caja consolidada en el almacén de Venezuela.
@@ -171,6 +172,9 @@ export default function CajaAssemblyPanel({ user, getNextNumber, enqueueCaja }) 
     if (!absorbPending || !caja) return;
     const { source } = absorbPending;
     const updated = await absorbBultoIntoLocalCaja(caja, source);
+    // Si el bulto absorbido todavía no había subido al servidor, su contenido ya va en la
+    // caja: se quita de la cola para que no se registre dos veces al reconectar.
+    await dropLocalBultoFromQueue(source);
     setAbsorbPending(null);
     await activate(updated);
     toast.success(`Bulto ${source.label_code || ''} absorbido dentro de la caja`);
