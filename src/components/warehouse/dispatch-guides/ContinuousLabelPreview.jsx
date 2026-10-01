@@ -4,7 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 // Vista previa de lo que llevará cada etiqueta continua: el mismo contenido que se
 // manda a la impresora (número X/N, datos del cliente y pie con la guía) y el aviso
 // de los datos que faltan en la guía para completarlos antes de imprimir.
-export default function ContinuousLabelPreview({ client, rangeStart = 1, rangeEnd = 10, guideNumber = '' }) {
+export default function ContinuousLabelPreview({ client, rangeStart = 1, rangeEnd = 10, guideNumber = '', barcodeCode = '' }) {
   const missing = [
     !client?.full_name && 'nombre',
     !client?.cedula && 'cédula',
@@ -37,6 +37,22 @@ export default function ContinuousLabelPreview({ client, rangeStart = 1, rangeEn
           <p className="mt-1 font-mono text-base font-semibold text-blue-700 break-all">
             MARK: {client.shipping_mark}
           </p>
+        ) : null}
+        {barcodeCode ? (
+          <div className="mt-2 border-t border-border/70 pt-2">
+            <div className="flex h-9 items-end gap-[2px] overflow-hidden">
+              {Array.from({ length: 46 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="block h-full bg-foreground"
+                  style={{ width: i % 3 === 0 ? 3 : i % 2 === 0 ? 2 : 1 }}
+                />
+              ))}
+            </div>
+            <p className="mt-1 font-mono text-[10px] font-semibold text-foreground break-all">
+              {barcodeCode}
+            </p>
+          </div>
         ) : null}
         {guideNumber ? (
           <p className="mt-1.5 border-t border-border/70 pt-1 text-[10px] text-muted-foreground">

@@ -13,11 +13,12 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export const normCode = (raw: any) => String(raw || '').trim().toUpperCase();
 export const unique = (list: any[]) => [...new Set((list || []).filter(Boolean))];
 
-// El código del bulto termina en -B##; su prefijo es el shipping mark del cliente.
-export const isBultoCode = (code: any) => /-B\d+$/i.test(String(code || '').trim());
+// El bloque que se despacha termina en -B## (bulto suelto) o en -C## (caja
+// consolidada con etiqueta continua); su prefijo es el shipping mark del cliente.
+export const isBultoCode = (code: any) => /-[BC]\d+$/i.test(String(code || '').trim());
 
 export const markOfCode = (code: any) => {
-  const match = String(code || '').trim().match(/^(.*?)-B\d+$/i);
+  const match = String(code || '').trim().match(/^(.*?)-[BC]\d+$/i);
   return match ? match[1].trim().toUpperCase() : '';
 };
 
@@ -102,14 +103,13 @@ export async function markScansWithGuide(
 
 export const recomputeGuideTotals = (clients: any[]) => {
   const list = Array.isArray(clients) ? clients : [];
+  const rows = list.flatMap((c: any) => c.bultos || []);
   return {
     clients: list.length,
-    bultos: list.reduce((sum: number, c: any) => sum + ((c.bultos || []).length), 0),
-    packages: list.reduce(
-      (sum: number, c: any) =>
-        sum + (c.bultos || []).reduce((inner: number, b: any) => inner + (Number(b.package_count) || 0), 0),
-      0
-    ),
+    bultos: rows.length,
+    packages: rows.reduce((sum: number, b: any) => sum + (Number(b.package_count) || 0), 0),
+    cajas: rows.filter((b: any) => b?.is_caja).length,
+    cbm: Number(rows.reduce((sum: number, b: any) => sum + (Number(b.cbm) || 0), 0).toFixed(4)),
   };
 };
 
@@ -156,6 +156,8 @@ const buildClientGroup = ({ clientEmail, profile, bulto, mark, clientName, bulto
       bultos: 1,
       packages: Number(bultoRow.package_count) || 0,
       scanned: 1,
+      cajas: bultoRow.is_caja ? 1 : 0,
+      cbm: Number(bultoRow.cbm) || 0,
     },
   };
 };
@@ -192,6 +194,10 @@ async function appendBultoToGuide(base44: any, guideRef: any, clientGroup: any, 
         bultos: target.bultos.length,
         packages: target.bultos.reduce((sum: number, b: any) => sum + (Number(b.package_count) || 0), 0),
         scanned: (Number(target.totals?.scanned) || 0) + 1,
+        cajas: target.bultos.filter((b: any) => b?.is_caja).length,
+        cbm: Number(
+          target.bultos.reduce((sum: number, b: any) => sum + (Number(b.cbm) || 0), 0).toFixed(4)
+        ),
       };
       if (!target.client_email && clientGroup.client_email) target.client_email = clientGroup.client_email;
       if (!target.client_name && clientGroup.client_name) target.client_name = clientGroup.client_name;
@@ -269,6 +275,8 @@ export async function appendScanToDispatchGuide(base44: any, entry: any) {
   if (!clientEmail && !mark) return { skipped: 'sin_cliente' };
 
   const packageCount = packageCountOfBulto(bulto) || Number(entry?.package_count) || 0;
+  // La línea de la guía guarda si el bloque es una caja consolidada y su posición X/N,
+  // tal como quedó impresa en la etiqueta continua, más su CBM.
   const bultoRow = {
     label_code: code,
     package_count: packageCount,
@@ -276,6 +284,10 @@ export async function appendScanToDispatchGuide(base44: any, entry: any) {
     date: scannedAt,
     order_number: '',
     scans: 1,
+    is_caja: !!bulto?.is_caja,
+    caja_number: Number(bulto?.caja_number) || 0,
+    caja_total: Number(bulto?.caja_total) || 0,
+    cbm: Number(bulto?.cargo_cbm) || 0,
   };
 
   const clientGroup = buildClientGroup({

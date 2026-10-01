@@ -189,7 +189,9 @@ export const buildBultoLabelPayload = (bulto) => {
 // Etiqueta continua 100×100 mm (rollo continuo, sin separación) para identificar los
 // paquetes de un despacho: número X/N en grande y centrado, datos del cliente tal
 // como quedaron guardados en la guía y, al pie, el número de guía con su fecha.
-// No lleva código de barras y no crea bultos ni códigos en el sistema.
+// Cuando identifica una caja consolidada (barcodeCode) imprime además el código de
+// barras de la caja: es el que se escanea en Despacho por Escaneo para dar la salida
+// definitiva de todo su contenido.
 // client: { full_name, cedula, whatsapp, address, city, state, shipping_mark }
 export const buildContinuousLabelPayload = ({
   client = {},
@@ -197,6 +199,7 @@ export const buildContinuousLabelPayload = ({
   total = 1,
   guideNumber = '',
   emittedAt = '',
+  barcodeCode = '',
 }) => {
   const cs = client || {};
   const counter = `${index}/${total}`;
@@ -248,7 +251,21 @@ export const buildContinuousLabelPayload = ({
   if (cityState) addBigText(cityState);
   if (mark) addBigText(`MARK: ${mark}`);
 
-  // 6. Pie: guía emitida y su fecha
+  // 6. Código de barras de la caja consolidada: identifica el bloque completo y es el
+  //    que se escanea al despachar para sacar todos sus paquetes de una sola vez.
+  if (barcodeCode) {
+    const code = String(barcodeCode).trim();
+    const narrow = code.length > 22 ? 1 : 2;
+    const wide = narrow * 2;
+    const barsWidth = (11 * (code.length + 2) + 2) * narrow;
+    const codeScale = code.length > 18 ? 1 : 2;
+    addBlock(154, (y) => [
+      `BARCODE ${Math.max(20, Math.floor((LABEL_W - barsWidth) / 2))},${y},${q('128')},120,0,0,${narrow},${wide},${q(code)}`,
+      `TEXT ${centerX(code, '2', codeScale)},${y + 126},${q('2')},0,${codeScale},${codeScale},${q(code)}`,
+    ]);
+  }
+
+  // 7. Pie: guía emitida y su fecha
   if (footer) {
     addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
     addBlock(24, (y) => [`TEXT 50,${y},${q('1')},0,1,1,${q(footer)}`]);

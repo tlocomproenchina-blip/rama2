@@ -12,11 +12,11 @@ export const normCode = (raw) => String(raw || '').trim().toUpperCase();
 
 export const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
 
-// El código del bulto termina en -B## y su prefijo es el shipping mark del
-// cliente (N6-TLEC-W1383S-B50338 → N6-TLEC-W1383S): permite deducir el cliente
-// cuando la etiqueta escaneada ya no existe como bulto en el sistema.
+// El bloque despachado termina en -B## (bulto suelto) o -C## (caja consolidada) y su
+// prefijo es el shipping mark del cliente (N6-TLEC-W1383S-C50012 → N6-TLEC-W1383S):
+// permite deducir el cliente cuando la etiqueta escaneada ya no existe en el sistema.
 export const markOfCode = (code) => {
-  const match = String(code || '').trim().match(/^(.*?)-B\d+$/i);
+  const match = String(code || '').trim().match(/^(.*?)-[BC]\d+$/i);
   return match ? match[1].trim().toUpperCase() : '';
 };
 
@@ -147,6 +147,11 @@ export function buildGuideFromScanLogs({ logs, bultos, clients, orders } = {}) {
         date: r.date,
         order_number: orderByCode[r.label_code] || '',
         scans: r.scans || 1,
+        // Caja consolidada: su posición X/N y su CBM tal como quedaron en la etiqueta.
+        is_caja: !!r.bulto?.is_caja,
+        caja_number: Number(r.bulto?.caja_number) || 0,
+        caja_total: Number(r.bulto?.caja_total) || 0,
+        cbm: Number(r.bulto?.cargo_cbm) || 0,
       };
     }).sort((a, b) => String(a.label_code).localeCompare(String(b.label_code)));
 
@@ -172,6 +177,8 @@ export function buildGuideFromScanLogs({ logs, bultos, clients, orders } = {}) {
         bultos: bultosRows.length,
         packages: bultosRows.reduce((sum, b) => sum + (Number(b.package_count) || 0), 0),
         scanned: group.rows.reduce((sum, r) => sum + (Number(r.scans) || 1), 0),
+        cajas: bultosRows.filter((b) => b.is_caja).length,
+        cbm: Number(bultosRows.reduce((sum, b) => sum + (Number(b.cbm) || 0), 0).toFixed(4)),
       },
     });
   });
@@ -206,12 +213,14 @@ export function mergeGuideClients(current, incoming) {
       bultos: bultos.length,
       packages: bultos.reduce((sum, b) => sum + (Number(b.package_count) || 0), 0),
       scanned: existing.totals?.scanned || bultos.length,
+      cajas: bultos.filter((b) => b.is_caja).length,
+      cbm: Number(bultos.reduce((sum, b) => sum + (Number(b.cbm) || 0), 0).toFixed(4)),
     };
   });
   return sortGuideClients([...map.values()]);
 }
 
-// Resumen de la guía: clientes, bultos y paquetes de los clientes marcados.
+// Resumen de la guía: clientes, cajas, bultos, paquetes y CBM de los clientes marcados.
 export function summarizeGuide(clients, selectedKeys) {
   const selected = (Array.isArray(clients) ? clients : []).filter((c) => (selectedKeys || []).includes(c.client_key));
   return selected.reduce(
@@ -219,7 +228,9 @@ export function summarizeGuide(clients, selectedKeys) {
       clients: acc.clients + 1,
       bultos: acc.bultos + (c.totals?.bultos || 0),
       packages: acc.packages + (c.totals?.packages || 0),
+      cajas: acc.cajas + (c.totals?.cajas || 0),
+      cbm: Number((acc.cbm + (Number(c.totals?.cbm) || 0)).toFixed(4)),
     }),
-    { clients: 0, bultos: 0, packages: 0 }
+    { clients: 0, bultos: 0, packages: 0, cajas: 0, cbm: 0 }
   );
 }

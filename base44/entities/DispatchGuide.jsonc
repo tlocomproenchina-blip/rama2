@@ -26,16 +26,16 @@
     "auto_generated": {
       "type": "boolean",
       "default": false,
-      "description": "Indica que la gu\u00eda se arm\u00f3 sola al escanear los bultos en Despacho por Escaneo (una gu\u00eda abierta por cliente) y no desde la emisi\u00f3n manual."
+      "description": "Indica que la gu\u00eda se arm\u00f3 sola al escanear las cajas y bultos en Despacho por Escaneo (una gu\u00eda abierta por cliente) y no desde la emisi\u00f3n manual."
     },
     "last_updated_date": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha y hora del \u00faltimo bulto sumado a la gu\u00eda. En una gu\u00eda autom\u00e1tica se actualiza con cada bulto escaneado del mismo cliente."
+      "description": "Fecha y hora del \u00faltimo bulto o caja sumado a la gu\u00eda. En una gu\u00eda autom\u00e1tica se actualiza con cada bloque escaneado del mismo cliente."
     },
     "last_updated_by": {
       "type": "string",
-      "description": "Email del usuario o dispositivo que sum\u00f3 el \u00faltimo bulto a la gu\u00eda"
+      "description": "Email del usuario o dispositivo que sum\u00f3 el \u00faltimo bloque a la gu\u00eda"
     },
     "filter_from": {
       "type": "string",
@@ -118,6 +118,22 @@
                 },
                 "scans": {
                   "type": "number"
+                },
+                "is_caja": {
+                  "type": "boolean",
+                  "description": "Indica que esta l\u00ednea de la gu\u00eda es una caja consolidada (etiqueta continua) y no un bulto suelto."
+                },
+                "caja_number": {
+                  "type": "number",
+                  "description": "Posici\u00f3n X de la caja dentro del lote del cliente, tal como qued\u00f3 impresa en su etiqueta continua."
+                },
+                "caja_total": {
+                  "type": "number",
+                  "description": "Total N de cajas del lote del cliente, tal como qued\u00f3 impreso en la etiqueta continua."
+                },
+                "cbm": {
+                  "type": "number",
+                  "description": "CBM oficial de la caja o del bulto al momento de armar la gu\u00eda."
                 }
               }
             }
@@ -135,6 +151,12 @@
                 "type": "number"
               },
               "scanned": {
+                "type": "number"
+              },
+              "cajas": {
+                "type": "number"
+              },
+              "cbm": {
                 "type": "number"
               }
             }
@@ -169,7 +191,7 @@
     "bulto_codes": {
       "type": "array",
       "default": [],
-      "description": "C\u00f3digos de bulto incluidos en la gu\u00eda. Marcan los escaneos que ya no vuelven a ofrecerse como pendientes.",
+      "description": "C\u00f3digos de bulto y de caja incluidos en la gu\u00eda. Marcan los escaneos que ya no vuelven a ofrecerse como pendientes.",
       "items": {
         "type": "string"
       }
@@ -189,6 +211,14 @@
         },
         "unregistered": {
           "type": "number"
+        },
+        "cajas": {
+          "type": "number",
+          "description": "Cantidad de cajas consolidadas incluidas en la gu\u00eda"
+        },
+        "cbm": {
+          "type": "number",
+          "description": "CBM total de las cajas y bultos de la gu\u00eda"
         }
       }
     },
@@ -199,7 +229,7 @@
         "entregada"
       ],
       "default": "emitida",
-      "description": "Estado de entrega de la gu\u00eda: emitida (impresa, pendiente de entrega) o entregada (entrega anotada). Una gu\u00eda emitida sigue abierta: los bultos que se escaneen despu\u00e9s para ese cliente se suman a ella."
+      "description": "Estado de entrega de la gu\u00eda: emitida (impresa, pendiente de entrega) o entregada (entrega anotada). Una gu\u00eda emitida sigue abierta: los bloques que se escaneen despu\u00e9s para ese cliente se suman a ella."
     },
     "delivered_date": {
       "type": "string",

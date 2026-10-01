@@ -47,6 +47,8 @@ const mergeClients = (groups: any[]) => {
           bultos: bultos.length,
           packages: bultos.reduce((sum: number, b: any) => sum + (Number(b.package_count) || 0), 0),
           scanned: client.totals?.scanned || bultos.length,
+          cajas: bultos.filter((b: any) => b.is_caja).length,
+          cbm: Number(bultos.reduce((sum: number, b: any) => sum + (Number(b.cbm) || 0), 0).toFixed(4)),
         },
       };
     })
@@ -124,6 +126,10 @@ export default async function (req: Request): Promise<Response> {
       clients: clients.length,
       bultos: bultoCodes.length,
       packages: clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.packages) || 0), 0),
+      cajas: clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.cajas) || 0), 0),
+      cbm: Number(
+        clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.cbm) || 0), 0).toFixed(4)
+      ),
     };
 
     // Número correlativo con bloqueo optimista sobre el contador dedicado.

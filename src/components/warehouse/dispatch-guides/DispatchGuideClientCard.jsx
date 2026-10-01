@@ -33,7 +33,10 @@ export default function DispatchGuideClientCard({ client, selected, onToggle }) 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="font-semibold text-slate-800 break-all">{client.client_name || client.client_email}</p>
             <span className="text-xs text-slate-500">
-              {client.totals?.bultos || 0} bulto(s) · {client.totals?.packages || 0} paquete(s)
+              {client.totals?.bultos || 0} bloque(s)
+              {client.totals?.cajas ? ` (${client.totals.cajas} caja(s))` : ''} ·{' '}
+              {client.totals?.packages || 0} paquete(s)
+              {Number(client.totals?.cbm) > 0 ? ` · ${Number(client.totals.cbm).toFixed(3)} CBM` : ''}
             </span>
           </div>
           <p className="font-mono text-xs text-blue-700 mt-0.5 break-all">
@@ -44,9 +47,17 @@ export default function DispatchGuideClientCard({ client, selected, onToggle }) 
             {bultos.map((bulto) => (
               <span
                 key={`${bulto.label_code}-${bulto.order_number}`}
-                className="rounded-lg border border-border bg-card/80 px-2 py-0.5 font-mono text-[11px] text-foreground"
+                className={`rounded-lg border px-2 py-0.5 font-mono text-[11px] ${
+                  bulto.is_caja
+                    ? 'border-primary/40 bg-accent text-accent-foreground'
+                    : 'border-border bg-card/80 text-foreground'
+                }`}
               >
+                {bulto.is_caja
+                  ? `CAJA ${bulto.caja_number || '?'}/${bulto.caja_total || '?'} · `
+                  : ''}
                 {bulto.label_code} · {bulto.package_count || 0} paq.
+                {Number(bulto.cbm) > 0 ? ` · ${Number(bulto.cbm).toFixed(3)} CBM` : ''}
               </span>
             ))}
           </div>

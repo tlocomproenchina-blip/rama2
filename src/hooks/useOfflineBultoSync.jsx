@@ -60,6 +60,22 @@ export function useOfflineBultoSync() {
     return queueItem;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Encolar una caja consolidada cerrada: el servidor la registra y absorbe los bultos
+  // pequeños que van dentro (esos bultos se eliminan allí, no en el dispositivo).
+  const enqueueCaja = useCallback(async (cajaData) => {
+    const queueItem = {
+      id: cajaData.local_bulto_id || `caja_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      ...cajaData,
+      type: 'caja',
+      sync_status: 'pending',
+      created_at: Date.now(),
+    };
+    await put('sync_queue', queueItem);
+    setPendingBultos((prev) => [...prev, queueItem]);
+    processQueue();
+    return queueItem;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Encolar una recepción de paquete (Package.update status='recibido')
   const enqueuePackageReception = useCallback(async (pkg) => {
     if (!pkg?.id) return null;
@@ -99,7 +115,52 @@ export function useOfflineBultoSync() {
           prev.map((p) => (p.id === item.id ? { ...p, sync_status: 'syncing' } : p))
         );
         try {
-          if (item.type === 'package_reception') {
+          if (item.type === 'caja') {
+            // La caja consolidada se registra con su contenido: el servidor absorbe los
+            // bultos pequeños escaneados dentro de ella y los elimina.
+            const res = await base44.functions.invoke('syncCaja', {
+              label_code: item.label_code,
+              client_email: item.client_email,
+              package_codes: item.package_codes || [],
+              absorb_codes: item.absorb_codes || [],
+              unregistered_codes: item.unregistered_codes || [],
+              cbm_order_numbers: item.cbm_order_numbers || [],
+              device_id: item.device_id || '',
+              recognition_photo_url: item.recognition_photo_url || '',
+            });
+            const data = res?.data || res || {};
+            if (!data?.caja) throw new Error(data?.error || 'No se pudo registrar la caja');
+
+            // La caja local queda enlazada con el servidor y los bultos absorbidos se
+            // sueltan del dispositivo: su contenido ya vive dentro de la caja.
+            try {
+              const localBultos = await getAll('bultos');
+              const localCaja = localBultos.find(
+                (b) => (b.local_bulto_id || b.id) === item.id || b.label_code === item.label_code
+              );
+              if (localCaja) {
+                await put('bultos', {
+                  ...localCaja,
+                  ...data.caja,
+                  id: localCaja.id,
+                  is_local: false,
+                  synced: true,
+                  server_bulto_id: data.caja.id,
+                });
+              }
+              for (const code of item.absorb_codes || []) {
+                const absorbed = localBultos.find(
+                  (b) => b.label_code === code && (b.local_bulto_id || b.id) !== item.id
+                );
+                if (absorbed?.id) await del('bultos', absorbed.id);
+              }
+            } catch (_) {}
+
+            const warnings = data?.absorbed?.warnings || [];
+            if (warnings.length) {
+              toast.info(`Caja ${item.label_code}: ${warnings[0]}`, { duration: 6000 });
+            }
+          } else if (item.type === 'package_reception') {
             // Sincronizar recepción de paquete
             // Las fotos del escaneo viajan en la misma actualización de recepción.
             const photoFields = (item.package_image_urls && item.package_image_urls.length)
@@ -195,6 +256,7 @@ export function useOfflineBultoSync() {
     isSyncing,
     isOnline,
     enqueueClosedBulto,
+    enqueueCaja,
     enqueuePackageReception,
     retrySync,
   };

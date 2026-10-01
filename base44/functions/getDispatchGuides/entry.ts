@@ -15,11 +15,11 @@ const DISPATCH_RESULTS = ['dispatched', 'already_dispatched'];
 
 const normCode = (raw: any) => String(raw || '').trim().toUpperCase();
 
-// El código del bulto termina en -B## y su prefijo es el shipping mark del
-// cliente (N6-TLEC-W1383S-B50338 → N6-TLEC-W1383S): permite deducir el cliente
-// cuando la etiqueta escaneada ya no existe como bulto en el sistema.
+// El bloque despachado termina en -B## (bulto suelto) o en -C## (caja consolidada)
+// y su prefijo es el shipping mark del cliente (N6-TLEC-W1383S-B50338 → N6-TLEC-W1383S):
+// permite deducir el cliente cuando la etiqueta escaneada ya no existe en el sistema.
 const markOfCode = (code: any) => {
-  const match = String(code || '').trim().match(/^(.*?)-B\d+$/i);
+  const match = String(code || '').trim().match(/^(.*?)-[BC]\d+$/i);
   return match ? match[1].trim().toUpperCase() : '';
 };
 
@@ -298,6 +298,12 @@ export default async function (req: Request): Promise<Response> {
             date: r.date || '',
             order_number: order && order.client === emailKey ? order.number : '',
             scans: r.scans || 1,
+            // Caja consolidada (etiqueta continua): su posición X/N y su CBM son los
+            // mismos que se imprimieron en la etiqueta pegada a la caja.
+            is_caja: !!bulto?.is_caja,
+            caja_number: Number(bulto?.caja_number) || 0,
+            caja_total: Number(bulto?.caja_total) || 0,
+            cbm: Number(bulto?.cargo_cbm) || 0,
           };
         })
         .sort((a: any, b: any) => String(a.label_code).localeCompare(String(b.label_code)));
@@ -325,6 +331,8 @@ export default async function (req: Request): Promise<Response> {
           bultos: bultos.length,
           packages: bultos.reduce((sum: number, b: any) => sum + (Number(b.package_count) || 0), 0),
           scanned: group.rows.reduce((sum: number, r: any) => sum + (Number(r.scans) || 1), 0),
+          cajas: bultos.filter((b: any) => b.is_caja).length,
+          cbm: Number(bultos.reduce((sum: number, b: any) => sum + (Number(b.cbm) || 0), 0).toFixed(4)),
         },
       });
     });
@@ -339,8 +347,10 @@ export default async function (req: Request): Promise<Response> {
         bultos: acc.bultos + c.totals.bultos,
         packages: acc.packages + c.totals.packages,
         scanned: acc.scanned + c.totals.scanned,
+        cajas: acc.cajas + (c.totals.cajas || 0),
+        cbm: Number((acc.cbm + (c.totals.cbm || 0)).toFixed(4)),
       }),
-      { clients: 0, bultos: 0, packages: 0, scanned: 0 }
+      { clients: 0, bultos: 0, packages: 0, scanned: 0, cajas: 0, cbm: 0 }
     );
 
     return Response.json({

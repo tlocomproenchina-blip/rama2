@@ -4,7 +4,29 @@
   "properties": {
     "label_code": {
       "type": "string",
-      "description": "C\u00f3digo escaneable de la etiqueta del bulto (shipping_mark-B##). Formato distinto al ShippingLabel (-L##) para evitar colisiones."
+      "description": "C\u00f3digo escaneable de la etiqueta del bulto (shipping_mark-B##) o de la caja consolidada (shipping_mark-C##). Formato distinto al ShippingLabel (-L##) para evitar colisiones."
+    },
+    "is_caja": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marca que este registro es una caja consolidada: agrupa bultos peque\u00f1os (que se absorben dentro) y se despacha como una sola unidad, identificada con una etiqueta continua que lleva su c\u00f3digo de barras."
+    },
+    "caja_number": {
+      "type": "number",
+      "description": "Posici\u00f3n X de la caja dentro del lote del cliente (1..N). Se asigna al imprimir la tira de etiquetas continuas del lote y es la que se imprime como X/N en la etiqueta y en la gu\u00eda de despacho."
+    },
+    "caja_total": {
+      "type": "number",
+      "description": "Total N de cajas del lote del cliente al momento de imprimir la tira continua. Junto con caja_number forma el X/N de la etiqueta y de la gu\u00eda."
+    },
+    "caja_label_printed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se imprimi\u00f3 la etiqueta continua de esta caja."
+    },
+    "caja_label_printed_by": {
+      "type": "string",
+      "description": "Usuario o dispositivo que imprimi\u00f3 la etiqueta continua de la caja."
     },
     "client_email": {
       "type": "string",
@@ -27,7 +49,7 @@
     "package_ids": {
       "type": "array",
       "default": [],
-      "description": "IDs de los Package agrupados f\u00edsicamente en este bulto",
+      "description": "IDs de los Package agrupados f\u00edsicamente en este bulto (o dentro de la caja consolidada)",
       "items": {
         "type": "string"
       }
@@ -43,7 +65,7 @@
     "unregistered_codes": {
       "type": "array",
       "default": [],
-      "description": "C\u00f3digos agregados al bulto desde el escaneo del almac\u00e9n de Venezuela que no existen como Package en el sistema (etiqueta o tracking no registrado). No crean registros de paquetes: se imprimen en el bloque CONTENIDO de la etiqueta y cuentan como un paquete m\u00e1s en el conteo del bulto.",
+      "description": "C\u00f3digos agregados al bulto (o caja) desde el escaneo del almac\u00e9n de Venezuela que no existen como Package en el sistema (etiqueta o tracking no registrado). No crean registros de paquetes: se imprimen en el bloque CONTENIDO de la etiqueta y cuentan como un paquete m\u00e1s en el conteo del bulto.",
       "items": {
         "type": "string"
       }
@@ -59,7 +81,7 @@
     "absorbed_bultos": {
       "type": "array",
       "default": [],
-      "description": "Historial de bultos absorbidos: cuando un paquete escaneado ya pertenec\u00eda a otro bulto, ese bulto viejo se fusion\u00f3 aqu\u00ed (paquetes, c\u00f3digos sin registrar y N\u00b0 de orden) y se elimin\u00f3. Deja constancia de qu\u00e9 se movi\u00f3, cu\u00e1ndo y qui\u00e9n o qu\u00e9 dispositivo lo hizo.",
+      "description": "Historial de bultos absorbidos: cuando un paquete escaneado ya pertenec\u00eda a otro bulto (o cuando un bulto peque\u00f1o se mete dentro de una caja consolidada), ese bulto viejo se fusion\u00f3 aqu\u00ed (paquetes, c\u00f3digos sin registrar y N\u00b0 de orden) y se elimin\u00f3. Deja constancia de qu\u00e9 se movi\u00f3, cu\u00e1ndo y qui\u00e9n o qu\u00e9 dispositivo lo hizo.",
       "items": {
         "type": "object",
         "properties": {
@@ -127,11 +149,11 @@
     },
     "cargo_cbm": {
       "type": "number",
-      "description": "CBM oficial del bulto registrado o editado a mano por un admin desde 'Carga en almac\u00e9n' (Gesti\u00f3n de Facturas). Si est\u00e1 definido y es mayor a 0, manda sobre el CBM calculado y adem\u00e1s se escribi\u00f3 como volumen real (actual_cbm) de los paquetes del bulto."
+      "description": "CBM oficial del bulto o de la caja consolidada, registrado o editado a mano por un admin desde 'Carga en almac\u00e9n' (Gesti\u00f3n de Facturas). Si est\u00e1 definido y es mayor a 0, manda sobre el CBM calculado y adem\u00e1s se escribi\u00f3 como volumen real (actual_cbm) de los paquetes del bulto."
     },
     "cargo_package_count": {
       "type": "number",
-      "description": "Conteo real de paquetes del bulto corregido por un admin desde 'Carga en almac\u00e9n'. Si est\u00e1 definido, manda sobre la cantidad deducida de package_ids o trackings, sin crear ni soltar paquetes escaneados; es el que se usa para facturar."
+      "description": "Conteo real de paquetes del bulto o de la caja consolidada corregido por un admin desde 'Carga en almac\u00e9n'. Si est\u00e1 definido, manda sobre la cantidad deducida de package_ids o trackings, sin crear ni soltar paquetes escaneados; es el que se usa para facturar."
     },
     "cargo_risk_category": {
       "type": "string",

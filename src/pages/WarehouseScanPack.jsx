@@ -14,6 +14,7 @@ import OpenBultosChips from '@/components/warehouse/OpenBultosChips';
 import BultoHistory from '@/components/warehouse/BultoHistory';
 import ManualPackageAssign from '@/components/warehouse/ManualPackageAssign';
 import BulkBultoCreator from '@/components/warehouse/BulkBultoCreator';
+import CajaAssemblyPanel from '@/components/warehouse/CajaAssemblyPanel';
 import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
 import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import OfflineScanResult from '@/components/warehouse/OfflineScanResult';
@@ -57,7 +58,7 @@ export default function WarehouseScanPack({ user }) {
   const { block: numberBlock, getNextNumber, reserving: reservingBlock } = useBultoNumberBlock();
 
   const {
-    pendingBultos, isSyncing, isOnline, enqueueClosedBulto, enqueuePackageReception, retrySync,
+    pendingBultos, isSyncing, isOnline, enqueueClosedBulto, enqueueCaja, enqueuePackageReception, retrySync,
   } = useOfflineBultoSync();
 
   // Helper: actualiza la ref y el estado sincrónicamente
@@ -541,6 +542,9 @@ export default function WarehouseScanPack({ user }) {
         retrySync={retrySync}
         onDiscardBulto={handleDiscardBulto}
       />
+
+      {/* Caja consolidada: se arman los bultos pequeños dentro de la caja que se despacha */}
+      <CajaAssemblyPanel user={user} getNextNumber={getNextNumber} enqueueCaja={enqueueCaja} />
 
       {/* Resultado del último escaneo (instantáneo, local) */}
       {lastScan?.pkg && (

@@ -33,10 +33,11 @@ export async function generateDispatchGuidePdf({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.text('#', 16, y);
-    doc.text('Código de bulto', 26, y);
-    doc.text('Paq.', 120, y);
-    doc.text('Fecha', 134, y);
-    doc.text('Verificado', 168, y);
+    doc.text('Código de bulto / caja', 26, y);
+    doc.text('Paq.', 112, y);
+    doc.text('CBM', 126, y);
+    doc.text('Fecha', 144, y);
+    doc.text('Verificado', 174, y);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     y += 7;
@@ -62,7 +63,7 @@ export async function generateDispatchGuidePdf({
       doc.setFontSize(9);
       doc.text(`Emitida: ${now.toLocaleString('es-VE')}`, right, 17, { align: 'right' });
       doc.text(`${totals.clients} cliente(s) · ${totals.bultos} bulto(s) · ${totals.packages} paquete(s)`, right, 22, { align: 'right' });
-      doc.text('Bultos escaneados para despacho · verificación de entrega bulto por bulto', left, 29);
+      doc.text('Cajas y bultos escaneados para despacho · verificación de entrega bloque por bloque', left, 29);
       if (offline) {
         doc.setTextColor(185, 28, 28);
         doc.setFont('helvetica', 'bold');
@@ -144,12 +145,16 @@ export async function generateDispatchGuidePdf({
       doc.setFontSize(10);
       doc.text(String(index), 16, y);
       doc.setFont('courier', 'bold');
-      doc.text(String(bulto.label_code || '—'), 26, y);
+      // Las cajas consolidadas se identifican con la posición impresa en su etiqueta.
+      const cajaTag =
+        bulto.is_caja && bulto.caja_number ? `[${bulto.caja_number}/${bulto.caja_total || '?'}] ` : '';
+      doc.text(`${cajaTag}${bulto.label_code || '—'}`, 26, y);
       doc.setFont('helvetica', 'normal');
-      doc.text(String(bulto.package_count ?? 0), 120, y);
-      doc.text(fmtDate(bulto.date), 134, y);
+      doc.text(String(bulto.package_count ?? 0), 112, y);
+      doc.text(bulto.cbm ? Number(bulto.cbm).toFixed(3) : '—', 126, y);
+      doc.text(fmtDate(bulto.date), 144, y);
       doc.setDrawColor(100, 116, 139);
-      doc.rect(168, y - 3.2, 3.6, 3.6);
+      doc.rect(174, y - 3.2, 3.6, 3.6);
       y += 6.5;
     });
 
@@ -157,8 +162,13 @@ export async function generateDispatchGuidePdf({
     doc.setFontSize(10);
     const clientBultos = bultos.filter((b) => b.label_code).length;
     const clientPackages = bultos.reduce((sum, b) => sum + (Number(b.package_count) || 0), 0);
+    const clientCajas = bultos.filter((b) => b.is_caja).length;
+    const clientCbm = bultos.reduce((sum, b) => sum + (Number(b.cbm) || 0), 0);
     doc.text(
-      `Total cliente: ${clientBultos} bulto(s) · ${clientPackages} paquete(s)` +
+      `Total cliente: ${clientBultos} bulto(s)` +
+        (clientCajas ? ` (${clientCajas} caja(s))` : '') +
+        ` · ${clientPackages} paquete(s)` +
+        (clientCbm > 0 ? ` · ${clientCbm.toFixed(3)} CBM` : '') +
         (entry.orders_count ? ` · ${entry.orders_count} despacho(s)` : ''),
       right,
       y,

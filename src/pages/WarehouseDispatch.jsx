@@ -15,6 +15,7 @@ import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 import DispatchScanHistoryPanel from '@/components/warehouse/DispatchScanHistoryPanel';
 import DispatchApprovalModal from '@/components/warehouse/DispatchApprovalModal';
 import { recordScanLog, flushPendingScanLogs } from '@/lib/scanLogs';
+import { isCajaCode } from '@/lib/cajaCodes';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
 import { useOfflineDispatchQueue } from '@/hooks/useOfflineDispatchQueue';
 import { put as idbPut, getAll as idbGetAll, bulkPut as idbBulkPut } from '@/lib/offlineDb';
@@ -63,7 +64,8 @@ export default function WarehouseDispatch({ user }) {
     return () => window.removeEventListener('online', handleOnline);
   }, []);
 
-  // --- Despachar bulto completo: marcar todos los paquetes como despachado ---
+  // --- Despachar el bloque completo (caja consolidada o bulto): marcar todos sus
+  // paquetes como despachado ---
   const handleBultoDispatch = useCallback(async (bulto, photoUrl = null) => {
     const packageIds = bulto.package_ids || [];
     const packageTrackings = bulto.package_trackings || [];
@@ -73,6 +75,22 @@ export default function WarehouseDispatch({ user }) {
     const isLocal = bulto.is_local || String(bulto.id || '').startsWith('local_');
     if (isLocal) {
       try {
+        if (isCajaCode(bulto.label_code)) {
+          // Una caja consolidada se registra con su propia operación: absorbe los bultos
+          // pequeños que van adentro y los elimina del sistema.
+          await base44.functions.invoke('syncCaja', {
+            label_code: bulto.label_code,
+            client_email: bulto.client_email || '',
+            package_codes: [
+              ...(bulto.package_trackings || []),
+              ...(bulto.unregistered_codes || []),
+              ...(bulto.absorbed_codes || []),
+            ],
+            absorb_codes: bulto.absorbed_codes || [],
+            unregistered_codes: bulto.unregistered_codes || [],
+            cbm_order_numbers: bulto.cbm_order_numbers || [],
+          });
+        } else {
         await base44.functions.invoke('syncBultoBatch', {
           local_bulto_id: bulto.id,
           label_code: bulto.label_code,
@@ -90,8 +108,9 @@ export default function WarehouseDispatch({ user }) {
           created_by: bulto.created_by || user?.email || '',
           closed_at: bulto.closed_at || now,
         });
+        }
       } catch (e) {
-        console.error('Error sincronizando bulto local antes de despachar:', e);
+        console.error('Error sincronizando el bloque local antes de despachar:', e);
       }
     }
 
@@ -132,7 +151,8 @@ export default function WarehouseDispatch({ user }) {
       offline: true,
     });
 
-    toast.success(`Bulto ${bulto.label_code} despachado (${packageIds.length} paquetes). Notificando al cliente…`, { duration: 3000 });
+    const isCaja = isCajaCode(bulto.label_code);
+    toast.success(`${isCaja ? 'Caja' : 'Bulto'} ${bulto.label_code} despachado (${packageIds.length} paquetes). Notificando al cliente…`, { duration: 3000 });
     // 5. La guía de despacho del cliente se arma o se completa sola con este bulto.
     const scanLog = await logScan({
       scanned_code: bulto.label_code,
@@ -178,17 +198,17 @@ export default function WarehouseDispatch({ user }) {
         setPhotoErrors([]);
       }
 
-      // 0) Buscar si es un bulto por label_code (código -B##)
+      // 0) Buscar si es una caja (-C##) o un bulto (-B##) por label_code
       const localBultos = await idbGetAll('bultos');
       const bulto = localBultos?.find((b) => b.label_code === cleaned);
       if (bulto && (bulto.package_ids || []).length > 0) {
-        // Es un bulto local con paquetes: despachar todos
+        // Es un bloque local con paquetes: despachar todo su contenido
         await handleBultoDispatch(bulto, scanPhotoUrl);
         return;
       }
 
-      // 0b) Si no está local pero parece un bulto (contiene -B), intentar en el servidor
-      if (/-B\d+$/i.test(cleaned)) {
+      // 0b) Si no está local pero parece un bloque (contiene -B o -C), intentar en el servidor
+      if (/-[BC]\d+$/i.test(cleaned)) {
         try {
           const res = await base44.functions.invoke('dispatchBulto', {
             label_code: cleaned,
@@ -402,8 +422,8 @@ export default function WarehouseDispatch({ user }) {
           <Truck className="h-6 w-6 text-blue-600" /> Despacho por Escaneo
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Escanea el código del bulto (termina en -B##) para despachar todos sus paquetes a la vez,
-          o escanea un tracking individual para despachar un solo paquete. El cliente recibe la notificación de transportista asignado.
+          Escanea el código de la caja (termina en -C##) o del bulto (-B##) para despachar todo su
+          contenido a la vez, o el tracking de un paquete individual. El cliente recibe la notificación de transportista asignado.
         </p>
       </div>
 
@@ -471,8 +491,8 @@ export default function WarehouseDispatch({ user }) {
 
       <BarcodeScannerModule
         title="Escaneo de despacho"
-        description="Escanea el código del bulto (-B##) para despachar todo, o el tracking/etiqueta de un paquete individual. La cámara toma una foto automática al leer el código y el despacho se ejecuta cuando esa foto termina de subir."
-        placeholder="Escanea bulto (-B##) o tracking individual"
+        description="Escanea el código de la caja (-C##) o del bulto (-B##) para despachar todo su contenido, o el tracking/etiqueta de un paquete individual. La cámara toma una foto automática al leer el código y el despacho se ejecuta cuando esa foto termina de subir."
+        placeholder="Escanea caja (-C##), bulto (-B##) o tracking"
         actionLabel="Buscar"
         value={code}
         onValueChange={setCode}
@@ -562,6 +582,7 @@ function BultoDispatchResultCard({ result }) {
   const clientName = cs.full_name || bulto.client_email || 'Cliente';
   const mark = bulto.shipping_mark || cs.shipping_mark;
   const trackings = result.package_trackings || [];
+  const isCaja = isCajaCode(bulto.label_code);
 
   return (
     <Card className="border-emerald-300 bg-emerald-50">
@@ -576,7 +597,7 @@ function BultoDispatchResultCard({ result }) {
           </div>
           <div className="flex flex-col items-end gap-1">
             <Badge className="bg-emerald-600 text-white">
-              <CheckCircle2 className="h-3 w-3 mr-1" /> Bulto despachado
+              <CheckCircle2 className="h-3 w-3 mr-1" /> {isCaja ? 'Caja despachada' : 'Bulto despachado'}
             </Badge>
             {result.offline && (
               <Badge variant="outline" className="border-slate-300 text-slate-600 bg-white/70">
@@ -615,7 +636,8 @@ function BultoDispatchResultCard({ result }) {
         <div className="flex items-center gap-2 rounded-lg bg-emerald-100 border border-emerald-300 px-3 py-2">
           <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
           <p className="text-sm text-emerald-800">
-            Todos los paquetes del bulto fueron despachados. El cliente recibirá la notificación de transportista asignado.
+            Todos los paquetes {isCaja ? 'de la caja' : 'del bulto'} fueron despachados. El cliente
+            recibirá la notificación de transportista asignado.
           </p>
         </div>
       </CardContent>
