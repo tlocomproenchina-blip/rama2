@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ReceiptText, RotateCcw, AlertTriangle, Package, ChevronDown } from 'lucide-react';
+import { Loader2, ReceiptText, RotateCcw, AlertTriangle, Package, ChevronDown, Boxes } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 import ClientInfoCard from '@/components/manual-billing/ClientInfoCard';
@@ -16,6 +17,8 @@ import ReceiptsAutoMergeNotice from '@/components/manual-billing/ReceiptsAutoMer
 import PendingBillingPanel from '@/components/manual-billing/PendingBillingPanel';
 import BilledReceiptsSection from '@/components/manual-billing/BilledReceiptsSection';
 import usePendingBillingClients from '@/hooks/usePendingBillingClients';
+import ClientPendingLoad from '@/components/manual-billing/ClientPendingLoad';
+import MobileBillingSummary from '@/components/manual-billing/MobileBillingSummary';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -943,60 +946,137 @@ export default function AdminManualBilling({ user }) {
     setRecovering(false);
   };
 
+  // Cola visible del panel: solo clientes con al menos un bulto pendiente de facturar.
+  // Al marcar el último bulto de un cliente, sale de aquí en el momento.
+  const pendingQueue = useMemo(
+    () => pending.clients.filter((c) => (c.bultos || []).some((b) => !b.billing_marked)),
+    [pending.clients]
+  );
+
+  // Carga del cliente abierto (bultos pendientes y ya marcados), desde el panel
+  const selectedPending = useMemo(
+    () => pending.clients.find((c) => c.client_email === client?.email) || null,
+    [pending.clients, client]
+  );
+
+  // El resumen de facturación se usa dos veces: fijo a la derecha en escritorio y
+  // desplegable en la barra inferior en móvil/tablet.
+  const billingSummary = (
+    <BillingSummary
+      rows={rows}
+      consolidationMode={consolidationMode}
+      setConsolidationMode={setConsolidationMode}
+      manualConsolidationFee={manualConsolidationFee}
+      setManualConsolidationFee={setManualConsolidationFee}
+      consolidationFee={consolidationFee}
+      shippingTotal={shippingTotal}
+      insuranceTotal={insuranceTotal}
+      autoInsuranceTotal={autoInsuranceTotal}
+      manualInsurance={manualInsurance}
+      setManualInsurance={setManualInsurance}
+      paidInsuranceTotal={paidInsuranceTotal}
+      total={total}
+      paymentMethod={paymentMethod}
+      setPaymentMethod={setPaymentMethod}
+      appConfig={appConfig}
+      onCreate={handleCreate}
+      creating={creating}
+      canCreate={selectedRows.length > 0 || (manualReceiptNumber.trim() !== '' && num(billedCbm) > 0) || orphanPackages.some((p) => p.selected)}
+      billedCbm={billedCbm}
+      setBilledCbm={setBilledCbm}
+      manualReceiptNumber={manualReceiptNumber}
+      setManualReceiptNumber={setManualReceiptNumber}
+      providerInvoiceUrl={providerInvoiceUrl}
+      setProviderInvoiceUrl={setProviderInvoiceUrl}
+      extraAmount={extraAmount}
+      setExtraAmount={setExtraAmount}
+      extraConcept={extraConcept}
+      setExtraConcept={setExtraConcept}
+      doorToDoorFee={doorToDoorFee}
+      setDoorToDoorFee={setDoorToDoorFee}
+      creditBalance={creditBalance}
+    />
+  );
+
   return (
-    <div className="space-y-6 max-w-screen-2xl mx-auto overflow-x-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <ReceiptText className="h-6 w-6 text-blue-600" /> Facturación Manual
+    <div className="mb-dark -m-4 min-h-[70dvh] space-y-5 overflow-x-hidden bg-slate-950 p-4 pb-28 text-slate-100 md:-m-6 md:p-6 lg:-m-8 lg:p-8 xl:pb-8">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+        className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+      >
+        <div className="min-w-0">
+          <p className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-sky-400/80">
+            <ReceiptText className="h-3.5 w-3.5" /> Facturación manual
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-white">
+            Armar la factura del cliente
           </h1>
-          <p className="text-slate-500">Busca un cliente, selecciona facturas registradas y genera una factura combinada</p>
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            A la izquierda está la carga que sigue en el almacén sin facturar. Elige un cliente, revisa sus N° de orden y arma su factura aquí mismo.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleReviewAllDuplicates} disabled={scanningDups}>
+          <Button
+            variant="outline"
+            onClick={handleReviewAllDuplicates}
+            disabled={scanningDups}
+            className="border-white/15 bg-white/5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+          >
             {scanningDups ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <AlertTriangle className="h-4 w-4 mr-2" />}
             Revisar duplicados
           </Button>
-          <Button variant="outline" onClick={handleRecoverOrphans} disabled={recovering}>
+          <Button
+            variant="outline"
+            onClick={handleRecoverOrphans}
+            disabled={recovering}
+            className="border-white/15 bg-white/5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+          >
             {recovering ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
             Recuperar registros huérfanos
           </Button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Móvil: el panel se pliega para no empujar la facturación fuera de pantalla */}
+      {/* Móvil y tablet: la carga pendiente se despliega sobre el expediente */}
       <Button
         variant="outline"
-        className="w-full justify-between lg:hidden"
+        className="w-full justify-between border-white/15 bg-white/5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white xl:hidden"
         onClick={() => setShowPending((v) => !v)}
       >
         <span className="inline-flex items-center gap-2">
-          <Package className="h-4 w-4" /> Carga pendiente ({pending.clients.length} cliente(s))
+          <Package className="h-4 w-4" /> Carga pendiente ({pendingQueue.length} cliente(s))
         </span>
         <ChevronDown className={`h-4 w-4 transition-transform ${showPending ? 'rotate-180' : ''}`} />
       </Button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] gap-6 items-start">
-        <aside className={showPending ? 'block' : 'hidden lg:block lg:sticky lg:top-6'}>
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[19rem_minmax(0,1fr)_22rem]">
+        <motion.aside
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
+          className={showPending ? 'block' : 'hidden xl:block'}
+        >
           <PendingBillingPanel
             clients={pending.clients}
             loading={pending.loading}
             error={pending.error}
             selectedEmail={client?.email}
-            markingId={pending.markingId}
             onRetry={pending.reload}
             onSelectClient={selectPendingClient}
-            onMarkBulto={handleMarkBulto}
-            onMarkOrderBultos={handleMarkOrderBultos}
           />
-        </aside>
+        </motion.aside>
 
-        <div className="space-y-6 min-w-0">
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-5">
-              <ClientSearchBox onSelect={loadClientInvoices} />
-            </CardContent>
-          </Card>
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut', delay: 0.12 }}
+          className="min-w-0 space-y-4"
+        >
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <ClientSearchBox onSelect={loadClientInvoices} />
+          </div>
 
       <DuplicateReceiptsBanner
         groups={dupGroups}
@@ -1012,9 +1092,16 @@ export default function AdminManualBilling({ user }) {
         onDismiss={() => setAutoSummary(null)}
       />
 
-      {client && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4 min-w-0">
+      {!client ? (
+        <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-8 text-center">
+          <Boxes className="mx-auto h-8 w-8 text-slate-500" />
+          <p className="mt-3 font-display text-sm font-semibold text-slate-200">Elige un cliente de la carga pendiente</p>
+          <p className="mx-auto mt-1 max-w-md text-xs text-slate-400">
+            Su expediente se abre aquí con la carga del almacén por N° de orden, y el resumen de facturación queda siempre a la derecha.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
             <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); setDupGroups([]); setAutoSummary(null); }} />
             <ClientStateRatesCard
               client={client}
@@ -1024,6 +1111,19 @@ export default function AdminManualBilling({ user }) {
               cargoType={cargoType}
               onCargoTypeChange={setCargoType}
             />
+
+            {selectedPending && (
+              <ClientPendingLoad
+                client={selectedPending}
+                markingId={pending.markingId}
+                onMarkBulto={handleMarkBulto}
+                onMarkOrderBultos={handleMarkOrderBultos}
+              />
+            )}
+
+            <p className="pt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+              Recibos registrados por facturar
+            </p>
 
             {loadingRows ? (
               <div className="flex items-center justify-center py-12">
@@ -1064,49 +1164,26 @@ export default function AdminManualBilling({ user }) {
               markingId={markingReceiptId}
               onUnmark={(r) => handleMarkReceipt(r, false)}
             />
-          </div>
-
-          <div className="lg:col-span-1 min-w-0">
-            <BillingSummary
-              rows={rows}
-              consolidationMode={consolidationMode}
-              setConsolidationMode={setConsolidationMode}
-              manualConsolidationFee={manualConsolidationFee}
-              setManualConsolidationFee={setManualConsolidationFee}
-              consolidationFee={consolidationFee}
-              shippingTotal={shippingTotal}
-              insuranceTotal={insuranceTotal}
-              autoInsuranceTotal={autoInsuranceTotal}
-              manualInsurance={manualInsurance}
-              setManualInsurance={setManualInsurance}
-              paidInsuranceTotal={paidInsuranceTotal}
-              total={total}
-              paymentMethod={paymentMethod}
-              setPaymentMethod={setPaymentMethod}
-              appConfig={appConfig}
-              onCreate={handleCreate}
-              creating={creating}
-              canCreate={selectedRows.length > 0 || (manualReceiptNumber.trim() !== '' && num(billedCbm) > 0) || orphanPackages.some((p) => p.selected)}
-              billedCbm={billedCbm}
-              setBilledCbm={setBilledCbm}
-              manualReceiptNumber={manualReceiptNumber}
-              setManualReceiptNumber={setManualReceiptNumber}
-              providerInvoiceUrl={providerInvoiceUrl}
-              setProviderInvoiceUrl={setProviderInvoiceUrl}
-              extraAmount={extraAmount}
-              setExtraAmount={setExtraAmount}
-              extraConcept={extraConcept}
-              setExtraConcept={setExtraConcept}
-              doorToDoorFee={doorToDoorFee}
-              setDoorToDoorFee={setDoorToDoorFee}
-              creditBalance={creditBalance}
-            />
-          </div>
         </div>
       )}
 
-        </div>
+      </motion.section>
+
+        <motion.aside
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut', delay: 0.19 }}
+          className="hidden xl:block"
+        >
+          {billingSummary}
+        </motion.aside>
       </div>
+
+      {client && (
+        <MobileBillingSummary total={total}>
+          {billingSummary}
+        </MobileBillingSummary>
+      )}
 
       <DuplicateMergeDialog
         open={showMergeDialog}
