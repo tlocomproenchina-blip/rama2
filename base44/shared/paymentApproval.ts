@@ -1,3 +1,5 @@
+import { buildWarehouseOrderOnPayment } from "./warehouseOrder.ts";
+
 // Lógica única de aprobación de pagos de TLEC CARGO.
 // La usan las funciones de aprobación individual (approveInvoicePayment,
 // approveInsurancePayment) y la aprobación masiva (bulkApprovePayments), de modo que
@@ -93,6 +95,12 @@ export async function approveAbonoPayment(base44: any, paymentId: string, adminE
   }
   await base44.asServiceRole.entities.Invoice.update(invoice.id, updatePayload);
 
+  // Solo cuando el abono deja la factura completamente pagada se arma su orden de
+  // almacén; en un abono parcial la factura sigue pendiente y no hay nada que liberar.
+  if (isFullyPaid && invoice.status !== 'pagada') {
+    await buildWarehouseOrderOnPayment(base44, invoice.id, adminEmail);
+  }
+
   const balance = Math.max(0, total - newPaidAmount);
   const amountText = Number(payment.amount || 0).toFixed(2);
   await notifyClient(base44, {
@@ -117,7 +125,7 @@ export async function approveAbonoPayment(base44: any, paymentId: string, adminE
 }
 
 // ---------- Pagos reportados en facturas (factura en 'revision') ----------
-export async function approveReportedInvoicePayment(base44: any, invoiceId: string) {
+export async function approveReportedInvoicePayment(base44: any, invoiceId: string, adminEmail = '') {
   const invs = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
   if (!invs || invs.length === 0) fail('Factura no encontrada', 404);
   const invoice = invs[0];
@@ -129,6 +137,9 @@ export async function approveReportedInvoicePayment(base44: any, invoiceId: stri
     payment_date: nowIso,
     payment_method: invoice.payment_method || 'transferencia'
   });
+
+  // La factura quedó pagada: se arma y guarda su orden de almacén.
+  await buildWarehouseOrderOnPayment(base44, invoiceId, adminEmail);
 
   await notifyClient(base44, {
     to: invoice.client_email,
@@ -170,6 +181,9 @@ export async function approveConsolidationPayment(base44: any, consolidationId: 
       payment_date: nowIso,
       payment_method: cons.payment_method || relatedInvoices[0].payment_method || 'transferencia'
     });
+
+    // La factura de la consolidación quedó pagada: se arma y guarda su orden de almacén.
+    await buildWarehouseOrderOnPayment(base44, relatedInvoices[0].id, adminEmail);
   }
 
   await notifyClient(base44, {

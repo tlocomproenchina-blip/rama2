@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { buildWarehouseOrderOnPayment } from "../../shared/warehouseOrder.ts";
 
 async function getAccessToken() {
   const clientId = Deno.env.get('PAYPAL_CLIENT_ID');
@@ -73,6 +74,9 @@ Deno.serve(async (req) => {
         },
       ],
     });
+
+    // El pago en línea dejó la factura pagada: se arma y guarda su orden de almacén.
+    await buildWarehouseOrderOnPayment(base44, invoice_id, user.email);
 
     return Response.json({ success: true, capture_id: capture?.id || order_id });
   } catch (error) {

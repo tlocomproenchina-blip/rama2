@@ -16,10 +16,12 @@ import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ShieldCheck, ClipboardList } from 'lucide-react';
+import { FileText, Search, Loader2, Download, Plus, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ClipboardList } from 'lucide-react';
+import InvoiceStatsCards from '@/components/invoice/InvoiceStatsCards';
 import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
 import WarehousePaidTable from '@/components/invoice/WarehousePaidTable';
+import WarehouseOrderMissingNotice from '@/components/invoice/WarehouseOrderMissingNotice';
 import WarehouseBillingTab from '@/components/invoice/warehouse-billing/WarehouseBillingTab';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
@@ -64,6 +66,7 @@ export default function AdminInvoices({ user }) {
   const [appConfig, setAppConfig] = useState(null);
   const [dispatchReceipt, setDispatchReceipt] = useState(null);
   const [warehouseOrderInvoice, setWarehouseOrderInvoice] = useState(null);
+  const [generatingOrderId, setGeneratingOrderId] = useState(null);
 
   // Inicialización en paralelo. Las consolidaciones se cargan solo al abrir
   // el modal de crear factura (no bloquean la carga inicial).
@@ -183,6 +186,17 @@ export default function AdminInvoices({ user }) {
     } catch (error) {
       return 'error';
     }
+  };
+
+  // Un toque desde la fila: arma la orden de almacén de una factura que quedó pagada
+  // sin orden (pagos anteriores a la generación automática, o pagadas sin bultos aún).
+  const handleGenerateOrderFromRow = async (invoice) => {
+    setGeneratingOrderId(invoice.id);
+    const result = await generateOrderForInvoice(invoice);
+    if (result === 'ok') toast.success('Orden de almacén generada');
+    else if (result === 'vacio') toast.warning('Esta factura todavía no tiene bultos vinculados: no se generó orden');
+    else toast.error('No se pudo generar la orden de almacén');
+    setGeneratingOrderId(null);
   };
 
   const handleEditInvoice = async () => {
@@ -664,79 +678,7 @@ export default function AdminInvoices({ user }) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Total Facturas</p>
-                <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
-              </div>
-              <FileText className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Pagadas</p>
-                <p className="text-2xl font-bold text-green-600">{stats.paid}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Pendientes</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-              </div>
-              <FileText className="h-8 w-8 text-yellow-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Ingresos</p>
-                <p className="text-2xl font-bold text-emerald-600">${Number(stats.revenue || 0).toFixed(2)}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-emerald-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Ganancia</p>
-                <p className="text-2xl font-bold text-purple-600">${Number(stats.profit || 0).toFixed(2)}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Seguro Cobrado</p>
-                <p className="text-2xl font-bold text-cyan-600">${Number(stats.insuranceCollected || 0).toFixed(2)}</p>
-              </div>
-              <ShieldCheck className="h-8 w-8 text-cyan-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <InvoiceStatsCards stats={stats} />
 
       {/* Search & Date Filter */}
       <Card className="border-0 shadow-lg">
@@ -949,6 +891,12 @@ export default function AdminInvoices({ user }) {
                   <span className="text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap bg-blue-100 text-blue-700">
                     Orden almacén: {Number(invoice.warehouse_order.totals?.bultos) || 0} bulto(s)
                   </span>
+                )}
+                {invoice.status === 'pagada' && !invoice.warehouse_order && (
+                  <WarehouseOrderMissingNotice
+                    working={generatingOrderId === invoice.id}
+                    onGenerate={() => handleGenerateOrderFromRow(invoice)}
+                  />
                 )}
                 <Button
                   variant="outline"

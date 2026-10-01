@@ -108,7 +108,7 @@ export default function WarehouseOrderModal({ open, onClose, invoice, appName, o
               <PackageOpen className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
               <p className="font-semibold text-foreground">Esta factura todavía no tiene orden de almacén</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Se arma sola al marcar la factura como pagada a mano. Si la factura se pagó antes de este cambio, genera la orden aquí.
+                Se arma sola cuando la factura queda pagada (a mano, al aprobar el pago del cliente o con pago en línea). Si esta factura se pagó antes, genera la orden aquí.
               </p>
             </div>
           ) : groups.length === 0 ? (
