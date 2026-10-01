@@ -3,6 +3,8 @@
 // 100mm = 800 dots. Commands are ASCII text, one per line, terminated with \r\n.
 // Reference: TSPL/TSPL2 Programming Manual (TSC / Zijiang-compatible).
 
+import { labelContentCodes, realPackageCount } from '@/lib/bultoCounts';
+
 const enc = new TextEncoder();
 
 // Label dimensions in dots (203 DPI: 8 dots/mm)
@@ -58,11 +60,11 @@ export const buildBultoLabelPayload = (bulto) => {
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
   const labelCode = bulto.label_code || '';
   const bultoNum = `BULTO ${bulto.bulto_number || 1}/${bulto.total_bultos || 1}`;
-  // Los códigos sin registrar cuentan como un paquete más del bulto
-  const pkgCount = ((bulto.package_ids?.length || 0) + (bulto.unregistered_codes?.length || 0))
-    || (bulto.package_trackings?.length || 0);
+  // El número impreso es el conteo real del bulto o de la caja: el mismo que muestra la
+  // ficha del almacén, sin sumar las etiquetas de los bultos ya fusionados dentro.
+  const pkgCount = realPackageCount(bulto);
   const bultoPkg = `${bultoNum} - ${pkgCount} PAQUETES`;
-  const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
+  const trackings = labelContentCodes(bulto);
 
   // Métricas verticales (dots @203dpi). Altura real de cada texto + respiro.
   const MARGIN = 20;

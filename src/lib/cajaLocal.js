@@ -7,6 +7,7 @@
 // no se detenga si la conexión falla.
 import { getAll, put, del, findPackageByLabelCode, findPackageByTracking } from '@/lib/offlineDb';
 import { buildCajaCode, isCajaCode } from '@/lib/cajaCodes';
+import { realPackageCount } from '@/lib/bultoCounts';
 
 const text = (value) => String(value ?? '').trim();
 const uniq = (list) => [...new Set((list || []).map(text).filter(Boolean))];
@@ -42,13 +43,14 @@ export async function findLocalPackage(code) {
 // CBM de un paquete: el volumen real medido en el almacén.
 const cbmOfPackage = (pkg) => Number(pkg?.actual_cbm) || 0;
 
-// Conteo y CBM reales de lo que va dentro de la caja.
+// Conteo y CBM reales de lo que va dentro de la caja: los paquetes registrados que
+// agrupó, nunca las etiquetas de los bultos que ya se fusionaron dentro.
 export async function cajaContents(caja) {
   const ids = (caja?.package_ids || []).filter(Boolean);
   const packages = await getAll('packages').catch(() => []);
   const inside = ids.map((id) => packages.find((p) => p.id === id)).filter(Boolean);
   return {
-    package_count: ids.length + (caja?.unregistered_codes || []).length,
+    package_count: realPackageCount(caja),
     cbm: Number(inside.reduce((sum, p) => sum + cbmOfPackage(p), 0).toFixed(4)),
     orders: caja?.cbm_order_numbers || [],
   };

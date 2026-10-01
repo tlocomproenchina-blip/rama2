@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Printer, Loader2, Bluetooth, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
+import { labelContentCodes, realPackageCount } from '@/lib/bultoCounts';
 
 // Common BLE service/characteristic UUIDs for ESC/POS thermal printers (POS-9250-L / ZJ-9250)
 const PRINTER_SERVICES = [
@@ -153,9 +154,9 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
       for (const bulto of bultos) {
         const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
         const cs = bulto.client_snapshot || {};
-        const pkgCount = ((bulto.package_ids?.length || 0) + (bulto.unregistered_codes?.length || 0))
-          || (bulto.package_trackings?.length || 0);
-        const trackings = Array.isArray(bulto.package_trackings) ? bulto.package_trackings.filter(Boolean) : [];
+        // Mismo conteo real que la ficha del almacén y que la impresión térmica.
+        const pkgCount = realPackageCount(bulto);
+        const trackings = labelContentCodes(bulto);
         const estado = (cs.state || 'SIN ESTADO').toUpperCase();
         const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
         const cityState = [cs.city, cs.state].filter(Boolean).join(', ');

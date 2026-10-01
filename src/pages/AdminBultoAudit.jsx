@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 import PageHero from '@/components/common/PageHero';
 import BultoAuditCard from '@/components/admin/bulto-audit/BultoAuditCard';
+import FixPackageCountsDialog from '@/components/admin/bulto-audit/FixPackageCountsDialog';
 import BultoEditModal from '@/components/warehouse/BultoEditModal';
 import { useBultoCodeSearch } from '@/hooks/useBultoCodeSearch';
 import { matchesBultoCode, mergeBultos } from '@/lib/bultoSearch';
@@ -30,6 +31,7 @@ export default function AdminBultoAudit() {
   const [clientStateMap, setClientStateMap] = useState({});
   const [showBackfill, setShowBackfill] = useState(false);
   const [backfillRunning, setBackfillRunning] = useState(false);
+  const [showFixCounts, setShowFixCounts] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -268,6 +270,13 @@ export default function AdminBultoAudit() {
         >
           <RefreshCw className="h-4 w-4" /> Corregir bultos cerrados
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => setShowFixCounts(true)}
+          className="gap-2 border-sky-300 text-sky-700 hover:bg-sky-50"
+        >
+          <Boxes className="h-4 w-4" /> Corregir conteos de paquetes
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -393,6 +402,12 @@ export default function AdminBultoAudit() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FixPackageCountsDialog
+        open={showFixCounts}
+        onClose={() => setShowFixCounts(false)}
+        onDone={loadBultos}
+      />
 
       {/* Modal de edición (reutiliza el del almacén) */}
       <BultoEditModal
