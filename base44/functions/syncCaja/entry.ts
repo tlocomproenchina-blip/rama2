@@ -119,8 +119,8 @@ export default async function (req: Request): Promise<Response> {
         const source = rows?.[0] || null;
 
         if (!source) {
-          // Bulto escaneado que no existe en el sistema: cuenta como código sin registrar.
-          if (!unregistered.includes(code)) unregistered.push(code);
+          // Bulto escaneado que ya no existe (normalmente porque su contenido ya se fusionó
+          // antes): su etiqueta no es un paquete, así que ni entra a la caja ni suma.
           continue;
         }
         if (source.is_caja) {
@@ -156,7 +156,10 @@ export default async function (req: Request): Promise<Response> {
         });
       }
       if (!packageIds.includes(pkg.id)) packageIds.push(pkg.id);
-      if (!unregistered.includes(code) && code !== pkg.tracking_number) unregistered.push(code);
+      // El código escaneado que ya es el tracking o la etiqueta de este paquete no es un
+      // código "sin registrar": el paquete ya quedó dentro de la caja.
+      const ownCodes = [String(pkg.tracking_number || '').trim(), String(pkg.label_code || '').trim()];
+      if (!unregistered.includes(code) && !ownCodes.includes(code)) unregistered.push(code);
     }
 
     // Los paquetes reales no se cuentan dos veces como "sin registrar".
@@ -167,9 +170,12 @@ export default async function (req: Request): Promise<Response> {
     pkgs.forEach((p) => {
       if (p.tracking_number) resolvedTrackings.add(String(p.tracking_number).trim().toUpperCase());
     });
-    const unregisteredFinal = unregistered.filter(
-      (c) => !resolvedTrackings.has(String(c).trim().toUpperCase())
-    );
+    // Las etiquetas de bultos (-B## / -C##) no son paquetes: se descartan aquí para que
+    // tampoco vuelvan a entrar en la lista de "sin registrar" ni sumen en el conteo.
+    const isBultoLabel = (value: string) => /-[BC]\d+$/i.test(String(value || '').trim());
+    const unregisteredFinal = unregistered
+      .filter((c) => !isBultoLabel(c))
+      .filter((c) => !resolvedTrackings.has(String(c).trim().toUpperCase()));
 
     const existingRows = await base44.asServiceRole.entities.Bulto
       .filter({ label_code: labelCode }, '-created_date', 1)
@@ -198,7 +204,10 @@ export default async function (req: Request): Promise<Response> {
 
     const orderNumbers = [...new Set([...manualOrders, ...movedOrders, ...plan.order_numbers])];
     const packageTrackings = [...plan.trackings, ...plan.unregistered_codes];
-    const packageCount = plan.package_ids.length + plan.unregistered_codes.length;
+    // Conteo real de la caja: solo los paquetes registrados que quedaron dentro (los que
+    // aportó cada bulto absorbido, sin repetir). Las etiquetas de los bultos fusionados y
+    // los códigos que no son paquete no suman.
+    const packageCount = plan.package_ids.length;
 
     // CBM y tipo de carga reales de lo que va dentro de la caja.
     const cbm = pkgs.reduce((sum, p) => sum + (Number(p.actual_cbm) || 0), 0);

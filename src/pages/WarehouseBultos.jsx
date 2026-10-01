@@ -10,6 +10,7 @@ import BluetoothPrinter from '@/components/warehouse/BluetoothPrinter';
 import BultoVerifier from '@/components/warehouse/BultoVerifier';
 import UniversalClientSearch from '@/components/warehouse/UniversalClientSearch';
 import BultoHistory from '@/components/warehouse/BultoHistory';
+import { realPackageCount } from '@/lib/bultoCounts';
 import BultoStatusAuditPanel from '@/components/warehouse/BultoStatusAuditPanel';
 
 export default function WarehouseBultos({ user }) {
@@ -258,7 +259,7 @@ export default function WarehouseBultos({ user }) {
                             <p className="text-xs text-slate-500 font-mono break-all">{b.label_code}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs text-slate-500">{b.package_trackings?.length || 0} paq.</span>
+                            <span className="text-xs text-slate-500">{realPackageCount(b)} paq.</span>
                             {b.invoice_paid ? (
                               <span className="text-xs text-green-600 font-medium">Pagada</span>
                             ) : (

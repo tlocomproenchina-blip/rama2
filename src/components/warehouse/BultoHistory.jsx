@@ -13,6 +13,7 @@ import BluetoothPrinter from './BluetoothPrinter';
 import BulkOrderAssignDialog from './BulkOrderAssignDialog';
 import { useBultoCodeSearch } from '@/hooks/useBultoCodeSearch';
 import { matchesBultoCode, mergeBultos } from '@/lib/bultoSearch';
+import { realPackageCount } from '@/lib/bultoCounts';
 import PrintCountBadge from './PrintCountBadge';
 import ReprintDialog from './ReprintDialog';
 
@@ -312,7 +313,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                       <span className="font-mono">{b.shipping_mark}</span>
                       <span>{b.client_email}</span>
                       {b.client_snapshot?.state && <span>{b.client_snapshot.state}</span>}
-                      <span>{b.package_trackings?.length || 0} paq.</span>
+                      <span>{realPackageCount(b)} paq.</span>
                       {Array.isArray(b.cbm_order_numbers) && b.cbm_order_numbers.length > 0 && (
                         <span className="inline-flex items-center gap-0.5 text-blue-600 font-medium">
                           <Hash className="h-3 w-3" /> {b.cbm_order_numbers.join(', ')}
