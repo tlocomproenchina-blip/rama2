@@ -30,7 +30,7 @@ export default function BilledReceiptsSection({ receipts = [], markingId, onUnma
           className="flex w-full items-center justify-between gap-2 p-4 text-left"
         >
           <span className="inline-flex items-center gap-2 font-semibold text-emerald-800">
-            <CheckCircle2 className="h-4 w-4" /> Envíos ya facturados ({receipts.length})
+            <CheckCircle2 className="h-4 w-4" /> Recibos ya facturados ({receipts.length})
           </span>
           <ChevronDown className={`h-4 w-4 text-emerald-700 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>

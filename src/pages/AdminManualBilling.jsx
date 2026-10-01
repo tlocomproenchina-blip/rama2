@@ -1056,7 +1056,7 @@ export default function AdminManualBilling({ user }) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
-          className={showPending ? 'block' : 'hidden xl:block'}
+          className={showPending ? 'block' : 'hidden xl:sticky xl:top-20 xl:block'}
         >
           <PendingBillingPanel
             clients={pending.clients}
@@ -1173,7 +1173,7 @@ export default function AdminManualBilling({ user }) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: 'easeOut', delay: 0.19 }}
-          className="hidden xl:block"
+          className="hidden xl:sticky xl:top-20 xl:block"
         >
           {billingSummary}
         </motion.aside>
