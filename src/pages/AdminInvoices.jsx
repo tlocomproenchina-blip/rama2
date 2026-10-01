@@ -16,7 +16,9 @@ import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
-import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ShieldCheck } from 'lucide-react';
+import { FileText, Search, Loader2, Download, DollarSign, TrendingUp, Plus, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ShieldCheck, ClipboardList } from 'lucide-react';
+import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
+import { generateWarehouseOrder } from '@/lib/warehouseOrder';
 import WarehousePaidTable from '@/components/invoice/WarehousePaidTable';
 import WarehouseBillingTab from '@/components/invoice/warehouse-billing/WarehouseBillingTab';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
@@ -61,6 +63,7 @@ export default function AdminInvoices({ user }) {
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
   const [appConfig, setAppConfig] = useState(null);
   const [dispatchReceipt, setDispatchReceipt] = useState(null);
+  const [warehouseOrderInvoice, setWarehouseOrderInvoice] = useState(null);
 
   // Inicialización en paralelo. Las consolidaciones se cargan solo al abrir
   // el modal de crear factura (no bloquean la carga inicial).
@@ -165,6 +168,23 @@ export default function AdminInvoices({ user }) {
     setProcessing(false);
   };
 
+  // Arma la orden de almacén de una factura marcada como pagada y la guarda dentro
+  // de la factura. Devuelve 'ok' (con la orden), 'vacio' (la factura no tiene bultos)
+  // o 'error'. No avisa por sí sola: cada llamador decide qué informar.
+  const generateOrderForInvoice = async (invoice) => {
+    try {
+      const data = await generateWarehouseOrder(invoice.id);
+      if (data?.order) {
+        setInvoices(prev => prev.map(i => (i.id === invoice.id ? { ...i, warehouse_order: data.order } : i)));
+        return 'ok';
+      }
+      if (data?.empty) return 'vacio';
+      return 'error';
+    } catch (error) {
+      return 'error';
+    }
+  };
+
   const handleEditInvoice = async () => {
     if (!editingInvoice) return;
 
@@ -183,6 +203,15 @@ export default function AdminInvoices({ user }) {
       // Sincronizar InvoicePayment para que aparezca en el Historial de AdminPayments
       if (editingInvoice.status === 'pagada') {
         await ensureInvoicePaymentForPaidInvoice(base44, editingInvoice, user?.email);
+      }
+
+      // Al marcar la factura como pagada a mano se arma su orden de almacén.
+      const previous = invoices.find(i => i.id === editingInvoice.id);
+      if (editingInvoice.status === 'pagada' && previous && previous.status !== 'pagada') {
+        const result = await generateOrderForInvoice(editingInvoice);
+        if (result === 'ok') toast.success('Orden de almacén generada');
+        else if (result === 'vacio') toast.warning('La factura no tiene bultos vinculados: no se generó orden de almacén');
+        else toast.error('No se pudo generar la orden de almacén');
       }
 
       toast.success('Factura actualizada');
@@ -320,14 +349,23 @@ export default function AdminInvoices({ user }) {
           return base44.entities.Invoice.update(inv.id, payload);
         }));
 
+        let orderInfo = '';
         if (bulkStatus === 'pagada') {
           // Sincronizar InvoicePayment para que aparezcan en el Historial de AdminPayments
           await Promise.all(selectedInvs
             .map(inv => ensureInvoicePaymentForPaidInvoice(base44, { ...inv, status: 'pagada', payment_date: inv.payment_date || now }, user?.email))
           );
+
+          // Órdenes de almacén de las facturas que acaban de quedar pagadas. Si alguna
+          // no tiene bultos, el resto sigue igual y se informa al final.
+          const recienPagadas = selectedInvs.filter(inv => inv.status !== 'pagada');
+          const results = await Promise.all(recienPagadas.map(inv => generateOrderForInvoice(inv)));
+          const generated = results.filter(r => r === 'ok').length;
+          const withoutBultos = results.filter(r => r === 'vacio').length;
+          orderInfo = `${generated ? ` · ${generated} orden(es) de almacén generada(s)` : ''}${withoutBultos ? ` · ${withoutBultos} sin bultos` : ''}`;
         }
 
-        toast.success(`${selectedInvoices.length} factura(s) actualizada(s)`);
+        toast.success(`${selectedInvoices.length} factura(s) actualizada(s)${orderInfo}`);
       }
 
       setSelectedInvoices([]);
@@ -907,6 +945,11 @@ export default function AdminInvoices({ user }) {
                     ✓ Pagado al proveedor
                   </span>
                 )}
+                {invoice.warehouse_order && (
+                  <span className="text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap bg-blue-100 text-blue-700">
+                    Orden almacén: {Number(invoice.warehouse_order.totals?.bultos) || 0} bulto(s)
+                  </span>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
@@ -928,6 +971,17 @@ export default function AdminInvoices({ user }) {
                   >
                     <Truck className="h-4 w-4 mr-1" />
                     Recibo despacho
+                  </Button>
+                )}
+                {invoice.status === 'pagada' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setWarehouseOrderInvoice(invoice)}
+                    className="justify-start text-slate-700"
+                  >
+                    <ClipboardList className="h-4 w-4 mr-1" />
+                    Orden de almacén
                   </Button>
                 )}
                 {invoice.consolidation_id && (
@@ -1213,6 +1267,17 @@ export default function AdminInvoices({ user }) {
         open={!!dispatchReceipt}
         onClose={() => setDispatchReceipt(null)}
         invoice={dispatchReceipt}
+      />
+
+      {/* Orden de Almacén */}
+      <WarehouseOrderModal
+        open={!!warehouseOrderInvoice}
+        onClose={() => setWarehouseOrderInvoice(null)}
+        invoice={warehouseOrderInvoice}
+        appName={appConfig?.app_name}
+        onGenerated={(order) => {
+          setWarehouseOrderInvoice(prev => (prev ? { ...prev, warehouse_order: order } : prev));
+        }}
       />
     </div>
   );

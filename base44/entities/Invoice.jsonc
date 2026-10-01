@@ -179,6 +179,110 @@
         }
       }
     },
+    "warehouse_order": {
+      "type": "object",
+      "description": "Orden de almac\u00e9n armada al marcar la factura como pagada a mano: snapshot de los bultos que esta factura liber\u00f3 (Bulto.billed_invoice_id), agrupados por shipping mark y N\u00b0 de orden/env\u00edo, con la etiqueta de cada bulto, cu\u00e1ntos bultos tiene cada orden y el total. Se guarda para que no cambie si luego se editan los bultos; se recalcula solo cuando un admin la regenera a prop\u00f3sito.",
+      "properties": {
+        "generated_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha en que se arm\u00f3 la orden de almac\u00e9n"
+        },
+        "generated_by": {
+          "type": "string",
+          "description": "Email del admin que marc\u00f3 la factura como pagada y gener\u00f3 la orden"
+        },
+        "regenerated_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Fecha de la \u00faltima regeneraci\u00f3n manual de la orden"
+        },
+        "regenerated_by": {
+          "type": "string",
+          "description": "Email del admin que regener\u00f3 la orden"
+        },
+        "client_name": {
+          "type": "string",
+          "description": "Nombre del cliente al momento de armar la orden"
+        },
+        "shipping_mark": {
+          "type": "string",
+          "description": "Shipping mark del cliente al momento de armar la orden"
+        },
+        "groups": {
+          "type": "array",
+          "default": [],
+          "description": "Bultos agrupados por shipping mark y N\u00b0 de orden/env\u00edo. Un bulto con varios N\u00b0 de orden aparece en cada uno de ellos; los bultos sin N\u00b0 de orden van al grupo 'Sin N\u00b0 de orden'.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "shipping_mark": {
+                "type": "string"
+              },
+              "order_number": {
+                "type": "string",
+                "description": "N\u00b0 de orden/env\u00edo (CbmIngreso) o 'Sin N\u00b0 de orden'"
+              },
+              "bultos_count": {
+                "type": "number",
+                "description": "Cu\u00e1ntos bultos tiene este N\u00b0 de orden"
+              },
+              "packages_count": {
+                "type": "number",
+                "description": "Paquetes reales sumados de los bultos de este N\u00b0 de orden"
+              },
+              "bultos": {
+                "type": "array",
+                "default": [],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label_code": {
+                      "type": "string",
+                      "description": "Etiqueta del bulto o de la caja consolidada"
+                    },
+                    "bulto_number": {
+                      "type": "number"
+                    },
+                    "is_caja": {
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "caja_number": {
+                      "type": "number"
+                    },
+                    "caja_total": {
+                      "type": "number"
+                    },
+                    "package_count": {
+                      "type": "number"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "totals": {
+          "type": "object",
+          "description": "Totales de la orden: el total de bultos no repite bultos que aparecen en m\u00e1s de un N\u00b0 de orden.",
+          "properties": {
+            "groups": {
+              "type": "number"
+            },
+            "bultos": {
+              "type": "number"
+            },
+            "packages": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
     "dispatched": {
       "type": "boolean",
       "default": false,
