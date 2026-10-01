@@ -313,7 +313,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}
-                onToggleGroup={toggleSelectionForGroup}
+                onToggleGroup={toggleGroupSelection}
                 canDelete={canDelete}
                 onPrint={setPrintTarget}
                 onEdit={setEditTarget}
