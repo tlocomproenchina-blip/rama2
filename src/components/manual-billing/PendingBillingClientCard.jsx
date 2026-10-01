@@ -37,8 +37,6 @@ export default function PendingBillingClientCard({ client, selected, markingId, 
       for (const order of orders) ensure(order).bultos.push({ bulto, shared: orders.length > 1 });
     }
 
-    for (const r of receipts) ensure(r.label).receipts.push(r);
-
     // Los ya marcados de cada N° de orden: con ellos la pestaña sabe si el envío está
     // completo o solo parcial, y su casilla maestra marca lo que falta.
     const ordersOf = (bulto) => {
@@ -47,6 +45,25 @@ export default function PendingBillingClientCard({ client, selected, markingId, 
     };
     for (const bulto of markedBultos) {
       for (const order of ordersOf(bulto)) ensure(order).markedBultos.push(bulto);
+    }
+
+    // Un envío (recibo de CBM) se muestra solo dentro de la pestaña de un bulto: si su
+    // propio N° de orden no tiene bultos, se cuelga del bulto que lo contiene. Sin bulto
+    // asignado no se muestra, porque no es carga del almacén.
+    const orderByBultoLabel = new Map();
+    for (const g of map.values()) {
+      for (const item of [...g.bultos.map((x) => x.bulto), ...g.markedBultos]) {
+        if (!orderByBultoLabel.has(item.label)) orderByBultoLabel.set(item.label, g.order);
+      }
+    }
+    for (const r of receipts) {
+      const own = map.get(String(r.label || '').trim());
+      if (own && (own.bultos.length > 0 || own.markedBultos.length > 0)) {
+        own.receipts.push(r);
+        continue;
+      }
+      const key = orderByBultoLabel.get(r.in_bulto);
+      if (key !== undefined) ensure(key).receipts.push(r);
     }
 
     const cbmOf = (g) => g.bultos.reduce((sum, item) => sum + Number(item.bulto.cbm || 0), 0);

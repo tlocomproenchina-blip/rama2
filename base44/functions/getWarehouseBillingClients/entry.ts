@@ -251,7 +251,11 @@ Deno.serve(async (req) => {
             ve_date: ownerBulto?.ve_recognized_date || ownerBulto?.ve_registered_date || null,
             ve_date_source: ownerBulto?.ve_date_source || null,
           };
-        });
+        })
+        // Regla del panel: un envío (recibo de CBM) solo se muestra si tiene un bulto
+        // asignado en el almacén. Un recibo sin bulto no es carga reconocida aquí, así
+        // que no se ofrece (sus datos quedan intactos y siguen disponibles por el buscador).
+        .filter((r: any) => r.overlap_bulto);
 
       // El panel es la cola de facturación de la carga que está físicamente en el
       // almacén: solo se listan clientes con al menos un bulto en almacén. Los recibos
