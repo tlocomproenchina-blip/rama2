@@ -59,32 +59,32 @@ export default function PendingBillingPanel({
   }), [filtered]);
 
   return (
-    <div className="flex flex-col rounded-2xl border border-white/10 bg-slate-900/60 lg:max-h-[calc(100vh-5rem)]">
-      <div className="space-y-3 border-b border-white/10 p-4">
+    <div className="flex flex-col rounded-2xl border border-border bg-card lg:max-h-[calc(100vh-5rem)]">
+      <div className="space-y-3 border-b border-border p-4">
         <div>
-          <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+          <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             Carga pendiente de facturar
           </p>
-          <p className="mt-1 text-[11px] text-slate-400">
+          <p className="mt-1 text-[11px] text-muted-foreground">
             Clientes con mercancía sin factura en el almacén. Al facturarlo todo, el cliente sale de esta lista.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
-          <span className="rounded-full bg-white/5 px-2 py-0.5 text-slate-200 ring-1 ring-inset ring-white/10">
+          <span className="rounded-full bg-muted px-2 py-0.5 text-foreground ring-1 ring-inset ring-border">
             {totals.clients} cliente(s)
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/10 px-2 py-0.5 font-semibold text-sky-300 ring-1 ring-inset ring-sky-500/30">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary ring-1 ring-inset ring-primary/30">
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-sky-400" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
             </span>
             {totals.bultos} bulto(s)
           </span>
           <Button
             variant="ghost"
             size="sm"
-            className="ml-auto text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+            className="ml-auto text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             onClick={onRetry}
             disabled={loading}
             title="Actualizar el panel"
@@ -94,7 +94,7 @@ export default function PendingBillingPanel({
         </div>
 
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={term}
             onChange={(e) => setTerm(e.target.value)}
@@ -107,24 +107,24 @@ export default function PendingBillingPanel({
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
         {loading && queue.length === 0 ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-6 w-6 animate-spin text-sky-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <AlertCircle className="mb-2 h-8 w-8 text-rose-400" />
-            <p className="text-sm font-medium text-rose-300">No se pudo cargar la carga pendiente</p>
-            <p className="mt-1 text-xs text-slate-400">{error}</p>
+            <AlertCircle className="mb-2 h-8 w-8 text-destructive" />
+            <p className="text-sm font-medium text-destructive">No se pudo cargar la carga pendiente</p>
+            <p className="mt-1 text-xs text-muted-foreground">{error}</p>
             <Button
               variant="outline"
               size="sm"
-              className="mt-3 border-white/15 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
+              className="mt-3"
               onClick={onRetry}
             >
               Reintentar
             </Button>
           </div>
         ) : filtered.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-400">
+          <p className="py-8 text-center text-sm text-muted-foreground">
             {queue.length === 0
               ? 'No hay clientes con carga pendiente de facturar.'
               : 'Ningún cliente coincide con la búsqueda.'}

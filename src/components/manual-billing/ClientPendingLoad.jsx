@@ -81,32 +81,32 @@ export default function ClientPendingLoad({ client, markingId, onMarkBulto, onMa
   const pendingCbm = pendingBultos.reduce((sum, b) => sum + num(b.cbm), 0);
 
   return (
-    <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+    <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+          <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             Carga en almacén · N° de orden
           </p>
-          <p className="mt-1 text-[11px] text-slate-400">
+          <p className="mt-1 text-[11px] text-muted-foreground">
             Marca el envío completo cuando ya se facturó por fuera: sale de aquí y queda en 'Envíos ya facturados'.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
-          <span className="rounded-full bg-sky-500/10 px-2 py-0.5 font-semibold text-sky-300 ring-1 ring-inset ring-sky-500/30">
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary ring-1 ring-inset ring-primary/30">
             {pendingBultos.length} bulto(s)
           </span>
-          <span className="rounded-full bg-white/5 px-2 py-0.5 text-slate-300 ring-1 ring-inset ring-white/10">
+          <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground ring-1 ring-inset ring-border">
             {pendingPackages} paquete(s)
           </span>
-          <span className="rounded-full bg-white/5 px-2 py-0.5 text-slate-300 ring-1 ring-inset ring-white/10">
+          <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground ring-1 ring-inset ring-border">
             {pendingCbm.toFixed(4)} CBM
           </span>
         </div>
       </div>
 
       {groups.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm text-slate-300">
-          <PackageSearch className="h-4 w-4 shrink-0 text-slate-500" />
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+          <PackageSearch className="h-4 w-4 shrink-0 text-muted-foreground" />
           Este cliente no tiene bultos pendientes de facturar en el almacén.
         </div>
       ) : (

@@ -999,7 +999,7 @@ export default function AdminManualBilling({ user }) {
   );
 
   return (
-    <div className="mb-dark -m-4 min-h-[70dvh] space-y-5 overflow-x-hidden bg-slate-950 p-4 pb-28 text-slate-100 md:-m-6 md:p-6 lg:-m-8 lg:p-8 xl:pb-8">
+    <div className="-m-4 min-h-[70dvh] space-y-5 overflow-x-hidden p-4 pb-28 md:-m-6 md:p-6 lg:-m-8 lg:p-8 xl:pb-8">
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1007,13 +1007,13 @@ export default function AdminManualBilling({ user }) {
         className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
       >
         <div className="min-w-0">
-          <p className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-sky-400/80">
+          <p className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-primary/80">
             <ReceiptText className="h-3.5 w-3.5" /> Facturación manual
           </p>
-          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-white">
+          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-foreground">
             Armar la factura del cliente
           </h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             A la izquierda está la carga que sigue en el almacén sin facturar. Elige un cliente, revisa sus N° de orden y arma su factura aquí mismo.
           </p>
         </div>
@@ -1022,7 +1022,7 @@ export default function AdminManualBilling({ user }) {
             variant="outline"
             onClick={handleReviewAllDuplicates}
             disabled={scanningDups}
-            className="border-white/15 bg-white/5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+            className="transition-colors"
           >
             {scanningDups ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <AlertTriangle className="h-4 w-4 mr-2" />}
             Revisar duplicados
@@ -1031,7 +1031,7 @@ export default function AdminManualBilling({ user }) {
             variant="outline"
             onClick={handleRecoverOrphans}
             disabled={recovering}
-            className="border-white/15 bg-white/5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+            className="transition-colors"
           >
             {recovering ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
             Recuperar registros huérfanos
@@ -1042,7 +1042,7 @@ export default function AdminManualBilling({ user }) {
       {/* Móvil y tablet: la carga pendiente se despliega sobre el expediente */}
       <Button
         variant="outline"
-        className="w-full justify-between border-white/15 bg-white/5 text-slate-200 transition-colors hover:bg-white/10 hover:text-white xl:hidden"
+        className="w-full justify-between xl:hidden"
         onClick={() => setShowPending((v) => !v)}
       >
         <span className="inline-flex items-center gap-2">
@@ -1074,7 +1074,7 @@ export default function AdminManualBilling({ user }) {
           transition={{ duration: 0.35, ease: 'easeOut', delay: 0.12 }}
           className="min-w-0 space-y-4"
         >
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <ClientSearchBox onSelect={loadClientInvoices} />
           </div>
 
@@ -1093,10 +1093,10 @@ export default function AdminManualBilling({ user }) {
       />
 
       {!client ? (
-        <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-8 text-center">
-          <Boxes className="mx-auto h-8 w-8 text-slate-500" />
-          <p className="mt-3 font-display text-sm font-semibold text-slate-200">Elige un cliente de la carga pendiente</p>
-          <p className="mx-auto mt-1 max-w-md text-xs text-slate-400">
+        <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-8 text-center">
+          <Boxes className="mx-auto h-8 w-8 text-muted-foreground" />
+          <p className="mt-3 font-display text-sm font-semibold text-foreground">Elige un cliente de la carga pendiente</p>
+          <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
             Su expediente se abre aquí con la carga del almacén por N° de orden, y el resumen de facturación queda siempre a la derecha.
           </p>
         </div>
@@ -1121,17 +1121,17 @@ export default function AdminManualBilling({ user }) {
               />
             )}
 
-            <p className="pt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-sky-400/90">
+            <p className="pt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Recibos registrados por facturar
             </p>
 
             {loadingRows ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : rows.length === 0 && markedReceipts.length === 0 ? (
               <Card className="border-0 shadow-lg">
-                <CardContent className="flex flex-col items-center justify-center py-12 text-slate-500">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   Este cliente no tiene registros de CBM.
                 </CardContent>
               </Card>
