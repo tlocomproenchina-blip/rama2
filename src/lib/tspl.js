@@ -207,80 +207,97 @@ export const buildContinuousLabelPayload = ({
   const counter = `${index}/${total}`;
   const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-  const addrLines = cs.address ? wrapText(cs.address, 40).slice(0, 2) : [];
   const mark = String(cs.shipping_mark || '').trim();
+  const code = String(barcodeCode || '').trim();
   const dateStr = emittedAt ? new Date(emittedAt).toLocaleDateString('es-VE') : '';
   const footer = [guideNumber ? `GUIA ${guideNumber}` : '', dateStr].filter(Boolean).join('  ·  ');
 
-  const blocks = [];
-  const addBlock = (h, render) => blocks.push({ h, render });
+  const MARGIN = 20;
+  const PRINTABLE_H = LABEL_W - MARGIN * 2;
 
-  // 1. Número X/N: el protagonista de la etiqueta, en el tamaño más grande que quepa
-  const counterScale = Math.max(1, Math.min(4, Math.floor((LABEL_W - 60) / (counter.length * FONT_WIDTH['4']))));
-  addBlock(FONT_WIDTH['4'] * counterScale + 30, (y) => [
-    `TEXT ${centerX(counter, '4', counterScale)},${y},${q('4')},0,${counterScale},${counterScale},${q(counter)}`,
-  ]);
+  // Armazón de una etiqueta de 100×100 mm. `compact` recorta la dirección y las filas
+  // grandes a una sola línea, y `counterLimit` deja achicar el X/N: entre los dos el
+  // contenido siempre cabe en la etiqueta, aunque lleve código de barras. Sin código
+  // de barras el reparto es el de siempre.
+  const buildLayout = ({ compact = false, counterLimit = 4 } = {}) => {
+    const blocks = [];
+    const addBlock = (h, render) => blocks.push({ h, render });
 
-  // 2. Separador
-  addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
-
-  // 3. Nombre y cédula: se achica solo cuando el nombre es muy largo
-  if (nameCedula) {
-    const nameScale = Math.max(1, Math.min(2, Math.floor((LABEL_W - 60) / (nameCedula.length * FONT_WIDTH['2']))));
-    addBlock(FONT_WIDTH['2'] * nameScale + 18, (y) => [
-      `TEXT ${centerX(nameCedula, '2', nameScale)},${y},${q('2')},0,${nameScale},${nameScale},${q(nameCedula)}`,
+    // 1. Número X/N: el protagonista de la etiqueta, en el tamaño más grande que quepa
+    const counterScale = Math.max(
+      1,
+      Math.min(counterLimit, Math.floor((LABEL_W - 60) / (counter.length * FONT_WIDTH['4'])))
+    );
+    addBlock(FONT_WIDTH['4'] * counterScale + 30, (y) => [
+      `TEXT ${centerX(counter, '4', counterScale)},${y},${q('4')},0,${counterScale},${counterScale},${q(counter)}`,
     ]);
-  }
 
-  // 4. Datos de entrega del cliente
-  if (cs.whatsapp) addBlock(34, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q('Tel: ' + cs.whatsapp)}`]);
-  for (const ln of addrLines) addBlock(30, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q(ln)}`]);
-
-  // 5. Estado donde quedó registrado el cliente y su shipping mark: centrados y en
-  //    grande hasta donde el ancho de la etiqueta lo permita, porque son los datos
-  //    que se leen de un vistazo al recibir el paquete.
-  const bigRow = (y, row, scale) => [
-    `TEXT ${centerX(row, '2', scale)},${y},${q('2')},0,${scale},${scale},${q(row)}`,
-  ];
-  const addBigText = (text) => {
-    const rows = wrapText(text, 40).slice(0, 2);
-    const longest = rows.reduce((m, r) => Math.max(m, r.length), 1);
-    const scale = Math.max(1, Math.min(2, Math.floor((LABEL_W - 60) / (longest * FONT_WIDTH['2']))));
-    for (const row of rows) {
-      addBlock(FONT_WIDTH['2'] * scale + 16, (y) => bigRow(y, row, scale));
-    }
-  };
-  if (cityState) addBigText(cityState);
-  if (mark) addBigText(`MARK: ${mark}`);
-
-  // 6. Código de barras de la caja consolidada: identifica el bloque completo y es el
-  //    que se escanea al despachar para sacar todos sus paquetes de una sola vez.
-  if (barcodeCode) {
-    const code = String(barcodeCode).trim();
-    const narrow = code.length > 22 ? 1 : 2;
-    const wide = narrow * 2;
-    const barsWidth = (11 * (code.length + 2) + 2) * narrow;
-    const codeScale = code.length > 18 ? 1 : 2;
-    addBlock(154, (y) => [
-      `BARCODE ${Math.max(20, Math.floor((LABEL_W - barsWidth) / 2))},${y},${q('128')},120,0,0,${narrow},${wide},${q(code)}`,
-      `TEXT ${centerX(code, '2', codeScale)},${y + 126},${q('2')},0,${codeScale},${codeScale},${q(code)}`,
-    ]);
-  }
-
-  // 7. Pie: guía emitida y su fecha
-  if (footer) {
+    // 2. Separador
     addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
-    addBlock(24, (y) => [`TEXT 50,${y},${q('1')},0,1,1,${q(footer)}`]);
+
+    // 3. Nombre y cédula: se achica solo cuando el nombre es muy largo
+    if (nameCedula) {
+      const nameScale = Math.max(1, Math.min(2, Math.floor((LABEL_W - 60) / (nameCedula.length * FONT_WIDTH['2']))));
+      addBlock(FONT_WIDTH['2'] * nameScale + 18, (y) => [
+        `TEXT ${centerX(nameCedula, '2', nameScale)},${y},${q('2')},0,${nameScale},${nameScale},${q(nameCedula)}`,
+      ]);
+    }
+
+    // 4. Datos de entrega del cliente
+    if (cs.whatsapp) addBlock(34, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q('Tel: ' + cs.whatsapp)}`]);
+    for (const ln of cs.address ? wrapText(cs.address, 40).slice(0, compact ? 1 : 2) : []) {
+      addBlock(30, (y) => [`TEXT 50,${y},${q('2')},0,1,1,${q(ln)}`]);
+    }
+
+    // 5. Estado donde quedó registrado el cliente y su shipping mark: centrados y en
+    //    grande hasta donde el ancho de la etiqueta lo permita, porque son los datos
+    //    que se leen de un vistazo al recibir el paquete.
+    const bigRow = (y, row, scale) => [
+      `TEXT ${centerX(row, '2', scale)},${y},${q('2')},0,${scale},${scale},${q(row)}`,
+    ];
+    const addBigText = (text) => {
+      const rows = wrapText(text, 40).slice(0, compact ? 1 : 2);
+      const longest = rows.reduce((m, r) => Math.max(m, r.length), 1);
+      const scale = Math.max(1, Math.min(2, Math.floor((LABEL_W - 60) / (longest * FONT_WIDTH['2']))));
+      for (const row of rows) addBlock(FONT_WIDTH['2'] * scale + 16, (y) => bigRow(y, row, scale));
+    };
+    if (cityState) addBigText(cityState);
+    if (mark) addBigText(`MARK: ${mark}`);
+
+    // 6. Código de barras de la caja: identifica la caja que lleva pegada la etiqueta
+    //    y es el que se escanea al despachar. Va escrito también bajo las barras.
+    if (code) {
+      const narrow = code.length > 22 ? 1 : 2;
+      const wide = narrow * 2;
+      const barsWidth = (11 * (code.length + 2) + 2) * narrow;
+      const codeScale = code.length > 18 ? 1 : 2;
+      addBlock(154, (y) => [
+        `BARCODE ${Math.max(20, Math.floor((LABEL_W - barsWidth) / 2))},${y},${q('128')},120,0,0,${narrow},${wide},${q(code)}`,
+        `TEXT ${centerX(code, '2', codeScale)},${y + 126},${q('2')},0,${codeScale},${codeScale},${q(code)}`,
+      ]);
+    }
+
+    // 7. Pie: guía emitida y su fecha
+    if (footer) {
+      addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
+      addBlock(24, (y) => [`TEXT 50,${y},${q('1')},0,1,1,${q(footer)}`]);
+    }
+
+    return { blocks, height: blocks.reduce((sum, b) => sum + b.h, 0) };
+  };
+
+  // Si el contenido no cabe (etiqueta con código de barras), se compacta y, de ser
+  // necesario, se achica el X/N hasta que entre.
+  let layout = buildLayout();
+  if (layout.height > PRINTABLE_H) layout = buildLayout({ compact: true });
+  for (let limit = 3; layout.height > PRINTABLE_H && limit >= 1; limit -= 1) {
+    layout = buildLayout({ compact: true, counterLimit: limit });
   }
 
   // Centrado vertical: márgenes parejos arriba y abajo
-  const MARGIN = 20;
-  const PRINTABLE_H = LABEL_W - MARGIN * 2;
-  const totalH = blocks.reduce((sum, b) => sum + b.h, 0);
-  let y = MARGIN + Math.max(0, Math.round((PRINTABLE_H - totalH) / 2));
-
   const lines = ['SIZE 100 mm,100 mm', 'GAP 0,0', 'DIRECTION 1', 'CLS'];
-  for (const b of blocks) {
+  let y = MARGIN + Math.max(0, Math.round((PRINTABLE_H - layout.height) / 2));
+  for (const b of layout.blocks) {
     lines.push(...b.render(y));
     y += b.h;
   }

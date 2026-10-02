@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Bluetooth, BluetoothConnected, Loader2, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { buildContinuousLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import {
   bluetoothSupported,
@@ -13,6 +14,7 @@ import {
   writePayload,
 } from '@/lib/thermalPrinter';
 import ContinuousLabelPreview from './ContinuousLabelPreview';
+import LabelCajaAssignList from './LabelCajaAssignList';
 
 // Tope por lote para no saturar el buffer de la impresora; con el campo "Desde" se
 // continúa el resto del lote.
@@ -49,6 +51,8 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
   const [status, setStatus] = useState('idle'); // idle | connecting | printing | connected | error
   const [written, setWritten] = useState(0);
   const [error, setError] = useState('');
+  const [cajas, setCajas] = useState([]);
+  const [assign, setAssign] = useState({});
 
   // Cada vez que se abre el panel se parte del primer cliente de la guía y del rango
   // por defecto, sin arrastrar estados anteriores.
@@ -59,6 +63,8 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
     setTo('10');
     setWritten(0);
     setError('');
+    setAssign({});
+    setCajas([]);
     setStatus(isPrinterConnected() ? 'connected' : 'idle');
   }, [open, guide?.id, clients]);
 
@@ -69,12 +75,66 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
   const selected = clients[selectedIndex];
   const clientData = useMemo(() => clientDataOf(selected), [selected]);
 
+  // Cajas con código de barras de ese cliente: las que van dentro de la guía (con su
+  // código y su X/N ya guardados) y, si la guía no trae ninguna, las que quedaron
+  // pendientes de etiqueta, que numera la función que ya existe.
+  const guideCajas = useMemo(() => {
+    const list = Array.isArray(selected?.bultos) ? selected.bultos : [];
+    return list
+      .filter((b) => b?.is_caja && b?.label_code)
+      .map((b) => ({
+        label_code: b.label_code,
+        caja_number: Number(b.caja_number) || 0,
+        caja_total: Number(b.caja_total) || 0,
+      }));
+  }, [selected]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    if (guideCajas.length) {
+      setCajas(guideCajas);
+      return undefined;
+    }
+    const email = selected?.client_email || '';
+    if (!email) {
+      setCajas([]);
+      return undefined;
+    }
+    let alive = true;
+    (async () => {
+      try {
+        const res = await base44.functions.invoke('assignCajaLabels', { client_email: email });
+        const data = res?.data || res || {};
+        if (alive) setCajas(Array.isArray(data.cajas) ? data.cajas : []);
+      } catch (_) {
+        if (alive) setCajas([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [open, guideCajas, selected?.client_email]);
+
   const start = Math.max(1, Number(from) || 1);
   const end = Number(to) || 0;
   const count = end >= start ? end - start + 1 : 0;
   const tooMany = count > MAX_LABELS;
   const busy = status === 'connecting' || status === 'printing';
   const guideNumber = guide?.guide_number || '';
+  const labels = useMemo(
+    () => (count > 0 ? Array.from({ length: count }, (_, i) => start + i) : []),
+    [count, start]
+  );
+  const cajaOf = (number) => cajas.find((c) => c.label_code === assign[number]) || null;
+  const handleAssign = (number, code) => setAssign((prev) => ({ ...prev, [number]: code }));
+  const handleAutoAssign = () =>
+    setAssign((prev) => {
+      const next = { ...prev };
+      labels.forEach((number, i) => {
+        if (cajas[i]) next[number] = cajas[i].label_code;
+      });
+      return next;
+    });
 
   const handlePrint = async () => {
     if (!clients.length) {
@@ -97,13 +157,14 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
     setError('');
     setWritten(0);
 
-    const payloads = Array.from({ length: count }, (_, i) =>
+    const payloads = labels.map((number) =>
       buildContinuousLabelPayload({
         client: clientData,
-        index: start + i,
+        index: number,
         total: end,
         guideNumber,
         emittedAt: guide?.emitted_date || '',
+        barcodeCode: cajaOf(number)?.label_code || '',
       })
     );
 
@@ -147,13 +208,13 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display">Etiquetas continuas</DialogTitle>
           <DialogDescription>
             {guideNumber ? `Guía ${guideNumber} · ` : ''}
-            Tira continua numerada X/N con los datos del cliente de esa guía. No crea bultos ni
-            códigos.
+            Tira continua numerada X/N con los datos del cliente de esa guía. Cada etiqueta puede
+            llevar el código de barras de la caja que identifica; no crea bultos ni códigos.
           </DialogDescription>
         </DialogHeader>
 
@@ -168,7 +229,10 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setClientKey(key)}
+                    onClick={() => {
+                      setClientKey(key);
+                      setAssign({});
+                    }}
                     className={`max-w-full truncate rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ${
                       active
                         ? 'border-primary/40 bg-accent text-accent-foreground'
@@ -191,6 +255,7 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
           rangeStart={start}
           rangeEnd={end || start}
           guideNumber={guideNumber}
+          barcodeCode={cajaOf(start)?.label_code || ''}
         />
 
         <div className="grid grid-cols-2 gap-3">
@@ -233,6 +298,15 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
           )}
           {tooMany && ` · Máximo ${MAX_LABELS} por lote`}
         </p>
+
+        <LabelCajaAssignList
+          labels={labels}
+          total={end || start}
+          cajas={cajas}
+          assign={assign}
+          onAssign={handleAssign}
+          onAutoAssign={handleAutoAssign}
+        />
 
         <div className="space-y-2">
           <p
