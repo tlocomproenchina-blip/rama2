@@ -16,6 +16,7 @@ import DuplicateMergeDialog from '@/components/manual-billing/DuplicateMergeDial
 import ReceiptsAutoMergeNotice from '@/components/manual-billing/ReceiptsAutoMergeNotice';
 import PendingBillingPanel from '@/components/manual-billing/PendingBillingPanel';
 import BilledReceiptsSection from '@/components/manual-billing/BilledReceiptsSection';
+import InvoicedReceiptsSection from '@/components/manual-billing/InvoicedReceiptsSection';
 import usePendingBillingClients from '@/hooks/usePendingBillingClients';
 import ClientPendingLoad from '@/components/manual-billing/ClientPendingLoad';
 import MobileBillingSummary from '@/components/manual-billing/MobileBillingSummary';
@@ -66,6 +67,8 @@ export default function AdminManualBilling({ user }) {
   // Envíos marcados a mano como ya facturados: no se borran, se agrupan aparte
   const [markedReceipts, setMarkedReceipts] = useState([]);
   const [markingReceiptId, setMarkingReceiptId] = useState(null);
+  // Envíos que ya se facturaron en el sistema (con su factura): solo se muestran
+  const [invoicedReceipts, setInvoicedReceipts] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -240,6 +243,7 @@ export default function AdminManualBilling({ user }) {
     setClient(selectedClient);
     setRows([]);
     setMarkedReceipts([]);
+    setInvoicedReceipts([]);
     setCargoType(INITIAL_CARGO_TYPE);
     setCreditBalance(0);
     setOrphanPackages([]);
@@ -248,12 +252,13 @@ export default function AdminManualBilling({ user }) {
     clientEmailRef.current = String(selectedClient?.email || '').trim();
     setLoadingRows(true);
     try {
-      const [ingresos, pkgs, credits, dispatchOrders, insurancePayments] = await Promise.all([
+      const [ingresos, pkgs, credits, dispatchOrders, insurancePayments, invoices] = await Promise.all([
         base44.entities.CbmIngreso.filter({ client_email: selectedClient.email }, '-fecha', 200),
         base44.entities.Package.filter({ client_email: selectedClient.email }, '-created_date', 500).catch(() => []),
         base44.entities.ClientCredit.filter({ client_email: selectedClient.email }).catch(() => []),
         base44.entities.DispatchOrder.filter({ client_email: selectedClient.email }, '-dispatched_date', 500).catch(() => []),
         base44.entities.InsurancePayment.filter({ client_email: selectedClient.email, status: 'aprobado' }, '-created_date', 500).catch(() => []),
+        base44.entities.Invoice.filter({ client_email: selectedClient.email }, '-invoice_date', 200).catch(() => []),
       ]);
       const balance = (credits || []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
       setCreditBalance(Math.max(0, balance));
@@ -376,8 +381,31 @@ export default function AdminManualBilling({ user }) {
           fecha: ing.fecha || null,
           billing_marked_by: ing.billing_marked_by || '',
           billing_marked_date: ing.billing_marked_date || null,
-        })));
-      // Con los recibos ya cargados, se revisan y fusionan los repetidos del
+          })));
+          // Envíos ya facturados en el sistema: cada recibo con su factura (número, fecha,
+          // estado y monto), para revisarlos aquí mismo sin salir a la pantalla de Facturas.
+          // Si la factura ya no existe, el envío se lista igual, marcado como sin factura vigente.
+          const invoiceById = new Map((invoices || []).map((inv) => [inv.id, inv]));
+          setInvoicedReceipts((ingresos || [])
+          .filter((ing) => ing.billed === true && ing.billing_marked !== true)
+          .map((ing) => {
+          const inv = ing.billed_invoice_id ? invoiceById.get(ing.billed_invoice_id) : null;
+          const trackings = ing.tracking_numbers || [];
+          return {
+          id: ing.id,
+          order: ing.invoice_number || ing.descripcion || '—',
+          cbm: num(ing.cbm),
+          package_count: num(ing.package_count) || trackings.length,
+          trackings,
+          fecha: ing.fecha || null,
+          invoice_id: inv?.id || null,
+          invoice_number: inv?.invoice_number || '',
+          invoice_date: inv?.invoice_date || inv?.created_date || null,
+          invoice_status: inv?.status || '',
+          invoice_total: num(inv?.total),
+          };
+          }));
+          // Con los recibos ya cargados, se revisan y fusionan los repetidos del
       // cliente en segundo plano, sin bloquear la pantalla.
       if (!skipAuto) autoMergeDuplicates(selectedClient);
     } catch {
@@ -1129,7 +1157,7 @@ export default function AdminManualBilling({ user }) {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : rows.length === 0 && markedReceipts.length === 0 ? (
+            ) : rows.length === 0 && markedReceipts.length === 0 && invoicedReceipts.length === 0 ? (
               <Card className="border-0 shadow-lg">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   Este cliente no tiene registros de CBM.
@@ -1164,6 +1192,8 @@ export default function AdminManualBilling({ user }) {
               markingId={markingReceiptId}
               onUnmark={(r) => handleMarkReceipt(r, false)}
             />
+
+            <InvoicedReceiptsSection receipts={invoicedReceipts} />
         </div>
       )}
 
