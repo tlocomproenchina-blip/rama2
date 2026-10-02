@@ -49,6 +49,36 @@ Deno.serve(async (req) => {
       (r: any) => (r as any).billing_marked !== true && !markedOrders.has(String(r.invoice_number || '').trim())
     );
 
+    // Envío (N° de orden) que ya tiene recibo facturado con factura vigente: ya está
+    // cobrado, así que no vuelve a ofrecerse como carga pendiente. Se resuelve por lotes
+    // con los N° de orden de los bultos en almacén, sin tocar bultos, recibos ni facturas:
+    // al desaparecer la factura, el envío vuelve solo.
+    const orderNumbers = [...new Set(bultosCandidatos.flatMap((b: any) =>
+      ((b.cbm_order_numbers || []).filter(Boolean).map((o: any) => String(o).trim()))))].filter(Boolean) as string[];
+    const invoicedOrders = new Set<string>();
+    if (orderNumbers.length > 0) {
+      const billedReceipts: any[] = [];
+      for (let i = 0; i < orderNumbers.length; i += BATCH) {
+        const found = await svc.CbmIngreso.filter(
+          { billed: true, invoice_number: { $in: orderNumbers.slice(i, i + BATCH) } },
+          undefined, BATCH + 10
+        ).catch(() => []);
+        billedReceipts.push(...(found || []));
+      }
+      const billedInvoiceIds = [...new Set(billedReceipts.map((r: any) => r.billed_invoice_id).filter(Boolean))] as string[];
+      const aliveBilledInvoiceIds = new Set<string>();
+      for (let i = 0; i < billedInvoiceIds.length; i += BATCH) {
+        const found = await svc.Invoice.filter({ id: { $in: billedInvoiceIds.slice(i, i + BATCH) } }, undefined, BATCH + 10).catch(() => []);
+        for (const inv of found || []) aliveBilledInvoiceIds.add(inv.id);
+      }
+      for (const r of billedReceipts) {
+        if (r.billed !== true) continue;
+        if (!r.billed_invoice_id || !aliveBilledInvoiceIds.has(r.billed_invoice_id)) continue;
+        const key = String(r.invoice_number || '').trim();
+        if (key) invoicedOrders.add(key);
+      }
+    }
+
     // Auto-sanación: si la factura que marcó el bulto ya no existe, vuelve a ofrecerse.
     const invoiceIds = [...new Set(bultosCandidatos.map((b: any) => b.billed_invoice_id).filter(Boolean))] as string[];
     const aliveInvoiceIds = new Set<string>();
@@ -57,11 +87,13 @@ Deno.serve(async (req) => {
       for (const inv of found || []) aliveInvoiceIds.add(inv.id);
     }
     // El bulto marcado a mano como facturado NO se oculta de la lista: sigue visible
-    // (marcado en verde) para poder deshacer la marca. Solo se excluye lo que ya
-    // tiene una factura viva.
-    let bultos = bultosCandidatos.filter((b: any) =>
-      !b.billed_invoice_id || !aliveInvoiceIds.has(b.billed_invoice_id)
-    );
+    // (marcado en verde) para poder deshacer la marca. Se excluye lo que ya tiene una
+    // factura viva y lo que pertenece a un envío ya facturado (recibo billed con factura viva).
+    let bultos = bultosCandidatos.filter((b: any) => {
+      if (b.billing_marked === true) return true;
+      if (b.billed_invoice_id && aliveInvoiceIds.has(b.billed_invoice_id)) return false;
+      return !(b.cbm_order_numbers || []).some((o: any) => invoicedOrders.has(String(o).trim()));
+    });
 
     const clientEmails = [...new Set([
       ...bultos.map((b: any) => b.client_email),
