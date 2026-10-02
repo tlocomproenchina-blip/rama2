@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { generateDispatchGuidePdf } from '@/lib/dispatchGuidePdf';
 import DispatchGuideDeliveryDialog from './DispatchGuideDeliveryDialog';
 import ContinuousLabelsDialog from './ContinuousLabelsDialog';
+import GuideBultoChips from './GuideBultoChips';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -58,6 +59,7 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
         mode,
         guideNumber: guide.guide_number,
         emittedAt: guide.emitted_date,
+        notes: guide.delivery_notes || '',
       });
     } catch (_) {
       toast.error('No se pudo generar el PDF de la guía');
@@ -168,17 +170,7 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                   <p className="font-mono text-[11px] text-blue-700 break-all">
                     Mark: {client.shipping_mark || client.client?.shipping_mark || '—'}
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(client.bultos || []).map((bulto) => (
-                      <span
-                        key={`${client.client_key}-${bulto.label_code}`}
-                        className="rounded-lg border border-border bg-card/80 px-2 py-0.5 font-mono text-[11px] text-foreground"
-                      >
-                        {bulto.label_code} · {bulto.package_count || 0} paq.
-                        {bulto.date ? ` · ${fmtDate(bulto.date)}` : ''}
-                      </span>
-                    ))}
-                  </div>
+                  <GuideBultoChips guide={guide} clientGroup={client} onGuideUpdated={onGuideUpdated} />
                 </div>
               ))
             )}

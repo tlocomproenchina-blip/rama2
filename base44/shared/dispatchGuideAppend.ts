@@ -101,6 +101,33 @@ export async function markScansWithGuide(
   }
 }
 
+// Suelta los escaneos de esos bultos: vuelven a ofrecerse como pendientes cuando un
+// bulto se quita de la guía desde el historial.
+export async function releaseScansFromGuide(base44: any, { codes, guideId }: any): Promise<boolean> {
+  const list = unique((codes || []).map((code: any) => normCode(code)).filter(Boolean));
+  if (!list.length || !guideId) return false;
+  try {
+    let remaining = true;
+    let guard = 0;
+    while (remaining && guard < 20) {
+      guard += 1;
+      const result: any = await base44.asServiceRole.entities.DispatchScanLog.updateMany(
+        {
+          $and: [
+            { $or: [{ bulto_label_code: { $in: list } }, { scanned_code: { $in: list } }] },
+            { guide_id: guideId },
+          ],
+        },
+        { $set: { guide_id: null, guide_number: '', guide_emitted_date: null } }
+      );
+      remaining = !!result?.has_more;
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 export const recomputeGuideTotals = (clients: any[]) => {
   const list = Array.isArray(clients) ? clients : [];
   const rows = list.flatMap((c: any) => c.bultos || []);

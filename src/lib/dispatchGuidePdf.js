@@ -17,6 +17,7 @@ export async function generateDispatchGuidePdf({
   offline = false,
   guideNumber = '',
   emittedAt = '',
+  notes = '',
 }) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -193,6 +194,22 @@ export async function generateDispatchGuidePdf({
   doc.text(`${totals.clients} cliente(s) · ${totals.bultos} bulto(s) · ${totals.packages} paquete(s)`, right, y + 1, { align: 'right' });
   doc.setTextColor(30, 41, 59);
   y += 22;
+
+  // Notas de la guía (las que se escriben al anotar la entrega): salen impresas.
+  const noteLines = notes ? doc.splitTextToSize(String(notes).trim(), right - left - 4) : [];
+  if (noteLines.length) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('NOTAS', left, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    y += 5;
+    noteLines.forEach((line) => {
+      doc.text(line, left, y);
+      y += 4.5;
+    });
+    y += 6;
+  }
 
   if (y > 265) startPage(false);
 
