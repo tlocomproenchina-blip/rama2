@@ -10,7 +10,7 @@ export default function LabelBatchResult({ guide, excluded = [], printedCount = 
     return (
       <Card>
         <CardContent className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Creando la guía con las cajas del lote…
+          <Loader2 className="h-4 w-4 animate-spin" /> Creando la guía con las unidades del lote…
         </CardContent>
       </Card>
     );
@@ -27,7 +27,7 @@ export default function LabelBatchResult({ guide, excluded = [], printedCount = 
             {printedCount} etiqueta(s) impresas, guía pendiente
           </p>
           <p className="text-xs text-amber-700">
-            Las etiquetas ya salieron. Vuelve a crear la guía con esas mismas cajas, sin reimprimir.
+            Las etiquetas ya salieron. Vuelve a crear la guía con esas mismas unidades, sin reimprimir.
           </p>
           <Button size="sm" onClick={onRetryCreate} disabled={creating}>
             {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -45,12 +45,12 @@ export default function LabelBatchResult({ guide, excluded = [], printedCount = 
           <CheckCircle2 className="h-4 w-4 shrink-0" /> Guía {guide.guide_number} creada
         </p>
         <p className="text-xs text-emerald-700">
-          {guide.totals?.bultos || 0} caja(s) · {guide.totals?.packages || 0} paquete(s) ·{' '}
+          {guide.totals?.bultos || 0} unidad(es) · {guide.totals?.packages || 0} paquete(s) ·{' '}
           {Number(guide.totals?.cbm || 0).toFixed(3)} CBM
         </p>
         {excluded.length > 0 && (
           <p className="rounded-xl border border-amber-200 bg-amber-50/70 p-2 text-[11px] text-amber-800">
-            {excluded.length} caja(s) quedaron fuera porque ya estaban en otra guía:{' '}
+            {excluded.length} unidad(es) quedaron fuera porque ya estaban en otra guía:{' '}
             {excluded.map((item) => `${item.code}${item.guide_number ? ` (${item.guide_number})` : ''}`).join(', ')}
           </p>
         )}

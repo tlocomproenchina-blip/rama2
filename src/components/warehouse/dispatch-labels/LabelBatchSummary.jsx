@@ -1,14 +1,24 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Bluetooth, BluetoothConnected, Loader2, Printer, Tag } from 'lucide-react';
+import { AlertTriangle, Bluetooth, BluetoothConnected, Loader2, Printer, Tag } from 'lucide-react';
 import { bluetoothSupported, isPrinterConnected } from '@/lib/thermalPrinter';
 
-// Cierre del lote: cuántas etiquetas van a salir, estado de la impresora y el botón que
-// imprime el lote y con él crea la guía de despacho.
-export default function LabelBatchSummary({ count, packages, cbm, printing, progress, statusText, onPrint }) {
+// Cierre del lote: cuántas etiquetas van a salir con el X/N escrito a mano, estado de la
+// impresora y el botón que imprime el lote y con él crea la guía de despacho.
+export default function LabelBatchSummary({
+  count,
+  packages,
+  cbm,
+  missing = [],
+  printing,
+  progress,
+  statusText,
+  onPrint,
+}) {
   const supported = bluetoothSupported();
   const connected = isPrinterConnected();
   const total = Number(progress?.total) || count;
+  const blocked = missing.length > 0;
 
   return (
     <div className="space-y-2 rounded-2xl border border-border/80 bg-card/85 p-3 shadow-card">
@@ -32,14 +42,21 @@ export default function LabelBatchSummary({ count, packages, cbm, printing, prog
         </span>
       </div>
 
-      <Button className="w-full gap-2" onClick={onPrint} disabled={printing || count <= 0 || !supported}>
+      {blocked && (
+        <p className="flex items-start gap-1.5 rounded-xl border border-amber-200 bg-amber-50/70 p-2 text-[11px] text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+          Escribe el X/N de {missing.length} etiqueta(s): {missing.join(', ')}
+        </p>
+      )}
+
+      <Button className="w-full gap-2" onClick={onPrint} disabled={printing || count <= 0 || !supported || blocked}>
         {printing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
         {printing ? 'Imprimiendo…' : `Imprimir lote y crear guía (${count})`}
       </Button>
 
       <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
         <Tag className="mt-0.5 h-3 w-3 shrink-0" />
-        La guía de despacho se crea al confirmarse la impresión, solo con las cajas de este lote.
+        La guía de despacho se crea al confirmarse la impresión, solo con las unidades de este lote.
       </p>
     </div>
   );

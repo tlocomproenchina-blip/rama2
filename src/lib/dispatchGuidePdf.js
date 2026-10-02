@@ -145,9 +145,10 @@ export async function generateDispatchGuidePdf({
       doc.setFontSize(10);
       doc.text(String(index), 16, y);
       doc.setFont('courier', 'bold');
-      // Las cajas consolidadas se identifican con la posición impresa en su etiqueta.
-      const cajaTag =
-        bulto.is_caja && bulto.caja_number ? `[${bulto.caja_number}/${bulto.caja_total || '?'}] ` : '';
+      // Cada unidad se identifica con la posición X/N impresa en su etiqueta.
+      const cajaTag = bulto.caja_number
+        ? `[${bulto.caja_number}/${bulto.caja_total || '?'}] `
+        : '';
       doc.text(`${cajaTag}${bulto.label_code || '—'}`, 26, y);
       doc.setFont('helvetica', 'normal');
       doc.text(String(bulto.package_count ?? 0), 112, y);

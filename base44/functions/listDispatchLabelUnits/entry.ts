@@ -2,13 +2,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { getClientByEmail } from '../../shared/bultoScan.ts';
 import { normCode, packageCountOfBulto } from '../../shared/dispatchGuideAppend.ts';
 
-// Cajas de un cliente listas para despacho: las que se marcan para armar su lote de
-// etiquetas continuas. Devuelve el conteo real de paquetes, el CBM y si la caja ya
-// forma parte de una guía (esas no entran en un lote nuevo).
+// Unidades de un cliente listas para armar su lote de etiquetas de despacho: sus cajas
+// consolidadas y sus bultos sueltos que todavía no salieron del almacén. Las unidades
+// que ya están dentro de una guía se devuelven marcadas (in_guide + guide_number) para
+// avisarlas en pantalla, sin esconderlas ni bloquearlas: el operador decide si las
+// vuelve a incluir. Solo quedan fuera las ya despachadas, porque una unidad despachada
+// no puede entrar a una guía nueva.
 //
 // Recibe: { client_email, device_id? }
-// Devuelve: { client, cajas: [{ id, label_code, caja_number, caja_total, package_count,
-//             cbm, status, order_numbers, in_guide, guide_number }], total }
+// Devuelve: { client, units: [{ id, label_code, is_caja, bulto_number, caja_number,
+//             caja_total, package_count, cbm, status, order_numbers, in_guide,
+//             guide_number }], total, cajas, bultos }
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -33,12 +37,11 @@ export default async function (req: Request): Promise<Response> {
     if (!clientEmail) return Response.json({ error: 'Falta el cliente' }, { status: 400 });
 
     const rows: any[] = await base44.asServiceRole.entities.Bulto
-      .filter({ client_email: clientEmail, is_caja: true }, '-created_date', 500)
+      .filter({ client_email: clientEmail, status: { $ne: 'despachado' } }, '-created_date', 500)
       .catch(() => []);
-    const pending = (rows || []).filter((c: any) => c?.status !== 'despachado');
+    const units = (rows || []).filter((unit: any) => !!unit?.label_code);
 
-    // Guías del cliente: sus códigos de caja ya despachados en una guía no vuelven a
-    // ofrecerse para un lote nuevo.
+    // Guías del cliente: las unidades ya incluidas en una se avisan, no se ocultan.
     const guides: any[] = await base44.asServiceRole.entities.DispatchGuide
       .filter({ client_emails: clientEmail }, '-created_date', 50)
       .catch(() => []);
@@ -50,30 +53,34 @@ export default async function (req: Request): Promise<Response> {
       });
     });
 
-    const cajas = pending
-      .map((caja: any) => {
-        const guide: any = coveredBy.get(normCode(caja.label_code));
+    const unitRows = units
+      .map((unit: any) => {
+        const guide: any = coveredBy.get(normCode(unit.label_code));
         return {
-          id: caja.id,
-          label_code: caja.label_code,
-          caja_number: Number(caja.caja_number) || 0,
-          caja_total: Number(caja.caja_total) || 0,
-          package_count: packageCountOfBulto(caja),
-          cbm: Number(caja.cargo_cbm) || 0,
-          status: caja.status || '',
-          order_numbers: (caja.cbm_order_numbers || []).filter(Boolean),
+          id: unit.id,
+          label_code: unit.label_code,
+          is_caja: !!unit.is_caja,
+          bulto_number: Number(unit.bulto_number) || 0,
+          caja_number: Number(unit.caja_number) || 0,
+          caja_total: Number(unit.caja_total) || 0,
+          package_count: packageCountOfBulto(unit),
+          cbm: Number(unit.cargo_cbm) || 0,
+          status: unit.status || '',
+          order_numbers: (unit.cbm_order_numbers || []).filter(Boolean),
           in_guide: !!guide,
           guide_number: guide?.guide_number || '',
         };
       })
       .sort(
         (a: any, b: any) =>
+          Number(b.is_caja) - Number(a.is_caja) ||
           (a.caja_number || 0) - (b.caja_number || 0) ||
+          (a.bulto_number || 0) - (b.bulto_number || 0) ||
           String(a.label_code).localeCompare(String(b.label_code))
       );
 
     const profile: any = await getClientByEmail(base44, clientEmail);
-    const snapshot = pending.find((c: any) => c.client_snapshot?.full_name)?.client_snapshot || {};
+    const snapshot = units.find((unit: any) => unit.client_snapshot?.full_name)?.client_snapshot || {};
 
     return Response.json({
       client: {
@@ -86,8 +93,10 @@ export default async function (req: Request): Promise<Response> {
         state: snapshot.state || profile?.state || '',
         shipping_mark: snapshot.shipping_mark || profile?.shipping_mark || '',
       },
-      cajas,
-      total: cajas.length,
+      units: unitRows,
+      total: unitRows.length,
+      cajas: unitRows.filter((unit: any) => unit.is_caja).length,
+      bultos: unitRows.filter((unit: any) => !unit.is_caja).length,
     });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
