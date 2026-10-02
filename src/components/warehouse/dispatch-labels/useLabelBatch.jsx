@@ -3,32 +3,25 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
 import { printCajaLabelBatch } from '@/lib/labelBatchPrint';
 
-// Lote de etiquetas de despacho: carga todas las unidades por despachar del cliente,
-// guarda el X/N que el operador escribe para cada etiqueta, imprime la tira continua y,
-// al confirmarse la impresión, crea la guía de despacho con esas unidades.
-const isValidNumber = (value) => Number.isInteger(Number(value)) && Number(value) >= 1;
-
-// Valores con los que se precarga el X/N: los que la unidad ya tenía guardados.
-const storedNumbers = (unit) =>
-  unit?.is_caja && Number(unit.caja_number) > 0
-    ? {
-        index: String(unit.caja_number),
-        total: Number(unit.caja_total) > 0 ? String(unit.caja_total) : '',
-      }
-    : { index: '', total: '' };
-
+// Etiqueta única de despacho: se elige el cliente y cuántas cajas van a salir. Se
+// imprime una etiqueta por caja (la misma etiqueta, con los datos del cliente y el X/N
+// de esa cantidad) y, al confirmarse la impresión, se crea la guía de despacho con esas
+// cajas. Si la impresión falla, no se crea guía.
 export default function useLabelBatch() {
   const [client, setClient] = useState(null);
   const [units, setUnits] = useState([]);
+  const [quantity, setQuantity] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState([]);
-  const [labels, setLabels] = useState({});
   const [printing, setPrinting] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [statusText, setStatusText] = useState('');
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState(null);
   const [printedUnits, setPrintedUnits] = useState([]);
+
+  // Solo salen las cajas que todavía no están en una guía.
+  const pending = useMemo(() => units.filter((unit) => !unit.in_guide), [units]);
+  const count = Number(quantity) || 0;
 
   const loadUnits = useCallback(async (email) => {
     setLoading(true);
@@ -39,7 +32,7 @@ export default function useLabelBatch() {
       if (data.client) setClient((prev) => ({ ...(prev || {}), ...data.client }));
     } catch (_) {
       setUnits([]);
-      toast.error('No se pudieron cargar las unidades del cliente');
+      toast.error('No se pudieron cargar las cajas del cliente');
     }
     setLoading(false);
   }, []);
@@ -53,58 +46,13 @@ export default function useLabelBatch() {
       }
       setClient({ ...picked, email });
       setUnits([]);
-      setSelected([]);
-      setLabels({});
+      setQuantity('');
       setResult(null);
       setPrintedUnits([]);
       setStatusText('');
       loadUnits(email);
     },
     [loadUnits]
-  );
-
-  const prefill = (prev, code) => {
-    if (prev[code]) return prev;
-    const unit = units.find((u) => u.label_code === code);
-    return { ...prev, [code]: storedNumbers(unit) };
-  };
-
-  const toggleUnit = useCallback(
-    (code) => {
-      setSelected((prev) => (prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]));
-      setLabels((prev) => prefill(prev, code));
-    },
-    [units]
-  );
-
-  const toggleAll = useCallback(() => {
-    if (units.length > 0 && selected.length === units.length) {
-      setSelected([]);
-      return;
-    }
-    setSelected(units.map((u) => u.label_code));
-    setLabels((prev) => units.reduce((acc, unit) => prefill(acc, unit.label_code), prev));
-  }, [selected.length, units]);
-
-  const setLabelNumber = useCallback((code, field, value) => {
-    setLabels((prev) => ({ ...prev, [code]: { ...(prev[code] || {}), [field]: value } }));
-  }, []);
-
-  const selectedUnits = useMemo(
-    () => units.filter((u) => selected.includes(u.label_code)),
-    [units, selected]
-  );
-
-  const missing = selectedUnits
-    .filter((u) => !isValidNumber(labels[u.label_code]?.index) || !isValidNumber(labels[u.label_code]?.total))
-    .map((u) => u.label_code);
-
-  const totals = useMemo(
-    () => ({
-      packages: selectedUnits.reduce((sum, u) => sum + (Number(u.package_count) || 0), 0),
-      cbm: Number(selectedUnits.reduce((sum, u) => sum + (Number(u.cbm) || 0), 0).toFixed(3)),
-    }),
-    [selectedUnits]
   );
 
   const createGuide = useCallback(
@@ -123,14 +71,13 @@ export default function useLabelBatch() {
         if (!data.guide) throw new Error(data.error || 'No se pudo crear la guía');
         setResult({ guide: data.guide, excluded: data.excluded || [] });
         setPrintedUnits([]);
-        setSelected([]);
-        setLabels({});
+        setQuantity('');
         await loadUnits(client.email);
         if (data.already) {
           toast.info(`Estas etiquetas ya habían creado la guía ${data.guide.guide_number}`);
         } else {
           toast.success(
-            `Guía ${data.guide.guide_number} creada con ${data.guide.totals?.bultos || lote.length} unidad(es)`
+            `Guía ${data.guide.guide_number} creada con ${data.guide.totals?.bultos || lote.length} caja(s)`
           );
         }
       } catch (e) {
@@ -142,25 +89,18 @@ export default function useLabelBatch() {
   );
 
   const printBatch = useCallback(async () => {
-    if (!selectedUnits.length) {
-      toast.error('Marca al menos una unidad para el lote');
-      return;
-    }
-    if (missing.length) {
-      toast.error(`Escribe el X/N de ${missing.length} etiqueta(s)`);
+    if (!count) return;
+    if (count > pending.length) {
+      toast.error(`El cliente solo tiene ${pending.length} caja(s) pendientes por despachar`);
       return;
     }
 
-    // La tira sale ordenada por el X/N escrito: es el orden físico de las etiquetas.
-    const lote = selectedUnits
-      .map((unit) => ({
-        ...unit,
-        caja_number: Number(labels[unit.label_code].index),
-        caja_total: Number(labels[unit.label_code].total),
-      }))
-      .sort(
-        (a, b) => a.caja_number - b.caja_number || String(a.label_code).localeCompare(String(b.label_code))
-      );
+    // Las cajas que salen: las primeras pendientes, numeradas X/N con la cantidad escrita.
+    const lote = pending.slice(0, count).map((unit, position) => ({
+      ...unit,
+      caja_number: position + 1,
+      caja_total: count,
+    }));
 
     setPrinting(true);
     setResult(null);
@@ -195,9 +135,9 @@ export default function useLabelBatch() {
       setPrintedUnits([]);
       setStatusText('');
       setPrinting(false);
-      toast.error(e?.message || 'No se pudo imprimir el lote');
+      toast.error(e?.message || 'No se pudo imprimir la etiqueta');
     }
-  }, [client, createGuide, labels, missing, selectedUnits]);
+  }, [client, count, createGuide, pending]);
 
   const retryCreate = useCallback(() => {
     if (printedUnits.length) createGuide(printedUnits);
@@ -206,8 +146,7 @@ export default function useLabelBatch() {
   const clearClient = useCallback(() => {
     setClient(null);
     setUnits([]);
-    setSelected([]);
-    setLabels({});
+    setQuantity('');
     setResult(null);
     setPrintedUnits([]);
     setStatusText('');
@@ -215,23 +154,18 @@ export default function useLabelBatch() {
 
   return {
     client,
-    units,
     loading,
-    selected,
-    labels,
+    quantity,
+    setQuantity,
+    count,
+    pendingCount: pending.length,
     printing,
     progress,
     statusText,
     creating,
     result,
     printedCount: printedUnits.length,
-    selectedUnits,
-    missing,
-    totals,
     selectClient,
-    toggleUnit,
-    toggleAll,
-    setLabelNumber,
     printBatch,
     retryCreate,
     clearClient,
