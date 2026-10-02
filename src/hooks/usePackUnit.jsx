@@ -195,6 +195,25 @@ export default function usePackUnit({
           setPendingCode({ code: value, reason: 'no está registrado en este dispositivo' });
           return;
         }
+        if (target.is_caja) {
+          setError('Ese código es de otra caja consolidada.');
+          return;
+        }
+        // En modo caja el bulto suelto no se retoma: entra dentro de la caja del cliente.
+        // Se retoma la caja abierta del cliente o se crea, y queda como unidad activa para
+        // que el escaneo siga armando la caja (con bultos sueltos y con trackings).
+        if (destinationRef.current === 'caja') {
+          const client = target.client_email ? await getClientByEmail(target.client_email) : null;
+          const caja = await resolveUnit(
+            target.client_email,
+            client || { email: target.client_email, shipping_mark: target.shipping_mark },
+            'caja'
+          );
+          if (!caja) return;
+          await activateUnit(caja);
+          setAbsorbPending({ source: target, code: value });
+          return;
+        }
         await activateUnit(target);
         toast.success(`Bulto ${target.label_code} activo`);
         return;
