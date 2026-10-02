@@ -202,6 +202,8 @@ export const buildContinuousLabelPayload = ({
   guideNumber = '',
   emittedAt = '',
   barcodeCode = '',
+  packageCount = 0,
+  cbm = 0,
 }) => {
   const cs = client || {};
   const counter = `${index}/${total}`;
@@ -263,6 +265,18 @@ export const buildContinuousLabelPayload = ({
     };
     if (cityState) addBigText(cityState);
     if (mark) addBigText(`MARK: ${mark}`);
+
+    // 5b. Paquetes y CBM de la caja que lleva la etiqueta: solo se imprime cuando el
+    //     lote trae esos datos (etiquetas de un lote de cajas listas para despachar).
+    const cajaInfo = [
+      Number(packageCount) > 0 ? `${Number(packageCount)} PAQUETES` : '',
+      Number(cbm) > 0 ? `${Number(cbm).toFixed(3)} CBM` : '',
+    ]
+      .filter(Boolean)
+      .join('  ·  ');
+    if (cajaInfo) {
+      addBlock(26, (y) => [`TEXT ${centerX(cajaInfo, '2', 1)},${y},${q('2')},0,1,1,${q(cajaInfo)}`]);
+    }
 
     // 6. Código de barras de la caja: identifica la caja que lleva pegada la etiqueta
     //    y es el que se escanea al despachar. Va escrito también bajo las barras.

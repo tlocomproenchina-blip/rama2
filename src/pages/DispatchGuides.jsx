@@ -1,20 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardList, Clock3, History } from 'lucide-react';
-import DispatchGuideEmitPanel from '@/components/warehouse/dispatch-guides/DispatchGuideEmitPanel';
-import DispatchGuideEmittedNotice from '@/components/warehouse/dispatch-guides/DispatchGuideEmittedNotice';
+import { ClipboardList, Clock3 } from 'lucide-react';
 import DispatchGuideHistoryPanel from '@/components/warehouse/dispatch-guides/DispatchGuideHistoryPanel';
 import DispatchGuideSyncCard from '@/components/warehouse/dispatch-guides/DispatchGuideSyncCard';
 
-// Módulo de guías de despacho: emisión desde los bultos escaneados pendientes e
-// historial de guías emitidas, con reimpresión y anotación de entrega.
+// Guías de despacho: las guías nacen al imprimir el lote de etiquetas (módulo Etiquetas
+// de Despacho), así que esta pantalla queda para consultar el historial, reimprimir o
+// descargar la guía, anotar su entrega y sincronizar los escaneos que llegaron sin guía.
 export default function DispatchGuides() {
-  const [tab, setTab] = useState('emitir');
-  const [emittedGuide, setEmittedGuide] = useState(null);
-  const [highlightId, setHighlightId] = useState('');
-  const [historyKey, setHistoryKey] = useState(0);
+  const location = useLocation();
+  const [highlightId] = useState(location.state?.highlightGuideId || '');
   const [pendingCount, setPendingCount] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -30,15 +27,6 @@ export default function DispatchGuides() {
     loadPendingCount();
   }, [loadPendingCount]);
 
-  const handleEmitted = (guide) => {
-    setEmittedGuide(guide);
-    setHighlightId(guide?.id || '');
-    setHistoryKey((key) => key + 1);
-    setTab('historial');
-    loadPendingCount();
-    setReloadKey((key) => key + 1);
-  };
-
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -47,8 +35,8 @@ export default function DispatchGuides() {
             <ClipboardList className="h-6 w-6 text-blue-600" /> Guías de Despacho
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Emite la guía con los bultos escaneados para despacho y consulta el historial de guías
-            emitidas para reimprimir o anotar su entrega.
+            Consulta las guías emitidas, reimprime o descarga su PDF y anota la entrega. Las guías
+            se crean al imprimir el lote de etiquetas en Etiquetas de Despacho.
           </p>
         </div>
         {pendingCount > 0 && (
@@ -58,37 +46,12 @@ export default function DispatchGuides() {
         )}
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid w-full grid-cols-2 sm:inline-grid sm:w-auto">
-          <TabsTrigger value="emitir" className="gap-1.5">
-            <ClipboardList className="h-4 w-4" /> Emitir guía
-          </TabsTrigger>
-          <TabsTrigger value="historial" className="gap-1.5">
-            <History className="h-4 w-4" /> Historial
-          </TabsTrigger>
-        </TabsList>
+      <DispatchGuideSyncCard
+        reloadSignal={reloadKey}
+        onSynced={() => setReloadKey((key) => key + 1)}
+      />
 
-        <TabsContent value="emitir" className="mt-4 space-y-4">
-          <DispatchGuideSyncCard
-            reloadSignal={reloadKey}
-            onSynced={() => setReloadKey((key) => key + 1)}
-          />
-          <DispatchGuideEmitPanel key={`emit-${reloadKey}`} onEmitted={handleEmitted} />
-        </TabsContent>
-
-        <TabsContent value="historial" className="mt-4 space-y-4">
-          <DispatchGuideEmittedNotice
-            guide={emittedGuide}
-            onClose={() => setEmittedGuide(null)}
-            onOpen={() => setHighlightId(emittedGuide?.id || '')}
-          />
-          <DispatchGuideHistoryPanel
-            key={historyKey}
-            highlightId={highlightId}
-            onGuideUpdated={loadPendingCount}
-          />
-        </TabsContent>
-      </Tabs>
+      <DispatchGuideHistoryPanel highlightId={highlightId} onGuideUpdated={loadPendingCount} />
     </div>
   );
 }

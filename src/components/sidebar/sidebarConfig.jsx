@@ -82,6 +82,7 @@ export const adminMenuItems = [
   { name: 'Despacho Escáner', page: 'WarehouseDispatch', icon: Truck },
   { name: 'Historial de Despachos', page: 'WarehouseDispatchHistory', icon: History },
   { name: 'Historial de Escaneos', page: 'WarehouseDispatchScanHistory', icon: ScanLine },
+  { name: 'Etiquetas de Despacho', page: 'DispatchLabels', icon: Tag },
   { name: 'Guías de Despacho', page: 'DispatchGuides', icon: ClipboardList },
   { name: 'Dispositivos Bodega China', page: 'AdminDispositivosBodega', icon: Smartphone },
   { name: 'Productividad Bodega', page: 'AdminBodegaProductividad', icon: BarChart2 },
@@ -136,7 +137,7 @@ export const adminMenuItems = [
 export const adminGroups = [
   { label: 'PRINCIPAL', items: ['AdminDashboard', 'AdminLogistica', 'ClientAnalytics'] },
   { label: 'OPERACIONES', items: ['AdminOperaciones', 'AdminDailySummary', 'AdminPackages', 'AdminPreAlerts', 'AdminOrphanPackages', 'AdminConsolidate', 'AdminShipmentApprovals', 'AdminAssistedPayments', 'AdminQuotes'] },
-  { label: 'ALMACÉN', items: ['WarehouseScanPack', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseBultos', 'WarehouseDispatch', 'WarehouseDispatchHistory', 'WarehouseDispatchScanHistory', 'DispatchGuides', 'AdminDispositivosBodega', 'AdminBodegaProductividad', 'AdminBultoAudit', 'WarehousePrintAudit'] },
+  { label: 'ALMACÉN', items: ['WarehouseScanPack', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseBultos', 'WarehouseDispatch', 'WarehouseDispatchHistory', 'WarehouseDispatchScanHistory', 'DispatchLabels', 'DispatchGuides', 'AdminDispositivosBodega', 'AdminBodegaProductividad', 'AdminBultoAudit', 'WarehousePrintAudit'] },
   { label: 'LOGÍSTICA', items: ['AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas'] },
   { label: 'CONTABILIDAD', items: ['AccountingDashboard', 'AdminRevenueDashboard', 'AdminInvoices', 'AdminManualBilling', 'AdminPayments', 'AdminClientCredits', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviderCredits', 'AdminProviders', 'AdminCbmIngresos', 'AdminArrivalCalendar'] },
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminEmailHistory', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },

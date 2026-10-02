@@ -87,6 +87,7 @@ export const PAGE_LABELS = {
   WarehouseDispatch: 'Despacho Escáner',
   WarehouseDispatchScanHistory: 'Historial de Escaneos',
   DispatchGuides: 'Guías de Despacho',
+  DispatchLabels: 'Etiquetas de Despacho',
   AccountingDashboard: 'Dashboard Contabilidad',
   AdminInvoices: 'Facturas',
   AdminPayments: 'Validar Pagos',

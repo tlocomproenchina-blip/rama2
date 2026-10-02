@@ -22,6 +22,7 @@ const WarehouseDispatch = lazy(() => import('./pages/WarehouseDispatch'));
 const WarehouseDispatchHistory = lazy(() => import('./pages/WarehouseDispatchHistory'));
 const WarehouseDispatchScanHistory = lazy(() => import('./pages/WarehouseDispatchScanHistory'));
 const DispatchGuides = lazy(() => import('./pages/DispatchGuides'));
+const DispatchLabels = lazy(() => import('./pages/DispatchLabels'));
 const WarehouseBultos = lazy(() => import('./pages/WarehouseBultos'));
 const WarehouseScanPack = lazy(() => import('./pages/WarehouseScanPack'));
 const WarehousePrintAudit = lazy(() => import('./pages/WarehousePrintAudit'));
@@ -142,6 +143,7 @@ const AuthenticatedApp = () => {
       <Route path="/WarehouseDispatchHistory" element={lazyRoute(WarehouseDispatchHistory, "WarehouseDispatchHistory")} />
       <Route path="/WarehouseDispatchScanHistory" element={lazyRoute(WarehouseDispatchScanHistory, "WarehouseDispatchScanHistory")} />
       <Route path="/DispatchGuides" element={lazyRoute(DispatchGuides, "DispatchGuides")} />
+      <Route path="/DispatchLabels" element={lazyRoute(DispatchLabels, "DispatchLabels")} />
       <Route path="/WarehouseBultos" element={lazyRoute(WarehouseBultos, "WarehouseBultos")} />
       <Route path="/WarehouseScanPack" element={lazyRoute(WarehouseScanPack, "WarehouseScanPack")} />
       <Route path="/WarehousePrintAudit" element={lazyRoute(WarehousePrintAudit, "WarehousePrintAudit")} />
