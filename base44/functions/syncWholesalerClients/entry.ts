@@ -18,18 +18,14 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const cfg = await getWholesalerConfig(base44);
-    const summary: any = { consultados: 0, creados: 0, existentes: 0, errores: 0, informe: null, avisos: null, mensaje: '' };
+    const summary: any = { consultados: 0, nuevos: 0, existentes: 0, errores: 0, informe: null, avisos: null, mensaje: '' };
     const now = new Date().toISOString();
 
     if (cfg?.intake_enabled === false) {
       summary.mensaje = 'La consulta de clientes nuevos está desactivada.';
       await updateWholesalerConfig(base44, { last_run_date: now, last_run_status: 'ok', last_run_message: summary.mensaje });
     } else {
-      // TEMP_TEST_FEED
-      const body = await req.clone().json().catch(() => ({}));
-      const feed = Array.isArray(body?.test_clients)
-        ? { ok: true, clients: body.test_clients, error: null }
-        : await fetchWholesalerClients(base44, cfg);
+      const feed = await fetchWholesalerClients(base44, cfg);
       if (!feed.ok) {
         summary.mensaje = feed.error;
         await updateWholesalerConfig(base44, {
@@ -41,11 +37,11 @@ export default async function (req: Request): Promise<Response> {
       } else {
         const records = await intakeClients(base44, feed.clients);
         summary.consultados = feed.clients.length;
-        summary.creados = records.filter((r: any) => r?.status === 'creado').length;
+        summary.nuevos = records.filter((r: any) => r?.status === 'pendiente').length;
         summary.existentes = records.filter((r: any) => r?.status === 'existente').length;
         summary.errores = records.filter((r: any) => r?.status === 'error').length;
 
-        const message = `${summary.creados} cliente(s) nuevo(s), ${summary.existentes} ya existían, ${summary.errores} con error.`;
+        const message = `${summary.nuevos} cliente(s) nuevo(s) por crear su cuenta, ${summary.existentes} ya existían, ${summary.errores} con error.`;
         await updateWholesalerConfig(base44, {
           last_cursor: now,
           last_run_date: now,

@@ -122,6 +122,7 @@ export const adminMenuItems = [
   { name: 'Mensajería Interna', page: 'AdminInternalMessages', icon: MessageSquareMore },
   { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
   { name: 'Clientes', page: 'AdminClients', icon: Users },
+  { name: 'Clientes Mayorista', page: 'AdminWholesalerClients', icon: UserCheck },
   { name: 'Empleados', page: 'AdminEmployees', icon: UserCheck },
   { name: 'Administradores', page: 'AdminAdministrators', icon: UserCheck },
   { name: 'Roles', page: 'AdminRoles', icon: Settings2 },
@@ -145,7 +146,7 @@ export const adminGroups = [
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
   { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminSupportQuickMessages', 'AdminInternalMessages', 'AdminFAQ'] },
   { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance'] },
-  { label: 'GESTIÓN', items: ['AdminClients', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
+  { label: 'GESTIÓN', items: ['AdminClients', 'AdminWholesalerClients', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
 
 export const clientGroups = [

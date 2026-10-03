@@ -5,6 +5,7 @@
     "event_type": {
       "type": "string",
       "enum": [
+        "cliente_pendiente",
         "cliente_nuevo",
         "cliente_existente",
         "cliente_error",

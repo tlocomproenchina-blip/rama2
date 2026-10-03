@@ -46,6 +46,7 @@ import PushTestCard from '@/components/admin/PushTestCard';
 import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
 import ShippingMarkExamplesEditor from '@/components/admin/ShippingMarkExamplesEditor';
 import BatteryBannerSettings from '@/components/admin/BatteryBannerSettings';
+import WholesalerConnectionCard from '@/components/admin/WholesalerConnectionCard';
 import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
 
 const VENEZUELAN_STATES = [
@@ -1159,6 +1160,9 @@ export default function AdminSettings({ user }) {
                 onSave={handleSaveGeneral}
                 saving={saving}
               />
+
+              {/* Conexión con la app del cliente mayorista */}
+              <WholesalerConnectionCard />
 
               {/* Modo Noche */}
               <DarkModeToggleCard />

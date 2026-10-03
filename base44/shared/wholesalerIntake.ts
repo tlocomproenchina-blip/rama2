@@ -1,7 +1,8 @@
-// Trae los clientes nuevos que reporta la app del mayorista y los da de alta aquí
-// como clientes reales, con su Shipping Mark según la configuración vigente.
+// Trae los clientes nuevos que reporta la app del mayorista y los deja listos en
+// TLEC CARGO: los que ya existen se detectan (por correo o cédula) y los nuevos
+// quedan pendientes de crear su cuenta, que se crea desde el panel con un clic
+// (la plataforma solo permite invitar usuarios desde una sesión de admin).
 import { logWholesalerEvent, truncate } from './wholesalerCore.ts';
-import { assignShippingMarkToUser, shippingMarkAutoAssignEnabled } from './shippingMark.ts';
 
 const TIMEOUT_MS = 20000;
 const MAX_CLIENTS_PER_RUN = 100;
@@ -72,65 +73,6 @@ async function lookupUser(base44: any, query: Record<string, any>) {
   }
 }
 
-async function findUserByEmail(base44: any, email: string) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const found = await lookupUser(base44, { email });
-    if (found) return found;
-    await new Promise((r) => setTimeout(r, 1500));
-  }
-  return null;
-}
-
-// Respaldo: la invitación de la plataforma (única vía cuando el cliente llega
-// sin nombre completo o sin cédula, que son obligatorios para crear la cuenta).
-async function inviteClient(base44: any, email: string) {
-  const candidates: Array<() => Promise<any>> = [];
-  if (base44.users?.inviteUser) candidates.push(() => base44.users.inviteUser(email, 'user'));
-  if (base44.auth?.inviteUser) candidates.push(() => base44.auth.inviteUser(email, 'user'));
-
-  let lastError = 'No hay un método disponible para invitar clientes.';
-  for (const invite of candidates) {
-    try {
-      await invite();
-      return { ok: true, error: null };
-    } catch (err: any) {
-      lastError = err?.message || String(err);
-    }
-  }
-  return { ok: false, error: truncate(lastError, 300) };
-}
-
-function fullNameOf(client: any) {
-  return client.full_name || `${client.first_name} ${client.last_name}`.trim() || client.email;
-}
-
-async function createClientUser(base44: any, client: any) {
-  try {
-    const created = await base44.asServiceRole.entities.User.create({
-      email: client.email,
-      role: 'user',
-      full_name: fullNameOf(client),
-      cedula: client.cedula || '',
-      first_name: client.first_name || '',
-      last_name: client.last_name || '',
-      whatsapp: client.whatsapp || '',
-      city: client.city || '',
-      state: client.state || '',
-      address: client.address || '',
-      profile_completed: true,
-    });
-    return { ok: true, user: created, method: 'alta_directa' };
-  } catch (err: any) {
-    const createError = truncate(err?.message || 'No se pudo crear la cuenta.', 300);
-    const invited = await inviteClient(base44, client.email);
-    if (invited.ok) {
-      const found = await findUserByEmail(base44, client.email);
-      if (found) return { ok: true, user: found, method: 'invitacion' };
-    }
-    return { ok: false, error: createError };
-  }
-}
-
 async function buildRecord(base44: any, client: any, extra: Record<string, any>) {
   try {
     return await base44.asServiceRole.entities.WholesalerClient.create({
@@ -140,7 +82,7 @@ async function buildRecord(base44: any, client: any, extra: Record<string, any>)
       report_sent: false,
       account_created: false,
       already_existed: false,
-      status: 'creado',
+      status: 'pendiente',
       ...extra,
     });
   } catch (_) {
@@ -150,7 +92,6 @@ async function buildRecord(base44: any, client: any, extra: Record<string, any>)
 
 export async function intakeClients(base44: any, rawClients: any[]) {
   const clients = (rawClients || []).slice(0, MAX_CLIENTS_PER_RUN);
-  const autoAssign = await shippingMarkAutoAssignEnabled(base44);
   const results: any[] = [];
 
   for (const raw of clients) {
@@ -191,64 +132,50 @@ export async function intakeClients(base44: any, rawClients: any[]) {
       continue;
     }
 
-    // Alta de la cuenta
-    const createdResult = await createClientUser(base44, client);
-    if (!createdResult.ok) {
-      const record = await buildRecord(base44, client, {
-        status: 'error',
-        message: `No se pudo crear la cuenta: ${createdResult.error}`,
-      });
-      await logWholesalerEvent(base44, { event_type: 'cliente_error', client_email: client.email, result: 'alta_fallida', detail: createdResult.error });
-      if (record) results.push(record);
-      continue;
-    }
-
-    const created = createdResult.user;
-
-    // Shipping Mark: se genera aquí si la app lo tiene automatizado; si no, se
-    // conserva el que reporta el mayorista.
-    let shippingMark = client.shipping_mark || '';
-    let markSaved = false;
-    let message = '';
-
-    if (autoAssign) {
-      const assigned = await assignShippingMarkToUser(base44, {
-        id: created.id,
-        email: created.email || client.email,
-        state: client.state || created.state || '',
-      });
-      if (assigned?.ok) {
-        shippingMark = assigned.shipping_mark;
-        markSaved = true;
-      } else {
-        message = assigned?.error || '';
-      }
-    }
-
-    if (shippingMark && !markSaved) {
-      try {
-        await base44.asServiceRole.entities.User.update(created.id, { shipping_mark: shippingMark });
-      } catch (err: any) {
-        message = truncate([message, err?.message].filter(Boolean).join(' · '), 400);
-      }
-    }
-
     const record = await buildRecord(base44, client, {
-      user_id: created.id,
-      status: 'creado',
-      account_created: true,
-      shipping_mark: shippingMark,
-      message: message || `Cuenta creada (${createdResult.method}).`,
+      status: 'pendiente',
+      message: 'Cliente nuevo: falta crear su cuenta en TLEC CARGO desde el panel.',
     });
     await logWholesalerEvent(base44, {
-      event_type: 'cliente_nuevo',
+      event_type: 'cliente_pendiente',
       client_email: client.email,
-      shipping_mark: shippingMark,
-      result: 'creado',
-      detail: `Cliente nuevo creado desde la app del mayorista (${createdResult.method})`,
+      result: 'pendiente',
+      detail: 'Cliente nuevo traído del mayorista: pendiente de crear su cuenta',
     });
     if (record) results.push(record);
   }
 
   return results;
+}
+
+// Cierra el alta de un cliente: se llama desde el panel cuando la cuenta ya se
+// creó allí (invitación + datos + Shipping Mark).
+export async function completeClient(base44: any, clientId: string, shippingMark: string, note: string) {
+  const rows = await base44.asServiceRole.entities.WholesalerClient.filter({ id: clientId }, '-fetched_date', 1);
+  const record = rows?.[0] || null;
+  if (!record) return { ok: false, error: 'No se encontró el cliente en el informe del mayorista.' };
+  if (record.status === 'creado') {
+    return { ok: true, already: true, client: record };
+  }
+
+  const user = await lookupUser(base44, { email: record.email });
+  const mark = shippingMark || record.shipping_mark || user?.shipping_mark || '';
+
+  const updated = await base44.asServiceRole.entities.WholesalerClient.update(clientId, {
+    status: 'creado',
+    account_created: true,
+    shipping_mark: mark,
+    user_id: user?.id || record.user_id || '',
+    message: truncate(note || 'Cuenta creada en TLEC CARGO.', 900),
+  });
+
+  await logWholesalerEvent(base44, {
+    event_type: 'cliente_nuevo',
+    client_email: record.email,
+    shipping_mark: mark,
+    result: 'creado',
+    detail: 'Cliente nuevo del mayorista creado en TLEC CARGO',
+  });
+
+  return { ok: true, already: false, client: updated };
 }

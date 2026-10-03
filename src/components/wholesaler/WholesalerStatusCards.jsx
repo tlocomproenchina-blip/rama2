@@ -1,18 +1,19 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, CheckCircle2, AlertTriangle, Truck } from 'lucide-react';
+import { Users, UserPlus, CheckCircle2, AlertTriangle, Truck } from 'lucide-react';
 
 const cards = [
-  { key: 'creados', label: 'Cuentas nuevas', icon: Users, tone: 'text-emerald-600 bg-emerald-50' },
+  { key: 'creados', label: 'Cuentas creadas', icon: Users, tone: 'text-emerald-600 bg-emerald-50' },
+  { key: 'pendientes', label: 'Por crear cuenta', icon: UserPlus, tone: 'text-amber-600 bg-amber-50' },
   { key: 'existentes', label: 'Ya existían', icon: CheckCircle2, tone: 'text-sky-600 bg-sky-50' },
-  { key: 'errores', label: 'Con error', icon: AlertTriangle, tone: 'text-amber-600 bg-amber-50' },
+  { key: 'errores', label: 'Con error', icon: AlertTriangle, tone: 'text-rose-600 bg-rose-50' },
   { key: 'recepciones', label: 'Recepciones en China', icon: Truck, tone: 'text-indigo-600 bg-indigo-50' },
 ];
 
 export default function WholesalerStatusCards({ counts = {}, loading }) {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
       {cards.map(({ key, label, icon: Icon, tone }) => (
         <Card key={key} className="rounded-2xl border-0 shadow-card">
           <CardContent className="flex items-center gap-3 p-4">

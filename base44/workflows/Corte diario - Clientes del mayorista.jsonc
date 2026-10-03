@@ -1,0 +1,45 @@
+{
+  "name": "Corte diario - Clientes del mayorista",
+  "description": "Todos los d\u00edas a las 8:00 a.m. (hora Venezuela) consulta en la app del cliente mayorista los clientes nuevos de las \u00faltimas 24 horas, los deja listos en TLEC CARGO, reintenta los avisos de recepci\u00f3n pendientes y env\u00eda el informe por correo a los administradores.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 8 * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "corte_diario_clientes_mayorista",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sync_wholesaler_clients": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "syncWholesalerClients",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Consultar clientes nuevos",
+            "description": "Trae los clientes, reintenta avisos y env\u00eda el informe"
+          }
+        }
+      }
+    ]
+  }
+}

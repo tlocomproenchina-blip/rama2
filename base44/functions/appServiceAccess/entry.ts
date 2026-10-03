@@ -14,10 +14,8 @@ export default async function (req: Request): Promise<Response> {
 
     const isService = !!serviceKey && provided === serviceKey;
     const isWholesaler = !!wholesalerKey && provided === wholesalerKey;
-    // TEMP_TEST_BYPASS
-    const isAdminSession = !!(await createClientFromRequest(req).auth.me().catch(() => null));
 
-    if (!isService && !isWholesaler && !isAdminSession) {
+    if (!isService && !isWholesaler) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

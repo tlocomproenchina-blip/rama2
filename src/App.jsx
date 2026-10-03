@@ -76,6 +76,7 @@ const QuoteFeePayment = lazy(() => import('./pages/QuoteFeePayment'));
 const CityLanding = lazy(() => import('./pages/CityLanding'));
 const AdminCityAnalytics = lazy(() => import('./pages/AdminCityAnalytics'));
 const MyWarehouseMerchandise = lazy(() => import('./pages/MyWarehouseMerchandise'));
+const AdminWholesalerClients = lazy(() => import('./pages/AdminWholesalerClients'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -180,6 +181,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminCreditUsage" element={lazyRoute(AdminCreditUsage, "AdminCreditUsage")} />
       <Route path="/AdminClientCredits" element={lazyRoute(AdminClientCredits, "AdminClientCredits")} />
       <Route path="/AdminManualBilling" element={lazyRoute(AdminManualBilling, "AdminManualBilling")} />
+      <Route path="/AdminWholesalerClients" element={lazyRoute(AdminWholesalerClients, "AdminWholesalerClients")} />
       <Route path="/AdminEmailHistory" element={lazyRoute(AdminEmailHistory, "AdminEmailHistory")} />
       <Route path="/AdminProviderCredits" element={lazyRoute(AdminProviderCredits, "AdminProviderCredits")} />
       <Route path="/AdminDispositivosBodega" element={lazyRoute(AdminDispositivosBodega, "AdminDispositivosBodega")} />

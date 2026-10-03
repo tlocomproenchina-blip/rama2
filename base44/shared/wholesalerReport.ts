@@ -8,6 +8,7 @@ const MAX_ROWS = 200;
 
 function statusLabel(status: string) {
   if (status === 'creado') return 'Cuenta creada';
+  if (status === 'pendiente') return 'Pendiente de crear';
   if (status === 'existente') return 'Ya existía';
   return 'Con error';
 }

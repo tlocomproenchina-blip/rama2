@@ -49,7 +49,7 @@
     "account_created": {
       "type": "boolean",
       "default": false,
-      "description": "Indica que la cuenta del cliente se cre\u00f3 desde el reporte del mayorista"
+      "description": "Indica que la cuenta del cliente ya qued\u00f3 creada en TLEC CARGO"
     },
     "already_existed": {
       "type": "boolean",
@@ -59,12 +59,13 @@
     "status": {
       "type": "string",
       "enum": [
+        "pendiente",
         "creado",
         "existente",
         "error"
       ],
-      "default": "creado",
-      "description": "creado (cuenta nueva), existente (ya estaba en TLEC CARGO) o error (no se pudo dar de alta)"
+      "default": "pendiente",
+      "description": "pendiente (tra\u00eddo del mayorista, falta crear su cuenta), creado (cuenta lista), existente (ya estaba en TLEC CARGO) o error (no se pudo dar de alta)"
     },
     "message": {
       "type": "string",
