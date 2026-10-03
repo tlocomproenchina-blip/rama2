@@ -12,6 +12,10 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AdminCbmIngresos from './pages/AdminCbmIngresos';
 import AdminPackages from './pages/AdminPackages';
+// Importado de forma estática (no como chunk aparte): en el preview sandbox la
+// carga diferida de esta pantalla fallaba con "Failed to fetch dynamically
+// imported module", igual que pasó con AdminCbmIngresos.
+import AdminWholesalerClients from './pages/AdminWholesalerClients';
 
 // Lazy-loaded admin / warehouse pages — reduce bundle inicial para clientes
 const WarehouseReceive = lazy(() => import('./pages/WarehouseReceive'));
@@ -76,7 +80,6 @@ const QuoteFeePayment = lazy(() => import('./pages/QuoteFeePayment'));
 const CityLanding = lazy(() => import('./pages/CityLanding'));
 const AdminCityAnalytics = lazy(() => import('./pages/AdminCityAnalytics'));
 const MyWarehouseMerchandise = lazy(() => import('./pages/MyWarehouseMerchandise'));
-const AdminWholesalerClients = lazy(() => import('./pages/AdminWholesalerClients'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
