@@ -1,0 +1,172 @@
+{
+  "name": "LabelPrintLog",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente cuyas etiquetas de despacho se imprimieron"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (cache para mostrar en el historial)"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping mark del cliente al momento de la impresi\u00f3n"
+    },
+    "printed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se imprimi\u00f3 el lote. Es la fecha con la que se ordena el historial, de la m\u00e1s reciente a la m\u00e1s antigua."
+    },
+    "printed_by": {
+      "type": "string",
+      "description": "Email del usuario que imprimi\u00f3 el lote"
+    },
+    "printed_by_name": {
+      "type": "string",
+      "description": "Nombre del usuario que imprimi\u00f3 el lote"
+    },
+    "quantity": {
+      "type": "number",
+      "description": "Cantidad de etiquetas del lote (lo que sali\u00f3 de la impresora)"
+    },
+    "index_from": {
+      "type": "number",
+      "description": "Primer n\u00famero del rango X/N impreso (normalmente 1)"
+    },
+    "index_to": {
+      "type": "number",
+      "description": "\u00daltimo n\u00famero del rango X/N impreso (el N de la etiqueta)"
+    },
+    "units": {
+      "type": "array",
+      "default": [],
+      "description": "Etiquetas del lote tal como salieron impresas: su c\u00f3digo de barras (vac\u00edo cuando la etiqueta sali\u00f3 sin cajas pendientes), su X/N, su conteo de paquetes y su CBM. Es lo que se reimprime despu\u00e9s, sin recalcular nada.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label_code": {
+            "type": "string",
+            "description": "C\u00f3digo de barras de la caja que identifica la etiqueta. Vac\u00edo cuando el lote sali\u00f3 sin cajas pendientes."
+          },
+          "index": {
+            "type": "number",
+            "description": "Posici\u00f3n X impresa en la etiqueta"
+          },
+          "total": {
+            "type": "number",
+            "description": "Total N impreso en la etiqueta"
+          },
+          "package_count": {
+            "type": "number",
+            "description": "Paquetes que se imprimieron en la etiqueta"
+          },
+          "cbm": {
+            "type": "number",
+            "description": "CBM que se imprimi\u00f3 en la etiqueta"
+          },
+          "is_caja": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indica que la etiqueta identifica una caja consolidada"
+          }
+        }
+      }
+    },
+    "client_snapshot": {
+      "type": "object",
+      "description": "Datos del cliente tal como se imprimieron en la etiqueta. La reimpresi\u00f3n los usa tal cual, aunque el perfil del cliente cambie despu\u00e9s.",
+      "properties": {
+        "full_name": {
+          "type": "string"
+        },
+        "cedula": {
+          "type": "string"
+        },
+        "whatsapp": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "shipping_mark": {
+          "type": "string"
+        }
+      }
+    },
+    "guide_id": {
+      "type": "string",
+      "description": "ID de la gu\u00eda de despacho que cre\u00f3 esta impresi\u00f3n, si la cre\u00f3"
+    },
+    "guide_number": {
+      "type": "string",
+      "description": "N\u00famero de la gu\u00eda de despacho que cre\u00f3 esta impresi\u00f3n, si la cre\u00f3"
+    },
+    "without_boxes": {
+      "type": "boolean",
+      "default": false,
+      "description": "La impresi\u00f3n sali\u00f3 sin cajas pendientes por despachar: la etiqueta va sin c\u00f3digo de barras y no cre\u00f3 gu\u00eda."
+    },
+    "print_type": {
+      "type": "string",
+      "enum": [
+        "primera",
+        "reimpresion"
+      ],
+      "default": "primera",
+      "description": "primera para una impresi\u00f3n nueva; reimpresion cuando el lote se volvi\u00f3 a imprimir desde el historial"
+    },
+    "source_log_id": {
+      "type": "string",
+      "description": "Lote original que se reimprimi\u00f3, cuando print_type es reimpresion"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "completa",
+        "incompleta"
+      ],
+      "default": "completa",
+      "description": "completa cuando el lote entero sali\u00f3 de la impresora; incompleta cuando la impresi\u00f3n se cort\u00f3 y qued\u00f3 por reimprimir"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "client_email",
+    "printed_date",
+    "quantity"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

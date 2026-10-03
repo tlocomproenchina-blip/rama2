@@ -20,7 +20,9 @@ export default function BoxQuantityCard({
   const connected = isPrinterConnected();
   const count = Number(quantity) || 0;
   const total = Number(progress?.total) || count;
-  const exceeds = count > pendingCount;
+  // Sin cajas pendientes la etiqueta sale igual: sin código de barras y sin crear guía.
+  const withoutBoxes = pendingCount === 0;
+  const exceeds = !withoutBoxes && count > pendingCount;
 
   return (
     <div className="space-y-3 rounded-2xl border border-border/80 bg-card/85 p-4 shadow-card">
@@ -63,19 +65,31 @@ export default function BoxQuantityCard({
         </p>
       )}
 
+      {withoutBoxes && (
+        <p className="rounded-xl border border-blue-200 bg-blue-50/70 p-2 text-[11px] text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-200">
+          Este cliente no tiene cajas pendientes por despachar (su carga ya salió en una guía):
+          la etiqueta sale igual, sin código de barras y sin crear guía.
+        </p>
+      )}
+
       <Button
         className="w-full gap-2"
         onClick={onPrint}
         disabled={printing || count <= 0 || exceeds || !supported}
       >
         {printing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-        {printing ? 'Imprimiendo…' : `Imprimir etiqueta y crear guía (${count})`}
+        {printing
+          ? 'Imprimiendo…'
+          : withoutBoxes
+            ? `Imprimir etiqueta (${count})`
+            : `Imprimir etiqueta y crear guía (${count})`}
       </Button>
 
       <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
         <Tag className="mt-0.5 h-3 w-3 shrink-0" />
-        Sale una etiqueta por caja, con los datos del cliente y el X/N de esa cantidad. La guía se
-        crea al confirmarse la impresión.
+        {withoutBoxes
+          ? 'Sale una etiqueta por unidad escrita, con los datos del cliente y el X/N de esa cantidad. Sin cajas pendientes no se crea guía; cada impresión queda en el historial.'
+          : 'Sale una etiqueta por caja, con los datos del cliente y el X/N de esa cantidad. La guía se crea al confirmarse la impresión y el lote queda en el historial.'}
       </p>
     </div>
   );

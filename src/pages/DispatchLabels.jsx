@@ -6,6 +6,7 @@ import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 import DispatchLabelClientCard from '@/components/warehouse/dispatch-labels/DispatchLabelClientCard';
 import BoxQuantityCard from '@/components/warehouse/dispatch-labels/BoxQuantityCard';
 import LabelBatchResult from '@/components/warehouse/dispatch-labels/LabelBatchResult';
+import LabelPrintHistory from '@/components/warehouse/dispatch-labels/LabelPrintHistory';
 import useLabelBatch from '@/components/warehouse/dispatch-labels/useLabelBatch';
 
 // Etiquetas de Despacho: se elige el cliente y cuántas cajas van a salir. Se imprime una
@@ -23,7 +24,8 @@ export default function DispatchLabels() {
         </h1>
         <p className="mt-1 text-sm text-slate-500">
           Elige el cliente, escribe cuántas cajas van a salir e imprime su etiqueta. La guía de
-          despacho se crea sola al confirmarse la impresión.
+          despacho se crea sola al confirmarse la impresión, y cada impresión queda en el historial
+          del cliente para reimprimir la etiqueta cuando haga falta.
         </p>
       </div>
 
@@ -63,6 +65,13 @@ export default function DispatchLabels() {
             onOpenGuides={() =>
               navigate('/DispatchGuides', { state: { highlightGuideId: batch.result?.guide?.id || '' } })
             }
+          />
+
+          <LabelPrintHistory
+            clientEmail={batch.client?.email}
+            refreshKey={batch.historyKey}
+            reprintingId={batch.reprintingId}
+            onReprint={batch.reprint}
           />
         </div>
       )}
