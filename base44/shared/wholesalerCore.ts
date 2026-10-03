@@ -79,3 +79,14 @@ export async function emailsEnabled(base44: any) {
 export function truncate(value: any, max = 900) {
   return String(value ?? '').slice(0, max);
 }
+
+// Clave de la integración: la app del mayorista usa la suya para llamar a los
+// puntos de acceso de esta app (consultar, avisar, pedir clientes).
+export function integrationKeyMatches(provided: string) {
+  const keys = [
+    String(Deno.env.get('WHOLESALER_API_KEY') || '').trim(),
+    String(Deno.env.get('WHOLESALER_WEBHOOK_KEY') || '').trim(),
+  ].filter(Boolean);
+  const value = String(provided || '').trim();
+  return !!value && keys.includes(value);
+}

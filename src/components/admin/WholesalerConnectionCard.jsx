@@ -7,7 +7,29 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Save, Link2 } from 'lucide-react';
 
-const ENDPOINT = 'https://tleccargo.base44.app/functions/appServiceAccess';
+// Las direcciones se arman con la dirección real de la app en la que se está
+// viendo la tarjeta, para que en una copia clon apunten al clon y no a la original.
+const ORIGIN = typeof window !== 'undefined' ? window.location.origin : '';
+const ENDPOINT = `${ORIGIN}/functions/appServiceAccess`;
+const FEED_ENDPOINT = `${ORIGIN}/functions/wholesalerClientsFeed`;
+const RECEPTION_ENDPOINT = `${ORIGIN}/functions/wholesalerReceptionWebhook`;
+
+const FEED_ANSWER = `{
+  "ok": true,
+  "total": 1,
+  "clients": [
+    {
+      "email": "cliente@correo.com",
+      "full_name": "Nombre del cliente",
+      "cedula": "V-12345678",
+      "whatsapp": "584120000000",
+      "city": "Valencia",
+      "state": "carabobo",
+      "address": "Calle 1",
+      "shipping_mark": "50001"
+    }
+  ]
+}`;
 
 const EXAMPLES = [
   {
@@ -200,6 +222,29 @@ export default function WholesalerConnectionCard() {
           <p className="mt-1 text-xs text-muted-foreground">
             Va con la cabecera <span className="font-mono">x-api-key</span> usando la clave de la app del mayorista.
           </p>
+        </div>
+
+        <div className="rounded-lg border border-dashed p-3">
+          <p className="text-sm font-medium text-foreground">Direcciones que esta app le entrega a la otra</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Con la misma cabecera <span className="font-mono">x-api-key</span> (cualquiera de las claves de la integración).
+            Sirven para que la otra app pida aquí sus clientes nuevos y avise que la carga llegó a China.
+          </p>
+          <div className="mt-3 space-y-3">
+            <div>
+              <p className="text-[11px] font-semibold text-foreground">Pedir los clientes nuevos (GET, admite ?since=fecha)</p>
+              <p className="mt-1 break-all rounded bg-muted p-2 font-mono text-xs text-foreground">{FEED_ENDPOINT}</p>
+              <pre className="mt-2 overflow-x-auto rounded bg-accent/60 p-2 text-[11px] leading-relaxed text-accent-foreground">{FEED_ANSWER}</pre>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-foreground">Avisar que la carga llegó a China (POST)</p>
+              <p className="mt-1 break-all rounded bg-muted p-2 font-mono text-xs text-foreground">{RECEPTION_ENDPOINT}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Recibe el mismo aviso que esta app envía al mayorista: queda en el historial de movimientos y los paquetes
+                registrados se marcan como recibidos en China.
+              </p>
+            </div>
+          </div>
         </div>
 
         {EXAMPLES.map((ex) => (
