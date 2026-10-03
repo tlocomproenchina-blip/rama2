@@ -20,9 +20,19 @@
         "aviso_fallido",
         "informe_enviado",
         "informe_fallido",
-        "sync_fallido"
+        "sync_fallido",
+        "conexion_fallida",
+        "conexion_ok"
       ],
       "description": "Tipo de movimiento del intercambio con la app del mayorista"
+    },
+    "wholesaler_key": {
+      "type": "string",
+      "description": "Clave de la conexi\u00f3n (WholesalerSync.config_key) del mayorista involucrado. Vac\u00edo en los movimientos anteriores a admitir varios mayoristas: cuentan como de la conexi\u00f3n principal."
+    },
+    "wholesaler_name": {
+      "type": "string",
+      "description": "Nombre del mayorista involucrado (cache para mostrar y filtrar)"
     },
     "tracking_number": {
       "type": "string",

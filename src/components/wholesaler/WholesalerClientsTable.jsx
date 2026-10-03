@@ -31,6 +31,7 @@ export default function WholesalerClientsTable({ clients = [], loading }) {
         <TableHeader>
           <TableRow>
             <TableHead>Cliente</TableHead>
+            <TableHead>Mayorista</TableHead>
             <TableHead>Correo</TableHead>
             <TableHead>Cédula</TableHead>
             <TableHead>WhatsApp</TableHead>
@@ -44,6 +45,7 @@ export default function WholesalerClientsTable({ clients = [], loading }) {
           {clients.map((c) => (
             <TableRow key={c.id}>
               <TableCell className="font-medium">{c.full_name || '—'}</TableCell>
+              <TableCell className="text-xs">{c.wholesaler_name || 'Cliente mayorista'}</TableCell>
               <TableCell className="text-xs">{c.email}</TableCell>
               <TableCell className="text-xs">{c.cedula || '—'}</TableCell>
               <TableCell className="text-xs">{c.whatsapp || '—'}</TableCell>

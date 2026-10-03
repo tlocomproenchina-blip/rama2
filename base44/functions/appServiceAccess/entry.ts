@@ -1,25 +1,26 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { checkTracking, receiveTrackingBlock, reportPrealert } from '../../shared/wholesalerPackages.ts';
 import { notifyReceptionBlock } from '../../shared/wholesalerNotify.ts';
+import { resolveConnectionForKey } from '../../shared/wholesalerCore.ts';
 
-// Acceso externo de la app: servicio propio (APP_SERVICE_API_KEY) y la app del
-// cliente mayorista (WHOLESALER_API_KEY), que solo puede usar las operaciones
-// de tracking, recepción y reporte de pre-alertas.
+// Acceso externo de la app: servicio propio (APP_SERVICE_API_KEY) y las apps de
+// los clientes mayoristas (una por conexión). Cada clave identifica a qué
+// mayorista pertenece la llamada, y solo puede usar las operaciones de tracking,
+// recepción y reporte de pre-alertas.
 export default async function (req: Request): Promise<Response> {
   try {
     const body = await req.json().catch(() => ({}));
     const provided = String(req.headers.get('x-api-key') || '').trim();
     const serviceKey = String(Deno.env.get('APP_SERVICE_API_KEY') || '').trim();
-    const wholesalerKey = String(Deno.env.get('WHOLESALER_API_KEY') || '').trim();
 
+    const base44 = createClientFromRequest(req);
     const isService = !!serviceKey && provided === serviceKey;
-    const isWholesaler = !!wholesalerKey && provided === wholesalerKey;
+    const connection = isService ? null : await resolveConnectionForKey(base44, provided);
 
-    if (!isService && !isWholesaler) {
+    if (!isService && !connection) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const base44 = createClientFromRequest(req);
     const action = body?.action || 'health';
 
     if (action === 'health') {
@@ -55,17 +56,17 @@ export default async function (req: Request): Promise<Response> {
     // ---- Operaciones de la app del mayorista ----
 
     if (action === 'check_tracking') {
-      const result = await checkTracking(base44, body?.tracking);
+      const result = await checkTracking(base44, body?.tracking ?? body?.tracking_number, connection);
       return Response.json({ ...result, mensaje: result.mensaje });
     }
 
     if (action === 'receive_tracking') {
-      const blk = await receiveTrackingBlock(base44, body?.trackings ?? body?.tracking);
+      const blk = await receiveTrackingBlock(base44, body?.trackings ?? body?.tracking ?? body?.tracking_number, connection);
       if (!blk.resultados.length) {
         return Response.json({ ok: false, resultado: 'error', mensaje: 'Falta el tracking a recepcionar.' }, { status: 400 });
       }
       const aviso = blk.recibidos.length
-        ? await notifyReceptionBlock(base44, blk.recibidos)
+        ? await notifyReceptionBlock(base44, blk.recibidos, connection)
         : { enviado: false, mensaje: 'Sin recepciones nuevas que avisar.' };
 
       return Response.json({
@@ -75,7 +76,7 @@ export default async function (req: Request): Promise<Response> {
         ya_registrados: blk.yaRegistrados.length,
         no_registrados: blk.noRegistrados.length,
         aviso,
-        resultados: blk.resultados.map((r) => ({
+        resultados: blk.resultados.map((r: any) => ({
           tracking: r.tracking,
           resultado: r.resultado,
           estado: r.estado ?? null,
@@ -87,7 +88,7 @@ export default async function (req: Request): Promise<Response> {
     }
 
     if (action === 'report_prealert') {
-      const result = await reportPrealert(base44, body);
+      const result = await reportPrealert(base44, body, connection);
       if (result.resultado === 'error') return Response.json(result, { status: 400 });
       return Response.json(result);
     }

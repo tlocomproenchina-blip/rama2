@@ -1,8 +1,19 @@
-// Informe cada 24 horas de los clientes nuevos que reporta el mayorista:
-// se arma el Excel, se envía por correo a los administradores con la lista
-// también en el cuerpo, y el detalle queda en el panel de la app.
+// Informe cada 24 horas de los clientes nuevos que reporta cada mayorista: se
+// arma el Excel, se envía por correo a los administradores con la lista también
+// en el cuerpo, y el detalle queda en el panel de la app. El correo sale por
+// cada conexión, así cada mayorista tiene su propio informe.
 import * as XLSX from 'npm:xlsx@0.18.5';
-import { emailsEnabled, caracasDateKey, updateWholesalerConfig, logWholesalerEvent, truncate, formatCaracasDateTime } from './wholesalerCore.ts';
+import {
+  caracasDateKey,
+  connectionKeyOf,
+  connectionLabel,
+  emailsEnabled,
+  formatCaracasDateTime,
+  logWholesalerEvent,
+  stampMatches,
+  truncate,
+  updateConnection,
+} from './wholesalerCore.ts';
 
 const MAX_ROWS = 200;
 
@@ -13,8 +24,8 @@ function statusLabel(status: string) {
   return 'Con error';
 }
 
-function buildReportHtml(clients: any[], cfg: any) {
-  const name = cfg?.wholesaler_name || 'el cliente mayorista';
+function buildReportHtml(clients: any[], connection: any) {
+  const name = connectionLabel(connection);
   const rows = clients.map((c) => `
     <tr>
       <td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;">${c.full_name || c.email}</td>
@@ -50,7 +61,7 @@ function buildReportHtml(clients: any[], cfg: any) {
     </div>`;
 }
 
-function buildWorkbookBase64(clients: any[], today: string) {
+function buildWorkbookBase64(clients: any[], today: string, connection: any) {
   const rows = clients.map((c) => ({
     'Nombre': c.full_name || '',
     'Correo': c.email || '',
@@ -61,7 +72,7 @@ function buildWorkbookBase64(clients: any[], today: string) {
     'Shipping Mark': c.shipping_mark || '',
     'Cuenta': statusLabel(c.status),
     'Fecha de alta': formatCaracasDateTime(c.fetched_date),
-    'Origen': 'Mayorista',
+    'Origen': connectionLabel(connection),
   }));
   const sheet = XLSX.utils.json_to_sheet(rows);
   const book = XLSX.utils.book_new();
@@ -69,39 +80,47 @@ function buildWorkbookBase64(clients: any[], today: string) {
   return XLSX.write(book, { type: 'base64', bookType: 'xlsx' });
 }
 
-export async function pendingReportClients(base44: any) {
+// Clientes de esa conexión que todavía no salieron en un informe.
+export async function pendingReportClients(base44: any, connection: any) {
   try {
     const rows = await base44.asServiceRole.entities.WholesalerClient.filter({ report_sent: false }, '-fetched_date', MAX_ROWS);
-    return rows || [];
+    return (rows || []).filter((row: any) => stampMatches(row, connection));
   } catch (_) {
     return [];
   }
 }
 
-export async function sendWholesalerReport(base44: any, cfg: any) {
-  const clients = await pendingReportClients(base44);
+export async function sendWholesalerReport(base44: any, connection: any) {
+  const name = connectionLabel(connection);
+
+  if (connection?.report_email_enabled === false) {
+    return { enviado: false, total: 0, enviados: 0, mensaje: `El informe por correo de ${name} está desactivado: el detalle queda en el panel.` };
+  }
+
+  const clients = await pendingReportClients(base44, connection);
   const today = caracasDateKey();
   const now = new Date().toISOString();
+  const stamp = { wholesaler_key: connectionKeyOf(connection), wholesaler_name: name };
 
   if (!clients.length) {
-    await updateWholesalerConfig(base44, {
+    await updateConnection(base44, connection?.id, {
       last_report_date: now,
       last_report_status: 'sin_clientes',
       last_report_clients_count: 0,
-      last_report_message: 'No hubo clientes nuevos en este corte: no se envió correo.',
+      last_report_message: `No hubo clientes nuevos de ${name} en este corte: no se envió correo.`,
     });
-    return { enviado: false, total: 0, enviados: 0, mensaje: 'No hubo clientes nuevos: no se envió correo.' };
+    return { enviado: false, total: 0, enviados: 0, mensaje: `No hubo clientes nuevos de ${name}: no se envió correo.` };
   }
 
-  const html = buildReportHtml(clients, cfg);
-  const subject = `Clientes nuevos del mayorista · ${today}`;
+  const html = buildReportHtml(clients, connection);
+  const subject = `Clientes nuevos de ${name} · ${today}`;
   let enviados = 0;
   const errors: string[] = [];
 
   if (!(await emailsEnabled(base44))) {
     errors.push('El envío de correos está desactivado en la configuración general.');
   } else {
-    const attachment = { filename: `clientes-mayorista-${today}.xlsx`, content: buildWorkbookBase64(clients, today) };
+    const attachment = { filename: `clientes-mayorista-${today}.xlsx`, content: buildWorkbookBase64(clients, today, connection) };
     let admins: any[] = [];
     try {
       admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' }, '-created_date', 100);
@@ -143,7 +162,7 @@ export async function sendWholesalerReport(base44: any, cfg: any) {
         clients.map((c) => ({ id: c.id, report_sent: true, report_date: today }))
       );
     } catch (_) {}
-    await updateWholesalerConfig(base44, {
+    await updateConnection(base44, connection?.id, {
       last_report_date: now,
       last_report_status: 'enviado',
       last_report_clients_count: clients.length,
@@ -153,17 +172,18 @@ export async function sendWholesalerReport(base44: any, cfg: any) {
       event_type: 'informe_enviado',
       result: 'enviado',
       detail: truncate(`${clients.length} cliente(s) · ${enviados} correo(s)`, 900),
+      ...stamp,
     });
-    return { enviado: true, total: clients.length, enviados, mensaje: `Informe enviado: ${clients.length} cliente(s) nuevo(s).` };
+    return { enviado: true, total: clients.length, enviados, mensaje: `Informe enviado: ${clients.length} cliente(s) nuevo(s) de ${name}.` };
   }
 
   const detail = truncate(errors.join(' | ') || 'No se pudo enviar el informe.', 900);
-  await updateWholesalerConfig(base44, {
+  await updateConnection(base44, connection?.id, {
     last_report_date: now,
     last_report_status: 'fallido',
     last_report_clients_count: clients.length,
     last_report_message: detail,
   });
-  await logWholesalerEvent(base44, { event_type: 'informe_fallido', result: 'fallido', detail });
+  await logWholesalerEvent(base44, { event_type: 'informe_fallido', result: 'fallido', detail, ...stamp });
   return { enviado: false, total: clients.length, enviados: 0, mensaje: `El informe no se pudo enviar: ${detail}` };
 }

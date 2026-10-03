@@ -4,7 +4,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, UserPlus } from 'lucide-react';
+import WholesalerConnectionsPanel from '@/components/wholesaler/WholesalerConnectionsPanel';
 import WholesalerActionsBar from '@/components/wholesaler/WholesalerActionsBar';
 import WholesalerStatusCards from '@/components/wholesaler/WholesalerStatusCards';
 import WholesalerClientsTable from '@/components/wholesaler/WholesalerClientsTable';
@@ -17,8 +19,31 @@ const RANGES = [
   { key: 'todos', label: 'Todos', hours: 0 },
 ];
 
+function connKeyOf(connection) {
+  return connection?.config_key || 'main';
+}
+
+function toArray(rows) {
+  return Array.isArray(rows) ? rows : rows?.items || [];
+}
+
+// Filtro por mayorista: con uno elegido se ve solo su carga. La conexión
+// principal (la de siempre) también muestra lo traído antes de admitir varios
+// mayoristas, que quedó sin marca de origen.
+function connectionScope(connection, connections) {
+  if (!connection) return {};
+  const key = connKeyOf(connection);
+  const others = connections
+    .filter((c) => c.id !== connection.id)
+    .map((c) => c.config_key)
+    .filter((k) => k && k !== key);
+  if (!others.length) return {};
+  if (connections[0]?.id === connection.id) return { wholesaler_key: { $nin: others } };
+  return { wholesaler_key: key };
+}
+
 export default function AdminWholesalerClients() {
-  const [config, setConfig] = useState(null);
+  const [connections, setConnections] = useState([]);
   const [clients, setClients] = useState([]);
   const [logs, setLogs] = useState([]);
   const [counts, setCounts] = useState({});
@@ -27,6 +52,7 @@ export default function AdminWholesalerClients() {
   const [creating, setCreating] = useState(false);
   const [range, setRange] = useState('7');
   const [tab, setTab] = useState('clientes');
+  const [wholesaler, setWholesaler] = useState('todos');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -34,29 +60,35 @@ export default function AdminWholesalerClients() {
     const since = rangeHours ? new Date(Date.now() - rangeHours * 3600 * 1000).toISOString() : null;
     const dateFilter = since ? { $gte: since } : undefined;
 
-    const [cfg, clientRows, logRows, creados, pendientes, existentes, errores, recepciones] = await Promise.all([
-      base44.entities.WholesalerSync.filter({ config_key: 'main' }, '-updated_date', 1),
-      base44.entities.WholesalerClient.filter(
-        dateFilter ? { fetched_date: dateFilter } : {},
-        '-fetched_date',
-        50,
-      ),
-      base44.entities.WholesalerLog.filter(dateFilter ? { event_date: dateFilter } : {}, '-event_date', 50),
-      base44.entities.WholesalerClient.count({ status: 'creado', ...(dateFilter ? { fetched_date: dateFilter } : {}) }),
-      base44.entities.WholesalerClient.count({ status: 'pendiente' }),
-      base44.entities.WholesalerClient.count({ status: 'existente', ...(dateFilter ? { fetched_date: dateFilter } : {}) }),
-      base44.entities.WholesalerClient.count({ status: 'error', ...(dateFilter ? { fetched_date: dateFilter } : {}) }),
-      base44.entities.WholesalerLog.count({ event_type: 'recepcion', ...(dateFilter ? { event_date: dateFilter } : {}) }),
+    const connRows = await base44.entities.WholesalerSync.list('created_date', 50);
+    const list = toArray(connRows);
+    setConnections(list);
+
+    const selected = list.find((c) => connKeyOf(c) === wholesaler) || null;
+    const scope = connectionScope(selected, list);
+    const clientDate = dateFilter ? { fetched_date: dateFilter } : {};
+    const logDate = dateFilter ? { event_date: dateFilter } : {};
+
+    const [clientRows, logRows, creados, pendientes, existentes, errores, recepciones] = await Promise.all([
+      base44.entities.WholesalerClient.filter({ ...clientDate, ...scope }, '-fetched_date', 50),
+      base44.entities.WholesalerLog.filter({ ...logDate, ...scope }, '-event_date', 50),
+      base44.entities.WholesalerClient.count({ status: 'creado', ...clientDate, ...scope }),
+      base44.entities.WholesalerClient.count({ status: 'pendiente', ...scope }),
+      base44.entities.WholesalerClient.count({ status: 'existente', ...clientDate, ...scope }),
+      base44.entities.WholesalerClient.count({ status: 'error', ...clientDate, ...scope }),
+      base44.entities.WholesalerLog.count({ event_type: 'recepcion', ...logDate, ...scope }),
     ]);
 
-    setConfig(Array.isArray(cfg) ? (cfg[0] || null) : cfg?.items?.[0] || null);
-    setClients(Array.isArray(clientRows) ? clientRows : clientRows?.items || []);
-    setLogs(Array.isArray(logRows) ? logRows : logRows?.items || []);
+    setClients(toArray(clientRows));
+    setLogs(toArray(logRows));
     setCounts({ creados, pendientes, existentes, errores, recepciones });
     setLoading(false);
-  }, [range]);
+  }, [range, wholesaler]);
 
   useEffect(() => { load(); }, [load]);
+
+  const selectedConnection = connections.find((c) => connKeyOf(c) === wholesaler) || null;
+  const selectedName = selectedConnection?.wholesaler_name || 'Cliente mayorista';
 
   const handleSync = async () => {
     setBusy(true);
@@ -67,7 +99,7 @@ export default function AdminWholesalerClients() {
       else toast.success(data.mensaje || 'Consulta terminada.');
       await load();
     } catch (err) {
-      toast.error(err?.message || 'No se pudo consultar la app del mayorista.');
+      toast.error(err?.message || 'No se pudo consultar las apps de los mayoristas.');
     } finally {
       setBusy(false);
     }
@@ -76,9 +108,10 @@ export default function AdminWholesalerClients() {
   const handleResend = async () => {
     setBusy(true);
     try {
-      const res = await base44.functions.invoke('sendWholesalerReport', {});
+      const payload = selectedConnection?.id ? { connection_id: selectedConnection.id } : {};
+      const res = await base44.functions.invoke('sendWholesalerReport', payload);
       const data = res?.data || {};
-      if (data.enviado) toast.success('Informe enviado a los administradores.');
+      if (data.enviado) toast.success(data.mensaje || 'Informe enviado a los administradores.');
       else toast.info(data.mensaje || 'No había clientes nuevos por reportar.');
       await load();
     } catch (err) {
@@ -88,10 +121,11 @@ export default function AdminWholesalerClients() {
     }
   };
 
-  // La cuenta se crea aquí (sesión de admin): invitación, datos y Shipping Mark.
+  // Las cuentas se crean aquí (sesión de admin): invitación, datos y Shipping Mark.
   const handleCreateAccounts = async () => {
-    const res = await base44.entities.WholesalerClient.filter({ status: 'pendiente' }, '-fetched_date', 50);
-    const rows = Array.isArray(res) ? res : res?.items || [];
+    const scope = connectionScope(selectedConnection, connections);
+    const res = await base44.entities.WholesalerClient.filter({ status: 'pendiente', ...scope }, '-fetched_date', 50);
+    const rows = toArray(res);
     if (!rows.length) { toast.info('No hay clientes pendientes de crear.'); return; }
 
     setCreating(true);
@@ -141,11 +175,13 @@ export default function AdminWholesalerClients() {
       <div>
         <h1 className="font-display text-2xl font-semibold text-foreground">Clientes del mayorista</h1>
         <p className="text-sm text-muted-foreground">
-          Cruce diario con la app del cliente mayorista: clientes nuevos, pre-alertas y avisos de recepción.
+          Cruce diario con las apps de los clientes mayoristas: clientes nuevos, pre-alertas y avisos de recepción.
         </p>
       </div>
 
-      <WholesalerActionsBar config={config} busy={busy} onSync={handleSync} onResend={handleResend} />
+      <WholesalerConnectionsPanel connections={connections} loading={loading} onRefresh={load} />
+
+      <WholesalerActionsBar connections={connections} busy={busy} onSync={handleSync} onResend={handleResend} />
 
       <WholesalerStatusCards counts={counts} loading={loading} />
 
@@ -153,7 +189,8 @@ export default function AdminWholesalerClients() {
         <Card className="rounded-2xl border-0 shadow-card">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
             <p className="text-sm text-foreground">
-              <strong>{counts.pendientes}</strong> cliente(s) traídos del mayorista esperan su cuenta en TLEC CARGO.
+              <strong>{counts.pendientes}</strong> cliente(s) traídos del mayorista
+              {selectedConnection ? ` ${selectedName}` : ''} esperan su cuenta en TLEC CARGO.
               Las cuentas se crean con un clic desde aquí (la app envía la invitación al cliente y le asigna su Shipping Mark).
             </p>
             <Button onClick={handleCreateAccounts} disabled={creating} className="gap-2">
@@ -164,6 +201,32 @@ export default function AdminWholesalerClients() {
         </Card>
       )}
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={wholesaler} onValueChange={setWholesaler}>
+          <SelectTrigger className="w-full sm:w-64">
+            <SelectValue placeholder="Todos los mayoristas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos los mayoristas</SelectItem>
+            {connections.map((connection) => (
+              <SelectItem key={connection.id} value={connKeyOf(connection)}>
+                {connection.wholesaler_name || 'Cliente mayorista'}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {RANGES.map((r) => (
+          <Button
+            key={r.key}
+            size="sm"
+            variant={range === r.key ? 'default' : 'outline'}
+            onClick={() => setRange(r.key)}
+          >
+            {r.label}
+          </Button>
+        ))}
+      </div>
+
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
@@ -171,18 +234,6 @@ export default function AdminWholesalerClients() {
         </TabsList>
 
         <TabsContent value="clientes" className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {RANGES.map((r) => (
-              <Button
-                key={r.key}
-                size="sm"
-                variant={range === r.key ? 'default' : 'outline'}
-                onClick={() => setRange(r.key)}
-              >
-                {r.label}
-              </Button>
-            ))}
-          </div>
           <WholesalerClientsTable clients={clients} loading={loading} />
         </TabsContent>
 

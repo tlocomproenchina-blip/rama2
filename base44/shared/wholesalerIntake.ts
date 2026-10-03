@@ -1,8 +1,8 @@
-// Trae los clientes nuevos que reporta la app del mayorista y los deja listos en
+// Trae los clientes nuevos que reporta cada app mayorista y los deja listos en
 // TLEC CARGO: los que ya existen se detectan (por correo o cédula) y los nuevos
 // quedan pendientes de crear su cuenta, que se crea desde el panel con un clic
 // (la plataforma solo permite invitar usuarios desde una sesión de admin).
-import { logWholesalerEvent, truncate } from './wholesalerCore.ts';
+import { logWholesalerEvent, outboundKeyFor, stampOf, stampMatches, truncate } from './wholesalerCore.ts';
 
 const TIMEOUT_MS = 20000;
 const MAX_CLIENTS_PER_RUN = 100;
@@ -34,14 +34,8 @@ export function normalizeClient(raw: any) {
   };
 }
 
-export async function fetchWholesalerClients(base44: any, cfg: any) {
-  const url = String(cfg?.clients_feed_url || '').trim();
-  if (!url) return { ok: false, clients: [], error: 'Falta la dirección de la app del mayorista.' };
-
-  const key = Deno.env.get('WHOLESALER_WEBHOOK_KEY');
-  const since = cfg?.last_cursor || '';
+async function fetchClients(url: string, key: string, since: string) {
   const target = since ? `${url}${url.includes('?') ? '&' : '?'}since=${encodeURIComponent(since)}` : url;
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -64,6 +58,13 @@ export async function fetchWholesalerClients(base44: any, cfg: any) {
   }
 }
 
+// Pide los clientes nuevos a la app de ese mayorista (una conexión concreta).
+export async function fetchWholesalerClients(base44: any, cfg: any) {
+  const url = String(cfg?.clients_feed_url || '').trim();
+  if (!url) return { ok: false, clients: [], error: 'Falta la dirección de la app del mayorista.' };
+  return fetchClients(url, outboundKeyFor(cfg), String(cfg?.last_cursor || ''));
+}
+
 async function lookupUser(base44: any, query: Record<string, any>) {
   try {
     const rows = await base44.asServiceRole.entities.User.filter(query, '-created_date', 1);
@@ -73,7 +74,7 @@ async function lookupUser(base44: any, query: Record<string, any>) {
   }
 }
 
-async function buildRecord(base44: any, client: any, extra: Record<string, any>) {
+async function buildRecord(base44: any, client: any, connection: any, extra: Record<string, any>) {
   try {
     return await base44.asServiceRole.entities.WholesalerClient.create({
       ...client,
@@ -83,6 +84,7 @@ async function buildRecord(base44: any, client: any, extra: Record<string, any>)
       account_created: false,
       already_existed: false,
       status: 'pendiente',
+      ...stampOf(connection),
       ...extra,
     });
   } catch (_) {
@@ -90,7 +92,11 @@ async function buildRecord(base44: any, client: any, extra: Record<string, any>)
   }
 }
 
-export async function intakeClients(base44: any, rawClients: any[]) {
+function eventStamp(connection: any) {
+  return stampOf(connection);
+}
+
+export async function intakeClients(base44: any, rawClients: any[], connection: any = null) {
   const clients = (rawClients || []).slice(0, MAX_CLIENTS_PER_RUN);
   const results: any[] = [];
 
@@ -98,20 +104,28 @@ export async function intakeClients(base44: any, rawClients: any[]) {
     const client = normalizeClient(raw);
 
     if (!client.email) {
-      const record = await buildRecord(base44, client, {
+      const record = await buildRecord(base44, client, connection, {
         status: 'error',
         message: 'El cliente llegó sin correo: no se puede dar de alta.',
       });
-      await logWholesalerEvent(base44, { event_type: 'cliente_error', client_email: '', result: 'sin_correo', detail: 'El cliente llegó sin correo' });
+      await logWholesalerEvent(base44, {
+        event_type: 'cliente_error',
+        client_email: '',
+        result: 'sin_correo',
+        detail: 'El cliente llegó sin correo',
+        ...eventStamp(connection),
+      });
       if (record) results.push(record);
       continue;
     }
 
-    // ¿Ya salió en un corte anterior? No se repite ni se cuenta dos veces.
+    // ¿Ese mismo mayorista ya lo había reportado antes? No se repite ni se
+    // cuenta dos veces (si dos mayoristas reportan al mismo cliente, cada uno
+    // deja su propio registro).
     let alreadyReported = false;
     try {
       const previous = await base44.asServiceRole.entities.WholesalerClient.filter({ email: client.email }, '-fetched_date', 5);
-      alreadyReported = (previous || []).some((row: any) => row.status !== 'error');
+      alreadyReported = (previous || []).some((row: any) => row.status !== 'error' && stampMatches(row, connection));
     } catch (_) {}
     if (alreadyReported) continue;
 
@@ -120,19 +134,25 @@ export async function intakeClients(base44: any, rawClients: any[]) {
     if (!existing && client.cedula) existing = await lookupUser(base44, { cedula: client.cedula });
 
     if (existing) {
-      const record = await buildRecord(base44, client, {
+      const record = await buildRecord(base44, client, connection, {
         user_id: existing.id,
         status: 'existente',
         already_existed: true,
         shipping_mark: existing.shipping_mark || client.shipping_mark,
         message: 'Ya existía en TLEC CARGO: no se duplicó.',
       });
-      await logWholesalerEvent(base44, { event_type: 'cliente_existente', client_email: client.email, result: 'existente', detail: 'El cliente ya existía en TLEC CARGO' });
+      await logWholesalerEvent(base44, {
+        event_type: 'cliente_existente',
+        client_email: client.email,
+        result: 'existente',
+        detail: 'El cliente ya existía en TLEC CARGO',
+        ...eventStamp(connection),
+      });
       if (record) results.push(record);
       continue;
     }
 
-    const record = await buildRecord(base44, client, {
+    const record = await buildRecord(base44, client, connection, {
       status: 'pendiente',
       message: 'Cliente nuevo: falta crear su cuenta en TLEC CARGO desde el panel.',
     });
@@ -141,6 +161,7 @@ export async function intakeClients(base44: any, rawClients: any[]) {
       client_email: client.email,
       result: 'pendiente',
       detail: 'Cliente nuevo traído del mayorista: pendiente de crear su cuenta',
+      ...eventStamp(connection),
     });
     if (record) results.push(record);
   }
@@ -175,6 +196,8 @@ export async function completeClient(base44: any, clientId: string, shippingMark
     shipping_mark: mark,
     result: 'creado',
     detail: 'Cliente nuevo del mayorista creado en TLEC CARGO',
+    wholesaler_key: record.wholesaler_key || '',
+    wholesaler_name: record.wholesaler_name || '',
   });
 
   return { ok: true, already: false, client: updated };

@@ -1,13 +1,23 @@
-// Aviso a la app del mayorista cuando su carga se recibe en el almacén de China.
-// La dirección sale siempre de la configuración guardada (nunca de quien llama) y
-// los envíos fallidos quedan pendientes para reintentar en el corte siguiente.
-import { getWholesalerConfig, updateWholesalerConfig, logWholesalerEvent, truncate } from './wholesalerCore.ts';
+// Aviso a la app de cada mayorista cuando su carga se recibe en el almacén de
+// China. La dirección y la clave salen siempre de su conexión guardada (nunca de
+// quien llama) y los envíos fallidos quedan pendientes para reintentar en el
+// corte siguiente.
+import {
+  DEFAULT_CONNECTION_KEY,
+  connectionKeyOf,
+  connectionLabel,
+  getPrimaryConnection,
+  logWholesalerEvent,
+  outboundKeyFor,
+  truncate,
+  updateConnection,
+} from './wholesalerCore.ts';
+import { registerConnectionResult } from './wholesalerHealth.ts';
 
 const MAX_ATTEMPTS = 5;
 const TIMEOUT_MS = 15000;
 
-async function postToWholesaler(url: string, payload: any) {
-  const key = Deno.env.get('WHOLESALER_WEBHOOK_KEY');
+async function postToWholesaler(url: string, key: string, payload: any) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -66,26 +76,43 @@ async function markFailed(base44: any, logs: any[]) {
   }
 }
 
-export async function notifyReceptionBlock(base44: any, receptions: any[]) {
-  if (!receptions?.length) return { enviado: false, mensaje: 'No hay recepciones que avisar.' };
+function pendingOfConnection(base44: any, connection: any) {
+  return base44.asServiceRole.entities.WholesalerLog
+    .filter({ event_type: 'recepcion', notify_pending: true }, '-event_date', 200)
+    .then((rows: any[]) => (rows || []).filter(
+      (log: any) => (String(log.wholesaler_key || '').trim() || DEFAULT_CONNECTION_KEY) === connectionKeyOf(connection)
+    ))
+    .catch(() => []);
+}
 
-  const cfg = await getWholesalerConfig(base44);
-  const url = String(cfg?.notify_url || '').trim();
-  if (cfg?.notify_enabled === false || !url) {
+// Avisa a un mayorista concreto que su carga llegó al almacén de China.
+export async function notifyReceptionBlock(base44: any, receptions: any[], connection: any) {
+  if (!receptions?.length) return { enviado: false, mensaje: 'No hay recepciones que avisar.' };
+  if (!connection?.id) {
     return {
       enviado: false,
       configurado: false,
-      mensaje: 'El aviso automático está desactivado o falta la dirección de la app del mayorista: la recepción queda registrada y pendiente de avisar.',
+      mensaje: 'No se encontró la conexión de ese mayorista: la recepción queda registrada y pendiente de avisar.',
     };
   }
 
-  const result = await postToWholesaler(url, buildPayload(receptions));
+  const url = String(connection?.notify_url || '').trim();
+  if (connection?.notify_enabled === false || !url) {
+    return {
+      enviado: false,
+      configurado: false,
+      mensaje: `El aviso automático de ${connectionLabel(connection)} está desactivado o falta su dirección: la recepción queda registrada y pendiente de avisar.`,
+    };
+  }
+
+  const key = outboundKeyFor(connection);
+  const result = await postToWholesaler(url, key, buildPayload(receptions));
   const now = new Date().toISOString();
   const logIds = receptions.map((r) => r.log_id).filter(Boolean);
 
   if (result.ok) {
     await markNotified(base44, logIds);
-    await updateWholesalerConfig(base44, {
+    await updateConnection(base44, connection.id, {
       last_notify_date: now,
       last_notify_status: 'enviado',
       last_notify_message: `Aviso enviado: ${receptions.length} paquete(s).`,
@@ -95,11 +122,13 @@ export async function notifyReceptionBlock(base44: any, receptions: any[]) {
       tracking_number: truncate(receptions.map((r) => r.tracking).join(', '), 250),
       result: 'enviado',
       detail: `${receptions.length} paquete(s) avisados a la app del mayorista`,
+      wholesaler_key: connectionKeyOf(connection),
+      wholesaler_name: connectionLabel(connection),
     });
     return { enviado: true, mensaje: `Aviso enviado al mayorista (${receptions.length} paquete(s)).` };
   }
 
-  await updateWholesalerConfig(base44, {
+  await updateConnection(base44, connection.id, {
     last_notify_date: now,
     last_notify_status: 'fallido',
     last_notify_message: truncate(`No se pudo avisar al mayorista: ${result.error}`, 900),
@@ -109,29 +138,27 @@ export async function notifyReceptionBlock(base44: any, receptions: any[]) {
     tracking_number: truncate(receptions.map((r) => r.tracking).join(', '), 250),
     result: 'fallido',
     detail: truncate(result.error, 900),
+    wholesaler_key: connectionKeyOf(connection),
+    wholesaler_name: connectionLabel(connection),
   });
+  // Un aviso que no sale cuenta como conexión caída: deja el estado en rojo y
+  // avisa a los administradores (sin repetir el mismo correo en cada intento).
+  await registerConnectionResult(base44, connection, { ok: false, error: `No se pudo avisar al mayorista: ${result.error}` });
+
   return { enviado: false, mensaje: `No se pudo avisar al mayorista: ${result.error}. Queda pendiente y se reintenta.` };
 }
 
-// Reintenta los avisos que quedaron pendientes de recepciones anteriores.
-export async function retryPendingReceptions(base44: any) {
-  let pendientes: any[] = [];
-  try {
-    pendientes = await base44.asServiceRole.entities.WholesalerLog.filter(
-      { event_type: 'recepcion', notify_pending: true },
-      '-event_date',
-      50
-    );
-  } catch (_) {
-    pendientes = [];
-  }
+// Reintenta los avisos que quedaron pendientes para un mayorista concreto.
+export async function retryPendingReceptions(base44: any, connection: any = null) {
+  const target = connection?.id ? connection : await getPrimaryConnection(base44);
+  const pendientes = await pendingOfConnection(base44, target);
 
   if (!pendientes.length) {
-    await updateWholesalerConfig(base44, { pending_notifications: 0 });
+    await updateConnection(base44, target.id, { pending_notifications: 0 });
     return { enviados: 0, pendientes: 0, mensaje: 'No había avisos pendientes.' };
   }
 
-  const receptions = pendientes.map((log) => ({
+  const receptions = pendientes.map((log: any) => ({
     tracking: log.tracking_number || '',
     shipping_mark: log.shipping_mark || '',
     estado: 'recibido',
@@ -139,19 +166,13 @@ export async function retryPendingReceptions(base44: any) {
     log_id: log.id,
   }));
 
-  const result = await notifyReceptionBlock(base44, receptions);
+  const result = await notifyReceptionBlock(base44, receptions, target);
   // Solo cuentan como intento fallido cuando hubo a dónde llamar; si falta la
   // dirección, las recepciones quedan pendientes sin gastar intentos.
   if (!result.enviado && (result as any).configurado !== false) await markFailed(base44, pendientes);
 
-  let stillPending = 0;
-  try {
-    const rows = await base44.asServiceRole.entities.WholesalerLog.filter({ event_type: 'recepcion', notify_pending: true }, '-event_date', 200);
-    stillPending = rows?.length || 0;
-  } catch (_) {
-    stillPending = 0;
-  }
-  await updateWholesalerConfig(base44, { pending_notifications: stillPending });
+  const stillPending = (await pendingOfConnection(base44, target)).length;
+  await updateConnection(base44, target.id, { pending_notifications: stillPending });
 
   return {
     enviados: result.enviado ? receptions.length : 0,

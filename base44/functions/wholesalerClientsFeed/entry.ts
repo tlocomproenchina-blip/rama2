@@ -1,19 +1,21 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { integrationKeyMatches } from '../../shared/wholesalerCore.ts';
+import { connectionLabel, resolveConnectionForKey } from '../../shared/wholesalerCore.ts';
 
 // Lado mayorista de la integración: entrega la lista de clientes de esta app a la
 // app que la consulta. Admite ?since=fecha (ISO) para devolver solo los clientes
-// aparecidos después de ese corte y no repetir los ya entregados.
+// aparecidos después de ese corte y no repetir los ya entregados. La clave que
+// presenta identifica con qué mayorista se está hablando.
 const DEFAULT_LIMIT = 200;
 const MAX_LIMIT = 500;
 
 export default async function (req: Request): Promise<Response> {
   try {
-    if (!integrationKeyMatches(req.headers.get('x-api-key') || '')) {
+    const base44 = createClientFromRequest(req);
+    const connection = await resolveConnectionForKey(base44, req.headers.get('x-api-key') || '');
+    if (!connection) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const base44 = createClientFromRequest(req);
     const url = new URL(req.url);
     const since = (url.searchParams.get('since') || '').trim();
     const asked = Number(url.searchParams.get('limit'));
@@ -40,7 +42,13 @@ export default async function (req: Request): Promise<Response> {
       }))
       .filter((c: any) => c.email);
 
-    return Response.json({ ok: true, since: since || null, total: clients.length, clients });
+    return Response.json({
+      ok: true,
+      mayorista: connectionLabel(connection),
+      since: since || null,
+      total: clients.length,
+      clients,
+    });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }

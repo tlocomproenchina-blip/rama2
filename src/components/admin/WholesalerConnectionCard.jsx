@@ -84,7 +84,7 @@ export default function WholesalerConnectionCard() {
   useEffect(() => {
     (async () => {
       try {
-        const rows = await base44.entities.WholesalerSync.filter({ config_key: 'main' }, '-updated_date', 1);
+        const rows = await base44.entities.WholesalerSync.list('created_date', 1);
         const found = Array.isArray(rows) ? rows[0] : rows?.items?.[0];
         setConfig(found || {
           config_key: 'main',
@@ -107,7 +107,7 @@ export default function WholesalerConnectionCard() {
     setSaving(true);
     try {
       const payload = {
-        config_key: 'main',
+        config_key: config.config_key || 'main',
         wholesaler_name: config.wholesaler_name || 'Cliente mayorista',
         clients_feed_url: (config.clients_feed_url || '').trim(),
         notify_url: (config.notify_url || '').trim(),
@@ -145,7 +145,9 @@ export default function WholesalerConnectionCard() {
           <h3 className="font-display text-lg font-semibold text-foreground">Conexión con el mayorista</h3>
           <p className="text-sm text-muted-foreground">
             Cruce automático de clientes, pre-alertas y avisos de recepción con la app del cliente mayorista.
-            Cada app guarda su propia clave (en Secretos), así solo puede ver y avisar sobre su propia carga.
+            Cada app guarda su propia clave, así solo puede ver y avisar sobre su propia carga.
+            Aquí ajustas la conexión principal; para conectar varios mayoristas, cada uno con su nombre y sus claves,
+            usa la sección «Conexiones» en Clientes Mayorista.
           </p>
         </div>
       </div>

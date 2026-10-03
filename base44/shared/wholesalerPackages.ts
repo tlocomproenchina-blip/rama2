@@ -1,7 +1,8 @@
-// Operaciones sobre paquetes para la app del mayorista: consultar un tracking,
-// marcarlo como recibido en el almacén de China y registrar pre-alertas reportadas.
-// Nunca crea paquetes al consultar/recepcionar y nunca degrada un estado.
-import { logWholesalerEvent, updateWholesalerConfig, truncate } from './wholesalerCore.ts';
+// Operaciones sobre paquetes para la app de cada mayorista: consultar un
+// tracking, marcarlo como recibido en el almacén de China y registrar
+// pre-alertas reportadas. Nunca crea paquetes al consultar/recepcionar, nunca
+// degrada un estado y deja cada movimiento marcado con el mayorista de origen.
+import { logWholesalerEvent, stampOf, truncate, updateConnection } from './wholesalerCore.ts';
 
 const SOURCE_LABEL = 'App del mayorista';
 const MAX_TRACKINGS_PER_CALL = 50;
@@ -57,7 +58,7 @@ function describePackage(pkg: any) {
 }
 
 // Solo lectura: dice si el tracking está registrado, sin modificar nada.
-export async function checkTracking(base44: any, tracking: string) {
+export async function checkTracking(base44: any, tracking: string, connection: any = null) {
   const clean = cleanTracking(tracking);
   if (!clean) {
     return { ok: false, tracking: '', resultado: 'error', registrado: false, mensaje: 'Falta el tracking a consultar.' };
@@ -72,6 +73,7 @@ export async function checkTracking(base44: any, tracking: string) {
       tracking_number: clean,
       result: 'no_registrado',
       detail: 'Consulta de solo lectura: el tracking no está registrado',
+      ...stampOf(connection),
     });
     return { ...base, resultado: 'no_registrado', registrado: false, huerfano: false, estado: null, shipping_mark: '', mensaje: 'El tracking no está registrado en TLEC CARGO.' };
   }
@@ -84,6 +86,7 @@ export async function checkTracking(base44: any, tracking: string) {
     package_id: pkg.id,
     result: pkg.status || 'registrado',
     detail: 'Consulta de solo lectura',
+    ...stampOf(connection),
   });
 
   return {
@@ -98,9 +101,10 @@ export async function checkTracking(base44: any, tracking: string) {
 }
 
 // Marca el tracking como recibido en el almacén de China (idempotente).
-export async function receiveTracking(base44: any, tracking: string) {
+export async function receiveTracking(base44: any, tracking: string, connection: any = null) {
   const clean = cleanTracking(tracking);
   const now = new Date().toISOString();
+  const stamp = stampOf(connection);
 
   if (!clean) {
     return { tracking: '', resultado: 'error', mensaje: 'Falta el tracking: no se modificó nada.' };
@@ -113,6 +117,7 @@ export async function receiveTracking(base44: any, tracking: string) {
       tracking_number: clean,
       result: 'no_registrado',
       detail: 'El tracking no está registrado: no se creó nada',
+      ...stamp,
     });
     return { tracking: clean, resultado: 'no_registrado', estado: null, huerfano: false, shipping_mark: '', mensaje: 'El tracking no está registrado en TLEC CARGO: no se creó nada.' };
   }
@@ -128,6 +133,7 @@ export async function receiveTracking(base44: any, tracking: string) {
       package_id: pkg.id,
       result: pkg.status || 'ya_registrado',
       detail: 'Ya estaba registrado: no se modificó ni se devolvió de estado',
+      ...stamp,
     });
     return {
       tracking: clean,
@@ -152,9 +158,10 @@ export async function receiveTracking(base44: any, tracking: string) {
     result: 'recibido',
     detail: 'Recepcionado desde la app del mayorista',
     notify_pending: true,
+    ...stamp,
   });
 
-  await updateWholesalerConfig(base44, {
+  await updateConnection(base44, connection?.id, {
     last_reception_date: now,
     last_reception_tracking: clean,
     last_reception_status: 'recibido',
@@ -174,14 +181,14 @@ export async function receiveTracking(base44: any, tracking: string) {
 }
 
 // Recepción de un bloque de trackings (una sola llamada de la app del mayorista).
-export async function receiveTrackingBlock(base44: any, trackings: any) {
+export async function receiveTrackingBlock(base44: any, trackings: any, connection: any = null) {
   const list = Array.isArray(trackings) ? trackings : [trackings];
   const clean = Array.from(new Set(list.map(cleanTracking).filter(Boolean))).slice(0, MAX_TRACKINGS_PER_CALL);
 
   const resultados: any[] = [];
   for (const tracking of clean) {
     try {
-      resultados.push(await receiveTracking(base44, tracking));
+      resultados.push(await receiveTracking(base44, tracking, connection));
     } catch (err: any) {
       resultados.push({ tracking, resultado: 'error', mensaje: truncate(err?.message || 'No se pudo procesar el tracking.', 300) });
     }
@@ -195,8 +202,8 @@ export async function receiveTrackingBlock(base44: any, trackings: any) {
 }
 
 // Registra una pre-alerta reportada por la app del mayorista a nombre de su cliente.
-export async function reportPrealert(base44: any, payload: any) {
-  const tracking = cleanTracking(payload?.tracking);
+export async function reportPrealert(base44: any, payload: any, connection: any = null) {
+  const tracking = cleanTracking(payload?.tracking ?? payload?.tracking_number);
   const labelCode = String(payload?.label_code || '').trim();
   const clientEmail = String(payload?.client_email || '').trim().toLowerCase();
   const shippingMark = String(payload?.shipping_mark || '').trim();
@@ -204,6 +211,7 @@ export async function reportPrealert(base44: any, payload: any) {
   const riskCategory = payload?.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general';
   const packageCount = Math.max(1, Number(payload?.package_count) || 1);
   const description = truncate(payload?.description || 'Pre-alerta reportada por el cliente mayorista', 500);
+  const stamp = stampOf(connection);
 
   if (!tracking && !labelCode) {
     return { ok: false, resultado: 'error', mensaje: 'Falta el tracking o el código de etiqueta.' };
@@ -227,6 +235,7 @@ export async function reportPrealert(base44: any, payload: any) {
       shipping_mark: shippingMark,
       result: 'cliente_no_encontrado',
       detail: 'El cliente indicado no existe en TLEC CARGO',
+      ...stamp,
     });
     return {
       ok: false,
@@ -254,6 +263,7 @@ export async function reportPrealert(base44: any, payload: any) {
       package_id: existing.id,
       result: existing.status || 'duplicado',
       detail: 'Ese tracking ya estaba registrado: no se tocó',
+      ...stamp,
     });
     return { ok: false, resultado: 'duplicado', mensaje: 'Ese tracking ya estaba registrado en TLEC CARGO: no se tocó nada.' };
   }
@@ -280,6 +290,7 @@ export async function reportPrealert(base44: any, payload: any) {
     package_id: created?.id || null,
     result: 'pre_alerta',
     detail: 'Pre-alerta registrada desde la app del mayorista',
+    ...stamp,
   });
 
   return {

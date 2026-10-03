@@ -20,6 +20,8 @@ const tones = {
   informe_enviado: 'bg-emerald-100 text-emerald-700',
   informe_fallido: 'bg-rose-100 text-rose-700',
   sync_fallido: 'bg-rose-100 text-rose-700',
+  conexion_fallida: 'bg-rose-100 text-rose-700',
+  conexion_ok: 'bg-emerald-100 text-emerald-700',
 };
 
 const labels = {
@@ -38,6 +40,8 @@ const labels = {
   informe_enviado: 'Informe enviado',
   informe_fallido: 'Informe fallido',
   sync_fallido: 'Consulta fallida',
+  conexion_fallida: 'Conexión caída',
+  conexion_ok: 'Conexión restablecida',
 };
 
 export default function WholesalerMovementsList({ logs = [], loading }) {
@@ -61,6 +65,9 @@ export default function WholesalerMovementsList({ logs = [], loading }) {
             <Badge className={tones[log.event_type] || 'bg-slate-100 text-slate-600'}>
               {labels[log.event_type] || log.event_type}
             </Badge>
+            {log.wholesaler_name && (
+              <span className="text-xs font-medium text-foreground">{log.wholesaler_name}</span>
+            )}
             {log.tracking_number && <span className="font-mono text-xs text-foreground">{log.tracking_number}</span>}
             {log.shipping_mark && <span className="text-xs text-muted-foreground">{log.shipping_mark}</span>}
             {log.client_email && <span className="text-xs text-muted-foreground">{log.client_email}</span>}

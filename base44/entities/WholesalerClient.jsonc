@@ -6,6 +6,14 @@
       "type": "string",
       "description": "Identificador del cliente en la app del mayorista (si lo env\u00eda)"
     },
+    "wholesaler_key": {
+      "type": "string",
+      "description": "Clave de la conexi\u00f3n (WholesalerSync.config_key) del mayorista que report\u00f3 este cliente. Vac\u00edo en los clientes tra\u00eddos antes de admitir varios mayoristas: cuentan como de la conexi\u00f3n principal."
+    },
+    "wholesaler_name": {
+      "type": "string",
+      "description": "Nombre del mayorista que report\u00f3 este cliente (cache para mostrar y filtrar)"
+    },
     "full_name": {
       "type": "string",
       "description": "Nombre del cliente tal como lo reporta la app del mayorista"

@@ -5,12 +5,12 @@
     "config_key": {
       "type": "string",
       "default": "main",
-      "description": "Clave \u00fanica de la conexi\u00f3n con el cliente mayorista (siempre 'main')"
+      "description": "Clave \u00fanica de la conexi\u00f3n con ese cliente mayorista. La conexi\u00f3n de siempre conserva 'main'; las conexiones nuevas usan una clave propia (ws-...)."
     },
     "wholesaler_name": {
       "type": "string",
       "default": "Cliente mayorista",
-      "description": "Nombre del cliente mayorista, usado en el panel y en el informe"
+      "description": "Nombre del cliente mayorista, usado en el panel, en los avisos y en el informe"
     },
     "clients_feed_url": {
       "type": "string",
@@ -20,10 +20,18 @@
       "type": "string",
       "description": "Direcci\u00f3n de la app del mayorista a la que esta app avisa cuando su carga se recibi\u00f3 en el almac\u00e9n de China"
     },
+    "inbound_key": {
+      "type": "string",
+      "description": "Clave con la que ese mayorista llama a esta app (consultar tracking, recepcionar, reportar pre-alerta, pedir clientes). Si est\u00e1 vac\u00eda se usa la clave de Secretos, para no romper la conexi\u00f3n que ya estaba emparejada."
+    },
+    "outbound_key": {
+      "type": "string",
+      "description": "Clave con la que esta app llama a ese mayorista (pedirle sus clientes y avisarle las recepciones). Si est\u00e1 vac\u00eda se usa la clave de Secretos."
+    },
     "intake_enabled": {
       "type": "boolean",
       "default": true,
-      "description": "Activa la consulta diaria de clientes nuevos en la app del mayorista"
+      "description": "Activa la consulta diaria de clientes nuevos en la app de ese mayorista"
     },
     "report_email_enabled": {
       "type": "boolean",
@@ -33,7 +41,47 @@
     "notify_enabled": {
       "type": "boolean",
       "default": true,
-      "description": "Activa el aviso inmediato al mayorista cuando su carga se recibe en China"
+      "description": "Activa el aviso inmediato a ese mayorista cuando su carga se recibe en China"
+    },
+    "connection_status": {
+      "type": "string",
+      "enum": [
+        "conectado",
+        "error",
+        "sin_probar"
+      ],
+      "default": "sin_probar",
+      "description": "Estado de la conexi\u00f3n: conectado (respondi\u00f3), error (no respondi\u00f3) o sin_probar (todav\u00eda no se ha probado)"
+    },
+    "connection_checked_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de la \u00faltima verificaci\u00f3n de la conexi\u00f3n (prueba desde el panel o corte diario)"
+    },
+    "connection_message": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle del \u00faltimo estado de la conexi\u00f3n"
+    },
+    "connection_clients_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Clientes que respondi\u00f3 la app del mayorista en la \u00faltima verificaci\u00f3n"
+    },
+    "consecutive_failures": {
+      "type": "number",
+      "default": 0,
+      "description": "Intentos seguidos sin respuesta. Vuelve a cero cuando la conexi\u00f3n responde."
+    },
+    "alerted_message": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Motivo del \u00faltimo aviso enviado a los administradores: evita repetir el mismo aviso en cada intento"
+    },
+    "alerted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo aviso enviado a los administradores por esta conexi\u00f3n"
     },
     "last_cursor": {
       "type": "string",
@@ -94,7 +142,7 @@
     "last_reception_date": {
       "type": "string",
       "format": "date-time",
-      "description": "Fecha de la \u00faltima carga del mayorista marcada como recibida en el almac\u00e9n de China"
+      "description": "Fecha de la \u00faltima carga de ese mayorista marcada como recibida en el almac\u00e9n de China"
     },
     "last_reception_tracking": {
       "type": "string",
@@ -121,7 +169,7 @@
     "pending_notifications": {
       "type": "number",
       "default": 0,
-      "description": "Recepciones que todav\u00eda no se han podido avisar a la app del mayorista"
+      "description": "Recepciones de ese mayorista que todav\u00eda no se han podido avisar a su app"
     },
     "description": {
       "type": "string",
