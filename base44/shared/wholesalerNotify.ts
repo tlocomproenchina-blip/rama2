@@ -13,6 +13,7 @@ import {
   updateConnection,
 } from './wholesalerCore.ts';
 import { registerConnectionResult } from './wholesalerHealth.ts';
+import { packagePhotos } from './wholesalerPackages.ts';
 
 const MAX_ATTEMPTS = 5;
 const TIMEOUT_MS = 15000;
@@ -51,8 +52,25 @@ function buildPayload(receptions: any[]) {
       estado: r.estado || 'recibido',
       fecha: r.fecha || new Date().toISOString(),
       huerfano: r.huerfano === true,
+      // Direcciones públicas listas para mostrar en la app del mayorista.
+      fotos: Array.isArray(r.fotos) ? r.fotos : [],
     })),
   };
+}
+
+// El movimiento guardado no lleva las fotos: al reintentar un aviso pendiente se
+// vuelven a leer del paquete para que el mayorista las reciba igual.
+async function photosByPackageId(base44: any, logs: any[]) {
+  const ids = Array.from(new Set(logs.map((l) => l.package_id).filter(Boolean)));
+  const map: Record<string, string[]> = {};
+  if (!ids.length) return map;
+
+  const rows = await base44.asServiceRole.entities.Package
+    .filter({ id: { $in: ids } }, '-created_date', 500)
+    .catch(() => []);
+
+  for (const pkg of rows || []) map[pkg.id] = packagePhotos(pkg);
+  return map;
 }
 
 async function markNotified(base44: any, logIds: string[]) {
@@ -158,12 +176,15 @@ export async function retryPendingReceptions(base44: any, connection: any = null
     return { enviados: 0, pendientes: 0, mensaje: 'No había avisos pendientes.' };
   }
 
+  const photoMap = await photosByPackageId(base44, pendientes);
+
   const receptions = pendientes.map((log: any) => ({
     tracking: log.tracking_number || '',
     shipping_mark: log.shipping_mark || '',
     estado: 'recibido',
     fecha: log.event_date,
     log_id: log.id,
+    fotos: photoMap[log.package_id] || [],
   }));
 
   const result = await notifyReceptionBlock(base44, receptions, target);

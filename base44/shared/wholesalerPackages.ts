@@ -48,12 +48,36 @@ export async function findPackageByTracking(base44: any, tracking: string) {
   return byLabel?.[0] || null;
 }
 
+// Fotos públicas del paquete, listas para que la app del mayorista las muestre:
+// las del paquete recibido en China (hasta 3) y, si existe, la foto del producto
+// de la pre-alerta. Se quitan las repetidas y se conserva el orden.
+export function packagePhotos(pkg: any) {
+  const urls = [
+    ...(Array.isArray(pkg?.package_image_urls) ? pkg.package_image_urls : []),
+    pkg?.package_image_url,
+    pkg?.product_image_url,
+  ];
+  const seen = new Set<string>();
+  const fotos: string[] = [];
+  for (const raw of urls) {
+    const url = String(raw || '').trim();
+    if (url && !seen.has(url)) {
+      seen.add(url);
+      fotos.push(url);
+    }
+  }
+  return fotos;
+}
+
 function describePackage(pkg: any) {
+  const fotos = packagePhotos(pkg);
   return {
     huerfano: pkg?.is_orphan === true,
     estado: pkg?.status || null,
     shipping_mark: pkg?.shipping_mark || '',
     package_id: pkg?.id || null,
+    fotos,
+    fotos_count: fotos.length,
   };
 }
 
@@ -61,7 +85,7 @@ function describePackage(pkg: any) {
 export async function checkTracking(base44: any, tracking: string, connection: any = null) {
   const clean = cleanTracking(tracking);
   if (!clean) {
-    return { ok: false, tracking: '', resultado: 'error', registrado: false, mensaje: 'Falta el tracking a consultar.' };
+    return { ok: false, tracking: '', resultado: 'error', registrado: false, fotos: [], fotos_count: 0, mensaje: 'Falta el tracking a consultar.' };
   }
 
   const pkg = await findPackageByTracking(base44, clean);
@@ -75,7 +99,17 @@ export async function checkTracking(base44: any, tracking: string, connection: a
       detail: 'Consulta de solo lectura: el tracking no está registrado',
       ...stampOf(connection),
     });
-    return { ...base, resultado: 'no_registrado', registrado: false, huerfano: false, estado: null, shipping_mark: '', mensaje: 'El tracking no está registrado en TLEC CARGO.' };
+    return {
+      ...base,
+      resultado: 'no_registrado',
+      registrado: false,
+      huerfano: false,
+      estado: null,
+      shipping_mark: '',
+      fotos: [],
+      fotos_count: 0,
+      mensaje: 'El tracking no está registrado en TLEC CARGO.',
+    };
   }
 
   await logWholesalerEvent(base44, {
@@ -107,7 +141,7 @@ export async function receiveTracking(base44: any, tracking: string, connection:
   const stamp = stampOf(connection);
 
   if (!clean) {
-    return { tracking: '', resultado: 'error', mensaje: 'Falta el tracking: no se modificó nada.' };
+    return { tracking: '', resultado: 'error', fotos: [], fotos_count: 0, mensaje: 'Falta el tracking: no se modificó nada.' };
   }
 
   const pkg = await findPackageByTracking(base44, clean);
@@ -119,7 +153,7 @@ export async function receiveTracking(base44: any, tracking: string, connection:
       detail: 'El tracking no está registrado: no se creó nada',
       ...stamp,
     });
-    return { tracking: clean, resultado: 'no_registrado', estado: null, huerfano: false, shipping_mark: '', mensaje: 'El tracking no está registrado en TLEC CARGO: no se creó nada.' };
+    return { tracking: clean, resultado: 'no_registrado', estado: null, huerfano: false, shipping_mark: '', fotos: [], fotos_count: 0, mensaje: 'El tracking no está registrado en TLEC CARGO: no se creó nada.' };
   }
 
   const pendingReception = pkg.status === 'pre_alerta' || (pkg.is_orphan === true && !pkg.received_date);
@@ -167,6 +201,8 @@ export async function receiveTracking(base44: any, tracking: string, connection:
     last_reception_status: 'recibido',
   });
 
+  const fotos = packagePhotos(updated || pkg);
+
   return {
     tracking: clean,
     resultado: 'recibido',
@@ -176,6 +212,8 @@ export async function receiveTracking(base44: any, tracking: string, connection:
     package_id: pkg.id,
     fecha: now,
     log_id: log?.id || null,
+    fotos,
+    fotos_count: fotos.length,
     mensaje: 'Marcado como recibido en el almacén de China.',
   };
 }

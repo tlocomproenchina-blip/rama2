@@ -39,11 +39,18 @@ const EXAMPLES = [
   "tracking_number": "TLEC123456"
 }`,
     answer: `{
-  "encontrado": true,
-  "estado": "recibido_en_china",
-  "cliente": "Nombre del cliente",
+  "ok": true,
+  "tracking": "TLEC123456",
+  "resultado": "registrado",
+  "registrado": true,
+  "huerfano": false,
+  "estado": "recibido",
   "shipping_mark": "50001",
-  "recibido": true
+  "package_id": "6a1b...",
+  "fotos": [
+    "https://cdn.tu-cdn.com/tlec/1712345678-ab12cd34.jpg"
+  ],
+  "fotos_count": 1
 }`,
   },
   {
@@ -260,15 +267,33 @@ export default function WholesalerConnectionCard() {
         ))}
 
         <div className="rounded-lg border border-dashed p-3">
+          <p className="text-xs font-semibold text-foreground">Fotos de la carga</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Tanto la consulta de tracking como el aviso de recepción traen el campo <span className="font-mono">fotos</span>:
+            las direcciones públicas de las fotos del paquete recibido en China (hasta 3) y la foto del producto de la pre-alerta,
+            listas para mostrar en tu app. Sin fotos, la lista viene vacía (el campo nunca se omite).
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-dashed p-3">
           <p className="text-xs font-semibold text-foreground">Lo que tu app recibe cuando su carga llega a China</p>
           <p className="mt-1 text-xs text-muted-foreground">Se envía a la dirección de aviso, con la misma cabecera de la clave:</p>
           <pre className="mt-2 overflow-x-auto rounded bg-muted p-2 text-[11px] leading-relaxed text-foreground">{`{
-  "event": "carga_recibida",
-  "tracking_number": "TLEC123456",
-  "client_email": "cliente@correo.com",
-  "shipping_mark": "50001",
-  "package_count": 3,
-  "received_date": "2026-10-03T13:00:00.000Z"
+  "evento": "carga_recibida_en_china",
+  "fecha": "2026-10-03T13:00:00.000Z",
+  "total": 1,
+  "paquetes": [
+    {
+      "tracking": "TLEC123456",
+      "shipping_mark": "50001",
+      "estado": "recibido",
+      "fecha": "2026-10-03T13:00:00.000Z",
+      "huerfano": false,
+      "fotos": [
+        "https://cdn.tu-cdn.com/tlec/1712345678-ab12cd34.jpg"
+      ]
+    }
+  ]
 }`}</pre>
         </div>
       </div>

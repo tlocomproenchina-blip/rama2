@@ -106,6 +106,9 @@ export default function WholesalerConnectionDialog({ open, connection, onClose, 
               onChange={(e) => set({ notify_url: e.target.value })}
               placeholder="https://su-app.com/functions/wholesalerReceptionWebhook"
             />
+            <p className="text-xs text-muted-foreground">
+              Ese aviso va con las direcciones públicas de las fotos del paquete, listas para mostrar en su app.
+            </p>
           </div>
 
           <div className="space-y-2">
