@@ -1,0 +1,125 @@
+{
+  "name": "WholesalerClient",
+  "type": "object",
+  "properties": {
+    "external_id": {
+      "type": "string",
+      "description": "Identificador del cliente en la app del mayorista (si lo env\u00eda)"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Nombre del cliente tal como lo reporta la app del mayorista"
+    },
+    "first_name": {
+      "type": "string",
+      "description": "Nombre de pila"
+    },
+    "last_name": {
+      "type": "string",
+      "description": "Apellido"
+    },
+    "email": {
+      "type": "string",
+      "description": "Correo del cliente: es la llave con la que se detecta si ya exist\u00eda en TLEC CARGO"
+    },
+    "cedula": {
+      "type": "string",
+      "description": "C\u00e9dula del cliente"
+    },
+    "whatsapp": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping Mark del cliente en TLEC CARGO (generado aqu\u00ed o el que reporta el mayorista)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID del usuario (cliente) creado o encontrado en TLEC CARGO"
+    },
+    "account_created": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que la cuenta del cliente se cre\u00f3 desde el reporte del mayorista"
+    },
+    "already_existed": {
+      "type": "boolean",
+      "default": false,
+      "description": "El cliente ya exist\u00eda en TLEC CARGO (por correo o c\u00e9dula): no se duplic\u00f3"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "creado",
+        "existente",
+        "error"
+      ],
+      "default": "creado",
+      "description": "creado (cuenta nueva), existente (ya estaba en TLEC CARGO) o error (no se pudo dar de alta)"
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle del resultado del alta del cliente"
+    },
+    "source_app": {
+      "type": "string",
+      "default": "mayorista",
+      "description": "Origen del registro: la app del cliente mayorista"
+    },
+    "fetched_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que el cliente se trajo desde la app del mayorista"
+    },
+    "report_date": {
+      "type": "string",
+      "description": "D\u00eda (YYYY-MM-DD) del informe en el que sali\u00f3 este cliente"
+    },
+    "report_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que el cliente ya sali\u00f3 en un informe enviado; mientras est\u00e9 en false sigue pendiente de reportar"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "email",
+    "fetched_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

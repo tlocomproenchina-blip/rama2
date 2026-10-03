@@ -1,0 +1,106 @@
+{
+  "name": "WholesalerLog",
+  "type": "object",
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "cliente_nuevo",
+        "cliente_existente",
+        "cliente_error",
+        "prealerta_reportada",
+        "prealerta_duplicada",
+        "prealerta_rechazada",
+        "recepcion",
+        "recepcion_existente",
+        "no_registrado",
+        "consulta",
+        "aviso_enviado",
+        "aviso_fallido",
+        "informe_enviado",
+        "informe_fallido",
+        "sync_fallido"
+      ],
+      "description": "Tipo de movimiento del intercambio con la app del mayorista"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Tracking involucrado en el movimiento"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "shipping_mark": {
+      "type": "string"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "ID del paquete involucrado, si aplica"
+    },
+    "result": {
+      "type": "string",
+      "description": "Resultado corto del movimiento (recibido, ya_registrado, duplicado, enviado, fallido\u2026)"
+    },
+    "detail": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle del movimiento: motivo, mensaje de error o nota"
+    },
+    "source_app": {
+      "type": "string",
+      "default": "mayorista",
+      "description": "App de origen del movimiento: la app del cliente mayorista"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento del movimiento: es la fecha con la que se ordena el historial"
+    },
+    "notify_pending": {
+      "type": "boolean",
+      "default": false,
+      "description": "Recepci\u00f3n que todav\u00eda no se ha podido avisar a la app del mayorista"
+    },
+    "notify_attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Intentos de aviso realizados para esta recepci\u00f3n"
+    },
+    "notified_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que el aviso de esta recepci\u00f3n se entreg\u00f3 al mayorista"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "event_type",
+    "event_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

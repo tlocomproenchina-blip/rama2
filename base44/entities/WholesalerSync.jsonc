@@ -1,0 +1,157 @@
+{
+  "name": "WholesalerSync",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica de la conexi\u00f3n con el cliente mayorista (siempre 'main')"
+    },
+    "wholesaler_name": {
+      "type": "string",
+      "default": "Cliente mayorista",
+      "description": "Nombre del cliente mayorista, usado en el panel y en el informe"
+    },
+    "clients_feed_url": {
+      "type": "string",
+      "description": "Direcci\u00f3n de la app del mayorista a la que esta app le pide sus clientes nuevos cada 24 horas"
+    },
+    "notify_url": {
+      "type": "string",
+      "description": "Direcci\u00f3n de la app del mayorista a la que esta app avisa cuando su carga se recibi\u00f3 en el almac\u00e9n de China"
+    },
+    "intake_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activa la consulta diaria de clientes nuevos en la app del mayorista"
+    },
+    "report_email_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activa el env\u00edo del informe diario por correo a los administradores"
+    },
+    "notify_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activa el aviso inmediato al mayorista cuando su carga se recibe en China"
+    },
+    "last_cursor": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo corte entregado al mayorista: en la pr\u00f3xima consulta se le piden los clientes desde ese momento, para no repetir ni perder ninguno"
+    },
+    "last_run_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de la \u00faltima consulta de clientes nuevos"
+    },
+    "last_run_status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "error",
+        "nunca"
+      ],
+      "default": "nunca",
+      "description": "Resultado de la \u00faltima consulta de clientes nuevos"
+    },
+    "last_run_message": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle del resultado de la \u00faltima consulta"
+    },
+    "last_run_clients_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Clientes tra\u00eddos en la \u00faltima consulta"
+    },
+    "last_report_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo informe de clientes nuevos"
+    },
+    "last_report_status": {
+      "type": "string",
+      "enum": [
+        "enviado",
+        "sin_clientes",
+        "fallido",
+        "nunca"
+      ],
+      "default": "nunca",
+      "description": "Resultado del \u00faltimo informe: enviado, sin_clientes (no se env\u00eda correo), fallido"
+    },
+    "last_report_clients_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Clientes incluidos en el \u00faltimo informe"
+    },
+    "last_report_message": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle del resultado del \u00faltimo informe"
+    },
+    "last_reception_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de la \u00faltima carga del mayorista marcada como recibida en el almac\u00e9n de China"
+    },
+    "last_reception_tracking": {
+      "type": "string",
+      "description": "Tracking de la \u00faltima carga recibida"
+    },
+    "last_reception_status": {
+      "type": "string",
+      "description": "Resultado de la \u00faltima recepci\u00f3n pedida por el mayorista"
+    },
+    "last_notify_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo aviso enviado a la app del mayorista"
+    },
+    "last_notify_status": {
+      "type": "string",
+      "description": "Resultado del \u00faltimo aviso enviado al mayorista"
+    },
+    "last_notify_message": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle del \u00faltimo aviso enviado al mayorista"
+    },
+    "pending_notifications": {
+      "type": "number",
+      "default": 0,
+      "description": "Recepciones que todav\u00eda no se han podido avisar a la app del mayorista"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
