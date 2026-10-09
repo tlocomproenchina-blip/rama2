@@ -1,4 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import {
+  buildTrackingCandidates,
+  consolidateOrphan,
+  findSameShipmentMatches,
+} from '../../shared/orphanConsolidation.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -31,6 +36,36 @@ Deno.serve(async (req) => {
         const users = await base44.asServiceRole.entities.User.filter({ email: clientEmail }, '-created_date', 1);
         shippingMark = users?.[0]?.shipping_mark || null;
       } catch (_) {}
+    }
+
+    // Sin duplicar: si ese cliente ya tiene una pre-alerta pendiente del mismo envío,
+    // se unifica con este huérfano en un solo paquete (se conserva el registro
+    // recibido, con su foto y sus datos de almacén) y la pre-alerta se retira.
+    const candidates = buildTrackingCandidates(String(pkg.tracking_number || ''));
+    if (candidates.length > 0) {
+      const matches = await findSameShipmentMatches(base44, { candidates, excludeId: pkg.id });
+      const clientPending = matches.pending.filter(
+        (p) => String(p.client_email || '').trim().toLowerCase() === clientEmail.toLowerCase(),
+      );
+      if (clientPending.length > 0) {
+        const unification = await consolidateOrphan({ base44, orphan: pkg, prealert: clientPending[0], shippingMark });
+        return Response.json({
+          package: unification.package,
+          consolidated: true,
+          merged_fields: unification.merged_fields,
+          unified_prealert_id: clientPending[0].id,
+        });
+      }
+      // Ese tracking ya está registrado como carga recibida: se avisa para revisión y
+      // el huérfano queda sin asignar.
+      if (matches.received.length > 0) {
+        const other = matches.received[0];
+        return Response.json({
+          error: `Ese tracking ya figura recibido${other.client_email ? ` para ${other.client_email}` : ''}. Revisa el duplicado antes de asignarlo.`,
+          conflict: true,
+          matched_package_id: other.id,
+        }, { status: 409 });
+      }
     }
 
     // Si el huérfano ya tiene ubicación física/dimensiones, conservar estado "recibido".

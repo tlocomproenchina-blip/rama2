@@ -204,7 +204,8 @@ export default function AdminOrphanPackages({ user }) {
   const handleAssign = async () => {
     if (!selectedClient || !assignTarget?.ids?.length) return;
     setAssigning(true);
-    let ok = 0; let fail = 0;
+    let ok = 0; let fail = 0; let unified = 0; let conflictMsg = '';
+    const succeededIds = [];
     for (const id of assignTarget.ids) {
       try {
         if (navigator.onLine) {
@@ -215,6 +216,8 @@ export default function AdminOrphanPackages({ user }) {
             shipping_type: shippingType,
           });
           if (data?.error) throw new Error(data.error);
+          if (data?.consolidated) unified++;
+          succeededIds.push(id);
           ok++;
         } else {
           await enqueueAssign({
@@ -225,16 +228,27 @@ export default function AdminOrphanPackages({ user }) {
               shipping_type: shippingType,
             },
           });
+          succeededIds.push(id);
           ok++;
         }
-      } catch (e) { fail++; }
+      } catch (e) {
+        fail++;
+        if (!conflictMsg) conflictMsg = e?.message || '';
+      }
     }
-    setOrphans((prev) => prev.filter((p) => !assignTarget.ids.includes(p.id)));
-    setSelectedIds((prev) => prev.filter((id) => !assignTarget.ids.includes(id)));
+    // Solo se quitan de la lista los que quedaron realmente asignados: los que
+    // chocaron con un paquete ya recibido se quedan para revisión.
+    setOrphans((prev) => prev.filter((p) => !succeededIds.includes(p.id)));
+    setSelectedIds((prev) => prev.filter((id) => !succeededIds.includes(id)));
+    const unifiedTxt = unified > 0 ? ` · ${unified} pre-alerta(s) unificada(s)` : '';
+    const failTxt = fail > 0 ? ` · ${fail} sin asignar${conflictMsg ? `: ${conflictMsg}` : ''}` : '';
     const msg = assignTarget.multi
-      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${fail > 0 ? ` · ${fail} fallaron` : ''}${!isOnline ? ' (offline)' : ''}`
-      : `Huérfano asignado a ${selectedClient.email}${!isOnline ? ' (offline)' : ''}`;
-    toast.success(msg);
+      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${unifiedTxt}${failTxt}${!isOnline ? ' (offline)' : ''}`
+      : (ok > 0
+        ? `Huérfano asignado a ${selectedClient.email}${unifiedTxt}${!isOnline ? ' (offline)' : ''}`
+        : `No se pudo asignar: ${conflictMsg || 'error desconocido'}`);
+    if (ok === 0 && fail > 0) toast.error(msg);
+    else toast.success(msg);
     setAssignTarget(null);
     setSelectedClient(null);
     setAssigning(false);
@@ -274,10 +288,11 @@ export default function AdminOrphanPackages({ user }) {
     if (aiScanBusy) return;
     setAiScanBusy(true);
     setAiFinalSummary(null);
-    setAiProgress({ processed: 0, total: null, assigned: 0, unreadable: 0, notFound: 0, errors: 0 });
+    setAiProgress({ processed: 0, total: null, assigned: 0, consolidated: 0, conflicts: 0, unreadable: 0, notFound: 0, errors: 0 });
 
     try {
       let totalAssigned = 0, totalUnreadable = 0, totalNotFound = 0, totalErrors = 0, totalProcessed = 0;
+      let totalConsolidated = 0, totalConflicts = 0;
       let hasMore = true;
       let guard = 0; // safety limit to prevent infinite loops
 
@@ -294,6 +309,8 @@ export default function AdminOrphanPackages({ user }) {
         totalNotFound += data.not_found || 0;
         totalErrors += data.errors || 0;
         totalProcessed += data.batch_size || 0;
+        totalConsolidated += data.consolidated || 0;
+        totalConflicts += data.conflicts || 0;
 
         // Actualizar presupuesto desde la respuesta del backend
         if (typeof data.credits_used === 'number' || typeof data.credits_budget === 'number' || data.route) {
@@ -308,6 +325,8 @@ export default function AdminOrphanPackages({ user }) {
           processed: totalProcessed,
           total: totalProcessed + (data.remaining || 0),
           assigned: totalAssigned,
+          consolidated: totalConsolidated,
+          conflicts: totalConflicts,
           unreadable: totalUnreadable,
           notFound: totalNotFound,
           errors: totalErrors,
@@ -321,16 +340,20 @@ export default function AdminOrphanPackages({ user }) {
 
       setAiFinalSummary({
         assigned: totalAssigned,
+        consolidated: totalConsolidated,
+        conflicts: totalConflicts,
         unreadable: totalUnreadable,
         notFound: totalNotFound,
         errors: totalErrors,
         total: totalProcessed,
       });
 
+      const unifTxt = totalConsolidated > 0 ? ` · ${totalConsolidated} pre-alerta(s) unificada(s)` : '';
+      const confTxt = totalConflicts > 0 ? ` · ${totalConflicts} en conflicto` : '';
       if (totalAssigned > 0) {
-        toast.success(`IA completada: ${totalAssigned} asignado(s) · ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia`);
+        toast.success(`IA completada: ${totalAssigned} asignado(s)${unifTxt} · ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${confTxt}`);
       } else if (totalProcessed > 0) {
-        toast.info(`IA completada: ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia · ${totalErrors} error(es)`);
+        toast.info(`IA completada: ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${confTxt} · ${totalErrors} error(es)`);
       } else {
         toast.info('No hay huérfanos con foto pendientes de escanear');
       }
@@ -408,8 +431,10 @@ export default function AdminOrphanPackages({ user }) {
           </div>
           {aiScanBusy && aiProgress && (
             <div className="text-xs text-slate-600 text-right max-w-xs bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5">
-              <div className="flex gap-3 justify-end">
+              <div className="flex flex-wrap gap-3 justify-end">
                 <span className="text-green-600 font-medium">{aiProgress.assigned} asignados</span>
+                <span className="text-blue-600 font-medium">{aiProgress.consolidated || 0} pre-alertas unificadas</span>
+                {(aiProgress.conflicts || 0) > 0 && <span className="text-amber-600">{aiProgress.conflicts} en conflicto</span>}
                 <span className="text-red-500">{aiProgress.unreadable} no legibles</span>
                 <span className="text-slate-500">{aiProgress.notFound} sin coincidencia</span>
               </div>
@@ -419,6 +444,18 @@ export default function AdminOrphanPackages({ user }) {
             <div className="text-xs text-slate-600 text-right max-w-xs bg-slate-50 border rounded-lg px-3 py-1.5">
               <span className="font-medium text-slate-700">Resumen IA:</span>{' '}
               <span className="text-green-600 font-medium">{aiFinalSummary.assigned} asignados</span>
+              {aiFinalSummary.consolidated > 0 && (
+                <>
+                  {' · '}
+                  <span className="text-blue-600 font-medium">{aiFinalSummary.consolidated} pre-alerta(s) unificada(s)</span>
+                </>
+              )}
+              {aiFinalSummary.conflicts > 0 && (
+                <>
+                  {' · '}
+                  <span className="text-amber-600">{aiFinalSummary.conflicts} en conflicto</span>
+                </>
+              )}
               {' · '}
               <span className="text-red-500">{aiFinalSummary.unreadable} no legibles</span>
               {' · '}

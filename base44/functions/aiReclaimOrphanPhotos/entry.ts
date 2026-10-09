@@ -1,4 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import {
+  buildTrackingCandidates,
+  consolidateOrphan,
+  findSameShipmentMatches,
+  pickConsolidationTarget,
+  ORPHAN_ALREADY_CLAIMED,
+} from '../../shared/orphanConsolidation.ts';
 
 // Reclama huérfanos usando IA para leer el tracking de la foto.
 // Procesa en lotes pequeños (default 3) para evitar timeout del navegador.
@@ -14,7 +21,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 // - Marca ai_attempted_date si la IA lee el tracking pero no hay cliente coincidente
 //   (se excluye por 10 minutos para evitar reprocesar el mismo lote en bucle).
 // - Busca coincidencia por tracking_number (con sub-tracking), label_code en Package,
-//   y label_code en ShippingLabel (auto-crea pre-alerta como processBodegaScan).
+//   y label_code en ShippingLabel.
+// - Unifica: si el envío ya tenía pre-alerta (o una etiqueta TLEC), el huérfano
+//   recibido se queda como único registro del paquete y la pre-alerta se retira,
+//   para no dejar el mismo envío registrado dos veces (orphanConsolidation.ts).
 
 const CLAUDE_COST_PER_CALL = 4; // créditos estimados por llamada a Claude Sonnet 4.6
 const FALLBACK_THRESHOLD = 0.5;  // 50% del presupuesto
@@ -152,6 +162,9 @@ export default async function(req: Request): Promise<Response> {
 
     const results: any[] = [];
     let assigned = 0;
+    let consolidated = 0;
+    let labelLinked = 0;
+    let conflicts = 0;
     let unreadable = 0;
     let notFound = 0;
     let errors = 0;
@@ -214,76 +227,53 @@ export default async function(req: Request): Promise<Response> {
           continue;
         }
 
-        // 3) Buscar por tracking_number con candidatos de sub-tracking
-        const removalOrder = [0, 3, 2, 4, 1, 5, 6];
-        const seenCandidates = new Set<string>();
-        const candidates: string[] = [];
-        for (const remove of removalOrder) {
-          if (remove === 0) {
-            if (!seenCandidates.has(tracking)) {
-              seenCandidates.add(tracking);
-              candidates.push(tracking);
-            }
-            continue;
-          }
-          if (tracking.length - remove < 5) continue;
-          const candidate = tracking.slice(0, tracking.length - remove);
-          if (!seenCandidates.has(candidate)) {
-            seenCandidates.add(candidate);
-            candidates.push(candidate);
-          }
+        // 3) Buscar la pre-alerta del mismo envío (tracking exacto y sub-trackings)
+        const candidates = buildTrackingCandidates(tracking);
+        const matches = await findSameShipmentMatches(base44, { candidates, excludeId: orphan.id });
+        const picked = pickConsolidationTarget(matches.pending);
+
+        // Pre-alertas de más de un cliente con el mismo tracking: no se borra nada,
+        // el huérfano queda para revisión.
+        if (picked.ambiguous) {
+          await base44.asServiceRole.entities.Package.update(orphan.id, { ai_attempted_date: now });
+          results.push({ orphan_id: orphan.id, old_tracking: orphan.tracking_number, detected_tracking: tracking, status: 'conflict', reason: 'prealertas_de_varios_clientes', route: routeUsed });
+          conflicts++;
+          continue;
         }
 
-        let matchedPkg: any = null;
-        for (const candidate of candidates) {
-          const matches = await base44.asServiceRole.entities.Package.filter(
-            { tracking_number: candidate }, '-created_date', 5
-          );
-          const found = matches?.find((m: any) => m.client_email);
-          if (found) {
-            matchedPkg = found;
-            break;
-          }
+        const prealert = picked.target;
+
+        // Ya existe un paquete recibido con ese tracking: es un duplicado real, no se
+        // unifica ni se borra nada.
+        if (!prealert && matches.received.length > 0) {
+          await base44.asServiceRole.entities.Package.update(orphan.id, { ai_attempted_date: now });
+          results.push({
+            orphan_id: orphan.id,
+            old_tracking: orphan.tracking_number,
+            detected_tracking: tracking,
+            status: 'conflict',
+            reason: 'paquete_ya_recibido',
+            matched_package_id: matches.received[0].id,
+            matched_client_email: matches.received[0].client_email,
+            route: routeUsed,
+          });
+          conflicts++;
+          continue;
         }
 
-        // 4) Buscar por label_code en Package
-        if (!matchedPkg) {
-          const labelMatches = await base44.asServiceRole.entities.Package.filter(
-            { label_code: tracking }, '-created_date', 5
-          );
-          const found = labelMatches?.find((m: any) => m.client_email);
-          if (found) matchedPkg = found;
-        }
-
-        // 5) Buscar por label_code en ShippingLabel → auto-crear pre-alerta
-        if (!matchedPkg) {
+        // 4) Sin pre-alerta: buscar la etiqueta TLEC del código escaneado (su cliente
+        //    y su contenido vienen en la etiqueta, así que no hace falta crear un
+        //    segundo registro del paquete).
+        let label: any = null;
+        if (!prealert) {
           const labels = await base44.asServiceRole.entities.ShippingLabel.filter(
             { label_code: tracking }, '-created_date', 1
           );
-          const label = labels?.[0];
-          if (label) {
-            matchedPkg = await base44.asServiceRole.entities.Package.create({
-              tracking_number: '',
-              client_email: label.client_email,
-              shipping_mark: label.shipping_mark,
-              label_code: label.label_code,
-              shipping_type: 'maritimo',
-              risk_category: (label.has_battery || label.has_liquid || label.has_powder || label.has_fbrand) ? 'alto_riesgo' : 'general',
-              package_count: label.box_count || 1,
-              description: label.content || 'Etiqueta TLEC',
-              status: 'pre_alerta',
-              is_orphan: false,
-            });
-            try {
-              await base44.asServiceRole.entities.ShippingLabel.update(label.id, {
-                status: 'vinculada',
-                linked_package_id: matchedPkg.id,
-              });
-            } catch (_) {}
-          }
+          label = labels?.[0] || null;
         }
 
-        if (!matchedPkg) {
+        // Sin pre-alerta ni etiqueta: el tracking todavía no está registrado
+        if (!prealert && !label) {
           await base44.asServiceRole.entities.Package.update(orphan.id, {
             tracking_number: tracking,
             ai_attempted_date: now,
@@ -293,27 +283,32 @@ export default async function(req: Request): Promise<Response> {
           continue;
         }
 
-        // 6) Asignar el huérfano al cliente del paquete encontrado
-        await base44.asServiceRole.entities.Package.update(orphan.id, {
-          tracking_number: matchedPkg.tracking_number || tracking,
-          client_email: matchedPkg.client_email,
-          shipping_mark: matchedPkg.shipping_mark || '',
-          is_orphan: false,
-          ai_unreadable: false,
-          ai_attempted_date: null,
-          status: matchedPkg.status === 'pre_alerta' ? 'recibido' : matchedPkg.status,
-          shipping_type: matchedPkg.shipping_type || orphan.shipping_type || 'maritimo',
-        });
+        // 5) Unificar: se conserva este paquete recibido (con su foto y sus datos de
+        //    almacén) y se retira la pre-alerta, para no dejar el envío dos veces.
+        let unification: any;
+        try {
+          unification = await consolidateOrphan({ base44, orphan, prealert, label });
+        } catch (err: any) {
+          if (err?.message === ORPHAN_ALREADY_CLAIMED) {
+            results.push({ orphan_id: orphan.id, old_tracking: orphan.tracking_number, detected_tracking: tracking, status: 'already_claimed', route: routeUsed });
+            continue;
+          }
+          throw err;
+        }
 
         results.push({
           orphan_id: orphan.id,
           old_tracking: orphan.tracking_number,
           detected_tracking: tracking,
-          assigned_to: matchedPkg.client_email,
-          matched_package_id: matchedPkg.id,
-          status: 'assigned',
+          assigned_to: unification.package?.client_email,
+          matched_package_id: prealert?.id || null,
+          merged_from_label: label ? label.label_code : null,
+          merged_fields: unification.merged_fields,
+          status: 'consolidated',
           route: routeUsed,
         });
+        if (prealert) consolidated++;
+        else labelLinked++;
         assigned++;
       } catch (err: any) {
         results.push({ orphan_id: orphan.id, tracking_number: orphan.tracking_number, status: 'error', error: err?.message || 'unknown' });
@@ -324,6 +319,9 @@ export default async function(req: Request): Promise<Response> {
     return Response.json({
       batch_size: batch.length,
       assigned,
+      consolidated,
+      label_linked: labelLinked,
+      conflicts,
       unreadable,
       not_found: notFound,
       errors,
