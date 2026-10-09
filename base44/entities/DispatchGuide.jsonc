@@ -33,9 +33,10 @@
       "enum": [
         "periodo_pagos",
         "escaneo",
-        "lote_etiquetas"
+        "lote_etiquetas",
+        "manual"
       ],
-      "description": "Origen de la gu\u00eda: periodo_pagos (generada desde el per\u00edodo de facturas pagadas), escaneo (abierta por el esc\u00e1ner de despacho) o lote_etiquetas (emitida al imprimir el lote de etiquetas)."
+      "description": "Origen de la gu\u00eda: periodo_pagos (generada desde el per\u00edodo de facturas pagadas), escaneo (abierta por el esc\u00e1ner de despacho), lote_etiquetas (emitida al imprimir el lote de etiquetas) o manual (emitida eligiendo a mano el cliente y sus bultos)."
     },
     "period_key": {
       "type": "string",
@@ -232,6 +233,49 @@
         "cbm": {
           "type": "number",
           "description": "CBM total de las cajas y bultos de la gu\u00eda"
+        }
+      }
+    },
+    "dispatch_orders": {
+      "type": "array",
+      "default": [],
+      "description": "\u00d3rdenes de despacho que se generaron solas al emitir la gu\u00eda a mano: una por cliente, con su n\u00famero de orden y cu\u00e1ntos bultos y paquetes cubre. Es el resumen con el que el historial muestra la gu\u00eda junto con sus \u00f3rdenes.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "client_email": {
+            "type": "string"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "shipping_mark": {
+            "type": "string"
+          },
+          "order_id": {
+            "type": "string",
+            "description": "ID de la orden de despacho creada (DispatchOrder)"
+          },
+          "order_number": {
+            "type": "string",
+            "description": "N\u00famero visible de la orden de despacho (OD-AAAAAMMDD-####)"
+          },
+          "bultos_count": {
+            "type": "number",
+            "description": "Bultos de la gu\u00eda que cubre esa orden"
+          },
+          "packages_count": {
+            "type": "number",
+            "description": "Paquetes sumados de esos bultos"
+          },
+          "cbm": {
+            "type": "number",
+            "description": "CBM sumado de esos bultos"
+          },
+          "emitted_by": {
+            "type": "string",
+            "description": "Email del admin que emiti\u00f3 la gu\u00eda y gener\u00f3 la orden"
+          }
         }
       }
     },

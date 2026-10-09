@@ -6,6 +6,7 @@ import {
   normCode,
   unique,
 } from '../../shared/dispatchGuideAppend.ts';
+import { createOrdersForGuide } from '../../shared/manualGuideOrders.ts';
 
 // Emite una guía de despacho: arma el snapshot definitivo con los bultos
 // escaneados que siguen pendientes (getDispatchGuides ya excluye los bultos de
@@ -149,6 +150,7 @@ export default async function (req: Request): Promise<Response> {
       emitted_by: user.email || '',
       emitted_by_name: user.full_name || '',
       auto_generated: false,
+      source: 'manual',
       last_updated_date: emittedDate,
       last_updated_by: user.email || '',
       filter_from: from,
@@ -171,7 +173,20 @@ export default async function (req: Request): Promise<Response> {
       emittedDate,
     });
 
-    return Response.json({ guide, skipped, marked });
+    // Con la guía se generan solas las órdenes de despacho de cada cliente (por la
+    // misma vía del flujo actual: createDispatchOrder) y quedan guardadas dentro de
+    // la guía para consultarlas desde el historial. Un cliente que no se pudo emitir
+    // se devuelve en orders_failed sin frenar la guía.
+    let orders: any[] = [];
+    let ordersFailed: any[] = [];
+    if (body.with_orders) {
+      const result: any = await createOrdersForGuide(base44, { guide, user });
+      orders = result.orders;
+      ordersFailed = result.failed;
+      if (orders.length) guide.dispatch_orders = orders;
+    }
+
+    return Response.json({ guide, skipped, marked, orders, orders_failed: ordersFailed });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

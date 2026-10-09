@@ -6,6 +6,7 @@ import { ClipboardList, Clock3 } from 'lucide-react';
 import DispatchGuideHistoryPanel from '@/components/warehouse/dispatch-guides/DispatchGuideHistoryPanel';
 import DispatchGuideSyncCard from '@/components/warehouse/dispatch-guides/DispatchGuideSyncCard';
 import PeriodGuidesCard from '@/components/warehouse/dispatch-guides/PeriodGuidesCard';
+import ManualGuideCard from '@/components/warehouse/dispatch-guides/ManualGuideCard';
 
 // Guías de despacho: aquí se generan las guías de un período pagado (una por cliente,
 // todas en un solo PDF) y se consulta el historial para reimprimir, descargar o anotar
@@ -44,7 +45,7 @@ export default function DispatchGuides() {
             <ClipboardList className="h-6 w-6 text-blue-600" /> Guías de Despacho
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Genera las guías de un período pagado (una por cliente, todas en un solo PDF) y consulta las
+            Genera las guías de un período pagado o elige a mano el cliente y sus bultos, y consulta las
             guías emitidas para reimprimir, descargar o anotar la entrega.
           </p>
         </div>
@@ -56,6 +57,8 @@ export default function DispatchGuides() {
       </div>
 
       <PeriodGuidesCard onGenerated={handleGuidesGenerated} />
+
+      <ManualGuideCard onGenerated={handleGuidesGenerated} />
 
       <DispatchGuideSyncCard
         reloadSignal={reloadKey}

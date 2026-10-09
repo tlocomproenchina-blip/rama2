@@ -49,6 +49,14 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
 
   const clients = Array.isArray(guide.clients) ? guide.clients : [];
   const delivered = guide.dispatch_status === 'entregada';
+  // Órdenes de despacho que se generaron solas al emitir la guía a mano.
+  const orders = Array.isArray(guide.dispatch_orders) ? guide.dispatch_orders : [];
+  const orderFor = (client) => orders.find((order) => {
+    const email = String(order.client_email || '').toLowerCase();
+    if (email && email === String(client.client_email || '').toLowerCase()) return true;
+    const mark = String(order.shipping_mark || '').toUpperCase();
+    return !!mark && mark === String(client.shipping_mark || client.client?.shipping_mark || '').toUpperCase();
+  });
 
   const handlePdf = async (mode) => {
     setGenerating(mode);
@@ -82,6 +90,11 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
               {guide.source === 'periodo_pagos' && (
                 <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700">
                   Período pagado
+                </Badge>
+              )}
+              {guide.source === 'manual' && (
+                <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">
+                  Manual
                 </Badge>
               )}
             </div>
@@ -175,6 +188,11 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                   <p className="font-mono text-[11px] text-blue-700 break-all">
                     Mark: {client.shipping_mark || client.client?.shipping_mark || '—'}
                   </p>
+                  {orderFor(client) && (
+                    <p className="font-mono text-[11px] text-emerald-700 break-all">
+                      Orden de despacho: {orderFor(client).order_number}
+                    </p>
+                  )}
                   <GuideBultoChips guide={guide} clientGroup={client} onGuideUpdated={onGuideUpdated} />
                 </div>
               ))
