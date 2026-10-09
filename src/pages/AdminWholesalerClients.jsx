@@ -11,6 +11,7 @@ import WholesalerActionsBar from '@/components/wholesaler/WholesalerActionsBar';
 import WholesalerStatusCards from '@/components/wholesaler/WholesalerStatusCards';
 import WholesalerClientsTable from '@/components/wholesaler/WholesalerClientsTable';
 import WholesalerMovementsList from '@/components/wholesaler/WholesalerMovementsList';
+import WholesalerOutboundPanel from '@/components/wholesaler/WholesalerOutboundPanel';
 import DeleteWholesalerConfirmDialog from '@/components/wholesaler/DeleteWholesalerConfirmDialog';
 
 const RANGES = [
@@ -47,6 +48,8 @@ export default function AdminWholesalerClients() {
   const [connections, setConnections] = useState([]);
   const [clients, setClients] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [shipments, setShipments] = useState([]);
+  const [outboundCounts, setOutboundCounts] = useState({});
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -71,7 +74,7 @@ export default function AdminWholesalerClients() {
     const clientDate = dateFilter ? { fetched_date: dateFilter } : {};
     const logDate = dateFilter ? { event_date: dateFilter } : {};
 
-    const [clientRows, logRows, creados, pendientes, existentes, errores, recepciones] = await Promise.all([
+    const [clientRows, logRows, creados, pendientes, existentes, errores, recepciones, outbound] = await Promise.all([
       base44.entities.WholesalerClient.filter({ ...clientDate, ...scope }, '-fetched_date', 50),
       base44.entities.WholesalerLog.filter({ ...logDate, ...scope }, '-event_date', 50),
       base44.entities.WholesalerClient.count({ status: 'creado', ...clientDate, ...scope }),
@@ -79,10 +82,18 @@ export default function AdminWholesalerClients() {
       base44.entities.WholesalerClient.count({ status: 'existente', ...clientDate, ...scope }),
       base44.entities.WholesalerClient.count({ status: 'error', ...clientDate, ...scope }),
       base44.entities.WholesalerLog.count({ event_type: 'recepcion', ...logDate, ...scope }),
+      // Envíos al mayorista: historial, conteos y estado por paquete (los arma el servidor).
+      base44.functions.invoke('wholesalerShipments', {
+        connection_id: selected?.id || undefined,
+        from: since || undefined,
+        limit: 50,
+      }).then((res) => res?.data || {}).catch(() => ({})),
     ]);
 
     setClients(toArray(clientRows));
     setLogs(toArray(logRows));
+    setShipments(outbound?.shipments || []);
+    setOutboundCounts(outbound?.counts || {});
     setCounts({ creados, pendientes, existentes, errores, recepciones });
     setLoading(false);
   }, [range, wholesaler]);
@@ -243,11 +254,22 @@ export default function AdminWholesalerClients() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="envios">Envíos</TabsTrigger>
           <TabsTrigger value="movimientos">Movimientos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="clientes" className="space-y-3">
           <WholesalerClientsTable clients={clients} loading={loading} onDelete={setDeletingClient} />
+        </TabsContent>
+
+        <TabsContent value="envios">
+          <WholesalerOutboundPanel
+            shipments={shipments}
+            counts={outboundCounts}
+            loading={loading}
+            connectionId={selectedConnection?.id || null}
+            onResent={load}
+          />
         </TabsContent>
 
         <TabsContent value="movimientos">

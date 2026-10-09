@@ -1,7 +1,9 @@
 // Aviso a la app de cada mayorista cuando su carga se recibe en el almacén de
 // China. La dirección y la clave salen siempre de su conexión guardada (nunca de
 // quien llama) y los envíos fallidos quedan pendientes para reintentar en el
-// corte siguiente.
+// corte siguiente. Cada intento queda anotado en el movimiento de la recepción
+// (resultado, fecha y cuántas fotos iban en ese envío), que es lo que alimenta el
+// historial de envíos al mayorista del panel.
 import {
   DEFAULT_CONNECTION_KEY,
   connectionKeyOf,
@@ -13,9 +15,10 @@ import {
   updateConnection,
 } from './wholesalerCore.ts';
 import { registerConnectionResult } from './wholesalerHealth.ts';
-import { packagePhotos } from './wholesalerPackages.ts';
+import { photosByPackageId } from './wholesalerOutbound.ts';
 
 const MAX_ATTEMPTS = 5;
+const MAX_HISTORY = 10;
 const TIMEOUT_MS = 15000;
 
 async function postToWholesaler(url: string, key: string, payload: any) {
@@ -58,37 +61,41 @@ function buildPayload(receptions: any[]) {
   };
 }
 
-// El movimiento guardado no lleva las fotos: al reintentar un aviso pendiente se
-// vuelven a leer del paquete para que el mayorista las reciba igual.
-async function photosByPackageId(base44: any, logs: any[]) {
-  const ids = Array.from(new Set(logs.map((l) => l.package_id).filter(Boolean)));
-  const map: Record<string, string[]> = {};
-  if (!ids.length) return map;
+// Los movimientos de las recepciones que van en este aviso: es donde queda el
+// estado por paquete (enviado, pendiente o fallido) y su historial de intentos.
+async function receptionLogs(base44: any, receptions: any[]) {
+  const ids = Array.from(new Set(receptions.map((r) => r?.log_id).filter(Boolean)));
+  if (!ids.length) return [];
 
-  const rows = await base44.asServiceRole.entities.Package
-    .filter({ id: { $in: ids } }, '-created_date', 500)
+  const rows = await base44.asServiceRole.entities.WholesalerLog
+    .filter({ id: { $in: ids } }, '-event_date', 200)
     .catch(() => []);
 
-  for (const pkg of rows || []) map[pkg.id] = packagePhotos(pkg);
-  return map;
+  return (rows && rows.length) ? rows : ids.map((id) => ({ id }));
 }
 
-async function markNotified(base44: any, logIds: string[]) {
+// Deja constancia del intento de entrega en el movimiento de cada paquete
+// avisado: solo se marca entregado cuando la app del mayorista confirmó.
+export async function recordNotifyAttempt(base44: any, logs: any[], { ok, detail, fotosByLogId }: any) {
   const now = new Date().toISOString();
-  for (const id of logIds) {
-    try {
-      await base44.asServiceRole.entities.WholesalerLog.update(id, { notify_pending: false, notified_date: now });
-    } catch (_) {}
-  }
-}
 
-async function markFailed(base44: any, logs: any[]) {
-  for (const log of logs) {
-    const attempts = (Number(log.notify_attempts) || 0) + 1;
+  for (const log of logs || []) {
+    if (!log?.id) continue;
+    const attempts = (Number(log.notify_attempts) || 0) + (ok ? 0 : 1);
+    const entry = {
+      date: now,
+      result: ok ? 'enviado' : 'fallido',
+      detail: truncate(detail, 300),
+      fotos_count: Number(fotosByLogId?.[log.id]) || 0,
+    };
+    const history = [...(Array.isArray(log.notify_history) ? log.notify_history : []), entry].slice(-MAX_HISTORY);
+
     try {
       await base44.asServiceRole.entities.WholesalerLog.update(log.id, {
+        notify_pending: ok ? false : attempts < MAX_ATTEMPTS,
         notify_attempts: attempts,
-        notify_pending: attempts < MAX_ATTEMPTS,
+        notify_history: history,
+        ...(ok ? { notified_date: now } : {}),
       });
     } catch (_) {}
   }
@@ -123,13 +130,22 @@ export async function notifyReceptionBlock(base44: any, receptions: any[], conne
     };
   }
 
+  const fotosByLogId: Record<string, number> = {};
+  for (const r of receptions) {
+    if (r?.log_id) fotosByLogId[r.log_id] = Array.isArray(r.fotos) ? r.fotos.length : 0;
+  }
+
   const key = outboundKeyFor(connection);
   const result = await postToWholesaler(url, key, buildPayload(receptions));
   const now = new Date().toISOString();
-  const logIds = receptions.map((r) => r.log_id).filter(Boolean);
+  const logs = await receptionLogs(base44, receptions);
 
   if (result.ok) {
-    await markNotified(base44, logIds);
+    await recordNotifyAttempt(base44, logs, {
+      ok: true,
+      detail: `${receptions.length} paquete(s) avisados a la app del mayorista`,
+      fotosByLogId,
+    });
     await updateConnection(base44, connection.id, {
       last_notify_date: now,
       last_notify_status: 'enviado',
@@ -159,6 +175,11 @@ export async function notifyReceptionBlock(base44: any, receptions: any[], conne
     wholesaler_key: connectionKeyOf(connection),
     wholesaler_name: connectionLabel(connection),
   });
+  await recordNotifyAttempt(base44, logs, {
+    ok: false,
+    detail: `No se pudo avisar al mayorista: ${result.error}`,
+    fotosByLogId,
+  });
   // Un aviso que no sale cuenta como conexión caída: deja el estado en rojo y
   // avisa a los administradores (sin repetir el mismo correo en cada intento).
   await registerConnectionResult(base44, connection, { ok: false, error: `No se pudo avisar al mayorista: ${result.error}` });
@@ -176,7 +197,7 @@ export async function retryPendingReceptions(base44: any, connection: any = null
     return { enviados: 0, pendientes: 0, mensaje: 'No había avisos pendientes.' };
   }
 
-  const photoMap = await photosByPackageId(base44, pendientes);
+  const photoMap = await photosByPackageId(base44, pendientes.map((log: any) => log.package_id));
 
   const receptions = pendientes.map((log: any) => ({
     tracking: log.tracking_number || '',
@@ -187,10 +208,9 @@ export async function retryPendingReceptions(base44: any, connection: any = null
     fotos: photoMap[log.package_id] || [],
   }));
 
+  // El intento (con su resultado y su historial) lo anota notifyReceptionBlock;
+  // si falta la dirección de ese mayorista no se gasta intento.
   const result = await notifyReceptionBlock(base44, receptions, target);
-  // Solo cuentan como intento fallido cuando hubo a dónde llamar; si falta la
-  // dirección, las recepciones quedan pendientes sin gastar intentos.
-  if (!result.enviado && (result as any).configurado !== false) await markFailed(base44, pendientes);
 
   const stillPending = (await pendingOfConnection(base44, target)).length;
   await updateConnection(base44, target.id, { pending_notifications: stillPending });

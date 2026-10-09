@@ -82,6 +82,38 @@
       "format": "date-time",
       "description": "Momento en que el aviso de esta recepci\u00f3n se entreg\u00f3 al mayorista"
     },
+    "notify_history": {
+      "type": "array",
+      "default": [],
+      "description": "Cada intento de entrega del aviso de esta recepci\u00f3n a la app del mayorista: cu\u00e1ndo, con qu\u00e9 resultado, el motivo cuando fall\u00f3 y cu\u00e1ntas fotos de la carga iban en ese env\u00edo. Es lo que muestra el historial de env\u00edos del panel.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Momento del intento"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "enviado",
+              "fallido"
+            ],
+            "description": "Resultado del intento"
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Detalle o motivo del intento"
+          },
+          "fotos_count": {
+            "type": "number",
+            "description": "Fotos de la carga que se enviaron en este intento"
+          }
+        }
+      }
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,
