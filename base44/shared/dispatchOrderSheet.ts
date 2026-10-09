@@ -3,8 +3,9 @@
 // Reúne TODAS las facturas que quedaron pagadas dentro del rango de fechas elegido
 // (Invoice.status = 'pagada' con payment_date dentro del período) y arma el documento
 // que el operador del almacén usa para sacar la carga: los clientes agrupados por
-// ciudad y shipping mark, el N° de orden/envío pagado y, dentro de cada orden, qué
-// cajas consolidadas y qué bultos sueltos le corresponden, con el total de unidades.
+// ciudad y shipping mark, el N° de orden/envío pagado y, dentro de cada orden, cuántas
+// cajas consolidadas y bultos sueltos le corresponden. Sin códigos de bulto: el almacén
+// solo necesita saber qué cliente, qué orden y cuántas unidades.
 //
 // Los bultos y cajas se buscan por las mismas dos vías en que quedan ligados a una
 // factura (ver shared/warehouseOrder.ts):
@@ -359,8 +360,9 @@ function unitsLabel(cajas: any, bultos: any) {
 }
 
 // Mensaje que recibe el almacén: es el mismo texto del TXT y del WhatsApp.
-// Va directo al grano: cliente, N° de orden/envío y los bultos que hay que buscar,
-// con el total al final de cada cliente y de cada ciudad. Sin facturas ni subtotales largos.
+// Va directo al grano: cliente, N° de orden/envío y cuántas cajas y bultos le tocan,
+// con el total al final de cada cliente y de cada ciudad. Sin códigos de bulto, ni
+// facturas, ni subtotales largos.
 export function renderDispatchOrderText(sheet: any) {
   const totals = sheet?.totals || {};
   const lines: string[] = [];
@@ -376,16 +378,10 @@ export function renderDispatchOrderText(sheet: any) {
     for (const mark of city.marks || []) {
       lines.push(`- ${mark.shipping_mark} · ${mark.client_name}`);
       for (const order of mark.orders || []) {
-        lines.push(`   Orden/Envío ${order.order_number}`);
-        const cajas = (order.units || []).filter((unit: any) => unit.kind === 'caja');
-        const bultos = (order.units || []).filter((unit: any) => unit.kind !== 'caja');
-        if (cajas.length) {
-          lines.push(`     Cajas (${cajas.length}): ${cajas.map((unit: any) => (unit.caja_index ? `${unit.code} [${unit.caja_index}]` : unit.code)).join(', ')}`);
-        }
-        if (bultos.length) {
-          lines.push(`     Bultos (${bultos.length}): ${bultos.map((unit: any) => unit.code).join(', ')}`);
-        }
-        if (!cajas.length && !bultos.length) lines.push('     Sin cajas ni bultos registrados todavía');
+        const label = (order.units || []).length
+          ? unitsLabel(order.cajas, order.bultos_sueltos)
+          : 'sin cajas ni bultos registrados';
+        lines.push(`   Orden/Envío ${order.order_number} · ${label}`);
       }
       lines.push(`   Total ${mark.shipping_mark}: ${unitsLabel(mark.cajas, mark.bultos_sueltos)}`);
     }

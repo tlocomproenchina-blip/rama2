@@ -132,8 +132,7 @@ export default function AdminDispatchOrders() {
         </h1>
         <p className="mt-1 text-sm text-slate-500">
           Elige el período: se agrupan todas las facturas pagadas en esos días y se arma la orden con los
-          clientes por ciudad, el N° de orden/envío pagado y las cajas consolidadas o bultos sueltos que el
-          almacén debe buscar.
+          clientes por ciudad, el N° de orden/envío pagado y cuántas cajas y bultos le corresponden a cada uno.
         </p>
       </div>
 

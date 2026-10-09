@@ -1,8 +1,8 @@
 import React from 'react';
-import DispatchOrderUnitChip from '@/components/dispatch-order/DispatchOrderUnitChip';
 import { unitsLabel } from '@/lib/dispatchOrderCounts';
 
-// Un cliente (shipping mark) con sus órdenes/envíos y, al final, el total de bultos.
+// Un cliente (shipping mark) con sus órdenes/envíos, el conteo de carga de cada una
+// y, al final, el total del cliente. Sin códigos de bulto.
 export default function DispatchOrderMarkBlock({ mark }) {
   return (
     <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
@@ -10,21 +10,20 @@ export default function DispatchOrderMarkBlock({ mark }) {
         {mark.shipping_mark}
         {mark.client_name ? ` · ${mark.client_name}` : ''}
       </p>
-      <div className="mt-2 space-y-2">
+      <div className="mt-2 space-y-1.5">
         {(mark.orders || []).map((order) => (
-          <div key={order.order_number} className="rounded-lg border border-border/60 bg-card p-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+          <div
+            key={order.order_number}
+            className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-border/60 bg-card px-2.5 py-1.5"
+          >
+            <span className="text-xs font-semibold uppercase tracking-wide text-primary">
               Orden/Envío {order.order_number}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {(order.units || []).length === 0 ? (
-                <span className="text-xs text-muted-foreground">Sin cajas ni bultos registrados</span>
-              ) : (
-                (order.units || []).map((unit, index) => (
-                  <DispatchOrderUnitChip key={`${unit.code}-${index}`} unit={unit} />
-                ))
-              )}
-            </div>
+            </span>
+            <span className="text-xs font-medium text-foreground">
+              {(order.units || []).length === 0
+                ? 'Sin cajas ni bultos registrados'
+                : unitsLabel(order.cajas, order.bultos_sueltos)}
+            </span>
           </div>
         ))}
       </div>
