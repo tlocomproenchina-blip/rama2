@@ -2,7 +2,7 @@ import React from 'react';
 import moment from 'moment';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Pencil, PlugZap, AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react';
+import { Loader2, Pencil, PlugZap, Trash2, AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react';
 
 const STATES = {
   conectado: { label: 'Conectado', tone: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500', Icon: CheckCircle2 },
@@ -27,7 +27,7 @@ function maskKey(key) {
 
 // Tarjeta de un mayorista: cómo está su conexión, cuándo se verificó, qué trajo,
 // sus claves enmascaradas y su botón de prueba.
-export default function WholesalerConnectionStatusCard({ connection, probing, onProbe, onEdit }) {
+export default function WholesalerConnectionStatusCard({ connection, probing, onProbe, onEdit, onDelete }) {
   const state = STATES[connection?.connection_status] || STATES.sin_probar;
   const Icon = state.Icon;
 
@@ -80,6 +80,15 @@ export default function WholesalerConnectionStatusCard({ connection, probing, on
         <Button size="sm" variant="ghost" onClick={() => onEdit(connection)} className="gap-2">
           <Pencil className="h-4 w-4" />
           Editar
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onDelete(connection)}
+          className="ml-auto gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+          Eliminar
         </Button>
       </div>
     </div>

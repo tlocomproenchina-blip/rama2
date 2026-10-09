@@ -3,6 +3,8 @@ import moment from 'moment';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 
 const badges = {
   creado: 'bg-emerald-100 text-emerald-700',
@@ -12,7 +14,7 @@ const badges = {
 
 const labels = { creado: 'Cuenta nueva', existente: 'Ya existía', error: 'Con error' };
 
-export default function WholesalerClientsTable({ clients = [], loading }) {
+export default function WholesalerClientsTable({ clients = [], loading, onDelete }) {
   if (loading) {
     return <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>;
   }
@@ -39,6 +41,7 @@ export default function WholesalerClientsTable({ clients = [], loading }) {
             <TableHead>Shipping Mark</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Traído</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -59,6 +62,17 @@ export default function WholesalerClientsTable({ clients = [], loading }) {
               </TableCell>
               <TableCell className="whitespace-nowrap text-xs">
                 {c.fetched_date ? moment(c.fetched_date).format('DD/MM HH:mm') : '—'}
+              </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Eliminar cliente"
+                  onClick={() => onDelete(c)}
+                  className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}

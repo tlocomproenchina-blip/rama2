@@ -6,12 +6,25 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Link2 } from 'lucide-react';
 import WholesalerConnectionStatusCard from '@/components/wholesaler/WholesalerConnectionStatusCard';
 import WholesalerConnectionDialog from '@/components/wholesaler/WholesalerConnectionDialog';
+import DeleteWholesalerConfirmDialog from '@/components/wholesaler/DeleteWholesalerConfirmDialog';
 
 // Sección «Conexiones»: una tarjeta por mayorista, con su estado, su prueba y su
 // edición. Cada conexión guarda sus propias direcciones y claves.
 export default function WholesalerConnectionsPanel({ connections = [], loading, onRefresh }) {
   const [editing, setEditing] = useState(null);
   const [probingId, setProbingId] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+
+  const remove = async () => {
+    try {
+      await base44.entities.WholesalerSync.delete(deleting.id);
+      toast.success('Conexión eliminada.');
+      setDeleting(null);
+      await onRefresh();
+    } catch (err) {
+      toast.error(err?.message || 'No se pudo eliminar la conexión.');
+    }
+  };
 
   const probe = async (connection) => {
     setProbingId(connection.id);
@@ -60,6 +73,7 @@ export default function WholesalerConnectionsPanel({ connections = [], loading, 
               probing={probingId === connection.id}
               onProbe={probe}
               onEdit={setEditing}
+              onDelete={setDeleting}
             />
           ))}
         </div>
@@ -74,6 +88,14 @@ export default function WholesalerConnectionsPanel({ connections = [], loading, 
         connection={editing?.id ? editing : null}
         onClose={() => setEditing(null)}
         onSaved={onRefresh}
+      />
+
+      <DeleteWholesalerConfirmDialog
+        open={!!deleting}
+        onOpenChange={(open) => { if (!open) setDeleting(null); }}
+        title={`Eliminar la conexión ${deleting?.wholesaler_name || 'Cliente mayorista'}`}
+        description="Se borra esta conexión con su nombre, sus direcciones y sus claves: el corte diario deja de recorrerla. Los clientes y movimientos ya traídos de ese mayorista se conservan."
+        onConfirm={remove}
       />
     </div>
   );

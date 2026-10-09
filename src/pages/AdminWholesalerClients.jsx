@@ -11,6 +11,7 @@ import WholesalerActionsBar from '@/components/wholesaler/WholesalerActionsBar';
 import WholesalerStatusCards from '@/components/wholesaler/WholesalerStatusCards';
 import WholesalerClientsTable from '@/components/wholesaler/WholesalerClientsTable';
 import WholesalerMovementsList from '@/components/wholesaler/WholesalerMovementsList';
+import DeleteWholesalerConfirmDialog from '@/components/wholesaler/DeleteWholesalerConfirmDialog';
 
 const RANGES = [
   { key: 'hoy', label: 'Hoy', hours: 24 },
@@ -53,6 +54,7 @@ export default function AdminWholesalerClients() {
   const [range, setRange] = useState('7');
   const [tab, setTab] = useState('clientes');
   const [wholesaler, setWholesaler] = useState('todos');
+  const [deletingClient, setDeletingClient] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,6 +172,17 @@ export default function AdminWholesalerClients() {
     await load();
   };
 
+  const handleDeleteClient = async () => {
+    try {
+      await base44.entities.WholesalerClient.delete(deletingClient.id);
+      toast.success('Cliente eliminado de la lista del mayorista.');
+      setDeletingClient(null);
+      await load();
+    } catch (err) {
+      toast.error(err?.message || 'No se pudo eliminar el cliente.');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -234,13 +247,21 @@ export default function AdminWholesalerClients() {
         </TabsList>
 
         <TabsContent value="clientes" className="space-y-3">
-          <WholesalerClientsTable clients={clients} loading={loading} />
+          <WholesalerClientsTable clients={clients} loading={loading} onDelete={setDeletingClient} />
         </TabsContent>
 
         <TabsContent value="movimientos">
           <WholesalerMovementsList logs={logs} loading={loading} />
         </TabsContent>
       </Tabs>
+
+      <DeleteWholesalerConfirmDialog
+        open={!!deletingClient}
+        onOpenChange={(open) => { if (!open) setDeletingClient(null); }}
+        title={`Eliminar el cliente ${deletingClient?.full_name || deletingClient?.email || ''}`}
+        description="Se borra este registro de la lista de clientes traídos del mayorista. La cuenta del cliente en TLEC CARGO, sus paquetes y sus facturas no se tocan."
+        onConfirm={handleDeleteClient}
+      />
     </div>
   );
 }
