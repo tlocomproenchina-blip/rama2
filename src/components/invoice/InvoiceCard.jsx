@@ -7,6 +7,7 @@ import { FileText, CreditCard, Calendar, DollarSign, ChevronDown, Wallet, Eye } 
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 import InvoiceAbonosList from './InvoiceAbonosList';
+import InvoiceCbmOrders from './InvoiceCbmOrders';
 import InvoiceCreditApply from './InvoiceCreditApply';
 import useFileViewer from '@/hooks/useFileViewer';
 import { getFileKind } from '@/components/common/FileViewerModal';
@@ -185,6 +186,9 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
             </div>
           )}
         </div>
+
+        {/* CBM de cada orden/envío y total de la factura */}
+        <InvoiceCbmOrders invoice={invoice} />
 
         {/* Sección colapsable de abonos */}
         {hasAbonos && (
