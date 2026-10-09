@@ -350,40 +350,49 @@ export async function buildDispatchOrderSheet(base44: any, { from, to, generated
   return { sheet: saved, regenerated: !!existing };
 }
 
+// Etiqueta compacta de la carga: solo lo que el almacén tiene que sacar.
+function unitsLabel(cajas: any, bultos: any) {
+  const parts: string[] = [];
+  if (Number(cajas) > 0) parts.push(`${Number(cajas)} caja(s)`);
+  if (Number(bultos) > 0) parts.push(`${Number(bultos)} bulto(s)`);
+  return parts.length ? parts.join(' + ') : '0 bulto(s)';
+}
+
 // Mensaje que recibe el almacén: es el mismo texto del TXT y del WhatsApp.
+// Va directo al grano: cliente, N° de orden/envío y los bultos que hay que buscar,
+// con el total al final de cada cliente y de cada ciudad. Sin facturas ni subtotales largos.
 export function renderDispatchOrderText(sheet: any) {
   const totals = sheet?.totals || {};
   const lines: string[] = [];
 
   lines.push('ORDEN DE DESPACHO - TLEC CARGO');
-  lines.push(`Período: ${fmtDay(sheet?.period_from)} al ${fmtDay(sheet?.period_to)}`);
-  lines.push(`Facturas pagadas: ${totals.invoices || 0} · Clientes: ${totals.clients || 0}`);
+  lines.push(`Período: ${fmtDay(sheet?.period_from)} al ${fmtDay(sheet?.period_to)} · Clientes: ${totals.clients || 0}`);
   const stamp = fmtStamp(sheet?.regenerated_date || sheet?.generated_date);
   lines.push(`Generada: ${stamp}${text(sheet?.regenerated_by || sheet?.generated_by) ? ` · ${text(sheet.regenerated_by || sheet.generated_by)}` : ''}`);
   lines.push('');
 
   for (const city of sheet?.cities || []) {
-    lines.push(`*${String(city.city || '').toUpperCase()}* — ${city.clients_count || 0} cliente(s) · ${city.cajas || 0} caja(s) + ${city.bultos_sueltos || 0} bulto(s) suelto(s) = ${city.total_unidades || 0} unidad(es)`);
+    lines.push(`*${String(city.city || '').toUpperCase()}* — ${city.clients_count || 0} cliente(s)`);
     for (const mark of city.marks || []) {
       lines.push(`- ${mark.shipping_mark} · ${mark.client_name}`);
       for (const order of mark.orders || []) {
-        const invoices = (order.invoice_numbers || []).length ? ` (Factura ${order.invoice_numbers.join(', ')})` : '';
-        lines.push(`   Orden/Envío ${order.order_number}${invoices}`);
+        lines.push(`   Orden/Envío ${order.order_number}`);
         const cajas = (order.units || []).filter((unit: any) => unit.kind === 'caja');
         const bultos = (order.units || []).filter((unit: any) => unit.kind !== 'caja');
         if (cajas.length) {
-          lines.push(`     Cajas consolidadas (${cajas.length}): ${cajas.map((unit: any) => (unit.caja_index ? `${unit.code} [${unit.caja_index}]` : unit.code)).join(', ')}`);
+          lines.push(`     Cajas (${cajas.length}): ${cajas.map((unit: any) => (unit.caja_index ? `${unit.code} [${unit.caja_index}]` : unit.code)).join(', ')}`);
         }
         if (bultos.length) {
-          lines.push(`     Bultos sueltos (${bultos.length}): ${bultos.map((unit: any) => unit.code).join(', ')}`);
+          lines.push(`     Bultos (${bultos.length}): ${bultos.map((unit: any) => unit.code).join(', ')}`);
         }
         if (!cajas.length && !bultos.length) lines.push('     Sin cajas ni bultos registrados todavía');
       }
-      lines.push(`   Total ${mark.shipping_mark}: ${mark.cajas || 0} caja(s) + ${mark.bultos_sueltos || 0} bulto(s) suelto(s) = ${mark.total_unidades || 0} unidad(es)`);
+      lines.push(`   Total ${mark.shipping_mark}: ${unitsLabel(mark.cajas, mark.bultos_sueltos)}`);
     }
+    lines.push(`*Total ${String(city.city || '').toUpperCase()}: ${unitsLabel(city.cajas, city.bultos_sueltos)}*`);
     lines.push('');
   }
 
-  lines.push(`*TOTAL GENERAL:* ${totals.cajas || 0} cajas consolidadas + ${totals.bultos_sueltos || 0} bultos sueltos = ${totals.total_unidades || 0} unidades`);
+  lines.push(`*TOTAL GENERAL:* ${unitsLabel(totals.cajas, totals.bultos_sueltos)}`);
   return lines.join('\n');
 }

@@ -110,12 +110,18 @@ export default function AdminDispatchOrders() {
     }
   };
 
-  const openSheet = (record) => {
+  const openSheet = async (record) => {
     setSheet(record);
     setText(record.message_text || '');
     setFrom(record.period_from);
     setTo(record.period_to);
     if (record.whatsapp_phone) setPhone(record.whatsapp_phone);
+    // El texto se rearma desde el snapshot guardado, para que la orden que se abra
+    // salga con el mismo formato que las recién generadas.
+    const res = await base44.functions
+      .invoke('getDispatchOrderSheet', { from: record.period_from, to: record.period_to })
+      .catch(() => null);
+    if (res?.data?.text) setText(res.data.text);
   };
 
   return (

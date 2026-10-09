@@ -61,7 +61,9 @@ export default async function (req: Request): Promise<Response> {
       reused: !!result.reused,
       regenerated: !!result.regenerated,
       sheet,
-      text: sheet.message_text || renderDispatchOrderText(sheet),
+      // El texto se rearma con el snapshot guardado, así el formato vigente se ve
+      // también en las órdenes que ya estaban generadas.
+      text: renderDispatchOrderText(sheet),
       whatsapp_phone: String(config?.warehouse_whatsapp_phone || ''),
       warehouse_label: String(config?.warehouse_label || ''),
     });
