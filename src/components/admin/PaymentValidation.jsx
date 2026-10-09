@@ -9,6 +9,7 @@ import { CreditCard, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Load
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import useFileViewer from '@/hooks/useFileViewer';
+import { downloadPaymentReport } from '@/lib/paymentReportTxt';
 
 export default function PaymentValidation({ consolidations, clients, onRefresh, currentUser }) {
   const fileViewer = useFileViewer();
@@ -33,6 +34,8 @@ export default function PaymentValidation({ consolidations, clients, onRefresh, 
       if (data.success && data.approved_count > 0) {
         setHiddenIds((prev) => [...prev, consolidation.id]);
         toast.success('Pago validado correctamente');
+        // Informe TXT de la aprobación recién confirmada
+        downloadPaymentReport(data);
       } else {
         toast.error(data.failed?.[0]?.error || data.error || 'Error al validar el pago');
       }

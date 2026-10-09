@@ -9,6 +9,7 @@ import { FileText, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Loader
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import useFileViewer from '@/hooks/useFileViewer';
+import { downloadPaymentReport } from '@/lib/paymentReportTxt';
 
 const METHOD_LABELS = {
   usdt_trc20: 'USDT TRC20',
@@ -42,6 +43,8 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
       if (data.success && data.approved_count > 0) {
         setValidatedIds((prev) => [...prev, invoice.id]);
         toast.success('Pago validado correctamente');
+        // Informe TXT de la aprobación recién confirmada
+        downloadPaymentReport(data);
       } else {
         toast.error(data.failed?.[0]?.error || data.error || 'Error al validar el pago');
       }

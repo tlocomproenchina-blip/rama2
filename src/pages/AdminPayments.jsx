@@ -22,6 +22,7 @@ import InsuranceValidation from '@/components/admin/InsuranceValidation';
 import BulkApproveButton from '@/components/admin/bulk-approval/BulkApproveButton';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import PaymentReportDownloadButton from '@/components/admin/PaymentReportDownloadButton';
 
 export default function AdminPayments({ user }) {
   const [consolidations, setConsolidations] = useState([]);
@@ -203,9 +204,12 @@ export default function AdminPayments({ user }) {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Validación de Pagos</h1>
-        <p className="text-slate-500">Revisa y valida los pagos de las consolidaciones</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Validación de Pagos</h1>
+          <p className="text-slate-500">Revisa y valida los pagos de las consolidaciones</p>
+        </div>
+        <PaymentReportDownloadButton />
       </div>
 
       {/* Stats */}

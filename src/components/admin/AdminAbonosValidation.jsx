@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import useFileViewer from '@/hooks/useFileViewer';
 import BulkApproveButton from '@/components/admin/bulk-approval/BulkApproveButton';
+import { downloadPaymentReport } from '@/lib/paymentReportTxt';
 
 const METHOD_LABELS = {
   transferencia: 'Transferencia',
@@ -103,6 +104,8 @@ export default function AdminAbonosValidation({ onRefresh, search = '' }) {
       const res = await base44.functions.invoke('approveInvoicePayment', { payment_id: payment.id });
       if (res.status === 200 && res.data?.success) {
         toast.success(res.data?.fully_paid ? 'Abono aprobado. Factura pagada completamente.' : 'Abono aprobado');
+        // Informe TXT de la aprobación recién confirmada
+        downloadPaymentReport(res.data);
         // Marcar como procesado y remover optimistamente (sin recargar)
         processedIds.current.add(payment.id);
         setPayments((prev) => prev.filter((p) => p.id !== payment.id));

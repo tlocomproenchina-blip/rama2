@@ -6,6 +6,7 @@ import {
   approveInsurancePaymentRecord,
   errorMessage
 } from '../../shared/paymentApproval.ts';
+import { buildReportText, batchReportFileName, caracasDay } from '../../shared/paymentReport.ts';
 
 // Aprobación masiva (un clic) de pagos pendientes y seguros desde Validación de Pagos.
 // Recibe el tipo y los IDs visibles en pantalla y los aprueba uno por uno con la misma
@@ -47,15 +48,23 @@ export default async function(req: Request): Promise<Response> {
 
     const approved: string[] = [];
     const failed: any[] = [];
+    const reportEntries: any[] = [];
 
     for (const id of ids) {
       try {
-        await handler(base44, id, user.email);
+        const result: any = await handler(base44, id, user.email);
         approved.push(id);
+        if (result?.report_entry) reportEntries.push(result.report_entry);
       } catch (error) {
         failed.push({ id, error: errorMessage(error) });
       }
     }
+
+    // TXT del lote aprobado: mismo formato que el informe del día.
+    const day = caracasDay();
+    const batchTxt = reportEntries.length > 0
+      ? buildReportText(reportEntries, { title: 'PAGOS APROBADOS', day })
+      : '';
 
     return Response.json({
       success: true,
@@ -63,7 +72,10 @@ export default async function(req: Request): Promise<Response> {
       approved_count: approved.length,
       failed_count: failed.length,
       approved,
-      failed
+      failed,
+      reports_count: reportEntries.length,
+      batch_txt: batchTxt,
+      batch_filename: batchTxt ? batchReportFileName(day) : ''
     });
   } catch (error) {
     return Response.json({ error: errorMessage(error) }, { status: 500 });

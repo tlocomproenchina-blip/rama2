@@ -1,0 +1,93 @@
+{
+  "name": "ApprovedPaymentReport",
+  "type": "object",
+  "properties": {
+    "payment_type": {
+      "type": "string",
+      "enum": [
+        "abono",
+        "factura",
+        "consolidacion"
+      ],
+      "description": "Tipo de pago aprobado: abono (InvoicePayment), factura (factura en revisi\u00f3n) o consolidacion (pago reportado en una consolidaci\u00f3n)."
+    },
+    "source_id": {
+      "type": "string",
+      "description": "ID del registro aprobado (InvoicePayment, Invoice o Consolidation). Evita que la misma aprobaci\u00f3n se registre dos veces en el informe del d\u00eda."
+    },
+    "approved_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se aprob\u00f3 el pago"
+    },
+    "approval_day": {
+      "type": "string",
+      "description": "D\u00eda local de Caracas (YYYY-MM-DD) al que pertenece la aprobaci\u00f3n: es la fecha con la que se arma el informe diario."
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente cuyo pago se aprob\u00f3"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping Mark del cliente al momento de la aprobaci\u00f3n"
+    },
+    "invoice_id": {
+      "type": "string",
+      "description": "ID de la factura a la que corresponde el pago"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "N\u00famero de la factura a la que corresponde el pago"
+    },
+    "order_numbers": {
+      "type": "array",
+      "default": [],
+      "description": "N\u00fameros de orden/env\u00edo (CbmIngreso.invoice_number) de los recibos facturados en la factura pagada",
+      "items": {
+        "type": "string"
+      }
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto aprobado (USD)"
+    },
+    "approved_by": {
+      "type": "string",
+      "description": "Email del admin que aprob\u00f3 el pago"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "payment_type",
+    "source_id",
+    "approved_date",
+    "approval_day"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

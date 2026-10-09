@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { CheckCheck, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { downloadPaymentReport } from '@/lib/paymentReportTxt';
 
 // Confirmación de la aprobación masiva: resumen (cantidad + monto), progreso y resultado final.
 export default function BulkApproveDialog({ open, onOpenChange, ids, type, label, amount, amountLabel, onDone }) {
@@ -32,6 +33,8 @@ export default function BulkApproveDialog({ open, onOpenChange, ids, type, label
         } else {
           toast.success(`${data.approved_count} aprobados correctamente`);
         }
+        // Informe TXT del lote aprobado
+        downloadPaymentReport(data);
         await onDone?.(data.approved || []);
       }
     } catch (e) {

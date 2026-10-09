@@ -1,4 +1,5 @@
 import { buildWarehouseOrderOnPayment } from "./warehouseOrder.ts";
+import { recordApprovalForReport } from "./paymentReport.ts";
 
 // Lógica única de aprobación de pagos de TLEC CARGO.
 // La usan las funciones de aprobación individual (approveInvoicePayment,
@@ -116,11 +117,25 @@ export async function approveAbonoPayment(base44: any, paymentId: string, adminE
     referenceId: invoice.id
   });
 
+  // Anexo del informe: shipping mark y N° de orden/envío de la factura pagada.
+  const report = await recordApprovalForReport(base44, {
+    payment_type: 'abono',
+    source_id: paymentId,
+    client_email: payment.client_email || invoice.client_email,
+    invoice_id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    amount: Number(payment.amount || 0),
+    approved_by: adminEmail
+  });
+
   return {
     success: true,
     paid_amount: newPaidAmount,
     invoice_status: isFullyPaid ? 'pagada' : (invoice.status === 'pagada' ? 'pagada' : invoice.status),
-    fully_paid: isFullyPaid
+    fully_paid: isFullyPaid,
+    report_entry: report?.entry || null,
+    report_txt: report?.txt || '',
+    report_filename: report?.filename || ''
   };
 }
 
@@ -150,7 +165,23 @@ export async function approveReportedInvoicePayment(base44: any, invoiceId: stri
     referenceId: invoiceId
   });
 
-  return { success: true };
+  // Anexo del informe: shipping mark y N° de orden/envío de la factura pagada.
+  const report = await recordApprovalForReport(base44, {
+    payment_type: 'factura',
+    source_id: invoiceId,
+    client_email: invoice.client_email,
+    invoice_id: invoiceId,
+    invoice_number: invoice.invoice_number,
+    amount: Number(invoice.total || 0),
+    approved_by: adminEmail
+  });
+
+  return {
+    success: true,
+    report_entry: report?.entry || null,
+    report_txt: report?.txt || '',
+    report_filename: report?.filename || ''
+  };
 }
 
 // ---------- Pagos reportados en consolidaciones ----------
@@ -195,7 +226,25 @@ export async function approveConsolidationPayment(base44: any, consolidationId: 
     referenceId: cons.id
   });
 
-  return { success: true };
+  // Anexo del informe: shipping mark y N° de orden/envío de la factura pagada.
+  const paidInvoice = (relatedInvoices && relatedInvoices.length > 0) ? relatedInvoices[0] : null;
+  const report = await recordApprovalForReport(base44, {
+    payment_type: 'consolidacion',
+    source_id: consolidationId,
+    client_email: cons.client_email,
+    invoice_id: paidInvoice?.id || '',
+    invoice_number: paidInvoice?.invoice_number || '',
+    amount: Number(cons.payment_amount || 0),
+    approved_by: adminEmail,
+    shipping_mark: cons.shipping_mark
+  });
+
+  return {
+    success: true,
+    report_entry: report?.entry || null,
+    report_txt: report?.txt || '',
+    report_filename: report?.filename || ''
+  };
 }
 
 // ---------- Seguros (InsurancePayment) ----------
