@@ -79,6 +79,11 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                   Automática
                 </Badge>
               )}
+              {guide.source === 'periodo_pagos' && (
+                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700">
+                  Período pagado
+                </Badge>
+              )}
             </div>
             <p className="text-[11px] text-slate-500">Emitida: {fmtDateTime(guide.emitted_date)}</p>
             {guide.auto_generated && guide.last_updated_date ? (

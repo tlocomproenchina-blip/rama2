@@ -5,15 +5,18 @@ import { Badge } from '@/components/ui/badge';
 import { ClipboardList, Clock3 } from 'lucide-react';
 import DispatchGuideHistoryPanel from '@/components/warehouse/dispatch-guides/DispatchGuideHistoryPanel';
 import DispatchGuideSyncCard from '@/components/warehouse/dispatch-guides/DispatchGuideSyncCard';
+import PeriodGuidesCard from '@/components/warehouse/dispatch-guides/PeriodGuidesCard';
 
-// Guías de despacho: las guías nacen al imprimir el lote de etiquetas (módulo Etiquetas
-// de Despacho), así que esta pantalla queda para consultar el historial, reimprimir o
-// descargar la guía, anotar su entrega y sincronizar los escaneos que llegaron sin guía.
+// Guías de despacho: aquí se generan las guías de un período pagado (una por cliente,
+// todas en un solo PDF) y se consulta el historial para reimprimir, descargar o anotar
+// la entrega, además de sincronizar los escaneos que llegaron sin guía. Las guías del
+// lote de etiquetas y las del escáner de despacho también caen en este mismo historial.
 export default function DispatchGuides() {
   const location = useLocation();
   const [highlightId] = useState(location.state?.highlightGuideId || '');
   const [pendingCount, setPendingCount] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [historyKey, setHistoryKey] = useState(0);
 
   const loadPendingCount = useCallback(async () => {
     try {
@@ -27,6 +30,12 @@ export default function DispatchGuides() {
     loadPendingCount();
   }, [loadPendingCount]);
 
+  // Al generar las guías del período, el historial se refresca para mostrarlas ya emitidas.
+  const handleGuidesGenerated = useCallback(() => {
+    setHistoryKey((key) => key + 1);
+    loadPendingCount();
+  }, [loadPendingCount]);
+
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -35,8 +44,8 @@ export default function DispatchGuides() {
             <ClipboardList className="h-6 w-6 text-blue-600" /> Guías de Despacho
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Consulta las guías emitidas, reimprime o descarga su PDF y anota la entrega. Las guías
-            se crean al imprimir el lote de etiquetas en Etiquetas de Despacho.
+            Genera las guías de un período pagado (una por cliente, todas en un solo PDF) y consulta las
+            guías emitidas para reimprimir, descargar o anotar la entrega.
           </p>
         </div>
         {pendingCount > 0 && (
@@ -46,12 +55,18 @@ export default function DispatchGuides() {
         )}
       </div>
 
+      <PeriodGuidesCard onGenerated={handleGuidesGenerated} />
+
       <DispatchGuideSyncCard
         reloadSignal={reloadKey}
         onSynced={() => setReloadKey((key) => key + 1)}
       />
 
-      <DispatchGuideHistoryPanel highlightId={highlightId} onGuideUpdated={loadPendingCount} />
+      <DispatchGuideHistoryPanel
+        highlightId={highlightId}
+        reloadSignal={historyKey}
+        onGuideUpdated={loadPendingCount}
+      />
     </div>
   );
 }

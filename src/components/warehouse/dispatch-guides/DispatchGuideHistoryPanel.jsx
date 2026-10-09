@@ -9,7 +9,7 @@ import DispatchGuideHistoryCard from './DispatchGuideHistoryCard';
 
 // Historial de guías emitidas: filtros y paginación resueltos en el servidor,
 // con reimpresión y anotación de entrega por guía.
-export default function DispatchGuideHistoryPanel({ highlightId = '', onGuideUpdated }) {
+export default function DispatchGuideHistoryPanel({ highlightId = '', reloadSignal = 0, onGuideUpdated }) {
   const [appName, setAppName] = useState('TLEC CARGO');
   const { guides, loading, loadingMore, hasMore, error, filters, setFilters, refresh, loadMore } =
     useDispatchGuideHistory({ enabled: true });
@@ -21,6 +21,13 @@ export default function DispatchGuideHistoryPanel({ highlightId = '', onGuideUpd
       })
       .catch(() => {});
   }, []);
+
+  // Cuando se generan guías nuevas (p. ej. las del período pagado) el historial se recarga.
+  useEffect(() => {
+    if (!reloadSignal) return;
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadSignal]);
 
   const handleUpdated = () => {
     refresh();

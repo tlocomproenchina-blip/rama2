@@ -28,6 +28,19 @@
       "default": false,
       "description": "Indica que la gu\u00eda se arm\u00f3 sola al escanear las cajas y bultos en Despacho por Escaneo (una gu\u00eda abierta por cliente) y no desde la emisi\u00f3n manual."
     },
+    "source": {
+      "type": "string",
+      "enum": [
+        "periodo_pagos",
+        "escaneo",
+        "lote_etiquetas"
+      ],
+      "description": "Origen de la gu\u00eda: periodo_pagos (generada desde el per\u00edodo de facturas pagadas), escaneo (abierta por el esc\u00e1ner de despacho) o lote_etiquetas (emitida al imprimir el lote de etiquetas)."
+    },
+    "period_key": {
+      "type": "string",
+      "description": "Clave del per\u00edodo de pagos del que sali\u00f3 la gu\u00eda (desde_hasta). Marca las gu\u00edas de un mismo per\u00edodo para no volver a generarlas ni duplicarlas."
+    },
     "last_updated_date": {
       "type": "string",
       "format": "date-time",
