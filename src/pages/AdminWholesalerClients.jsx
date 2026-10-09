@@ -49,6 +49,7 @@ export default function AdminWholesalerClients() {
   const [clients, setClients] = useState([]);
   const [logs, setLogs] = useState([]);
   const [shipments, setShipments] = useState([]);
+  const [clientSummary, setClientSummary] = useState([]);
   const [outboundCounts, setOutboundCounts] = useState({});
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
@@ -93,6 +94,7 @@ export default function AdminWholesalerClients() {
     setClients(toArray(clientRows));
     setLogs(toArray(logRows));
     setShipments(outbound?.shipments || []);
+    setClientSummary(outbound?.clients || []);
     setOutboundCounts(outbound?.counts || {});
     setCounts({ creados, pendientes, existentes, errores, recepciones });
     setLoading(false);
@@ -265,6 +267,7 @@ export default function AdminWholesalerClients() {
         <TabsContent value="envios">
           <WholesalerOutboundPanel
             shipments={shipments}
+            clients={clientSummary}
             counts={outboundCounts}
             loading={loading}
             connectionId={selectedConnection?.id || null}

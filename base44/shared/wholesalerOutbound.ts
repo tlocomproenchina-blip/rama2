@@ -187,3 +187,151 @@ export async function shipmentStatusFor(base44: any, connection: any, search: an
     mensaje: statusMessage(estado, Number(log?.notify_attempts) || 0),
   };
 }
+
+// ===== Resumen por cliente del mayorista =====
+// Qué carga tiene cada cliente traído del mayorista y, tracking por tracking, si
+// el aviso de esa carga ya salió a su app (enviado), si quedó pendiente o fallido,
+// o si todavía no se le ha avisado nada (sin aviso). Es la vista con la que el
+// administrador ve de un vistazo qué información le falta por llegar al cliente.
+const MAX_SUMMARY_LOGS = 500;
+const MAX_SUMMARY_PACKAGES = 300;
+const MAX_SUMMARY_CLIENTS = 200;
+const NOT_NOTIFIED_STATES = ['sin_aviso', 'fallido', 'pendiente'];
+
+function laterDate(current: any, candidate: any) {
+  if (!candidate) return current || null;
+  if (!current) return candidate;
+  return String(candidate) > String(current) ? candidate : current;
+}
+
+function groupKeyFor(email: any, mark: any) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (cleanEmail) return `email:${cleanEmail}`;
+  const cleanMark = String(mark || '').trim().toUpperCase();
+  if (cleanMark) return `mark:${cleanMark}`;
+  return 'sin_cliente';
+}
+
+export async function clientSummaryOfConnection(base44: any, connections: any[], connection: any, from?: string | null) {
+  const scope = connectionFilter(connections, connection);
+
+  const clientRows = await base44.asServiceRole.entities.WholesalerClient
+    .filter(scope, '-fetched_date', MAX_SUMMARY_CLIENTS)
+    .catch(() => []);
+
+  const clientsByEmail: Record<string, any> = {};
+  const emails: string[] = [];
+  for (const row of clientRows || []) {
+    const email = String(row?.email || '').trim().toLowerCase();
+    if (!email) continue;
+    clientsByEmail[email] = row;
+    emails.push(email);
+  }
+
+  const [logs, packages] = await Promise.all([
+    base44.asServiceRole.entities.WholesalerLog
+      .filter({
+        event_type: 'recepcion',
+        ...scope,
+        ...(from ? { event_date: { $gte: from } } : {}),
+      }, '-event_date', MAX_SUMMARY_LOGS)
+      .catch(() => []),
+    emails.length
+      ? base44.asServiceRole.entities.Package
+        .filter({
+          client_email: { $in: emails },
+          status: { $nin: ['pre_alerta', 'rechazado'] },
+          ...(from ? { received_date: { $gte: from } } : {}),
+        }, '-received_date', MAX_SUMMARY_PACKAGES)
+        .catch(() => [])
+      : Promise.resolve([] as any[]),
+  ]);
+
+  const groups: Record<string, any> = {};
+
+  const groupFor = (email: any, mark: any) => {
+    const key = groupKeyFor(email, mark);
+    if (!groups[key]) {
+      const client = clientsByEmail[String(email || '').trim().toLowerCase()] || null;
+      groups[key] = {
+        client_key: key,
+        client_email: String(email || '').trim() || client?.email || '',
+        client_name: client?.full_name || '',
+        shipping_mark: String(mark || '').trim() || client?.shipping_mark || '',
+        wholesaler_name: client?.wholesaler_name || '',
+        enviados: 0,
+        pendientes: 0,
+        fallidos: 0,
+        sin_aviso: 0,
+        total: 0,
+        last_activity: null,
+        trackings: [],
+        byTracking: {},
+      };
+    }
+    return groups[key];
+  };
+
+  const trackingFor = (group: any, tracking: any) => {
+    const clean = String(tracking || '').trim();
+    const key = clean.toUpperCase() || 'sin_tracking';
+    if (!group.byTracking[key]) {
+      group.byTracking[key] = {
+        tracking_number: clean,
+        estado: 'sin_aviso',
+        attempts: 0,
+        notified_date: null,
+        last_date: null,
+        fotos_count: 0,
+        log_id: null,
+        can_resend: false,
+      };
+      group.trackings.push(group.byTracking[key]);
+    }
+    return group.byTracking[key];
+  };
+
+  // La carga registrada a nombre del cliente (lo que entró a nuestro almacén).
+  for (const pkg of packages || []) {
+    const group = groupFor(pkg?.client_email, pkg?.shipping_mark);
+    const entry = trackingFor(group, pkg?.tracking_number);
+    entry.fotos_count = Math.max(entry.fotos_count, packagePhotos(pkg).length);
+    entry.last_date = laterDate(entry.last_date, pkg?.received_date || pkg?.created_date);
+  }
+
+  // El aviso enviado a la app del mayorista, si existe.
+  for (const log of logs || []) {
+    const group = groupFor(log?.client_email, log?.shipping_mark);
+    const entry = trackingFor(group, log?.tracking_number);
+    entry.log_id = log?.id || null;
+    entry.estado = shipmentStatusOf(log);
+    entry.attempts = Number(log?.notify_attempts) || 0;
+    entry.notified_date = log?.notified_date || null;
+    entry.can_resend = entry.estado !== 'enviado';
+    entry.last_date = laterDate(entry.last_date, log?.notified_date || log?.event_date);
+    if (!group.wholesaler_name && log?.wholesaler_name) group.wholesaler_name = log.wholesaler_name;
+    if (!group.shipping_mark && log?.shipping_mark) group.shipping_mark = String(log.shipping_mark).trim();
+  }
+
+  return Object.values(groups)
+    .map((group: any) => {
+      const trackings = group.trackings as any[];
+      const counts: Record<string, number> = { enviados: 0, pendientes: 0, fallidos: 0, sin_aviso: 0 };
+      for (const entry of trackings) counts[entry.estado] = (counts[entry.estado] || 0) + 1;
+
+      trackings.sort((a, b) => {
+        const pendingA = NOT_NOTIFIED_STATES.includes(a.estado) ? 0 : 1;
+        const pendingB = NOT_NOTIFIED_STATES.includes(b.estado) ? 0 : 1;
+        if (pendingA !== pendingB) return pendingA - pendingB;
+        return String(b.last_date || '').localeCompare(String(a.last_date || ''));
+      });
+
+      const last_activity = trackings.reduce((acc: any, entry: any) => laterDate(acc, entry.last_date), null);
+      const pending_count = counts.pendientes + counts.fallidos + counts.sin_aviso;
+      const { byTracking, ...rest } = group;
+      return { ...rest, ...counts, total: trackings.length, last_activity, pending_count };
+    })
+    .sort((a: any, b: any) => (b.pending_count - a.pending_count)
+      || String(b.last_activity || '').localeCompare(String(a.last_activity || '')))
+    .map(({ pending_count, ...rest }: any) => rest);
+}

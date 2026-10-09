@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { findConnectionById, listWholesalerConnections } from '../../shared/wholesalerCore.ts';
-import { avisoReady, countShipments, shipmentStatusFor, shipmentsOfConnection } from '../../shared/wholesalerOutbound.ts';
+import { avisoReady, clientSummaryOfConnection, countShipments, shipmentStatusFor, shipmentsOfConnection } from '../../shared/wholesalerOutbound.ts';
 
 // Panel de envíos al mayorista (solo administradores): qué se le ha enviado a su
 // app (el tracking y las fotos de cada carga recibida), qué quedó pendiente o
@@ -27,12 +27,13 @@ export default async function (req: Request): Promise<Response> {
     const from = String(body?.from || '').trim() || null;
     const limit = Math.min(200, Math.max(1, Number(body?.limit) || 50));
 
-    const [shipments, counts] = await Promise.all([
+    const [shipments, counts, clients] = await Promise.all([
       shipmentsOfConnection(base44, connections, connection, from, limit),
       countShipments(base44, connections, connection, from),
+      clientSummaryOfConnection(base44, connections, connection, from),
     ]);
 
-    return Response.json({ ok: true, shipments, counts, aviso_configurado });
+    return Response.json({ ok: true, shipments, counts, clients, aviso_configurado });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
