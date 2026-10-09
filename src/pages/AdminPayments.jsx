@@ -23,6 +23,7 @@ import BulkApproveButton from '@/components/admin/bulk-approval/BulkApproveButto
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PaymentReportDownloadButton from '@/components/admin/PaymentReportDownloadButton';
+import PaymentReportDateExport from '@/components/admin/PaymentReportDateExport';
 
 export default function AdminPayments({ user }) {
   const [consolidations, setConsolidations] = useState([]);
@@ -209,7 +210,10 @@ export default function AdminPayments({ user }) {
           <h1 className="text-2xl font-bold text-slate-800">Validación de Pagos</h1>
           <p className="text-slate-500">Revisa y valida los pagos de las consolidaciones</p>
         </div>
-        <PaymentReportDownloadButton />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <PaymentReportDownloadButton />
+          <PaymentReportDateExport />
+        </div>
       </div>
 
       {/* Stats */}

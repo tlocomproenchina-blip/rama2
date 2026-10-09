@@ -209,10 +209,6 @@ function entryBlock(entry: any): string[] {
     : cbmRows.reduce((sum: number, row: any) => sum + Number(row.cbm || 0), 0);
   if (totalCbm > 0) lines.push(`Total CBM: ${formatCbm(totalCbm)}`);
 
-  if (cleanValue(entry.invoice_number)) lines.push(`Factura: ${cleanValue(entry.invoice_number)}`);
-  if (entry.amount != null) lines.push(`Monto: $${Number(entry.amount || 0).toFixed(2)}`);
-  const stamp = caracasStamp(entry.approved_date);
-  if (stamp) lines.push(`Aprobado: ${stamp}${entry.approved_by ? ` - ${entry.approved_by}` : ''}`);
   return lines;
 }
 
