@@ -29,17 +29,21 @@ const TRANSFER_IF_EMPTY = [
   'description',
   'shipping_type',
   'risk_category',
-  'package_count',
   'has_insurance',
   'fob_value',
   'invoice_url',
   'product_image_url',
+  'package_image_urls',
   'shipping_company',
   'shipping_address',
   'seller_delivery_date',
   'label_code',
   'consolidation_id',
 ];
+
+// Conteo con el que nace un huérfano: si nadie lo corrigió a mano, el conteo que
+// declaró el cliente en la pre-alerta manda.
+const PREFILL_PACKAGE_COUNT = 1;
 
 // Vínculos que apuntan al ID de un paquete y que deben seguir vivos después de
 // retirar la pre-alerta (el ID viejo se re-apunta al registro que se conserva).
@@ -150,12 +154,36 @@ function labelAsPrealert(label: any, tracking: string) {
 
 function isFilled(value: any): boolean {
   if (value === undefined || value === null) return false;
+  if (Array.isArray(value)) return value.length > 0;
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') {
     const text = value.trim().toLowerCase();
     return text !== '' && !PREFILL_DESCRIPTIONS.includes(text);
   }
   return true;
+}
+
+// Nota de trazabilidad que se deja en el paquete que se conserva: el tracking que
+// declaró el cliente no se pierde cuando el código escaneado es distinto.
+function buildMergeNote({ fresh, source, isPrealert }: { fresh: any; source: any; isPrealert: boolean }): string | null {
+  const declared = String(source?.tracking_number || '').trim();
+  const current = String(fresh?.tracking_number || '').trim();
+  const parts: string[] = [];
+  if (declared && declared !== current) {
+    parts.push(`tracking declarado en ${isPrealert ? 'la pre-alerta' : 'la etiqueta'}: ${declared}`);
+  }
+  if (isPrealert) parts.push('pre-alerta unificada y retirada');
+  if (parts.length === 0) return null;
+  const stamp = new Date().toLocaleString('es-VE', {
+    timeZone: 'America/Caracas',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return `Unificado ${stamp}: ${parts.join('; ')}.`;
 }
 
 async function relinkPackageReferences(base44: any, oldId: string, newId: string): Promise<any[]> {
@@ -228,6 +256,20 @@ export async function consolidateOrphan({
       patch[field] = source[field];
       merged_fields.push(field);
     }
+  }
+
+  // El conteo declarado por el cliente no se pierde frente al conteo por defecto.
+  const declaredCount = Number(source.package_count) || 0;
+  const currentCount = Number(fresh.package_count) || 0;
+  if (declaredCount > 0 && declaredCount !== currentCount && currentCount <= PREFILL_PACKAGE_COUNT) {
+    patch.package_count = declaredCount;
+    merged_fields.push('package_count');
+  }
+
+  // El tracking declarado y la unificación quedan anotados en el paquete conservado.
+  const mergeNote = buildMergeNote({ fresh, source, isPrealert: !!prealert });
+  if (mergeNote) {
+    patch.reception_notes = fresh.reception_notes ? `${fresh.reception_notes}\n${mergeNote}` : mergeNote;
   }
 
   const updated = await base44.asServiceRole.entities.Package.update(fresh.id, patch);
