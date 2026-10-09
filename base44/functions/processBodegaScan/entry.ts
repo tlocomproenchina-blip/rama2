@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { absorbIntoOrphan } from '../../shared/orphanConsolidation.ts';
 
 // Procesa un escaneo desde la bodega en China.
 // Recibe: { tracking_number, photo_url, device_id, manual? }
@@ -109,7 +110,18 @@ export default async function(req: Request): Promise<Response> {
           shippingMark = pkg.shipping_mark || '';
           packageId = pkg.id;
         } else {
-          // Ya estaba recibido o en otro estado → duplicado
+          // Ya estaba recibido o en otro estado → duplicado. Si sigue siendo un
+          // huérfano sin cliente, es el mismo paquete reconocido por otro método:
+          // esta foto se suma a su registro en vez de descartarse.
+          if (pkg.is_orphan === true && !pkg.client_email) {
+            await absorbIntoOrphan({
+              base44,
+              keep: pkg,
+              incoming: { package_image_url: photoUrl, package_image_urls: photoUrl ? [photoUrl] : [] },
+              by: `Bodega China (${deviceId})`,
+              note: false,
+            });
+          }
           resultType = 'duplicado';
           shippingMark = pkg.shipping_mark || '';
           packageId = pkg.id;
@@ -241,6 +253,17 @@ export default async function(req: Request): Promise<Response> {
             shippingMark = pkg.shipping_mark || '';
             packageId = pkg.id;
           } else {
+            // Mismo paquete ya registrado: si sigue siendo un huérfano sin
+            // cliente, la foto de este escaneo se suma a su registro.
+            if (pkg.is_orphan === true && !pkg.client_email) {
+              await absorbIntoOrphan({
+                base44,
+                keep: pkg,
+                incoming: { package_image_url: photoUrl, package_image_urls: photoUrl ? [photoUrl] : [] },
+                by: `Bodega China (${deviceId})`,
+                note: false,
+              });
+            }
             resultType = 'duplicado';
             shippingMark = pkg.shipping_mark || '';
             packageId = pkg.id;

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { absorbIntoOrphan } from '../../shared/orphanConsolidation.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -15,24 +16,6 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const tracking = String(body.tracking_number || '').trim();
     if (!tracking) return Response.json({ error: 'Tracking requerido' }, { status: 400 });
-
-    // No registrar huérfano si ya existe el tracking (sea huérfano o no)
-    const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
-    if (existing.length > 0) {
-      return Response.json({ error: 'Este número de tracking ya está registrado en el sistema' }, { status: 409 });
-    }
-
-    // Verificar candidatos más cortos (sub-tracking → tracking master)
-    // Si algún candidato ya existe, el tracking master ya está registrado
-    const removalOrder = [3, 2, 4, 1, 5, 6];
-    for (const remove of removalOrder) {
-      if (tracking.length - remove < 5) continue;
-      const candidate = tracking.slice(0, tracking.length - remove);
-      const masterExists = await base44.asServiceRole.entities.Package.filter({ tracking_number: candidate }, '-created_date', 1);
-      if (masterExists.length > 0) {
-        return Response.json({ error: `El tracking master ${candidate} ya está registrado en el sistema` }, { status: 409 });
-      }
-    }
 
     const warehouseId = String(body.warehouse_id || '').trim() || null;
     const locationId = String(body.location_id || '').trim() || null;
@@ -83,16 +66,15 @@ Deno.serve(async (req) => {
     const photoUrl = body.package_image_url ? String(body.package_image_url) : null;
     const photoUrls = Array.isArray(body.package_image_urls) ? body.package_image_urls.slice(0, 3) : (photoUrl ? [photoUrl] : []);
 
-    const created = await base44.asServiceRole.entities.Package.create({
+    // Datos del alta: es lo que se suma al huérfano que ya exista o lo que se
+    // guarda en el registro nuevo.
+    const incoming = {
       tracking_number: tracking,
-      client_email: '',
       shipping_mark: body.shipping_mark ? String(body.shipping_mark).trim() : null,
       shipping_type: body.shipping_type === 'aereo' ? 'aereo' : 'maritimo',
       risk_category: body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general',
       package_count: Number(body.package_count) || 1,
       description: body.description ? String(body.description) : 'Paquete huérfano (sin pre-alerta)',
-      status: 'sin_cliente',
-      is_orphan: true,
       warehouse_id: finalWarehouseId,
       warehouse_name: warehouseName,
       warehouse_city: warehouseCity,
@@ -110,6 +92,38 @@ Deno.serve(async (req) => {
       package_image_urls: photoUrls,
       received_date: new Date().toISOString(),
       received_by: user.email,
+    };
+
+    // El mismo paquete con el mismo tracking no se registra dos veces: si el
+    // registro que ya existe es un huérfano sin cliente (otro método de
+    // identificación lo dio de alta antes), los datos y las fotos de esta alta
+    // se fusionan ahí. Con un envío ya reclamado por un cliente no se toca nada.
+    const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
+    if (existing.length > 0) {
+      const absorbed = await absorbIntoOrphan({ base44, keep: existing[0], incoming, by: user.email });
+      if (absorbed) return Response.json({ package: absorbed, merged: true });
+      return Response.json({ error: 'Este número de tracking ya está registrado en el sistema' }, { status: 409 });
+    }
+
+    // Verificar candidatos más cortos (sub-tracking → tracking master): si el
+    // master ya está registrado, es el mismo envío.
+    const removalOrder = [3, 2, 4, 1, 5, 6];
+    for (const remove of removalOrder) {
+      if (tracking.length - remove < 5) continue;
+      const candidate = tracking.slice(0, tracking.length - remove);
+      const masterRows = await base44.asServiceRole.entities.Package.filter({ tracking_number: candidate }, '-created_date', 1);
+      const master = masterRows?.[0];
+      if (!master) continue;
+      const absorbed = await absorbIntoOrphan({ base44, keep: master, incoming, by: user.email });
+      if (absorbed) return Response.json({ package: absorbed, merged: true });
+      return Response.json({ error: `El tracking master ${candidate} ya está registrado en el sistema` }, { status: 409 });
+    }
+
+    const created = await base44.asServiceRole.entities.Package.create({
+      ...incoming,
+      client_email: '',
+      status: 'sin_cliente',
+      is_orphan: true,
     });
 
     return Response.json({ package: created });

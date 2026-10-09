@@ -288,11 +288,11 @@ export default function AdminOrphanPackages({ user }) {
     if (aiScanBusy) return;
     setAiScanBusy(true);
     setAiFinalSummary(null);
-    setAiProgress({ processed: 0, total: null, assigned: 0, consolidated: 0, conflicts: 0, unreadable: 0, notFound: 0, errors: 0 });
+    setAiProgress({ processed: 0, total: null, assigned: 0, consolidated: 0, merged: 0, conflicts: 0, unreadable: 0, notFound: 0, errors: 0 });
 
     try {
       let totalAssigned = 0, totalUnreadable = 0, totalNotFound = 0, totalErrors = 0, totalProcessed = 0;
-      let totalConsolidated = 0, totalConflicts = 0;
+      let totalConsolidated = 0, totalConflicts = 0, totalMerged = 0;
       let hasMore = true;
       let guard = 0; // safety limit to prevent infinite loops
 
@@ -310,6 +310,7 @@ export default function AdminOrphanPackages({ user }) {
         totalErrors += data.errors || 0;
         totalProcessed += data.batch_size || 0;
         totalConsolidated += data.consolidated || 0;
+        totalMerged += data.merged || 0;
         totalConflicts += data.conflicts || 0;
 
         // Actualizar presupuesto desde la respuesta del backend
@@ -326,6 +327,7 @@ export default function AdminOrphanPackages({ user }) {
           total: totalProcessed + (data.remaining || 0),
           assigned: totalAssigned,
           consolidated: totalConsolidated,
+          merged: totalMerged,
           conflicts: totalConflicts,
           unreadable: totalUnreadable,
           notFound: totalNotFound,
@@ -341,6 +343,7 @@ export default function AdminOrphanPackages({ user }) {
       setAiFinalSummary({
         assigned: totalAssigned,
         consolidated: totalConsolidated,
+        merged: totalMerged,
         conflicts: totalConflicts,
         unreadable: totalUnreadable,
         notFound: totalNotFound,
@@ -349,11 +352,12 @@ export default function AdminOrphanPackages({ user }) {
       });
 
       const unifTxt = totalConsolidated > 0 ? ` · ${totalConsolidated} pre-alerta(s) unificada(s)` : '';
+      const mergedTxt = totalMerged > 0 ? ` · ${totalMerged} duplicado(s) fusionado(s)` : '';
       const confTxt = totalConflicts > 0 ? ` · ${totalConflicts} en conflicto` : '';
       if (totalAssigned > 0) {
-        toast.success(`IA completada: ${totalAssigned} asignado(s)${unifTxt} · ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${confTxt}`);
+        toast.success(`IA completada: ${totalAssigned} asignado(s)${unifTxt}${mergedTxt} · ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${confTxt}`);
       } else if (totalProcessed > 0) {
-        toast.info(`IA completada: ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${confTxt} · ${totalErrors} error(es)`);
+        toast.info(`IA completada: ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${mergedTxt}${confTxt} · ${totalErrors} error(es)`);
       } else {
         toast.info('No hay huérfanos con foto pendientes de escanear');
       }
@@ -434,6 +438,7 @@ export default function AdminOrphanPackages({ user }) {
               <div className="flex flex-wrap gap-3 justify-end">
                 <span className="text-green-600 font-medium">{aiProgress.assigned} asignados</span>
                 <span className="text-blue-600 font-medium">{aiProgress.consolidated || 0} pre-alertas unificadas</span>
+                {(aiProgress.merged || 0) > 0 && <span className="text-teal-600 font-medium">{aiProgress.merged} duplicado(s) fusionado(s)</span>}
                 {(aiProgress.conflicts || 0) > 0 && <span className="text-amber-600">{aiProgress.conflicts} en conflicto</span>}
                 <span className="text-red-500">{aiProgress.unreadable} no legibles</span>
                 <span className="text-slate-500">{aiProgress.notFound} sin coincidencia</span>
@@ -448,6 +453,12 @@ export default function AdminOrphanPackages({ user }) {
                 <>
                   {' · '}
                   <span className="text-blue-600 font-medium">{aiFinalSummary.consolidated} pre-alerta(s) unificada(s)</span>
+                </>
+              )}
+              {aiFinalSummary.merged > 0 && (
+                <>
+                  {' · '}
+                  <span className="text-teal-600 font-medium">{aiFinalSummary.merged} duplicado(s) fusionado(s)</span>
                 </>
               )}
               {aiFinalSummary.conflicts > 0 && (

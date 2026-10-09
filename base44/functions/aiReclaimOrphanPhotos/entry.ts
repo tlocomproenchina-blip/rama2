@@ -2,7 +2,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import {
   buildTrackingCandidates,
   consolidateOrphan,
+  findDuplicateOrphans,
   findSameShipmentMatches,
+  mergeDuplicateOrphans,
   pickConsolidationTarget,
   ORPHAN_ALREADY_CLAIMED,
 } from '../../shared/orphanConsolidation.ts';
@@ -25,6 +27,9 @@ import {
 // - Unifica: si el envío ya tenía pre-alerta (o una etiqueta TLEC), el huérfano
 //   recibido se queda como único registro del paquete y la pre-alerta se retira,
 //   para no dejar el mismo envío registrado dos veces (orphanConsolidation.ts).
+// - Fusiona huérfanos duplicados: si el tracking leído ya pertenece a otro huérfano
+//   sin cliente (el mismo paquete dado de alta por otro método de identificación),
+//   los dos registros se unen en uno en vez de dejar dos copias del mismo paquete.
 
 const CLAUDE_COST_PER_CALL = 4; // créditos estimados por llamada a Claude Sonnet 4.6
 const FALLBACK_THRESHOLD = 0.5;  // 50% del presupuesto
@@ -168,12 +173,18 @@ export default async function(req: Request): Promise<Response> {
     let unreadable = 0;
     let notFound = 0;
     let errors = 0;
+    let mergedDuplicates = 0;
+    // Huérfanos que se fusionaron dentro de este mismo lote: ya no existen.
+    const absorbed = new Set<string>();
     let claudeCalls = 0;
     let openaiCalls = 0;
     let routeFailures = 0;
     const now = new Date().toISOString();
 
     for (const orphan of batch) {
+      // Un huérfano que se fusionó unas vueltas atrás ya no existe: se salta.
+      if (absorbed.has(orphan.id)) continue;
+
       const photoUrl = (Array.isArray(orphan.package_image_urls) && orphan.package_image_urls.length
         ? orphan.package_image_urls[0]
         : orphan.package_image_url) as string;
@@ -227,8 +238,28 @@ export default async function(req: Request): Promise<Response> {
           continue;
         }
 
-        // 3) Buscar la pre-alerta del mismo envío (tracking exacto y sub-trackings)
+        // 3) ¿El tracking leído ya pertenece a otro huérfano sin cliente? Es el
+        //    mismo paquete dado de alta dos veces por métodos distintos (escáner,
+        //    IA, registro manual): se fusionan en un solo registro.
         const candidates = buildTrackingCandidates(tracking);
+        const twins = await findDuplicateOrphans(base44, { candidates, excludeId: orphan.id });
+        if (twins.length > 0) {
+          const merge = await mergeDuplicateOrphans({ base44, keep: twins[0], duplicate: orphan, by: user.email });
+          absorbed.add(orphan.id);
+          results.push({
+            orphan_id: orphan.id,
+            old_tracking: orphan.tracking_number,
+            detected_tracking: tracking,
+            kept_package_id: merge.package?.id,
+            removed_duplicate_id: merge.removed_id,
+            status: 'merged_duplicate',
+            route: routeUsed,
+          });
+          mergedDuplicates++;
+          continue;
+        }
+
+        // 4) Buscar la pre-alerta del mismo envío (tracking exacto y sub-trackings)
         const matches = await findSameShipmentMatches(base44, { candidates, labelCode: tracking, excludeId: orphan.id });
         const picked = pickConsolidationTarget(matches.pending);
 
@@ -320,6 +351,7 @@ export default async function(req: Request): Promise<Response> {
       batch_size: batch.length,
       assigned,
       consolidated,
+      merged: mergedDuplicates,
       label_linked: labelLinked,
       conflicts,
       unreadable,
