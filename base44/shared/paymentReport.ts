@@ -66,40 +66,56 @@ export function approvalReportFileName(entry: any): string {
   return `pago_aprobado_${safeFileName(entry?.invoice_number || entry?.source_id || 'pago')}.txt`;
 }
 
+const round4 = (value: any): number => Math.round(Number(value || 0) * 10000) / 10000;
+
+// CBM con hasta 4 decimales, sin ceros de relleno (0.028, 1.5).
+const formatCbm = (value: any): string => String(round4(value));
+
 const cleanValue = (value: any): string => {
   const text = String(value ?? '').trim();
   return /^(n\/a|-)$/i.test(text) ? '' : text;
 };
 
-// Números de orden/envío (CbmIngreso.invoice_number) de la factura confirmada:
+// CBM de cada orden/envío (CbmIngreso.invoice_number) de la factura confirmada:
 // los recibos incluidos en la factura, los CbmIngreso facturados en ella y, cuando
 // la factura se armó desde 'Carga en almacén', los N° de orden de sus bultos.
-export async function resolveOrderNumbers(base44: any, invoice: any): Promise<string[]> {
-  const found = new Set<string>();
-  const add = (value: any) => {
-    const text = cleanValue(value);
-    if (text) found.add(text);
-  };
+export async function resolveOrderCbm(base44: any, invoice: any): Promise<Array<{ order_number: string; cbm: number }>> {
+  const rows = new Map<string, number>();
 
   const manualRecibos = Array.isArray(invoice?.manual_recibos) ? invoice.manual_recibos : [];
-  manualRecibos.forEach((recibo: any) => add(recibo?.invoice_number));
+  manualRecibos.forEach((recibo: any) => {
+    const order = cleanValue(recibo?.invoice_number);
+    if (order) rows.set(order, round4(recibo?.cbm));
+  });
 
   if (invoice?.id) {
     const recibos = await base44.asServiceRole.entities.CbmIngreso
       .filter({ billed_invoice_id: invoice.id }, '-fecha', 200)
       .catch(() => []);
-    (recibos || []).forEach((recibo: any) => add(recibo.invoice_number));
+    (recibos || []).forEach((recibo: any) => {
+      const order = cleanValue(recibo.invoice_number);
+      if (order && !rows.has(order)) rows.set(order, round4(recibo.cbm));
+    });
 
+    // Bultos facturados sin recibo propio: su CBM oficial se reparte entre sus
+    // N° de orden, solo para los que aún no tienen CBM registrado.
     const bultos = await base44.asServiceRole.entities.Bulto
       .filter({ billed_invoice_id: invoice.id }, '-created_date', 200)
       .catch(() => []);
     (bultos || []).forEach((bulto: any) => {
-      const orders = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers : [];
-      orders.forEach(add);
+      const orders = (Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers : [])
+        .map(cleanValue)
+        .filter((order: string) => order && !rows.has(order));
+      const bultoCbm = Number(bulto.cargo_cbm || 0);
+      if (orders.length === 0 || !(bultoCbm > 0)) return;
+      const share = round4(bultoCbm / orders.length);
+      orders.forEach((order: string) => rows.set(order, share));
     });
   }
 
-  return Array.from(found).sort((a, b) => a.localeCompare(b, 'es'));
+  return Array.from(rows.entries())
+    .map(([order_number, cbm]) => ({ order_number, cbm }))
+    .sort((a, b) => a.order_number.localeCompare(b.order_number, 'es'));
 }
 
 // Shipping Mark del cliente; si no lo tiene, el guardado en la factura y, en
@@ -135,10 +151,14 @@ export async function recordApprovedPayment(base44: any, input: ApprovalReportIn
   }
 
   const clientEmail = input.client_email || invoice?.client_email || '';
-  const [orderNumbers, shippingMark] = await Promise.all([
-    resolveOrderNumbers(base44, invoice),
+  const [orderRows, shippingMark] = await Promise.all([
+    resolveOrderCbm(base44, invoice),
     resolveShippingMark(base44, clientEmail, invoice, input.shipping_mark)
   ]);
+
+  const orderCbm = orderRows.reduce((sum, row) => sum + Number(row.cbm || 0), 0);
+  const invoiceTotalCbm = Number(invoice?.total_cbm ?? invoice?.cost_breakdown?.total_cbm ?? 0);
+  const totalCbm = orderRows.length > 0 ? round4(orderCbm) : round4(invoiceTotalCbm);
 
   return await base44.asServiceRole.entities.ApprovedPaymentReport.create({
     payment_type: input.payment_type,
@@ -149,7 +169,9 @@ export async function recordApprovedPayment(base44: any, input: ApprovalReportIn
     shipping_mark: shippingMark,
     invoice_id: invoice?.id || input.invoice_id || '',
     invoice_number: cleanValue(input.invoice_number) || cleanValue(invoice?.invoice_number),
-    order_numbers: orderNumbers,
+    order_numbers: orderRows.map((row) => row.order_number),
+    order_cbm: orderRows,
+    total_cbm: totalCbm,
     amount: Number(input.amount || 0),
     approved_by: input.approved_by || ''
   });
@@ -176,6 +198,17 @@ function entryBlock(entry: any): string[] {
     `Shipping Mark: ${cleanValue(entry.shipping_mark)}`,
     `Numero de orden/envio: ${(Array.isArray(entry.order_numbers) ? entry.order_numbers : []).join(', ')}`
   ];
+
+  // CBM de cada orden/envío y CBM total de la factura pagada.
+  const cbmRows = Array.isArray(entry.order_cbm) ? entry.order_cbm : [];
+  if (cbmRows.length > 0) {
+    lines.push(`CBM por orden/envio: ${cbmRows.map((row: any) => `${cleanValue(row.order_number)} (${formatCbm(row.cbm)} CBM)`).join(' | ')}`);
+  }
+  const totalCbm = entry.total_cbm != null
+    ? Number(entry.total_cbm)
+    : cbmRows.reduce((sum: number, row: any) => sum + Number(row.cbm || 0), 0);
+  if (totalCbm > 0) lines.push(`Total CBM: ${formatCbm(totalCbm)}`);
+
   if (cleanValue(entry.invoice_number)) lines.push(`Factura: ${cleanValue(entry.invoice_number)}`);
   if (entry.amount != null) lines.push(`Monto: $${Number(entry.amount || 0).toFixed(2)}`);
   const stamp = caracasStamp(entry.approved_date);

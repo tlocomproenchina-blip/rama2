@@ -48,6 +48,28 @@
         "type": "string"
       }
     },
+    "order_cbm": {
+      "type": "array",
+      "default": [],
+      "description": "CBM correspondiente a cada orden/env\u00edo de la factura pagada",
+      "items": {
+        "type": "object",
+        "properties": {
+          "order_number": {
+            "type": "string",
+            "description": "N\u00famero de orden/env\u00edo"
+          },
+          "cbm": {
+            "type": "number",
+            "description": "CBM de esa orden/env\u00edo"
+          }
+        }
+      }
+    },
+    "total_cbm": {
+      "type": "number",
+      "description": "CBM total de la factura pagada"
+    },
     "amount": {
       "type": "number",
       "description": "Monto aprobado (USD)"
