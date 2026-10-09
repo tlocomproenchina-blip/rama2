@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 // AdminInvoices — gestión de facturas y pagos
 import { base44 } from '@/components/api/ApiQueueManager';
 import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
+import { caracasRange } from '@/lib/caracasRange';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,14 @@ export default function AdminInvoices({ user }) {
   const [dispatchReceipt, setDispatchReceipt] = useState(null);
   const [warehouseOrderInvoice, setWarehouseOrderInvoice] = useState(null);
   const [generatingOrderId, setGeneratingOrderId] = useState(null);
+  // Facturas pagadas del período consultadas por FECHA DE PAGO (no por la página cargada).
+  const [paidRange, setPaidRange] = useState(null);
+  const [paidRangeLoading, setPaidRangeLoading] = useState(false);
+
+  // Con el filtro de Pagadas y un período elegido, el listado y sus totales salen de la
+  // consulta por fecha de pago: es el mismo criterio que la Orden de Despacho, así los
+  // dos números coinciden.
+  const rangeQueryActive = statusFilter === 'pagada' && !!(dateFrom || dateTo);
 
   // Inicialización en paralelo. Las consolidaciones se cargan solo al abrir
   // el modal de crear factura (no bloquean la carga inicial).
@@ -121,6 +130,49 @@ export default function AdminInvoices({ user }) {
     };
   };
 
+  // Trae TODAS las facturas pagadas del período por fecha de pago (hora de Caracas),
+  // igual que la Orden de Despacho: no se queda en la página cargada, así el listado y
+  // el conteo son los completos del rango.
+  const loadPaidRange = useCallback(async () => {
+    const from = dateFrom || dateTo;
+    const to = dateTo || dateFrom;
+    if (!from || !to) { setPaidRange(null); return; }
+    setPaidRangeLoading(true);
+    try {
+      const { fromIso, toIso } = caracasRange(from, to);
+      const all = await fetchAllPaginated('Invoice', {
+        method: 'filter',
+        query: { status: 'pagada', payment_date: { $gte: fromIso, $lt: toIso } },
+        sort: '-payment_date',
+      });
+      let list = all || [];
+      const clientEmails = Array.from(new Set(list.map(inv => inv.client_email).filter(Boolean)));
+      if (clientEmails.length) {
+        const res = await base44.functions.invoke('getClientsByEmails', { emails: clientEmails }, { opType: 'read', priority: 'HIGH' }).catch(() => null);
+        const clientsByEmail = res?.data?.clients || {};
+        if (Object.keys(clientsByEmail).length) {
+          list = list.map(inv => enrichInvoice(inv, clientsByEmail));
+        }
+      }
+      setPaidRange(list);
+    } catch (error) {
+      setPaidRange([]);
+      toast.error('No se pudieron cargar las facturas pagadas del período');
+    }
+    setPaidRangeLoading(false);
+  }, [dateFrom, dateTo]);
+
+  useEffect(() => {
+    if (rangeQueryActive) loadPaidRange();
+    else setPaidRange(null);
+  }, [rangeQueryActive, loadPaidRange]);
+
+  // Las tarjetas de resumen siguen al listado que se está mostrando: con el período activo
+  // cuentan todas las facturas pagadas del rango, no solo la página cargada.
+  useEffect(() => {
+    computeStats(rangeQueryActive ? (paidRange || []) : invoices);
+  }, [rangeQueryActive, paidRange, invoices]);
+
   const loadInvoices = async (append = false) => {
     if (append) setLoadingMore(true); else setLoading(true);
     const skip = append ? invoices.length : 0;
@@ -129,7 +181,6 @@ export default function AdminInvoices({ user }) {
     // FASE 1: mostrar las facturas de inmediato (sin esperar los datos del cliente)
     const baseList = append ? [...invoices, ...(data || [])] : (data || []);
     setInvoices(baseList);
-    computeStats(baseList);
     setHasMore(data.length === pageSize);
     if (append) setLoadingMore(false); else setLoading(false);
 
@@ -142,6 +193,10 @@ export default function AdminInvoices({ user }) {
         setInvoices(prev => prev.map(inv => (inv.client_first_name || inv.shipping_mark) ? inv : enrichInvoice(inv, clientsByEmail)));
       }
     }
+
+    // Si el período por fecha de pago está activo, se rehace para que el listado siga
+    // cuadrando con lo que se acaba de cambiar en las facturas.
+    if (rangeQueryActive) loadPaidRange();
   };
 
   const loadConsolidations = async () => {
@@ -347,7 +402,7 @@ export default function AdminInvoices({ user }) {
   const executeBulkAction = async () => {
     setBulkProcessing(true);
     try {
-      const selectedInvs = invoices.filter(i => selectedInvoices.includes(i.id));
+      const selectedInvs = sourceInvoices.filter(i => selectedInvoices.includes(i.id));
 
       if (bulkAction === 'delete') {
         await Promise.all(selectedInvs.map(inv => releaseBilledCbm(inv.id)));
@@ -618,11 +673,15 @@ export default function AdminInvoices({ user }) {
     setDeconsolidating(false);
   };
 
+  // Listado base: con el período activo son todas las pagadas del rango (por fecha de pago);
+  // en el resto de los casos, la página de facturas cargada.
+  const sourceInvoices = rangeQueryActive ? (paidRange || []) : invoices;
+
   const filteredInvoices = useMemo(() => {
     const q = search.toLowerCase();
     const fromMs = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : null;
     const toMs = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : null;
-    return invoices.filter(inv => {
+    return sourceInvoices.filter(inv => {
       const matchesSearch = !q || (
         (inv.invoice_number || '').toLowerCase().includes(q) ||
         (inv.client_email || '').toLowerCase().includes(q) ||
@@ -640,7 +699,8 @@ export default function AdminInvoices({ user }) {
         })() :
         inv.status === statusFilter;
       const invDate = inv.invoice_date ? new Date(inv.invoice_date).getTime() : null;
-      const matchesDate = !invDate || (
+      // Con el período activo el rango ya lo aplicó el servidor (por fecha de pago).
+      const matchesDate = rangeQueryActive || !invDate || (
         (fromMs === null || invDate >= fromMs) &&
         (toMs === null || invDate <= toMs)
       );
@@ -648,7 +708,7 @@ export default function AdminInvoices({ user }) {
         String(inv.client_state || '').trim().toLowerCase() === stateFilter;
       return matchesSearch && matchesStatus && matchesDate && matchesState;
     });
-  }, [invoices, search, statusFilter, stateFilter, dateFrom, dateTo]);
+  }, [sourceInvoices, rangeQueryActive, search, statusFilter, stateFilter, dateFrom, dateTo]);
 
   if (loading) {
     return (
@@ -718,6 +778,13 @@ export default function AdminInvoices({ user }) {
               </Button>
             )}
           </div>
+          {rangeQueryActive && (
+            <p className="text-xs text-slate-500">
+              {paidRangeLoading
+                ? 'Buscando todas las facturas pagadas del período…'
+                : `${(paidRange || []).length} factura(s) pagada(s) en el período, contadas por fecha de pago (mismo criterio que Orden de Despacho).`}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -742,7 +809,7 @@ export default function AdminInvoices({ user }) {
         </Tabs>
         {statusFilter !== 'carga_almacen' && (
           <StateFilter
-            items={invoices}
+            items={sourceInvoices}
             extractState={(inv) => inv.client_state}
             value={stateFilter}
             onChange={setStateFilter}
@@ -958,7 +1025,7 @@ export default function AdminInvoices({ user }) {
         </div>
         )}
 
-        {hasMore && (
+        {hasMore && !rangeQueryActive && (
           <Button variant="outline" className="w-full mt-4" onClick={() => loadInvoices(true)} disabled={loadingMore}>
             {loadingMore ? 'Cargando...' : 'Cargar más'}
           </Button>
