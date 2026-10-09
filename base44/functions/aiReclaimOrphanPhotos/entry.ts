@@ -229,7 +229,7 @@ export default async function(req: Request): Promise<Response> {
 
         // 3) Buscar la pre-alerta del mismo envío (tracking exacto y sub-trackings)
         const candidates = buildTrackingCandidates(tracking);
-        const matches = await findSameShipmentMatches(base44, { candidates, excludeId: orphan.id });
+        const matches = await findSameShipmentMatches(base44, { candidates, labelCode: tracking, excludeId: orphan.id });
         const picked = pickConsolidationTarget(matches.pending);
 
         // Pre-alertas de más de un cliente con el mismo tracking: no se borra nada,

@@ -43,7 +43,11 @@ Deno.serve(async (req) => {
     // recibido, con su foto y sus datos de almacén) y la pre-alerta se retira.
     const candidates = buildTrackingCandidates(String(pkg.tracking_number || ''));
     if (candidates.length > 0) {
-      const matches = await findSameShipmentMatches(base44, { candidates, excludeId: pkg.id });
+      const matches = await findSameShipmentMatches(base44, {
+        candidates,
+        labelCode: String(pkg.tracking_number || ''),
+        excludeId: pkg.id,
+      });
       const clientPending = matches.pending.filter(
         (p) => String(p.client_email || '').trim().toLowerCase() === clientEmail.toLowerCase(),
       );

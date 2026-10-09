@@ -94,15 +94,13 @@ export function isPendingPrealert(pkg: any): boolean {
 // (conflicto: el tracking ya está registrado como carga real).
 export async function findSameShipmentMatches(
   base44: any,
-  { candidates, excludeId }: { candidates: string[]; excludeId?: string },
+  { candidates, labelCode, excludeId }: { candidates: string[]; labelCode?: string; excludeId?: string },
 ): Promise<{ pending: any[]; received: any[] }> {
   const pending: any[] = [];
   const received: any[] = [];
   const seen = new Set<string>();
 
-  for (const candidate of candidates || []) {
-    if (!candidate) continue;
-    const rows = await base44.asServiceRole.entities.Package.filter({ tracking_number: candidate }, '-created_date', 20);
+  const collect = (rows: any[]) => {
     for (const row of rows || []) {
       if (!row?.client_email || row.is_orphan === true) continue;
       if (excludeId && row.id === excludeId) continue;
@@ -111,6 +109,16 @@ export async function findSameShipmentMatches(
       if (isPendingPrealert(row)) pending.push(row);
       else received.push(row);
     }
+  };
+
+  for (const candidate of candidates || []) {
+    if (!candidate) continue;
+    collect(await base44.asServiceRole.entities.Package.filter({ tracking_number: candidate }, '-created_date', 20));
+  }
+
+  // El código escaneado también puede ser el código de una etiqueta TLEC.
+  if (labelCode) {
+    collect(await base44.asServiceRole.entities.Package.filter({ label_code: labelCode }, '-created_date', 20));
   }
 
   return { pending, received };
