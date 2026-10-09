@@ -1,0 +1,49 @@
+{
+  "name": "DispatchOrderConfig",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica de la configuraci\u00f3n de la orden de despacho (siempre 'main')"
+    },
+    "warehouse_whatsapp_phone": {
+      "type": "string",
+      "description": "N\u00famero de WhatsApp del tel\u00e9fono del almac\u00e9n al que se manda la orden de despacho. Con c\u00f3digo de pa\u00eds y sin +, espacios ni guiones (ej: 584121234567)."
+    },
+    "warehouse_label": {
+      "type": "string",
+      "description": "Nombre con el que se identifica ese tel\u00e9fono (ej. 'Almac\u00e9n Venezuela'), para mostrarlo en el panel"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

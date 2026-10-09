@@ -48,6 +48,7 @@ import ShippingMarkExamplesEditor from '@/components/admin/ShippingMarkExamplesE
 import BatteryBannerSettings from '@/components/admin/BatteryBannerSettings';
 import WholesalerConnectionCard from '@/components/admin/WholesalerConnectionCard';
 import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
+import DispatchOrderWhatsappSettingsCard from '@/components/admin/DispatchOrderWhatsappSettingsCard';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -1163,6 +1164,9 @@ export default function AdminSettings({ user }) {
 
               {/* Conexión con la app del cliente mayorista */}
               <WholesalerConnectionCard />
+
+              {/* Teléfono del almacén para la orden de despacho por WhatsApp */}
+              <DispatchOrderWhatsappSettingsCard />
 
               {/* Modo Noche */}
               <DarkModeToggleCard />
