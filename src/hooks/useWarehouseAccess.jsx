@@ -18,7 +18,9 @@ export default function useWarehouseAccess(user, pageName) {
         return;
       }
 
-      if (user.role === 'admin' && !user.custom_role) {
+      // Todos los administradores tienen el mismo acceso: el área asignada
+      // ya no restringe las páginas de almacén.
+      if (user.role === 'admin') {
         if (active) {
           setAllowed(true);
           setLoading(false);

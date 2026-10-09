@@ -251,14 +251,8 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      // Redirect role-limited admins away from any page they can't access
-      // (AdminDailySummary y páginas públicas siempre permitidas para admins)
-      const publicAdminPages = ['AdminDailySummary', 'BultoOrderScan', 'CityLanding', 'About', 'Contact', 'Blog', 'BlogPost', 'ShippingCalculator', 'Sitemap', 'Inicio2', 'Contract', 'TermsOfService', 'FAQ'];
-      if (currentUser.role === 'admin' && resolvedRoleConfig?.visible_pages?.length && currentPageName && !publicAdminPages.includes(currentPageName) && !resolvedRoleConfig.visible_pages.includes(currentPageName)) {
-        navigate(createPageUrl(resolvedRoleConfig.visible_pages[0] || 'AccountingDashboard'));
-        setLoading(false);
-        return;
-      }
+      // Todos los administradores tienen las mismas opciones: el área
+      // personalizada ya no redirige a ninguna página.
 
       // Check contract and profile for regular users
       if (currentUser.role === 'user') {

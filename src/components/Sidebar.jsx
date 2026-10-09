@@ -107,39 +107,19 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
   const visibleAdminPages = useMemo(() => {
     if (user?.role !== 'admin') return [];
-    // Si el admin tiene un área asignada con páginas permitidas, esas páginas
-    // mandan: la lista global de ocultos NO se le aplica (si no, un área como
-    // Almacén podría quedarse sin ningún ítem visible).
-    if (user?.custom_role && roleConfig?.visible_pages?.length) {
-      return roleConfig.visible_pages;
-    }
+    // Todos los administradores ven las mismas opciones: el área personalizada
+    // ya no limita el menú. Solo aplica la lista global de páginas ocultas.
     const hidden = new Set(config?.sidebar_hidden_pages || []);
     return adminMenuItems.map((item) => item.page).filter((page) => !hidden.has(page));
-  }, [user?.role, user?.custom_role, roleConfig, config?.sidebar_hidden_pages]);
+  }, [user?.role, config?.sidebar_hidden_pages]);
 
   const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
   const filteredAdminGroups = useMemo(() => {
-    const groups = adminGroups.map((group) => ({
+    return adminGroups.map((group) => ({
       ...group,
       items: group.items.filter((page) => visibleAdminPages.includes(page))
     })).filter((group) => group.items.length > 0);
-
-    // Si el admin tiene un rol personalizado, su página de aterrizaje
-    // (visible_pages[0]) debe ser siempre el primer ítem del sidebar.
-    // Si ya está primera en el primer grupo, no hacer nada; si no,
-    // moverla a un grupo PRINCIPAL al inicio.
-    if (user?.custom_role && roleConfig?.visible_pages?.length && visibleAdminPages.length > 0) {
-      const landingPage = visibleAdminPages[0];
-      const isFirst = groups[0]?.items?.[0] === landingPage;
-      if (!isFirst) {
-        const cleaned = groups
-          .map((g) => ({ ...g, items: g.items.filter((p) => p !== landingPage) }))
-          .filter((g) => g.items.length > 0);
-        return [{ label: 'PRINCIPAL', items: [landingPage] }, ...cleaned];
-      }
-    }
-    return groups;
-  }, [visibleAdminPages, user?.custom_role, roleConfig]);
+  }, [visibleAdminPages]);
 
   const adminItemsByPage = useMemo(() => Object.fromEntries(filteredAdminMenuItems.map((item) => [item.page, item])), [filteredAdminMenuItems]);
   const clientItemsByPage = useMemo(() => Object.fromEntries(clientMenuItems.map((item) => [item.page, item])), []);
