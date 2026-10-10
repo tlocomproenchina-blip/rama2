@@ -12,8 +12,17 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
   const [open, setOpen] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [cbm, setCbm] = useState('');
+  const [bultos, setBultos] = useState('');
   const [picked, setPicked] = useState([]);
   const [query, setQuery] = useState('');
+
+  // Los bultos que se cobran son los trackings que se enganchen a la orden; el
+  // campo acompaña ese conteo mientras el admin no escriba uno propio.
+  const togglePick = (value) => {
+    const next = picked.includes(value) ? picked.filter((item) => item !== value) : [...picked, value];
+    if (bultos === '' || Number(bultos) === picked.length) setBultos(String(next.length));
+    setPicked(next);
+  };
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -24,9 +33,11 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
   const submit = () => {
     const value = orderNumber.trim();
     if (!value) return;
-    onAdd({ order_number: value, cbm: Number(cbm) || 0, trackings: picked });
+    const bultosValue = bultos === '' ? picked.length : Math.max(Number(bultos) || 0, 0);
+    onAdd({ order_number: value, cbm: Number(cbm) || 0, bultos: bultosValue, trackings: picked });
     setOrderNumber('');
     setCbm('');
+    setBultos('');
     setPicked([]);
     setQuery('');
     setOpen(false);
@@ -58,6 +69,18 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
           <label className="mb-1 block text-xs text-muted-foreground">CBM</label>
           <Input type="number" min="0" step="0.001" inputMode="decimal" value={cbm} onChange={(event) => setCbm(event.target.value)} />
         </div>
+        <div className="w-32">
+          <label className="mb-1 block text-xs text-muted-foreground">Cantidad de bultos</label>
+          <Input
+            type="number"
+            min="0"
+            step="1"
+            inputMode="numeric"
+            value={bultos}
+            onChange={(event) => setBultos(event.target.value)}
+            placeholder={String(picked.length)}
+          />
+        </div>
       </div>
 
       {(available || []).length > 0 && (
@@ -81,7 +104,7 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
                 <label key={value} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border/60 px-3 py-2">
                   <Checkbox
                     checked={checked}
-                    onCheckedChange={() => setPicked((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]))}
+                    onCheckedChange={() => togglePick(value)}
                   />
                   <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">{value}</span>
                   {item.description && (

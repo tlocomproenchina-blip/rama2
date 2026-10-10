@@ -41,7 +41,7 @@ export default function WholesalerBillingClientCard({ draft, onChange, onRemove 
         {
           order_number: order.order_number,
           cbm: order.cbm,
-          bultos: (order.trackings || []).length,
+          bultos: Math.max(Number(order.bultos) || 0, 0),
           is_new: true,
           checked: true,
           picked: order.trackings || [],
