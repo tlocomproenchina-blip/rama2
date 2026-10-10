@@ -22,7 +22,8 @@
         "informe_fallido",
         "sync_fallido",
         "conexion_fallida",
-        "conexion_ok"
+        "conexion_ok",
+        "historial_sincronizado"
       ],
       "description": "Tipo de movimiento del intercambio con la app del mayorista"
     },

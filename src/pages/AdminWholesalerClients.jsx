@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, UserPlus } from 'lucide-react';
 import WholesalerConnectionsPanel from '@/components/wholesaler/WholesalerConnectionsPanel';
 import WholesalerActionsBar from '@/components/wholesaler/WholesalerActionsBar';
+import WholesalerHistorySyncCard from '@/components/wholesaler/WholesalerHistorySyncCard';
 import WholesalerStatusCards from '@/components/wholesaler/WholesalerStatusCards';
 import WholesalerClientsTable from '@/components/wholesaler/WholesalerClientsTable';
 import WholesalerMovementsList from '@/components/wholesaler/WholesalerMovementsList';
@@ -54,6 +55,7 @@ export default function AdminWholesalerClients() {
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [historyBusy, setHistoryBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [range, setRange] = useState('7');
   const [tab, setTab] = useState('clientes');
@@ -117,6 +119,24 @@ export default function AdminWholesalerClients() {
       toast.error(err?.message || 'No se pudo consultar las apps de los mayoristas.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  // Historial completo de pre-alertas de los mayoristas: la misma corrida que el
+  // horario diario, pedida a mano desde aquí.
+  const handleHistorySync = async () => {
+    setHistoryBusy(true);
+    try {
+      const payload = selectedConnection?.id ? { connection_key: selectedConnection.id } : {};
+      const res = await base44.functions.invoke('syncWholesalerHistory', payload);
+      const data = res?.data || {};
+      if (data.error) toast.error(data.error);
+      else toast.success(data.mensaje || 'Historial sincronizado.');
+      await load();
+    } catch (err) {
+      toast.error(err?.message || 'No se pudo sincronizar el historial de los mayoristas.');
+    } finally {
+      setHistoryBusy(false);
     }
   };
 
@@ -208,6 +228,8 @@ export default function AdminWholesalerClients() {
       <WholesalerConnectionsPanel connections={connections} loading={loading} onRefresh={load} />
 
       <WholesalerActionsBar connections={connections} busy={busy} onSync={handleSync} onResend={handleResend} />
+
+      <WholesalerHistorySyncCard connections={connections} busy={historyBusy} onSync={handleHistorySync} />
 
       <WholesalerStatusCards counts={counts} loading={loading} />
 

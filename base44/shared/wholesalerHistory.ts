@@ -1,0 +1,407 @@
+// Historial de pre-alertas de cada app mayorista: se le pide su historial
+// completo (paginado), se reconoce cada carga por su tracking exacto y se alinea
+// con lo que ya existe en TLEC CARGO. Nunca duplica: lo que ya estaba se omite, lo
+// que existe a medias se completa sin pisar nada y lo que no estaba se registra
+// igual, aunque el cliente todavía no se reconozca (queda como huérfano para
+// asignarlo después). Los datos del almacén —estado, recepción y fotos— no se
+// tocan nunca desde aquí.
+import {
+  connectionKeyOf,
+  connectionLabel,
+  logWholesalerEvent,
+  outboundKeyFor,
+  stampOf,
+  truncate,
+  updateConnection,
+} from './wholesalerCore.ts';
+import { cleanTracking, findClientForNotice } from './wholesalerPackages.ts';
+import { consolidateOrphan } from './orphanConsolidation.ts';
+
+const TIMEOUT_MS = 20000;
+const PAGE_SIZE = 200;
+const MAX_PAGES = 50;
+const MAX_RECORDS = 5000;
+const MAX_ERROR_SAMPLES = 5;
+
+function pick(raw: any, keys: string[]) {
+  for (const key of keys) {
+    const value = raw?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== '') return String(value).trim();
+  }
+  return '';
+}
+
+function pickNumber(raw: any, keys: string[]) {
+  for (const key of keys) {
+    const value = Number(raw?.[key]);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return 0;
+}
+
+// Cada mayorista nombra sus campos a su manera: aquí se unifican. Solo se leen
+// datos declarados por el mayorista; el estado real de la carga en el almacén es
+// de TLEC CARGO y no se importa.
+export function normalizeHistoryRecord(raw: any) {
+  let tracking = cleanTracking(pick(raw, ['tracking_number', 'tracking', 'trackingNumber', 'numero_tracking', 'guia', 'numero_guia']));
+  if (!tracking && Array.isArray(raw?.tracking_numbers)) {
+    tracking = cleanTracking(raw.tracking_numbers.find((value: any) => String(value || '').trim()));
+  }
+
+  const shippingType = pick(raw, ['shipping_type', 'tipo_envio', 'tipo']).toLowerCase();
+  const riskRaw = pick(raw, ['risk_category', 'tipo_carga', 'riesgo']).toLowerCase();
+
+  return {
+    tracking,
+    label_code: pick(raw, ['label_code', 'label', 'etiqueta', 'codigo_etiqueta']),
+    client_email: pick(raw, ['client_email', 'email', 'correo']).toLowerCase(),
+    shipping_mark: pick(raw, ['shipping_mark', 'marca', 'mark']),
+    shipping_type: shippingType.includes('aer') || shippingType === 'air' ? 'aereo' : 'maritimo',
+    risk_category: riskRaw.includes('alto') || riskRaw.includes('high') ? 'alto_riesgo' : 'general',
+    package_count: pickNumber(raw, ['package_count', 'packages', 'cantidad', 'bultos', 'paquetes']) || 1,
+    description: truncate(pick(raw, ['description', 'descripcion', 'producto', 'detalle']), 500),
+    invoice_url: pick(raw, ['invoice_url', 'factura_url']),
+    product_image_url: pick(raw, ['product_image_url', 'imagen_producto', 'foto_producto']),
+  };
+}
+
+function pickList(data: any) {
+  if (Array.isArray(data)) return data;
+  for (const key of ['items', 'prealerts', 'prealertas', 'packages', 'paquetes', 'results', 'data']) {
+    if (Array.isArray(data?.[key])) return data[key];
+  }
+  return [];
+}
+
+function pickCursor(data: any) {
+  if (!data || Array.isArray(data)) return '';
+  return String(data.next_cursor ?? data.nextCursor ?? data.next ?? data.cursor ?? '').trim();
+}
+
+async function fetchHistoryPage(url: string, key: string, cursor: string) {
+  const params = new URLSearchParams();
+  params.set('limit', String(PAGE_SIZE));
+  if (cursor) params.set('cursor', cursor);
+  const target = `${url}${url.includes('?') ? '&' : '?'}${params.toString()}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(target, {
+      method: 'GET',
+      headers: key ? { 'x-api-key': key } : {},
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      return { ok: false, records: [], next_cursor: '', has_more: false, error: `La app del mayorista respondió ${res.status}.` };
+    }
+    const data = await res.json().catch(() => null);
+    return {
+      ok: true,
+      records: pickList(data),
+      next_cursor: pickCursor(data),
+      has_more: data?.has_more === true || data?.hasMore === true,
+      error: null as string | null,
+    };
+  } catch (err: any) {
+    const message = err?.name === 'AbortError'
+      ? 'La app del mayorista no respondió a tiempo.'
+      : (err?.message || 'No se pudo pedir el historial a la app del mayorista.');
+    return { ok: false, records: [], next_cursor: '', has_more: false, error: message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function isEmpty(value: any) {
+  return value === undefined || value === null || String(value).trim() === '';
+}
+
+// Busca el registro de TLEC CARGO que corresponde a esta pre-alerta: primero por
+// el tracking exacto (lo que exige el PRD) y, si no aparece, por su código de
+// etiqueta. No se admiten variantes: una caja distinta no es el mismo envío.
+async function findExisting(base44: any, tracking: string, labelCode: string) {
+  if (tracking) {
+    const rows = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
+    if (rows?.[0]) return rows[0];
+  }
+  if (labelCode) {
+    const rows = await base44.asServiceRole.entities.Package.filter({ label_code: labelCode }, '-created_date', 1);
+    if (rows?.[0]) return rows[0];
+  }
+  return null;
+}
+
+// Lo que se completa de un registro que ya existía: solo campos que estaban
+// vacíos. Nunca se pisa un valor existente, ni el estado, ni la recepción, ni las
+// fotos del almacén.
+function fillPatch(current: any, record: any, client: any) {
+  const patch: Record<string, any> = {};
+  const hasClient = !!String(current?.client_email || '').trim();
+
+  if (isEmpty(current.description) && record.description) patch.description = record.description;
+
+  if (!hasClient && client) {
+    patch.client_email = client.email;
+    patch.is_orphan = false;
+  }
+
+  if (isEmpty(current.shipping_mark)) {
+    const mark = record.shipping_mark || client?.shipping_mark || '';
+    if (mark) patch.shipping_mark = mark;
+  }
+  if (isEmpty(current.label_code) && record.label_code) patch.label_code = record.label_code;
+  if (isEmpty(current.shipping_type) && record.shipping_type) patch.shipping_type = record.shipping_type;
+  if (isEmpty(current.risk_category) && record.risk_category) patch.risk_category = record.risk_category;
+
+  // La cantidad declarada solo se completa cuando no había ninguna: una cifra ya
+  // registrada (o corregida en el almacén) no se rebaja ni se sube desde aquí.
+  const declaredCount = Number(current?.package_count);
+  if ((!Number.isFinite(declaredCount) || declaredCount <= 0) && record.package_count > 0) {
+    patch.package_count = record.package_count;
+  }
+
+  if (isEmpty(current.invoice_url) && record.invoice_url) patch.invoice_url = record.invoice_url;
+  if (isEmpty(current.product_image_url) && record.product_image_url) patch.product_image_url = record.product_image_url;
+
+  return patch;
+}
+
+function createDeclaredFields(record: any) {
+  return {
+    tracking_number: record.tracking || '',
+    ...(record.label_code ? { label_code: record.label_code } : {}),
+    shipping_type: record.shipping_type || 'maritimo',
+    risk_category: record.risk_category || 'general',
+    package_count: Math.max(1, Number(record.package_count) || 1),
+    ...(record.invoice_url ? { invoice_url: record.invoice_url } : {}),
+    ...(record.product_image_url ? { product_image_url: record.product_image_url } : {}),
+  };
+}
+
+// Alinea un registro del historial con TLEC CARGO. Idempotente: repetir la misma
+// importación no crea ni cambia nada la segunda vez.
+export async function importHistoryRecord(base44: any, raw: any, connection: any = null) {
+  const record = normalizeHistoryRecord(raw);
+  const identity = record.tracking || record.label_code;
+
+  if (!identity) {
+    return { outcome: 'fallido', tracking: '', mensaje: 'El registro llegó sin tracking ni código de etiqueta.' };
+  }
+
+  const client = await findClientForNotice(base44, {
+    client_email: record.client_email,
+    shipping_mark: record.shipping_mark,
+  });
+
+  const existing = await findExisting(base44, record.tracking, record.label_code);
+
+  if (!existing) {
+    if (client) {
+      const created = await base44.asServiceRole.entities.Package.create({
+        ...createDeclaredFields(record),
+        client_email: client.email,
+        shipping_mark: client.shipping_mark || record.shipping_mark,
+        description: record.description || 'Pre-alerta del historial del cliente mayorista',
+        status: 'pre_alerta',
+        is_orphan: false,
+        reception_notes: 'Pre-alerta traída del historial del cliente mayorista',
+      });
+      return { outcome: 'nuevo', tracking: identity, package_id: created?.id || null, mensaje: 'Pre-alerta registrada en TLEC CARGO a nombre de su cliente.' };
+    }
+
+    // Sin cliente reconocido no se descarta nada: la carga queda como huérfano
+    // para asignarla desde el panel, con los datos que trajo el mayorista.
+    const orphan = await base44.asServiceRole.entities.Package.create({
+      ...createDeclaredFields(record),
+      shipping_mark: record.shipping_mark,
+      description: record.description || 'Pre-alerta del historial del cliente mayorista',
+      status: 'pre_alerta',
+      is_orphan: true,
+      reception_notes: 'Pre-alerta traída del historial del mayorista: su cliente todavía no se reconoce en TLEC CARGO.',
+    });
+    return { outcome: 'nuevo', tracking: identity, package_id: orphan?.id || null, mensaje: 'Pre-alerta guardada sin cliente asignado (huérfano), para revisarla.' };
+  }
+
+  let current = existing;
+  let vinculado = false;
+
+  // Si la carga ya estaba en el almacén sin cliente, esta pre-alerta la reclama
+  // conservando su recepción y sus fotos.
+  if (existing.is_orphan === true && !String(existing.client_email || '').trim() && client) {
+    try {
+      const consolidado = await consolidateOrphan({
+        base44,
+        orphan: existing,
+        claim: {
+          client_email: client.email,
+          shipping_mark: client.shipping_mark || record.shipping_mark,
+          tracking_number: identity,
+          ...(record.label_code ? { label_code: record.label_code } : {}),
+          shipping_type: record.shipping_type,
+          risk_category: record.risk_category,
+          package_count: record.package_count,
+          description: record.description,
+        },
+      });
+      if (consolidado?.package) {
+        current = consolidado.package;
+        vinculado = true;
+      }
+    } catch (_) {
+      // Si otro proceso la reclamó al mismo tiempo, se sigue con el llenado normal.
+    }
+  }
+
+  const patch = fillPatch(current, record, client);
+  if (!Object.keys(patch).length) {
+    return {
+      outcome: vinculado ? 'actualizado' : 'omitido',
+      tracking: identity,
+      package_id: current?.id || null,
+      mensaje: vinculado
+        ? 'La carga que estaba sin cliente quedó asignada a su dueño.'
+        : 'Ya estaba alineado en TLEC CARGO: no se tocó.',
+    };
+  }
+
+  const updated = await base44.asServiceRole.entities.Package.update(current.id, patch);
+  return {
+    outcome: 'actualizado',
+    tracking: identity,
+    package_id: updated?.id || current.id,
+    mensaje: 'Se completaron datos que faltaban (sin pisar lo que ya estaba).',
+  };
+}
+
+// Pide y procesa el historial completo de ese mayorista. Devuelve el resumen de la
+// corrida; los errores de un registro no detienen los demás.
+export async function syncWholesalerHistoryConnection(base44: any, connection: any) {
+  const now = new Date().toISOString();
+  const summary: any = {
+    id: connection?.id || null,
+    name: connectionLabel(connection),
+    key: connectionKeyOf(connection),
+    pages: 0,
+    total: 0,
+    nuevos: 0,
+    actualizados: 0,
+    omitidos: 0,
+    fallidos: 0,
+    truncado: false,
+    errores: [] as string[],
+    mensaje: '',
+  };
+
+  if (connection?.history_sync_enabled === false) {
+    summary.mensaje = 'La sincronización del historial está desactivada para este mayorista.';
+    return summary;
+  }
+
+  const url = String(connection?.history_feed_url || '').trim();
+  if (!url) {
+    summary.mensaje = 'Falta la dirección para pedirle su historial de pre-alertas.';
+    await updateConnection(base44, connection?.id, {
+      last_history_run_date: now,
+      last_history_status: 'error',
+      last_history_message: truncate(summary.mensaje, 900),
+    });
+    await logWholesalerEvent(base44, {
+      event_type: 'sync_fallido',
+      result: 'error',
+      detail: truncate(`Historial: ${summary.mensaje}`, 900),
+      ...stampOf(connection),
+    });
+    return summary;
+  }
+
+  const seen = new Set<string>();
+  let cursor = '';
+  let reachedLimit = false;
+
+  while (summary.pages < MAX_PAGES && !reachedLimit) {
+    const page = await fetchHistoryPage(url, outboundKeyFor(connection), cursor);
+
+    if (!page.ok) {
+      summary.mensaje = page.error;
+      summary.errores.push(page.error || 'No se pudo consultar el historial.');
+      await updateConnection(base44, connection?.id, {
+        last_history_run_date: now,
+        last_history_status: 'error',
+        last_history_message: truncate(page.error || 'No se pudo consultar el historial.', 900),
+      });
+      await logWholesalerEvent(base44, {
+        event_type: 'sync_fallido',
+        result: 'error',
+        detail: truncate(`Historial: ${page.error}`, 900),
+        ...stampOf(connection),
+      });
+      return summary;
+    }
+
+    summary.pages += 1;
+
+    for (const raw of page.records) {
+      if (summary.total >= MAX_RECORDS) {
+        reachedLimit = true;
+        break;
+      }
+
+      const record = normalizeHistoryRecord(raw);
+      const identity = record.tracking || record.label_code;
+      if (identity) {
+        if (seen.has(identity)) continue;
+        seen.add(identity);
+      }
+
+      summary.total += 1;
+      try {
+        const result = await importHistoryRecord(base44, raw, connection);
+        if (result.outcome === 'nuevo') summary.nuevos += 1;
+        else if (result.outcome === 'actualizado') summary.actualizados += 1;
+        else if (result.outcome === 'omitido') summary.omitidos += 1;
+        else {
+          summary.fallidos += 1;
+          if (summary.errores.length < MAX_ERROR_SAMPLES) {
+            summary.errores.push(`${identity || 'sin tracking'}: ${result.mensaje}`);
+          }
+        }
+      } catch (err: any) {
+        summary.fallidos += 1;
+        if (summary.errores.length < MAX_ERROR_SAMPLES) {
+          summary.errores.push(`${identity || 'sin tracking'}: ${truncate(err?.message || 'No se pudo procesar el registro.', 200)}`);
+        }
+      }
+    }
+
+    if (!page.next_cursor || page.next_cursor === cursor || page.has_more === false) break;
+    cursor = page.next_cursor;
+  }
+
+  summary.truncado = reachedLimit || summary.pages >= MAX_PAGES;
+  summary.mensaje = `${summary.total} registro(s) del historial: ${summary.nuevos} nuevo(s), ${summary.actualizados} actualizado(s), ${summary.omitidos} ya alineado(s)${summary.fallidos ? `, ${summary.fallidos} con error` : ''}${summary.truncado ? ' (se alcanzó el tope de la corrida)' : ''}.`;
+
+  await updateConnection(base44, connection?.id, {
+    last_history_run_date: now,
+    last_history_status: 'ok',
+    last_history_message: truncate(summary.mensaje, 900),
+    last_history_total: summary.total,
+    last_history_new: summary.nuevos,
+    last_history_updated: summary.actualizados,
+    last_history_skipped: summary.omitidos,
+    last_history_errors: summary.fallidos,
+    last_history_pages: summary.pages,
+  });
+
+  await logWholesalerEvent(base44, {
+    event_type: 'historial_sincronizado',
+    result: summary.nuevos || summary.actualizados ? 'alineado' : 'sin_cambios',
+    detail: truncate(
+      `${summary.mensaje}${summary.errores.length ? ` Errores: ${summary.errores.join(' · ')}` : ''}`,
+      900,
+    ),
+    ...stampOf(connection),
+  });
+
+  return summary;
+}

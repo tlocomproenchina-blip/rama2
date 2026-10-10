@@ -1,0 +1,45 @@
+{
+  "name": "Historial de pre-alertas del mayorista",
+  "description": "Todos los d\u00edas a las 3:00 a.m. (hora Venezuela) le pide a cada mayorista su historial completo de pre-alertas y lo deja alineado en TLEC CARGO: lo que no estaba se registra, lo que exist\u00eda a medias se completa y lo que ya estaba se omite sin duplicarse.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 3 * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "historial_prealertas_mayorista",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sincronizar_historial": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "syncWholesalerHistory",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Sincronizar el historial",
+            "description": "Pre-alertas de todos los mayoristas"
+          }
+        }
+      }
+    ]
+  }
+}

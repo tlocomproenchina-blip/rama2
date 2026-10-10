@@ -16,6 +16,15 @@
       "type": "string",
       "description": "Direcci\u00f3n de la app del mayorista a la que esta app le pide sus clientes nuevos cada 24 horas"
     },
+    "history_feed_url": {
+      "type": "string",
+      "description": "Direcci\u00f3n de la app del mayorista a la que esta app le pide su historial completo de pre-alertas (paginado). Se consulta todos los d\u00edas a las 3:00 a.m. (Caracas) y cuando un administrador lo pide desde el panel."
+    },
+    "history_sync_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activa la consulta diaria del historial completo de pre-alertas de ese mayorista"
+    },
     "notify_url": {
       "type": "string",
       "description": "Direcci\u00f3n de la app del mayorista a la que esta app avisa cuando su carga se recibi\u00f3 en el almac\u00e9n de China"
@@ -26,7 +35,7 @@
     },
     "outbound_key": {
       "type": "string",
-      "description": "Clave con la que esta app llama a ese mayorista (pedirle sus clientes y avisarle las recepciones). Si est\u00e1 vac\u00eda se usa la clave de Secretos."
+      "description": "Clave con la que esta app llama a ese mayorista (pedirle sus clientes, pedirle su historial de pre-alertas y avisarle las recepciones). Si est\u00e1 vac\u00eda se usa la clave de Secretos."
     },
     "intake_enabled": {
       "type": "boolean",
@@ -112,6 +121,56 @@
       "type": "number",
       "default": 0,
       "description": "Clientes tra\u00eddos en la \u00faltima consulta"
+    },
+    "last_history_run_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de la \u00faltima sincronizaci\u00f3n del historial de pre-alertas de ese mayorista"
+    },
+    "last_history_status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "error",
+        "nunca"
+      ],
+      "default": "nunca",
+      "description": "Resultado de la \u00faltima sincronizaci\u00f3n del historial: ok (se consult\u00f3), error (no respondi\u00f3) o nunca (todav\u00eda no se ha intentado)"
+    },
+    "last_history_message": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle de la \u00faltima sincronizaci\u00f3n del historial: cu\u00e1ntas pre-alertas se registraron, se completaron o ya estaban alineadas"
+    },
+    "last_history_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Pre-alertas que trajo el historial en la \u00faltima sincronizaci\u00f3n"
+    },
+    "last_history_new": {
+      "type": "number",
+      "default": 0,
+      "description": "Pre-alertas nuevas registradas en la \u00faltima sincronizaci\u00f3n del historial"
+    },
+    "last_history_updated": {
+      "type": "number",
+      "default": 0,
+      "description": "Pre-alertas que ya exist\u00edan y se completaron con datos que faltaban en la \u00faltima sincronizaci\u00f3n"
+    },
+    "last_history_skipped": {
+      "type": "number",
+      "default": 0,
+      "description": "Pre-alertas que ya estaban alineadas: no se tocaron en la \u00faltima sincronizaci\u00f3n"
+    },
+    "last_history_errors": {
+      "type": "number",
+      "default": 0,
+      "description": "Pre-alertas que no se pudieron procesar en la \u00faltima sincronizaci\u00f3n del historial"
+    },
+    "last_history_pages": {
+      "type": "number",
+      "default": 0,
+      "description": "P\u00e1ginas del historial que se consultaron en la \u00faltima sincronizaci\u00f3n"
     },
     "last_report_date": {
       "type": "string",

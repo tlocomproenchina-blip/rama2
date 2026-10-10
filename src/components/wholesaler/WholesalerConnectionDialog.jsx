@@ -11,6 +11,8 @@ import { Loader2, Save } from 'lucide-react';
 const EMPTY = {
   wholesaler_name: '',
   clients_feed_url: '',
+  history_feed_url: '',
+  history_sync_enabled: true,
   notify_url: '',
   inbound_key: '',
   outbound_key: '',
@@ -48,6 +50,8 @@ export default function WholesalerConnectionDialog({ open, connection, onClose, 
         config_key: connection?.id ? (connection.config_key || 'main') : newConnectionKey(),
         wholesaler_name: name,
         clients_feed_url: String(form.clients_feed_url || '').trim(),
+        history_feed_url: String(form.history_feed_url || '').trim(),
+        history_sync_enabled: !!form.history_sync_enabled,
         notify_url: String(form.notify_url || '').trim(),
         inbound_key: String(form.inbound_key || '').trim(),
         outbound_key: String(form.outbound_key || '').trim(),
@@ -100,6 +104,20 @@ export default function WholesalerConnectionDialog({ open, connection, onClose, 
           </div>
 
           <div className="space-y-2">
+            <Label>Dirección para pedirle su historial de pre-alertas</Label>
+            <Input
+              value={form.history_feed_url || ''}
+              onChange={(e) => set({ history_feed_url: e.target.value })}
+              placeholder="https://su-app.com/functions/wholesalerHistoryFeed"
+            />
+            <p className="text-xs text-muted-foreground">
+              Devuelve sus pre-alertas en páginas (con <span className="font-mono">items</span> y{' '}
+              <span className="font-mono">next_cursor</span>); se le pide con <span className="font-mono">limit</span> y{' '}
+              <span className="font-mono">cursor</span>. Con esa dirección, TLEC CARGO lo consulta todos los días.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label>Dirección para avisarle que su carga llegó a China</Label>
             <Input
               value={form.notify_url || ''}
@@ -142,6 +160,13 @@ export default function WholesalerConnectionDialog({ open, connection, onClose, 
                 <p className="text-xs text-muted-foreground">Corte diario a las 8:00 a.m. (Caracas).</p>
               </div>
               <Switch checked={!!form.intake_enabled} onCheckedChange={(v) => set({ intake_enabled: v })} />
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Pedir su historial de pre-alertas cada día</p>
+                <p className="text-xs text-muted-foreground">Todos los días a las 3:00 a.m. (Caracas): trae el historial completo sin duplicar lo que ya estaba.</p>
+              </div>
+              <Switch checked={!!form.history_sync_enabled} onCheckedChange={(v) => set({ history_sync_enabled: v })} />
             </div>
             <div className="flex items-center justify-between gap-3">
               <div>

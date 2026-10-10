@@ -22,6 +22,7 @@ const tones = {
   sync_fallido: 'bg-rose-100 text-rose-700',
   conexion_fallida: 'bg-rose-100 text-rose-700',
   conexion_ok: 'bg-emerald-100 text-emerald-700',
+  historial_sincronizado: 'bg-indigo-100 text-indigo-700',
 };
 
 const labels = {
@@ -42,6 +43,7 @@ const labels = {
   sync_fallido: 'Consulta fallida',
   conexion_fallida: 'Conexión caída',
   conexion_ok: 'Conexión restablecida',
+  historial_sincronizado: 'Historial sincronizado',
 };
 
 export default function WholesalerMovementsList({ logs = [], loading }) {
