@@ -140,7 +140,7 @@
     "last_history_message": {
       "type": "string",
       "maxLength": 1000,
-      "description": "Detalle de la \u00faltima sincronizaci\u00f3n del historial: cu\u00e1ntas pre-alertas se registraron, se completaron o ya estaban alineadas"
+      "description": "Detalle de la \u00faltima sincronizaci\u00f3n del historial: cu\u00e1ntas pre-alertas se registraron, se completaron o ya estaban alineadas, y cu\u00e1ntas coincidencias se le devolvieron al mayorista"
     },
     "last_history_total": {
       "type": "number",
@@ -155,12 +155,12 @@
     "last_history_updated": {
       "type": "number",
       "default": 0,
-      "description": "Pre-alertas que ya exist\u00edan y se completaron con datos que faltaban en la \u00faltima sincronizaci\u00f3n"
+      "description": "Pre-alertas que ya exist\u00edan y se completaron con datos que faltaban en la \u00faltima sincronizaci\u00f3n del historial"
     },
     "last_history_skipped": {
       "type": "number",
       "default": 0,
-      "description": "Pre-alertas que ya estaban alineadas: no se tocaron en la \u00faltima sincronizaci\u00f3n"
+      "description": "Pre-alertas que ya estaban alineadas: no se tocaron en la \u00faltima sincronizaci\u00f3n del historial"
     },
     "last_history_errors": {
       "type": "number",
@@ -171,6 +171,16 @@
       "type": "number",
       "default": 0,
       "description": "P\u00e1ginas del historial que se consultaron en la \u00faltima sincronizaci\u00f3n"
+    },
+    "last_history_notified": {
+      "type": "number",
+      "default": 0,
+      "description": "Coincidencias ya recibidas en el almac\u00e9n que se le devolvieron al mayorista en la \u00faltima sincronizaci\u00f3n del historial, para que su app marque esas cargas como recibidas"
+    },
+    "last_history_notify_failed": {
+      "type": "number",
+      "default": 0,
+      "description": "Avisos de esas coincidencias que no se pudieron entregar al mayorista en la \u00faltima sincronizaci\u00f3n del historial"
     },
     "last_report_date": {
       "type": "string",

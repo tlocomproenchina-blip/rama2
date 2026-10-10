@@ -20,6 +20,11 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
     actualizados: acc.actualizados + (Number(c.last_history_updated) || 0),
     omitidos: acc.omitidos + (Number(c.last_history_skipped) || 0),
   }), { nuevos: 0, actualizados: 0, omitidos: 0 });
+  // Coincidencias ya recibidas en el almacén que se le devolvieron al mayorista.
+  const avisos = connections.reduce((acc, c) => ({
+    enviados: acc.enviados + (Number(c.last_history_notified) || 0),
+    fallidos: acc.fallidos + (Number(c.last_history_notify_failed) || 0),
+  }), { enviados: 0, fallidos: 0 });
 
   return (
     <Card className="rounded-2xl border-0 shadow-card">
@@ -32,8 +37,9 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
             </h3>
             <p className="text-sm text-muted-foreground">
               Pide a cada mayorista todo su historial de pre-alertas y lo deja alineado aquí. Lo que ya existe no se
-              duplica ni se pisa: solo se le completan los datos que faltaban. Se ejecuta solo todos los días a las
-              3:00 a.m. (Caracas).
+              duplica ni se pisa: solo se le completan los datos que faltaban. Al terminar le devuelve las
+              coincidencias que ya están recibidas en el almacén, con su tracking, su cliente y su foto, para que su
+              app las marque como recibidas. Se ejecuta solo todos los días a las 3:00 a.m. (Caracas).
             </p>
           </div>
           <Button onClick={onSync} disabled={busy} className="gap-2">
@@ -47,6 +53,12 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
           <Badge className="bg-emerald-100 text-emerald-700">{totales.nuevos} nueva(s)</Badge>
           <Badge className="bg-sky-100 text-sky-700">{totales.actualizados} completada(s)</Badge>
           <Badge className="bg-slate-100 text-slate-600">{totales.omitidos} ya alineada(s)</Badge>
+          {avisos.enviados > 0 && (
+            <Badge className="bg-emerald-100 text-emerald-700">{avisos.enviados} devuelta(s) al mayorista</Badge>
+          )}
+          {avisos.fallidos > 0 && (
+            <Badge className="bg-rose-100 text-rose-700">{avisos.fallidos} aviso(s) fallido(s)</Badge>
+          )}
           <span className="text-muted-foreground">Última sincronización: {when(ultima)}</span>
         </div>
 
@@ -66,6 +78,16 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
                     )}
                     {connection.last_history_status === 'error' && (
                       <Badge className="bg-rose-100 text-rose-700">con error</Badge>
+                    )}
+                    {Number(connection.last_history_notified) > 0 && (
+                      <Badge className="bg-emerald-100 text-emerald-700">
+                        {connection.last_history_notified} devuelta(s) al mayorista
+                      </Badge>
+                    )}
+                    {Number(connection.last_history_notify_failed) > 0 && (
+                      <Badge className="bg-rose-100 text-rose-700">
+                        {connection.last_history_notify_failed} aviso(s) sin entregar
+                      </Badge>
                     )}
                     <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">
                       {when(connection.last_history_run_date)}

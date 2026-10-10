@@ -3,8 +3,10 @@
 // con lo que ya existe en TLEC CARGO. Nunca duplica: lo que ya estaba se omite, lo
 // que existe a medias se completa sin pisar nada y lo que no estaba se registra
 // igual, aunque el cliente todavía no se reconozca (queda como huérfano para
-// asignarlo después). Los datos del almacén —estado, recepción y fotos— no se
-// tocan nunca desde aquí.
+// asignarlo después). Después de alinear, le devuelve al mayorista las coincidencias
+// que ya constan recibidas en el almacén —con su tracking, su cliente y su foto—
+// para que su app marque esas cargas como recibidas. Los datos del almacén no se
+// modifican desde aquí: solo se leen para confirmar la recepción.
 import {
   connectionKeyOf,
   connectionLabel,
@@ -14,7 +16,8 @@ import {
   truncate,
   updateConnection,
 } from './wholesalerCore.ts';
-import { cleanTracking, findClientForNotice } from './wholesalerPackages.ts';
+import { cleanTracking, findClientForNotice, queueReceptionNotice, receptionPhotos } from './wholesalerPackages.ts';
+import { notifyReceptionBlock } from './wholesalerNotify.ts';
 import { consolidateOrphan } from './orphanConsolidation.ts';
 
 const TIMEOUT_MS = 20000;
@@ -22,6 +25,13 @@ const PAGE_SIZE = 200;
 const MAX_PAGES = 50;
 const MAX_RECORDS = 5000;
 const MAX_ERROR_SAMPLES = 5;
+
+// Devolución al mayorista de las coincidencias ya recibidas: cuántas se le confirman
+// en una misma corrida (las que siguen se devuelven en la corrida siguiente, sin
+// repetir las que ya salieron) y de cuántas en cuántas viajan en cada envío.
+const MAX_NOTIFY_PER_RUN = 60;
+const NOTIFY_BLOCK = 20;
+const RECEIVED_STATES = ['recibido', 'consolidado', 'en_transito', 'disponible', 'despachado', 'entregado'];
 
 function pick(raw: any, keys: string[]) {
   for (const key of keys) {
@@ -179,6 +189,74 @@ function createDeclaredFields(record: any) {
   };
 }
 
+// Una carga ya reconocida en el almacén (de China o en camino a Venezuela): es lo
+// único que se le confirma al mayorista como recibido.
+export function receivedInChina(pkg: any) {
+  return RECEIVED_STATES.includes(String(pkg?.status || '')) || !!pkg?.received_date || !!pkg?.ve_recognized_date;
+}
+
+// Devuelve al mayorista las coincidencias de su historial que ya constan recibidas en
+// el almacén y tienen su foto de recepción: se le manda el tracking, el cliente al que
+// quedó asignada la carga y la foto, y su app marca esa carga como recibida en la
+// cuenta de su cliente. Lo que no esté recibido o no tenga foto no se avisa como
+// recepción. Cada envío queda registrado en el movimiento de la carga y, si no sale,
+// queda pendiente para el reintento del corte diario.
+async function confirmMatchesToWholesaler(base44: any, connection: any, matches: any[]) {
+  const result = { enviados: 0, fallidos: 0, omitidos: 0, pendientes: 0, errores: [] as string[] };
+  if (!matches.length) return result;
+
+  if (!String(connection?.notify_url || '').trim() || connection?.notify_enabled === false) {
+    result.pendientes = matches.length;
+    result.errores.push('El aviso al mayorista está desactivado o le falta su dirección: las coincidencias quedaron registradas sin devolver.');
+    return result;
+  }
+
+  const receptions: any[] = [];
+  for (const pkg of matches) {
+    if (receptions.length >= MAX_NOTIFY_PER_RUN) {
+      result.pendientes += 1;
+      continue;
+    }
+    try {
+      const queued = await queueReceptionNotice(base44, pkg, connection, 'devuelta al alinear el historial de pre-alertas');
+      if (!queued?.log_id) continue;
+      if (queued.ya_avisado) {
+        result.omitidos += 1;
+        continue;
+      }
+      receptions.push({
+        tracking: String(pkg?.tracking_number || ''),
+        shipping_mark: pkg?.shipping_mark || '',
+        client_email: String(pkg?.client_email || '').trim(),
+        estado: 'recibido',
+        fecha: pkg?.received_date || pkg?.created_date || new Date().toISOString(),
+        log_id: queued.log_id,
+        fotos: queued.fotos,
+      });
+    } catch (err: any) {
+      result.fallidos += 1;
+      if (result.errores.length < MAX_ERROR_SAMPLES) {
+        result.errores.push(`${pkg?.tracking_number || 'sin tracking'}: ${truncate(err?.message || 'no se pudo preparar el aviso', 200)}`);
+      }
+    }
+  }
+
+  for (let i = 0; i < receptions.length; i += NOTIFY_BLOCK) {
+    const block = receptions.slice(i, i + NOTIFY_BLOCK);
+    const sent = await notifyReceptionBlock(base44, block, connection);
+    if (sent?.enviado) {
+      result.enviados += block.length;
+      continue;
+    }
+    result.fallidos += block.length;
+    if (result.errores.length < MAX_ERROR_SAMPLES) {
+      result.errores.push(sent?.mensaje || 'No se pudo avisar al mayorista de las coincidencias.');
+    }
+  }
+
+  return result;
+}
+
 // Alinea un registro del historial con TLEC CARGO. Idempotente: repetir la misma
 // importación no crea ni cambia nada la segunda vez.
 export async function importHistoryRecord(base44: any, raw: any, connection: any = null) {
@@ -207,7 +285,7 @@ export async function importHistoryRecord(base44: any, raw: any, connection: any
         is_orphan: false,
         reception_notes: 'Pre-alerta traída del historial del cliente mayorista',
       });
-      return { outcome: 'nuevo', tracking: identity, package_id: created?.id || null, mensaje: 'Pre-alerta registrada en TLEC CARGO a nombre de su cliente.' };
+      return { outcome: 'nuevo', tracking: identity, package_id: created?.id || null, package: created || null, mensaje: 'Pre-alerta registrada en TLEC CARGO a nombre de su cliente.' };
     }
 
     // Sin cliente reconocido no se descarta nada: la carga queda como huérfano
@@ -220,7 +298,7 @@ export async function importHistoryRecord(base44: any, raw: any, connection: any
       is_orphan: true,
       reception_notes: 'Pre-alerta traída del historial del mayorista: su cliente todavía no se reconoce en TLEC CARGO.',
     });
-    return { outcome: 'nuevo', tracking: identity, package_id: orphan?.id || null, mensaje: 'Pre-alerta guardada sin cliente asignado (huérfano), para revisarla.' };
+    return { outcome: 'nuevo', tracking: identity, package_id: orphan?.id || null, package: orphan || null, mensaje: 'Pre-alerta guardada sin cliente asignado (huérfano), para revisarla.' };
   }
 
   let current = existing;
@@ -259,6 +337,7 @@ export async function importHistoryRecord(base44: any, raw: any, connection: any
       outcome: vinculado ? 'actualizado' : 'omitido',
       tracking: identity,
       package_id: current?.id || null,
+      package: current || null,
       mensaje: vinculado
         ? 'La carga que estaba sin cliente quedó asignada a su dueño.'
         : 'Ya estaba alineado en TLEC CARGO: no se tocó.',
@@ -270,6 +349,7 @@ export async function importHistoryRecord(base44: any, raw: any, connection: any
     outcome: 'actualizado',
     tracking: identity,
     package_id: updated?.id || current.id,
+    package: updated || current,
     mensaje: 'Se completaron datos que faltaban (sin pisar lo que ya estaba).',
   };
 }
@@ -288,6 +368,11 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
     actualizados: 0,
     omitidos: 0,
     fallidos: 0,
+    // Coincidencias ya recibidas que se le devolvieron al mayorista en esta corrida.
+    avisos_enviados: 0,
+    avisos_fallidos: 0,
+    avisos_omitidos: 0,
+    avisos_pendientes: 0,
     truncado: false,
     errores: [] as string[],
     mensaje: '',
@@ -316,6 +401,8 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
   }
 
   const seen = new Set<string>();
+  // Cargas del historial que ya constan recibidas en el almacén, con su foto.
+  const coincidencias: any[] = [];
   let cursor = '';
   let reachedLimit = false;
 
@@ -357,6 +444,11 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
       summary.total += 1;
       try {
         const result = await importHistoryRecord(base44, raw, connection);
+        // Coincidencia con una carga ya recibida en el almacén y con su foto: se le
+        // devuelve al mayorista al terminar la corrida.
+        if (result.package && receivedInChina(result.package) && receptionPhotos(result.package).length > 0) {
+          coincidencias.push(result.package);
+        }
         if (result.outcome === 'nuevo') summary.nuevos += 1;
         else if (result.outcome === 'actualizado') summary.actualizados += 1;
         else if (result.outcome === 'omitido') summary.omitidos += 1;
@@ -378,8 +470,22 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
     cursor = page.next_cursor;
   }
 
+  // Traída y alineada la información, se le devuelve al mayorista lo que ya consta
+  // recibido: su tracking con la foto de la carga y su cliente.
+  const avisos = await confirmMatchesToWholesaler(base44, connection, coincidencias);
+  summary.avisos_enviados = avisos.enviados;
+  summary.avisos_fallidos = avisos.fallidos;
+  summary.avisos_omitidos = avisos.omitidos;
+  summary.avisos_pendientes = avisos.pendientes;
+  for (const error of avisos.errores) {
+    if (summary.errores.length < MAX_ERROR_SAMPLES) summary.errores.push(error);
+  }
+
   summary.truncado = reachedLimit || summary.pages >= MAX_PAGES;
-  summary.mensaje = `${summary.total} registro(s) del historial: ${summary.nuevos} nuevo(s), ${summary.actualizados} actualizado(s), ${summary.omitidos} ya alineado(s)${summary.fallidos ? `, ${summary.fallidos} con error` : ''}${summary.truncado ? ' (se alcanzó el tope de la corrida)' : ''}.`;
+  const devueltas = coincidencias.length
+    ? ` Coincidencias ya recibidas devueltas al mayorista: ${summary.avisos_enviados} aviso(s) enviado(s)${summary.avisos_fallidos ? `, ${summary.avisos_fallidos} fallido(s)` : ''}${summary.avisos_pendientes ? `, ${summary.avisos_pendientes} se devuelven en la corrida siguiente` : ''}.`
+    : '';
+  summary.mensaje = `${summary.total} registro(s) del historial: ${summary.nuevos} nuevo(s), ${summary.actualizados} actualizado(s), ${summary.omitidos} ya alineado(s)${summary.fallidos ? `, ${summary.fallidos} con error` : ''}${summary.truncado ? ' (se alcanzó el tope de la corrida)' : ''}.${devueltas}`;
 
   await updateConnection(base44, connection?.id, {
     last_history_run_date: now,
@@ -391,6 +497,8 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
     last_history_skipped: summary.omitidos,
     last_history_errors: summary.fallidos,
     last_history_pages: summary.pages,
+    last_history_notified: summary.avisos_enviados,
+    last_history_notify_failed: summary.avisos_fallidos,
   });
 
   await logWholesalerEvent(base44, {
