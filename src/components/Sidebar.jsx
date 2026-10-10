@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Package, LogOut, X } from 'lucide-react';
+import { Package, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
 import { cacheManager } from '@/components/CacheManager';
@@ -7,6 +7,7 @@ import OptimizedImage from '@/components/OptimizedImage';
 import useAttentionFlags from '@/components/notifications/useAttentionFlags';
 import useNotificationFlags from '@/components/notifications/useNotificationFlags';
 import SidebarNavGroup from '@/components/sidebar/SidebarNavGroup';
+import SidebarLogoutButton from '@/components/sidebar/SidebarLogoutButton';
 import {
   adminGroups,
   adminMenuItems,
@@ -253,21 +254,10 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
               />
             ))
           )}
+          {/* Cerrar Sesión: justo debajo de Configuración, al final del menú */}
+          <SidebarLogoutButton onClick={handleLogout} />
           </div>
         </nav>
-
-        {/* Logout */}
-        <div className="relative border-t border-border/60 px-4 pb-4 pt-3 lg:py-4">
-          <div className="rounded-[1.5rem] border border-border/80 bg-card/82 p-2 shadow-sm backdrop-blur transition-all duration-300">
-            <Button
-              variant="ghost"
-              className="w-full justify-start rounded-xl text-muted-foreground hover:bg-accent/80 hover:text-foreground"
-              onClick={handleLogout}>
-              <LogOut className="mr-3 h-5 w-5" />
-              Cerrar Sesión
-            </Button>
-          </div>
-        </div>
       </aside>
     </>);
 
