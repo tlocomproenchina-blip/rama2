@@ -140,7 +140,7 @@
     "last_history_message": {
       "type": "string",
       "maxLength": 1000,
-      "description": "Detalle de la \u00faltima sincronizaci\u00f3n del historial: cu\u00e1ntas pre-alertas se registraron, se completaron o ya estaban alineadas, y cu\u00e1ntas coincidencias se le devolvieron al mayorista"
+      "description": "Detalle de la \u00faltima sincronizaci\u00f3n del historial: cu\u00e1ntas pre-alertas se registraron, se completaron o ya estaban alineadas, cu\u00e1ntas cargas quedaron con su titular y cu\u00e1ntas coincidencias se le devolvieron al mayorista"
     },
     "last_history_total": {
       "type": "number",
@@ -172,6 +172,11 @@
       "default": 0,
       "description": "P\u00e1ginas del historial que se consultaron en la \u00faltima sincronizaci\u00f3n"
     },
+    "last_history_assigned": {
+      "type": "number",
+      "default": 0,
+      "description": "Registros que quedaron con su titular asignado en la \u00faltima sincronizaci\u00f3n del historial"
+    },
     "last_history_notified": {
       "type": "number",
       "default": 0,
@@ -181,6 +186,75 @@
       "type": "number",
       "default": 0,
       "description": "Avisos de esas coincidencias que no se pudieron entregar al mayorista en la \u00faltima sincronizaci\u00f3n del historial"
+    },
+    "last_history_notify_pending": {
+      "type": "number",
+      "default": 0,
+      "description": "Coincidencias ya recibidas en el almac\u00e9n que todav\u00eda no se le devolvieron al mayorista: o les falta la foto de recepci\u00f3n, o quedaron para la corrida siguiente"
+    },
+    "last_history_detail": {
+      "type": "array",
+      "default": [],
+      "description": "Ficha de cada registro de la \u00faltima sincronizaci\u00f3n del historial: su tracking, el titular al que qued\u00f3 asignada la carga, su estado en TLEC CARGO y c\u00f3mo qued\u00f3 su aviso al mayorista. Es lo que muestra el detalle del panel.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tracking": {
+            "type": "string"
+          },
+          "client_email": {
+            "type": "string",
+            "description": "Titular al que qued\u00f3 asignada la carga. Vac\u00edo cuando todav\u00eda no tiene titular."
+          },
+          "shipping_mark": {
+            "type": "string"
+          },
+          "package_id": {
+            "type": "string"
+          },
+          "resultado": {
+            "type": "string",
+            "enum": [
+              "nuevo",
+              "completado",
+              "alineado",
+              "con_error"
+            ],
+            "description": "Qu\u00e9 hizo la sincronizaci\u00f3n con este registro"
+          },
+          "estado": {
+            "type": "string",
+            "description": "Estado de la carga en TLEC CARGO"
+          },
+          "asignado": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indica que esta carga qued\u00f3 con su titular en esta corrida"
+          },
+          "aviso": {
+            "type": "string",
+            "enum": [
+              "enviado",
+              "fallido",
+              "omitido",
+              "pendiente",
+              "sin_foto",
+              "no_recibido",
+              "no_aplica"
+            ],
+            "description": "C\u00f3mo qued\u00f3 el aviso de recepci\u00f3n a la app del mayorista: enviado, fallido, omitido (ya avisado), pendiente, sin_foto (falta la foto de la carga), no_recibido o no_aplica (no hay carga registrada)"
+          },
+          "fotos": {
+            "type": "number",
+            "description": "Fotos de la carga que iban en el aviso"
+          },
+          "mensaje": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Detalle del resultado de este registro"
+          }
+        }
+      }
     },
     "last_report_date": {
       "type": "string",

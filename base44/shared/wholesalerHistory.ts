@@ -31,6 +31,14 @@ const MAX_ERROR_SAMPLES = 5;
 // repetir las que ya salieron) y de cuántas en cuántas viajan en cada envío.
 const MAX_NOTIFY_PER_RUN = 60;
 const NOTIFY_BLOCK = 20;
+// Fichas de cada registro de la corrida que se guardan para el detalle del panel.
+const MAX_DETAIL = 200;
+const RESULT_LABELS: Record<string, string> = {
+  nuevo: 'nuevo',
+  actualizado: 'completado',
+  omitido: 'alineado',
+  fallido: 'con_error',
+};
 const RECEIVED_STATES = ['recibido', 'consolidado', 'en_transito', 'disponible', 'despachado', 'entregado'];
 
 function pick(raw: any, keys: string[]) {
@@ -202,11 +210,22 @@ export function receivedInChina(pkg: any) {
 // recepción. Cada envío queda registrado en el movimiento de la carga y, si no sale,
 // queda pendiente para el reintento del corte diario.
 async function confirmMatchesToWholesaler(base44: any, connection: any, matches: any[]) {
-  const result = { enviados: 0, fallidos: 0, omitidos: 0, pendientes: 0, errores: [] as string[] };
+  const result = {
+    enviados: 0,
+    fallidos: 0,
+    omitidos: 0,
+    pendientes: 0,
+    // Cómo quedó el aviso de cada carga, para el detalle del panel.
+    por_paquete: {} as Record<string, any>,
+    errores: [] as string[],
+  };
   if (!matches.length) return result;
 
   if (!String(connection?.notify_url || '').trim() || connection?.notify_enabled === false) {
     result.pendientes = matches.length;
+    for (const pkg of matches) {
+      result.por_paquete[pkg.id] = { aviso: 'pendiente', fotos: receptionPhotos(pkg).length };
+    }
     result.errores.push('El aviso al mayorista está desactivado o le falta su dirección: las coincidencias quedaron registradas sin devolver.');
     return result;
   }
@@ -215,6 +234,7 @@ async function confirmMatchesToWholesaler(base44: any, connection: any, matches:
   for (const pkg of matches) {
     if (receptions.length >= MAX_NOTIFY_PER_RUN) {
       result.pendientes += 1;
+      result.por_paquete[pkg.id] = { aviso: 'pendiente', fotos: receptionPhotos(pkg).length };
       continue;
     }
     try {
@@ -222,9 +242,11 @@ async function confirmMatchesToWholesaler(base44: any, connection: any, matches:
       if (!queued?.log_id) continue;
       if (queued.ya_avisado) {
         result.omitidos += 1;
+        result.por_paquete[pkg.id] = { aviso: 'omitido', fotos: (queued.fotos || []).length };
         continue;
       }
       receptions.push({
+        package_id: pkg?.id || '',
         tracking: String(pkg?.tracking_number || ''),
         shipping_mark: pkg?.shipping_mark || '',
         client_email: String(pkg?.client_email || '').trim(),
@@ -235,6 +257,7 @@ async function confirmMatchesToWholesaler(base44: any, connection: any, matches:
       });
     } catch (err: any) {
       result.fallidos += 1;
+      result.por_paquete[pkg.id] = { aviso: 'fallido', fotos: 0, mensaje: 'No se pudo preparar el aviso.' };
       if (result.errores.length < MAX_ERROR_SAMPLES) {
         result.errores.push(`${pkg?.tracking_number || 'sin tracking'}: ${truncate(err?.message || 'no se pudo preparar el aviso', 200)}`);
       }
@@ -246,9 +269,19 @@ async function confirmMatchesToWholesaler(base44: any, connection: any, matches:
     const sent = await notifyReceptionBlock(base44, block, connection);
     if (sent?.enviado) {
       result.enviados += block.length;
+      for (const item of block) {
+        result.por_paquete[item.package_id] = { aviso: 'enviado', fotos: (item.fotos || []).length };
+      }
       continue;
     }
     result.fallidos += block.length;
+    for (const item of block) {
+      result.por_paquete[item.package_id] = {
+        aviso: 'fallido',
+        fotos: (item.fotos || []).length,
+        mensaje: sent?.mensaje || 'El aviso no se pudo entregar al mayorista.',
+      };
+    }
     if (result.errores.length < MAX_ERROR_SAMPLES) {
       result.errores.push(sent?.mensaje || 'No se pudo avisar al mayorista de las coincidencias.');
     }
@@ -285,7 +318,7 @@ export async function importHistoryRecord(base44: any, raw: any, connection: any
         is_orphan: false,
         reception_notes: 'Pre-alerta traída del historial del cliente mayorista',
       });
-      return { outcome: 'nuevo', tracking: identity, package_id: created?.id || null, package: created || null, mensaje: 'Pre-alerta registrada en TLEC CARGO a nombre de su cliente.' };
+      return { outcome: 'nuevo', tracking: identity, package_id: created?.id || null, package: created || null, asignado: true, mensaje: 'Pre-alerta registrada en TLEC CARGO a nombre de su cliente.' };
     }
 
     // Sin cliente reconocido no se descarta nada: la carga queda como huérfano
@@ -298,7 +331,7 @@ export async function importHistoryRecord(base44: any, raw: any, connection: any
       is_orphan: true,
       reception_notes: 'Pre-alerta traída del historial del mayorista: su cliente todavía no se reconoce en TLEC CARGO.',
     });
-    return { outcome: 'nuevo', tracking: identity, package_id: orphan?.id || null, package: orphan || null, mensaje: 'Pre-alerta guardada sin cliente asignado (huérfano), para revisarla.' };
+    return { outcome: 'nuevo', tracking: identity, package_id: orphan?.id || null, package: orphan || null, asignado: false, mensaje: 'Pre-alerta guardada sin cliente asignado (huérfano), para revisarla.' };
   }
 
   let current = existing;
@@ -338,6 +371,7 @@ export async function importHistoryRecord(base44: any, raw: any, connection: any
       tracking: identity,
       package_id: current?.id || null,
       package: current || null,
+      asignado: vinculado,
       mensaje: vinculado
         ? 'La carga que estaba sin cliente quedó asignada a su dueño.'
         : 'Ya estaba alineado en TLEC CARGO: no se tocó.',
@@ -350,7 +384,10 @@ export async function importHistoryRecord(base44: any, raw: any, connection: any
     tracking: identity,
     package_id: updated?.id || current.id,
     package: updated || current,
-    mensaje: 'Se completaron datos que faltaban (sin pisar lo que ya estaba).',
+    asignado: vinculado,
+    mensaje: vinculado
+      ? 'Se completaron datos que faltaban y la carga quedó asignada a su titular.'
+      : 'Se completaron datos que faltaban (sin pisar lo que ya estaba).',
   };
 }
 
@@ -373,6 +410,10 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
     avisos_fallidos: 0,
     avisos_omitidos: 0,
     avisos_pendientes: 0,
+    // Registros que quedaron con su titular asignado en esta corrida.
+    asignados: 0,
+    // Detalle por registro de la corrida, tal como lo muestra el panel.
+    detalle: [] as any[],
     truncado: false,
     errores: [] as string[],
     mensaje: '',
@@ -403,6 +444,9 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
   const seen = new Set<string>();
   // Cargas del historial que ya constan recibidas en el almacén, con su foto.
   const coincidencias: any[] = [];
+  // Ficha de cada registro de la corrida, con su titular, su estado y su aviso.
+  const detalle: any[] = [];
+  const filaPorPaquete = new Map<string, any>();
   let cursor = '';
   let reachedLimit = false;
 
@@ -444,11 +488,29 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
       summary.total += 1;
       try {
         const result = await importHistoryRecord(base44, raw, connection);
+        const pkg = result.package || null;
         // Coincidencia con una carga ya recibida en el almacén y con su foto: se le
         // devuelve al mayorista al terminar la corrida.
-        if (result.package && receivedInChina(result.package) && receptionPhotos(result.package).length > 0) {
-          coincidencias.push(result.package);
-        }
+        const esCoincidencia = !!pkg && receivedInChina(pkg) && receptionPhotos(pkg).length > 0;
+        if (esCoincidencia) coincidencias.push(pkg);
+
+        const fila = {
+          tracking: String(pkg?.tracking_number || identity || ''),
+          client_email: String(pkg?.client_email || ''),
+          shipping_mark: String(pkg?.shipping_mark || ''),
+          package_id: String(pkg?.id || ''),
+          resultado: RESULT_LABELS[result.outcome] || 'con_error',
+          estado: String(pkg?.status || ''),
+          asignado: result.asignado === true,
+          // Cómo quedó el aviso: se completa al terminar la corrida.
+          aviso: !pkg ? 'no_aplica' : (!receivedInChina(pkg) ? 'no_recibido' : (esCoincidencia ? 'pendiente' : 'sin_foto')),
+          fotos: pkg ? receptionPhotos(pkg).length : 0,
+          mensaje: truncate(result.mensaje || '', 300),
+        };
+        detalle.push(fila);
+        if (pkg?.id) filaPorPaquete.set(pkg.id, fila);
+        if (result.asignado === true) summary.asignados += 1;
+
         if (result.outcome === 'nuevo') summary.nuevos += 1;
         else if (result.outcome === 'actualizado') summary.actualizados += 1;
         else if (result.outcome === 'omitido') summary.omitidos += 1;
@@ -460,8 +522,21 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
         }
       } catch (err: any) {
         summary.fallidos += 1;
+        const mensaje = truncate(err?.message || 'No se pudo procesar el registro.', 200);
+        detalle.push({
+          tracking: identity || '',
+          client_email: '',
+          shipping_mark: '',
+          package_id: '',
+          resultado: 'con_error',
+          estado: '',
+          asignado: false,
+          aviso: 'no_aplica',
+          fotos: 0,
+          mensaje,
+        });
         if (summary.errores.length < MAX_ERROR_SAMPLES) {
-          summary.errores.push(`${identity || 'sin tracking'}: ${truncate(err?.message || 'No se pudo procesar el registro.', 200)}`);
+          summary.errores.push(`${identity || 'sin tracking'}: ${mensaje}`);
         }
       }
     }
@@ -477,6 +552,17 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
   summary.avisos_fallidos = avisos.fallidos;
   summary.avisos_omitidos = avisos.omitidos;
   summary.avisos_pendientes = avisos.pendientes;
+  // Se completa en cada ficha cómo quedó su aviso al mayorista.
+  for (const [packageId, info] of Object.entries(avisos.por_paquete as Record<string, any>)) {
+    const fila = filaPorPaquete.get(packageId);
+    if (!fila) continue;
+    fila.aviso = info.aviso;
+    fila.fotos = Number(info.fotos) || 0;
+    if (info.mensaje) fila.mensaje = truncate(`${fila.mensaje} ${info.mensaje}`.trim(), 300);
+  }
+  // Una carga ya recibida sin foto también queda pendiente de devolver.
+  summary.avisos_pendientes += detalle.filter((fila) => fila.aviso === 'sin_foto').length;
+  summary.detalle = detalle.slice(0, MAX_DETAIL);
   for (const error of avisos.errores) {
     if (summary.errores.length < MAX_ERROR_SAMPLES) summary.errores.push(error);
   }
@@ -485,7 +571,7 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
   const devueltas = coincidencias.length
     ? ` Coincidencias ya recibidas devueltas al mayorista: ${summary.avisos_enviados} aviso(s) enviado(s)${summary.avisos_fallidos ? `, ${summary.avisos_fallidos} fallido(s)` : ''}${summary.avisos_pendientes ? `, ${summary.avisos_pendientes} se devuelven en la corrida siguiente` : ''}.`
     : '';
-  summary.mensaje = `${summary.total} registro(s) del historial: ${summary.nuevos} nuevo(s), ${summary.actualizados} actualizado(s), ${summary.omitidos} ya alineado(s)${summary.fallidos ? `, ${summary.fallidos} con error` : ''}${summary.truncado ? ' (se alcanzó el tope de la corrida)' : ''}.${devueltas}`;
+  summary.mensaje = `${summary.total} registro(s) del historial: ${summary.nuevos} nuevo(s), ${summary.actualizados} actualizado(s), ${summary.omitidos} ya alineado(s)${summary.fallidos ? `, ${summary.fallidos} con error` : ''}${summary.truncado ? ' (se alcanzó el tope de la corrida)' : ''}. ${summary.asignados} carga(s) quedaron con su titular asignado.${devueltas}`;
 
   await updateConnection(base44, connection?.id, {
     last_history_run_date: now,
@@ -499,6 +585,9 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
     last_history_pages: summary.pages,
     last_history_notified: summary.avisos_enviados,
     last_history_notify_failed: summary.avisos_fallidos,
+    last_history_notify_pending: summary.avisos_pendientes,
+    last_history_assigned: summary.asignados,
+    last_history_detail: summary.detalle,
   });
 
   await logWholesalerEvent(base44, {

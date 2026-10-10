@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { History, Loader2, RefreshCw } from 'lucide-react';
+import WholesalerHistoryDetailList from '@/components/wholesaler/WholesalerHistoryDetailList';
 
 function when(value) {
   return value ? moment(value).format('DD/MM/YYYY HH:mm') : 'todavía no';
@@ -24,7 +25,9 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
   const avisos = connections.reduce((acc, c) => ({
     enviados: acc.enviados + (Number(c.last_history_notified) || 0),
     fallidos: acc.fallidos + (Number(c.last_history_notify_failed) || 0),
-  }), { enviados: 0, fallidos: 0 });
+    pendientes: acc.pendientes + (Number(c.last_history_notify_pending) || 0),
+    asignados: acc.asignados + (Number(c.last_history_assigned) || 0),
+  }), { enviados: 0, fallidos: 0, pendientes: 0, asignados: 0 });
 
   return (
     <Card className="rounded-2xl border-0 shadow-card">
@@ -53,11 +56,17 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
           <Badge className="bg-emerald-100 text-emerald-700">{totales.nuevos} nueva(s)</Badge>
           <Badge className="bg-sky-100 text-sky-700">{totales.actualizados} completada(s)</Badge>
           <Badge className="bg-slate-100 text-slate-600">{totales.omitidos} ya alineada(s)</Badge>
+          {avisos.asignados > 0 && (
+            <Badge className="bg-teal-100 text-teal-700">{avisos.asignados} con titular asignado</Badge>
+          )}
           {avisos.enviados > 0 && (
             <Badge className="bg-emerald-100 text-emerald-700">{avisos.enviados} devuelta(s) al mayorista</Badge>
           )}
           {avisos.fallidos > 0 && (
             <Badge className="bg-rose-100 text-rose-700">{avisos.fallidos} aviso(s) fallido(s)</Badge>
+          )}
+          {avisos.pendientes > 0 && (
+            <Badge className="bg-amber-100 text-amber-700">{avisos.pendientes} pendiente(s) de devolver</Badge>
           )}
           <span className="text-muted-foreground">Última sincronización: {when(ultima)}</span>
         </div>
@@ -89,6 +98,16 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
                         {connection.last_history_notify_failed} aviso(s) sin entregar
                       </Badge>
                     )}
+                    {Number(connection.last_history_notify_pending) > 0 && (
+                      <Badge className="bg-amber-100 text-amber-700">
+                        {connection.last_history_notify_pending} pendiente(s) de devolver
+                      </Badge>
+                    )}
+                    {Number(connection.last_history_assigned) > 0 && (
+                      <Badge className="bg-teal-100 text-teal-700">
+                        {connection.last_history_assigned} con titular asignado
+                      </Badge>
+                    )}
                     <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">
                       {when(connection.last_history_run_date)}
                     </span>
@@ -96,6 +115,7 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
                   {connection.last_history_message && (
                     <p className="text-xs text-muted-foreground">{connection.last_history_message}</p>
                   )}
+                  <WholesalerHistoryDetailList detail={connection.last_history_detail} />
                 </div>
               );
             })}

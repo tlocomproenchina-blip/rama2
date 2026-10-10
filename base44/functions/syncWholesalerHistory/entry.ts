@@ -36,6 +36,8 @@ export default async function (req: Request): Promise<Response> {
     const fallidos = sum('fallidos');
     const avisosEnviados = sum('avisos_enviados');
     const avisosFallidos = sum('avisos_fallidos');
+    const avisosPendientes = sum('avisos_pendientes');
+    const asignados = sum('asignados');
 
     return Response.json({
       ok: true,
@@ -48,10 +50,12 @@ export default async function (req: Request): Promise<Response> {
       // Coincidencias ya recibidas que se le devolvieron a cada mayorista.
       avisos_enviados: avisosEnviados,
       avisos_fallidos: avisosFallidos,
+      avisos_pendientes: avisosPendientes,
+      asignados,
       resultados: results,
       mensaje: results.length === 1
         ? `${results[0].name}: ${results[0].mensaje}`
-        : `${results.length} mayorista(s): ${nuevos} nueva(s), ${actualizados} actualizada(s), ${omitidos} ya alineada(s)${fallidos ? `, ${fallidos} con error` : ''}. ${avisosEnviados} coincidencia(s) ya recibida(s) devuelta(s) al mayorista${avisosFallidos ? ` (${avisosFallidos} con error)` : ''}.`,
+        : `${results.length} mayorista(s): ${nuevos} nueva(s), ${actualizados} actualizada(s), ${omitidos} ya alineada(s)${fallidos ? `, ${fallidos} con error` : ''}. ${asignados} carga(s) con titular asignado. ${avisosEnviados} coincidencia(s) ya recibida(s) devuelta(s) al mayorista${avisosFallidos ? ` (${avisosFallidos} con error)` : ''}${avisosPendientes ? `, ${avisosPendientes} pendiente(s)` : ''}.`,
     });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
