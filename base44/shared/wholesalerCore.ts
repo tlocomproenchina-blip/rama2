@@ -161,3 +161,14 @@ export async function emailsEnabled(base44: any) {
 export function truncate(value: any, max = 900) {
   return String(value ?? '').slice(0, max);
 }
+
+// Las funciones de una app viven en /functions/<nombre>. Si la dirección guardada
+// apunta a la raíz de la app (sin /functions/), se completa sola: así un aviso no
+// cae en la página web del mayorista y se pierde en silencio.
+export function appFunctionUrl(raw: any) {
+  const url = String(raw || '').trim();
+  if (!url || !/^https?:\/\//i.test(url)) return url;
+  if (url.includes('/functions/')) return url.replace(/\/+$/, '');
+  const match = url.match(/^(https?:\/\/[^/]+)\/([A-Za-z0-9_-]+)\/?$/);
+  return match ? `${match[1]}/functions/${match[2]}` : url;
+}

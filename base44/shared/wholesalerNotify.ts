@@ -6,6 +6,7 @@
 // historial de envíos al mayorista del panel.
 import {
   DEFAULT_CONNECTION_KEY,
+  appFunctionUrl,
   connectionKeyOf,
   connectionLabel,
   getPrimaryConnection,
@@ -126,7 +127,7 @@ export async function notifyReceptionBlock(base44: any, receptions: any[], conne
     };
   }
 
-  const url = String(connection?.notify_url || '').trim();
+  const url = appFunctionUrl(connection?.notify_url);
   if (connection?.notify_enabled === false || !url) {
     return {
       enviado: false,

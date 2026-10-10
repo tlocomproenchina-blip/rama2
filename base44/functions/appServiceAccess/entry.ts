@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { checkTracking, receiveTrackingBlock, reportPrealert } from '../../shared/wholesalerPackages.ts';
 import { notifyReceptionBlock } from '../../shared/wholesalerNotify.ts';
-import { resolveConnectionForKey } from '../../shared/wholesalerCore.ts';
+import { logWholesalerEvent, resolveConnectionForKey, stampOf, truncate } from '../../shared/wholesalerCore.ts';
 
 // Acceso externo de la app: servicio propio (APP_SERVICE_API_KEY) y las apps de
 // los clientes mayoristas (una por conexión). Cada clave identifica a qué
@@ -101,6 +101,15 @@ export default async function (req: Request): Promise<Response> {
       return Response.json(result);
     }
 
+    // Una llamada con una operación que no reconocemos queda registrada: así se ve
+    // en el panel que la app del mayorista sí intentó algo y con qué nombre, en vez
+    // de perderse en silencio.
+    await logWholesalerEvent(base44, {
+      event_type: 'conexion_fallida',
+      result: 'accion_no_reconocida',
+      detail: truncate(`La app del mayorista pidió la operación "${action}", que no existe`, 300),
+      ...(connection ? stampOf(connection) : {}),
+    });
     return Response.json({ error: 'Unsupported action' }, { status: 400 });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
