@@ -8,7 +8,7 @@ import {
   markKeyOf,
   ordersForClient,
   receivedTrackingsByOrder,
-  round2,
+  round4,
   stampKeyOf,
 } from '../../shared/wholesalerBilling.ts';
 
@@ -82,7 +82,7 @@ export default async function (req: Request): Promise<Response> {
         rate_per_cbm: num(row.rate_per_cbm),
         door_to_door_per_cbm: num(row.door_to_door_per_cbm),
         pending_orders: pending.length,
-        pending_cbm: round2(pending.reduce((sum: number, order: any) => sum + num(order.cbm), 0)),
+        pending_cbm: round4(pending.reduce((sum: number, order: any) => sum + num(order.cbm), 0)),
         billed_orders: clientOrders.length - pending.length,
         orders: [],
         available_trackings: [],
@@ -106,7 +106,7 @@ export default async function (req: Request): Promise<Response> {
             const hit = received[item.order_number.trim().toLowerCase()] || { count: 0, trackings: [] };
             return {
               order_number: item.order_number,
-              cbm: round2(item.cbm),
+              cbm: round4(item.cbm),
               fecha: item.fecha,
               trackings_count: item.trackings.length,
               received: hit.count,

@@ -7,13 +7,23 @@ export function round2(value) {
   return Math.round((Number(value) || 0) * 100) / 100;
 }
 
+// El CBM se maneja con su precisión real (hasta 4 decimales), igual que en el
+// servidor: redondearlo a centésimas cambiaría lo que se le cobra al cliente.
+export function round4(value) {
+  return Math.round((Number(value) || 0) * 10000) / 10000;
+}
+
+export function cbmText(value) {
+  return round4(value).toFixed(4).replace(/\.?0+$/, '') || '0';
+}
+
 export function draftOrders(draft) {
   return (draft?.orders || []).filter((o) => o?.checked !== false && String(o?.order_number || '').trim());
 }
 
 export function draftAmounts(draft) {
   const orders = draftOrders(draft);
-  const cbm = round2(orders.reduce((sum, o) => sum + (Number(o.cbm) || 0), 0));
+  const cbm = round4(orders.reduce((sum, o) => sum + (Number(o.cbm) || 0), 0));
   const received = orders.reduce((sum, o) => sum + (Number(o.received) || 0) + (o.picked?.length || 0), 0);
   const shipping = round2(cbm * (Number(draft?.rate_per_cbm) || 0));
   const doorToDoor = round2(cbm * (Number(draft?.door_to_door_per_cbm) || 0));
@@ -36,7 +46,7 @@ export function invoiceTotals(drafts) {
     if (!amounts.orders) continue;
     totals.clients += 1;
     totals.orders += amounts.orders;
-    totals.cbm = round2(totals.cbm + amounts.cbm);
+    totals.cbm = round4(totals.cbm + amounts.cbm);
     totals.received += amounts.received;
     totals.shipping = round2(totals.shipping + amounts.shipping);
     totals.doorToDoor = round2(totals.doorToDoor + amounts.doorToDoor);

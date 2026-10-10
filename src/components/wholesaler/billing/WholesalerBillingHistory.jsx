@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { cbmText } from '@/lib/wholesalerBillingCalc';
 
 const EMAIL_LABEL = {
   enviado: 'Correo enviado',
@@ -88,7 +89,7 @@ export default function WholesalerBillingHistory({ invoices, loading }) {
                           <div className="min-w-0">
                             <p className="truncate text-sm text-foreground">{client.client_name || client.client_email}</p>
                             <p className="truncate text-xs text-muted-foreground">
-                              {client.cbm?.toFixed?.(3) || client.cbm || 0} CBM · {client.received_trackings || 0} tracking(s) recibido(s)
+                              {cbmText(client.cbm)} CBM · {client.received_trackings || 0} tracking(s) recibido(s)
                               {' · '}envío ${Number(client.rate_per_cbm || 0).toFixed(2)}/CBM · puerta a puerta ${Number(client.door_to_door_per_cbm || 0).toFixed(2)}/CBM
                             </p>
                           </div>

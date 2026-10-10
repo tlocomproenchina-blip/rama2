@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Search } from 'lucide-react';
+import { cbmText } from '@/lib/wholesalerBillingCalc';
 
 // Elegir los clientes del mayorista que entran en la factura del lote.
 export default function WholesalerBillingClientPicker({ clients, selected, onToggle, loading }) {
@@ -60,7 +61,7 @@ export default function WholesalerBillingClientPicker({ clients, selected, onTog
                   <Badge variant={client.pending_orders ? 'secondary' : 'outline'}>
                     {client.pending_orders} orden(es)
                   </Badge>
-                  <Badge variant="outline">{Number(client.pending_cbm || 0).toFixed(3)} CBM</Badge>
+                  <Badge variant="outline">{cbmText(client.pending_cbm)} CBM</Badge>
                 </span>
               </label>
             );

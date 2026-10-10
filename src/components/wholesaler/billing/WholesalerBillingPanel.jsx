@@ -12,10 +12,6 @@ import WholesalerBillingResult from './WholesalerBillingResult';
 import WholesalerBillingHistory from './WholesalerBillingHistory';
 import { draftOrders, invoiceTotals } from '@/lib/wholesalerBillingCalc';
 
-function connKeyOf(connection) {
-  return connection?.config_key || 'main';
-}
-
 function toArray(rows) {
   return Array.isArray(rows) ? rows : rows?.items || [];
 }
@@ -44,15 +40,8 @@ function buildDraft(row) {
 // Facturar a los clientes de un mayorista: se eligen varios clientes, se arman
 // sus órdenes/envíos con su CBM y sale una sola factura, con el correo de cada
 // cliente llevando su parte.
-export default function WholesalerBillingPanel({ connections, initialWholesaler }) {
-  const options = useMemo(
-    () => (connections || []).map((connection) => ({
-      key: connKeyOf(connection),
-      name: connection.wholesaler_name || 'Cliente mayorista',
-    })),
-    [connections],
-  );
-
+export default function WholesalerBillingPanel({ initialWholesaler }) {
+  const [groups, setGroups] = useState([]);
   const [wholesaler, setWholesaler] = useState('');
   const [clients, setClients] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -65,17 +54,30 @@ export default function WholesalerBillingPanel({ connections, initialWholesaler 
   const [invoices, setInvoices] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  const loadGroups = useCallback(async () => {
+    try {
+      const response = await base44.functions.invoke('getWholesalerBillingCandidates', {});
+      setGroups(response?.data?.groups || []);
+    } catch (error) {
+      toast.error(error?.message || 'No se pudieron cargar los mayoristas.');
+    }
+  }, []);
+
+  useEffect(() => { loadGroups(); }, [loadGroups]);
+
+  // El mayorista sale de los mismos clientes, así que también aparecen los de
+  // una conexión que se quitó después.
   useEffect(() => {
-    if (wholesaler || !options.length) return;
-    const preferred = options.find((option) => option.key === initialWholesaler);
-    setWholesaler(preferred ? preferred.key : options[0].key);
-  }, [options, initialWholesaler, wholesaler]);
+    if (wholesaler || !groups.length) return;
+    const preferred = groups.find((group) => group.key === initialWholesaler);
+    setWholesaler(preferred ? preferred.key : groups[0].key);
+  }, [groups, initialWholesaler, wholesaler]);
 
   const loadClients = useCallback(async () => {
     if (!wholesaler) return;
     setLoading(true);
     try {
-      const response = await base44.functions.invoke('getWholesalerBillingCandidates', { connection_key: wholesaler });
+      const response = await base44.functions.invoke('getWholesalerBillingCandidates', { wholesaler_key: wholesaler });
       setClients(response?.data?.clients || []);
     } catch (error) {
       toast.error(error?.message || 'No se pudieron cargar los clientes del mayorista.');
@@ -115,13 +117,13 @@ export default function WholesalerBillingPanel({ connections, initialWholesaler 
   }, [loadClients, loadInvoices]);
 
   // El detalle de un cliente (sus órdenes, sus trackings recibidos y sus
-  // trackings libres) se pide solo cuando se elige para facturar.
+  // trackings todavía libres) se pide solo cuando se elige para facturar.
   useEffect(() => {
     const pending = selected.filter((email) => !drafts[email]);
     if (!pending.length || !wholesaler) return undefined;
     let cancelled = false;
     setDetailLoading(true);
-    base44.functions.invoke('getWholesalerBillingCandidates', { connection_key: wholesaler, client_emails: pending })
+    base44.functions.invoke('getWholesalerBillingCandidates', { wholesaler_key: wholesaler, client_emails: pending })
       .then((response) => {
         if (cancelled) return;
         const rows = response?.data?.clients || [];
@@ -159,6 +161,7 @@ export default function WholesalerBillingPanel({ connections, initialWholesaler 
   }, [selected, drafts]);
 
   const totals = useMemo(() => invoiceTotals(selectedDrafts), [selectedDrafts]);
+  const currentGroup = groups.find((group) => group.key === wholesaler) || null;
 
   const handleEmit = async () => {
     const payloadClients = selected
@@ -190,7 +193,8 @@ export default function WholesalerBillingPanel({ connections, initialWholesaler 
     setEmitting(true);
     try {
       const response = await base44.functions.invoke('createWholesalerInvoice', {
-        connection_key: wholesaler,
+        wholesaler_key: wholesaler,
+        wholesaler_name: currentGroup?.name || '',
         clients: payloadClients,
         notes,
       });
@@ -231,15 +235,17 @@ export default function WholesalerBillingPanel({ connections, initialWholesaler 
                 <SelectValue placeholder="Elige el mayorista" />
               </SelectTrigger>
               <SelectContent>
-                {options.map((option) => (
-                  <SelectItem key={option.key} value={option.key}>{option.name}</SelectItem>
+                {groups.map((group) => (
+                  <SelectItem key={group.key} value={group.key}>
+                    {group.name} · {group.clients} cliente(s)
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => { loadClients(); loadInvoices(); }}
+              onClick={() => { loadGroups(); loadClients(); loadInvoices(); }}
               disabled={loading || !wholesaler}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}

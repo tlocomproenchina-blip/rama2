@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Send } from 'lucide-react';
+import { cbmText } from '@/lib/wholesalerBillingCalc';
 
 function TotalRow({ label, value }) {
   return (
@@ -24,7 +25,7 @@ export default function WholesalerBillingSummary({ totals, notes, onNotesChange,
         <div className="space-y-2">
           <TotalRow label="Clientes incluidos" value={totals.clients} />
           <TotalRow label="Órdenes / envíos" value={totals.orders} />
-          <TotalRow label="CBM facturable" value={totals.cbm.toFixed(3)} />
+          <TotalRow label="CBM facturable" value={cbmText(totals.cbm)} />
           <TotalRow label="Trackings recibidos" value={totals.received} />
           <TotalRow label="Servicio de envío" value={`$${totals.shipping.toFixed(2)}`} />
           <TotalRow label="Servicio puerta a puerta" value={`$${totals.doorToDoor.toFixed(2)}`} />

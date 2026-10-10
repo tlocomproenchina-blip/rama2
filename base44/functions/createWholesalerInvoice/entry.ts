@@ -20,6 +20,7 @@ import {
   ordersForClient,
   receivedTrackingsByOrder,
   round2,
+  round4,
   sendInvoiceEmail,
   stampKeyOf,
   trackingKeyOf,
@@ -112,7 +113,7 @@ export default async function (req: Request): Promise<Response> {
             warnings.push(`${label}: ya existe un registro con el N° de orden ${item.order_number}: no se incluyó.`);
             continue;
           }
-          const cbm = round2(num(item?.cbm));
+          const cbm = round4(num(item?.cbm));
           const trackings = (Array.isArray(item?.tracking_numbers) ? item.tracking_numbers : [])
             .map((tracking: any) => String(tracking || '').trim())
             .filter(Boolean);
@@ -152,7 +153,7 @@ export default async function (req: Request): Promise<Response> {
         }
         selected.push({
           order_number: String(existing.invoice_number).trim(),
-          cbm: usePayload ? round2(num(item.cbm)) : round2(num(existing.cbm)),
+          cbm: usePayload ? round4(num(item.cbm)) : round4(num(existing.cbm)),
           trackings,
           is_new: false,
         });
@@ -168,14 +169,14 @@ export default async function (req: Request): Promise<Response> {
         const hit = received[orderKeyOf(order.order_number)] || { count: 0, trackings: [] };
         return {
           order_number: order.order_number,
-          cbm: round2(order.cbm),
+          cbm: round4(order.cbm),
           trackings_count: order.trackings.length,
           received_trackings: hit.count,
           trackings: hit.trackings,
           is_new: order.is_new,
         };
       });
-      const cbm = round2(selected.reduce((sum: number, order: any) => sum + num(order.cbm), 0));
+      const cbm = round4(selected.reduce((sum: number, order: any) => sum + num(order.cbm), 0));
       const trackings = orderDetails.reduce((sum: number, order: any) => sum + num(order.received_trackings), 0);
       const amounts = clientAmounts({
         cbm,
@@ -214,7 +215,7 @@ export default async function (req: Request): Promise<Response> {
 
     const totals = {
       clients: builtClients.length,
-      cbm: round2(builtClients.reduce((sum, client) => sum + client.cbm, 0)),
+      cbm: round4(builtClients.reduce((sum, client) => sum + client.cbm, 0)),
       received_trackings: builtClients.reduce((sum, client) => sum + client.received_trackings, 0),
       shipping: round2(builtClients.reduce((sum, client) => sum + client.shipping_amount, 0)),
       door_to_door: round2(builtClients.reduce((sum, client) => sum + client.door_to_door_amount, 0)),

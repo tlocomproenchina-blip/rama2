@@ -21,6 +21,16 @@ export function round2(value: any) {
   return Math.round(num(value) * 100) / 100;
 }
 
+// El CBM se factura con su precisión real: los recibos traen hasta 4 decimales
+// y redondearlo a centésimas cambiaría lo que se le cobra al cliente.
+export function round4(value: any) {
+  return Math.round(num(value) * 10000) / 10000;
+}
+
+export function cbmText(value: any) {
+  return round4(value).toFixed(4).replace(/\.?0+$/, '') || '0';
+}
+
 // Llaves de comparación: los correos y N° de orden no deben repetirse por
 // mayúsculas o espacios, y los trackings se comparan sin distinguir caja.
 export function emailKeyOf(value: any) {
@@ -212,7 +222,7 @@ export function invoiceEmailHtml(params: any) {
   const orderRows = orders.map((o: any) => `
               <tr>
                 <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${o.order_number || 'Sin N° de orden'}</td>
-                <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${round2(o.cbm).toFixed(3)}</td>
+                <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${cbmText(o.cbm)}</td>
                 <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${num(o.received_trackings)}</td>
               </tr>`).join('');
 
@@ -274,13 +284,13 @@ export function invoiceEmailHtml(params: any) {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;">
           <tr>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">
-              Servicio de envío<br /><span style="color:#64748b;font-size:12px;">${round2(client.cbm).toFixed(3)} CBM × ${money(client.rate_per_cbm)} por CBM</span>
+              Servicio de envío<br /><span style="color:#64748b;font-size:12px;">${cbmText(client.cbm)} CBM × ${money(client.rate_per_cbm)} por CBM</span>
             </td>
             <td align="right" style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">${money(client.shipping_amount)}</td>
           </tr>
           <tr>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">
-              Servicio puerta a puerta<br /><span style="color:#64748b;font-size:12px;">${round2(client.cbm).toFixed(3)} CBM × ${money(client.door_to_door_per_cbm)} por CBM</span>
+              Servicio puerta a puerta<br /><span style="color:#64748b;font-size:12px;">${cbmText(client.cbm)} CBM × ${money(client.door_to_door_per_cbm)} por CBM</span>
             </td>
             <td align="right" style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">${money(client.door_to_door_amount)}</td>
           </tr>

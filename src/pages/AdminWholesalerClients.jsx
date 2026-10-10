@@ -285,7 +285,7 @@ export default function AdminWholesalerClients() {
         </TabsList>
 
         <TabsContent value="facturacion" className="space-y-3">
-          <WholesalerBillingPanel connections={connections} initialWholesaler={wholesaler} />
+          <WholesalerBillingPanel initialWholesaler={wholesaler} />
         </TabsContent>
 
         <TabsContent value="clientes" className="space-y-3">

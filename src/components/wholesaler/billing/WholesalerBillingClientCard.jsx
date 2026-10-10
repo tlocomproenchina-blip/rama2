@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { draftAmounts } from '@/lib/wholesalerBillingCalc';
+import { cbmText, draftAmounts } from '@/lib/wholesalerBillingCalc';
 import WholesalerBillingOrderRow from './WholesalerBillingOrderRow';
 import WholesalerBillingNewOrderForm from './WholesalerBillingNewOrderForm';
 
@@ -122,12 +122,12 @@ export default function WholesalerBillingClientCard({ draft, onChange, onRemove 
         <div className="space-y-2 rounded-xl bg-accent/40 p-3">
           <MoneyLine
             label="Servicio de envío"
-            detail={`${amounts.cbm.toFixed(3)} CBM × $${Number(draft.rate_per_cbm || 0).toFixed(2)}`}
+            detail={`${cbmText(amounts.cbm)} CBM × $${Number(draft.rate_per_cbm || 0).toFixed(2)}`}
             value={amounts.shipping}
           />
           <MoneyLine
             label="Servicio puerta a puerta"
-            detail={`${amounts.cbm.toFixed(3)} CBM × $${Number(draft.door_to_door_per_cbm || 0).toFixed(2)}`}
+            detail={`${cbmText(amounts.cbm)} CBM × $${Number(draft.door_to_door_per_cbm || 0).toFixed(2)}`}
             value={amounts.doorToDoor}
           />
           <MoneyLine
