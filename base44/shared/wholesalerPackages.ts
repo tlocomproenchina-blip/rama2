@@ -273,6 +273,7 @@ export async function receiveTracking(base44: any, tracking: string, connection:
       resultado: 'ya_registrado',
       creado,
       asignado: claimed,
+      client_email: pkg.client_email || '',
       ...describePackage(pkg),
       foto_pendiente: receptionPhotos(pkg).length === 0,
       mensaje: claimed
@@ -314,6 +315,7 @@ export async function receiveTracking(base44: any, tracking: string, connection:
     resultado: 'recibido',
     creado,
     estado: 'recibido',
+    client_email: updated?.client_email || pkg.client_email || '',
     huerfano: (updated?.is_orphan ?? pkg.is_orphan) === true,
     shipping_mark: updated?.shipping_mark || pkg.shipping_mark || '',
     package_id: pkg.id,
@@ -634,7 +636,14 @@ export async function queueReceptionNotice(base44: any, pkg: any, connection: an
     .catch(() => []);
   const log = existing?.[0] || null;
 
-  const yaAvisado = !!log?.notified_date && log?.photo_pending !== true;
+  // Un aviso ya entregado solo se repite cuando ahora hay algo que antes no existía:
+  // la foto de la carga o el cliente al que quedó asignada. Un aviso que salió sin
+  // cliente no le permite a su app marcar la carga en la cuenta de nadie, así que al
+  // asignarla se le vuelve a mandar el tracking ya con su dueño y con la foto.
+  const clienteConocido = !!String(pkg?.client_email || '').trim();
+  const clienteEnviado = !!String(log?.client_email || '').trim();
+  const yaAvisado = !!log?.notified_date && log?.photo_pending !== true
+    && (!clienteConocido || clienteEnviado);
   if (yaAvisado) {
     return {
       log_id: log.id,

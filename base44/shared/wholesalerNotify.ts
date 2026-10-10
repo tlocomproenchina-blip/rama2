@@ -23,6 +23,40 @@ const MAX_ATTEMPTS = 5;
 const MAX_HISTORY = 10;
 const TIMEOUT_MS = 15000;
 
+// La respuesta de la app del mayorista se lee, no se da por hecha: su confirmación
+// (cuántas cargas actualizó) queda anotada en el historial del envío, y un aviso que
+// su webhook rechaza no se marca entregado: queda pendiente para reintentar.
+function wholesalerAnswer(status: number, raw: string) {
+  const text = String(raw || '').trim();
+  if (!text) return { ok: true, confirmation: '', error: null, reachable: true };
+
+  let body: any = null;
+  try {
+    body = JSON.parse(text);
+  } catch (_) {
+    // Respuesta que no es JSON: vale como acuse, sin confirmación que anotar.
+    return { ok: true, confirmation: truncate(text, 200), error: null, reachable: true };
+  }
+  if (!body || typeof body !== 'object') return { ok: true, confirmation: '', error: null, reachable: true };
+
+  const rawMessage = [body.error, body.mensaje, body.message, body.detalle].find((v) => typeof v === 'string' && v.trim());
+  const mensaje = rawMessage ? truncate(rawMessage, 200) : '';
+
+  if (body.ok === false || body.success === false || body.error) {
+    return {
+      ok: false,
+      confirmation: '',
+      reachable: true,
+      error: mensaje || `la app del mayorista no aceptó el aviso (respondió ${status})`,
+    };
+  }
+
+  const partes = ['actualizados', 'updated', 'recibidos', 'received', 'total']
+    .filter((key) => body[key] !== undefined && body[key] !== null)
+    .map((key) => `${key}: ${body[key]}`);
+  return { ok: true, confirmation: truncate(partes.join(', '), 200), error: null, reachable: true };
+}
+
 async function postToWholesaler(url: string, key: string, payload: any) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -36,11 +70,21 @@ async function postToWholesaler(url: string, key: string, payload: any) {
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error(`la app del mayorista respondió ${res.status}`);
-    return { ok: true, error: null };
+    const text = await res.text().catch(() => '');
+    if (!res.ok) {
+      // Un error de su servidor (5xx) cuenta como conexión caída; un rechazo del
+      // aviso (4xx) no: el aviso queda pendiente y se reintenta con los datos al día.
+      return {
+        ok: false,
+        confirmation: '',
+        reachable: res.status < 500,
+        error: `la app del mayorista respondió ${res.status}${truncate(text, 150) ? `: ${truncate(text, 150)}` : ''}`,
+      };
+    }
+    return wholesalerAnswer(res.status, text);
   } catch (err: any) {
     const message = err?.name === 'AbortError' ? 'la app del mayorista no respondió a tiempo' : (err?.message || 'no se pudo conectar');
-    return { ok: false, error: message };
+    return { ok: false, confirmation: '', reachable: false, error: message };
   } finally {
     clearTimeout(timer);
   }
@@ -51,15 +95,24 @@ function buildPayload(receptions: any[]) {
     evento: 'carga_recibida_en_china',
     fecha: new Date().toISOString(),
     total: receptions.length,
-    paquetes: receptions.map((r) => ({
-      tracking: r.tracking,
-      shipping_mark: r.shipping_mark || '',
-      estado: r.estado || 'recibido',
-      fecha: r.fecha || new Date().toISOString(),
-      huerfano: r.huerfano === true,
-      // Direcciones públicas listas para mostrar en la app del mayorista.
-      fotos: Array.isArray(r.fotos) ? r.fotos : [],
-    })),
+    paquetes: receptions.map((r) => {
+      const fotos = Array.isArray(r.fotos) ? r.fotos : [];
+      return {
+        tracking: r.tracking,
+        shipping_mark: r.shipping_mark || '',
+        // Cliente al que quedó asignada la carga en TLEC CARGO: es con lo que la app
+        // del mayorista marca el envío como recibido en la cuenta de su cliente.
+        client_email: String(r.client_email || '').trim().toLowerCase(),
+        client_external_id: r.client_external_id || '',
+        estado: r.estado || 'recibido',
+        recibido: true,
+        fecha: r.fecha || new Date().toISOString(),
+        huerfano: r.huerfano === true,
+        // Direcciones públicas listas para mostrar en la app del mayorista.
+        foto: fotos[0] || '',
+        fotos,
+      };
+    }),
   };
 }
 
@@ -74,6 +127,27 @@ async function receptionLogs(base44: any, receptions: any[]) {
     .catch(() => []);
 
   return (rows && rows.length) ? rows : ids.map((id) => ({ id }));
+}
+
+// Identidad del cliente en la app del mayorista: su identificador externo viaja en
+// el aviso para que esa app encuentre la cuenta del cliente al que quedó asignada la
+// carga, en vez de recibir solo el tracking sin saber a quién pertenece.
+async function clientIdentities(base44: any, receptions: any[]) {
+  const emails = Array.from(new Set(
+    (receptions || []).map((r) => String(r?.client_email || '').trim().toLowerCase()).filter(Boolean),
+  ));
+  const map: Record<string, any> = {};
+  if (!emails.length) return map;
+
+  try {
+    const rows = await base44.asServiceRole.entities.WholesalerClient
+      .filter({ email: { $in: emails } }, '-fetched_date', 200);
+    for (const row of rows || []) {
+      const email = String(row?.email || '').trim().toLowerCase();
+      if (email && !map[email]) map[email] = row;
+    }
+  } catch (_) {}
+  return map;
 }
 
 // Una carga asignada solo sale de la lista de Paquetes Huérfanos cuando ya consta
@@ -177,17 +251,25 @@ export async function notifyReceptionBlock(base44: any, receptions: any[], conne
   const sinFoto = Object.values(fotoFaltanteByLogId).filter(Boolean).length;
 
   const key = outboundKeyFor(connection);
-  const result = await postToWholesaler(url, key, buildPayload(receptions));
+  const identities = await clientIdentities(base44, receptions);
+  const payload = buildPayload(receptions.map((r) => ({
+    ...r,
+    client_external_id: identities[String(r?.client_email || '').trim().toLowerCase()]?.external_id || '',
+  })));
+  const result = await postToWholesaler(url, key, payload);
   const now = new Date().toISOString();
   const logs = await receptionLogs(base44, receptions);
 
   if (result.ok) {
     const entregado = `${receptions.length} paquete(s) avisados a la app del mayorista`;
-    const detalle = sinFoto > 0 ? `${entregado}; ${sinFoto} sin foto de recepción (queda pendiente enviarla)` : entregado;
+    // Lo que contestó su app (por ejemplo "actualizados: 1") queda en el historial:
+    // así se ve que el aviso no solo salió, sino que su app lo aplicó.
+    const confirmado = result.confirmation ? ` · su app confirmó: ${result.confirmation}` : '';
+    const detalle = `${entregado}${confirmado}${sinFoto > 0 ? `; ${sinFoto} sin foto de recepción (queda pendiente enviarla)` : ''}`;
 
     await recordNotifyAttempt(base44, logs, {
       ok: true,
-      detail: entregado,
+      detail: `${entregado}${confirmado}`,
       fotosByLogId,
       fotoFaltanteByLogId,
     });
@@ -232,7 +314,11 @@ export async function notifyReceptionBlock(base44: any, receptions: any[], conne
   });
   // Un aviso que no sale cuenta como conexión caída: deja el estado en rojo y
   // avisa a los administradores (sin repetir el mismo correo en cada intento).
-  await registerConnectionResult(base44, connection, { ok: false, error: `No se pudo avisar al mayorista: ${result.error}` });
+  // Un rechazo del propio webhook del mayorista no significa que su app esté caída:
+  // la conexión solo se marca en rojo cuando de verdad no hubo respuesta.
+  if (result.reachable !== true) {
+    await registerConnectionResult(base44, connection, { ok: false, error: `No se pudo avisar al mayorista: ${result.error}` });
+  }
 
   return { enviado: false, mensaje: `No se pudo avisar al mayorista: ${result.error}. Queda pendiente y se reintenta.` };
 }
@@ -262,6 +348,7 @@ export async function retryPendingReceptions(base44: any, connection: any = null
     receptions.push({
       tracking: log.tracking_number || '',
       shipping_mark: log.shipping_mark || '',
+      client_email: log.client_email || '',
       estado: 'recibido',
       fecha: log.event_date,
       log_id: log.id,
@@ -325,6 +412,7 @@ export async function confirmReceptionToWholesaler(base44: any, pkg: any, by = '
   const result = await notifyReceptionBlock(base44, [{
     tracking: String(pkg?.tracking_number || ''),
     shipping_mark: pkg?.shipping_mark || '',
+    client_email: String(pkg?.client_email || '').trim(),
     estado: 'recibido',
     fecha: pkg?.received_date || new Date().toISOString(),
     log_id: queued.log_id,
@@ -335,6 +423,7 @@ export async function confirmReceptionToWholesaler(base44: any, pkg: any, by = '
     enviado: result.enviado === true,
     ya_avisado: false,
     mayorista: connectionLabel(connection),
+    confirmacion: result.confirmation || '',
     fotos_count: queued.fotos_count,
     foto_pendiente: queued.foto_pendiente,
     mensaje: result.mensaje,

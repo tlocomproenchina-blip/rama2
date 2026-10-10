@@ -271,7 +271,8 @@ export default function WholesalerConnectionCard() {
           <p className="mt-1 text-xs text-muted-foreground">
             Tanto la consulta de tracking como el aviso de recepción traen el campo <span className="font-mono">fotos</span>:
             las direcciones públicas de las fotos del paquete recibido en China (hasta 3) y la foto del producto de la pre-alerta,
-            listas para mostrar en tu app. Sin fotos, la lista viene vacía (el campo nunca se omite).
+            listas para mostrar en tu app. El aviso trae además <span className="font-mono">foto</span> con la primera de ellas,
+            para cuando tu app muestra una sola. Sin fotos, la lista viene vacía (el campo nunca se omite).
           </p>
         </div>
 
@@ -286,15 +287,34 @@ export default function WholesalerConnectionCard() {
     {
       "tracking": "TLEC123456",
       "shipping_mark": "50001",
+      "client_email": "cliente@correo.com",
+      "client_external_id": "id-del-cliente-en-tu-app",
       "estado": "recibido",
+      "recibido": true,
       "fecha": "2026-10-03T13:00:00.000Z",
       "huerfano": false,
+      "foto": "https://cdn.tu-cdn.com/tlec/1712345678-ab12cd34.jpg",
       "fotos": [
         "https://cdn.tu-cdn.com/tlec/1712345678-ab12cd34.jpg"
       ]
     }
   ]
 }`}</pre>
+          <p className="mt-2 text-xs text-muted-foreground">
+            <span className="font-mono">client_email</span> (y <span className="font-mono">client_external_id</span>, cuando
+            tu app ya nos había reportado ese cliente) dicen a qué cuenta pertenece la carga: con eso el envío se marca
+            recibido en la cuenta del cliente, con su foto.
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-dashed p-3">
+          <p className="text-xs font-semibold text-foreground">Cómo confirmar el aviso</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Cuando tu app ya marcó la carga como recibida en la cuenta de su cliente, responde
+            <span className="font-mono"> {'{"ok": true, "actualizados": 1}'}</span>: esa confirmación queda anotada en el
+            historial del envío. Un <span className="font-mono">ok: false</span> (o el detalle de un error) deja el aviso
+            pendiente y esta app lo reintenta.
+          </p>
         </div>
       </div>
     </div>

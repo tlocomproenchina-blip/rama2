@@ -34,6 +34,7 @@ export default async function (req: Request): Promise<Response> {
     const result = await notifyReceptionBlock(base44, [{
       tracking: log.tracking_number || '',
       shipping_mark: log.shipping_mark || pkg?.shipping_mark || '',
+      client_email: log.client_email || pkg?.client_email || '',
       estado: 'recibido',
       fecha: log.event_date || new Date().toISOString(),
       log_id: log.id,
