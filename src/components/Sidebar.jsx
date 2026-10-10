@@ -196,24 +196,13 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                 </div>
               )}
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">Panel</p>
+                <p className="hidden text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70 lg:block">Panel</p>
                 <h1 className="truncate font-display text-lg font-bold text-foreground">
                   {config?.app_name || 'TLEC CARGO'}
                 </h1>
-                <p className="truncate text-[12px] text-muted-foreground">
+                <p className="hidden truncate text-[12px] text-muted-foreground lg:block">
                   {config?.app_tagline || 'Sistema de Envíos'}
                 </p>
-              </div>
-            </div>
-            <div className="mt-4 rounded-[1.35rem] border border-border/80 bg-card/78 p-3 shadow-sm backdrop-blur lg:hidden">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
-                <p className="mt-1 truncate text-[12px] text-muted-foreground">{user?.email}</p>
-                <span className={`mt-3 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
-                }>
-                  {isAdmin ? (roleConfig?.role_name || 'Administrador') : 'Cliente'}
-                </span>
               </div>
             </div>
           </div>
