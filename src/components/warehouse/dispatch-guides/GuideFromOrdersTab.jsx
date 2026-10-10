@@ -6,12 +6,13 @@ import useGuideOrderSelection from '@/hooks/useGuideOrderSelection';
 import useGuideOrderEmit from '@/hooks/useGuideOrderEmit';
 import GuideOrderRow from './GuideOrderRow';
 import GuideOrderSelectionSummary from './GuideOrderSelectionSummary';
+import GuideSearchHint from './GuideSearchHint';
 
 // Emisión de la guía por N° de orden / envío: la carga entra aunque su bulto no esté
 // registrado o no exista. Si la orden tiene bultos registrados, entran con su código;
 // si no, la línea sale marcada como carga sin bulto con su N° de orden.
 export default function GuideFromOrdersTab({ appName, onGenerated }) {
-  const { search, setSearch, orders, loading, reload } = useGuideOrderSources('orders');
+  const { search, setSearch, orders, loading, searched, reload } = useGuideOrderSources('orders');
   const { selected, toggle, clear, summary } = useGuideOrderSelection();
   const { emit, emitting } = useGuideOrderEmit({ appName, onGenerated });
 
@@ -35,7 +36,9 @@ export default function GuideFromOrdersTab({ appName, onGenerated }) {
         />
       </div>
 
-      {loading ? (
+      {!searched ? (
+        <GuideSearchHint text="Escribe un N° de orden / envío, el cliente o su mark para ver las órdenes." />
+      ) : loading ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
@@ -57,12 +60,14 @@ export default function GuideFromOrdersTab({ appName, onGenerated }) {
         </div>
       )}
 
-      <GuideOrderSelectionSummary
-        summary={summary}
-        emitting={emitting}
-        onEmit={handleEmit}
-        onClear={clear}
-      />
+      {searched && (
+        <GuideOrderSelectionSummary
+          summary={summary}
+          emitting={emitting}
+          onEmit={handleEmit}
+          onClear={clear}
+        />
+      )}
     </div>
   );
 }

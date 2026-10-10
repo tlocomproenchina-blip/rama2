@@ -8,12 +8,13 @@ import { generateDispatchGuidePdf } from '@/lib/dispatchGuidePdf';
 import useManualGuideCandidates from '@/hooks/useManualGuideCandidates';
 import ManualGuideClientCard from './ManualGuideClientCard';
 import ManualGuideSelectionSummary from './ManualGuideSelectionSummary';
+import GuideSearchHint from './GuideSearchHint';
 
 // Emisión manual por bultos escaneados: se eligen a mano el cliente y los bultos que
 // siguen pendientes de guía. Al emitir, la guía queda con su número correlativo y se
 // genera sola la orden de despacho de cada cliente, más el PDF para imprimir.
 export default function ManualGuideScannedTab({ appName = 'TLEC CARGO', onGenerated }) {
-  const { search, setSearch, clients, loading, loadingMore, hasMore, loadMore, reload } =
+  const { search, setSearch, clients, loading, searched, loadingMore, hasMore, loadMore, reload } =
     useManualGuideCandidates();
   const [selected, setSelected] = useState(() => new Set());
   const [emitting, setEmitting] = useState(false);
@@ -114,7 +115,9 @@ export default function ManualGuideScannedTab({ appName = 'TLEC CARGO', onGenera
         />
       </div>
 
-      {loading ? (
+      {!searched ? (
+        <GuideSearchHint text="Escribe un cliente, mark, código de bulto o tracking para ver la carga pendiente." />
+      ) : loading ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
@@ -143,12 +146,14 @@ export default function ManualGuideScannedTab({ appName = 'TLEC CARGO', onGenera
         </div>
       )}
 
-      <ManualGuideSelectionSummary
-        summary={summary}
-        emitting={emitting}
-        onEmit={emit}
-        onClear={() => setSelected(new Set())}
-      />
+      {searched && (
+        <ManualGuideSelectionSummary
+          summary={summary}
+          emitting={emitting}
+          onEmit={emit}
+          onClear={() => setSelected(new Set())}
+        />
+      )}
     </div>
   );
 }

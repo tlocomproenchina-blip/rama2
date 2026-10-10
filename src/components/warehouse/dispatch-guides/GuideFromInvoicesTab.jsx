@@ -6,11 +6,12 @@ import useGuideOrderSelection from '@/hooks/useGuideOrderSelection';
 import useGuideOrderEmit from '@/hooks/useGuideOrderEmit';
 import PaidInvoiceOrdersCard from './PaidInvoiceOrdersCard';
 import GuideOrderSelectionSummary from './GuideOrderSelectionSummary';
+import GuideSearchHint from './GuideSearchHint';
 
 // Emisión de la guía desde una factura pagada: se eligen las órdenes / envíos de esa
 // factura que se van a despachar. La carga entra aunque su bulto no esté registrado.
 export default function GuideFromInvoicesTab({ appName, onGenerated }) {
-  const { search, setSearch, invoices, loading, reload } = useGuideOrderSources('invoices');
+  const { search, setSearch, invoices, loading, searched, reload } = useGuideOrderSources('invoices');
   const { selected, toggle, toggleMany, clear, summary } = useGuideOrderSelection();
   const { emit, emitting } = useGuideOrderEmit({ appName, onGenerated });
 
@@ -34,7 +35,9 @@ export default function GuideFromInvoicesTab({ appName, onGenerated }) {
         />
       </div>
 
-      {loading ? (
+      {!searched ? (
+        <GuideSearchHint text="Escribe el N° de factura o el email del cliente para ver sus órdenes pagadas." />
+      ) : loading ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
@@ -57,12 +60,14 @@ export default function GuideFromInvoicesTab({ appName, onGenerated }) {
         </div>
       )}
 
-      <GuideOrderSelectionSummary
-        summary={summary}
-        emitting={emitting}
-        onEmit={handleEmit}
-        onClear={clear}
-      />
+      {searched && (
+        <GuideOrderSelectionSummary
+          summary={summary}
+          emitting={emitting}
+          onEmit={handleEmit}
+          onClear={clear}
+        />
+      )}
     </div>
   );
 }

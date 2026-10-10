@@ -5,6 +5,9 @@ import { base44 } from '@/components/api/ApiQueueManager';
 // admin puede elegir a mano para emitir una guía. La búsqueda, el agrupado por
 // cliente y los conteos los resuelve el backend (getDispatchGuides); aquí solo se
 // acumulan las páginas que se piden.
+//
+// Nada se muestra hasta que el admin busca: sin búsqueda no se consulta ni se
+// listan pendientes ('searched' queda en false).
 
 const clientKeyOf = (client) => client?.client_key || client?.client_email || client?.client_name || '';
 
@@ -34,10 +37,13 @@ export default function useManualGuideCandidates() {
   const [search, setSearch] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [nextSkip, setNextSkip] = useState(0);
+
+  const term = search.trim();
 
   const fetchPage = useCallback(async (term, skip) => {
     const res = await base44.functions.invoke('getDispatchGuides', { search: term, skip });
@@ -50,18 +56,32 @@ export default function useManualGuideCandidates() {
   }, []);
 
   useEffect(() => {
+    // Sin búsqueda no hay nada que consultar ni que listar.
+    if (!term) {
+      setClients([]);
+      setSearched(false);
+      setHasMore(false);
+      setNextSkip(0);
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     // Pequeña espera para no consultar en cada tecla.
     const timer = setTimeout(async () => {
       try {
-        const page = await fetchPage(search, 0);
+        const page = await fetchPage(term, 0);
         if (cancelled) return;
         setClients(page.clients);
         setHasMore(page.hasMore);
         setNextSkip(page.nextSkip);
+        setSearched(true);
       } catch (_) {
-        if (!cancelled) setClients([]);
+        if (!cancelled) {
+          setClients([]);
+          setSearched(true);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -71,13 +91,13 @@ export default function useManualGuideCandidates() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [search, reloadKey, fetchPage]);
+  }, [term, reloadKey, fetchPage]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
-      const page = await fetchPage(search, nextSkip);
+      const page = await fetchPage(term, nextSkip);
       setClients((prev) => mergeClients(prev, page.clients));
       setHasMore(page.hasMore);
       setNextSkip(page.nextSkip);
@@ -86,9 +106,9 @@ export default function useManualGuideCandidates() {
     } finally {
       setLoadingMore(false);
     }
-  }, [fetchPage, hasMore, loadingMore, nextSkip, search]);
+  }, [fetchPage, hasMore, loadingMore, nextSkip, term]);
 
   const reload = useCallback(() => setReloadKey((key) => key + 1), []);
 
-  return { search, setSearch, clients, loading, loadingMore, hasMore, loadMore, reload };
+  return { search, setSearch, clients, loading, searched, loadingMore, hasMore, loadMore, reload };
 }
