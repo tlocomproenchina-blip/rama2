@@ -1,5 +1,26 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { absorbIntoOrphan, linkOrphanToPrealert } from '../../shared/orphanConsolidation.ts';
+import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollowup } from '../../shared/wholesalerNotify.ts';
+
+// Al marcar una carga como recibida en el almacén de China se avisa al mayorista
+// con la foto del escaneo: su cuenta del cliente recibe el tracking con la foto.
+// Si el aviso sale completo, la carga deja de aparecer en seguimiento dentro de
+// Paquetes Huérfanos. Un fallo de conexión no rompe el escaneo: el aviso queda
+// pendiente y se reintenta en el corte siguiente.
+async function notifyWholesalerReception(base44: any, pkg: any, photoUrl: any, now: string, by: string) {
+  if (!pkg?.client_email) return;
+  try {
+    const received = {
+      ...pkg,
+      status: 'recibido',
+      received_date: now,
+      package_image_url: photoUrl || pkg.package_image_url || null,
+      package_image_urls: photoUrl ? [photoUrl] : (pkg.package_image_urls || []),
+    };
+    const aviso = await confirmReceptionToWholesaler(base44, received, by);
+    if (noticeDeliveredWithPhoto(aviso)) await setOrphanFollowup(base44, pkg.id, false);
+  } catch (_) {}
+}
 
 // Da de alta el huérfano y, si su cliente ya había declarado ese mismo tracking en
 // una pre-alerta, lo deja enlazado a él sin que nadie lo asigne a mano.
@@ -114,6 +135,7 @@ export default async function(req: Request): Promise<Response> {
             package_image_url: photoUrl,
             package_image_urls: photoUrl ? [photoUrl] : (pkg.package_image_urls || []),
           });
+          await notifyWholesalerReception(base44, pkg, photoUrl, now, `recibido en almacén por Bodega China (${deviceId})`);
           resultType = 'recibido';
           shippingMark = pkg.shipping_mark || '';
           packageId = pkg.id;
@@ -257,6 +279,7 @@ export default async function(req: Request): Promise<Response> {
               package_image_url: photoUrl,
               package_image_urls: photoUrl ? [photoUrl] : (pkg.package_image_urls || []),
             });
+            await notifyWholesalerReception(base44, pkg, photoUrl, now, `recibido en almacén por Bodega China (${deviceId})`);
             resultType = 'recibido';
             shippingMark = pkg.shipping_mark || '';
             packageId = pkg.id;

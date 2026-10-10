@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollowup } from '../../shared/wholesalerNotify.ts';
 
 async function hasWarehouseAccess(base44, user, allowedPages) {
   if (user?.role === 'admin') return true;
@@ -140,7 +141,19 @@ Deno.serve(async (req) => {
       await recalcLocation(base44, pkg.warehouse_location_id);
     }
 
-    return Response.json({ success: true, package: updatedPackage, location: refreshedLocation });
+    // Recepción confirmada al mayorista con la foto que capturó TLEC CARGO en el
+    // almacén: su cuenta del cliente recibe el tracking con la foto. Si el aviso
+    // sale completo, la carga deja de aparecer en seguimiento dentro de Paquetes
+    // Huérfanos; si falla, queda pendiente y se reintenta en el corte siguiente.
+    let avisoMayorista = null;
+    if (body?.mark_received === true) {
+      try {
+        avisoMayorista = await confirmReceptionToWholesaler(base44, updatedPackage, `recibido en almacén por ${user.email}`);
+        if (noticeDeliveredWithPhoto(avisoMayorista)) await setOrphanFollowup(base44, updatedPackage.id, false);
+      } catch (_) {}
+    }
+
+    return Response.json({ success: true, package: updatedPackage, location: refreshedLocation, aviso_mayorista: avisoMayorista });
   } catch (error) {
     return Response.json({ error: String(error?.message || error) }, { status: 500 });
   }

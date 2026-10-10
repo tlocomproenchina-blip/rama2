@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollowup } from '../../shared/wholesalerNotify.ts';
 
 async function hasWarehouseAccess(base44, user, allowedPages) {
   if (user?.role === 'admin') return true;
@@ -69,6 +70,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Recepción confirmada al mayorista con la foto del almacén: su cuenta del
+    // cliente recibe el tracking con la foto. Si el aviso sale completo, la carga
+    // deja de aparecer en seguimiento dentro de Paquetes Huérfanos; si falla o la
+    // foto todavía no existe, queda pendiente y se reintenta en el corte siguiente.
+    let avisoMayorista = null;
+    try {
+      avisoMayorista = await confirmReceptionToWholesaler(base44, pkg, `recibido en almacén por ${user.email}`);
+      if (noticeDeliveredWithPhoto(avisoMayorista)) await setOrphanFollowup(base44, pkg.id, false);
+    } catch (_) {}
+
     const subject = '📥 Paquete recibido en warehouse';
     const message = `Tu paquete ${pkg.tracking_number} ha sido recibido en nuestro almacén.`;
 
@@ -88,7 +99,7 @@ Deno.serve(async (req) => {
     // La notificación in-app sigue activa (creada arriba). Para reactivar, restaurar el bloque SendEmail.
     const emailSent = false;
 
-    return Response.json({ success: true, package: pkg, created: !existing?.[0], email_sent: emailSent });
+    return Response.json({ success: true, package: pkg, created: !existing?.[0], email_sent: emailSent, aviso_mayorista: avisoMayorista });
   } catch (error) {
     return Response.json({ error: String(error?.message || error) }, { status: 500 });
   }
