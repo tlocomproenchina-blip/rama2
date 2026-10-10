@@ -168,66 +168,63 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
           <div className="absolute -right-10 top-24 h-36 w-36 rounded-full bg-sky-200/35 blur-3xl" />
           <div className="absolute -left-10 bottom-24 h-36 w-36 rounded-full bg-blue-200/30 blur-3xl" />
         </div>
-        {/* Header */}
-        <div className="relative border-b border-border/60 px-5 pb-5 pt-6">
-          <div className="relative rounded-[1.75rem] border border-border/80 bg-card/85 p-4 shadow-card backdrop-blur transition-all duration-300 hover:shadow-premium">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-3 top-3 h-8 w-8 rounded-xl border border-border/70 bg-card/80 lg:hidden"
-              onClick={onClose}
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-            <div className="flex items-center gap-3 min-w-0 pr-10 lg:pr-0">
-              {config?.app_logo_url ? (
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border/60">
-                  <OptimizedImage
-                    src={config.app_logo_url}
-                    alt="Logo"
-                    width={48}
-                    height={48}
-                    className="h-full w-full object-cover"
-                    priority={false}
-                  />
-                </div>
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 shadow-card">
-                  <Package className="h-5 w-5 text-white" />
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="hidden text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70 lg:block">Panel</p>
-                <h1 className="truncate font-display text-lg font-bold text-foreground">
-                  {config?.app_name || 'TLEC CARGO'}
-                </h1>
-                <p className="hidden truncate text-[12px] text-muted-foreground lg:block">
-                  {config?.app_tagline || 'Sistema de Envíos'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* User Info */}
-        <div className="relative hidden border-b border-border/60 px-5 py-4 lg:block">
-          <div className="rounded-[1.5rem] border border-border/80 bg-card/78 p-4 shadow-sm backdrop-blur transition-all duration-300 hover:bg-card/88">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
-                <p className="mt-1 truncate text-[12px] text-muted-foreground">{user?.email}</p>
-              </div>
-              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-              isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
-              }>
-                {isAdmin ? (roleConfig?.role_name || 'Administrador') : 'Cliente'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
+        {/* Navigation: marca y usuario integrados arriba de la barra lateral,
+            dentro del área desplazable, para que no queden fijos al hacer scroll */}
         <nav className="relative flex-1 overflow-y-auto px-4 py-4 lg:py-5 [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
+          <div className="relative mb-3 space-y-3">
+            <div className="relative rounded-[1.75rem] border border-border/80 bg-card/85 p-4 shadow-card backdrop-blur transition-all duration-300 hover:shadow-premium">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-3 top-3 h-8 w-8 rounded-xl border border-border/70 bg-card/80 lg:hidden"
+                onClick={onClose}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+              <div className="flex items-center gap-3 min-w-0 pr-10 lg:pr-0">
+                {config?.app_logo_url ? (
+                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border/60">
+                    <OptimizedImage
+                      src={config.app_logo_url}
+                      alt="Logo"
+                      width={48}
+                      height={48}
+                      className="h-full w-full object-cover"
+                      priority={false}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 shadow-card">
+                    <Package className="h-5 w-5 text-white" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="hidden text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70 lg:block">Panel</p>
+                  <h1 className="truncate font-display text-lg font-bold text-foreground">
+                    {config?.app_name || 'TLEC CARGO'}
+                  </h1>
+                  <p className="hidden truncate text-[12px] text-muted-foreground lg:block">
+                    {config?.app_tagline || 'Sistema de Envíos'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden rounded-[1.5rem] border border-border/80 bg-card/78 p-4 shadow-sm backdrop-blur transition-all duration-300 hover:bg-card/88 lg:block">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
+                  <p className="mt-1 truncate text-[12px] text-muted-foreground">{user?.email}</p>
+                </div>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
+                }>
+                  {isAdmin ? (roleConfig?.role_name || 'Administrador') : 'Cliente'}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-[1.75rem] border border-border/75 bg-card/58 p-3 shadow-sm backdrop-blur transition-all duration-300">
           {isAdmin ? (
             filteredAdminGroups.map((group) => (
