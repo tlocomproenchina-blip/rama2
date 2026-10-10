@@ -65,10 +65,6 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
           <label className="mb-1 block text-xs text-muted-foreground">N° de orden / envío</label>
           <Input value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} placeholder="Ej: 2026-0148" />
         </div>
-        <div className="w-28">
-          <label className="mb-1 block text-xs text-muted-foreground">CBM</label>
-          <Input type="number" min="0" step="0.001" inputMode="decimal" value={cbm} onChange={(event) => setCbm(event.target.value)} />
-        </div>
         <div className="w-32">
           <label className="mb-1 block text-xs text-muted-foreground">Cantidad de bultos</label>
           <Input
@@ -80,6 +76,10 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
             onChange={(event) => setBultos(event.target.value)}
             placeholder={String(picked.length)}
           />
+        </div>
+        <div className="w-28">
+          <label className="mb-1 block text-xs text-muted-foreground">CBM</label>
+          <Input type="number" min="0" step="0.001" inputMode="decimal" value={cbm} onChange={(event) => setCbm(event.target.value)} />
         </div>
       </div>
 
